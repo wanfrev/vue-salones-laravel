@@ -1,5 +1,5 @@
 import { QueryClient, QueryCache, MutationCache } from '@tanstack/vue-query'
-import { supabase } from './lib/supabase'
+import { setAuthToken } from './lib/api'
 
 const isAuthError = (err: unknown): boolean => {
   if (!err) return false
@@ -15,7 +15,7 @@ let authErrorRedirecting = false
 const handleAuthError = () => {
   if (authErrorRedirecting) return
   authErrorRedirecting = true
-  supabase.auth.signOut().catch(() => {})
+  setAuthToken(null)
   if (typeof window !== 'undefined' && window.location.pathname !== '/') {
     window.location.assign('/')
   } else {

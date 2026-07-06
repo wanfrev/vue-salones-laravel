@@ -1,5 +1,5 @@
 import { formatDate, formatTime } from '../lib/formatters'
-import { supabase } from '../lib/supabase'
+import { api as supabase } from '../lib/api'
 import type { EmployeePayment } from '../types/database'
 
 export const dashboardKeys = {

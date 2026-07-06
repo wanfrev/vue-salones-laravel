@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { supabase } from '../lib/supabase'
+import { api as supabase } from '../lib/api'
 import { useNotification } from './useNotification'
 import { useCurrency } from './useCurrency'
 import { useBusinessStore } from '../store/business'

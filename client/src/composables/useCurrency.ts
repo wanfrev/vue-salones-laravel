@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { supabase } from '../lib/supabase'
+import { api as supabase } from '../lib/api'
 import { useAuth } from './useAuth'
 import { useBusinessStore } from '../store/business'
 

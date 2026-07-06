@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { useQuery, keepPreviousData } from '@tanstack/vue-query'
-import { supabase } from '../lib/supabase'
+import { api as supabase } from '../lib/api'
 import { useAuthStore } from '../store/auth'
 import { useBusinessStore } from '../store/business'
 import type { Profile, Service } from '../types/database'

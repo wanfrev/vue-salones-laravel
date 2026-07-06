@@ -1,5 +1,4 @@
-import { mutate } from '../lib/typedSupabase'
-import { supabase } from '../lib/supabase'
+import { api as supabase, api as mutate } from '../lib/api'
 import { resolveFunctionErrorMessage } from '../lib/errors'
 
 async function invokeWithSessionRefresh(action: string, body: Record<string, unknown>) {

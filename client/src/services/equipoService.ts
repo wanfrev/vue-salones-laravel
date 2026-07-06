@@ -1,5 +1,4 @@
-import { supabase } from '../lib/supabase'
-import { mutate } from '../lib/typedSupabase'
+import { api as supabase, api as mutate } from '../lib/api'
 import type { UpdateFor } from '../types/helpers'
 import { createAuthUser, deleteAuthUser, updateAuthUser } from './adminService'
 import { mapEmpleadoFormToProfileUpdate, mapEmpleadoFormToScheduleBlocks, mapProfileToEmpleado } from '../mappers/equipoMapper'

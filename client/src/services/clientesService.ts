@@ -1,5 +1,4 @@
-import { supabase } from '../lib/supabase'
-import { mutate } from '../lib/typedSupabase'
+import { api as supabase, api as mutate } from '../lib/api'
 import { clienteFormSchema } from '../lib/validation'
 import { computeClientStats } from '../business/clientStats'
 import { mapClienteFormToClientInsert, mapClientToCliente } from '../mappers/clientesMapper'

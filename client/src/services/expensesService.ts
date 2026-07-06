@@ -1,5 +1,4 @@
-import { supabase } from '../lib/supabase'
-import { mutate } from '../lib/typedSupabase'
+import { api as supabase, api as mutate } from '../lib/api'
 import { handleDbError } from '../lib/errors'
 import { expenseFormSchema } from '../lib/validation'
 import type { Expense } from '../types/database'

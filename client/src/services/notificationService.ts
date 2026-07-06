@@ -1,5 +1,4 @@
-import { supabase } from '../lib/supabase'
-import { mutate } from '../lib/typedSupabase'
+import { api as supabase, api as mutate } from '../lib/api'
 
 export type NotificationType = 'reminder' | 'status_change' | 'new_appointment' | 'unpaid_alert' | 'low_stock'
 

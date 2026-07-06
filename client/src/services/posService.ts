@@ -1,5 +1,4 @@
-import { supabase } from '../lib/supabase'
-import { mutate } from '../lib/typedSupabase'
+import { api as supabase, api as mutate } from '../lib/api'
 import { getDefaultLocation } from './inventarioService'
 import type { PaymentMethod } from '../types/database'
 import type { POSProductItem, PaymentBreakdownItem } from '../types/pos'

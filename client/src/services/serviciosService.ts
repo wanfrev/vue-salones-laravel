@@ -1,5 +1,4 @@
-import { supabase } from '../lib/supabase'
-import { mutate } from '../lib/typedSupabase'
+import { api as supabase, api as mutate } from '../lib/api'
 import { mapServiceToServicio, mapServicioFormToServiceInsert } from '../mappers/serviciosMapper'
 import type { Service } from '../types/database'
 import type { UpdateFor } from '../types/helpers'

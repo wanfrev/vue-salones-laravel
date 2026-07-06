@@ -2,7 +2,7 @@ import { computed, watchEffect } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useAuthStore } from '../store/auth'
 import { useNotification } from './useNotification'
-import { supabase } from '../lib/supabase'
+import { api as supabase } from '../lib/api'
 import router from '../router'
 import {
   listUnreadNotifications,

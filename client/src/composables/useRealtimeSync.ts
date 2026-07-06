@@ -1,7 +1,6 @@
 import { watchEffect, onScopeDispose } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
-import { supabase } from '../lib/supabase'
-import type { RealtimeChannel } from '@supabase/supabase-js'
+import { api as supabase } from '../lib/api'
 
 interface TableSyncConfig {
   table: string
@@ -29,7 +28,7 @@ const SYNC_TABLES: TableSyncConfig[] = [
 
 export function useRealtimeSync(businessId: () => string | null | undefined) {
   const queryClient = useQueryClient()
-  let channel: RealtimeChannel | null = null
+  let channel: any = null
 
   const subscribe = (bizId: string) => {
     if (!bizId) return

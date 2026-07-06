@@ -1,5 +1,4 @@
-import { supabase } from '../lib/supabase'
-import { mutate } from '../lib/typedSupabase'
+import { api as supabase, api as mutate } from '../lib/api'
 import { validateSaleQuantity, movementTypeForAdjust } from '../business/stockRules'
 import type { InventoryStock, InventoryMovement } from '../types/database'
 import type { InventarioItem, InventarioMovimiento } from '../types/inventario'

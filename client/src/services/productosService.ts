@@ -1,5 +1,4 @@
-import { supabase } from '../lib/supabase'
-import { mutate } from '../lib/typedSupabase'
+import { api as supabase, api as mutate } from '../lib/api'
 import { ensureDefaultLocation, createInitialStock } from '../business/productWorkflow'
 import { mapProductToProducto, mapProductoFormToProductInsert } from '../mappers/productosMapper'
 import type { Product, ProductCategory } from '../types/database'

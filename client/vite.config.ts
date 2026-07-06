@@ -34,23 +34,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^https?:\/\/.*\/(rest\/v1|rpc\/v1)\/.*/i,
-            // Avoid stale financial/transaction data in production.
+            // API calls: never serve from cache (data integrity)
+            urlPattern: /\/api\//i,
             handler: 'NetworkOnly',
-          },
-          {
-            urlPattern: /^https?:\/\/.*\/storage\/v1\/object\/.*/i,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'supabase-storage-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 7,
-              },
-              cacheableResponse: {
-                statuses: [200],
-              },
-            },
           },
           {
             urlPattern: /^https?:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,

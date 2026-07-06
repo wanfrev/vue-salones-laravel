@@ -1,11 +1,18 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BusinessController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\ClientController;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// Auth (public)
+Route::post('/auth/login', [AuthController::class, 'login']);
 
-Route::get('/clients', [ClientController::class, 'index']);
+// Auth (protected)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::get('/auth/session', [AuthController::class, 'session']);
+    Route::post('/auth/refresh', [AuthController::class, 'refresh']);
+
+    // Businesses
+    Route::get('/businesses/{id}', [BusinessController::class, 'show']);
+});

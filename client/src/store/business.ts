@@ -1,6 +1,6 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { supabase } from '../lib/supabase'
+import { api as supabase } from '../lib/api'
 import { listBranches } from '../services/branchesService'
 import type { Business, Terminology, Branch } from '../types/database'
 

@@ -1,5 +1,4 @@
-import { supabase } from '../lib/supabase'
-import { mutate } from '../lib/typedSupabase'
+import { api as supabase, api as mutate } from '../lib/api'
 
 export async function ensureDefaultLocation(businessId: string, branchId?: string | null): Promise<{ id: string }> {
   let query = supabase

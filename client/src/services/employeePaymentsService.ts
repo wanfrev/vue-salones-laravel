@@ -1,5 +1,4 @@
-import { supabase } from '../lib/supabase'
-import { mutate } from '../lib/typedSupabase'
+import { api as supabase, api as mutate } from '../lib/api'
 import { handleDbError } from '../lib/errors'
 import type { EmployeePayment } from '../types/database'
 
