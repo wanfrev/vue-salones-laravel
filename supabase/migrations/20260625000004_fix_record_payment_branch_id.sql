@@ -1,0 +1,133 @@
+-- =============================================================================
+-- Fix record_payment: set branch_id + use employee's pay_percentage
+-- =============================================================================
+
+-- 0. Drop old overloads so there's only one version
+drop function if exists public.record_payment(uuid, numeric, payment_method, text);
+drop function if exists public.record_payment(uuid, numeric, payment_method);
+
+-- 1. Update record_payment to set branch_id and use employee pay_percentage
+create or replace function public.record_payment(
+  p_appointment_id uuid,
+  p_amount         numeric,
+  p_method         payment_method default 'cash',
+  p_notes          text default null,
+  p_exchange_rate  numeric default null,
+  p_payments_breakdown jsonb default '[]'::jsonb
+)
+returns uuid
+language plpgsql
+volatile
+security invoker
+set search_path = public, pg_temp
+as $$
+declare
+  v_appt               public.appointments;
+  v_service            public.services;
+  v_employee_profile   public.profiles;
+  v_effective_price    numeric(12, 2);
+  v_local_pct          numeric(5, 2);
+  v_employee_pct       numeric(5, 2);
+  v_assistant_pct      numeric(5, 2);
+  v_local_amount       numeric(12, 2);
+  v_employee_amount    numeric(12, 2);
+  v_assistant_amount   numeric(12, 2);
+  v_tx_id              uuid;
+  v_paid_so_far        numeric(12, 2);
+  v_exchange_rate      numeric(12, 4);
+begin
+  select * into v_appt from public.appointments where id = p_appointment_id;
+  if v_appt.id is null then
+    raise exception 'Appointment not found';
+  end if;
+
+  if not public.is_admin_of(v_appt.business_id) then
+    raise exception 'Not authorized';
+  end if;
+
+  if p_amount <= 0 then
+    raise exception 'Amount must be positive';
+  end if;
+
+  select * into v_service from public.services where id = v_appt.service_id;
+
+  -- Get the employee's profile to read their configured pay_percentage
+  select * into v_employee_profile from public.profiles where id = v_appt.employee_id;
+
+  v_effective_price := coalesce(v_appt.price_override, v_service.price);
+
+  -- Priority: appointment override > employee's pay_percentage > service-level split
+  v_assistant_pct   := coalesce(v_appt.assistant_percentage, 0);
+  v_employee_pct    := coalesce(
+    v_appt.employee_percentage_override,
+    v_employee_profile.pay_percentage,
+    100 - v_service.local_percentage
+  );
+  v_local_pct       := 100 - v_employee_pct - v_assistant_pct;
+
+  v_assistant_amount := round(p_amount * v_assistant_pct / 100, 2);
+  v_employee_amount  := round(p_amount * v_employee_pct / 100, 2);
+  v_local_amount     := round(p_amount - v_employee_amount - v_assistant_amount, 2);
+
+  v_exchange_rate := coalesce(p_exchange_rate,
+    (select ves_exchange_rate from public.businesses where id = v_appt.business_id));
+
+  insert into public.transactions (
+    business_id, branch_id, appointment_id,
+    total_amount, local_amount, employee_amount, assistant_amount,
+    local_percentage, employee_percentage, assistant_percentage,
+    method, exchange_rate_used, payments_breakdown,
+    created_by, notes
+  )
+  values (
+    v_appt.business_id, v_appt.branch_id, p_appointment_id,
+    p_amount, v_local_amount, v_employee_amount, v_assistant_amount,
+    v_local_pct, v_employee_pct, v_assistant_pct,
+    p_method, v_exchange_rate, p_payments_breakdown,
+    auth.uid(), p_notes
+  )
+  returning id into v_tx_id;
+
+  select coalesce(sum(total_amount), 0) into v_paid_so_far
+  from public.transactions
+  where appointment_id = p_appointment_id;
+
+  update public.appointments
+  set payment_status = case
+        when v_paid_so_far >= v_effective_price then 'paid'::payment_status
+        when v_paid_so_far > 0                 then 'partial'::payment_status
+        else 'unpaid'::payment_status
+      end
+  where id = p_appointment_id;
+
+  return v_tx_id;
+end;
+$$;
+
+grant execute on function public.record_payment(uuid, numeric, payment_method, text, numeric, jsonb) to authenticated;
+
+-- 2. Backfill existing transactions that lack branch_id
+update public.transactions t
+set branch_id = a.branch_id
+from public.appointments a
+where t.appointment_id = a.id
+  and t.branch_id is null
+  and a.branch_id is not null;
+
+-- 3. Backfill: fix employee_percentage on old transactions where it was wrongly
+--    set to 100 - service.local_percentage instead of the employee's pay_percentage.
+--    Only affects non-overridden appointments where the values actually differ.
+update public.transactions t
+set
+  employee_percentage = p.pay_percentage,
+  local_percentage    = 100 - p.pay_percentage - t.assistant_percentage,
+  employee_amount     = round(t.total_amount * p.pay_percentage / 100, 2),
+  local_amount        = round(t.total_amount
+                        - round(t.total_amount * p.pay_percentage / 100, 2)
+                        - t.assistant_amount, 2)
+from public.appointments a
+join public.profiles p on p.id = a.employee_id
+where t.appointment_id = a.id
+  and a.employee_percentage_override is null
+  and t.employee_percentage != p.pay_percentage
+  and p.pay_percentage > 0;
