@@ -29,7 +29,7 @@ export async function apiRequest<T>(
   return res.data as T
 }
 
-let authToken: string | null = null
+let authToken: string | null = localStorage.getItem('auth_token')
 
 export function getAuthToken(): string | null {
   return authToken
@@ -37,6 +37,11 @@ export function getAuthToken(): string | null {
 
 export function setAuthToken(token: string | null) {
   authToken = token
+  if (token) {
+    localStorage.setItem('auth_token', token)
+  } else {
+    localStorage.removeItem('auth_token')
+  }
 }
 
 async function apiFetch<T>(
@@ -358,11 +363,25 @@ export const apiAuth = {
     return currentSession?.user ?? null
   },
 
+  async getSession() {
+    if (currentSession) {
+      return { data: { session: currentSession }, error: null as ApiError | null }
+    }
+    const res = await apiFetch<ApiSession>('GET', '/auth/session')
+    if (res.data) {
+      currentSession = res.data
+      authToken = res.data.access_token
+      setAuthToken(res.data.access_token)
+      return { data: { session: res.data }, error: null as ApiError | null }
+    }
+    return { data: { session: null as ApiSession | null }, error: res.error }
+  },
+
   async signInWithPassword({ email, password }: { email: string; password: string }) {
     const res = await apiFetch<ApiSession>('POST', '/auth/login', { email, password })
     if (res.data) {
       currentSession = res.data
-      authToken = res.data.access_token
+      setAuthToken(res.data.access_token)
       authListeners.forEach(fn => fn(res.data))
       return { data: { session: res.data, user: res.data.user }, error: null as ApiError | null }
     }
@@ -372,29 +391,16 @@ export const apiAuth = {
   async signOut(_opts?: { scope?: string }) {
     await apiFetch('POST', '/auth/logout')
     currentSession = null
-    authToken = null
+    setAuthToken(null)
     authListeners.forEach(fn => fn(null))
     return { error: null }
-  },
-
-  async getSession() {
-    if (currentSession) {
-      return { data: { session: currentSession }, error: null as ApiError | null }
-    }
-    const res = await apiFetch<ApiSession>('GET', '/auth/session')
-    if (res.data) {
-      currentSession = res.data
-      authToken = res.data.access_token
-      return { data: { session: res.data }, error: null as ApiError | null }
-    }
-    return { data: { session: null as ApiSession | null }, error: res.error }
   },
 
   async refreshSession(_opts?: { refresh_token?: string }) {
     const res = await apiFetch<ApiSession>('POST', '/auth/refresh')
     if (res.data) {
       currentSession = res.data
-      authToken = res.data.access_token
+      setAuthToken(res.data.access_token)
       return { data: { session: res.data, user: res.data.user }, error: null as ApiError | null }
     }
     return { data: null as any, error: res.error }

@@ -52,7 +52,7 @@ import { useAuthStore } from '../../store/auth'
 import { useThemeStore } from '../../store/theme'
 import { useBusinessStore } from '../../store/business'
 import { api as supabase } from '../../lib/api'
-import { useRealtimeSync } from '../../composables/useRealtimeSync'
+import { useRealtime } from '../../composables/useRealtime'
 import lumaLogoLight from '../../assets/Luma.svg'
 import lumaLogoDark from '../../assets/Luma blanco.svg'
 import Sidebar from './Sidebar.vue'
@@ -66,7 +66,7 @@ const themeStore = useThemeStore()
 const businessStore = useBusinessStore()
 const queryClient = useQueryClient()
 
-useRealtimeSync(() => authStore.businessId)
+useRealtime()
 
 const lumaLogo = computed(() => (themeStore.isDark ? lumaLogoDark : lumaLogoLight))
 

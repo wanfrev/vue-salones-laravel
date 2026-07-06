@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\EntityChanged;
 use App\Models\EmployeeSchedule;
 use App\Models\Profile;
 use App\Models\User;
@@ -112,6 +113,7 @@ class ProfileController
             }
 
             DB::commit();
+            EntityChanged::dispatch($p->business_id, 'profile', 'created', $userId);
         } catch (\Throwable $e) {
             DB::rollBack();
             return response()->json(['error' => ['message' => 'Error al crear empleado.']], 500);
@@ -197,6 +199,7 @@ class ProfileController
         }
 
         return response()->json(Profile::with('schedules')->find($id));
+        EntityChanged::dispatch($p->business_id, 'profile', 'updated', $id);
     }
 
     /**
@@ -214,6 +217,8 @@ class ProfileController
 
         $profile->update(['active' => false, 'updated_at' => now()]);
         User::where('id', $id)->update(['updated_at' => now()]);
+
+        EntityChanged::dispatch($p->business_id, 'profile', 'deleted', $id);
 
         return response()->json(null, 204);
     }

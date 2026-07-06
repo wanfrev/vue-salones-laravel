@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\EntityChanged;
 use App\Models\EmployeePayment;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -85,6 +86,7 @@ class EmployeePaymentController
         ]);
 
         return response()->json($payment, 201);
+        EntityChanged::dispatch($p->business_id, 'employee_payment', 'created', $payment->id);
     }
 
     /**
@@ -113,6 +115,7 @@ class EmployeePaymentController
         $payment->update($data + ['updated_at' => now()]);
 
         return response()->json($payment->fresh());
+        EntityChanged::dispatch($p->business_id, 'employee_payment', 'updated', $id);
     }
 
     /**
@@ -129,6 +132,7 @@ class EmployeePaymentController
         }
 
         $payment->delete();
+        EntityChanged::dispatch($p->business_id, 'employee_payment', 'deleted', $id);
 
         return response()->json(null, 204);
     }
