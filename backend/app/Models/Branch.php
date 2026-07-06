@@ -6,25 +6,22 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Profile extends Model
+class Branch extends Model
 {
     public $incrementing = false;
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id', 'business_id', 'full_name', 'role', 'phone', 'avatar_url',
-        'active', 'email', 'job_title',
-        'pay_type', 'pay_percentage', 'base_salary', 'salary_frequency',
-        'disable_agenda',
+        'id', 'business_id', 'name', 'address', 'phone',
+        'is_default', 'active', 'ves_exchange_rate',
     ];
 
     protected function casts(): array
     {
         return [
+            'is_default' => 'boolean',
             'active' => 'boolean',
-            'disable_agenda' => 'boolean',
-            'pay_percentage' => 'float',
-            'base_salary' => 'float',
+            'ves_exchange_rate' => 'float',
         ];
     }
 
@@ -33,8 +30,13 @@ class Profile extends Model
         return $this->belongsTo(Business::class);
     }
 
-    public function schedules(): HasMany
+    public function services(): HasMany
     {
-        return $this->hasMany(EmployeeSchedule::class, 'employee_id');
+        return $this->hasMany(Service::class);
+    }
+
+    public function appointments(): HasMany
+    {
+        return $this->hasMany(Appointment::class);
     }
 }

@@ -90,7 +90,7 @@ export const saveBranch = async (
 export const deleteBranch = async (id: string): Promise<void> => {
   const { error } = await mutate
     .from('branches')
-    .update({ active: false })
+    .delete()
     .eq('id', id)
 
   if (error) throw error

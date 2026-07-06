@@ -1,4 +1,4 @@
-import { api as supabase, api as mutate } from '../lib/api'
+import { api as supabase, api as mutate, apiRequest } from '../lib/api'
 import { handleDbError } from '../lib/errors'
 import type { EmployeePayment } from '../types/database'
 
@@ -270,83 +270,23 @@ export interface EmployeeBalance {
 }
 
 export const getEmployeeBalance = async (
-  businessId: string,
+  _businessId: string,
   employeeId: string,
-  branchId?: string | null,
+  _branchId?: string | null,
 ): Promise<EmployeeBalance> => {
-  const toYmd = (d: Date) => {
-    const yyyy = d.getFullYear()
-    const mm = String(d.getMonth() + 1).padStart(2, '0')
-    const dd = String(d.getDate()).padStart(2, '0')
-    return `${yyyy}-${mm}-${dd}`
-  }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('id, full_name, pay_type, pay_percentage, base_salary')
-    .eq('id', employeeId)
-    .single()
-
-  if (!profile) throw new Error('Empleado no encontrado')
-
   const now = new Date()
-  const periodStart = new Date(now.getFullYear(), now.getMonth(), 1)
-  const periodStartIso = toYmd(periodStart)
-  const periodEndIso = toYmd(now)
+  const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
 
-  const p = profile as any
-  const payType = (p.pay_type ?? 'percentage') as 'salary' | 'percentage' | 'mixed'
-  const payPercentage = Number(p.pay_percentage ?? 0)
-  const baseSalary = Number(p.base_salary ?? 0)
-
-  let variableEarnings = 0
-  if (payType !== 'salary') {
-    let txQuery = supabase
-      .from('transactions')
-      .select('total_amount, appointments!inner(employee_id)')
-      .eq('business_id', businessId)
-      .eq('appointments.employee_id', employeeId)
-      .gte('created_at', `${periodStartIso}T00:00:00.000Z`)
-      .lte('created_at', `${periodEndIso}T23:59:59.999Z`)
-
-    if (branchId) {
-      txQuery = txQuery.eq('branch_id', branchId)
-    }
-
-    const { data: txData } = await txQuery
-
-    const rawTx = (txData ?? []) as Array<{ total_amount: number }>
-    variableEarnings = rawTx.reduce((sum, t) => sum + Number(t.total_amount), 0) * (Math.max(0, payPercentage) / 100)
-  }
-
-  const fixedEarnings = payType === 'salary' || payType === 'mixed' ? Math.max(0, baseSalary) : 0
-  const totalEarned = fixedEarnings + variableEarnings
-
-  let paymentsQuery = supabase
-    .from('employee_payments')
-    .select('amount')
-    .eq('business_id', businessId)
-    .eq('employee_id', employeeId)
-    .gte('payment_date', periodStartIso)
-    .lte('payment_date', periodEndIso)
-
-  if (branchId) {
-    paymentsQuery = paymentsQuery.eq('branch_id', branchId)
-  }
-
-  const { data: paymentsData } = await paymentsQuery
-
-  const rawP = (paymentsData ?? []) as Array<{ amount: number }>
-  const totalPaid = rawP.reduce((sum, p) => sum + Number(p.amount), 0)
+  const data = await apiRequest<any>('GET', `/employee-balance/${employeeId}?year_month=${yearMonth}`)
 
   return {
-    employeeId: p.id,
-    employeeName: p.full_name,
-    payType: payType,
-    payPercentage,
-    baseSalary,
-    totalEarned,
-    totalPaid,
-    pendingBalance: Math.max(0, totalEarned - totalPaid),
+    employeeId: data.employee_id,
+    employeeName: data.employee_name,
+    payType: data.pay_type,
+    payPercentage: data.pay_percentage,
+    baseSalary: data.base_salary,
+    totalEarned: data.total_earned,
+    totalPaid: data.total_paid,
+    pendingBalance: data.pending_balance,
   }
 }

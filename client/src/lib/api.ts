@@ -19,7 +19,21 @@ export type ApiResponse<T> = {
   error: ApiError | null
 }
 
+export async function apiRequest<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+): Promise<T> {
+  const res = await apiFetch<T>(method, path, body)
+  if (res.error) throw new Error(res.error.message)
+  return res.data as T
+}
+
 let authToken: string | null = null
+
+export function getAuthToken(): string | null {
+  return authToken
+}
 
 export function setAuthToken(token: string | null) {
   authToken = token
@@ -223,6 +237,10 @@ class ApiQueryBuilder {
     return this.execute().then(onfulfilled, onrejected)
   }
 
+  private get tablePath(): string {
+    return this.tableName.replace(/_/g, '-')
+  }
+
   private buildPathAndBody(): { path: string; method: string; body?: unknown } {
     const params = new URLSearchParams()
 
@@ -254,18 +272,18 @@ class ApiQueryBuilder {
     const qs = params.toString()
 
     if (this._isUpsert) {
-      const path = `/${this.tableName}/upsert`
+      const path = `/${this.tablePath}/upsert`
       return { path: qs ? `${path}?${qs}` : path, method: 'POST', body: { data: this._body, onConflict: this._onConflict } }
     }
 
     if (this._isInsert) {
-      const path = `/${this.tableName}`
+      const path = `/${this.tablePath}`
       return { path: qs ? `${path}?${qs}` : path, method: 'POST', body: { data: this._body } }
     }
 
     const idFilter = this._filters.find(f => f.column === 'id' && f.op === 'eq')
     if (idFilter && this._method === 'GET') {
-      const path = `/${this.tableName}/${idFilter.value}`
+      const path = `/${this.tablePath}/${idFilter.value}`
       const otherFilters = this._filters.filter(f => f !== idFilter)
       const otherParams = new URLSearchParams()
       if (this._select && this._select !== '*') otherParams.set('select', this._select)
@@ -279,7 +297,7 @@ class ApiQueryBuilder {
       return { path: oqs ? `${path}?${oqs}` : path, method: 'GET' }
     }
 
-    const path = `/${this.tableName}`
+    const path = `/${this.tablePath}`
     return { path: qs ? `${path}?${qs}` : path, method: this._method, body: this._body ? { data: this._body } : undefined }
   }
 
