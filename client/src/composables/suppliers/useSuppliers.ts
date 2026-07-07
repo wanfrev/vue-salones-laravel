@@ -1,9 +1,9 @@
 import { computed, ref } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { useNotification } from './useNotification'
-import { resolvePeriodDates } from '../lib/periodUtils'
-import { useCurrency } from './useCurrency'
-import { useBusinessStore } from '../store/business'
+import { useNotification } from '../common/useNotification'
+import { resolvePeriodDates } from '../../lib/periodUtils'
+import { useCurrency } from '../common/useCurrency'
+import { useBusinessStore } from '../../store/business'
 import {
   supplierKeys,
   supplierPaymentKeys,
@@ -16,7 +16,7 @@ import {
   type SupplierRow,
   type SupplierFormData,
   type SupplierPaymentFormData,
-} from '../services/suppliersService'
+} from '../../services/suppliersService'
 
 export function useSuppliers(businessId: import('vue').Ref<string | null>) {
   const queryClient = useQueryClient()

@@ -1,11 +1,11 @@
 import { ref, computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { toISODate } from '../lib/formatters'
-import { listCitas, agendaKeys } from '../services/agendaService'
-import { listServicios, serviciosKeys } from '../services/serviciosService'
-import { listEquipo, equipoKeys } from '../services/equipoService'
-import { useBusinessStore } from '../store/business'
-import type { Cita } from '../types/cita'
+import { toISODate } from '../../lib/formatters'
+import { listCitas, agendaKeys } from '../../services/agendaService'
+import { listServicios, serviciosKeys } from '../../services/serviciosService'
+import { listEquipo, equipoKeys } from '../../services/equipoService'
+import { useBusinessStore } from '../../store/business'
+import type { Cita } from '../../types/cita'
 
 export type DateFilterMode = 'day' | 'week' | 'all'
 

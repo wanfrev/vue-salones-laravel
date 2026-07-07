@@ -4,8 +4,8 @@ import {
   renameBusinessCategory,
   deleteBusinessCategory,
   serviciosKeys,
-} from '../services/serviciosService'
-import type { Business } from '../types/database'
+} from '../../services/serviciosService'
+import type { Business } from '../../types/database'
 
 interface UseCategoryCRUDParams<T extends { category: string }> {
   businessId: Ref<string | null>

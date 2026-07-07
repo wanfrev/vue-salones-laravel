@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { useCurrency } from '../../composables/useCurrency'
+import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
-import { useNotification } from '../../composables/useNotification'
+import { useNotification } from '../../composables/common/useNotification'
 import { api as mutate } from '../../lib/api'
 
 const props = defineProps<{ show: boolean }>()

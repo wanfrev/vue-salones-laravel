@@ -1,6 +1,6 @@
 import { ref, computed, watch, type Ref } from 'vue'
-import { usePagination } from './usePagination'
-import type { Cliente } from '../types/cliente'
+import { usePagination } from '../common/usePagination'
+import type { Cliente } from '../../types/cliente'
 import type { FilterState } from '../components/filters'
 
 export function useClientFilters(clients: Ref<Cliente[]>) {

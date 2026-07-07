@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
-import type { PaymentMethod } from '../types/database'
-import type { PaymentBreakdownItem } from '../types/pos'
-import type { TransactionRow } from '../composables/useFinancialSummary'
+import type { PaymentMethod } from '../../types/database'
+import type { PaymentBreakdownItem } from '../../types/pos'
+import type { TransactionRow } from '../composables/finanzas/useFinancialSummary'
 
 type Currency = 'USD' | 'VES'
 

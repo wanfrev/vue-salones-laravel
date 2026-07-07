@@ -90,7 +90,7 @@
 
 <script setup lang="ts">
 import { computed, useSlots } from 'vue'
-import { useCurrency } from '../../composables/useCurrency'
+import { useCurrency } from '../../composables/common/useCurrency'
 
 defineProps<{
   incomeTotal: number

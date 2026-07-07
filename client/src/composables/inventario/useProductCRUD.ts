@@ -1,11 +1,11 @@
 import { ref, computed } from 'vue'
-import { useCrud } from './useCrud'
-import { useAuth } from './useAuth'
-import { useCurrency } from './useCurrency'
-import { useBusinessStore } from '../store/business'
-import { listProductos, productosKeys, saveProducto, deleteProducto, deleteProductoPermanently } from '../services/productosService'
-import { posKeys } from '../services/posService'
-import type { Producto, ProductoFormData } from '../types/producto'
+import { useCrud } from '../empleados/useCrud'
+import { useAuth } from '../common/useAuth'
+import { useCurrency } from '../common/useCurrency'
+import { useBusinessStore } from '../../store/business'
+import { listProductos, productosKeys, saveProducto, deleteProducto, deleteProductoPermanently } from '../../services/productosService'
+import { posKeys } from '../../services/posService'
+import type { Producto, ProductoFormData } from '../../types/producto'
 
 export function useProductCRUD() {
   const { authStore } = useAuth()

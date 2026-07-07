@@ -12,7 +12,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useCurrency } from '../../composables/useCurrency'
+import { useCurrency } from '../../composables/common/useCurrency'
 
 const props = withDefaults(defineProps<{
   amount: number

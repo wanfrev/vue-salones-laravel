@@ -65,7 +65,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAuth } from '../../composables/useAuth'
+import { useAuth } from '../../composables/common/useAuth'
 import { useBusinessStore } from '../../store/business'
 import { isAdminPanelRole } from '../../constants/roles'
 import { getInitials } from '../../lib/formatters'

@@ -120,9 +120,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useAuth } from '../composables/useAuth'
+import { useAuth } from '../composables/common/useAuth'
 import { useBusinessStore } from '../store/business'
-import { useBranches } from '../composables/useBranches'
+import { useBranches } from '../composables/common/useBranches'
 import { SectionCard, EmptyState } from '../components/common'
 import { BranchFormModal } from '../components/modals'
 

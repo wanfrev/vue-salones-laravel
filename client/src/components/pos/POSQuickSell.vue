@@ -209,8 +209,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { useCurrency } from '../../composables/useCurrency'
-import { useNotification } from '../../composables/useNotification'
+import { useCurrency } from '../../composables/common/useCurrency'
+import { useNotification } from '../../composables/common/useNotification'
 import { posKeys } from '../../services/posService'
 import { sellProduct, inventarioKeys } from '../../services/inventarioService'
 import { useBusinessStore } from '../../store/business'

@@ -97,7 +97,7 @@
 
 <script setup lang="ts">
 import { Bell, MessageCircle, Calendar, CheckCircle2, CalendarPlus, AlertTriangle, PackageOpen } from 'lucide-vue-next'
-import { useNotifications } from '../../composables/useNotifications'
+import { useNotifications } from '../../composables/common/useNotifications'
 
 defineEmits<{ close: [] }>()
 

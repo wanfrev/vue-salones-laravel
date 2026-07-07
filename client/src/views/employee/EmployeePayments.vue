@@ -86,7 +86,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { formatMethod, formatDate } from '../../lib/formatters'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
-import { useCurrency } from '../../composables/useCurrency'
+import { useCurrency } from '../../composables/common/useCurrency'
 import { dashboardKeys, listEmployeePayments } from '../../services/employeeDashboardService'
 import AppLayout from '../../components/layout/AppLayout.vue'
 

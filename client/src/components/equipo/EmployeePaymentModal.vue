@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useCurrency } from '../../composables/useCurrency'
+import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { formatPayType } from '../../lib/formatters'
 import { getEmployeeBalance, type EmployeeBalance } from '../../services/employeePaymentsService'

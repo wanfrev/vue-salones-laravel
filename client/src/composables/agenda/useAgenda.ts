@@ -1,9 +1,9 @@
 import { ref, computed } from 'vue'
 import { useQuery, keepPreviousData } from '@tanstack/vue-query'
-import { api as supabase } from '../lib/api'
-import { useAuthStore } from '../store/auth'
-import { useBusinessStore } from '../store/business'
-import type { Profile, Service } from '../types/database'
+import { api as supabase } from '../../lib/api'
+import { useAuthStore } from '../../store/auth'
+import { useBusinessStore } from '../../store/business'
+import type { Profile, Service } from '../../types/database'
 
 function defaultWeekRange() {
   const today = new Date()

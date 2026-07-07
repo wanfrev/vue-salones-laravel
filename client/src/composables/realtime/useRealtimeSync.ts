@@ -1,6 +1,6 @@
 import { watchEffect, onScopeDispose } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
-import { echoClient } from '../lib/echo'
+import { echoClient } from '../../lib/echo'
 
 interface TableSyncConfig {
   table: string

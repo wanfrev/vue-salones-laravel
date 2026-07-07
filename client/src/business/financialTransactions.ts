@@ -1,7 +1,7 @@
 import { formatMethod, formatDate } from '../lib/formatters'
 import { computeServiceEarnings, type EmployeeCompProfile } from './employeeEarnings'
 import type { PaymentBreakdownItem } from '../types/pos'
-import type { TransactionRow, UnifiedTransaction, ProductSaleDetail, PaymentRow, EmployeeEarningSummary } from '../composables/useFinancialSummary'
+import type { TransactionRow, UnifiedTransaction, ProductSaleDetail, PaymentRow, EmployeeEarningSummary } from '../composables/finanzas/useFinancialSummary'
 
 export function formatBreakdownLabel(breakdown: PaymentBreakdownItem[] | null | undefined): string {
   if (!breakdown || !Array.isArray(breakdown) || breakdown.length <= 1) return ''

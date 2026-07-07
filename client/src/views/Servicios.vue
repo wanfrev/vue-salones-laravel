@@ -207,11 +207,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useCrud } from '../composables/useCrud'
-import { useAuth } from '../composables/useAuth'
-import { useCurrency } from '../composables/useCurrency'
-import { useNotification } from '../composables/useNotification'
-import { useCategoryCRUD } from '../composables/useCategoryCRUD'
+import { useCrud } from '../composables/empleados/useCrud'
+import { useAuth } from '../composables/common/useAuth'
+import { useCurrency } from '../composables/common/useCurrency'
+import { useNotification } from '../composables/common/useNotification'
+import { useCategoryCRUD } from '../composables/common/useCategoryCRUD'
 import { useBusinessStore } from '../store/business'
 import { ServicioFormModal } from '../components/modals'
 import { ModalBase, StatCard, EmptyState } from '../components/common'

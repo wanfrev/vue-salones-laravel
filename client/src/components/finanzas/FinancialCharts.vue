@@ -59,8 +59,8 @@
 </template>
 
 <script setup lang="ts">
-import { useCurrency } from '../../composables/useCurrency'
-import type { ChartBar, ServiceRevenue } from '../../composables/useFinancialSummary'
+import { useCurrency } from '../../composables/common/useCurrency'
+import type { ChartBar, ServiceRevenue } from '../../composables/finanzas/useFinancialSummary'
 
 defineProps<{
   chartData: ChartBar[]

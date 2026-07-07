@@ -1,7 +1,7 @@
 import { onMounted, onUnmounted } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
-import { echoClient } from '../lib/echo'
-import { useAuthStore } from '../store/auth'
+import { echoClient } from '../../lib/echo'
+import { useAuthStore } from '../../store/auth'
 
 type EntityChangedPayload = {
   businessId: string

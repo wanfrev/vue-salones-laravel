@@ -98,8 +98,8 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useModal } from '../../composables/useModal'
-import { useNotification } from '../../composables/useNotification'
+import { useModal } from '../../composables/common/useModal'
+import { useNotification } from '../../composables/common/useNotification'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { addBusinessCategory } from '../../services/equipoService'

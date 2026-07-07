@@ -74,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { useCurrency } from '../../composables/useCurrency'
+import { useCurrency } from '../../composables/common/useCurrency'
 import type { Servicio } from '../../types/servicio'
 
 defineProps<{

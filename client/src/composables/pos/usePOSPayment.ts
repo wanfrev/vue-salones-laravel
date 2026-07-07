@@ -1,11 +1,11 @@
 import { ref, computed } from 'vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
-import { useAuth } from './useAuth'
-import { useNotification } from './useNotification'
-import { useBusinessStore } from '../store/business'
-import { recordSale, posKeys } from '../services/posService'
-import type { PaymentMethod } from '../types/database'
-import type { POSProductItem, PaymentBreakdownItem, TipAllocationItem } from '../types/pos'
+import { useAuth } from '../common/useAuth'
+import { useNotification } from '../common/useNotification'
+import { useBusinessStore } from '../../store/business'
+import { recordSale, posKeys } from '../../services/posService'
+import type { PaymentMethod } from '../../types/database'
+import type { POSProductItem, PaymentBreakdownItem, TipAllocationItem } from '../../types/pos'
 
 function withTipAllocations(breakdown: PaymentBreakdownItem[], tipAllocations?: TipAllocationItem[]): PaymentBreakdownItem[] {
   if (!tipAllocations || tipAllocations.length === 0 || breakdown.length === 0) return breakdown

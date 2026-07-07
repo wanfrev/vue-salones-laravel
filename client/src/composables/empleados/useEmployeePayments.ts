@@ -1,9 +1,9 @@
 import { computed, ref } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { api as supabase } from '../lib/api'
-import { useNotification } from './useNotification'
-import { useCurrency } from './useCurrency'
-import { useBusinessStore } from '../store/business'
+import { api as supabase } from '../../lib/api'
+import { useNotification } from '../common/useNotification'
+import { useCurrency } from '../common/useCurrency'
+import { useBusinessStore } from '../../store/business'
 import {
   listEmployeePayments,
   createEmployeePayment,
@@ -11,7 +11,7 @@ import {
   updateEmployeePayment,
   deleteEmployeePayment,
   employeePaymentKeys,
-} from '../services/employeePaymentsService'
+} from '../../services/employeePaymentsService'
 
 interface EmployeeOption {
   id: string

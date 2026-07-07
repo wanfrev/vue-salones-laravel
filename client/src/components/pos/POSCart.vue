@@ -46,7 +46,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useCurrency } from '../../composables/useCurrency'
+import { useCurrency } from '../../composables/common/useCurrency'
 
 const props = defineProps<{
   products: any[]

@@ -1,10 +1,10 @@
 import { computed, ref } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { useNotification } from './useNotification'
-import { useCurrency } from './useCurrency'
-import { useBusinessStore } from '../store/business'
-import { expensesKeys, listExpenses, saveExpense, deleteExpense, type ExpenseFormData, type ExpenseRow } from '../services/expensesService'
-import { resolvePeriodDates } from '../lib/periodUtils'
+import { useNotification } from '../common/useNotification'
+import { useCurrency } from '../common/useCurrency'
+import { useBusinessStore } from '../../store/business'
+import { expensesKeys, listExpenses, saveExpense, deleteExpense, type ExpenseFormData, type ExpenseRow } from '../../services/expensesService'
+import { resolvePeriodDates } from '../../lib/periodUtils'
 
 type PeriodValue = 'month' | 'quarter' | 'year'
 

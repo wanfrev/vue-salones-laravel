@@ -1,7 +1,7 @@
 import { ref, computed, type Ref } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { useNotification } from './useNotification'
-import { useBusinessStore } from '../store/business'
+import { useNotification } from '../common/useNotification'
+import { useBusinessStore } from '../../store/business'
 import {
   branchesKeys,
   listBranches,
@@ -9,7 +9,7 @@ import {
   deleteBranch,
   type Branch,
   type BranchFormData,
-} from '../services/branchesService'
+} from '../../services/branchesService'
 
 export function useBranches(businessId: Ref<string | null>) {
   const queryClient = useQueryClient()

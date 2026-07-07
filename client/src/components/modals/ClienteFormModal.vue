@@ -102,8 +102,8 @@
 
 <script setup lang="ts">
 import { reactive, ref, computed, watch } from 'vue'
-import { useModal } from '../../composables/useModal'
-import { useNotification } from '../../composables/useNotification'
+import { useModal } from '../../composables/common/useModal'
+import { useNotification } from '../../composables/common/useNotification'
 import { useBusinessStore } from '../../store/business'
 import type { Cliente, ClienteFormData } from '../../types/cliente'
 import ModalBase from '../common/ModalBase.vue'

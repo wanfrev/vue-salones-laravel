@@ -390,10 +390,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { formatMethod } from '../../lib/formatters'
-import { useCurrency } from '../../composables/useCurrency'
-import { useEmployeePayments } from '../../composables/useEmployeePayments'
+import { useCurrency } from '../../composables/common/useCurrency'
+import { useEmployeePayments } from '../../composables/empleados/useEmployeePayments'
 import { getEmployeeBalance, type EmployeeBalance, type EmployeePaymentRecord } from '../../services/employeePaymentsService'
-import type { EmployeeEarningSummary } from '../../composables/useFinancialSummary'
+import type { EmployeeEarningSummary } from '../../composables/finanzas/useFinancialSummary'
 
 interface PaymentRow {
   id: string; employee: string; service: string; amount: number; percentage: number; earnings: number; tipAmount: number

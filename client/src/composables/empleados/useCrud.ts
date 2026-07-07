@@ -1,8 +1,8 @@
 import { computed, ref, type Ref } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { useNotification } from './useNotification'
-import { api as supabase } from '../lib/api'
-import { translateError } from '../lib/errors'
+import { useNotification } from '../common/useNotification'
+import { api as supabase } from '../../lib/api'
+import { translateError } from '../../lib/errors'
 
 export interface UseCrudOptions<TData, TForm, TId = string> {
   businessId: Ref<string | null>

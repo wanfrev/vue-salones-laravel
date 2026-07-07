@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useCurrency } from '../../composables/useCurrency'
+import { useCurrency } from '../../composables/common/useCurrency'
 
 const { formatUSD } = useCurrency()
 

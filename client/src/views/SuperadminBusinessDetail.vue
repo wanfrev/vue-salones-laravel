@@ -303,7 +303,7 @@ import { computed, ref } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useRoute, useRouter } from 'vue-router'
 import { formatDate } from '../lib/formatters'
-import { useNotification } from '../composables/useNotification'
+import { useNotification } from '../composables/common/useNotification'
 import { useThemeStore } from '../store/theme'
 import {
   deleteBusiness,

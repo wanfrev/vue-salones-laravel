@@ -153,10 +153,10 @@
 
 <script setup lang="ts">
 import { formatMethod, formatDate } from '../../lib/formatters'
-import { useCurrency } from '../../composables/useCurrency'
+import { useCurrency } from '../../composables/common/useCurrency'
 
 const props = defineProps<{
-  ctx: ReturnType<typeof import('../../composables/useSuppliers').useSupplierPayments>
+  ctx: ReturnType<typeof import('../../composables/suppliers/useSuppliers').useSupplierPayments>
 }>()
 
 const { formatUSD, formatVESEs, formatVESInline } = useCurrency()

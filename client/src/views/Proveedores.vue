@@ -173,10 +173,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useAuth } from '../composables/useAuth'
-import { useSuppliers } from '../composables/useSuppliers'
+import { useAuth } from '../composables/common/useAuth'
+import { useSuppliers } from '../composables/suppliers/useSuppliers'
 import { getInitials } from '../lib/formatters'
-import { useCurrency } from '../composables/useCurrency'
+import { useCurrency } from '../composables/common/useCurrency'
 import { FeatureGate } from '../components/common'
 
 const { authStore } = useAuth()

@@ -216,8 +216,8 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useCurrency } from '../../composables/useCurrency'
-import { useExpenses } from '../../composables/useExpenses'
+import { useCurrency } from '../../composables/common/useCurrency'
+import { useExpenses } from '../../composables/finanzas/useExpenses'
 import type { ExpenseRow } from '../../services/expensesService'
 
 const props = defineProps<{

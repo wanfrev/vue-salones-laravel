@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useCurrency } from '../../composables/useCurrency'
+import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
-import { useCrud } from '../../composables/useCrud'
-import { useCategoryCRUD } from '../../composables/useCategoryCRUD'
-import { useNotification } from '../../composables/useNotification'
+import { useCrud } from '../../composables/empleados/useCrud'
+import { useCategoryCRUD } from '../../composables/common/useCategoryCRUD'
+import { useNotification } from '../../composables/common/useNotification'
 import {
   listServicios,
   saveServicio,
@@ -17,8 +17,8 @@ import { ModalBase } from '../../components/common'
 import type { Servicio, ServicioFormData } from '../../types/servicio'
 
 const props = defineProps<{
-  summaryCtx: ReturnType<typeof import('../../composables/useFinancialSummary').useFinancialSummary>
-  expensesCtx: ReturnType<typeof import('../../composables/useExpenses').useExpenses>
+  summaryCtx: ReturnType<typeof import('../../composables/finanzas/useFinancialSummary').useFinancialSummary>
+  expensesCtx: ReturnType<typeof import('../../composables/finanzas/useExpenses').useExpenses>
   selectedPeriod: { value: string }
   selectedMonth: { value: string }
   businessId: import('vue').Ref<string | null>

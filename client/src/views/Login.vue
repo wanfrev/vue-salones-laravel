@@ -71,7 +71,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useAuth } from '../composables/useAuth'
+import { useAuth } from '../composables/common/useAuth'
 import { resolveHomeByRole } from '../constants/roles'
 import { useThemeStore } from '../store/theme'
 import lumaLogoLight from '../assets/Luma.svg'

@@ -280,7 +280,7 @@
 </template>
 
 <script setup lang="ts">
-import { useCurrency } from '../../composables/useCurrency'
+import { useCurrency } from '../../composables/common/useCurrency'
 import { DualAmount } from '../common'
 import { formatDate } from '../../lib/formatters'
 import type { PaymentMethod } from '../../types/database'

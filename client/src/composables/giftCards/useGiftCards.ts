@@ -1,9 +1,9 @@
 import { ref, computed } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { useNotification } from './useNotification'
-import { useBusinessStore } from '../store/business'
-import { giftCardsKeys, listGiftCards, saveGiftCard, deleteGiftCard } from '../services/giftCardsService'
-import type { GiftCard, GiftCardFormData } from '../types/giftCard'
+import { useNotification } from '../common/useNotification'
+import { useBusinessStore } from '../../store/business'
+import { giftCardsKeys, listGiftCards, saveGiftCard, deleteGiftCard } from '../../services/giftCardsService'
+import type { GiftCard, GiftCardFormData } from '../../types/giftCard'
 
 export function useGiftCards(businessId: import('vue').Ref<string | null>) {
   const queryClient = useQueryClient()

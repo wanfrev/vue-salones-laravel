@@ -19,7 +19,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { Bell } from 'lucide-vue-next'
-import { useNotifications } from '../../composables/useNotifications'
+import { useNotifications } from '../../composables/common/useNotifications'
 import NotificationDropdown from './NotificationDropdown.vue'
 
 const { unreadCount } = useNotifications()

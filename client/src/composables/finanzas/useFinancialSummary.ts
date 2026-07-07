@@ -1,13 +1,13 @@
 import { computed, watch } from 'vue'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/vue-query'
-import { useNotification } from './useNotification'
-import { api as supabase } from '../lib/api'
-import { useBusinessStore } from '../store/business'
-import { updateTransaction, deleteTransaction, deleteProductSale } from '../services/posService'
-import { toYmd, resolvePeriod, normalizeBucketKey, formatBucketLabel } from '../lib/periodUtils'
-import { useTransactionEdit } from './useTransactionEdit'
-import type { PaymentBreakdownItem } from '../types/pos'
-import type { PaymentMethod } from '../types/database'
+import { useNotification } from '../common/useNotification'
+import { api as supabase } from '../../lib/api'
+import { useBusinessStore } from '../../store/business'
+import { updateTransaction, deleteTransaction, deleteProductSale } from '../../services/posService'
+import { toYmd, resolvePeriod, normalizeBucketKey, formatBucketLabel } from '../../lib/periodUtils'
+import { useTransactionEdit } from '../finanzas/useTransactionEdit'
+import type { PaymentBreakdownItem } from '../../types/pos'
+import type { PaymentMethod } from '../../types/database'
 import {
   formatBreakdownLabel,
   sumVESBreakdownInputAmounts,
@@ -16,7 +16,7 @@ import {
   buildUnifiedTransactions,
   buildEmployeePayments,
   buildEmployeeEarningsByEmployee,
-} from '../business/financialTransactions'
+} from '../../business/financialTransactions'
 
 export type UnifiedTransaction = {
   id: string; date: string; description: string; method: string; amount: number

@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { useBusinessStore } from '../store/business'
+import { useBusinessStore } from '../../store/business'
 
 export function useBusinessTerminology() {
   const businessStore = useBusinessStore()

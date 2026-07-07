@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { currentMonthKey } from '../lib/periodUtils'
+import { currentMonthKey } from '../../lib/periodUtils'
 
 export type PeriodValue = 'month' | 'quarter' | 'year'
 

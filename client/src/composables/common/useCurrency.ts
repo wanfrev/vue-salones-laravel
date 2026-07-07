@@ -1,7 +1,7 @@
 import { computed } from 'vue'
-import { api as supabase } from '../lib/api'
-import { useAuth } from './useAuth'
-import { useBusinessStore } from '../store/business'
+import { api as supabase } from '../../lib/api'
+import { useAuth } from '../common/useAuth'
+import { useBusinessStore } from '../../store/business'
 
 export function useCurrency() {
   const { authStore } = useAuth()

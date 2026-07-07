@@ -260,7 +260,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { useNotification } from '../composables/useNotification'
+import { useNotification } from '../composables/common/useNotification'
 import { useAuthStore } from '../store/auth'
 import { useBusinessStore } from '../store/business'
 import { getInitials, getStatusLabel, getStatusColor, formatMethod, formatDate, formatNumber } from '../lib/formatters'

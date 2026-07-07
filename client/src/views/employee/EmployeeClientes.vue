@@ -161,7 +161,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { useClientFilters } from '../../composables/useClientFilters'
+import { useClientFilters } from '../../composables/common/useClientFilters'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { clientesKeys, listClientes, saveCliente } from '../../services/clientesService'

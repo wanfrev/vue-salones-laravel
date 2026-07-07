@@ -344,8 +344,8 @@
 </template>
 
 <script setup lang="ts">
-import { useProductCRUD } from '../composables/useProductCRUD'
-import { useProductStockAdjust } from '../composables/useProductStockAdjust'
+import { useProductCRUD } from '../composables/inventario/useProductCRUD'
+import { useProductStockAdjust } from '../composables/inventario/useProductStockAdjust'
 import ProductStats from '../components/productos/ProductStats.vue'
 import ProductoFormModal from '../components/modals/ProductoFormModal.vue'
 import ProductStockAdjustModal from '../components/productos/ProductStockAdjustModal.vue'

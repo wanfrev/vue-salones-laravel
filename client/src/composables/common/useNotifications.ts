@@ -1,18 +1,18 @@
 import { computed, watchEffect } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { useAuthStore } from '../store/auth'
-import { useNotification } from './useNotification'
-import { api as supabase } from '../lib/api'
-import router from '../router'
+import { useAuthStore } from '../../store/auth'
+import { useNotification } from '../common/useNotification'
+import { api as supabase } from '../../lib/api'
+import router from '../../router'
 import {
   listUnreadNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
   dismissNotification,
   notificationKeys,
-} from '../services/notificationService'
-import type { NotificationRecord } from '../services/notificationService'
-import { sanitizePhone } from '../lib/formatters'
+} from '../../services/notificationService'
+import type { NotificationRecord } from '../../services/notificationService'
+import { sanitizePhone } from '../../lib/formatters'
 
 export function useNotifications() {
   const authStore = useAuthStore()

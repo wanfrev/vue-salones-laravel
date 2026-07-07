@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
-import type { POSProductItem } from '../types/pos'
-import { useNotification } from './useNotification'
+import type { POSProductItem } from '../../types/pos'
+import { useNotification } from '../common/useNotification'
 
 export function usePOSCart() {
   const cart = ref<POSProductItem[]>([])

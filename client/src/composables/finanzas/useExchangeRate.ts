@@ -1,6 +1,6 @@
 import { ref, computed, watch } from 'vue'
-import { useCurrency } from './useCurrency'
-import { useNotification } from './useNotification'
+import { useCurrency } from '../common/useCurrency'
+import { useNotification } from '../common/useNotification'
 
 export function useExchangeRate() {
   const { exchangeRate, setExchangeRate, isAdmin } = useCurrency()

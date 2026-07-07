@@ -130,8 +130,8 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { useModal } from '../../composables/useModal'
-import { useNotification } from '../../composables/useNotification'
+import { useModal } from '../../composables/common/useModal'
+import { useNotification } from '../../composables/common/useNotification'
 import { listProductCategories, createProductCategory, productosKeys } from '../../services/productosService'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'

@@ -45,7 +45,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
-import { useAuth } from '../../composables/useAuth'
+import { useAuth } from '../../composables/common/useAuth'
 import { useThemeStore } from '../../store/theme'
 import lumaLogoLight from '../../assets/Luma.svg'
 import lumaLogoDark from '../../assets/Luma blanco.svg'

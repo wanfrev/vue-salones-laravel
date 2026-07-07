@@ -221,7 +221,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { useAgenda } from '../../composables/useAgenda'
+import { useAgenda } from '../../composables/agenda/useAgenda'
 import { useAuthStore } from '../../store/auth'
 import { isAdminPanelRole } from '../../constants/roles'
 import { normalizeAppointmentStatus, getStatusLabel, dateToHHmm, dateToHHmm12, toISODate, getInitials } from '../../lib/formatters'

@@ -163,10 +163,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useAuth } from '../composables/useAuth'
-import { useGiftCards } from '../composables/useGiftCards'
+import { useAuth } from '../composables/common/useAuth'
+import { useGiftCards } from '../composables/giftCards/useGiftCards'
 import { getInitials } from '../lib/formatters'
-import { useCurrency } from '../composables/useCurrency'
+import { useCurrency } from '../composables/common/useCurrency'
 import { FeatureGate } from '../components/common'
 
 const { authStore } = useAuth()

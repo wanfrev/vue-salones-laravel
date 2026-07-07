@@ -166,10 +166,10 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useAuth } from '../composables/useAuth'
-import { useAdminAgenda } from '../composables/useAdminAgenda'
+import { useAuth } from '../composables/common/useAuth'
+import { useAdminAgenda } from '../composables/agenda/useAdminAgenda'
 import { useBusinessStore } from '../store/business'
-import { useAppointmentMutations } from '../composables/useAppointmentMutations'
+import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
 import { CitaFormModal } from '../components/modals'
 import AgendaListView from '../components/agenda/AgendaListView.vue'
 import type { Cita } from '../types/cita'
