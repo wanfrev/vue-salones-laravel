@@ -25,13 +25,13 @@ use App\Http\Controllers\Api\SuperadminController;
 use App\Http\Controllers\Api\TransactionController;
 use Illuminate\Support\Facades\Route;
 
-// Broadcasting auth
+// Broadcasting auth (rate limited)
 Route::post('/broadcasting/auth', function (\Illuminate\Http\Request $request) {
     return \Illuminate\Support\Facades\Broadcast::auth($request);
-})->middleware('auth:sanctum');
+})->middleware('auth:sanctum', 'throttle:broadcasting');
 
-// Auth (public)
-Route::post('/auth/login', [AuthController::class, 'login']);
+// Auth (public — stricter rate limit)
+Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:auth');
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {

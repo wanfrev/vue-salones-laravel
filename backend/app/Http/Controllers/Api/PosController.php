@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
+use App\Http\Requests\RecordPaymentRequest;
+use App\Http\Requests\RecordSaleRequest;
 use App\Jobs\ProcessPayment;
 use App\Jobs\ProcessSale;
 use App\Services\PosService;
@@ -37,20 +39,13 @@ class PosController
         );
     }
 
-    public function recordPayment(Request $request): JsonResponse
+    public function recordPayment(RecordPaymentRequest $request): JsonResponse
     {
         $user = $request->user()?->load('profile');
         $p = $user?->profile;
         if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
-        $data = $request->validate([
-            'appointment_id' => 'required|uuid',
-            'amount' => 'required|numeric|min:0',
-            'method' => 'required|string|max:50',
-            'notes' => 'nullable|string',
-            'exchange_rate_used' => 'nullable|numeric|min:0',
-            'payments_breakdown' => 'nullable|array',
-        ]);
+        $data = $request->validated();
 
         try {
             $txId = $this->posService->recordPayment(
@@ -80,26 +75,13 @@ class PosController
         }
     }
 
-    public function recordSale(Request $request): JsonResponse
+    public function recordSale(RecordSaleRequest $request): JsonResponse
     {
         $user = $request->user()?->load('profile');
         $p = $user?->profile;
         if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
-        $data = $request->validate([
-            'appointment_id' => 'required|uuid',
-            'amount' => 'required|numeric|min:0',
-            'method' => 'required|string|max:50',
-            'notes' => 'nullable|string',
-            'exchange_rate_used' => 'nullable|numeric|min:0',
-            'payments_breakdown' => 'nullable|array',
-            'products' => 'nullable|array',
-            'products.*.product_id' => 'required|uuid',
-            'products.*.quantity' => 'required|numeric|min:0.01',
-            'products.*.unit_cost' => 'nullable|numeric|min:0',
-            'products.*.variant_id' => 'nullable|uuid',
-            'products.*.location_id' => 'nullable|uuid',
-        ]);
+        $data = $request->validated();
 
         try {
             $txId = $this->posService->recordSale(

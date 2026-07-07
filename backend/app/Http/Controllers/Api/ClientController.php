@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
+use App\Http\Requests\StoreClientRequest;
+use App\Http\Requests\UpdateClientRequest;
 use App\Services\ClientService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -24,43 +26,23 @@ class ClientController
         );
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreClientRequest $request): JsonResponse
     {
         $user = $request->user()?->load('profile');
         $p = $user?->profile;
         if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
-        $data = $request->validate([
-            'full_name' => 'required|string|max:255',
-            'phone' => 'required|string|max:50',
-            'email' => 'nullable|email|max:255',
-            'notes' => 'nullable|string',
-            'birthday' => 'nullable|date',
-            'branch_id' => 'nullable|uuid',
-            'metadata' => 'nullable|array',
-        ]);
-
-        $client = $this->clientService->store($data, $p->business_id);
+        $client = $this->clientService->store($request->validated(), $p->business_id);
         EntityChanged::dispatch($p->business_id, 'client', 'created', $client->id);
         return response()->json($client, 201);
     }
 
-    public function update(Request $request, string $id): JsonResponse
+    public function update(UpdateClientRequest $request, string $id): JsonResponse
     {
         $user = $request->user()?->load('profile');
         $p = $user?->profile;
 
-        $data = $request->validate([
-            'full_name' => 'sometimes|string|max:255',
-            'phone' => 'sometimes|string|max:50',
-            'email' => 'nullable|email|max:255',
-            'notes' => 'nullable|string',
-            'birthday' => 'nullable|date',
-            'branch_id' => 'nullable|uuid',
-            'metadata' => 'nullable|array',
-        ]);
-
-        $client = $this->clientService->update($id, $data, $p?->business_id);
+        $client = $this->clientService->update($id, $request->validated(), $p?->business_id);
         EntityChanged::dispatch($p->business_id, 'client', 'updated', $id);
         return response()->json($client);
     }

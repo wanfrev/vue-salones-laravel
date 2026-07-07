@@ -1,31 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import LoginView from '../views/Login.vue'
-import EmployeeAgenda from '../views/employee/EmployeeAgenda.vue'
-import EmployeeCalendario from '../views/employee/EmployeeCalendario.vue'
-import EmployeeHistorial from '../views/employee/EmployeeHistorial.vue'
-import EmployeeComisiones from '../views/employee/EmployeeComisiones.vue'
-import EmployeeRecibo from '../views/employee/EmployeeRecibo.vue'
-import EmployeeClientes from '../views/employee/EmployeeClientes.vue'
-import EmployeeClienteHistorial from '../views/employee/EmployeeClienteHistorial.vue'
-import EmployeePayments from '../views/employee/EmployeePayments.vue'
-import AdminLayout from '../components/layout/AdminLayout.vue'
-import AdminView from '../views/Admin.vue'
-import CalendarioView from '../views/Calendario.vue'
-import SuperadminView from '../views/Superadmin.vue'
-import SuperadminBusinessAdminsView from '../views/SuperadminBusinessAdmins.vue'
-import SuperadminBusinessDetailView from '../views/SuperadminBusinessDetail.vue'
-import ClientesView from '../views/Clientes.vue'
-import ClienteHistorialView from '../views/ClienteHistorial.vue'
-import FinanzasView from '../views/Finanzas.vue'
-import FinanzasRegistrosView from '../views/FinanzasRegistros.vue'
-import EquipoView from '../views/Equipo.vue'
-import ServiciosView from '../views/Servicios.vue'
-import ProductosView from '../views/Productos.vue'
-import InventarioView from '../views/Inventario.vue'
-import POSView from '../views/POS.vue'
-import ProveedoresView from '../views/Proveedores.vue'
-import GiftCardsView from '../views/GiftCards.vue'
-import ConfiguracionView from '../views/Configuracion.vue'
 import { useAuthStore } from '../store/auth'
 import { isAdminPanelRole, resolveHomeByRole } from '../constants/roles'
 
@@ -35,154 +8,157 @@ const router = createRouter({
     {
       path: '/',
       name: 'login',
-      component: LoginView,
+      component: () => import('../views/Login.vue'),
       meta: { public: true },
     },
     {
       path: '/dashboard',
       redirect: '/dashboard/agenda',
     },
+    // Employee routes — lazy loaded
     {
       path: '/dashboard/agenda',
       name: 'employee-agenda',
-      component: EmployeeAgenda,
+      component: () => import('../views/employee/EmployeeAgenda.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/dashboard/calendario',
       name: 'employee-calendario',
-      component: EmployeeCalendario,
+      component: () => import('../views/employee/EmployeeCalendario.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/dashboard/historial',
       name: 'employee-historial',
-      component: EmployeeHistorial,
+      component: () => import('../views/employee/EmployeeHistorial.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/dashboard/comisiones',
       name: 'employee-comisiones',
-      component: EmployeeComisiones,
+      component: () => import('../views/employee/EmployeeComisiones.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/dashboard/recibo',
       name: 'employee-recibo',
-      component: EmployeeRecibo,
+      component: () => import('../views/employee/EmployeeRecibo.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/dashboard/clientes',
       name: 'employee-clientes',
-      component: EmployeeClientes,
+      component: () => import('../views/employee/EmployeeClientes.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/dashboard/clientes/:id',
       name: 'employee-cliente-historial',
-      component: EmployeeClienteHistorial,
+      component: () => import('../views/employee/EmployeeClienteHistorial.vue'),
       meta: { requiresAuth: true },
     },
     {
       path: '/dashboard/pagos',
       name: 'employee-payments',
-      component: EmployeePayments,
+      component: () => import('../views/employee/EmployeePayments.vue'),
       meta: { requiresAuth: true },
     },
+    // Admin routes — lazy loaded layout + children
     {
       path: '/admin',
-      component: AdminLayout,
+      component: () => import('../components/layout/AdminLayout.vue'),
       meta: { requiresAuth: true, adminOnly: true },
       children: [
         {
           path: '',
           name: 'admin',
-          component: AdminView,
+          component: () => import('../views/Admin.vue'),
         },
         {
           path: 'calendario',
           name: 'admin-calendario',
-          component: CalendarioView,
+          component: () => import('../views/Calendario.vue'),
         },
         {
           path: 'clientes',
           name: 'admin-clientes',
-          component: ClientesView,
+          component: () => import('../views/Clientes.vue'),
         },
         {
           path: 'clientes/:id',
           name: 'admin-cliente-historial',
-          component: ClienteHistorialView,
+          component: () => import('../views/ClienteHistorial.vue'),
         },
         {
           path: 'finanzas',
           name: 'admin-finanzas',
-          component: FinanzasView,
+          component: () => import('../views/Finanzas.vue'),
         },
         {
           path: 'finanzas/registros/:tipo',
           name: 'admin-finanzas-registros',
-          component: FinanzasRegistrosView,
+          component: () => import('../views/FinanzasRegistros.vue'),
         },
         {
           path: 'equipo',
           name: 'admin-equipo',
-          component: EquipoView,
+          component: () => import('../views/Equipo.vue'),
         },
         {
           path: 'servicios',
           name: 'admin-servicios',
-          component: ServiciosView,
+          component: () => import('../views/Servicios.vue'),
         },
         {
           path: 'productos',
           name: 'admin-productos',
-          component: ProductosView,
+          component: () => import('../views/Productos.vue'),
         },
         {
           path: 'inventario',
           name: 'admin-inventario',
-          component: InventarioView,
+          component: () => import('../views/Inventario.vue'),
         },
         {
           path: 'pos',
           name: 'admin-pos',
-          component: POSView,
+          component: () => import('../views/POS.vue'),
         },
         {
           path: 'proveedores',
           name: 'admin-proveedores',
-          component: ProveedoresView,
+          component: () => import('../views/Proveedores.vue'),
         },
         {
           path: 'gift-cards',
           name: 'admin-gift-cards',
-          component: GiftCardsView,
+          component: () => import('../views/GiftCards.vue'),
         },
         {
           path: 'configuracion',
           name: 'admin-configuracion',
-          component: ConfiguracionView,
+          component: () => import('../views/Configuracion.vue'),
         },
       ],
     },
+    // Superadmin routes — lazy loaded
     {
       path: '/superadmin',
       name: 'superadmin',
-      component: SuperadminView,
+      component: () => import('../views/Superadmin.vue'),
       meta: { requiresAuth: true, superadminOnly: true },
     },
     {
       path: '/superadmin/business/:id',
       name: 'superadmin-business-detail',
-      component: SuperadminBusinessDetailView,
+      component: () => import('../views/SuperadminBusinessDetail.vue'),
       meta: { requiresAuth: true, superadminOnly: true },
     },
     {
       path: '/superadmin/business/:id/admins',
       name: 'superadmin-business-admins',
-      component: SuperadminBusinessAdminsView,
+      component: () => import('../views/SuperadminBusinessAdmins.vue'),
       meta: { requiresAuth: true, superadminOnly: true },
     },
     // Legacy redirects
@@ -204,7 +180,6 @@ router.beforeEach(async (to) => {
 
   await authStore.initialize()
 
-  // If auth is still loading (e.g., mid sign-out), redirect to login
   if (authStore.loading) {
     if (to.meta.public) return
     return '/'
