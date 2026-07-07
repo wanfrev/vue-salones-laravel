@@ -9,7 +9,7 @@ declare global {
 
 window.Pusher = Pusher
 
-const token = () => localStorage.getItem('auth_token')
+const getToken = () => localStorage.getItem('auth_token')
 
 const echoInstance = new Echo({
   broadcaster: 'reverb',
@@ -25,7 +25,7 @@ const echoInstance = new Echo({
     : 'http://localhost:8000/api/broadcasting/auth',
   auth: {
     headers: {
-      Authorization: `Bearer ${token()}`,
+      Authorization: `Bearer ${getToken()}`,
     },
   },
 })

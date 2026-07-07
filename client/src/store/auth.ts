@@ -180,9 +180,6 @@ export const useAuthStore = defineStore('auth', () => {
       }
       loading.value = false
       initialized.value = false
-      if (typeof window !== 'undefined' && window.location.pathname !== '/') {
-        window.location.assign('/')
-      }
     }
   }
 

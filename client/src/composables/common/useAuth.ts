@@ -26,10 +26,6 @@ export const useAuth = () => {
       await authStore.signOut()
     } catch {
       // local state cleared in signOut
-    } finally {
-      if (typeof window !== 'undefined') {
-        window.location.assign('/')
-      }
     }
   }
 

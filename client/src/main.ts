@@ -51,6 +51,13 @@ if (typeof document !== 'undefined') {
     queryClient.invalidateQueries()
   }
   window.addEventListener('online', handleOnline, { passive: true })
+
+  setInterval(() => {
+    const auth = useAuthStore()
+    if (auth.isAuthenticated) {
+      auth.refreshSession().catch(() => {})
+    }
+  }, 30 * 60 * 1000)
 }
 
 let _swUpdateInterval: ReturnType<typeof setInterval> | undefined

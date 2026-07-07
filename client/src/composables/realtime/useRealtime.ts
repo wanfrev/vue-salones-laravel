@@ -10,10 +10,6 @@ type EntityChangedPayload = {
   entityId?: string | null
 }
 
-/**
- * Listens for real-time entity changes from Laravel Reverb.
- * Invalidates TanStack Query caches automatically.
- */
 export function useRealtime() {
   const queryClient = useQueryClient()
   const authStore = useAuthStore()
@@ -22,14 +18,26 @@ export function useRealtime() {
     const businessId = authStore.businessId
     if (!businessId || payload.businessId !== businessId) return
 
-    // Map entity names to query key prefixes for invalidation
     const queryKeyMap: Record<string, string[]> = {
-      profile: ['equipo', 'profiles', 'employee-payments', 'employee-earnings', 'finanzas-transactions'],
-      employee_payment: ['employee-payments', 'employee-earnings', 'finanzas-transactions', 'finanzas-employee-payments', 'employee-balance'],
+      profile: ['equipo', 'profiles', 'appointments', 'employee-payments', 'employee-earnings', 'finanzas-transactions'],
+      employee_payment: ['employee-payments', 'employee-earnings', 'finanzas-transactions', 'financial-summary'],
       branch: ['branches'],
       business: ['businesses'],
-      appointment: ['appointments', 'finanzas-transactions', 'finanzas-summary', 'employee-earnings', 'dashboard-services'],
-      transaction: ['finanzas-transactions', 'finanzas-summary', 'employee-earnings', 'employee-balance', 'finanzas-employee-payments'],
+      appointment: ['appointments', 'finanzas-transactions', 'financial-summary', 'employee-earnings', 'pos-pending'],
+      transaction: ['finanzas-transactions', 'financial-summary', 'employee-earnings', 'pos-pending'],
+      client: ['clientes', 'clients', 'appointments'],
+      service: ['servicios', 'services', 'appointments', 'financial-summary'],
+      product: ['productos', 'products', 'inventario', 'pos-products'],
+      product_category: ['productos', 'product-categories'],
+      expense: ['expenses', 'financial-summary'],
+      supplier: ['suppliers', 'proveedores'],
+      supplier_payment: ['supplier-payments', 'financial-summary'],
+      inventory_stock: ['inventario'],
+      inventory_movement: ['inventario', 'finanzas-product-sales'],
+      notification: ['notifications'],
+      gift_card: ['gift-cards'],
+      employee_schedule: ['equipo', 'schedules'],
+      employee_balance: ['employee-balance', 'employee-earnings'],
     }
 
     const prefixes = queryKeyMap[payload.entity] || [payload.entity]
@@ -44,11 +52,11 @@ export function useRealtime() {
   let channel: any = null
 
   onMounted(() => {
-    const businessId = authStore.businessId
-    if (!businessId) return
+    const bizId = authStore.businessId
+    if (!bizId) return
 
     channel = echoClient
-      .channel(`business.${businessId}`)
+      .private(`business.${bizId}`)
       .listen('.entity.changed', (payload: EntityChangedPayload) => {
         handleEntityChange(payload)
       })
@@ -56,7 +64,7 @@ export function useRealtime() {
 
   onUnmounted(() => {
     if (channel) {
-      echoClient.leaveChannel(`business.${authStore.businessId}`)
+      echoClient.leave(`business.${authStore.businessId}`)
       channel = null
     }
   })
