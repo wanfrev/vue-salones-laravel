@@ -17,9 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             \App\Http\Middleware\UnwrapApiData::class,
             \App\Http\Middleware\ParseApiFilters::class,
+            \App\Http\Middleware\SetBusinessContext::class,
         ]);
         $middleware->alias([
             'superadmin' => \App\Http\Middleware\EnsureSuperadmin::class,
+            'business-context' => \App\Http\Middleware\SetBusinessContext::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
