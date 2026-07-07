@@ -31,7 +31,7 @@ export function useExpenses(
   const { data, isLoading, isError, error: queryError } = useQuery({
     queryKey,
     queryFn: () => listExpenses(businessId.value!, periodDates.value.start, periodDates.value.end, branchId.value),
-    enabled: computed(() => !!businessId.value && !!selectedPeriod),
+    enabled: computed(() => !!businessId.value && !!selectedPeriod?.value),
   })
 
   const expenses = computed(() => data.value ?? [])

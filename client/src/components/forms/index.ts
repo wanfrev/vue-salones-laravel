@@ -5,6 +5,7 @@ export { default as FormCheckbox } from './FormCheckbox.vue'
 export { default as FormRadioGroup } from './FormRadioGroup.vue'
 export { default as FormToggle } from './FormToggle.vue'
 export { default as FormTime } from './FormTime.vue'
+export { default as FormSearchSelect } from './FormSearchSelect.vue'
 
 export type { SelectOption } from './FormSelect.vue'
 export type { RadioOption } from './FormRadioGroup.vue'

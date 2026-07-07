@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useNotification } from './useNotification'
+import { resolvePeriodDates } from '../lib/periodUtils'
 import { useCurrency } from './useCurrency'
 import { useBusinessStore } from '../store/business'
 import {
@@ -144,16 +145,29 @@ export function useSuppliers(businessId: import('vue').Ref<string | null>) {
   }
 }
 
-export function useSupplierPayments(businessId: import('vue').Ref<string | null>) {
+export function useSupplierPayments(
+  businessId: import('vue').Ref<string | null>,
+  selectedPeriod?: import('vue').Ref<'month' | 'quarter' | 'year'>,
+  selectedMonth?: import('vue').Ref<string>,
+) {
   const queryClient = useQueryClient()
   const { success, error: showError } = useNotification()
   const { exchangeRate } = useCurrency()
   const businessStore = useBusinessStore()
   const branchId = computed(() => businessStore.currentBranchId)
 
+  const periodDates = computed(() => {
+    if (!selectedPeriod) return { start: '', end: '' }
+    return resolvePeriodDates(selectedPeriod.value, selectedMonth?.value)
+  })
+
+  const queryKey = computed(() =>
+    supplierPaymentKeys.filtered(businessId.value, branchId.value, periodDates.value.start, periodDates.value.end)
+  )
+
   const { data, isLoading, isError, error: queryError } = useQuery({
-    queryKey: computed(() => supplierPaymentKeys.all(businessId.value, branchId.value)),
-    queryFn: () => listSupplierPayments(businessId.value!, branchId.value),
+    queryKey,
+    queryFn: () => listSupplierPayments(businessId.value!, branchId.value, periodDates.value.start, periodDates.value.end),
     enabled: computed(() => !!businessId.value),
   })
 

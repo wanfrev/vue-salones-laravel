@@ -109,12 +109,12 @@
               ]"
             >{{ producto.stockTotal }}</span>
             <span class="text-xs text-slate-400"> {{ producto.unit }}</span>
-            <button
-              type="button"
-              class="rounded p-0.5 text-text-muted transition-all hover:bg-bg-secondary hover:text-primary"
-              title="Ajustar stock en inventario"
-              @click.stop="goToInventory"
-            >
+              <button
+                type="button"
+                class="rounded p-0.5 text-text-muted transition-all hover:bg-bg-secondary hover:text-primary"
+                title="Ajustar stock"
+                @click.stop="openAdjustModal(producto)"
+              >
               <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
               </svg>
@@ -212,8 +212,8 @@
                 <button
                   type="button"
                   class="rounded p-0.5 text-text-muted transition-all hover:bg-bg-secondary hover:text-primary"
-                  title="Ajustar stock en inventario"
-                  @click.stop="goToInventory"
+                  title="Ajustar stock"
+                  @click.stop="openAdjustModal(producto)"
                 >
                   <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
@@ -285,6 +285,16 @@
     @save="handleSaveProducto"
   />
 
+  <ProductStockAdjustModal
+    :is-open="adjustModalOpen"
+    :producto="adjustProduct"
+    :is-loading="adjustMutation.isPending.value"
+    v-model:quantity="adjustQuantity"
+    v-model:notes="adjustNotes"
+    @close="closeAdjustModal"
+    @confirm="confirmAdjust"
+  />
+
   <ModalBase
     :is-open="isDeleteModalOpen"
     title="Desactivar producto"
@@ -334,17 +344,12 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
 import { useProductCRUD } from '../composables/useProductCRUD'
+import { useProductStockAdjust } from '../composables/useProductStockAdjust'
 import ProductStats from '../components/productos/ProductStats.vue'
 import ProductoFormModal from '../components/modals/ProductoFormModal.vue'
+import ProductStockAdjustModal from '../components/productos/ProductStockAdjustModal.vue'
 import { ModalBase, FeatureGate } from '../components/common'
-
-const router = useRouter()
-
-function goToInventory() {
-  router.push({ name: 'admin-inventario' })
-}
 
 const {
   productoModalRef,
@@ -372,6 +377,17 @@ const {
   confirmPermanentDelete,
   formatVESInline,
 } = useProductCRUD()
+
+const {
+  adjustModalOpen,
+  adjustProduct,
+  adjustQuantity,
+  adjustNotes,
+  adjustMutation,
+  openAdjustModal,
+  closeAdjustModal,
+  confirmAdjust,
+} = useProductStockAdjust()
 
 const tabs = [
   { label: 'Todos', value: 'todos' },

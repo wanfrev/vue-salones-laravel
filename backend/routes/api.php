@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\EmployeePaymentController;
 use App\Http\Controllers\Api\EmployeeScheduleController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\FinancialSummaryController;
+use App\Http\Controllers\Api\GiftCardController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PosController;
@@ -144,6 +145,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/pos/payment', [PosController::class, 'recordPayment']);
     Route::post('/pos/sale', [PosController::class, 'recordSale']);
     Route::post('/pos/mark-paid', [PosController::class, 'markAppointmentsAsPaid']);
+
+    // Gift Cards
+    Route::get('/gift-cards', [GiftCardController::class, 'index']);
+    Route::post('/gift-cards', [GiftCardController::class, 'store']);
+    Route::put('/gift-cards/{id}', [GiftCardController::class, 'update']);
+    Route::delete('/gift-cards/{id}', [GiftCardController::class, 'destroy']);
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);

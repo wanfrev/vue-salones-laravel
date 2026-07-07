@@ -13,6 +13,7 @@ import {
   ShoppingCart,
   Truck,
   Settings,
+  Gift,
 } from 'lucide-vue-next'
 import type { Component } from 'vue'
 
@@ -53,6 +54,7 @@ export const sidebarSections: SidebarSection[] = [
       { to: '/admin/productos', label: 'Productos', icon: Package, adminOnly: true, requiresFeature: 'productos' },
       { to: '/admin/inventario', label: 'Inventario', icon: Archive, adminOnly: true, requiresFeature: 'inventario' },
       { to: '/admin/proveedores', label: 'Proveedores', icon: Truck, adminOnly: true, requiresFeature: 'proveedores' },
+      { to: '/admin/gift-cards', label: 'Gift Cards', icon: Gift, adminOnly: true, requiresFeature: 'gift_cards' },
     ],
   },
   {

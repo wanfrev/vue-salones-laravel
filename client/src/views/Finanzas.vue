@@ -202,7 +202,20 @@
     <div class="p-3 sm:p-5">
       <!-- Tab: Cobros de Citas -->
       <div v-if="activeDetailTab === 'cobros'">
-        <div v-if="allCobrosRows.length" class="overflow-x-auto">
+        <div class="relative mb-3">
+          <input
+            v-model="cobrosSearch"
+            type="text"
+            placeholder="Buscar por cliente, empleado o servicio..."
+            class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
+          />
+          <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+        </div>
+        <div v-if="filteredCobrosRows.length" class="overflow-x-auto">
           <table class="w-full">
             <thead>
               <tr class="border-b border-border-subtle">
@@ -217,7 +230,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-border-subtle">
-              <tr v-for="item in allCobrosRows.slice(0, canViewDetailTab ? 5 : Infinity)" :key="item.id" class="text-xs transition-theme hover:bg-bg-secondary/40">
+              <tr v-for="item in filteredCobrosRows.slice(0, canViewDetailTab ? 5 : Infinity)" :key="item.id" class="text-xs transition-theme hover:bg-bg-secondary/40">
                 <td class="px-3 py-3 whitespace-nowrap text-text-secondary">{{ item.date }}</td>
                 <td class="px-3 py-3 font-medium text-text">{{ item.client }}</td>
                 <td class="px-3 py-3 text-text-secondary hidden sm:table-cell">{{ item.employee }}</td>
@@ -617,6 +630,18 @@
             </select>
           </div>
 
+          <div>
+            <label class="mb-1 block text-sm font-medium text-text">Moneda</label>
+            <select
+              :value="summaryCtx.editingCurrency.value"
+              @change="summaryCtx.setEditingCurrency(($event.target as HTMLSelectElement).value as 'USD' | 'VES')"
+              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+            >
+              <option value="USD">USD $</option>
+              <option value="VES">Bs</option>
+            </select>
+          </div>
+
           <div v-if="summaryCtx.isEditingMixed.value" class="space-y-3 rounded-lg border border-border-subtle bg-bg-secondary p-3">
             <div class="flex items-center justify-between">
               <label class="text-sm font-medium text-text">Desglose de pagos</label>
@@ -641,7 +666,7 @@
                 class="w-28 rounded-lg border border-border bg-surface px-2 py-1.5 text-right text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
                 min="0" step="0.01" placeholder="0.00"
               />
-              <span class="text-xs font-medium text-text-muted w-8 text-center">USD</span>
+              <span class="text-xs font-medium text-text-muted w-8 text-center">{{ summaryCtx.editingCurrency.value }}</span>
               <button v-if="summaryCtx.editingBreakdown.value.length > 1" type="button" @click="summaryCtx.removeBreakdownItem(bidx)"
                 class="rounded-lg p-1 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger shrink-0">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -738,7 +763,7 @@ const businessId = computed(() => authStore.businessId)
 
 const expensesCtx = useExpenses(businessId, selectedPeriod, selectedMonth)
 const expenses = expensesCtx.expenses
-const supplierPaymentsCtx = useSupplierPayments(businessId)
+const supplierPaymentsCtx = useSupplierPayments(businessId, selectedPeriod, selectedMonth)
 
 const summaryCtx = useFinancialSummary(businessId, selectedPeriod, expenses, selectedMonth)
 const rateCtx = useExchangeRate()
@@ -819,10 +844,11 @@ const confirmDeleteServicio = async () => {
 }
 
 const incomeTotal = summaryCtx.incomeTotal
+const localIncomeTotal = summaryCtx.localIncomeTotal
 const vesIncomeTotal = summaryCtx.vesIncomeTotal
-const expenseTotal = computed(() => expensesCtx.expenseTotal.value + supplierPaymentsCtx.paymentTotal.value)
-const netTotal = computed(() => incomeTotal.value - expenseTotal.value)
-const marginTotal = computed(() => (incomeTotal.value > 0 ? (netTotal.value / incomeTotal.value) * 100 : 0))
+const expenseTotal = computed(() => expensesCtx.expenseTotal.value)
+const netTotal = computed(() => localIncomeTotal.value - expensesCtx.expenseTotal.value - supplierPaymentsCtx.paymentTotal.value)
+const marginTotal = computed(() => (localIncomeTotal.value > 0 ? (netTotal.value / localIncomeTotal.value) * 100 : 0))
 
 const activeCard = ref<'income' | 'expense' | 'net' | null>(null)
 
@@ -888,16 +914,6 @@ const expenseBreakdown = computed<CurrencyBreakdownData>(() => {
     }
   }
 
-  for (const sp of supplierPaymentsCtx.payments.value) {
-    if (sp.currency === 'VES') {
-      totalVES += sp.originalAmount
-      vesByCat['Proveedores'] = (vesByCat['Proveedores'] ?? 0) + sp.originalAmount
-    } else {
-      totalUSD += sp.amount
-      usdByCat['Proveedores'] = (usdByCat['Proveedores'] ?? 0) + sp.amount
-    }
-  }
-
   return {
     title: 'Desglose de Gastos por moneda',
     usdTotal: totalUSD,
@@ -920,7 +936,7 @@ const netBreakdown = computed<CurrencyBreakdownData>(() => {
   const expVES = expenseBreakdown.value.vesTotal
 
   return {
-    title: 'Desglose de Ganancia Neta por moneda',
+    title: 'Desglose de Ganancia por moneda',
     usdTotal: Math.max(0, incUSD - expUSD),
     vesTotal: Math.max(0, incVES - expVES),
     usdItems: [],
@@ -970,9 +986,21 @@ const allCobrosRows = computed(() => summaryCtx.appointmentIncomeDetails.value)
 const allVentasRows = computed(() => summaryCtx.productSalesDetails.value)
 const allGastosRows = computed(() => expenses.value)
 
+const cobrosSearch = ref('')
+const normalize = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+const filteredCobrosRows = computed(() => {
+  if (!cobrosSearch.value) return allCobrosRows.value
+  const q = normalize(cobrosSearch.value)
+  return allCobrosRows.value.filter(row =>
+    normalize(row.client).includes(q) ||
+    normalize(row.employee).includes(q) ||
+    normalize(row.service).includes(q)
+  )
+})
+
 const detailTabTotal = computed(() => {
   if (activeDetailTab.value === 'cobros') {
-    return allCobrosRows.value.reduce((acc, row) => acc + Number(row.amount ?? 0), 0)
+    return filteredCobrosRows.value.reduce((acc, row) => acc + Number(row.amount ?? 0), 0)
   }
   if (activeDetailTab.value === 'ventas') {
     return allVentasRows.value.reduce((acc, row) => acc + Number(row.total ?? 0), 0)
@@ -985,7 +1013,7 @@ const detailTabTotal = computed(() => {
 
 const detailTabVesTotal = computed(() => {
   if (activeDetailTab.value === 'cobros') {
-    const ves = allCobrosRows.value.reduce((acc, row) => acc + Number(row.amount ?? 0) * Number(row.exchangeRateUsed ?? 1), 0)
+    const ves = filteredCobrosRows.value.reduce((acc, row) => acc + Number(row.amount ?? 0) * Number(row.exchangeRateUsed ?? 1), 0)
     return formatVESEs(ves)
   }
   if (activeDetailTab.value === 'ventas') {
@@ -996,7 +1024,7 @@ const detailTabVesTotal = computed(() => {
 })
 
 const detailTabCount = computed(() => {
-  if (activeDetailTab.value === 'cobros') return allCobrosRows.value.length
+  if (activeDetailTab.value === 'cobros') return filteredCobrosRows.value.length
   if (activeDetailTab.value === 'ventas') return allVentasRows.value.length
   if (activeDetailTab.value === 'servicios') return servicios.value.length
   return allGastosRows.value.length

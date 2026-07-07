@@ -18,6 +18,22 @@
 
           <div class="flex items-center gap-2">
             <button
+              @click="viewMode = 'active'"
+              class="rounded-lg px-3 py-2 text-sm font-semibold transition-theme"
+              :class="viewMode === 'active' ? 'bg-primary text-text-inverse shadow-sm' : 'border border-border bg-surface text-text-secondary hover:bg-bg-secondary'"
+            >
+              Activas
+            </button>
+            <button
+              @click="viewMode = 'historial'"
+              class="rounded-lg px-3 py-2 text-sm font-semibold transition-theme"
+              :class="viewMode === 'historial' ? 'bg-primary text-text-inverse shadow-sm' : 'border border-border bg-surface text-text-secondary hover:bg-bg-secondary'"
+            >
+              Historial
+            </button>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
               @click="handleNewCita"
               class="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover"
             >
@@ -41,7 +57,7 @@
             </div>
             <div>
               <p class="text-xl font-bold tabular-nums text-text sm:text-2xl">{{ stats.citasHoy }}</p>
-              <p class="text-xs text-text-muted">{{ businessStore.terminology.appointment || 'Cita' }}s hoy</p>
+              <p class="text-xs text-text-muted">{{ businessStore.terminology.appointment || 'Cita' }}s {{ periodLabel }}</p>
             </div>
           </div>
         </div>
@@ -93,35 +109,43 @@
       <section class="mb-4">
         <header class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 class="text-base font-bold text-text lg:text-lg">{{ (businessStore.terminology.appointment || 'Cita') }}s</h2>
-            <p v-if="citas.length > 0" class="text-xs text-text-muted">{{ citas.length }} {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}{{ citas.length !== 1 ? 's' : '' }}</p>
+            <h2 class="text-base font-bold text-text lg:text-lg">{{ viewMode === 'historial' ? 'Historial' : (businessStore.terminology.appointment || 'Cita') + 's' }}</h2>
+            <p v-if="displayedCitas.length > 0" class="text-xs text-text-muted">{{ displayedCitas.length }} {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}{{ displayedCitas.length !== 1 ? 's' : '' }}</p>
           </div>
-          <div class="flex items-center gap-2">
+          <div v-if="viewMode === 'active'" class="flex items-center gap-2">
             <input
               type="date"
               :value="filterDate ?? ''"
               @change="setFilterDate(($event.target as HTMLInputElement).value || null)"
-              class="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15"
+              :disabled="dateFilterMode === 'week'"
+              class="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-40"
             />
             <button
-              @click="showAll"
-              class="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium transition-theme"
-              :class="!filterDate ? 'bg-primary/10 border-primary/30 text-primary' : 'text-text-secondary hover:bg-bg-secondary hover:border-border-strong'"
-            >
-              Todas
-            </button>
-            <button
               @click="goToToday"
-              class="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium transition-theme"
-              :class="isToday ? 'bg-primary/10 border-primary/30 text-primary' : 'text-text-secondary hover:bg-bg-secondary hover:border-border-strong'"
+              class="rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-theme"
+              :class="isToday ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-surface text-text-secondary hover:bg-bg-secondary hover:border-border-strong'"
             >
               Hoy
+            </button>
+            <button
+              @click="setWeekMode"
+              class="rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-theme"
+              :class="isThisWeek ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-surface text-text-secondary hover:bg-bg-secondary hover:border-border-strong'"
+            >
+              Semana
+            </button>
+            <button
+              @click="showAll"
+              class="rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-theme"
+              :class="dateFilterMode === 'all' ? 'bg-primary/10 border-primary/30 text-primary' : 'bg-surface text-text-secondary hover:bg-bg-secondary hover:border-border-strong'"
+            >
+              Todas
             </button>
           </div>
         </header>
 
         <AgendaListView
-          :citas="citas"
+          :citas="displayedCitas"
           :loading="isLoading"
           :t="(businessStore.terminology.appointment || 'cita').toLowerCase()"
           @edit="handleEditCita"
@@ -156,18 +180,28 @@ const businessStore = useBusinessStore()
 const citaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
 const editingCita = ref<Cita | null>(null)
 const businessId = computed(() => authStore.businessId)
+const viewMode = ref<'active' | 'historial'>('active')
+
+const displayedCitas = computed(() =>
+  viewMode.value === 'historial' ? historialCitas.value : activeCitas.value
+)
 
 const {
   filterDate,
-  citas,
+  dateFilterMode,
+  activeCitas,
+  historialCitas,
   isLoading,
   stats,
   serviciosList,
   empleadosList,
   todayLabel,
   isToday,
+  isThisWeek,
+  periodLabel,
   goToToday,
   showAll,
+  setWeekMode,
   setFilterDate,
 } = useAdminAgenda(() => authStore.businessId)
 

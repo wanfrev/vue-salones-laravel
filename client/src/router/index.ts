@@ -24,6 +24,7 @@ import ProductosView from '../views/Productos.vue'
 import InventarioView from '../views/Inventario.vue'
 import POSView from '../views/POS.vue'
 import ProveedoresView from '../views/Proveedores.vue'
+import GiftCardsView from '../views/GiftCards.vue'
 import ConfiguracionView from '../views/Configuracion.vue'
 import { useAuthStore } from '../store/auth'
 import { isAdminPanelRole, resolveHomeByRole } from '../constants/roles'
@@ -155,6 +156,11 @@ const router = createRouter({
           component: ProveedoresView,
         },
         {
+          path: 'gift-cards',
+          name: 'admin-gift-cards',
+          component: GiftCardsView,
+        },
+        {
           path: 'configuracion',
           name: 'admin-configuracion',
           component: ConfiguracionView,
@@ -187,6 +193,8 @@ const router = createRouter({
     { path: '/servicios', redirect: '/admin/servicios' },
     { path: '/productos', redirect: '/admin/productos' },
     { path: '/inventario', redirect: '/admin/inventario' },
+    { path: '/proveedores', redirect: '/admin/proveedores' },
+    { path: '/gift-cards', redirect: '/admin/gift-cards' },
     { path: '/pos', redirect: '/admin/pos' },
   ],
 })
@@ -216,6 +224,10 @@ router.beforeEach(async (to) => {
 
   if (to.meta.adminOnly && !isAdminPanelRole(authStore.role ?? undefined)) {
     return resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda)
+  }
+
+  if (authStore.role === 'empleado' && authStore.profile?.disable_agenda && (to.path === '/dashboard/agenda' || to.path === '/dashboard/calendario')) {
+    return resolveHomeByRole(authStore.role, true)
   }
 })
 

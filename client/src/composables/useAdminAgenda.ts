@@ -7,9 +7,25 @@ import { listEquipo, equipoKeys } from '../services/equipoService'
 import { useBusinessStore } from '../store/business'
 import type { Cita } from '../types/cita'
 
+export type DateFilterMode = 'day' | 'week' | 'all'
+
+function getWeekRange(date: Date): { start: Date; end: Date } {
+  const d = new Date(date)
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
+  const monday = new Date(d)
+  monday.setDate(diff)
+  monday.setHours(0, 0, 0, 0)
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  sunday.setHours(23, 59, 59, 999)
+  return { start: monday, end: sunday }
+}
+
 export function useAdminAgenda(businessId: () => string | null) {
   const selectedDate = ref<Date>(new Date())
   const filterDate = ref<string | null>(null)
+  const dateFilterMode = ref<DateFilterMode>('day')
   const businessStore = useBusinessStore()
 
   const currentBranchId = computed(() => businessStore.currentBranchId)
@@ -36,8 +52,18 @@ export function useAdminAgenda(businessId: () => string | null) {
 
   const citas = computed<Cita[]>(() => {
     const all = citasData.value ?? []
-    const filtered = filterDate.value ? all.filter(c => c.date === filterDate.value) : all
-    // Deduplicate grouped appointments — only show one per group
+    let filtered: Cita[]
+    if (dateFilterMode.value === 'all') {
+      filtered = all
+    } else if (dateFilterMode.value === 'week') {
+      const { start, end } = getWeekRange(selectedDate.value)
+      filtered = all.filter(c => {
+        if (!c.date) return false
+        return c.date >= toISODate(start) && c.date <= toISODate(end)
+      })
+    } else {
+      filtered = filterDate.value ? all.filter(c => c.date === filterDate.value) : all
+    }
     const seen = new Set<string>()
     return filtered.filter(c => {
       if (c.groupId) {
@@ -48,45 +74,99 @@ export function useAdminAgenda(businessId: () => string | null) {
     })
   })
 
+  const activeCitas = computed(() =>
+    citas.value.filter(c => c.status !== 'paid' && c.status !== 'cancelled')
+  )
+
+  const historialCitas = computed(() =>
+    citas.value.filter(c => c.status === 'paid' || c.status === 'cancelled')
+  )
+
   const goToToday = () => {
     selectedDate.value = new Date()
     filterDate.value = todayIso.value
+    dateFilterMode.value = 'day'
   }
 
   const showAll = () => {
     filterDate.value = null
+    dateFilterMode.value = 'all'
+  }
+
+  const setWeekMode = () => {
+    selectedDate.value = new Date()
+    filterDate.value = null
+    dateFilterMode.value = 'week'
   }
 
   const setFilterDate = (date: Date | string | null) => {
     if (!date) {
       filterDate.value = null
+      dateFilterMode.value = 'all'
       return
     }
     const d = typeof date === 'string' ? new Date(date + 'T12:00:00') : date
     filterDate.value = toISODate(d)
     selectedDate.value = d
+    dateFilterMode.value = 'day'
   }
 
   const todayLabel = computed(() => {
-    if (!filterDate.value) return 'Todas'
-    const d = new Date(filterDate.value + 'T12:00:00')
+    if (dateFilterMode.value === 'all') return 'Todas'
+    if (dateFilterMode.value === 'week') {
+      const { start, end } = getWeekRange(selectedDate.value)
+      const fmt = (d: Date) => {
+        const dd = String(d.getDate()).padStart(2, '0')
+        const mm = String(d.getMonth() + 1).padStart(2, '0')
+        return `${dd}-${mm}`
+      }
+      return `Semana ${fmt(start)} — ${fmt(end)}`
+    }
+    const d = new Date((filterDate.value || todayIso.value) + 'T12:00:00')
     const dd = String(d.getDate()).padStart(2, '0')
     const mm = String(d.getMonth() + 1).padStart(2, '0')
     const yy = String(d.getFullYear()).slice(-2)
     return `${dd}-${mm}-${yy}`
   })
 
-  const isToday = computed(() => filterDate.value === todayIso.value)
+  const isToday = computed(() => {
+    if (dateFilterMode.value !== 'day') return false
+    return filterDate.value === todayIso.value
+  })
+
+  const isThisWeek = computed(() => {
+    if (dateFilterMode.value !== 'week') return false
+    const now = new Date()
+    const { start } = getWeekRange(now)
+    const { start: selStart } = getWeekRange(selectedDate.value)
+    return start.getTime() === selStart.getTime()
+  })
+
+  const periodLabel = computed(() => {
+    if (dateFilterMode.value === 'all') return 'total'
+    if (dateFilterMode.value === 'week') return 'esta semana'
+    return 'hoy'
+  })
 
   const stats = computed(() => {
-    const filterIso = filterDate.value ?? todayIso.value
-    const citasDelDia = (citasData.value ?? []).filter(c => c.date === filterIso)
+    let citasDelPeriodo: Cita[]
+    if (dateFilterMode.value === 'all') {
+      citasDelPeriodo = citasData.value ?? []
+    } else if (dateFilterMode.value === 'week') {
+      const { start, end } = getWeekRange(selectedDate.value)
+      citasDelPeriodo = (citasData.value ?? []).filter(c =>
+        c.date >= toISODate(start) && c.date <= toISODate(end)
+      )
+    } else {
+      const filterIso = filterDate.value ?? todayIso.value
+      citasDelPeriodo = (citasData.value ?? []).filter(c => c.date === filterIso)
+    }
 
     return {
-      citasHoy: citasDelDia.length,
-      pendientes: citasDelDia.filter(c => c.status === 'pending').length,
-      confirmadas: citasDelDia.filter(c => c.status === 'confirmed').length,
-      estimadoHoy: citasDelDia
+      citasHoy: citasDelPeriodo.length,
+      pendientes: citasDelPeriodo.filter(c => c.status === 'pending').length,
+      confirmadas: citasDelPeriodo.filter(c => c.status === 'confirmed').length,
+      estimadoHoy: citasDelPeriodo
         .filter(c => c.status !== 'cancelled')
         .reduce((sum, c) => sum + c.price, 0)
         .toLocaleString(),
@@ -110,15 +190,21 @@ export function useAdminAgenda(businessId: () => string | null) {
   return {
     selectedDate,
     filterDate,
+    dateFilterMode,
     citas,
+    activeCitas,
+    historialCitas,
     isLoading,
     stats,
     serviciosList,
     empleadosList,
     todayLabel,
     isToday,
+    isThisWeek,
+    periodLabel,
     goToToday,
     showAll,
+    setWeekMode,
     setFilterDate,
     todayIso,
   }

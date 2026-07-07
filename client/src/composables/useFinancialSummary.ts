@@ -418,7 +418,7 @@ function useFinancialSummary(
       totalTip: number
       totalVES: number
     }>()
-    const singles: TransactionRow[] = []
+    const singles: (TransactionRow & { _sortDate: string })[] = []
 
     for (const row of rawTransactions.value) {
       const groupId = (row as any).appointments?.group_id as string | null
@@ -429,6 +429,7 @@ function useFinancialSummary(
       const isVES = firstBreakdown?.currency === 'VES'
       const sumVES = sumVESBreakdownInputAmounts(breakdown)
       const vesAmount = isVES && sumVES > 0 ? sumVES : row.total_amount
+      const sortDate = (row.paid_at ?? row.created_at) as string
 
       if (groupId) {
         const rowTip = Number((row as any).tip_amount ?? 0)
@@ -471,17 +472,19 @@ function useFinancialSummary(
           primaryAmount: vesAmount,
           notes: (row as any).notes ?? null,
           tipAmount: Number((row as any).tip_amount ?? 0),
+          _sortDate: sortDate,
         })
       }
     }
 
-    const grouped: TransactionRow[] = []
+    const grouped: (TransactionRow & { _sortDate: string })[] = []
     for (const [, group] of groupMap) {
       const firstRow = group.rows[0]
       const breakdown = (firstRow as any).payments_breakdown as PaymentBreakdownItem[] | null
       const breakdownLabel = formatBreakdownLabel(breakdown)
       const firstBreakdown = breakdown?.[0]
       const isVES = firstBreakdown?.currency === 'VES'
+      const sortDate = (firstRow.paid_at ?? firstRow.created_at) as string
 
       grouped.push({
         id: firstRow.id,
@@ -499,10 +502,13 @@ function useFinancialSummary(
         primaryAmount: isVES ? group.totalVES : group.totalAmount,
         notes: (firstRow as any).notes ?? null,
         tipAmount: group.totalTip,
+        _sortDate: sortDate,
       })
     }
 
-    return [...singles, ...grouped]
+    const result = [...singles, ...grouped]
+    result.sort((a, b) => new Date(b._sortDate).getTime() - new Date(a._sortDate).getTime())
+    return result.map(({ _sortDate: _, ...row }) => row)
   })
 
   const appointmentIncomeDetails = computed(() => transactionsAll.value)
@@ -813,6 +819,14 @@ function useFinancialSummary(
     summaryBuckets.value.reduce((acc, row) => acc + row.total_amount, 0)
   )
 
+  const localIncomeTotal = computed(() =>
+    summaryBuckets.value.reduce((acc, row) => acc + row.local_amount, 0)
+  )
+
+  const employeePaymentsTotal = computed(() =>
+    (rawEmployeePayments.value ?? []).reduce((sum, p) => sum + p.amount, 0)
+  )
+
   const vesIncomeTotal = computed(() =>
     rawTransactions.value.reduce((acc, tx) => acc + (tx.total_amount * (tx.exchange_rate_used ?? 1)), 0)
   )
@@ -919,7 +933,8 @@ function useFinancialSummary(
   })
 
   const {
-    showEditModal, editingTransaction, editingAmount, editingMethod, editingBreakdown, editingNotes,
+    showEditModal, editingTransaction, editingAmount, editingCurrency, setEditingCurrency,
+    editingMethod, editingBreakdown, editingNotes,
     isEditingMixed, editingTotalAmount, paymentMethodOptions,
     startEdit, cancelEdit, setEditingMethod,
     updateBreakdownItem, addBreakdownItem, removeBreakdownItem,
@@ -956,6 +971,8 @@ function useFinancialSummary(
     allTransactions: unifiedTransactions,
     transactionsAll,
     incomeTotal,
+    localIncomeTotal,
+    employeePaymentsTotal,
     vesIncomeTotal,
     servicesRevenue,
     chartData,
@@ -974,6 +991,8 @@ function useFinancialSummary(
     showEditModal,
     editingTransaction,
     editingAmount,
+    editingCurrency,
+    setEditingCurrency,
     editingMethod,
     editingBreakdown,
     editingNotes,

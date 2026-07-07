@@ -290,6 +290,45 @@
     </div>
   </div>
   </FeatureGate>
+
+  <!-- Confirmación de cobro -->
+  <Teleport to="body">
+    <div v-if="showConfirmModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="cancelPayment">
+      <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+      <div class="relative w-full max-w-sm rounded-2xl border border-border bg-surface p-6 shadow-2xl">
+        <div class="text-center mb-4">
+          <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
+            <svg class="h-7 w-7 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-text">Confirmar cobro</h3>
+          <p class="text-sm text-text-muted mt-1" v-if="confirmClientName">{{ confirmClientName }}</p>
+        </div>
+
+        <div class="rounded-xl bg-bg-secondary p-4 mb-4 text-center">
+          <p class="text-3xl font-extrabold text-text tabular-nums">${{ grandTotal.toFixed(2) }}</p>
+          <p class="text-sm text-text-muted mt-0.5">{{ formatVESInline(grandTotal) }} Bs</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button
+            @click="cancelPayment"
+            class="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
+          >
+            Cancelar
+          </button>
+          <button
+            @click="confirmPayment"
+            :disabled="paymentCtx.isProcessing.value"
+            class="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:opacity-60"
+          >
+            {{ paymentCtx.isProcessing.value ? 'Procesando...' : `Cobrar $${grandTotal.toFixed(2)}` }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -321,7 +360,7 @@ interface TipParticipant {
 
 const { authStore } = useAuth()
 const router = useRouter()
-const { exchangeRate, formatDual } = useCurrency()
+const { exchangeRate, formatDual, formatVESInline } = useCurrency()
 const { error: showError, success: showSuccess } = useNotification()
 const businessStore = useBusinessStore()
 const businessId = computed(() => authStore.businessId)
@@ -736,7 +775,25 @@ const handleGroupPayment = async (appt: any) => {
   }
 }
 
-const handleProcessPayment = async () => {
+const showConfirmModal = ref(false)
+
+const confirmClientName = computed(() => {
+  if (activeSaleType.value === 'retail_only') return null
+  return selectedAppointment.value?.clients?.full_name || null
+})
+
+const handleProcessPayment = () => {
+  if (grandTotal.value <= 0) return
+  showConfirmModal.value = true
+}
+
+const cancelPayment = () => {
+  showConfirmModal.value = false
+}
+
+const confirmPayment = async () => {
+  showConfirmModal.value = false
+
   if (activeSaleType.value === 'retail_only') {
     await handleRetailPayment()
     return

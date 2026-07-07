@@ -3,12 +3,16 @@ import type { PaymentMethod } from '../types/database'
 import type { PaymentBreakdownItem } from '../types/pos'
 import type { TransactionRow } from '../composables/useFinancialSummary'
 
+type Currency = 'USD' | 'VES'
+
 export function useTransactionEdit(
   showError: (msg: string) => void,
 ) {
   const showEditModal = ref(false)
   const editingTransaction = ref<TransactionRow | null>(null)
   const editingAmount = ref(0)
+  const editingCurrency = ref<Currency>('USD')
+  const editingExchangeRate = ref(1)
   const editingMethod = ref<PaymentMethod>('cash')
   const editingBreakdown = ref<PaymentBreakdownItem[]>([])
   const editingNotes = ref('')
@@ -19,6 +23,7 @@ export function useTransactionEdit(
     { value: 'transfer', label: 'Transferencia' },
     { value: 'zelle', label: 'Zelle' },
     { value: 'pago_movil', label: 'Pago Móvil' },
+    { value: 'punto_venta', label: 'Punto de Venta (Bs)' },
     { value: 'mixed', label: 'Mixto' },
     { value: 'other', label: 'Otro' },
   ]
@@ -34,7 +39,9 @@ export function useTransactionEdit(
 
   const startEdit = (tx: TransactionRow) => {
     editingTransaction.value = tx
-    editingAmount.value = tx.amount
+    editingCurrency.value = (tx.primaryCurrency as Currency) || 'USD'
+    editingExchangeRate.value = tx.exchangeRateUsed ?? 1
+    editingAmount.value = editingCurrency.value === 'VES' ? (tx.primaryAmount ?? tx.amount) : tx.amount
     editingMethod.value = tx.rawMethod
     editingNotes.value = tx.notes ?? ''
 
@@ -43,10 +50,21 @@ export function useTransactionEdit(
     } else {
       editingBreakdown.value = tx.rawMethod !== 'mixed'
         ? []
-        : [{ method: 'cash' as PaymentMethod, inputAmount: tx.amount, currency: 'USD' as const, amount: tx.amount }]
+        : [{ method: 'cash' as PaymentMethod, inputAmount: editingAmount.value, currency: editingCurrency.value, amount: editingAmount.value }]
     }
 
     showEditModal.value = true
+  }
+
+  const setEditingCurrency = (currency: Currency) => {
+    if (currency === editingCurrency.value) return
+    const rate = editingExchangeRate.value
+    if (currency === 'VES') {
+      editingAmount.value = parseFloat((editingAmount.value * rate).toFixed(2))
+    } else {
+      editingAmount.value = parseFloat((editingAmount.value / rate).toFixed(2))
+    }
+    editingCurrency.value = currency
   }
 
   const cancelEdit = () => {
@@ -61,7 +79,7 @@ export function useTransactionEdit(
   const setEditingMethod = (method: PaymentMethod) => {
     editingMethod.value = method
     if (method === 'mixed' && editingBreakdown.value.length === 0) {
-      editingBreakdown.value = [{ method: 'cash' as PaymentMethod, inputAmount: editingAmount.value, currency: 'USD' as const, amount: editingAmount.value }]
+      editingBreakdown.value = [{ method: 'cash' as PaymentMethod, inputAmount: editingAmount.value, currency: editingCurrency.value, amount: editingAmount.value }]
     }
     if (method !== 'mixed') {
       editingAmount.value = editingTotalAmount.value
@@ -80,7 +98,7 @@ export function useTransactionEdit(
   }
 
   const addBreakdownItem = () => {
-    editingBreakdown.value = [...editingBreakdown.value, { method: 'cash' as PaymentMethod, inputAmount: 0, currency: 'USD' as const, amount: 0 }]
+    editingBreakdown.value = [...editingBreakdown.value, { method: 'cash' as PaymentMethod, inputAmount: 0, currency: editingCurrency.value, amount: 0 }]
   }
 
   const removeBreakdownItem = (index: number) => {
@@ -94,28 +112,34 @@ export function useTransactionEdit(
     onSave: (params: { transactionId: string; amount: number; method: PaymentMethod; notes?: string; paymentsBreakdown?: PaymentBreakdownItem[] }) => void,
   ) => {
     if (!editingTransaction.value) return
-    const total = editingTotalAmount.value
-    if (total <= 0) {
+    const displayTotal = editingTotalAmount.value
+    if (displayTotal <= 0) {
       showError('El monto debe ser mayor a 0')
       return
     }
+
+    const rate = editingExchangeRate.value
+    const usdTotal = editingCurrency.value === 'VES' ? parseFloat((displayTotal / rate).toFixed(2)) : displayTotal
 
     const effectiveMethod: PaymentMethod = editingBreakdown.value.length > 1
       ? 'mixed'
       : editingMethod.value
 
     const breakdown = effectiveMethod === 'mixed' && editingBreakdown.value.length > 0
-      ? editingBreakdown.value.map(item => ({
-          method: item.method,
-          inputAmount: item.amount,
-          currency: item.currency,
-          amount: item.amount,
-        }))
+      ? editingBreakdown.value.map(item => {
+          const itemUsd = editingCurrency.value === 'VES' ? parseFloat((item.amount / rate).toFixed(2)) : item.amount
+          return {
+            method: item.method,
+            inputAmount: item.amount,
+            currency: editingCurrency.value,
+            amount: itemUsd,
+          }
+        })
       : undefined
 
     onSave({
       transactionId: editingTransaction.value.id,
-      amount: total,
+      amount: usdTotal,
       method: effectiveMethod,
       notes: editingNotes.value || undefined,
       paymentsBreakdown: breakdown,
@@ -136,6 +160,8 @@ export function useTransactionEdit(
     showEditModal,
     editingTransaction,
     editingAmount,
+    editingCurrency,
+    setEditingCurrency,
     editingMethod,
     editingBreakdown,
     editingNotes,

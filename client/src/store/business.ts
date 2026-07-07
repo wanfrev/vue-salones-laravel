@@ -24,6 +24,7 @@ const DEFAULT_TERMINOLOGY: Terminology = {
     proveedores: true,
     multi_branch: false,
     employees_create_clients: true,
+    gift_cards: true,
   }
 
 export type FeatureKey = keyof typeof DEFAULT_FEATURES
