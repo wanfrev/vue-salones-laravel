@@ -1,0 +1,99 @@
+# Luma (Salones) — Docker Compose para desarrollo local
+#
+# Servicios:
+#   - PostgreSQL (opcional, si no usas Supabase Docker)
+#   - Redis (queues, cache, horizon)
+#
+# Uso:
+#   docker compose up -d              # Inicia PostgreSQL + Redis
+#   docker compose up -d redis        # Solo Redis (si PostgreSQL ya existe)
+#   docker compose down               # Detiene todo
+#   docker compose down -v            # Detiene + borra volúmenes (BD se pierde)
+
+services:
+  # PostgreSQL — descomenta si NO usas Supabase Docker
+  # postgres:
+  #   image: postgres:16-alpine
+  #   container_name: luma-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_DB: salones
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 5
+
+  # Redis — para queues, cache y Horizon
+  redis:
+    image: redis:7-alpine
+    container_name: luma-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+
+  # Laravel Backend — descomenta para modo "todo en Docker"
+  # backend:
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #   container_name: luma-backend
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8000:8000"
+  #   volumes:
+  #     - ./backend:/var/www
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   environment:
+  #     DB_CONNECTION: pgsql
+  #     DB_HOST: postgres
+  #     DB_PORT: 5432
+  #     DB_DATABASE: salones
+  #     DB_USERNAME: postgres
+  #     DB_PASSWORD: postgres
+  #     REDIS_HOST: redis
+  #     QUEUE_CONNECTION: redis
+
+  # Reverb WebSocket — descomenta para modo "todo en Docker"
+  # reverb:
+  #   image: luma-backend
+  #   container_name: luma-reverb
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8080:8080"
+  #   command: php artisan reverb:start --host=0.0.0.0 --port=8080
+  #   depends_on:
+  #     backend:
+  #       condition: service_started
+
+  # Queue Worker — descomenta para modo "todo en Docker"
+  # worker:
+  #   image: luma-backend
+  #   container_name: luma-worker
+  #   restart: unless-stopped
+  #   command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+  #   depends_on:
+  #     backend:
+  #       condition: service_started
+
+volumes:
+  pgdata:
+  redisdata:
