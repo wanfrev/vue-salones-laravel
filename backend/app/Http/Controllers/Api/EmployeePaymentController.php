@@ -3,16 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
-use App\Models\EmployeePayment;
+use App\Services\EmployeePaymentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class EmployeePaymentController
 {
-    /**
-     * GET /api/employee-payments
-     */
+    public function __construct(
+        private EmployeePaymentService $paymentService,
+    ) {}
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user()?->load('profile');
@@ -21,29 +21,17 @@ class EmployeePaymentController
             return response()->json([]);
         }
 
-        $query = EmployeePayment::with('employeeProfile')
-            ->where('business_id', $p->business_id)
-            ->orderByDesc('payment_date');
-
-        if ($request->branch_id) {
-            $query->where('branch_id', $request->branch_id);
-        }
-        if ($request->start_date) {
-            $query->where('payment_date', '>=', $request->start_date);
-        }
-        if ($request->end_date) {
-            $query->where('payment_date', '<=', $request->end_date);
-        }
-        if ($request->employee_id) {
-            $query->where('employee_id', $request->employee_id);
-        }
-
-        return response()->json($query->get());
+        return response()->json(
+            $this->paymentService->list(
+                $p->business_id,
+                $request->branch_id,
+                $request->start_date,
+                $request->end_date,
+                $request->employee_id,
+            )
+        );
     }
 
-    /**
-     * POST /api/employee-payments
-     */
     public function store(Request $request): JsonResponse
     {
         $user = $request->user()?->load('profile');
@@ -66,41 +54,15 @@ class EmployeePaymentController
             'branch_id' => 'nullable|uuid',
         ]);
 
-        $payment = EmployeePayment::create([
-            'id' => Str::uuid()->toString(),
-            'business_id' => $p->business_id,
-            'branch_id' => $data['branch_id'] ?? null,
-            'employee_id' => $data['employee_id'],
-            'amount' => $data['amount'],
-            'currency' => $data['currency'],
-            'original_amount' => $data['original_amount'] ?? 0,
-            'exchange_rate_used' => $data['exchange_rate_used'] ?? 1,
-            'payment_method' => $data['payment_method'],
-            'type' => $data['type'],
-            'concept' => $data['concept'] ?? null,
-            'notes' => $data['notes'] ?? null,
-            'payment_date' => $data['payment_date'],
-            'created_by' => $user->id,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        return response()->json($payment, 201);
+        $payment = $this->paymentService->store($data, $p->business_id, $user->id);
         EntityChanged::dispatch($p->business_id, 'employee_payment', 'created', $payment->id);
+        return response()->json($payment, 201);
     }
 
-    /**
-     * PUT /api/employee-payments/{id}
-     */
     public function update(Request $request, string $id): JsonResponse
     {
         $user = $request->user()?->load('profile');
         $p = $user?->profile;
-
-        $payment = EmployeePayment::find($id);
-        if (!$payment || $payment->business_id !== $p?->business_id) {
-            return response()->json(['error' => ['message' => 'Not found']], 404);
-        }
 
         $data = $request->validate([
             'amount' => 'sometimes|numeric|min:0',
@@ -112,28 +74,18 @@ class EmployeePaymentController
             'original_amount' => 'nullable|numeric|min:0',
         ]);
 
-        $payment->update($data + ['updated_at' => now()]);
-
-        return response()->json($payment->fresh());
+        $payment = $this->paymentService->update($id, $data, $p?->business_id);
         EntityChanged::dispatch($p->business_id, 'employee_payment', 'updated', $id);
+        return response()->json($payment);
     }
 
-    /**
-     * DELETE /api/employee-payments/{id}
-     */
     public function destroy(Request $request, string $id): JsonResponse
     {
         $user = $request->user()?->load('profile');
         $p = $user?->profile;
 
-        $payment = EmployeePayment::find($id);
-        if (!$payment || $payment->business_id !== $p?->business_id) {
-            return response()->json(['error' => ['message' => 'Not found']], 404);
-        }
-
-        $payment->delete();
+        $this->paymentService->destroy($id, $p?->business_id);
         EntityChanged::dispatch($p->business_id, 'employee_payment', 'deleted', $id);
-
         return response()->json(null, 204);
     }
 }

@@ -2,30 +2,28 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\EntityChanged;
 use App\Http\Resources\BusinessResource;
-use App\Models\Business;
+use App\Services\BusinessService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class BusinessController
 {
+    public function __construct(
+        private BusinessService $businessService,
+    ) {}
+
     public function show(string $id): JsonResponse
     {
-        $business = Business::find($id);
-        if (!$business) {
-            return response()->json(['error' => ['message' => 'Not found']], 404);
-        }
+        $business = $this->businessService->show($id);
         return response()->json(new BusinessResource($business));
     }
 
     public function update(Request $request, string $id): JsonResponse
     {
         $user = $request->user()?->load('profile');
-        $business = Business::find($id);
-
-        if (!$business || $business->id !== $user?->profile?->business_id) {
-            return response()->json(['error' => ['message' => 'Not found']], 404);
-        }
+        $profileBusinessId = $user?->profile?->business_id;
 
         $data = $request->validate([
             'employee_ves_rate' => ['nullable', 'numeric', 'min:0'],
@@ -36,8 +34,8 @@ class BusinessController
             'theme_config' => ['nullable', 'array'],
         ]);
 
-        $business->update($data + ['updated_at' => now()]);
-
-        return response()->json(new BusinessResource($business->fresh()));
+        $business = $this->businessService->update($id, $data, $profileBusinessId);
+        EntityChanged::dispatch($profileBusinessId, 'business', 'updated', $id);
+        return response()->json(new BusinessResource($business));
     }
 }

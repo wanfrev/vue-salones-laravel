@@ -15,6 +15,7 @@ class Profile extends Model
         'id', 'business_id', 'full_name', 'role', 'phone', 'avatar_url',
         'active', 'email', 'job_title',
         'pay_type', 'pay_percentage', 'base_salary', 'salary_frequency',
+        'employee_ves_rate',
         'disable_agenda',
     ];
 
@@ -25,6 +26,7 @@ class Profile extends Model
             'disable_agenda' => 'boolean',
             'pay_percentage' => 'float',
             'base_salary' => 'float',
+            'employee_ves_rate' => 'float',
         ];
     }
 

@@ -78,7 +78,6 @@ export const recordSale = async (params: {
   const { data, error } = await supabase.rpc('record_sale', rpcPayload)
 
   if (error && error.code === 'PGRST202') {
-    // Backward compatibility for DBs that still expose the legacy 5-arg signature.
     const legacy = await supabase.rpc('record_sale', {
       p_appointment_id: params.appointmentId,
       p_amount: params.amount,
@@ -102,38 +101,33 @@ export const updateTransaction = async (params: {
   exchangeRate?: number
   paymentsBreakdown?: PaymentBreakdownItem[]
 }): Promise<void> => {
-  const { error } = await supabase.rpc('update_transaction', {
-    p_transaction_id: params.transactionId,
-    p_amount: params.amount ?? null,
-    p_method: params.method ?? null,
-    p_notes: params.notes ?? null,
-    p_exchange_rate: params.exchangeRate ?? null,
-  })
-  if (error) throw error
-
-  if (params.paymentsBreakdown) {
-    const { error: bdError } = await mutate
-      .from('transactions')
-      .update({ payments_breakdown: params.paymentsBreakdown })
-      .eq('id', params.transactionId)
-    if (bdError) throw bdError
-  }
+  await mutate
+    .from('transactions')
+    .update({
+      total_amount: params.amount,
+      method: params.method,
+      notes: params.notes,
+      exchange_rate_used: params.exchangeRate,
+      payments_breakdown: params.paymentsBreakdown,
+      ...(params.paymentsBreakdown ? { payments_breakdown: params.paymentsBreakdown } : {}),
+    })
+    .eq('id', params.transactionId)
 }
 
 export const deleteTransaction = async (params: {
   transactionId: string
 }): Promise<void> => {
-  const { error } = await supabase.rpc('delete_transaction', {
-    p_transaction_id: params.transactionId,
-  })
-  if (error) throw error
+  await mutate
+    .from('transactions')
+    .delete()
+    .eq('id', params.transactionId)
 }
 
 export const deleteProductSale = async (movementId: string): Promise<void> => {
-  const { error } = await supabase.rpc('delete_product_sale', {
-    p_movement_id: movementId,
-  })
-  if (error) throw error
+  await mutate
+    .from('inventory_movements')
+    .delete()
+    .eq('id', movementId)
 }
 
 export const listPendingAppointments = async (businessId: string, branchId?: string | null) => {

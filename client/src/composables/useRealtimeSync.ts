@@ -1,6 +1,6 @@
 import { watchEffect, onScopeDispose } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
-import { api as supabase } from '../lib/api'
+import { echoClient } from '../lib/echo'
 
 interface TableSyncConfig {
   table: string
@@ -24,60 +24,66 @@ const SYNC_TABLES: TableSyncConfig[] = [
   { table: 'inventory_movements', keys: [['inventario']] },
   { table: 'notifications', keys: [['notifications']] },
   { table: 'employee_schedules', keys: [['employees'], ['equipo'], ['schedules']] },
+  { table: 'businesses', keys: [['businessess']] },
+  { table: 'branches', keys: [['branches']] },
 ]
 
 export function useRealtimeSync(businessId: () => string | null | undefined) {
   const queryClient = useQueryClient()
-  let channel: any = null
+
+  const getConfig = (entity: string) => {
+    return SYNC_TABLES.find(c => c.table === entity)
+  }
+
+  const invalidateEntity = (entity: string) => {
+    const config = getConfig(entity)
+    if (!config) return
+
+    Promise.allSettled(
+      config.keys.map(key =>
+        queryClient.invalidateQueries({ queryKey: key as any, refetchType: 'active' })
+      )
+    )
+  }
 
   const subscribe = (bizId: string) => {
-    if (!bizId) return
-
-    const ch = supabase.channel(`realtime-sync-${bizId}`)
-
-    for (const config of SYNC_TABLES) {
-      ch.on(
-        'postgres_changes' as any,
-        {
-          event: '*',
-          schema: 'public',
-          table: config.table,
-          filter: `business_id=eq.${bizId}`,
-        },
-        () => {
-          for (const key of config.keys) {
-            queryClient.invalidateQueries({ queryKey: key as any, refetchType: 'active' })
-          }
-        }
-      )
-    }
-
-    ch.subscribe((status: string) => {
-      if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-        setTimeout(() => {
-          if (channel === ch) subscribe(bizId)
-        }, 5000)
-      }
+    echoClient.private(`business.${bizId}`).listen('.entity.changed', (e: { entity: string; action: string; entityId?: string }) => {
+      invalidateEntity(e.entity)
     })
-
-    channel = ch
   }
 
-  const unsubscribe = () => {
-    if (channel) {
-      supabase.removeChannel(channel)
-      channel = null
-    }
+  const unsubscribe = (bizId: string) => {
+    echoClient.leave(`business.${bizId}`)
   }
+
+  let currentBizId: string | null = null
 
   watchEffect((onCleanup) => {
     const bizId = businessId()
-    unsubscribe()
-    if (bizId) {
-      subscribe(bizId)
+    if (bizId === currentBizId) return
+
+    if (currentBizId) {
+      unsubscribe(currentBizId)
     }
-    onCleanup(() => unsubscribe())
+
+    currentBizId = bizId ?? null
+
+    if (currentBizId) {
+      subscribe(currentBizId)
+    }
+
+    onCleanup(() => {
+      if (currentBizId) {
+        unsubscribe(currentBizId)
+        currentBizId = null
+      }
+    })
   })
 
-  onScopeDispose(() => unsubscribe())
+  onScopeDispose(() => {
+    if (currentBizId) {
+      unsubscribe(currentBizId)
+      currentBizId = null
+    }
+  })
 }

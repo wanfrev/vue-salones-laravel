@@ -5,7 +5,6 @@ const isAuthError = (err: unknown): boolean => {
   if (!err) return false
   const e = err as { status?: number; code?: string; message?: string; name?: string }
   if (e.status === 401 || e.code === '401') return true
-  if (e.code === 'PGRST301' || e.code === 'PGRST302') return true
   const msg = (e.message ?? '').toLowerCase()
   return msg.includes('jwt expired') || msg.includes('invalid refresh token') || msg.includes('refresh token not found') || msg.includes('session expired')
 }

@@ -342,7 +342,10 @@ export const deleteCita = async (id: string): Promise<void> => {
       .in('appointment_id', allIds)
 
     for (const tx of (transactions ?? []) as Array<{ id: string }>) {
-      const { error: txError } = await supabase.rpc('delete_transaction', { p_transaction_id: tx.id })
+      const { error: txError } = await mutate
+        .from('transactions')
+        .delete()
+        .eq('id', tx.id)
       if (txError) {
         throw new Error(txError.message || 'Error al eliminar pagos asociados')
       }
@@ -365,7 +368,10 @@ export const deleteCita = async (id: string): Promise<void> => {
     .eq('appointment_id', id)
 
   for (const tx of (transactions ?? []) as Array<{ id: string }>) {
-    const { error: txError } = await supabase.rpc('delete_transaction', { p_transaction_id: tx.id })
+    const { error: txError } = await mutate
+      .from('transactions')
+      .delete()
+      .eq('id', tx.id)
     if (txError) {
       throw new Error(txError.message || 'Error al eliminar pagos asociados')
     }
