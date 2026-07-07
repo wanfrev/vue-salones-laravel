@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
+use App\Jobs\ProcessPayment;
+use App\Jobs\ProcessSale;
 use App\Services\PosService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -63,6 +65,15 @@ class PosController
             );
 
             EntityChanged::dispatch($p->business_id, 'transaction', 'created', $txId);
+
+            ProcessPayment::dispatch(
+                transactionId: $txId,
+                businessId: $p->business_id,
+                appointmentId: $data['appointment_id'],
+                amount: $data['amount'],
+                method: $data['method'],
+            );
+
             return response()->json(['id' => $txId], 201);
         } catch (\Throwable $e) {
             return response()->json(['error' => ['message' => $e->getMessage()]], 400);
@@ -104,6 +115,16 @@ class PosController
             );
 
             EntityChanged::dispatch($p->business_id, 'transaction', 'created', $txId);
+
+            ProcessSale::dispatch(
+                transactionId: $txId,
+                businessId: $p->business_id,
+                appointmentId: $data['appointment_id'],
+                amount: $data['amount'],
+                method: $data['method'],
+                products: $data['products'] ?? [],
+            );
+
             return response()->json(['id' => $txId], 201);
         } catch (\Throwable $e) {
             return response()->json(['error' => ['message' => $e->getMessage()]], 400);
