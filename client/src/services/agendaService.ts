@@ -30,7 +30,7 @@ export const agendaKeys = {
   appointments: (businessId?: string | null, branchId?: string | null) => ['appointments', businessId, branchId] as const,
 }
 
-const APPOINTMENT_SELECT = '*, clients(id, full_name, phone, email), services(id, name, duration_minutes, price, color), profiles!appointments_employee_id_fkey(id, full_name, avatar_url), assistant_profile:profiles!appointments_assistant_employee_id_fkey(id, full_name, avatar_url)'
+export const APPOINTMENT_SELECT = '*, clients(id, full_name, phone, email), services(id, name, duration_minutes, price, color), profiles!appointments_employee_id_fkey(id, full_name, avatar_url), assistant_profile:profiles!appointments_assistant_employee_id_fkey(id, full_name, avatar_url)'
 
 export const listCitas = async (
   businessId: string,
@@ -118,6 +118,48 @@ export const saveCita = async (
 
   // Single service (no extras) — backward compatible path
   if (!data.extraServices || data.extraServices.length === 0) {
+    if (data.id) {
+      const { data: existing } = await supabase
+        .from('appointments')
+        .select('group_id')
+        .eq('id', data.id)
+        .maybeSingle()
+      const oldGroupId = (existing as any)?.group_id
+      if (oldGroupId) {
+        const { data: orphans } = await supabase
+          .from('appointments')
+          .select('id')
+          .eq('group_id', oldGroupId)
+          .neq('id', data.id)
+        const orphanIds = (orphans ?? []).map((o: any) => o.id)
+        if (orphanIds.length > 0) {
+          const { data: orphanTxs, error: orphanTxError } = await supabase
+            .from('transactions')
+            .select('id')
+            .in('appointment_id', orphanIds)
+          if (orphanTxError) throw orphanTxError
+
+          for (const tx of (orphanTxs ?? []) as Array<{ id: string }>) {
+            const { error: txDeleteError } = await mutate
+              .from('transactions')
+              .delete()
+              .eq('id', tx.id)
+            if (txDeleteError) throw txDeleteError
+          }
+
+          const { data: deletedOrphans, error: delError } = await mutate
+            .from('appointments')
+            .delete()
+            .in('id', orphanIds)
+            .select('id')
+          if (delError) throw delError
+          if ((deletedOrphans ?? []).length !== orphanIds.length) {
+            throw new Error('No se pudieron actualizar todos los servicios de la cita. Intenta nuevamente.')
+          }
+        }
+      }
+    }
+
     const payload = mapCitaFormToAppointmentInsert(
       businessId,
       data,
@@ -126,6 +168,8 @@ export const saveCita = async (
       createdBy,
       branchId
     )
+
+    ;(payload as any).group_id = null
 
     const query = data.id
       ? mutate.from('appointments').update(payload).eq('id', data.id).select(APPOINTMENT_SELECT).single()
@@ -140,7 +184,6 @@ export const saveCita = async (
   // Multi-service (grouped) path
   const groupId = data.id
     ? (await (async () => {
-        // For updates, find the existing group_id of the appointment being edited
         const { data: existing } = await supabase
           .from('appointments')
           .select('group_id')
@@ -149,30 +192,6 @@ export const saveCita = async (
         return (existing as any)?.group_id || generateId()
       })())
     : generateId()
-
-  // On update, delete old records before re-inserting
-  if (data.id) {
-    const { data: existing } = await supabase
-      .from('appointments')
-      .select('group_id')
-      .eq('id', data.id)
-      .maybeSingle()
-
-    const targetGroupId = (existing as any)?.group_id
-    if (targetGroupId) {
-      // Multi-service → delete all group members
-      await mutate
-        .from('appointments')
-        .delete()
-        .eq('group_id', targetGroupId)
-    } else {
-      // Single-service being converted to multi-service → delete the old standalone record
-      await mutate
-        .from('appointments')
-        .delete()
-        .eq('id', data.id)
-    }
-  }
 
   // Fetch all services for extra rows
   const extraServiceIds = data.extraServices.map(e => e.serviceId)
@@ -190,13 +209,11 @@ export const saveCita = async (
   if (servicesError) throw servicesError
   const servicesMap = new Map((servicesData as Service[]).map(s => [s.id, s]))
 
-  const inserts = []
-
   // Primary service — always use form's price; the mapper decides override vs catalog
   const primaryService = servicesMap.get(data.service) as Service | undefined
   const primaryPrice = data.price
 
-  inserts.push(mapServiceItemToAppointmentInsert(
+  const desiredPayloads = [mapServiceItemToAppointmentInsert(
     businessId,
     {
       serviceId: data.service,
@@ -216,11 +233,11 @@ export const saveCita = async (
     createdBy,
     primaryService,
     branchId
-  ))
+  )]
 
   // Extra services
   for (const extra of data.extraServices) {
-    inserts.push(mapServiceItemToAppointmentInsert(
+    desiredPayloads.push(mapServiceItemToAppointmentInsert(
       businessId,
       extra,
       clientId,
@@ -235,17 +252,122 @@ export const saveCita = async (
     ))
   }
 
+  if (data.id) {
+    const { data: existing } = await supabase
+      .from('appointments')
+      .select('group_id')
+      .eq('id', data.id)
+      .maybeSingle()
+
+    const targetGroupId = (existing as any)?.group_id
+
+    if (!targetGroupId) {
+      const [primaryPayload, ...extraPayloads] = desiredPayloads
+      const { error: updatePrimaryError } = await mutate
+        .from('appointments')
+        .update(primaryPayload)
+        .eq('id', data.id)
+
+      if (updatePrimaryError) throw mapAgendaWriteError(updatePrimaryError, 'guardar')
+
+      if (extraPayloads.length > 0) {
+        const { error: insertExtraError } = await mutate
+          .from('appointments')
+          .insert(extraPayloads)
+
+        if (insertExtraError) throw mapAgendaWriteError(insertExtraError, 'guardar')
+      }
+
+      const { data: refreshed, error: refreshError } = await supabase
+        .from('appointments')
+        .select(APPOINTMENT_SELECT)
+        .eq('id', data.id)
+        .single()
+
+      if (refreshError) throw refreshError
+      return mapAppointmentToCita(refreshed as AppointmentWithRelations)
+    }
+
+    const { data: members, error: membersError } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('group_id', targetGroupId)
+      .order('created_at', { ascending: true })
+
+    if (membersError) throw membersError
+
+    const orderedIds = [
+      data.id,
+      ...((members ?? []) as Array<{ id: string }>)
+        .map(m => m.id)
+        .filter(id => id !== data.id),
+    ]
+
+    const overlap = Math.min(orderedIds.length, desiredPayloads.length)
+
+    for (let i = 0; i < overlap; i++) {
+      const { error: updateError } = await mutate
+        .from('appointments')
+        .update(desiredPayloads[i])
+        .eq('id', orderedIds[i])
+      if (updateError) throw mapAgendaWriteError(updateError, 'guardar')
+    }
+
+    if (desiredPayloads.length > orderedIds.length) {
+      const { error: insertError } = await mutate
+        .from('appointments')
+        .insert(desiredPayloads.slice(orderedIds.length))
+      if (insertError) throw mapAgendaWriteError(insertError, 'guardar')
+    }
+
+    if (orderedIds.length > desiredPayloads.length) {
+      const idsToDelete = orderedIds.slice(desiredPayloads.length)
+
+      const { data: txsToDelete, error: txsToDeleteError } = await supabase
+        .from('transactions')
+        .select('id')
+        .in('appointment_id', idsToDelete)
+
+      if (txsToDeleteError) throw txsToDeleteError
+
+      for (const tx of (txsToDelete ?? []) as Array<{ id: string }>) {
+        const { error: txDeleteError } = await mutate
+          .from('transactions')
+          .delete()
+          .eq('id', tx.id)
+        if (txDeleteError) throw txDeleteError
+      }
+
+      const { data: deletedRows, error: deleteError } = await mutate
+        .from('appointments')
+        .delete()
+        .in('id', idsToDelete)
+        .select('id')
+
+      if (deleteError) throw mapAgendaWriteError(deleteError, 'guardar')
+      if ((deletedRows ?? []).length !== idsToDelete.length) {
+        throw new Error('No se pudieron eliminar algunos servicios del grupo. Revisa permisos e intenta nuevamente.')
+      }
+    }
+
+    const { data: refreshed, error: refreshError } = await supabase
+      .from('appointments')
+      .select(APPOINTMENT_SELECT)
+      .eq('id', data.id)
+      .single()
+
+    if (refreshError) throw refreshError
+    return mapAppointmentToCita(refreshed as AppointmentWithRelations)
+  }
+
   const { data: saved, error: insertError } = await mutate
     .from('appointments')
-    .insert(inserts)
+    .insert(desiredPayloads)
     .select(APPOINTMENT_SELECT)
 
   if (insertError) throw mapAgendaWriteError(insertError, 'guardar')
 
-  const results = (saved as AppointmentWithRelations[])
-
-  // Group appointments under the first one for the primary return value
-  // Include group info in the extended props
+  const results = saved as AppointmentWithRelations[]
   const primary = results.find(r => r.service_id === serviceId && r.employee_id === data.employee) ?? results[0]
   return mapAppointmentToCita(primary)
 }

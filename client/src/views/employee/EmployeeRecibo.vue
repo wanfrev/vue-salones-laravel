@@ -508,7 +508,7 @@ const filteredEarnings = computed(() => {
 
 const earningsWithVES = computed(() =>
   filteredEarnings.value.map(row => {
-    const rate = row.exchangeRateUsed || (employeeRate.value ?? exchangeRate.value)
+    const rate = row.exchangeRateUsed || effectiveRate.value
     const isVES = row.currency === 'VES'
     const vesTotal = isVES ? row.totalAmount * row.exchangeRateUsed : row.totalAmount * rate
     const vesEarnings = isVES ? row.employeeEarnings * row.exchangeRateUsed : row.employeeEarnings * rate
@@ -566,13 +566,17 @@ const { data: paymentsData, refetch: refetchPayments } = useQuery({
 const payments = computed(() => paymentsData.value ?? [])
 const { formatUSD, formatVESEs, exchangeRate } = useCurrency()
 
-// Employee-specific rate (if set). Otherwise null and we fall back to global rate.
-const employeeRate = computed(() => businessStore.employeeExchangeRate)
+// Employee-specific rate cascade: branch rate → employee override → global rate
+const effectiveRate = computed(() => {
+  if (businessStore.currentBranch?.ves_exchange_rate != null) {
+    return businessStore.currentBranch.ves_exchange_rate
+  }
+  return businessStore.employeeExchangeRate ?? exchangeRate.value
+})
 
 // Local formatVES that uses the employee rate when available
 const formatVES = (usdValue: number): string => {
-  const r = employeeRate.value ?? exchangeRate.value
-  return `${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(usdValue * r)} Bs`
+  return `${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(usdValue * effectiveRate.value)} Bs`
 }
 
 const filteredPayments = computed(() => {
@@ -602,7 +606,7 @@ const paymentsWithCurrency = computed(() => {
     const usdAmount = Number(p.amount)
     // Use historical exchange rate if available, otherwise use current employee rate or global rate
     const historicalRate = p.exchange_rate_used
-    const rateToUse = historicalRate || (employeeRate.value ?? exchangeRate.value)
+    const rateToUse = historicalRate || effectiveRate.value
     const displayVES = currency === 'VES' ? formatVESEs(originalAmount) : `${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(usdAmount * rateToUse)} Bs`
     const displayAmount = currency === 'VES' ? formatVESEs(originalAmount) : formatUSD(usdAmount)
     return {

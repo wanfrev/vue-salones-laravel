@@ -49,3 +49,14 @@ export interface CitaFormData {
   status: 'confirmed' | 'pending' | 'cancelled' | 'paid'
   notes: string
 }
+
+export interface PaymentEditContext {
+  transactionId: string
+  method: 'cash' | 'cash_ves' | 'card' | 'transfer' | 'zelle' | 'pago_movil' | 'punto_venta' | 'mixed' | 'other'
+  amount: number
+  currency: 'USD' | 'VES'
+  exchangeRate: number
+  tipAmount?: number
+  notes?: string
+  breakdown?: import('./pos').PaymentBreakdownItem[]
+}

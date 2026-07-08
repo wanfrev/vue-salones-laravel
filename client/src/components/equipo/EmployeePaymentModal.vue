@@ -11,19 +11,26 @@ const props = defineProps<{
   branchId: string | null
 }>()
 
-const emit = defineEmits(['payment-saved'])
+const emit = defineEmits(['close', 'payment-saved'])
 const { formatUSD } = useCurrency()
 const businessStore = useBusinessStore()
 const selectedBalance = ref<EmployeeBalance | null>(null)
 
-const buildBalanceFromSummary = (employeeId: string): EmployeeBalance | null => {
-  return null
+const toYmd = (d: Date) => {
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
 }
+
+const now = new Date()
+const earningsStartDate = ref(toYmd(new Date(now.getFullYear(), now.getMonth(), 1)))
+const earningsEndDate = ref(toYmd(now))
 
 const onEmployeeChange = async () => {
   const empId = props.paymentsCtx.paymentForm.value.employeeId
   if (!empId || !props.businessId) { selectedBalance.value = null; return }
-  try { selectedBalance.value = await getEmployeeBalance(props.businessId, empId, props.branchId) } catch { selectedBalance.value = null }
+  try { selectedBalance.value = await getEmployeeBalance(props.businessId, empId, props.branchId, earningsStartDate.value || null, earningsEndDate.value || null) } catch { selectedBalance.value = null }
 }
 
 const handleSubmitPayment = async () => {
@@ -54,6 +61,19 @@ const handleSubmitPayment = async () => {
               <option value="" disabled>Seleccionar {{ (businessStore.terminology.employee || 'empleado').toLowerCase() }}</option>
               <option v-for="emp in paymentsCtx.employeeList.value" :key="emp.id" :value="emp.id">{{ emp.name }}</option>
             </select>
+          </div>
+
+          <div v-if="!paymentsCtx.editingPaymentId.value" class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="mb-1 block text-xs font-medium text-text-muted">Servicios desde</label>
+              <input v-model="earningsStartDate" type="date" @change="onEmployeeChange"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-text-muted">Servicios hasta</label>
+              <input v-model="earningsEndDate" type="date" @change="onEmployeeChange"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            </div>
           </div>
 
           <div v-if="selectedBalance" class="rounded-lg bg-bg-secondary p-3 space-y-2">

@@ -30,14 +30,14 @@ export type EmployeeEarningSummary = {
 }
 
 export type TransactionRow = {
-  id: string; date: string; client: string; employee: string; service: string
+  id: string; appointmentId: string; date: string; client: string; employee: string; service: string
   method: string; rawMethod: PaymentMethod; amount: number; exchangeRateUsed: number
   breakdownLabel: string; breakdown: PaymentBreakdownItem[] | null
   primaryCurrency: 'USD' | 'VES'; primaryAmount: number; notes?: string | null; tipAmount?: number
 }
 
 export type ProductSaleDetail = {
-  id: string; date: string; product: string; quantity: number; unitPrice: number
+  id: string; date: string; product: string; clientName?: string; quantity: number; unitPrice: number
   total: number; currency: 'USD' | 'VES'; exchangeRateUsed: number; originalAmount: number
 }
 
@@ -45,6 +45,8 @@ type PaymentRow = {
   id: string; employee: string; client: string; service: string
   amount: number; percentage: number; earnings: number; tipAmount: number
 }
+
+export type { PaymentRow }
 
 export type ServiceRevenue = { name: string; amount: number; percentage: number }
 export type ChartBar = { label: string; income: number; expense: number }
@@ -126,7 +128,7 @@ function useFinancialSummary(
 
   const { data: rawInventoryMovements } = useQuery({
     queryKey: computed(() => ['finanzas-product-sales', businessId.value, selectedPeriod.value, selectedMonth?.value ?? null, branchId.value] as const),
-    queryFn: async () => { const cfg = periodConfig.value; const start = `${toYmd(cfg.start)}T00:00:00`; const end = `${toYmd(cfg.end)}T23:59:59`; let q = supabase.from('inventory_movements').select('*, products(id, name)').eq('business_id', businessId.value!).eq('movement_type', 'sale').gte('created_at', start).lte('created_at', end).order('created_at', { ascending: false }).limit(2000); if (branchId.value) q = q.eq('branch_id', branchId.value); const { data, error } = await q; if (error) throw error; return data ?? [] },
+    queryFn: async () => { const cfg = periodConfig.value; const start = `${toYmd(cfg.start)}T00:00:00`; const end = `${toYmd(cfg.end)}T23:59:59`; let q = supabase.from('inventory_movements').select('*, products(id, name), clients(full_name)').eq('business_id', businessId.value!).eq('movement_type', 'sale').gte('created_at', start).lte('created_at', end).order('created_at', { ascending: false }).limit(2000); if (branchId.value) q = q.eq('branch_id', branchId.value); const { data, error } = await q; if (error) throw error; return data ?? [] },
     enabled: computed(() => !!businessId.value),
   })
 

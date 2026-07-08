@@ -103,16 +103,21 @@ class EmployeeCommissionService
         return $rows->concat($assistantRows)->sortByDesc('created_at')->values();
     }
 
-    public function getEmployeeBalance(string $employeeId, string $businessId, ?string $yearMonth = null): array
+    public function getEmployeeBalance(string $employeeId, string $businessId, ?string $yearMonth = null, ?string $startDateOverride = null, ?string $endDateOverride = null): array
     {
         $profile = Profile::find($employeeId);
         if (!$profile || $profile->business_id !== $businessId) {
             throw new NotFoundHttpException('Empleado no encontrado.');
         }
 
-        $yearMonth = $yearMonth ?? now()->format('Y-m');
-        $startDate = $yearMonth . '-01';
-        $endDate = (new \DateTime($startDate))->modify('last day of this month')->format('Y-m-d');
+        if ($startDateOverride && $endDateOverride) {
+            $startDate = $startDateOverride;
+            $endDate = $endDateOverride;
+        } else {
+            $yearMonth = $yearMonth ?? now()->format('Y-m');
+            $startDate = $yearMonth . '-01';
+            $endDate = (new \DateTime($startDate))->modify('last day of this month')->format('Y-m-d');
+        }
 
         $totalEarned = DB::table('transactions')
             ->join('appointments', 'transactions.appointment_id', '=', 'appointments.id')

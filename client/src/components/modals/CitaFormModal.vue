@@ -112,6 +112,97 @@
       <!-- BLOQUE 3: NOTAS -->
       <FormTextarea v-model="formData.notes" label="Notas" placeholder="Notas adicionales sobre la cita..." :rows="2" :error="errors.notes" />
 
+      <div v-if="paymentContext" class="border-t border-border pt-4">
+        <h4 class="text-sm font-semibold text-text mb-3">Editar cobro</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="mb-1 block text-xs font-medium text-text-muted">Método de pago</label>
+            <select
+              :value="paymentMethod"
+              @change="setPaymentMethod(($event.target as HTMLSelectElement).value)"
+              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+            >
+              <option v-for="opt in paymentMethodOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-medium text-text-muted">Moneda</label>
+            <select
+              :value="paymentCurrency"
+              @change="setPaymentCurrency(($event.target as HTMLSelectElement).value as 'USD' | 'VES')"
+              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+            >
+              <option value="USD">USD $</option>
+              <option value="VES">Bs</option>
+            </select>
+          </div>
+        </div>
+
+        <div v-if="isMixedPayment" class="mt-3 space-y-2 rounded-lg border border-border bg-bg-secondary p-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-text">Desglose de pagos</span>
+            <button type="button" @click="addPaymentBreakdownItem()"
+              class="rounded-lg border border-primary/30 bg-primary/5 px-2 py-1 text-xs font-medium text-primary transition-theme hover:bg-primary/10">
+              + Agregar método
+            </button>
+          </div>
+          <div v-for="(item, idx) in paymentBreakdown" :key="idx"
+            class="flex items-center gap-2 rounded-lg border border-border bg-surface p-2">
+            <select
+              :value="item.method"
+              @change="updatePaymentBreakdownItem(idx, 'method', ($event.target as HTMLSelectElement).value)"
+              class="flex-1 min-w-0 rounded border border-border bg-surface px-2 py-1.5 text-xs text-text outline-none transition-theme focus:border-primary"
+            >
+              <option v-for="opt in paymentMethodOptions.filter(o => o.value !== 'mixed')" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
+            <input
+              type="number"
+              :value="item.amount"
+              @input="updatePaymentBreakdownItem(idx, 'amount', Number(($event.target as HTMLInputElement).value))"
+              class="w-24 rounded border border-border bg-surface px-2 py-1.5 text-right text-xs text-text outline-none transition-theme focus:border-primary"
+              min="0" step="0.01" placeholder="0.00"
+            />
+            <span class="text-xs font-medium text-text-muted w-8 text-center">{{ paymentCurrency }}</span>
+            <button v-if="paymentBreakdown.length > 1" type="button" @click="removePaymentBreakdownItem(idx)"
+              class="rounded p-1 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger shrink-0">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <label class="mb-1 block text-xs font-medium text-text-muted">
+            {{ isMixedPayment ? 'Total (calculado)' : 'Monto' }}
+          </label>
+          <input v-if="!isMixedPayment"
+            v-model.number="paymentAmount"
+            type="number" min="0.01" step="0.01"
+            class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+            placeholder="0.00"
+          />
+          <div v-else class="rounded-lg border border-border bg-bg-secondary px-3 py-2 text-base font-bold text-text">
+            {{ paymentTotal.toFixed(2) }}
+          </div>
+        </div>
+
+        <div v-if="paymentTipAmount > 0" class="mt-2 rounded-lg border border-border bg-bg-secondary px-3 py-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-medium text-text-muted">Propina</span>
+            <span class="font-semibold text-primary">${{ paymentTipAmount.toFixed(2) }}</span>
+          </div>
+        </div>
+
+        <div class="mt-3">
+          <label class="mb-1 block text-xs font-medium text-text-muted">Notas del cobro</label>
+          <textarea
+            v-model="paymentNotes"
+            placeholder="Notas del cobro (opcional)"
+            rows="2"
+            class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/30"
+          ></textarea>
+        </div>
+      </div>
+
       <div v-if="isEditing" class="border-t border-border pt-4">
         <button type="button" class="rounded-lg border border-danger/30 px-4 py-2 text-sm font-semibold text-danger transition-theme hover:bg-danger/10" @click="confirmDelete">
           Eliminar {{ t.appointment.toLowerCase() }}
@@ -122,14 +213,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, nextTick } from 'vue'
 import { useModal } from '../../composables/common/useModal'
 import { useNotification } from '../../composables/common/useNotification'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { toISODate, minutesToHHmm } from '../../lib/formatters'
 import { listCitaGroupMembers } from '../../services/agendaService'
-import type { Cita, CitaFormData, CitaFormServiceItem } from '../../types/cita'
+import type { Cita, CitaFormData, CitaFormServiceItem, PaymentEditContext } from '../../types/cita'
+import type { PaymentMethod } from '../../types/database'
 import ModalBase from '../common/ModalBase.vue'
 import { DualAmount } from '../common'
 import { FormInput, FormSelect, FormTextarea, FormTime } from '../forms'
@@ -143,7 +235,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  save: [cita: CitaFormData & { id?: string }]
+  save: [cita: CitaFormData & { id?: string; clientPhone?: string; paymentData?: PaymentEditContext }]
   delete: [citaId: string]
 }>()
 
@@ -201,6 +293,80 @@ const formData = ref<CitaFormData & { extraServices: CitaFormServiceItem[] }>(de
 const errors = ref<Partial<Record<keyof CitaFormData, string>> & { rowErrors?: Record<number, Partial<Record<string, string>>> }>({})
 const activeEmployeeOverrides = reactive(new Set<number>())
 
+const paymentContext = ref<PaymentEditContext | null>(null)
+const paymentMethod = ref<PaymentMethod>('cash')
+const paymentCurrency = ref<'USD' | 'VES'>('USD')
+const paymentAmount = ref(0)
+const paymentTipAmount = ref(0)
+const paymentExchangeRate = ref(1)
+const paymentNotes = ref('')
+const paymentBreakdown = ref<{ method: PaymentMethod; inputAmount: number; currency: 'USD' | 'VES'; amount: number }[]>([])
+
+const isMixedPayment = computed(() => paymentMethod.value === 'mixed')
+const paymentTotal = computed(() => {
+  if (isMixedPayment.value) {
+    return paymentBreakdown.value.reduce((sum, item) => sum + item.amount, 0)
+  }
+  return paymentAmount.value
+})
+
+const paymentMethodOptions: { value: PaymentMethod; label: string }[] = [
+  { value: 'cash', label: 'Efectivo ($)' },
+  { value: 'cash_ves', label: 'Efectivo (Bs)' },
+  { value: 'card', label: 'Tarjeta' },
+  { value: 'transfer', label: 'Transferencia' },
+  { value: 'zelle', label: 'Zelle' },
+  { value: 'pago_movil', label: 'Pago Móvil' },
+  { value: 'punto_venta', label: 'Punto de Venta (Bs)' },
+  { value: 'mixed', label: 'Mixto' },
+  { value: 'other', label: 'Otro' },
+]
+
+const setPaymentCurrency = (currency: 'USD' | 'VES') => {
+  if (currency === paymentCurrency.value) return
+  const rate = paymentExchangeRate.value || 1
+  if (currency === 'VES') {
+    paymentAmount.value = parseFloat((paymentAmount.value * rate).toFixed(2))
+  } else {
+    paymentAmount.value = parseFloat((paymentAmount.value / rate).toFixed(2))
+  }
+  paymentCurrency.value = currency
+}
+
+const setPaymentMethod = (method: string) => {
+  paymentMethod.value = method as PaymentMethod
+  if (method === 'mixed' && paymentBreakdown.value.length === 0) {
+    paymentBreakdown.value = [{ method: 'cash' as PaymentMethod, inputAmount: paymentAmount.value, currency: paymentCurrency.value, amount: paymentAmount.value }]
+  }
+  if (method !== 'mixed') {
+    paymentAmount.value = paymentTotal.value
+  }
+}
+
+const addPaymentBreakdownItem = () => {
+  paymentBreakdown.value = [...paymentBreakdown.value, { method: 'cash' as PaymentMethod, inputAmount: 0, currency: paymentCurrency.value, amount: 0 }]
+}
+
+const removePaymentBreakdownItem = (index: number) => {
+  paymentBreakdown.value = paymentBreakdown.value.filter((_, i) => i !== index)
+  if (paymentBreakdown.value.length <= 1 && paymentMethod.value === 'mixed') {
+    paymentMethod.value = paymentBreakdown.value[0]?.method ?? 'cash'
+  }
+}
+
+const updatePaymentBreakdownItem = (index: number, field: 'method' | 'amount', value: string | number) => {
+  const items = [...paymentBreakdown.value]
+  if (field === 'method') {
+    items[index] = { ...items[index], method: value as PaymentMethod }
+  } else {
+    const numValue = value as number
+    items[index] = { ...items[index], inputAmount: numValue, amount: numValue }
+  }
+  paymentBreakdown.value = items
+}
+
+const isInitialSetup = ref(false)
+
 const servicesLoaded = computed(() => (props.servicios?.length ?? 0) > 0)
 const employeesLoaded = computed(() => (props.empleados?.length ?? 0) > 0)
 
@@ -256,7 +422,7 @@ const toggleEmployeeOverride = (index: number) => {
 }
 
 watch(() => formData.value.service, (serviceId) => {
-  if (isEditing.value || !serviceId) return
+  if (isInitialSetup.value || !serviceId) return
   const svc = props.servicios?.find(s => s.id === serviceId)
   if (svc) { formData.value.price = svc.price; formData.value.duration = svc.duration }
 })
@@ -284,23 +450,72 @@ const isFormValid = computed(() => {
   return formData.value.clientName.trim().length >= 2 && /^[\d\s\-\+\(\)]+$/.test(formData.value.clientPhone.trim()) && formData.value.clientPhone.trim().length >= 7 && hp && ev && hc && formData.value.date !== '' && formData.value.time !== '' && servicesLoaded.value && employeesLoaded.value
 })
 
-watch([isOpen, () => modalData.value?.cita], async ([open, cita]) => {
+watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData], async ([open, cita, paymentData]) => {
   if (!open) return; commissionDetailOpen.clear(); activeEmployeeOverrides.clear()
+  if (paymentData) {
+    paymentContext.value = paymentData as PaymentEditContext
+    paymentMethod.value = paymentData.method
+    paymentCurrency.value = paymentData.currency
+    paymentAmount.value = paymentData.amount
+    paymentTipAmount.value = Number(paymentData.tipAmount ?? 0)
+    paymentExchangeRate.value = paymentData.exchangeRate
+    paymentNotes.value = paymentData.notes || ''
+    paymentBreakdown.value = paymentData.breakdown ? paymentData.breakdown.map((b: { method: PaymentMethod; inputAmount: number; currency: 'USD' | 'VES'; amount: number }) => ({ ...b })) : []
+  } else {
+    paymentContext.value = null
+    paymentMethod.value = 'cash'
+    paymentCurrency.value = 'USD'
+    paymentAmount.value = 0
+    paymentTipAmount.value = 0
+    paymentExchangeRate.value = 1
+    paymentNotes.value = ''
+    paymentBreakdown.value = []
+  }
   if (cita) {
-    let phone = ''; let groupMembers: CitaFormServiceItem[] = []; let primaryDuration = cita.duration || 30; let primaryPrice = cita.price || 0
+    let phone = ''
+    let groupMembers: CitaFormServiceItem[] = []
+    let primaryDuration = cita.duration || 30
+    let primaryPrice = cita.price || 0
     if (cita.clientId && businessId.value) { try { const { searchClients } = await import('../../services/clientesService'); const r = await searchClients(businessId.value, cita.clientName, branchId.value); const m = r.find(c => c.id === cita.clientId); if (m) phone = m.phone } catch {} }
     if (cita.groupId) {
       try {
-        const members = await listCitaGroupMembers(cita.groupId); const sel = members.find(m => m.id === cita.id)
-        if (sel) { primaryDuration = sel.duration_override != null ? Number(sel.duration_override) : Math.round((new Date(sel.end_time).getTime() - new Date(sel.start_time).getTime()) / 60000) || (sel.services?.duration_minutes ?? 30); primaryPrice = sel.price_override != null ? Number(sel.price_override) : Number(sel.services?.price ?? 0) }
-        groupMembers = members.filter(m => m.id !== cita.id).map(m => ({ serviceId: m.service_id, employeeId: m.employee_id, assistantEmployeeId: m.assistant_employee_id ?? '', assistantPercentage: Number(m.assistant_percentage ?? 0), employeePercentageOverride: m.employee_percentage_override ?? undefined, duration: Math.round((new Date(m.end_time).getTime() - new Date(m.start_time).getTime()) / 60000) || (m.services?.duration_minutes ?? 30), price: Number(m.price_override ?? m.services?.price ?? 0) }))
+        const members = await listCitaGroupMembers(cita.groupId)
+        const selectedMember =
+          members.find(m => m.id === cita.id) ??
+          members.find(m =>
+            m.service_id === cita.serviceId &&
+            m.employee_id === cita.employeeId &&
+            toISODate(new Date(m.start_time)) === cita.date &&
+            minutesToHHmm(new Date(m.start_time).getHours() * 60 + new Date(m.start_time).getMinutes()) === cita.time
+          )
+        if (selectedMember) {
+          primaryDuration = selectedMember.duration_override != null
+            ? Number(selectedMember.duration_override)
+            : Math.round((new Date(selectedMember.end_time).getTime() - new Date(selectedMember.start_time).getTime()) / 60000) || (selectedMember.services?.duration_minutes ?? 30)
+          primaryPrice = selectedMember.price_override != null
+            ? Number(selectedMember.price_override)
+            : Number(selectedMember.services?.price ?? 0)
+        }
+        const selectedMemberId = selectedMember?.id
+        groupMembers = members
+          .filter(m => m.id !== selectedMemberId)
+          .map(m => ({ serviceId: m.service_id, employeeId: m.employee_id, assistantEmployeeId: m.assistant_employee_id ?? '', assistantPercentage: Number(m.assistant_percentage ?? 0), employeePercentageOverride: m.employee_percentage_override ?? undefined, duration: Math.round((new Date(m.end_time).getTime() - new Date(m.start_time).getTime()) / 60000) || (m.services?.duration_minutes ?? 30), price: Number(m.price_override ?? m.services?.price ?? 0) }))
       } catch {}
     }
+
+    isInitialSetup.value = true
+
     formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: phone, service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: cita.assistantPercentage || 0, employeePercentageOverride: cita.employeePercentageOverride, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '' }
-  } else { formData.value = defaultFormData() }
+  } else {
+    isInitialSetup.value = true
+    formData.value = defaultFormData()
+  }
+  activeEmployeeOverrides.clear()
+  commissionDetailOpen.clear()
   if (formData.value.employeePercentageOverride != null) { activeEmployeeOverrides.add(0); commissionDetailOpen.add(0) }
-  formData.value.extraServices.forEach((extra, i) => { if (extra.employeePercentageOverride != null) { activeEmployeeOverrides.add(i + 1); commissionDetailOpen.add(i + 1) } })
+  formData.value.extraServices.forEach((_, i) => { if (formData.value.extraServices[i]?.employeePercentageOverride != null) { activeEmployeeOverrides.add(i + 1); commissionDetailOpen.add(i + 1) } })
   errors.value = {}
+  nextTick(() => { isInitialSetup.value = false })
 }, { immediate: true })
 
 const normalizePhone = (phone: string): string => { let d = phone.replace(/\D/g, ''); if (!d) return ''; if (d.startsWith('0')) d = d.slice(1); if (!d.startsWith('58')) d = '58' + d; return '+' + d }
@@ -326,14 +541,57 @@ const handleSubmit = () => {
   if (saveInProgress.value) return
   if (!validateForm()) { showError('Por favor corrige los errores en el formulario'); return }
   saveInProgress.value = true
-  const citaData: CitaFormData & { id?: string } = { ...formData.value }
-  if (modalData.value?.cita?.id) citaData.id = modalData.value.cita.id
+
+  const citaData: CitaFormData & { id?: string; clientPhone?: string; paymentData?: PaymentEditContext } = {
+    ...formData.value,
+  }
+
+  if (modalData.value?.cita?.id) {
+    citaData.id = modalData.value.cita.id
+  }
+
+  if (paymentContext.value) {
+    const effectiveMethod: PaymentMethod = paymentBreakdown.value.length > 1
+      ? 'mixed'
+      : paymentMethod.value
+
+    const breakdown = effectiveMethod === 'mixed' && paymentBreakdown.value.length > 0
+      ? paymentBreakdown.value.map(item => {
+          const itemUsd = paymentCurrency.value === 'VES'
+            ? parseFloat((item.amount / (paymentExchangeRate.value || 1)).toFixed(2))
+            : item.amount
+          return {
+            method: item.method,
+            inputAmount: item.amount,
+            currency: paymentCurrency.value,
+            amount: itemUsd,
+          }
+        })
+      : undefined
+
+    const rate = paymentExchangeRate.value || 1
+    const usdTotal = paymentCurrency.value === 'VES'
+      ? parseFloat((paymentTotal.value / rate).toFixed(2))
+      : paymentTotal.value
+
+    citaData.paymentData = {
+      transactionId: paymentContext.value.transactionId,
+      method: effectiveMethod,
+      amount: usdTotal,
+      currency: paymentCurrency.value,
+      exchangeRate: rate,
+      tipAmount: paymentTipAmount.value,
+      notes: paymentNotes.value || undefined,
+      breakdown,
+    }
+  }
+
   emit('save', citaData)
 }
 
 const onSaveComplete = () => { saveInProgress.value = false }
 const confirmDelete = () => { const id = modalData.value?.cita?.id; if (id) emit('delete', id) }
-const open = (cita?: Cita) => { useModal(MODAL_ID).open({ cita }) }
+const open = (cita?: Cita, paymentData?: PaymentEditContext) => { useModal(MODAL_ID).open({ cita, paymentData }) }
 
 defineExpose({ open, close, isOpen, onSaveComplete })
 </script>

@@ -2,14 +2,15 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { useNotification } from '../common/useNotification'
 import { saveCita, updateCitaStatus, updateAppointmentTime, deleteCita } from '../../services/agendaService'
-import { posKeys } from '../../services/posService'
+import { posKeys, updateTransaction } from '../../services/posService'
 import { clientesKeys } from '../../services/clientesService'
 import { dashboardKeys } from '../../services/employeeDashboardService'
 import { useBusinessStore } from '../../store/business'
 import { useAuthStore } from '../../store/auth'
 import { api as supabase, api as mutate } from '../../lib/api'
 import { translateError } from '../../lib/errors'
-import type { CitaFormData } from '../../types/cita'
+import { distributeGroupPayment } from '../../business/paymentDistribution'
+import type { CitaFormData, PaymentEditContext } from '../../types/cita'
 
 export function useAppointmentMutations(options: {
   businessId: import('vue').Ref<string | null>
@@ -121,16 +122,91 @@ export function useAppointmentMutations(options: {
     }
   }
 
-  const handleSaveCita = async (data: CitaFormData & { id?: string; clientPhone?: string }) => {
+  const handleSaveCita = async (data: CitaFormData & { id?: string; clientPhone?: string; paymentData?: PaymentEditContext }) => {
     try {
       await supabase.auth.getSession()
     } catch {
-      // Proceed anyway — the mutation will trigger its own token check
     }
     try {
-      await saveCitaMutation.mutateAsync(data)
-    } catch {
-      // Error handled by onError callback
+      const paymentData = data.paymentData
+      delete (data as any).paymentData
+      const savedCita = await saveCitaMutation.mutateAsync(data)
+      if (paymentData) {
+        const normalizedGroupId = savedCita?.groupId
+
+        if (normalizedGroupId) {
+          const { data: groupAppointments, error: groupError } = await supabase
+            .from('appointments')
+            .select('id, service_id, price_override, services(price)')
+            .eq('group_id', normalizedGroupId)
+
+          if (groupError) throw groupError
+
+          const appointmentIds = (groupAppointments ?? []).map((a: any) => a.id)
+          if (appointmentIds.length > 0) {
+            const { data: groupTransactions, error: txError } = await supabase
+              .from('transactions')
+              .select('id, appointment_id, total_amount, tip_amount')
+              .in('appointment_id', appointmentIds)
+
+            if (txError) throw txError
+
+            const txRows = (groupTransactions ?? []) as Array<{
+              id: string
+              appointment_id: string
+              total_amount: number
+              tip_amount?: number | null
+            }>
+
+            if (txRows.length > 1) {
+              const planned = distributeGroupPayment(
+                txRows.map(tx => ({
+                  id: tx.id,
+                  totalAmount: tx.total_amount,
+                  tipAmount: Number(tx.tip_amount ?? 0),
+                })),
+                Number(paymentData.amount ?? 0),
+              )
+
+              await Promise.all(planned.map(row =>
+                updateTransaction({
+                  transactionId: row.id,
+                  amount: row.newTotal,
+                  method: paymentData.method,
+                  notes: paymentData.notes,
+                  exchangeRate: paymentData.exchangeRate,
+                })
+              ))
+
+              if (paymentData.breakdown) {
+                const targetTxId = txRows.find(t => t.id === paymentData.transactionId)?.id ?? txRows[0]?.id
+                if (targetTxId) {
+                  const { error: breakdownError } = await mutate
+                    .from('transactions')
+                    .update({ payments_breakdown: paymentData.breakdown })
+                    .eq('id', targetTxId)
+                  if (breakdownError) throw breakdownError
+                }
+              }
+
+              invalidate()
+              return
+            }
+          }
+        }
+
+        await updateTransaction({
+          transactionId: paymentData.transactionId,
+          amount: Number((paymentData.amount + Number(paymentData.tipAmount ?? 0)).toFixed(2)),
+          method: paymentData.method,
+          notes: paymentData.notes,
+          exchangeRate: paymentData.exchangeRate,
+          paymentsBreakdown: paymentData.breakdown,
+        })
+        invalidate()
+      }
+    } catch (err) {
+      showError(translateError(err))
     }
   }
 

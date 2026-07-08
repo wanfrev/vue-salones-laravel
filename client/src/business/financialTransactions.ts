@@ -84,7 +84,7 @@ export function buildTransactionsAll(rawTransactions: any[]): TransactionRow[] {
       const serviceAmt = (row.total_amount as number) - rowTip
       const breakdownLabel = formatBreakdownLabel(breakdown)
       singles.push({
-        id: row.id, date: formatDate(row.paid_at ?? row.created_at),
+        id: row.id, appointmentId: (row as any).appointment_id as string, date: formatDate(row.paid_at ?? row.created_at),
         client: row.appointments?.clients?.full_name ?? '—', employee: employeeName, service: serviceName,
         method: breakdownLabel || formatMethod(row.method), rawMethod: row.method as any, amount: serviceAmt,
         exchangeRateUsed: row.exchange_rate_used ?? 1, breakdownLabel, breakdown,
@@ -100,7 +100,7 @@ export function buildTransactionsAll(rawTransactions: any[]): TransactionRow[] {
     const breakdownLabel = formatBreakdownLabel(breakdown); const firstBreakdown = breakdown?.[0]
     const isVES = firstBreakdown?.currency === 'VES'; const sortDate = (firstRow.paid_at ?? firstRow.created_at) as string
     grouped.push({
-      id: firstRow.id, date: formatDate(firstRow.paid_at ?? firstRow.created_at),
+      id: firstRow.id, appointmentId: (firstRow as any).appointment_id as string, date: formatDate(firstRow.paid_at ?? firstRow.created_at),
       client: firstRow.appointments?.clients?.full_name ?? '—', employee: group.employees.join(', '), service: group.services.join(' + '),
       method: breakdownLabel || formatMethod(firstRow.method), rawMethod: firstRow.method as any, amount: group.totalAmount,
       exchangeRateUsed: firstRow.exchange_rate_used ?? 1, breakdownLabel, breakdown,
@@ -121,7 +121,7 @@ export function buildProductSalesDetails(
   return rawInventoryMovements.map((r: any, idx: number) => {
     const quantity = Math.abs(Number(r.quantity ?? 0)); const unitPrice = Number(r.unit_cost ?? 0); const total = quantity * unitPrice
     const { currency, exchangeRateUsed, originalAmount } = getProductSaleCurrency(r.reference_type ?? null, r.reference_id ?? null, Number(r.exchange_rate_used ?? 1), appointmentPaymentMap, r.notes)
-    return { id: r.id ?? `product-${idx}`, date: formatDate(r.created_at), product: r.products?.name ?? 'Sin producto', quantity, unitPrice, total, currency, exchangeRateUsed, originalAmount: currency === 'VES' ? total * exchangeRateUsed : originalAmount(total) }
+    return { id: r.id ?? `product-${idx}`, date: formatDate(r.created_at), product: r.products?.name ?? 'Sin producto', clientName: r.clients?.full_name || undefined, quantity, unitPrice, total, currency, exchangeRateUsed, originalAmount: currency === 'VES' ? total * exchangeRateUsed : originalAmount(total) }
   })
 }
 

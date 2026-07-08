@@ -61,7 +61,7 @@ export function useCategoryCRUD<T extends { category: string }>(params: UseCateg
         promises.push(queryClient.invalidateQueries({ queryKey: keyFn() as string[] }))
       }
     }
-    Promise.allSettled(promises)
+    return Promise.allSettled(promises)
   }
 
   function openRenameCategoryModal(cat: string) {

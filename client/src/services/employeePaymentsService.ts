@@ -273,11 +273,15 @@ export const getEmployeeBalance = async (
   _businessId: string,
   employeeId: string,
   _branchId?: string | null,
+  startDate?: string | null,
+  endDate?: string | null,
 ): Promise<EmployeeBalance> => {
   const now = new Date()
   const yearMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const effectiveStart = startDate || `${yearMonth}-01`
+  const effectiveEnd = endDate || `${yearMonth}-${String(now.getDate()).padStart(2, '0')}`
 
-  const data = await apiRequest<any>('GET', `/employee-balance/${employeeId}?year_month=${yearMonth}`)
+  const data = await apiRequest<any>('GET', `/employee-balance/${employeeId}?year_month=${yearMonth}&start_date=${effectiveStart}&end_date=${effectiveEnd}`)
 
   return {
     employeeId: data.employee_id,

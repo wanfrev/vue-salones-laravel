@@ -152,7 +152,7 @@ export const useBusinessStore = defineStore('business', () => {
 
   const updateBusiness = (partial: Partial<Business>) => {
     if (business.value) {
-      Object.assign(business.value, partial)
+      business.value = { ...business.value, ...partial }
     }
   }
 

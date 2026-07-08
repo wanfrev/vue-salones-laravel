@@ -11,21 +11,35 @@
         <p class="hidden text-sm text-text-muted sm:block">Registra pagos de servicios y productos</p>
       </div>
       <div class="flex items-center gap-3">
-        <div v-if="activeSaleType === 'retail_only'" class="relative w-full sm:w-72">
-          <input v-model="retailProductSearch" type="text" placeholder="Buscar producto..."
-            class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
-            @focus="showRetailDropdown = true" @blur="onRetailBlur" />
-          <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        <div v-if="activeSaleType === 'retail_only'" class="flex flex-col sm:flex-row gap-2">
+          <div class="relative w-full sm:w-72">
+            <input v-model="retailProductSearch" type="text" placeholder="Buscar producto..."
+              class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
+              @focus="showRetailDropdown = true" @blur="onRetailBlur" />
+            <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </div>
+            <div v-if="showRetailDropdown && retailFilteredProducts.length > 0" class="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface shadow-lg overflow-hidden max-h-52 overflow-y-auto">
+              <button v-for="product in retailFilteredProducts" :key="product.id"
+                @mousedown.prevent="addRetailProduct(product)"
+                :disabled="Number(product.available_qty ?? 0) <= 0"
+                class="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-50 border-b border-border last:border-b-0">
+                <div class="flex-1 min-w-0"><span class="text-text block truncate">{{ product.name }}</span><span class="text-xs text-text-muted">Stock: {{ Number(product.available_qty ?? 0) }}</span></div>
+                <span class="text-text-muted text-xs whitespace-nowrap font-medium">{{ formatDual(product.unit_price) }}</span>
+              </button>
+            </div>
           </div>
-          <div v-if="showRetailDropdown && retailFilteredProducts.length > 0" class="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface shadow-lg overflow-hidden max-h-52 overflow-y-auto">
-            <button v-for="product in retailFilteredProducts" :key="product.id"
-              @mousedown.prevent="addRetailProduct(product)"
-              :disabled="Number(product.available_qty ?? 0) <= 0"
-              class="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-50 border-b border-border last:border-b-0">
-              <div class="flex-1 min-w-0"><span class="text-text block truncate">{{ product.name }}</span><span class="text-xs text-text-muted">Stock: {{ Number(product.available_qty ?? 0) }}</span></div>
-              <span class="text-text-muted text-xs whitespace-nowrap font-medium">{{ formatDual(product.unit_price) }}</span>
-            </button>
+          <div class="relative w-full sm:w-56">
+            <input v-model="retailClientSearch" type="text" placeholder="Cliente (opcional)..."
+              class="w-full rounded-lg border border-border bg-surface pl-3 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
+              @focus="showRetailClientDropdown = true" @blur="onRetailClientBlur" @input="onRetailClientInput" />
+            <div v-if="showRetailClientDropdown && retailClientSuggestions.length > 0" class="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface shadow-lg overflow-hidden max-h-52 overflow-y-auto">
+              <button v-for="client in retailClientSuggestions" :key="client.id"
+                @mousedown.prevent="selectRetailClient(client)"
+                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-bg-secondary border-b border-border last:border-b-0">
+                <div class="flex-1 min-w-0"><span class="text-text block truncate">{{ client.full_name }}</span><span class="text-xs text-text-muted">{{ client.phone }}</span></div>
+              </button>
+            </div>
           </div>
         </div>
         <button v-else @click="startRetailOnly" class="flex items-center gap-1.5 rounded-lg border border-primary/30 px-3 py-2 text-xs font-semibold text-primary shadow-sm transition-all duration-200 hover:bg-primary/5">
@@ -140,6 +154,7 @@ import { useNotification } from '../composables/common/useNotification'
 import { useBusinessStore } from '../store/business'
 import { listPendingAppointments, listSaleableProducts, posKeys, groupPendingAppointments, recordSale, recordPaymentOnly } from '../services/posService'
 import { sellProduct } from '../services/inventarioService'
+import { searchClients } from '../services/clientesService'
 import { usePOSCart } from '../composables/pos/usePOSCart'
 import { usePOSPayment } from '../composables/pos/usePOSPayment'
 import { FeatureGate } from '../components/common'
@@ -172,6 +187,12 @@ const showInlineDropdown = ref(false)
 const showTipAdjust = ref(false)
 const tipAllocations = ref<Record<string, number>>({})
 const tipManual = ref(false)
+
+const retailClientSearch = ref('')
+const retailClientId = ref<string | null>(null)
+const retailClientSuggestions = ref<{ id: string; full_name: string; phone: string }[]>([])
+const showRetailClientDropdown = ref(false)
+let retailClientTimeout: ReturnType<typeof setTimeout> | null = null
 
 const { data: appointmentsData } = useQuery({
   queryKey: computed(() => posKeys.pending(businessId.value, branchId.value)),
@@ -216,6 +237,37 @@ const addRetailProduct = (product: any) => { cartCtx.addProduct(product); retail
 const addInlineProduct = (product: any) => { cartCtx.addProduct(product); inlineProductSearch.value = ''; showInlineDropdown.value = false }
 const onRetailBlur = () => setTimeout(() => { showRetailDropdown.value = false }, 150)
 const onInlineBlur = () => setTimeout(() => { showInlineDropdown.value = false }, 150)
+
+const onRetailClientBlur = () => {
+  setTimeout(() => { showRetailClientDropdown.value = false }, 150)
+}
+
+const onRetailClientInput = () => {
+  if (retailClientTimeout) clearTimeout(retailClientTimeout)
+  retailClientId.value = null
+  const q = retailClientSearch.value.trim()
+  if (q.length < 1) {
+    retailClientSuggestions.value = []
+    showRetailClientDropdown.value = false
+    return
+  }
+  retailClientTimeout = setTimeout(async () => {
+    if (!businessId.value) return
+    try {
+      retailClientSuggestions.value = await searchClients(businessId.value, q, branchId.value)
+      showRetailClientDropdown.value = true
+    } catch {
+      retailClientSuggestions.value = []
+    }
+  }, 200)
+}
+
+const selectRetailClient = (client: { id: string; full_name: string; phone: string }) => {
+  retailClientId.value = client.id
+  retailClientSearch.value = client.full_name
+  retailClientSuggestions.value = []
+  showRetailClientDropdown.value = false
+}
 
 const servicePrice = computed(() => {
   const appt = selectedAppointment.value
@@ -274,11 +326,11 @@ const canPay = computed(() => {
 const selectAppointment = (appt: any) => {
   if (selectedAppointment.value?.id === appt.id) { selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset(); return }
   selectedAppointment.value = appt; activeSaleType.value = 'appointment'
-  if (activeSaleType.value !== 'retail_only') cartCtx.clearCart()
+  cartCtx.clearCart()
   setEqualTipAllocation()
 }
 const goToAppointmentInCalendar = (appt: any) => router.push({ name: 'admin-calendario', query: { fecha: new Date(appt.start_time).toISOString().slice(0, 10) } })
-const startRetailOnly = () => { selectedAppointment.value = null; activeSaleType.value = 'retail_only'; cartCtx.clearCart(); paymentCtx.reset(); retailProductSearch.value = ''; tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false }
+const startRetailOnly = () => { selectedAppointment.value = null; activeSaleType.value = 'retail_only'; cartCtx.clearCart(); paymentCtx.reset(); retailProductSearch.value = ''; retailClientSearch.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false }
 const setTipAllocation = (employeeId: string, value: number) => { tipManual.value = true; tipAllocations.value = { ...tipAllocations.value, [employeeId]: Math.max(0, Number(value || 0)) } }
 
 const handleRetailPayment = async () => {
@@ -290,7 +342,7 @@ const handleRetailPayment = async () => {
     const rate = exchangeRate.value
     for (const item of cartCtx.cart.value) {
       const saleCurrency = method === 'other' ? paymentCtx.otherCurrency.value : (currency as 'USD' | 'VES') ?? 'USD'
-      await sellProduct(businessId.value!, item.productId, item.quantity, paymentCtx.paymentNotes.value || `POS Venta directa`, null, item.unitPrice, rate, saleCurrency, branchId.value)
+      await sellProduct(businessId.value!, item.productId, item.quantity, paymentCtx.paymentNotes.value || `POS Venta directa`, null, item.unitPrice, rate, saleCurrency, branchId.value, retailClientId.value)
     }
     cartCtx.clearCart(); paymentCtx.reset()
   } catch (err) { showError((err as any)?.message ?? 'Error al procesar') }

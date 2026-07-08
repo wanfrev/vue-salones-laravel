@@ -131,6 +131,7 @@ export async function recordMovement(
     unitCost?: number
     exchangeRate?: number
     branchId?: string | null
+    clientId?: string | null
   },
 ): Promise<void> {
   const supabaseUser = mutate.auth?.currentUser
@@ -148,6 +149,7 @@ export async function recordMovement(
       exchange_rate_used: params.exchangeRate ?? 1,
       notes: params.notes,
       created_by: supabaseUser?.id ?? null,
+      client_id: params.clientId ?? null,
     })
   if (error) throw error
 }
@@ -371,6 +373,7 @@ export const sellProduct = async (
   exchangeRate?: number,
   currency?: 'USD' | 'VES',
   branchId?: string | null,
+  clientId?: string | null,
 ): Promise<void> => {
   const locationId = await getDefaultLocation(businessId, branchId)
   const existing = await getStockRecord(businessId, productId, locationId, variantId, branchId)
@@ -401,5 +404,6 @@ export const sellProduct = async (
     unitCost: unitPrice,
     exchangeRate: rate,
     branchId,
+    clientId,
   })
 }

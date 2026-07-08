@@ -21,6 +21,8 @@ class EmployeeBalanceController
             $employeeId,
             $p?->business_id,
             $request->get('year_month'),
+            $request->get('start_date'),
+            $request->get('end_date'),
         );
 
         return response()->json($balance);

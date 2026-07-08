@@ -103,6 +103,7 @@ import { useNotification } from '../../composables/common/useNotification'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { addBusinessCategory } from '../../services/equipoService'
+import { getBusinessServiceCategories } from '../../services/serviciosService'
 import type { Servicio, ServicioFormData } from '../../types/servicio'
 import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormSelect, FormTextarea } from '../forms'
@@ -225,17 +226,31 @@ const NICHE_CATEGORIES: Record<string, { value: string; label: string }[]> = {
 
 const showingCustomCategory = ref(false)
 const categoriesVersion = ref(0)
+const dbCategories = ref<string[]>([])
 
-watch(isOpen, (open) => {
-  if (open) categoriesVersion.value++
+watch(isOpen, async (open) => {
+  if (open) {
+    categoriesVersion.value++
+    const bizId = businessStore.business?.id
+    if (bizId) {
+      try {
+        dbCategories.value = await getBusinessServiceCategories(bizId)
+      } catch {
+        dbCategories.value = []
+      }
+    }
+  }
 })
 
 const categoryOptions = computed(() => {
   categoriesVersion.value
-  const bizCats = businessStore.serviceCategories
-  const items = bizCats.length > 0
-    ? bizCats.map((c: string) => ({ value: c, label: c }))
-    : (NICHE_CATEGORIES[nicheType.value] || NICHE_CATEGORIES.salon)
+  const rawBizCats = dbCategories.value.length > 0
+    ? dbCategories.value
+    : businessStore.serviceCategories
+  const fallbackItems = NICHE_CATEGORIES[nicheType.value] || NICHE_CATEGORIES.salon
+  const items: { value: string; label: string }[] = rawBizCats.length > 0
+    ? rawBizCats.map(c => ({ value: c, label: c }))
+    : fallbackItems.map(i => ({ ...i }))
   items.push({ value: '__new__', label: '+ Agregar nuevo' })
   return items
 })

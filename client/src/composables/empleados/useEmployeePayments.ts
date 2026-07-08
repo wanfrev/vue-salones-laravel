@@ -35,7 +35,12 @@ export function useEmployeePayments(
   const { exchangeRate } = useCurrency()
   const businessStore = useBusinessStore()
   const branchId = computed(() => businessStore.currentBranchId)
-  const employeePaymentsRate = computed(() => businessStore.employeeExchangeRate ?? exchangeRate.value)
+  const employeePaymentsRate = computed(() => {
+    if (businessStore.currentBranch?.ves_exchange_rate != null) {
+      return businessStore.currentBranch.ves_exchange_rate
+    }
+    return businessStore.employeeExchangeRate ?? exchangeRate.value
+  })
 
   const { data: paymentsData, isLoading } = useQuery({
     queryKey: computed(() => [

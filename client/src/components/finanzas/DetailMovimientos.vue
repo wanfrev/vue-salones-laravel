@@ -310,7 +310,7 @@ const confirmDeleteServicio = async () => {
                 </td>
                 <td class="px-3 py-3 text-center">
                   <div class="flex items-center justify-center gap-1">
-                    <button @click="summaryCtx.startEdit(item)" :disabled="summaryCtx.editTransactionMutation.isPending.value || summaryCtx.deleteTransactionMutation.isPending.value" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary" title="Editar cobro">
+                    <button @click="summaryCtx.startEdit(item)" :disabled="summaryCtx.editTransactionMutation.isPending.value || summaryCtx.deleteTransactionMutation.isPending.value" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary" title="Editar cita y cobro">
                       <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                     </button>
                     <button @click="summaryCtx.confirmDeleteTransaction(item.id)" :disabled="summaryCtx.editTransactionMutation.isPending.value || summaryCtx.deleteTransactionMutation.isPending.value" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger" title="Eliminar cobro">
@@ -337,6 +337,7 @@ const confirmDeleteServicio = async () => {
             <thead>
               <tr class="border-b border-border-subtle">
                 <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">Fecha</th>
+                <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">Cliente</th>
                 <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">Producto</th>
                 <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">Cant.</th>
                 <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">Precio</th>
@@ -347,6 +348,7 @@ const confirmDeleteServicio = async () => {
             <tbody class="divide-y divide-border-subtle">
               <tr v-for="row in allVentasRows.slice(0, canViewDetailTab ? 5 : Infinity)" :key="row.id" class="text-xs transition-theme hover:bg-bg-secondary/40">
                 <td class="px-3 py-3 whitespace-nowrap text-text-secondary">{{ row.date }}</td>
+                <td class="px-3 py-3 text-text-secondary hidden sm:table-cell">{{ row.clientName || '—' }}</td>
                 <td class="px-3 py-3 font-medium text-text">{{ row.product }}</td>
                 <td class="px-3 py-3 text-right tabular-nums text-text-secondary">{{ row.quantity }}</td>
                 <td class="px-3 py-3 text-right tabular-nums text-text-secondary whitespace-nowrap hidden sm:table-cell">{{ formatUSD(row.unitPrice) }}</td>

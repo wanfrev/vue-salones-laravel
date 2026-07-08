@@ -19,7 +19,7 @@ const consumptionBalance = ref<EmployeeBalance | null>(null)
 const onEmployeeChange = async () => {
   const empId = props.paymentsCtx.consumptionForm.value.employeeId
   if (!empId || !props.businessId) { consumptionBalance.value = null; return }
-  try { consumptionBalance.value = await getEmployeeBalance(props.businessId, empId, props.branchId) } catch { consumptionBalance.value = null }
+  try { consumptionBalance.value = await getEmployeeBalance(props.businessId, empId, props.branchId, null, null) } catch { consumptionBalance.value = null }
 }
 
 const handleSubmit = async () => {

@@ -18,23 +18,27 @@ Write-Host "  Redis:      localhost:6379" -ForegroundColor Green
 
 # 2. Cargar schema (solo si BD está vacía)
 Write-Host "[2/5] Verificando schema de BD..." -ForegroundColor Yellow
-$schemaExists = docker exec luma-postgres psql -U postgres -d salones -t -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'businesses');" 2>$null
-if ($schemaExists -match "f") {
-    Write-Host "  Cargando schema desde migraciones..." -ForegroundColor Yellow
-    Get-ChildItem supabase\migrations\*.sql | Sort-Object Name | ForEach-Object {
-        Get-Content $_.FullName | docker exec -i luma-postgres psql -U postgres -d salones 2>&1 | Out-Null
-    }
+$tableCount = docker exec luma-postgres psql -U postgres -d salones -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';" 2>$null
+if ([string]$tableCount -match "0") {
+    Write-Host "  Cargando schema limpio..." -ForegroundColor Yellow
+    Get-Content supabase\schema_ddl.sql | docker exec -i luma-postgres psql -U postgres -d salones 2>&1 | Out-Null
     Write-Host "  Schema cargado." -ForegroundColor Green
 } else {
-    Write-Host "  Schema ya existe." -ForegroundColor Green
+    Write-Host "  Schema ya existe ($($tableCount.Trim()) tablas)." -ForegroundColor Green
 }
 
-# 3. Seed
-Write-Host "[3/5] Poblando BD con datos demo..." -ForegroundColor Yellow
-Set-Location backend
-php artisan db:seed
-Set-Location ..
-Write-Host "  Datos demo cargados." -ForegroundColor Green
+# 3. Seed (solo si no hay datos)
+Write-Host "[3/5] Verificando datos..." -ForegroundColor Yellow
+$userCount = docker exec luma-postgres psql -U postgres -d salones -t -c "SELECT count(*) FROM users;" 2>$null
+if ([string]$userCount -match "0") {
+    Write-Host "  Poblando BD con datos demo..." -ForegroundColor Yellow
+    Set-Location backend
+    php artisan db:seed
+    Set-Location ..
+    Write-Host "  Datos demo cargados." -ForegroundColor Green
+} else {
+    Write-Host "  Datos ya existen ($($userCount.Trim()) usuarios)." -ForegroundColor Green
+}
 
 # 4. Backend
 Write-Host "[4/5] Iniciando Backend Laravel..." -ForegroundColor Yellow

@@ -270,18 +270,28 @@ export const listEmployeeTransactions = async (
         const groupTx = groupAppts.map(a => txByAppt.get(a.id)).find(t => t)
         const groupRow = groupTx ?? row
 
-        const serviceNames = employeePivots.map(svc => {
-          const meta = servicesMap.get(svc.service_id)
-          return meta?.name ?? svc.service_id
-        })
-        const combinedServiceName = serviceNames.join(' + ')
-        const combinedTotal = employeePivots.reduce((sum, svc) => sum + Number(svc.price_applied ?? 0), 0)
-        const groupTip = Number(groupRow.tip_amount ?? 0)
+        const serviceNames: string[] = []
+        let combinedTotal = 0
+        let combinedEarnings = 0
 
-        const assistantPct = Number(groupRow.assistant_percentage ?? employeePivots[0]?.assistant_percentage ?? appt.assistant_percentage ?? 0)
-        const employeePct = Number(groupRow.employee_percentage ?? 50)
-        const percentage = isAnyAssistant && !isAnyMain ? assistantPct : employeePct
-        const earnings = Number((combinedTotal * percentage / 100).toFixed(2))
+        for (const svc of employeePivots) {
+          const svcAppt = apptMap.get(svc.appointment_id)
+          const meta = servicesMap.get(svc.service_id)
+          serviceNames.push(meta?.name ?? svc.service_id)
+          const svcPrice = Number(svc.price_applied ?? 0)
+          combinedTotal += svcPrice
+
+          const isAsst = svc.assistant_id != null && svc.assistant_id === employeeId
+          const overridePct = svcAppt?.employee_percentage_override
+          const assistantPct = Number(svc.assistant_percentage ?? svcAppt?.assistant_percentage ?? 0)
+          const defaultEmployeePct = Number(groupRow.employee_percentage ?? 50)
+          const pct = isAsst ? assistantPct : (overridePct ?? defaultEmployeePct)
+          combinedEarnings += Number((svcPrice * pct / 100).toFixed(2))
+        }
+
+        const groupTip = Number(groupRow.tip_amount ?? 0)
+        const displayPct = Number(groupRow.employee_percentage ?? 50)
+        const percentage = isAnyAssistant && !isAnyMain ? Number(employeePivots[0]?.assistant_percentage ?? 0) : displayPct
         const tipAmount = isAnyMain ? groupTip : 0
 
         result.push({
@@ -289,13 +299,13 @@ export const listEmployeeTransactions = async (
           date: formatDate(groupRow.paid_at),
           paidAt: groupRow.paid_at,
           clientName: clientsMap.get(appt.client_id) ?? '—',
-          serviceName: combinedServiceName,
+          serviceName: serviceNames.join(' + '),
         totalAmount: combinedTotal,
           exchangeRateUsed: Number(groupRow.exchange_rate_used ?? 1),
           method: groupRow.method ?? 'cash',
           currency,
         employeePercentage: percentage,
-          employeeEarnings: Number((earnings + tipAmount).toFixed(2)),
+          employeeEarnings: Number((combinedEarnings + tipAmount).toFixed(2)),
           tipAmount,
         })
         continue
@@ -303,35 +313,47 @@ export const listEmployeeTransactions = async (
 
       if (!isAnyMain && !isAnyAssistant) continue
 
-      const memberTxRows = groupAppts
-        .map(a => txByAppt.get(a.id))
-        .filter(t => t != null) as TxRow[]
-      if (memberTxRows.length === 0) continue
+      let combinedTotal = 0
+      let combinedTip = 0
+      let combinedEarnings = 0
+      const serviceNames: string[] = []
 
-      const combinedTotal = memberTxRows.reduce((sum, t) => sum + Number(t.total_amount), 0)
-      const combinedTip = memberTxRows.reduce((sum, t) => sum + Number(t.tip_amount ?? 0), 0)
-      const serviceAmount = combinedTotal - combinedTip
-      const firstTx = memberTxRows[0]
-      const serviceNames = groupAppts.map(a => servicesMap.get(a.service_id)?.name ?? a.service_id)
-      const employeePct = Number(firstTx.employee_percentage ?? 50)
+      for (const ga of groupAppts) {
+        const gaTx = txByAppt.get(ga.id)
+        if (!gaTx) continue
+        const gaServiceAmount = Number(gaTx.total_amount) - Number(gaTx.tip_amount ?? 0)
+        combinedTotal += Number(gaTx.total_amount)
+        combinedTip += Number(gaTx.tip_amount ?? 0)
+        serviceNames.push(servicesMap.get(ga.service_id)?.name ?? ga.service_id)
+
+        const isAsst = ga.assistant_employee_id != null && ga.assistant_employee_id === employeeId
+        const overridePct = ga.employee_percentage_override
+        const defaultPct = Number(gaTx.employee_percentage ?? 50)
+        const assistantPct = Number(gaTx.assistant_percentage ?? 0)
+        const pct = isAsst ? assistantPct : (overridePct ?? defaultPct)
+        combinedEarnings += Number((gaServiceAmount * pct / 100).toFixed(2))
+      }
+
+      if (combinedTotal === 0) continue
+
+      const firstTx = groupAppts.map(a => txByAppt.get(a.id)).find(t => t != null)
       const percentage = isAnyAssistant && !isAnyMain
-        ? Number(firstTx.assistant_percentage ?? 0)
-        : employeePct
-      const earnings = Number((serviceAmount * percentage / 100).toFixed(2))
+        ? Number(firstTx?.assistant_percentage ?? 0)
+        : Number(firstTx?.employee_percentage ?? 50)
       const tipAmount = isAnyMain ? combinedTip : 0
 
       result.push({
         id: `group:${groupId}:${employeeId}`,
-        date: formatDate(firstTx.paid_at),
-        paidAt: firstTx.paid_at,
+        date: formatDate(firstTx?.paid_at ?? row.paid_at),
+        paidAt: firstTx?.paid_at ?? row.paid_at,
         clientName: clientsMap.get(appt.client_id) ?? '—',
         serviceName: serviceNames.join(' + '),
-        totalAmount: serviceAmount,
-        exchangeRateUsed: Number(firstTx.exchange_rate_used ?? 1),
-        method: firstTx.method ?? 'cash',
+        totalAmount: combinedTotal - combinedTip,
+        exchangeRateUsed: Number(firstTx?.exchange_rate_used ?? 1),
+        method: firstTx?.method ?? 'cash',
         currency,
         employeePercentage: percentage,
-        employeeEarnings: Number((earnings + tipAmount).toFixed(2)),
+        employeeEarnings: Number((combinedEarnings + tipAmount).toFixed(2)),
         tipAmount,
       })
       continue
@@ -358,7 +380,8 @@ export const listEmployeeTransactions = async (
           : servicePrice
 
         const assistantPct = Number(row.assistant_percentage ?? svc.assistant_percentage ?? appt.assistant_percentage ?? 0)
-        const employeePct = Number(row.employee_percentage ?? 50)
+        const overridePct = appt.employee_percentage_override
+        const employeePct = overridePct ?? Number(row.employee_percentage ?? 50)
         const percentage = isAssistant ? assistantPct : employeePct
         const earningsFromService = Number((proportionalTotal * percentage / 100).toFixed(2))
 

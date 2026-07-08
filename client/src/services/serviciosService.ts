@@ -121,7 +121,7 @@ export const deleteServicio = async (id: string): Promise<void> => {
   }
 }
 
-async function getBusinessServiceCategories(businessId: string): Promise<string[]> {
+export async function getBusinessServiceCategories(businessId: string): Promise<string[]> {
   const { data, error } = await supabase
     .from('businesses')
     .select('service_categories')

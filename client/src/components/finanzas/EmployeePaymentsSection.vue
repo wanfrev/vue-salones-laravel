@@ -37,12 +37,12 @@
         <div class="flex items-center justify-between">
           <div>
             <div class="font-medium text-text text-sm">{{ formatUSD(payment.earnings) }}</div>
-              <div class="text-xs text-text-muted">{{ formatVESInline(payment.earnings) }} Bs</div>
+              <div class="text-xs text-text-muted">{{ formatEmployeeVESInline(payment.earnings) }} Bs</div>
               <span v-if="payment.tipAmount > 0" class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">+${{ payment.tipAmount.toFixed(2) }} propina</span>
           </div>
           <div class="text-right">
             <div class="text-text text-sm">{{ formatUSD(payment.amount) }}</div>
-              <div class="text-xs text-text-muted">{{ formatVESInline(payment.amount) }} Bs</div>
+              <div class="text-xs text-text-muted">{{ formatEmployeeVESInline(payment.amount) }} Bs</div>
           </div>
         </div>
       </div>
@@ -64,12 +64,12 @@
             <td class="py-3 text-text-secondary">{{ payment.service }}</td>
             <td class="py-3 text-right">
               <div class="text-text">{{ formatUSD(payment.amount) }}</div>
-            <div class="text-xs text-text-muted">{{ formatVESInline(payment.amount) }} Bs</div>
+            <div class="text-xs text-text-muted">{{ formatEmployeeVESInline(payment.amount) }} Bs</div>
             </td>
             <td class="py-3 text-right text-text-secondary">{{ payment.percentage }}%</td>
             <td class="py-3 text-right">
               <div class="font-semibold text-success">{{ formatUSD(payment.earnings) }}</div>
-            <div class="text-xs text-text-muted">{{ formatVESInline(payment.earnings) }} Bs</div>
+            <div class="text-xs text-text-muted">{{ formatEmployeeVESInline(payment.earnings) }} Bs</div>
             <span v-if="payment.tipAmount > 0" class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary mt-1">+${{ payment.tipAmount.toFixed(2) }} propina</span>
             </td>
           </tr>
@@ -107,7 +107,7 @@
             <span class="text-xs text-text-muted">Monto</span>
             <div class="text-right">
               <div class="font-medium text-danger text-sm">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</div>
-              <div class="text-xs text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) : formatVESInline(ep.amount, ep.exchangeRateUsed) + ' Bs' }}</div>
+              <div class="text-xs text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) : formatEmployeeVESInline(ep.amount, ep.exchangeRateUsed) + ' Bs' }}</div>
             </div>
           </div>
         </div>
@@ -136,7 +136,7 @@
               </td>
               <td class="py-2 text-right">
                 <div class="font-medium text-danger">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</div>
-                <div class="text-xs text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) : formatVESInline(ep.amount, ep.exchangeRateUsed) + ' Bs' }}</div>
+                <div class="text-xs text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) : formatEmployeeVESInline(ep.amount, ep.exchangeRateUsed) + ' Bs' }}</div>
               </td>
               <td class="py-2 text-center">
                 <div class="flex items-center justify-center gap-1">
@@ -188,11 +188,11 @@
               <td class="py-2 text-right font-semibold text-text">{{ formatUSD(row.totalEarned) }}</td>
               <td class="py-2 text-right">
                 <div class="font-medium text-danger">{{ formatUSD(row.totalPaid) }}</div>
-                <div class="text-xs text-text-muted">{{ formatVESInline(row.totalPaid) }} Bs</div>
+                <div class="text-xs text-text-muted">{{ formatEmployeeVESInline(row.totalPaid) }} Bs</div>
               </td>
               <td class="py-2 text-right">
                 <div class="font-medium text-warning">{{ formatUSD((row as any).totalConsumed ?? 0) }}</div>
-                <div class="text-xs text-text-muted">{{ formatVESInline((row as any).totalConsumed ?? 0) }} Bs</div>
+                <div class="text-xs text-text-muted">{{ formatEmployeeVESInline((row as any).totalConsumed ?? 0) }} Bs</div>
               </td>
               <td class="py-2 text-right">
                 <span class="font-bold" :class="row.pendingBalance > 0 ? 'text-primary' : 'text-text-muted'">
@@ -238,6 +238,19 @@
               <option value="" disabled>Seleccionar {{ (terminology.employee || 'empleado').toLowerCase() }}</option>
               <option v-for="emp in paymentsCtx.employeeList.value" :key="emp.id" :value="emp.id">{{ emp.name }}</option>
             </select>
+          </div>
+
+          <div v-if="!paymentsCtx.editingPaymentId.value" class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="mb-1 block text-xs font-medium text-text-muted">Servicios desde</label>
+              <input v-model="earningsStartDate" type="date" @change="onEmployeeChange"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-text-muted">Servicios hasta</label>
+              <input v-model="earningsEndDate" type="date" @change="onEmployeeChange"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            </div>
           </div>
 
           <div v-if="selectedBalance" class="rounded-lg bg-bg-secondary p-3 space-y-2">
@@ -392,6 +405,7 @@ import { computed, ref } from 'vue'
 import { formatMethod } from '../../lib/formatters'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useEmployeePayments } from '../../composables/empleados/useEmployeePayments'
+import { useBusinessStore } from '../../store/business'
 import { getEmployeeBalance, type EmployeeBalance, type EmployeePaymentRecord } from '../../services/employeePaymentsService'
 import type { EmployeeEarningSummary } from '../../composables/finanzas/useFinancialSummary'
 
@@ -413,10 +427,27 @@ const emit = defineEmits<{
 }>()
 
 const { formatUSD, formatVESInline, formatVESEs } = useCurrency()
+const businessStore = useBusinessStore()
+
+const formatEmployeeVESInline = (usdAmount: number, rate?: number): string => {
+  const employeeRate = businessStore.employeeExchangeRate
+  return formatVESInline(usdAmount, rate ?? employeeRate ?? undefined)
+}
 
 const paymentsCtx = useEmployeePayments(computed(() => props.businessId))
 
 const selectedBalance = ref<EmployeeBalance | null>(null)
+
+const toYmd = (d: Date) => {
+  const yyyy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+const nowDate = new Date()
+const earningsStartDate = ref(toYmd(new Date(nowDate.getFullYear(), nowDate.getMonth(), 1)))
+const earningsEndDate = ref(toYmd(nowDate))
 
 const visibleEmployeePayments = computed(() => props.employeePayments.slice(0, 5))
 const visiblePaymentsMade = computed(() => props.paymentsMade.slice(0, 5))
@@ -441,21 +472,6 @@ const employeeDebtSummary = computed(() => {
   }).filter(s => s.totalEarned > 0 || s.totalPaid > 0 || s.totalConsumed > 0)
 })
 
-const buildBalanceFromSummary = (employeeId: string): EmployeeBalance | null => {
-  const summary = employeeDebtSummary.value.find(row => row.employeeId === employeeId)
-  if (!summary) return null
-  return {
-    employeeId: summary.employeeId,
-    employeeName: summary.employeeName,
-    payType: summary.payType === 'unknown' ? null : summary.payType,
-    payPercentage: Number(summary.payPercentage ?? 0),
-    baseSalary: Number(summary.baseSalary ?? 0),
-    totalEarned: Number(summary.totalEarned ?? 0),
-    totalPaid: Number(summary.totalPaid ?? 0),
-    pendingBalance: Number(summary.pendingBalance ?? 0),
-  }
-}
-
 function payTypeLabel(): string {
   if (!selectedBalance.value) return '—'
   const b = selectedBalance.value
@@ -468,6 +484,9 @@ function payTypeLabel(): string {
 const openPaymentModal = () => {
   paymentsCtx.openModal()
   selectedBalance.value = null
+  const now = new Date()
+  earningsStartDate.value = toYmd(new Date(now.getFullYear(), now.getMonth(), 1))
+  earningsEndDate.value = toYmd(now)
 }
 
 const closePaymentModal = () => {
@@ -481,17 +500,12 @@ const onEmployeeChange = async () => {
     selectedBalance.value = null
     return
   }
-  const balanceFromSummary = buildBalanceFromSummary(employeeId)
-  if (balanceFromSummary) {
-    selectedBalance.value = balanceFromSummary
-    return
-  }
   if (!props.businessId) {
     selectedBalance.value = null
     return
   }
   try {
-    selectedBalance.value = await getEmployeeBalance(props.businessId, employeeId)
+    selectedBalance.value = await getEmployeeBalance(props.businessId, employeeId, null, earningsStartDate.value || null, earningsEndDate.value || null)
   } catch {
     selectedBalance.value = null
   }
