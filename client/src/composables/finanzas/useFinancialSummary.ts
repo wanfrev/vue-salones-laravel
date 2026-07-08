@@ -113,18 +113,21 @@ function useFinancialSummary(
     queryKey: computed(() => ['finanzas-employee-payments', businessId.value, selectedPeriod.value, selectedMonth?.value ?? null, branchId.value] as const),
     queryFn: async () => { const cfg = periodConfig.value; const start = toYmd(cfg.start); const end = toYmd(cfg.end); let q = supabase.from('employee_payments').select(EMPLOYEE_PAYMENTS_SELECT).eq('business_id', businessId.value!).gte('payment_date', start).lte('payment_date', end); if (branchId.value) q = q.eq('branch_id', branchId.value); const { data, error } = await q; if (error) throw error; return data ?? [] },
     enabled: computed(() => !!businessId.value),
+    keepPreviousData: true,
   })
 
   const { data: rawExpenses } = useQuery({
     queryKey: computed(() => ['finanzas-expenses', businessId.value, selectedPeriod.value, selectedMonth?.value ?? null, branchId.value] as const),
     queryFn: async () => { const cfg = periodConfig.value; const start = toYmd(cfg.start); const end = toYmd(cfg.end); let q = supabase.from('expenses').select('*').eq('business_id', businessId.value!).gte('expense_date', start).lte('expense_date', end); if (branchId.value) q = q.eq('branch_id', branchId.value); const { data, error } = await q; if (error) throw error; return data ?? [] },
     enabled: computed(() => !!businessId.value),
+    keepPreviousData: true,
   })
 
   const { data: rawInventoryMovements } = useQuery({
     queryKey: computed(() => ['finanzas-product-sales', businessId.value, selectedPeriod.value, selectedMonth?.value ?? null, branchId.value] as const),
     queryFn: async () => { const cfg = periodConfig.value; const start = `${toYmd(cfg.start)}T00:00:00`; const end = `${toYmd(cfg.end)}T23:59:59`; let q = supabase.from('inventory_movements').select('*, products(id, name), clients(full_name)').eq('business_id', businessId.value!).eq('movement_type', 'sale').gte('created_at', start).lte('created_at', end).order('created_at', { ascending: false }).limit(2000); if (branchId.value) q = q.eq('branch_id', branchId.value); const { data, error } = await q; if (error) throw error; return data ?? [] },
     enabled: computed(() => !!businessId.value),
+    keepPreviousData: true,
   })
 
   const transactionsAll = computed(() => buildTransactionsAll(rawTransactions.value))
