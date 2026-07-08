@@ -7,6 +7,13 @@ export function useCurrency() {
   const { authStore } = useAuth()
   const businessStore = useBusinessStore()
 
+  const employeeRate = computed(() => {
+    if (businessStore.currentBranch?.ves_exchange_rate != null) {
+      return businessStore.currentBranch.ves_exchange_rate
+    }
+    return businessStore.employeeExchangeRate ?? businessStore.business?.ves_exchange_rate ?? 1
+  })
+
   const exchangeRate = computed(() => {
     if (businessStore.currentBranch?.ves_exchange_rate != null) {
       return businessStore.currentBranch.ves_exchange_rate
@@ -38,6 +45,14 @@ export function useCurrency() {
 
   const formatVESInline = (usdValue: number, rate?: number) => {
     const vesValue = usdValue * (rate ?? exchangeRate.value)
+    return new Intl.NumberFormat('es-VE', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(vesValue)
+  }
+
+  const formatEmployeeVESInline = (usdValue: number, rate?: number) => {
+    const vesValue = usdValue * (rate ?? employeeRate.value)
     return new Intl.NumberFormat('es-VE', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -76,12 +91,14 @@ export function useCurrency() {
 
   return {
     exchangeRate,
+    employeeRate,
     currency,
     formatUSD,
     formatVES,
     formatVESEs,
     formatDual,
     formatVESInline,
+    formatEmployeeVESInline,
     setExchangeRate,
     isAdmin,
   }

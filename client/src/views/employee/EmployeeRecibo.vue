@@ -163,7 +163,7 @@
               <span class="text-text-muted">Sueldo base</span>
               <div class="text-right">
                 <span class="font-medium text-text">${{ payInfo.baseSalary.toFixed(2) }}</span>
-                <p class="text-xs text-text-muted">{{ formatVES(payInfo.baseSalary) }}</p>
+                <p class="text-xs text-text-muted">{{ formatEmployeeVES(payInfo.baseSalary) }}</p>
               </div>
             </div>
             <div v-if="payInfo && payInfo.type !== 'salary'" class="flex justify-between py-2 text-sm">
@@ -180,7 +180,7 @@
               <span class="text-text-muted">Propinas recibidas</span>
               <div class="text-right">
                 <span class="font-medium text-primary">${{ totalTip.toFixed(2) }}</span>
-                <p class="text-xs text-text-muted">{{ formatVES(totalTip) }}</p>
+                <p class="text-xs text-text-muted">{{ formatEmployeeVES(totalTip) }}</p>
               </div>
             </div>
             <div class="border-t border-border pt-3 flex justify-between">
@@ -508,7 +508,7 @@ const filteredEarnings = computed(() => {
 
 const earningsWithVES = computed(() =>
   filteredEarnings.value.map(row => {
-    const rate = row.exchangeRateUsed || effectiveRate.value
+    const rate = row.exchangeRateUsed || employeeRate.value
     const isVES = row.currency === 'VES'
     const vesTotal = isVES ? row.totalAmount * row.exchangeRateUsed : row.totalAmount * rate
     const vesEarnings = isVES ? row.employeeEarnings * row.exchangeRateUsed : row.employeeEarnings * rate
@@ -530,7 +530,7 @@ const totalBilled = computed(() =>
 )
 
 const totalBilledVES = computed(() =>
-  formatVES(Number(totalBilled.value))
+  formatEmployeeVES(Number(totalBilled.value))
 )
 
 const totalVariableEarned = computed(() =>
@@ -554,7 +554,7 @@ const totalEarned = computed(() => {
 })
 
 const totalEarnedVES = computed(() =>
-  formatVES(Number(totalEarned.value))
+  formatEmployeeVES(Number(totalEarned.value))
 )
 
 const { data: paymentsData, refetch: refetchPayments } = useQuery({
@@ -564,19 +564,10 @@ const { data: paymentsData, refetch: refetchPayments } = useQuery({
   staleTime: 0,
 })
 const payments = computed(() => paymentsData.value ?? [])
-const { formatUSD, formatVESEs, exchangeRate } = useCurrency()
+const { formatUSD, formatVESEs, employeeRate } = useCurrency()
 
-// Employee-specific rate cascade: branch rate → employee override → global rate
-const effectiveRate = computed(() => {
-  if (businessStore.currentBranch?.ves_exchange_rate != null) {
-    return businessStore.currentBranch.ves_exchange_rate
-  }
-  return businessStore.employeeExchangeRate ?? exchangeRate.value
-})
-
-// Local formatVES that uses the employee rate when available
-const formatVES = (usdValue: number): string => {
-  return `${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(usdValue * effectiveRate.value)} Bs`
+const formatEmployeeVES = (usdValue: number): string => {
+  return formatVESEs(usdValue * employeeRate.value)
 }
 
 const filteredPayments = computed(() => {
@@ -606,7 +597,7 @@ const paymentsWithCurrency = computed(() => {
     const usdAmount = Number(p.amount)
     // Use historical exchange rate if available, otherwise use current employee rate or global rate
     const historicalRate = p.exchange_rate_used
-    const rateToUse = historicalRate || effectiveRate.value
+    const rateToUse = historicalRate || employeeRate.value
     const displayVES = currency === 'VES' ? formatVESEs(originalAmount) : `${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(usdAmount * rateToUse)} Bs`
     const displayAmount = currency === 'VES' ? formatVESEs(originalAmount) : formatUSD(usdAmount)
     return {
@@ -662,9 +653,9 @@ const pendingDebt = computed(() =>
 
 const pendingDebtFormatted = computed(() => pendingDebt.value.toFixed(2))
 
-const totalPaidVES = computed(() => formatVES(totalPaymentsOnly.value))
+const totalPaidVES = computed(() => formatEmployeeVES(totalPaymentsOnly.value))
 
-const pendingDebtVES = computed(() => formatVES(pendingDebt.value))
+const pendingDebtVES = computed(() => formatEmployeeVES(pendingDebt.value))
 
 const historyMonths = computed(() => {
   const now = new Date()

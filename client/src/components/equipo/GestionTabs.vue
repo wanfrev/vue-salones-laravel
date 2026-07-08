@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useCurrency } from '../../composables/common/useCurrency'
 import KpiBanner from '../finanzas/KpiBanner.vue'
 import RecordSection from '../finanzas/RecordSection.vue'
+
+const { formatEmployeeVESInline } = useCurrency()
 
 const props = defineProps<{
   summaryCtx: any
@@ -16,7 +19,6 @@ const props = defineProps<{
   formatUSD: (n: number) => string
   formatVESInline: (n: number, r?: number) => string
   formatVESEs: (n: number) => string
-  formatEmployeeVESInline: (n: number, r?: number) => string
   formatMethod: (m: string) => string
   formatTime24to12: (t: string) => string
   selectedMonth: string

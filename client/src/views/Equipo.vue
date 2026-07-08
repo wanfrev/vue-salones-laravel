@@ -46,7 +46,7 @@
     :total-consumido="totalConsumido" :total-deuda-pendiente="totalDeudaPendiente"
     :deuda-con-saldo="deudaConSaldo"
     :format-u-s-d="formatUSD" :format-v-e-s-inline="formatVESInline" :format-v-e-s-es="formatVESEs"
-    :format-employee-v-e-s-inline="formatEmployeeVESInline" :format-method="formatMethod"
+    :format-method="formatMethod"
     :format-time24to12="formatTime24to12"
     :selected-month="selectedMonth" :selected-period="selectedPeriod"
     @update:selected-period="selectedPeriod = $event"
@@ -159,10 +159,7 @@ const handleNewEmpleado = () => empleadoModalRef.value?.open()
 const handleEditEmpleado = (e: Empleado) => empleadoModalRef.value?.open(e)
 const handleViewAgenda = (e: Empleado) => { router.push('/admin?employee=' + e.id) }
 
-const { formatUSD, formatVESInline, formatVESEs, exchangeRate } = useCurrency()
-const formatEmployeeVESInline = (usdAmount: number, rate?: number) =>
-  formatVESInline(usdAmount, rate ?? businessStore.employeeExchangeRate ?? undefined)
-
+const { formatUSD, formatVESInline, formatVESEs } = useCurrency()
 const employeeDebtSummary = computed(() => {
   return (summaryCtx.employeeEarningsByEmployee.value ?? []).map(s => {
     const payments = paymentsCtx.paymentsMade.value.filter(p => p.employeeId === s.employeeId)

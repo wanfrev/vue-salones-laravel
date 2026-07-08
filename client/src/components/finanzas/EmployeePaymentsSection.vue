@@ -405,7 +405,6 @@ import { computed, ref } from 'vue'
 import { formatMethod } from '../../lib/formatters'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useEmployeePayments } from '../../composables/empleados/useEmployeePayments'
-import { useBusinessStore } from '../../store/business'
 import { getEmployeeBalance, type EmployeeBalance, type EmployeePaymentRecord } from '../../services/employeePaymentsService'
 import type { EmployeeEarningSummary } from '../../composables/finanzas/useFinancialSummary'
 
@@ -426,13 +425,7 @@ const emit = defineEmits<{
   'view-all': []
 }>()
 
-const { formatUSD, formatVESInline, formatVESEs } = useCurrency()
-const businessStore = useBusinessStore()
-
-const formatEmployeeVESInline = (usdAmount: number, rate?: number): string => {
-  const employeeRate = businessStore.employeeExchangeRate
-  return formatVESInline(usdAmount, rate ?? employeeRate ?? undefined)
-}
+const { formatUSD, formatVESEs, formatEmployeeVESInline } = useCurrency()
 
 const paymentsCtx = useEmployeePayments(computed(() => props.businessId))
 
