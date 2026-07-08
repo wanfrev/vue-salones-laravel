@@ -81,37 +81,11 @@
         </div>
 
         <!-- Feature Flags -->
-        <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-          <h2 class="text-lg font-semibold text-text mb-4">Funcionalidades</h2>
-          <div class="space-y-3">
-            <label
-              v-for="ft in featureToggles"
-              :key="ft.key"
-              class="flex items-center justify-between gap-3"
-            >
-              <div>
-                <p class="text-sm font-medium text-text">{{ ft.label }}</p>
-                <p class="text-xs text-text-muted">{{ ft.description }}</p>
-              </div>
-              <button
-                type="button"
-                :disabled="isTogglingFeature"
-                @click="toggleFeature(ft.key)"
-                :class="[
-                  'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors',
-                  (business as any).features?.[ft.key] ? 'bg-primary' : 'bg-border'
-                ]"
-              >
-                <span
-                  :class="[
-                    'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
-                    (business as any).features?.[ft.key] ? 'translate-x-6' : 'translate-x-1'
-                  ]"
-                />
-              </button>
-            </label>
-          </div>
-        </div>
+        <FeatureFlagsCard
+          :features="(business as any).features ?? {}"
+          :is-toggling="isTogglingFeature"
+          @toggle="toggleFeature"
+        />
 
         <!-- Sucursales -->
         <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm">
@@ -146,40 +120,7 @@
         </div>
 
         <!-- Admins -->
-        <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-          <div class="mb-4 flex items-center justify-between">
-            <h2 class="text-lg font-semibold text-text">Administradores ({{ admins.length }})</h2>
-            <router-link
-              :to="`/superadmin/business/${business.id}/admins`"
-              class="text-sm font-semibold text-primary transition-theme hover:text-primary-hover"
-            >
-              Ver todos
-            </router-link>
-          </div>
-
-          <div v-if="admins.length" class="space-y-2">
-            <div
-              v-for="admin in admins.slice(0, 5)"
-              :key="admin.id"
-              class="flex items-center gap-3 rounded-xl border border-border bg-bg-secondary p-3"
-            >
-              <div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary-light text-sm font-bold text-primary">
-                {{ admin.full_name.charAt(0).toUpperCase() }}
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="text-sm font-semibold text-text">{{ admin.full_name }}</p>
-                <p class="text-xs text-text-muted truncate">{{ admin.id }}</p>
-              </div>
-              <span class="rounded-full bg-primary-light/50 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                {{ admin.role }}
-              </span>
-            </div>
-          </div>
-
-          <div v-else class="rounded-xl border border-dashed border-border bg-bg-secondary p-6 text-center text-sm text-text-muted">
-            No hay administradores para este negocio.
-          </div>
-        </div>
+        <AdminListCard :admins="admins" :business-id="business.id" />
       </div>
 
       <!-- Loading state -->
@@ -317,6 +258,8 @@ import {
 import { listBranches, branchesKeys } from '../services/branchesService'
 import type { AuthProfile } from '../types/auth'
 import type { Business } from '../types/database'
+import FeatureFlagsCard from '../components/superadmin/FeatureFlagsCard.vue'
+import AdminListCard from '../components/superadmin/AdminListCard.vue'
 import lumaLogoLight from '../assets/Luma.svg'
 import lumaLogoDark from '../assets/Luma blanco.svg'
 
@@ -448,15 +391,6 @@ const { mutateAsync: resumeBiz, isPending: isResuming } = useMutation({
     error(message)
   },
 })
-
-  const featureToggles = [
-    { key: 'pos', label: 'Punto de Venta', description: 'Cobro de citas con productos y método de pago' },
-    { key: 'inventario', label: 'Inventario', description: 'Control de stock, entradas y salidas' },
-    { key: 'productos', label: 'Productos', description: 'Catálogo de productos vendibles' },
-    { key: 'proveedores', label: 'Proveedores', description: 'Gestión de proveedores, deudas y pagos' },
-    { key: 'multi_branch', label: 'Múltiples sucursales', description: 'Gestionar varias ubicaciones físicas' },
-    { key: 'employees_create_clients', label: 'Empleados crean clientes', description: 'Permitir que empleados agreguen nuevos clientes desde la agenda' },
-  ]
 
 const isTogglingFeature = ref(false)
 const toggleFeature = async (key: string) => {

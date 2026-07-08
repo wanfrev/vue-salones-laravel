@@ -118,95 +118,19 @@
           <p class="text-xs font-semibold uppercase tracking-wider text-primary">Contratación</p>
 
           <!-- Tipo de pago -->
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <FormSelect
-              v-model="formData.payType"
-              label="Tipo de pago"
-              :options="payTypeOptions"
-              required
-              :error="errors.payType"
-            />
-            <FormSelect
-              v-model="formData.salaryFrequency"
-              label="Frecuencia"
-              :options="salaryFrequencyOptions"
-              :disabled="formData.payType === 'percentage'"
-              :error="errors.salaryFrequency"
-            />
-          </div>
-
-          <!-- Condiciones económicas -->
-          <div class="rounded-lg bg-bg-secondary/50 p-3 space-y-3">
-            <p class="text-xs font-medium text-text-muted">Condiciones económicas</p>
-            <div class="grid grid-cols-2 gap-3">
-              <FormInput
-                v-model.number="formData.payPercentage"
-                :label="`% ${t.employee}`"
-                type="number"
-                min="0"
-                max="100"
-                placeholder="50"
-                :disabled="formData.payType === 'salary'"
-                :error="errors.payPercentage"
-              />
-              <FormInput
-                v-model.number="formData.baseSalary"
-                label="Sueldo base ($)"
-                type="number"
-                min="0"
-                placeholder="0"
-                :disabled="formData.payType === 'percentage'"
-                :error="errors.baseSalary"
-              />
-            </div>
-          </div>
+          <SalaryConfig
+            :formData="formData"
+            :terminology="t"
+            :errors="errors as any"
+            @update:model-value="formData = $event"
+          />
 
           <!-- Horario -->
-          <div>
-            <p class="text-xs font-medium text-text-muted mb-2">Horario laboral</p>
-            <div class="grid grid-cols-3 gap-2">
-              <FormTime
-                v-model="formData.scheduleStart"
-                label="Entrada"
-                required
-                :error="errors.scheduleStart"
-              />
-              <FormTime
-                v-model="formData.scheduleEnd"
-                label="Salida"
-                required
-                :error="errors.scheduleEnd"
-              />
-              <FormInput
-                v-model="formData.scheduleBreak"
-                label="Descanso"
-                type="text"
-                placeholder="13:00-14:00"
-                :error="errors.scheduleBreak"
-              />
-            </div>
-          </div>
-
-          <!-- Días laborales -->
-          <div>
-            <p class="text-xs font-medium text-text-muted mb-2">Días laborales</p>
-            <div class="flex gap-1">
-              <button
-                v-for="day in dayOptions"
-                :key="day.value"
-                type="button"
-                @click="toggleDay(day.value)"
-                :class="[
-                  'flex-1 rounded-lg border py-2 text-xs font-semibold transition-theme',
-                  activeDaysSet.has(day.value)
-                    ? 'border-primary bg-primary text-text-inverse'
-                    : 'border-border text-text-muted hover:border-border-strong hover:bg-bg-secondary'
-                ]"
-              >
-                {{ day.label }}
-              </button>
-            </div>
-          </div>
+          <ScheduleEditor
+            :formData="formData"
+            :errors="errors as any"
+            @update:model-value="formData = $event"
+          />
         </div>
       </div>
 
@@ -224,7 +148,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, reactive } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useModal } from '../../composables/common/useModal'
 import { useNotification } from '../../composables/common/useNotification'
 import { useAuthStore } from '../../store/auth'
@@ -232,7 +156,9 @@ import { useBusinessStore } from '../../store/business'
 import { addBusinessJobTitle } from '../../services/equipoService'
 import type { Empleado, EmpleadoFormData } from '../../types/empleado'
 import ModalBase from '../common/ModalBase.vue'
-import { FormInput, FormSelect, FormTime } from '../forms'
+import { FormInput, FormSelect } from '../forms'
+import SalaryConfig from '../equipo/SalaryConfig.vue'
+import ScheduleEditor from '../equipo/ScheduleEditor.vue'
 
 const MODAL_ID = 'empleado-form-modal'
 
@@ -268,39 +194,6 @@ const roleOptions = computed(() => {
 const cancelCustomRole = () => {
   showingCustomRole.value = false
   formData.value.role = ''
-}
-
-const payTypeOptions = [
-  { value: 'percentage', label: 'Porcentaje' },
-  { value: 'salary', label: 'Sueldo base' },
-  { value: 'mixed', label: 'Sueldo + %' },
-]
-
-const salaryFrequencyOptions = [
-  { value: 'weekly', label: 'Semanal' },
-  { value: 'biweekly', label: 'Quincenal' },
-  { value: 'monthly', label: 'Mensual' },
-]
-
-const dayOptions = [
-  { value: 1, label: 'L' },
-  { value: 2, label: 'M' },
-  { value: 3, label: 'X' },
-  { value: 4, label: 'J' },
-  { value: 5, label: 'V' },
-  { value: 6, label: 'S' },
-  { value: 0, label: 'D' },
-]
-
-const activeDaysSet = reactive(new Set<number>([1, 2, 3, 4, 5, 6]))
-
-const toggleDay = (day: number) => {
-  if (activeDaysSet.has(day)) {
-    activeDaysSet.delete(day)
-  } else {
-    activeDaysSet.add(day)
-  }
-  formData.value.activeDays = [...activeDaysSet]
 }
 
 const defaultFormData: EmpleadoFormData = {
@@ -360,10 +253,6 @@ watch(
       }
     } else {
       formData.value = { ...defaultFormData }
-    }
-    activeDaysSet.clear()
-    for (const d of formData.value.activeDays) {
-      activeDaysSet.add(d)
     }
     errors.value = {}
   },
@@ -455,7 +344,6 @@ const handleSubmit = async () => {
     const empleadoData: EmpleadoFormData & { id?: string } = {
       ...formData.value,
       role,
-      activeDays: [...activeDaysSet],
     }
 
     if (modalData.value?.empleado?.id) {

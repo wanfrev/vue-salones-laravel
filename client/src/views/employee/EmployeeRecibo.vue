@@ -94,61 +94,12 @@
           </div>
 
           <!-- Earnings Breakdown Table -->
-          <div v-if="filteredEarningsWithVES.length > 0" class="mb-6">
-            <div class="border-b border-border pb-2 mb-3">
-              <h3 class="text-sm font-semibold text-text">Desglose de ganancias</h3>
-            </div>
-            <div class="overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="border-b border-border">
-                    <th class="py-2 pr-2 text-left font-medium text-text-muted whitespace-nowrap">Fecha</th>
-                    <th class="py-2 pr-2 text-left font-medium text-text-muted">Servicio</th>
-                    <th class="py-2 px-2 text-right font-medium text-text-muted">Total</th>
-                    <th class="py-2 px-2 text-right font-medium text-text-muted">Total Bs</th>
-                    <th class="py-2 px-2 text-center font-medium text-text-muted whitespace-nowrap">Moneda</th>
-                    <th class="py-2 px-2 text-center font-medium text-text-muted">%</th>
-                    <th class="py-2 pl-2 text-right font-medium text-text-muted">Ganancia</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-border">
-                  <tr v-for="row in visibleEarningsWithVES" :key="row.id">
-                    <td class="py-2 pr-2 text-text-secondary whitespace-nowrap">{{ formatDate(row.paidAt) }}</td>
-                    <td class="py-2 pr-2 text-text">{{ row.serviceName }}</td>
-                    <td class="py-2 px-2 text-right text-text-secondary">${{ row.totalAmount.toFixed(2) }}</td>
-                    <td class="py-2 px-2 text-right text-text-secondary">{{ formatVESEs(row.vesTotal) }}</td>
-                    <td class="py-2 px-2 text-center">
-                      <span v-if="row.currency === 'VES'" class="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
-                        Bs @ {{ row.exchangeRateUsed.toFixed(2) }}
-                      </span>
-                      <span v-else class="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                        USD
-                      </span>
-                    </td>
-                    <td class="py-2 px-2 text-center text-text-secondary">{{ row.employeePercentage }}%</td>
-                    <td class="py-2 pl-2 text-right font-semibold text-success">
-                      <div>${{ row.employeeEarnings.toFixed(2) }}</div>
-                      <div class="text-xs text-text-muted font-normal">{{ formatVESEs(row.vesEarnings) }}</div>
-                      <span v-if="row.tipAmount > 0" class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary mt-0.5">+${{ row.tipAmount.toFixed(2) }} propina</span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            <div v-if="hasMoreServices" class="flex justify-center border-t border-border pt-3">
-              <button
-                type="button"
-                class="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-primary transition-theme hover:bg-bg-secondary"
-                @click="showAllServices = !showAllServices"
-              >
-                {{ showAllServices ? 'Ver menos' : `Ver todos (${filteredEarningsWithVES.length})` }}
-              </button>
-            </div>
-          </div>
-
-          <div v-else class="mb-6 text-center text-sm text-text-muted py-4">
-            No hay servicios en este período.
-          </div>
+          <EmployeeEarningsTable
+            :earnings="filteredEarningsWithVES"
+            :show-all="showAllServices"
+            :has-more="hasMoreServices"
+            @toggle="showAllServices = !showAllServices"
+          />
 
           <!-- Totals -->
           <div class="space-y-2 mb-6">
@@ -229,53 +180,16 @@
           </div>
 
           <!-- Payments Received + Consumptions -->
-          <div v-if="filteredPayments.length > 0 || filteredConsumptions.length > 0" class="mb-6">
-            <p class="text-xs font-semibold uppercase tracking-wider text-text-muted mb-3">Pagos realizados en este período</p>
-            <div v-for="p in visiblePaymentsWithCurrency" :key="p.id" class="flex justify-between items-center py-2 border-b border-border last:border-b-0">
-              <div>
-                <p class="text-sm font-medium text-text">{{ p.displayAmount }}</p>
-                <p class="text-xs text-text-muted">{{ p.displayVES }}</p>
-                <p class="text-xs text-text-muted">{{ formatDate(p.payment_date) }} · {{ formatMethod(p.payment_method) }}
-                  <span v-if="(p as any).type === 'consumption'" class="ml-1 rounded bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning">Consumo</span>
-                </p>
-                <p v-if="(p as any).concept" class="text-xs text-text-muted italic">"{{ (p as any).concept }}"</p>
-              </div>
-              <span
-                v-if="(p as any).type === 'consumption'"
-                class="rounded-full bg-warning/10 px-2.5 py-0.5 text-xs font-semibold text-warning"
-              >Consumo</span>
-              <span v-else class="rounded-full bg-success/10 px-2.5 py-0.5 text-xs font-semibold text-success">Pagado</span>
-            </div>
-
-            <div v-if="hasMorePayments" class="flex justify-center pt-3">
-              <button
-                type="button"
-                class="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-primary transition-theme hover:bg-bg-secondary"
-                @click="showAllPayments = !showAllPayments"
-              >
-                {{ showAllPayments ? 'Ver menos' : `Ver todos (${filteredPaymentsWithCurrency.length})` }}
-              </button>
-            </div>
-
-            <div v-if="filteredConsumptions.length > 0" class="border-t border-border mt-3 pt-3">
-              <div class="flex justify-between py-2 text-sm">
-                <span class="text-text-muted">Total pagado</span>
-                <span class="font-medium text-success">${{ totalPaymentsOnly }}</span>
-              </div>
-              <div class="flex justify-between py-2 text-sm">
-                <span class="text-text-muted">Total consumido</span>
-                <span class="font-medium text-warning">${{ totalConsumed }}</span>
-              </div>
-              <div class="flex justify-between border-t border-border pt-2 text-sm">
-                <span class="font-semibold text-text">Total pagado neto</span>
-                <span class="font-bold text-text">${{ totalPaidFormatted }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="filteredPayments.length === 0 && filteredConsumptions.length === 0" class="mb-6 text-center text-sm text-text-muted">
-            No hay pagos ni consumos registrados en este período.
-          </div>
+          <EmployeePaymentsList
+            :payments="filteredPaymentsWithCurrency"
+            :consumptions="filteredConsumptions"
+            :show-all="showAllPayments"
+            :has-more="hasMorePayments"
+            :total-payments="totalPaymentsOnlyFormatted"
+            :total-consumed="totalConsumedFormatted"
+            :total-net="totalPaidFormatted"
+            @toggle="showAllPayments = !showAllPayments"
+          />
 
           <!-- Historial de recibos pasados -->
           <div class="border-t border-border pt-4 mb-4">
@@ -340,11 +254,13 @@ import { ref, computed, onMounted } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
-import { getInitials, formatMethod, formatDate } from '../../lib/formatters'
+import { getInitials } from '../../lib/formatters'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { dashboardKeys, listEmployeeTransactions, listEmployeePayments } from '../../services/employeeDashboardService'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import SegmentedTabs from '../../components/common/SegmentedTabs.vue'
+import EmployeeEarningsTable from './EmployeeEarningsTable.vue'
+import EmployeePaymentsList from './EmployeePaymentsList.vue'
 
 const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
@@ -518,11 +434,6 @@ const earningsWithVES = computed(() =>
 
 const filteredEarningsWithVES = computed(() => earningsWithVES.value)
 
-const visibleEarningsWithVES = computed(() => {
-  if (showAllServices.value) return filteredEarningsWithVES.value
-  return filteredEarningsWithVES.value.slice(0, VISIBLE_SERVICES)
-})
-
 const hasMoreServices = computed(() => filteredEarningsWithVES.value.length > VISIBLE_SERVICES)
 
 const totalBilled = computed(() =>
@@ -611,11 +522,6 @@ const paymentsWithCurrency = computed(() => {
 })
 
 const filteredPaymentsWithCurrency = computed(() => paymentsWithCurrency.value)
-
-const visiblePaymentsWithCurrency = computed(() => {
-  if (showAllPayments.value) return filteredPaymentsWithCurrency.value
-  return filteredPaymentsWithCurrency.value.slice(0, VISIBLE_PAYMENTS)
-})
 
 const hasMorePayments = computed(() => filteredPaymentsWithCurrency.value.length > VISIBLE_PAYMENTS)
 
