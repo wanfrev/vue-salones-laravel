@@ -74,7 +74,29 @@ export function usePOSPayment() {
       paymentsBreakdown: PaymentBreakdownItem[]
       tipAmount?: number
     }) => recordSale({ ...params, businessId: businessId.value!, branchId: branchId.value }),
-    onSuccess: () => {
+    onMutate: async ({ appointmentId }) => {
+      await queryClient.cancelQueries({ queryKey: ['pos-pending'] })
+      const previousQueries = queryClient.getQueriesData({ queryKey: ['pos-pending'] })
+      for (const [key, data] of previousQueries) {
+        if (Array.isArray(data)) {
+          queryClient.setQueryData(key, data.filter((appt: any) => {
+            if (appt.isGroup && Array.isArray(appt.groupIds)) {
+              return !appt.groupIds.includes(appointmentId)
+            }
+            return appt.id !== appointmentId
+          }))
+        }
+      }
+      return { previousQueries }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previousQueries) {
+        for (const [key, data] of context.previousQueries) {
+          queryClient.setQueryData(key, data)
+        }
+      }
+    },
+    onSettled: () => {
       Promise.allSettled([
         queryClient.invalidateQueries({ exact: false, queryKey: ['pos-pending'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: posKeys.products(businessId.value, branchId.value) }),

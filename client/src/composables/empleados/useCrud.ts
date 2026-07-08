@@ -58,15 +58,42 @@ export function useCrud<TData, TForm, TId = string>(options: UseCrudOptions<TDat
       if (!businessId.value) throw new Error('No hay negocio activo')
       return saveFn(businessId.value, formData, currentBranchId.value)
     },
-    onSuccess: () => {
-      saveError.value = ''
-      invalidateAll()
-      modalRef?.value?.close()
-      success(`${entityName} guardado correctamente`)
+    onMutate: async (formData) => {
+      const qKey = queryKey(businessId.value ?? '', currentBranchId.value)
+      await queryClient.cancelQueries({ queryKey: qKey })
+      const previousQueries = queryClient.getQueriesData({ queryKey: qKey })
+
+      const { id, ...rest } = formData as any
+      const optimistic = { ...rest, id: id ?? `temp-${Date.now()}` } as TData
+
+      for (const [key, data] of previousQueries) {
+        if (!Array.isArray(data)) continue
+        if (id) {
+          queryClient.setQueryData(key, data.map((item: any) =>
+            item.id === id ? { ...item, ...rest } : item
+          ))
+        } else {
+          queryClient.setQueryData(key, [optimistic, ...data])
+        }
+      }
+      return { previousQueries }
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
+      if (context?.previousQueries) {
+        for (const [key, data] of context.previousQueries) {
+          queryClient.setQueryData(key, data)
+        }
+      }
       saveError.value = translateError(err)
       showError(saveError.value)
+    },
+    onSettled: (_data, error) => {
+      saveError.value = ''
+      if (!error) {
+        success(`${entityName} guardado correctamente`)
+      }
+      invalidateAll()
+      modalRef?.value?.close()
     },
   })
 

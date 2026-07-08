@@ -328,7 +328,7 @@ const queryClient = useQueryClient()
 const route = useRoute()
 const router = useRouter()
 
-const businessId = route.params.id as string
+const businessId = computed(() => route.params.id as string)
 
 const { data: businessesData } = useQuery({
   queryKey: superadminKeys.businesses(),
@@ -336,20 +336,20 @@ const { data: businessesData } = useQuery({
 })
 
 const business = computed<Business | undefined>(() =>
-  businessesData.value?.find((b: Business) => b.id === businessId)
+  businessesData.value?.find((b: Business) => b.id === businessId.value)
 )
 
 const { data: adminsData } = useQuery({
-  queryKey: superadminKeys.businessAdmins(businessId),
-  queryFn: () => listBusinessAdmins(businessId),
+  queryKey: computed(() => superadminKeys.businessAdmins(businessId.value)),
+  queryFn: () => listBusinessAdmins(businessId.value),
 })
 
 const admins = computed<AuthProfile[]>(() => adminsData.value ?? [])
 
 const { data: branchesData } = useQuery({
-  queryKey: branchesKeys.all(businessId),
-  queryFn: () => listBranches(businessId),
-  enabled: computed(() => !!businessId),
+  queryKey: computed(() => branchesKeys.all(businessId.value)),
+  queryFn: () => listBranches(businessId.value),
+  enabled: computed(() => !!businessId.value),
 })
 
 const branches = computed(() => branchesData.value ?? [])

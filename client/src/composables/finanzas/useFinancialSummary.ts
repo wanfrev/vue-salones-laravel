@@ -1,4 +1,4 @@
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/vue-query'
 import { useNotification } from '../common/useNotification'
 import { api as supabase } from '../../lib/api'
@@ -72,15 +72,6 @@ function useFinancialSummary(
   const TRANSACTIONS_SELECT = 'id, method, paid_at, created_at, total_amount, exchange_rate_used, tip_amount, notes, payments_breakdown, employee_percentage, assistant_percentage, appointment_id, appointments!inner(client_id, service_id, employee_id, assistant_employee_id, employee_percentage_override, group_id, clients(full_name), services(name), employee_profile:profiles!appointments_employee_id_fkey(full_name, pay_type, pay_percentage, base_salary), assistant_profile:profiles!appointments_assistant_employee_id_fkey(full_name))'
 
   const EMPLOYEE_PAYMENTS_SELECT = 'id, payment_date, amount, payment_method, currency, original_amount, employee_profile:profiles!employee_payments_employee_id_fkey(full_name)'
-
-  watch(businessId, (id, _prev, onCleanup) => {
-    if (!id) return
-    const ch = supabase.channel(`finanzas-updates-${id}`, { config: { broadcast: { self: true } } })
-    ch.on('broadcast', { event: 'finanzas-invalidate' }, () => {
-      queryClient.invalidateQueries({ exact: false, queryKey: ['financial-summary'] })
-    }).subscribe()
-    onCleanup(() => { supabase.removeChannel(ch) })
-  })
 
   const summaryQueryKey = computed(() => ['financial-summary', businessId.value, selectedPeriod.value, selectedMonth?.value ?? null, branchId.value] as const)
   const { data: summaryData, isLoading: isSummaryLoading } = useQuery({

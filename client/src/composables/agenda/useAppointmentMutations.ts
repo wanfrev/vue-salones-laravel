@@ -73,11 +73,28 @@ export function useAppointmentMutations(options: {
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: 'pending' | 'confirmed' | 'cancelled' | 'paid' }) =>
       updateCitaStatus(id, status),
-    onSuccess: () => {
-      invalidate()
+    onMutate: async ({ id, status }) => {
+      await queryClient.cancelQueries({ queryKey: ['appointments'] })
+      const previousQueries = queryClient.getQueriesData({ queryKey: ['appointments'] })
+      for (const [key, data] of previousQueries) {
+        if (Array.isArray(data)) {
+          queryClient.setQueryData(key, data.map((cita: any) =>
+            cita.id === id ? { ...cita, status, paymentStatus: status === 'paid' ? 'paid' : cita.paymentStatus } : cita
+          ))
+        }
+      }
+      return { previousQueries }
     },
-    onError: (err) => {
+    onError: (err, _vars, context) => {
+      if (context?.previousQueries) {
+        for (const [key, data] of context.previousQueries) {
+          queryClient.setQueryData(key, data)
+        }
+      }
       showError(translateError(err))
+    },
+    onSettled: () => {
+      invalidate()
     },
   })
 

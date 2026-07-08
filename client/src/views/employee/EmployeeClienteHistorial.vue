@@ -127,18 +127,18 @@ const businessStore = useBusinessStore()
 const route = useRoute()
 const router = useRouter()
 
-const clienteId = route.params.id as string
+const clienteId = computed(() => route.params.id as string)
 const businessId = computed(() => authStore.businessId)
 const t = computed(() => businessStore.terminology)
 
 const { data: clienteData } = useQuery({
-  queryKey: ['cliente', clienteId],
-  queryFn: () => getClienteById(clienteId),
-  enabled: computed(() => !!clienteId),
+  queryKey: computed(() => ['cliente', clienteId.value]),
+  queryFn: () => getClienteById(clienteId.value),
+  enabled: computed(() => !!clienteId.value),
 })
 
 const { data: citasData } = useQuery({
-  queryKey: computed(() => ['cliente-historial', businessId.value, clienteId]),
+  queryKey: computed(() => ['cliente-historial', businessId.value, clienteId.value]),
   queryFn: () => listCitas(businessId.value!, undefined, 'all'),
   enabled: computed(() => !!businessId.value),
 })
@@ -146,7 +146,7 @@ const { data: citasData } = useQuery({
 const cliente = computed<Cliente | null>(() => clienteData.value ?? null)
 
 const historial = computed(() => (citasData.value || [])
-  .filter(c => c.clientId === clienteId)
+  .filter(c => c.clientId === clienteId.value)
   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
   .map(c => ({
     id: c.id,
