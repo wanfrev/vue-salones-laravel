@@ -69,6 +69,10 @@ function useFinancialSummary(
   const branchId = computed(() => businessStore.currentBranchId)
   const periodConfig = computed(() => resolvePeriod(selectedPeriod.value, selectedMonth?.value))
 
+  const TRANSACTIONS_SELECT = 'id, method, paid_at, created_at, total_amount, exchange_rate_used, tip_amount, notes, payments_breakdown, employee_percentage, assistant_percentage, appointment_id, appointments!inner(client_id, service_id, employee_id, assistant_employee_id, employee_percentage_override, group_id, clients(full_name), services(name), employee_profile:profiles!appointments_employee_id_fkey(full_name, pay_type, pay_percentage, base_salary), assistant_profile:profiles!appointments_assistant_employee_id_fkey(full_name))'
+
+  const EMPLOYEE_PAYMENTS_SELECT = 'id, payment_date, amount, payment_method, currency, original_amount, employee_profile:profiles!employee_payments_employee_id_fkey(full_name)'
+
   watch(businessId, (id, _prev, onCleanup) => {
     if (!id) return
     const ch = supabase.channel(`finanzas-updates-${id}`, { config: { broadcast: { self: true } } })
@@ -96,7 +100,7 @@ function useFinancialSummary(
     queryFn: async () => {
       const cfg = periodConfig.value
       const start = `${toYmd(cfg.start)}T00:00:00`; const end = `${toYmd(cfg.end)}T23:59:59`
-      let query = supabase.from('transactions').select('*, appointments!inner(client_id, service_id, employee_id, assistant_employee_id, assistant_percentage, employee_percentage_override, group_id, clients:clients!appointments_client_id_fkey(full_name), services:services!appointments_service_id_fkey(name), employee_profile:profiles!appointments_employee_id_fkey(full_name, pay_type, pay_percentage, base_salary), assistant_profile:profiles!appointments_assistant_employee_id_fkey(full_name, pay_type, pay_percentage, base_salary))').eq('business_id', businessId.value!).gte('paid_at', start).lte('paid_at', end).order('paid_at', { ascending: false }).limit(2000)
+      let query = supabase.from('transactions').select(TRANSACTIONS_SELECT).eq('business_id', businessId.value!).gte('paid_at', start).lte('paid_at', end).order('paid_at', { ascending: false }).limit(2000)
       if (branchId.value) query = query.eq('branch_id', branchId.value)
       const { data, error } = await query; if (error) throw error; return data ?? []
     },
@@ -116,7 +120,7 @@ function useFinancialSummary(
 
   const { data: rawEmployeePayments } = useQuery({
     queryKey: computed(() => ['finanzas-employee-payments', businessId.value, selectedPeriod.value, selectedMonth?.value ?? null, branchId.value] as const),
-    queryFn: async () => { const cfg = periodConfig.value; const start = toYmd(cfg.start); const end = toYmd(cfg.end); let q = supabase.from('employee_payments').select('*, employee_profile:profiles!employee_payments_employee_id_fkey(full_name)').eq('business_id', businessId.value!).gte('payment_date', start).lte('payment_date', end); if (branchId.value) q = q.eq('branch_id', branchId.value); const { data, error } = await q; if (error) throw error; return data ?? [] },
+    queryFn: async () => { const cfg = periodConfig.value; const start = toYmd(cfg.start); const end = toYmd(cfg.end); let q = supabase.from('employee_payments').select(EMPLOYEE_PAYMENTS_SELECT).eq('business_id', businessId.value!).gte('payment_date', start).lte('payment_date', end); if (branchId.value) q = q.eq('branch_id', branchId.value); const { data, error } = await q; if (error) throw error; return data ?? [] },
     enabled: computed(() => !!businessId.value),
   })
 
