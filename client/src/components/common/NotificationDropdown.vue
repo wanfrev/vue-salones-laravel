@@ -6,11 +6,8 @@
         <span v-if="unreadCount > 0" class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
           {{ unreadCount }}
         </span>
-        <button
-          v-if="notifications.length > 1"
-          @click="handleMarkAllAsRead"
-          class="rounded-md px-2 py-1 text-xs font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text"
-        >
+        <button v-if="notifications.length > 1" @click="handleMarkAllAsRead"
+          class="rounded-md px-2 py-1 text-xs font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text">
           Marcar todas leídas
         </button>
       </div>
@@ -21,17 +18,15 @@
         No hay notificaciones
       </div>
 
-      <div
-        v-for="notif in notifications"
-        :key="notif.id"
-        class="border-b border-border/50 px-4 py-3 last:border-b-0 hover:bg-bg-secondary/40 transition-theme"
-      >
+      <div v-for="notif in notifications" :key="notif.id"
+        class="border-b border-border/50 px-4 py-3 last:border-b-0 hover:bg-bg-secondary/40 transition-theme">
         <div class="flex items-start gap-3">
           <div :class="[
             'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
             typeStyle[notif.type]?.bg ?? 'bg-bg-secondary',
           ]">
-            <component :is="typeStyle[notif.type]?.icon ?? Bell" :size="16" :class="typeStyle[notif.type]?.color ?? 'text-text-muted'" />
+            <component :is="typeStyle[notif.type]?.icon ?? Bell" :size="16"
+              :class="typeStyle[notif.type]?.color ?? 'text-text-muted'" />
           </div>
 
           <div class="min-w-0 flex-1">
@@ -43,49 +38,37 @@
 
         <div class="mt-2 flex gap-2">
           <template v-if="notif.type === 'reminder'">
-            <button
-              @click="handleSendWhatsApp(notif)"
-              class="flex items-center gap-1 rounded-lg bg-success/10 px-3 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20"
-            >
+            <button @click="handleSendWhatsApp(notif)"
+              class="flex items-center gap-1 rounded-lg bg-success/10 px-3 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20">
               <MessageCircle :size="14" />
               WhatsApp
             </button>
-            <button
-              @click="handleDismiss(notif.id)"
-              class="rounded-lg px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text-secondary"
-            >
+            <button @click="handleDismiss(notif.id)"
+              class="rounded-lg px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text-secondary">
               Ignorar
             </button>
           </template>
 
           <template v-else-if="notif.type === 'low_stock'">
-            <button
-              @click="handleNavigateToInventory"
-              class="flex items-center gap-1 rounded-lg bg-danger/10 px-3 py-1.5 text-xs font-medium text-danger transition-colors hover:bg-danger/20"
-            >
+            <button @click="handleNavigateToInventory"
+              class="flex items-center gap-1 rounded-lg bg-danger/10 px-3 py-1.5 text-xs font-medium text-danger transition-colors hover:bg-danger/20">
               <PackageOpen :size="14" />
               Ver inventario
             </button>
-            <button
-              @click="handleDismiss(notif.id)"
-              class="rounded-lg px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text-secondary"
-            >
+            <button @click="handleDismiss(notif.id)"
+              class="rounded-lg px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text-secondary">
               Ignorar
             </button>
           </template>
 
           <template v-else>
-            <button
-              @click="handleNavigateToAppointment(notif)"
-              class="flex items-center gap-1 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20"
-            >
+            <button @click="handleNavigateToAppointment(notif)"
+              class="flex items-center gap-1 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20">
               <Calendar :size="14" />
               Ver cita
             </button>
-            <button
-              @click="handleDismiss(notif.id)"
-              class="rounded-lg px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text-secondary"
-            >
+            <button @click="handleDismiss(notif.id)"
+              class="rounded-lg px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text-secondary">
               Ignorar
             </button>
           </template>

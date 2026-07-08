@@ -2,37 +2,25 @@
   <div class="flex-1 overflow-hidden rounded-lg border border-border bg-surface sm:rounded-xl">
     <div class="h-full overflow-auto p-2 sm:p-4">
       <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 sm:gap-4">
-        <div
-          v-for="m in months"
-          :key="m.month"
+        <div v-for="m in months" :key="m.month"
           class="rounded-lg border border-border bg-bg p-2 sm:p-4 cursor-pointer transition-all hover:border-primary/40 hover:shadow-sm sm:hover:scale-[1.02]"
-          :class="m.isCurrent ? 'ring-2 ring-primary/30' : ''"
-          @click="$emit('goToMonth', m.month, m.year)"
-        >
+          :class="m.isCurrent ? 'ring-2 ring-primary/30' : ''" @click="$emit('goToMonth', m.month, m.year)">
           <div class="flex items-center justify-between mb-1.5 sm:mb-2">
             <span class="text-[11px] font-semibold text-text sm:text-sm">{{ m.label }}</span>
-            <span
-              v-if="m.count > 0"
-              class="inline-flex items-center justify-center h-4 min-w-[18px] rounded-full bg-primary-light px-1 text-[9px] font-bold text-primary sm:h-5 sm:min-w-[20px] sm:px-1.5 sm:text-[10px]"
-            >{{ m.count }}</span>
+            <span v-if="m.count > 0"
+              class="inline-flex items-center justify-center h-4 min-w-[18px] rounded-full bg-primary-light px-1 text-[9px] font-bold text-primary sm:h-5 sm:min-w-[20px] sm:px-1.5 sm:text-[10px]">{{
+              m.count }}</span>
           </div>
           <div class="grid grid-cols-7 mb-0.5">
-            <span
-              v-for="dn in miniDayNames"
-              :key="dn"
-              class="text-center text-[6px] font-medium text-text-muted uppercase sm:text-[7px]"
-            >{{ dn }}</span>
+            <span v-for="dn in miniDayNames" :key="dn"
+              class="text-center text-[6px] font-medium text-text-muted uppercase sm:text-[7px]">{{ dn }}</span>
           </div>
           <div class="grid grid-cols-7 gap-px">
-            <div
-              v-for="(day, di) in m.days"
-              :key="di"
-              class="aspect-square flex items-center justify-center rounded-sm text-[7px] sm:text-[9px]"
-              :class="[
+            <div v-for="(day, di) in m.days" :key="di"
+              class="aspect-square flex items-center justify-center rounded-sm text-[7px] sm:text-[9px]" :class="[
                 day.isToday ? 'bg-primary text-white rounded-full font-bold' : '',
                 !day.isCurrentMonth ? 'text-text-muted/30' : day.hasAppointments ? 'text-primary font-semibold' : 'text-text-muted'
-              ]"
-            >
+              ]">
               {{ day.number || '' }}
             </div>
           </div>

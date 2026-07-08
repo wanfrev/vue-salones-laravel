@@ -5,51 +5,31 @@
       <span v-if="required" class="text-danger">*</span>
     </label>
     <div ref="containerRef" class="relative">
-      <button
-        type="button"
-        @click="toggleOpen"
-        :disabled="disabled"
-        :class="[
-          'w-full rounded-xl border bg-surface text-left outline-none transition-theme',
-          'focus:border-primary focus:ring-2 focus:ring-primary/20',
-          'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary',
-          error ? 'border-danger focus:border-danger focus:ring-danger/20' : 'border-border hover:border-border-strong',
-          open ? 'border-primary ring-2 ring-primary/20' : '',
-          sizeClasses[size],
-        ]"
-      >
+      <button type="button" @click="toggleOpen" :disabled="disabled" :class="[
+        'w-full rounded-xl border bg-surface text-left outline-none transition-theme',
+        'focus:border-primary focus:ring-2 focus:ring-primary/20',
+        'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary',
+        error ? 'border-danger focus:border-danger focus:ring-danger/20' : 'border-border hover:border-border-strong',
+        open ? 'border-primary ring-2 ring-primary/20' : '',
+        sizeClasses[size],
+      ]">
         <span v-if="selectedLabel" class="text-text">{{ selectedLabel }}</span>
         <span v-else class="text-text-muted">{{ placeholder }}</span>
       </button>
-      <button
-        type="button"
-        @click="toggleOpen"
-        :disabled="disabled"
-        class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted"
-        tabindex="-1"
-      >
+      <button type="button" @click="toggleOpen" :disabled="disabled"
+        class="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-text-muted" tabindex="-1">
         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
         </svg>
       </button>
 
       <Teleport to="body">
-        <div
-          v-if="open"
-          ref="dropdownRef"
-          :style="dropdownStyle"
-          class="absolute z-[9999] mt-1 w-full min-w-[200px] rounded-xl border border-border bg-surface shadow-lg overflow-hidden"
-        >
+        <div v-if="open" ref="dropdownRef" :style="dropdownStyle"
+          class="absolute z-[9999] mt-1 w-full min-w-[200px] rounded-xl border border-border bg-surface shadow-lg overflow-hidden">
           <div class="relative border-b border-border">
-            <input
-              ref="searchInputRef"
-              v-model="search"
-              type="text"
-              :placeholder="searchPlaceholder"
+            <input ref="searchInputRef" v-model="search" type="text" :placeholder="searchPlaceholder"
               class="w-full border-0 bg-surface px-3 py-2 text-sm text-text outline-none placeholder:text-text-muted"
-              @keydown.escape="close"
-              @keydown.enter.prevent="selectFirstMatch"
-            />
+              @keydown.escape="close" @keydown.enter.prevent="selectFirstMatch" />
             <div class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted">
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -57,26 +37,16 @@
             </div>
           </div>
           <div class="max-h-48 overflow-y-auto">
-            <button
-              v-if="filteredOptions.length === 0"
-              type="button"
-              disabled
-              class="w-full px-3 py-2 text-sm text-text-muted text-left"
-            >
+            <button v-if="filteredOptions.length === 0" type="button" disabled
+              class="w-full px-3 py-2 text-sm text-text-muted text-left">
               Sin resultados
             </button>
-            <button
-              v-for="option in filteredOptions"
-              :key="option.value"
-              type="button"
-              :disabled="option.disabled"
+            <button v-for="option in filteredOptions" :key="option.value" type="button" :disabled="option.disabled"
               :class="[
                 'w-full px-3 py-2 text-sm text-left transition-colors',
                 option.value === modelValue ? 'bg-primary/10 text-primary font-medium' : 'text-text hover:bg-bg-secondary',
                 option.disabled ? 'opacity-50 cursor-not-allowed' : '',
-              ]"
-              @mousedown.prevent="select(option.value)"
-            >
+              ]" @mousedown.prevent="select(option.value)">
               {{ option.label }}
             </button>
           </div>

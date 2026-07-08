@@ -3,36 +3,27 @@
     <div>
       <p class="text-xs font-medium text-text-muted mb-2">Horario laboral</p>
       <div class="grid grid-cols-3 gap-2">
-        <FormTime
-          :model-value="formData.scheduleStart"
-          @update:model-value="emit('update:modelValue', { ...formData, scheduleStart: $event })"
-          label="Entrada" required :error="errors.scheduleStart"
-        />
-        <FormTime
-          :model-value="formData.scheduleEnd"
-          @update:model-value="emit('update:modelValue', { ...formData, scheduleEnd: $event })"
-          label="Salida" required :error="errors.scheduleEnd"
-        />
-        <FormInput
-          :model-value="formData.scheduleBreak"
+        <FormTime :model-value="formData.scheduleStart"
+          @update:model-value="emit('update:modelValue', { ...formData, scheduleStart: $event })" label="Entrada"
+          required :error="errors.scheduleStart" />
+        <FormTime :model-value="formData.scheduleEnd"
+          @update:model-value="emit('update:modelValue', { ...formData, scheduleEnd: $event })" label="Salida" required
+          :error="errors.scheduleEnd" />
+        <FormInput :model-value="formData.scheduleBreak"
           @update:model-value="emit('update:modelValue', { ...formData, scheduleBreak: String($event) })"
-          label="Descanso" type="text" placeholder="13:00-14:00" :error="errors.scheduleBreak"
-        />
+          label="Descanso" type="text" placeholder="13:00-14:00" :error="errors.scheduleBreak" />
       </div>
     </div>
 
     <div>
       <p class="text-xs font-medium text-text-muted mb-2">Días laborales</p>
       <div class="flex gap-1">
-        <button v-for="day in dayOptions" :key="day.value" type="button"
-          @click="toggleDay(day.value)"
-          :class="[
-            'flex-1 rounded-lg border py-2 text-xs font-semibold transition-theme',
-            (formData.activeDays ?? []).includes(day.value)
-              ? 'border-primary bg-primary text-text-inverse'
-              : 'border-border text-text-muted hover:border-border-strong hover:bg-bg-secondary'
-          ]"
-        >{{ day.label }}</button>
+        <button v-for="day in dayOptions" :key="day.value" type="button" @click="toggleDay(day.value)" :class="[
+          'flex-1 rounded-lg border py-2 text-xs font-semibold transition-theme',
+          (formData.activeDays ?? []).includes(day.value)
+            ? 'border-primary bg-primary text-text-inverse'
+            : 'border-border text-text-muted hover:border-border-strong hover:bg-bg-secondary'
+        ]">{{ day.label }}</button>
       </div>
     </div>
   </div>

@@ -13,15 +13,13 @@
         </div>
       </div>
       <div class="flex items-center gap-2">
-        <button
-          v-if="canViewAllExpenses"
-          type="button"
+        <button v-if="canViewAllExpenses" type="button"
           class="rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text hover:border-border-strong"
-          @click="emit('view-all')"
-        >
+          @click="emit('view-all')">
           Ver todos
         </button>
-        <button @click="expensesCtx.openNew" class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover">
+        <button @click="expensesCtx.openNew"
+          class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover">
           <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
           </svg>
@@ -44,7 +42,8 @@
       <div class="flex flex-col items-center gap-2">
         <div class="flex h-10 w-10 items-center justify-center rounded-full bg-danger/10 mb-1">
           <svg class="h-5 w-5 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
         </div>
         <p class="text-sm text-danger">{{ error }}</p>
@@ -64,92 +63,108 @@
 
     <template v-else>
       <div class="lg:hidden space-y-2 mb-3 px-4 sm:px-5">
-      <div v-for="expense in visibleExpenses" :key="expense.id" class="rounded-lg border border-border-subtle bg-bg-secondary p-3">
-        <div class="flex items-start justify-between mb-1.5">
-          <div>
-            <div class="text-xs text-text-muted">{{ expense.date }}</div>
-            <div class="font-medium text-text text-sm">{{ expense.name }}</div>
+        <div v-for="expense in visibleExpenses" :key="expense.id"
+          class="rounded-lg border border-border-subtle bg-bg-secondary p-3">
+          <div class="flex items-start justify-between mb-1.5">
+            <div>
+              <div class="text-xs text-text-muted">{{ expense.date }}</div>
+              <div class="font-medium text-text text-sm">{{ expense.name }}</div>
+            </div>
+            <span :class="[
+              'rounded-full px-2 py-0.5 text-xs shrink-0',
+              expense.category === 'Fijos' ? 'bg-info/10 text-info' :
+                expense.category === 'Insumos' ? 'bg-warning/10 text-warning' :
+                  'bg-primary/10 text-primary'
+            ]">{{ expense.category }}</span>
           </div>
-          <span :class="[
-            'rounded-full px-2 py-0.5 text-xs shrink-0',
-            expense.category === 'Fijos' ? 'bg-info/10 text-info' :
-            expense.category === 'Insumos' ? 'bg-warning/10 text-warning' :
-            'bg-primary/10 text-primary'
-          ]">{{ expense.category }}</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <div>
-            <span class="font-medium text-text whitespace-nowrap">{{ expense.currency === 'VES' ? formatVESEs(expense.originalAmount) : formatUSD(expense.amount) }}</span>
-            <div class="text-xs text-text-muted whitespace-nowrap">{{ expense.currency === 'VES' ? formatUSD(expense.amount) : formatVESInline(expense.amount, expense.exchangeRateUsed) + ' Bs' }}</div>
-          </div>
-          <div class="flex items-center gap-1">
-          <button @click="expensesCtx.openEdit(expense)" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary" title="Editar gasto">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-          </button>
-          <button @click="expensesCtx.handleDelete(expense.id)" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger" title="Eliminar gasto">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="font-medium text-text whitespace-nowrap">{{ expense.currency === 'VES' ?
+                formatVESEs(expense.originalAmount) : formatUSD(expense.amount) }}</span>
+              <div class="text-xs text-text-muted whitespace-nowrap">{{ expense.currency === 'VES' ?
+                formatUSD(expense.amount) : formatVESInline(expense.amount, expense.exchangeRateUsed) + ' Bs' }}</div>
+            </div>
+            <div class="flex items-center gap-1">
+              <button @click="expensesCtx.openEdit(expense)"
+                class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
+                title="Editar gasto">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+              <button @click="expensesCtx.handleDelete(expense.id)"
+                class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+                title="Eliminar gasto">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="overflow-x-auto hidden lg:block px-4 sm:px-5 flex-1">
-      <table class="w-full">
-        <thead>
-          <tr class="border-b border-border-subtle">
-            <th class="pb-3 text-left text-xs font-semibold uppercase text-text-secondary">Fecha</th>
-            <th class="pb-3 text-left text-xs font-semibold uppercase text-text-secondary">Concepto</th>
-            <th class="pb-3 text-left text-xs font-semibold uppercase text-text-secondary">Categoría</th>
-            <th class="pb-3 text-right text-xs font-semibold uppercase text-text-secondary">Monto</th>
-            <th class="pb-3 text-center text-xs font-semibold uppercase text-text-secondary">Acción</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-border-subtle">
-          <tr v-for="expense in visibleExpenses" :key="expense.id" class="text-sm transition-theme hover:bg-bg-secondary/50">
-            <td class="py-3 text-text-secondary">{{ expense.date }}</td>
-            <td class="py-3 font-medium text-text">{{ expense.name }}</td>
-            <td class="py-3">
-              <span :class="[
-                'rounded-full px-2 py-0.5 text-xs',
-                expense.category === 'Fijos' ? 'bg-info/10 text-info' :
-                expense.category === 'Insumos' ? 'bg-warning/10 text-warning' :
-                'bg-primary/10 text-primary'
-              ]">{{ expense.category }}</span>
-            </td>
-            <td class="py-3 text-right">
-              <div class="font-medium text-text whitespace-nowrap">{{ expense.currency === 'VES' ? formatVESEs(expense.originalAmount) : formatUSD(expense.amount) }}</div>
-              <div class="text-xs text-text-muted whitespace-nowrap">{{ expense.currency === 'VES' ? formatUSD(expense.amount) : formatVESInline(expense.amount, expense.exchangeRateUsed) + ' Bs' }}</div>
-            </td>
-            <td class="py-3 text-center">
-              <div class="flex items-center justify-center gap-1">
-              <button @click="expensesCtx.openEdit(expense)" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary" title="Editar gasto">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-              </button>
-              <button @click="expensesCtx.handleDelete(expense.id)" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger" title="Eliminar gasto">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </template>
-</div>
+      <div class="overflow-x-auto hidden lg:block px-4 sm:px-5 flex-1">
+        <table class="w-full">
+          <thead>
+            <tr class="border-b border-border-subtle">
+              <th class="pb-3 text-left text-xs font-semibold uppercase text-text-secondary">Fecha</th>
+              <th class="pb-3 text-left text-xs font-semibold uppercase text-text-secondary">Concepto</th>
+              <th class="pb-3 text-left text-xs font-semibold uppercase text-text-secondary">Categoría</th>
+              <th class="pb-3 text-right text-xs font-semibold uppercase text-text-secondary">Monto</th>
+              <th class="pb-3 text-center text-xs font-semibold uppercase text-text-secondary">Acción</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border-subtle">
+            <tr v-for="expense in visibleExpenses" :key="expense.id"
+              class="text-sm transition-theme hover:bg-bg-secondary/50">
+              <td class="py-3 text-text-secondary">{{ expense.date }}</td>
+              <td class="py-3 font-medium text-text">{{ expense.name }}</td>
+              <td class="py-3">
+                <span :class="[
+                  'rounded-full px-2 py-0.5 text-xs',
+                  expense.category === 'Fijos' ? 'bg-info/10 text-info' :
+                    expense.category === 'Insumos' ? 'bg-warning/10 text-warning' :
+                      'bg-primary/10 text-primary'
+                ]">{{ expense.category }}</span>
+              </td>
+              <td class="py-3 text-right">
+                <div class="font-medium text-text whitespace-nowrap">{{ expense.currency === 'VES' ?
+                  formatVESEs(expense.originalAmount) : formatUSD(expense.amount) }}</div>
+                <div class="text-xs text-text-muted whitespace-nowrap">{{ expense.currency === 'VES' ?
+                  formatUSD(expense.amount) : formatVESInline(expense.amount, expense.exchangeRateUsed) + ' Bs' }}</div>
+              </td>
+              <td class="py-3 text-center">
+                <div class="flex items-center justify-center gap-1">
+                  <button @click="expensesCtx.openEdit(expense)"
+                    class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
+                    title="Editar gasto">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                  </button>
+                  <button @click="expensesCtx.handleDelete(expense.id)"
+                    class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+                    title="Eliminar gasto">
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </template>
+  </div>
 
   <Teleport to="body">
     <div v-if="expensesCtx.showExpenseModal.value"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-      @click.self="expensesCtx.closeModal"
-    >
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" @click.self="expensesCtx.closeModal">
       <div class="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-xl">
         <div class="mb-4">
           <h2 class="text-lg font-semibold text-text">{{ expensesCtx.editingExpenseId.value ? 'Editar gasto' : 'Registrar gasto' }}</h2>
@@ -174,7 +189,8 @@
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-text" for="exp-amount">Monto</label>
-              <input id="exp-amount" v-model.number="expensesCtx.expenseForm.value.amount" type="number" min="0" step="0.01"
+              <input id="exp-amount" v-model.number="expensesCtx.expenseForm.value.amount" type="number" min="0"
+                step="0.01"
                 class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
                 placeholder="0.00" required />
             </div>
@@ -190,7 +206,8 @@
           <div>
             <label class="mb-1 block text-sm font-medium text-text" for="exp-date">Fecha</label>
             <input id="exp-date" v-model="expensesCtx.expenseForm.value.date" type="date"
-              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" required />
+              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+              required />
           </div>
           <div>
             <label class="mb-1 block text-sm font-medium text-text" for="exp-notes">Notas</label>

@@ -7,11 +7,8 @@
     </div>
     <p class="text-sm text-text-muted">{{ title }}</p>
     <p v-if="subtitle" class="text-xs text-text-muted mt-1">{{ subtitle }}</p>
-    <button
-      v-if="actionLabel"
-      @click="$emit('action')"
-      class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shadow-sm shadow-primary/20"
-    >
+    <button v-if="actionLabel" @click="$emit('action')"
+      class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shadow-sm shadow-primary/20">
       {{ actionLabel }}
     </button>
   </div>

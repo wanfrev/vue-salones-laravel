@@ -4,25 +4,15 @@
       {{ label }}
       <span v-if="required" class="text-danger">*</span>
     </label>
-    <textarea
-      :id="textareaId"
-      :value="modelValue"
-      @input="handleInput"
-      @blur="$emit('blur', $event)"
-      :placeholder="placeholder"
-      :required="required"
-      :disabled="disabled"
-      :readonly="readonly"
-      :rows="rows"
-      :maxlength="maxlength"
-      :class="[
+    <textarea :id="textareaId" :value="modelValue" @input="handleInput" @blur="$emit('blur', $event)"
+      :placeholder="placeholder" :required="required" :disabled="disabled" :readonly="readonly" :rows="rows"
+      :maxlength="maxlength" :class="[
         'w-full resize-none rounded-xl border bg-surface text-text outline-none transition-theme',
         'focus:border-primary focus:ring-2 focus:ring-primary/20',
         'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary',
         error ? 'border-danger focus:border-danger focus:ring-danger/20' : 'border-border hover:border-border-strong',
         sizeClasses[size],
-      ]"
-    />
+      ]" />
     <div class="flex items-center justify-between">
       <p v-if="error" class="text-sm text-danger">{{ error }}</p>
       <p v-else-if="hint" class="text-sm text-text-muted">{{ hint }}</p>

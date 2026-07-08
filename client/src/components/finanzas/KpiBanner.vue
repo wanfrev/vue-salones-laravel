@@ -1,13 +1,16 @@
 <template>
-  <div :class="['mx-3 sm:mx-5 mt-3 sm:mt-4 mb-0 rounded-xl border border-border-subtle p-3 sm:p-4', variantBg[variant]]">
+  <div
+    :class="['mx-3 sm:mx-5 mt-3 sm:mt-4 mb-0 rounded-xl border border-border-subtle p-3 sm:p-4', variantBg[variant]]">
     <div class="flex items-center gap-3">
       <div :class="['p-2.5 rounded-lg border shrink-0', variantIconBg[variant], variantIconText[variant]]">
-        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
           <path :d="icon" />
         </svg>
       </div>
       <div>
-        <span class="text-[10px] sm:text-[11px] text-text-muted uppercase tracking-wider font-semibold">{{ label }}</span>
+        <span class="text-[10px] sm:text-[11px] text-text-muted uppercase tracking-wider font-semibold">{{ label
+          }}</span>
         <div class="flex items-baseline gap-2 mt-0.5 flex-wrap">
           <span class="text-xl sm:text-2xl font-bold text-text tracking-tight tabular-nums">{{ value }}</span>
           <span class="text-xs text-text-muted font-mono">{{ sublabel }}</span>

@@ -1,26 +1,31 @@
 <template>
   <div class="flex h-full flex-col gap-2 sm:gap-3">
     <!-- Panel de Filtros -->
-    <div class="flex flex-col gap-2 rounded-lg border border-border bg-surface p-2 sm:rounded-xl sm:p-2.5 lg:flex-row lg:items-center lg:justify-between">
+    <div
+      class="flex flex-col gap-2 rounded-lg border border-border bg-surface p-2 sm:rounded-xl sm:p-2.5 lg:flex-row lg:items-center lg:justify-between">
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-1.5">
         <div v-if="isAdmin" class="flex items-center gap-2">
           <div class="relative">
-            <select
-              v-model="selectedEmployeeId"
+            <select v-model="selectedEmployeeId"
               class="w-full appearance-none rounded-lg border border-border bg-surface pl-3 pr-8 py-1.5 text-sm font-medium text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto sm:pl-3.5 sm:pr-9"
-              :disabled="loadingEmployees"
-            >
+              :disabled="loadingEmployees">
               <option value="all">Todos los empleados</option>
               <option v-for="emp in employees" :key="emp.id" :value="emp.id">{{ emp.full_name }}</option>
             </select>
             <div class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
           </div>
         </div>
         <div v-else class="flex items-center gap-2 px-1">
           <div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10">
-            <svg class="h-3.5 w-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+            <svg class="h-3.5 w-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+              stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
           </div>
           <span class="text-sm font-medium text-text">{{ authStore.profile?.full_name }}</span>
         </div>
@@ -29,7 +34,9 @@
           <input v-model="searchQuery" type="text" placeholder="Buscar cliente..."
             class="w-full rounded-lg border border-border bg-surface pl-8 pr-3 py-1.5 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15" />
           <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
           </div>
         </div>
       </div>
@@ -42,25 +49,35 @@
     </div>
 
     <!-- Date Navigator -->
-    <div class="flex flex-col gap-2 rounded-lg border border-border bg-surface p-2 sm:rounded-xl sm:p-2.5 lg:flex-row lg:items-center lg:justify-between lg:gap-0">
+    <div
+      class="flex flex-col gap-2 rounded-lg border border-border bg-surface p-2 sm:rounded-xl sm:p-2.5 lg:flex-row lg:items-center lg:justify-between lg:gap-0">
       <!-- Nav: arrows + title -->
       <div class="flex items-center justify-between">
-        <button @click="navigate(-1)" class="flex h-8 w-8 items-center justify-center rounded-full border border-border text-text-secondary transition-theme hover:bg-bg-secondary hover:border-border-strong hover:text-text sm:h-9 sm:w-9">
-          <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+        <button @click="navigate(-1)"
+          class="flex h-8 w-8 items-center justify-center rounded-full border border-border text-text-secondary transition-theme hover:bg-bg-secondary hover:border-border-strong hover:text-text sm:h-9 sm:w-9">
+          <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
         </button>
-        <h2 class="text-center text-sm font-semibold text-text truncate px-2 sm:text-base lg:text-lg">{{ titleText }}</h2>
-        <button @click="navigate(1)" class="flex h-8 w-8 items-center justify-center rounded-full border border-border text-text-secondary transition-theme hover:bg-bg-secondary hover:border-border-strong hover:text-text sm:h-9 sm:w-9">
-          <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        <h2 class="text-center text-sm font-semibold text-text truncate px-2 sm:text-base lg:text-lg">{{ titleText }}
+        </h2>
+        <button @click="navigate(1)"
+          class="flex h-8 w-8 items-center justify-center rounded-full border border-border text-text-secondary transition-theme hover:bg-bg-secondary hover:border-border-strong hover:text-text sm:h-9 sm:w-9">
+          <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
         </button>
       </div>
 
       <!-- Actions: Hoy + View Switcher -->
       <div class="flex items-center justify-center gap-2">
-        <button @click="goToday" class="rounded-lg border border-border px-3 py-1 text-xs font-semibold text-primary transition-theme hover:bg-primary-light hover:border-primary/20">Hoy</button>
+        <button @click="goToday"
+          class="rounded-lg border border-border px-3 py-1 text-xs font-semibold text-primary transition-theme hover:bg-primary-light hover:border-primary/20">Hoy</button>
         <div class="inline-flex rounded-lg border border-border bg-bg-secondary/50 p-0.5">
           <button v-for="v in viewOptions" :key="v.value" @click="viewMode = v.value"
             class="px-2 py-1 text-xs font-medium rounded-md transition-theme sm:px-3"
-            :class="viewMode === v.value ? 'bg-surface text-primary shadow-sm' : 'text-text-muted hover:text-text'">{{ v.label }}</button>
+            :class="viewMode === v.value ? 'bg-surface text-primary shadow-sm' : 'text-text-muted hover:text-text'">{{
+              v.label }}</button>
         </div>
       </div>
     </div>
@@ -68,29 +85,15 @@
     <!-- ============================================================
          MONTH VIEW
          ============================================================ -->
-    <AgendaMonthView
-      v-if="viewMode === 'month'"
-      :appointments="appointments ?? []"
-      :services="services ?? []"
-      :employees="employees ?? []"
-      :employeeId="selectedEmployeeId"
-      :selectedDate="selectedDate"
-      :todayIso="todayIso"
-      @event-click="emitEventClick"
-      @go-to-date="goToDate"
-    />
+    <AgendaMonthView v-if="viewMode === 'month'" :appointments="appointments ?? []" :services="services ?? []"
+      :employees="employees ?? []" :employeeId="selectedEmployeeId" :selectedDate="selectedDate" :todayIso="todayIso"
+      @event-click="emitEventClick" @go-to-date="goToDate" />
 
     <!-- ============================================================
          YEAR VIEW
          ============================================================ -->
-    <AgendaYearView
-      v-else-if="viewMode === 'year'"
-      :appointments="appointments ?? []"
-      :employeeId="selectedEmployeeId"
-      :selectedDate="selectedDate"
-      :todayIso="todayIso"
-      @go-to-month="goToMonth"
-    />
+    <AgendaYearView v-else-if="viewMode === 'year'" :appointments="appointments ?? []" :employeeId="selectedEmployeeId"
+      :selectedDate="selectedDate" :todayIso="todayIso" @go-to-month="goToMonth" />
 
     <!-- ============================================================
          DAY / WEEK — Time Grid
@@ -99,17 +102,22 @@
       <div class="h-full overflow-auto" ref="gridContainer">
         <div class="relative" :style="{ minHeight: `${totalGridHeight}px` }">
           <!-- Sticky header -->
-          <div class="sticky top-0 z-20 flex border-b border-border bg-surface" :style="{ paddingLeft: `${TIME_COL_WIDTH}px` }">
+          <div class="sticky top-0 z-20 flex border-b border-border bg-surface"
+            :style="{ paddingLeft: `${TIME_COL_WIDTH}px` }">
             <div v-for="col in gridColumns" :key="col.key"
               class="flex flex-col items-center justify-center gap-0.5 border-r border-border-subtle px-1 py-2 last:border-r-0 sm:px-2"
-              :class="col.isToday ? 'bg-primary-light/40' : ''"
-              :style="{ width: `${col.widthPercent}%` }">
+              :class="col.isToday ? 'bg-primary-light/40' : ''" :style="{ width: `${col.widthPercent}%` }">
               <template v-if="col.number !== undefined">
-                <span class="text-[8px] font-medium text-text-muted uppercase tracking-wide leading-none sm:text-[11px]">{{ col.label }}</span>
-                <span class="text-xs font-bold leading-none sm:text-sm" :class="col.isToday ? 'text-primary' : 'text-text'">{{ col.number }}</span>
+                <span
+                  class="text-[8px] font-medium text-text-muted uppercase tracking-wide leading-none sm:text-[11px]">{{
+                  col.label }}</span>
+                <span class="text-xs font-bold leading-none sm:text-sm"
+                  :class="col.isToday ? 'text-primary' : 'text-text'">{{ col.number }}</span>
               </template>
               <template v-else>
-                <div v-if="col.avatar" class="flex h-5 w-5 items-center justify-center rounded-full text-[8px] font-bold text-white shrink-0 sm:h-7 sm:w-7 sm:text-xs" style="background: var(--color-primary)">{{ col.avatar }}</div>
+                <div v-if="col.avatar"
+                  class="flex h-5 w-5 items-center justify-center rounded-full text-[8px] font-bold text-white shrink-0 sm:h-7 sm:w-7 sm:text-xs"
+                  style="background: var(--color-primary)">{{ col.avatar }}</div>
                 <span class="text-[9px] font-semibold text-text truncate sm:text-xs">{{ col.label }}</span>
               </template>
             </div>
@@ -119,8 +127,10 @@
           <div class="flex">
             <!-- Time labels -->
             <div class="flex-shrink-0 z-10 bg-surface" :style="{ width: `${TIME_COL_WIDTH}px` }">
-              <div v-for="hourIdx in totalHours" :key="'t'+hourIdx" class="flex items-start justify-end pr-2" :style="{ height: `${HOUR_HEIGHT}px` }">
-                <span class="text-[9px] font-medium text-text-muted -mt-2 leading-none tabular-nums sm:text-[11px]">{{ hourSlots[hourIdx - 1] }}</span>
+              <div v-for="hourIdx in totalHours" :key="'t' + hourIdx" class="flex items-start justify-end pr-2"
+                :style="{ height: `${HOUR_HEIGHT}px` }">
+                <span class="text-[9px] font-medium text-text-muted -mt-2 leading-none tabular-nums sm:text-[11px]">{{
+                  hourSlots[hourIdx - 1] }}</span>
               </div>
             </div>
 
@@ -128,16 +138,21 @@
             <div class="flex flex-1 relative">
               <div v-for="col in gridColumns" :key="col.key"
                 class="relative border-r border-border-subtle last:border-r-0"
-                :style="{ width: `${col.widthPercent}%` }"
-                @click="onColumnClick(col, $event)">
+                :style="{ width: `${col.widthPercent}%` }" @click="onColumnClick(col, $event)">
                 <!-- Hour lines -->
-                <div v-for="h in totalHours" :key="'r'+h" class="border-b border-border-subtle/60" :style="{ height: `${HOUR_HEIGHT}px` }" />
+                <div v-for="h in totalHours" :key="'r' + h" class="border-b border-border-subtle/60"
+                  :style="{ height: `${HOUR_HEIGHT}px` }" />
                 <!-- Half-hour lines -->
-                <div v-for="h in totalHours" :key="'m'+h" class="absolute left-0 right-0 border-b border-dashed border-border-subtle/30" :style="{ top: `${(h - 1) * HOUR_HEIGHT + HOUR_HEIGHT / 2}px` }" />
+                <div v-for="h in totalHours" :key="'m' + h"
+                  class="absolute left-0 right-0 border-b border-dashed border-border-subtle/30"
+                  :style="{ top: `${(h - 1) * HOUR_HEIGHT + HOUR_HEIGHT / 2}px` }" />
                 <!-- Now line -->
-                <div v-if="isToday && nowLineTop >= 0" class="absolute left-0 right-0 z-20 pointer-events-none" :style="{ top: `${nowLineTop}px` }">
-                  <div class="absolute -left-1.5 -top-[3px] h-2 w-2 rounded-full bg-primary ring-2 ring-surface dark:ring-zinc-900 shadow-sm shadow-primary/40" />
-                  <div class="absolute left-0 right-0 top-[5px] h-px bg-gradient-to-r from-transparent via-primary/60 to-primary/60" />
+                <div v-if="isToday && nowLineTop >= 0" class="absolute left-0 right-0 z-20 pointer-events-none"
+                  :style="{ top: `${nowLineTop}px` }">
+                  <div
+                    class="absolute -left-1.5 -top-[3px] h-2 w-2 rounded-full bg-primary ring-2 ring-surface dark:ring-zinc-900 shadow-sm shadow-primary/40" />
+                  <div
+                    class="absolute left-0 right-0 top-[5px] h-px bg-gradient-to-r from-transparent via-primary/60 to-primary/60" />
                 </div>
                 <!-- Cards -->
                 <div v-for="appt in col.appointments" :key="appt.id"
@@ -146,21 +161,33 @@
                   :style="{ top: `${appt.top}px`, height: `${Math.max(appt.height, 64)}px` }"
                   :title="`${appt.clientName} · ${appt.service} · ${appt.employeeName}\n${appt.time} · ${getStatusLabel(appt.status)}`"
                   @click.stop="showDetailPopup(appt, $event)">
-                  <div class="absolute left-0 top-0 bottom-0 w-[3px] sm:w-[4px]" :class="statusStripeClass(appt.status)" />
+                  <div class="absolute left-0 top-0 bottom-0 w-[3px] sm:w-[4px]"
+                    :class="statusStripeClass(appt.status)" />
                   <div class="flex flex-col h-full p-1.5 sm:p-2 text-xs leading-snug">
                     <div class="flex items-center gap-1 min-w-0 sm:gap-1.5">
-                      <button class="h-2 w-2 rounded-full flex-shrink-0 transition-transform hover:scale-125" :class="statusDotClass(appt.status)" title="Cambiar estado" @click.stop="toggleStatusMenu(appt, $event)" />
-                      <span class="text-[11px] font-semibold text-text-muted tabular-nums whitespace-nowrap sm:text-sm">{{ appt.time }}</span>
+                      <button class="h-2 w-2 rounded-full flex-shrink-0 transition-transform hover:scale-125"
+                        :class="statusDotClass(appt.status)" title="Cambiar estado"
+                        @click.stop="toggleStatusMenu(appt, $event)" />
+                      <span
+                        class="text-[11px] font-semibold text-text-muted tabular-nums whitespace-nowrap sm:text-sm">{{
+                        appt.time }}</span>
                       <span class="font-bold text-text truncate text-[13px]">{{ appt.clientName }}</span>
                       <button v-if="appt.status !== 'paid' && appt.status !== 'cancelled'"
                         class="ml-auto flex h-4 w-4 items-center justify-center rounded transition-all hover:scale-110 flex-shrink-0"
                         :class="checkoutBtnClass(appt.status)" title="Cobrar" @click.stop="emitCheckout(appt.raw.id)">
-                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"
+                          stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                        </svg>
                       </button>
                     </div>
                     <div class="flex items-center gap-1 min-w-0 mt-1 sm:gap-1.5">
-                      <span class="text-[10px] text-text-secondary bg-bg-secondary rounded px-1 py-0.5 truncate sm:text-xs sm:px-1.5">{{ appt.service }}</span>
-                      <span v-if="appt.employeeName" class="text-[10px] text-text-muted truncate sm:text-xs">{{ appt.employeeName }}</span>
+                      <span
+                        class="text-[10px] text-text-secondary bg-bg-secondary rounded px-1 py-0.5 truncate sm:text-xs sm:px-1.5">{{
+                        appt.service }}</span>
+                      <span v-if="appt.employeeName" class="text-[10px] text-text-muted truncate sm:text-xs">{{
+                        appt.employeeName
+                        }}</span>
                     </div>
                   </div>
                 </div>
@@ -173,14 +200,20 @@
 
     <!-- Status Dropdown -->
     <Teleport to="body">
-      <div v-if="statusMenu" class="fixed z-[100] rounded-lg border border-border bg-surface shadow-xl p-1 min-w-[130px] animate-in fade-in zoom-in-95 duration-100"
+      <div v-if="statusMenu"
+        class="fixed z-[100] rounded-lg border border-border bg-surface shadow-xl p-1 min-w-[130px] animate-in fade-in zoom-in-95 duration-100"
         :style="{ top: `${statusMenu.y}px`, left: `${statusMenu.x}px` }" @click.stop>
-        <button v-for="opt in STATUS_OPTIONS" :key="opt.value" @click="changeStatus(statusMenu.appointmentId, opt.value)"
+        <button v-for="opt in STATUS_OPTIONS" :key="opt.value"
+          @click="changeStatus(statusMenu.appointmentId, opt.value)"
           class="flex items-center gap-2 w-full rounded-md px-2.5 py-1.5 text-[11px] font-medium text-text transition-colors hover:bg-bg-secondary"
           :class="{ 'bg-bg-secondary': statusMenu.currentStatus === opt.value }">
           <span class="h-2 w-2 rounded-full flex-shrink-0" :class="statusDotClass(opt.value)" />
           <span class="flex-1 text-left">{{ opt.label }}</span>
-          <svg v-if="statusMenu.currentStatus === opt.value" class="h-3 w-3 text-primary flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>
+          <svg v-if="statusMenu.currentStatus === opt.value" class="h-3 w-3 text-primary flex-shrink-0"
+            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M5 13l4 4L19 7" />
+          </svg>
         </button>
       </div>
     </Teleport>
@@ -188,10 +221,12 @@
     <!-- Detail Popup -->
     <Teleport to="body">
       <div v-if="detailPopup" class="fixed inset-0 z-[90]" @click="detailPopup = null"></div>
-      <div v-if="detailPopup" class="fixed z-[100] rounded-xl border border-border bg-surface shadow-2xl p-4 w-72 animate-in fade-in zoom-in-95 duration-100"
+      <div v-if="detailPopup"
+        class="fixed z-[100] rounded-xl border border-border bg-surface shadow-2xl p-4 w-72 animate-in fade-in zoom-in-95 duration-100"
         :style="{ top: `${detailPopup.y}px`, left: `${detailPopup.x}px` }" @click.stop>
         <div class="flex items-center gap-3 mb-3">
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+          <div
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
             {{ getInitials(detailPopup.appt.clientName) }}
           </div>
           <div class="min-w-0">
@@ -200,18 +235,31 @@
           </div>
         </div>
         <div class="space-y-1.5 mb-3 text-sm">
-          <div class="flex justify-between"><span class="text-text-muted">Servicio</span><span class="font-medium text-text">{{ detailPopup.appt.service }}</span></div>
-          <div v-if="detailPopup.appt.isGroup && detailPopup.appt.groupServices && detailPopup.appt.groupServices.length > 1" class="flex flex-col gap-0.5">
+          <div class="flex justify-between"><span class="text-text-muted">Servicio</span><span
+              class="font-medium text-text">{{ detailPopup.appt.service }}</span></div>
+          <div
+            v-if="detailPopup.appt.isGroup && detailPopup.appt.groupServices && detailPopup.appt.groupServices.length > 1"
+            class="flex flex-col gap-0.5">
             <span class="text-text-muted text-xs">Servicios incluidos</span>
-            <span v-for="(gs, i) in detailPopup.appt.groupServices" :key="i" class="text-xs text-text pl-2">{{ gs }}</span>
+            <span v-for="(gs, i) in detailPopup.appt.groupServices" :key="i" class="text-xs text-text pl-2">{{ gs
+              }}</span>
           </div>
-          <div class="flex justify-between"><span class="text-text-muted">Empleado</span><span class="font-medium text-text">{{ detailPopup.appt.employeeName }}</span></div>
-          <div v-if="detailPopup.appt.raw.internal_notes" class="flex justify-between"><span class="text-text-muted">Notas</span><span class="font-medium text-text truncate max-w-[140px]">{{ detailPopup.appt.raw.internal_notes }}</span></div>
-          <div class="flex justify-between"><span class="text-text-muted">Estado</span><span class="font-medium" :class="statusTextClass(detailPopup.appt.status)">{{ getStatusLabel(detailPopup.appt.status) }}</span></div>
+          <div class="flex justify-between"><span class="text-text-muted">Empleado</span><span
+              class="font-medium text-text">{{ detailPopup.appt.employeeName }}</span></div>
+          <div v-if="detailPopup.appt.raw.internal_notes" class="flex justify-between"><span
+              class="text-text-muted">Notas</span><span class="font-medium text-text truncate max-w-[140px]">{{
+                detailPopup.appt.raw.internal_notes }}</span></div>
+          <div class="flex justify-between"><span class="text-text-muted">Estado</span><span class="font-medium"
+              :class="statusTextClass(detailPopup.appt.status)">{{ getStatusLabel(detailPopup.appt.status) }}</span>
+          </div>
         </div>
         <div class="flex items-center gap-2 justify-end border-t border-border pt-3">
-          <button @click="handleDeleteClick" class="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors">Borrar cita</button>
-          <button @click="handleEditClick" class="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse hover:bg-primary-hover transition-colors">Editar cita</button>
+          <button @click="handleDeleteClick"
+            class="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors">Borrar
+            cita</button>
+          <button @click="handleEditClick"
+            class="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse hover:bg-primary-hover transition-colors">Editar
+            cita</button>
         </div>
       </div>
     </Teleport>
@@ -547,6 +595,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
 </style>

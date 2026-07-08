@@ -62,23 +62,32 @@ const handleClear = async () => {
 
 <template>
   <Teleport to="body">
-    <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" @click.self="emit('close')">
+    <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      @click.self="emit('close')">
       <div class="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-xl">
         <div class="mb-4">
           <h2 class="text-lg font-semibold text-text">Tasa para empleados</h2>
-          <p class="text-sm text-text-muted">Esta tasa se usará SOLO para pagos de nómina, consumos/deuda y recibos de empleados.</p>
+          <p class="text-sm text-text-muted">Esta tasa se usará SOLO para pagos de nómina, consumos/deuda y recibos de
+            empleados.</p>
         </div>
         <form class="space-y-4" @submit.prevent="handleSave">
           <div>
             <label class="mb-1 block text-sm font-medium text-text">Tasa (Bs por 1 USD)</label>
-            <input v-model.number="employeeRateInput" type="number" min="0" step="0.01" placeholder="Dejar vacío para usar la tasa global" class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            <input v-model.number="employeeRateInput" type="number" min="0" step="0.01"
+              placeholder="Dejar vacío para usar la tasa global"
+              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/30" />
             <p class="mt-1 text-xs text-text-muted">Actual: {{ exchangeRate }} Bs (tasa global). {{ businessStore.employeeExchangeRate ? `Tasa empleados: ${businessStore.employeeExchangeRate} Bs.` : 'Sin tasa de empleados.' }}</p>
           </div>
-          <div v-if="error" class="rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger">{{ error }}</div>
+          <div v-if="error" class="rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger">{{ error }}
+          </div>
           <div class="flex items-center justify-end gap-2">
-            <button v-if="businessStore.employeeExchangeRate" type="button" @click="handleClear" class="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary">Restablecer</button>
-            <button type="button" @click="emit('close')" class="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary">Cancelar</button>
-            <button type="submit" :disabled="isSaving" class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-sm transition-theme hover:bg-primary-hover disabled:opacity-60">{{ isSaving ? 'Guardando...' : 'Guardar' }}</button>
+            <button v-if="businessStore.employeeExchangeRate" type="button" @click="handleClear"
+              class="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary">Restablecer</button>
+            <button type="button" @click="emit('close')"
+              class="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary">Cancelar</button>
+            <button type="submit" :disabled="isSaving"
+              class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-sm transition-theme hover:bg-primary-hover disabled:opacity-60">{{
+                isSaving ? 'Guardando...' : 'Guardar' }}</button>
           </div>
         </form>
       </div>

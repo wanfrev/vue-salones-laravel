@@ -1,9 +1,7 @@
 <template>
   <Teleport to="body">
-    <div v-if="isOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-      @click.self="$emit('close')"
-    >
+    <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+      @click.self="$emit('close')">
       <div class="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-xl">
         <div class="mb-4">
           <h2 class="text-lg font-semibold text-text">{{ isEditing ? 'Editar gasto' : 'Registrar gasto' }}</h2>
@@ -44,7 +42,8 @@
           <div>
             <label class="mb-1 block text-sm font-medium text-text" for="exp-date">Fecha</label>
             <input id="exp-date" v-model="form.date" type="date"
-              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" required />
+              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+              required />
           </div>
           <div>
             <label class="mb-1 block text-sm font-medium text-text" for="exp-notes">Notas</label>

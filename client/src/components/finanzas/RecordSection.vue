@@ -22,12 +22,8 @@
       <slot name="mobile-cards" :items="items" />
       <div v-if="totalCount === 0" class="py-6 text-center text-sm text-text-muted">{{ emptyMessage }}</div>
     </div>
-    <PaginationBar
-      :visible="pages.total > pageSize"
-      :start="pages.start" :end="pages.end" :total="pages.total"
-      :has-prev="pages.hasPrev" :has-next="pages.hasNext"
-      @prev="$emit('prev')" @next="$emit('next')"
-    />
+    <PaginationBar :visible="pages.total > pageSize" :start="pages.start" :end="pages.end" :total="pages.total"
+      :has-prev="pages.hasPrev" :has-next="pages.hasNext" @prev="$emit('prev')" @next="$emit('next')" />
   </div>
 </template>
 

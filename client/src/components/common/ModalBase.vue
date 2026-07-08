@@ -1,35 +1,21 @@
 <template>
   <Teleport to="body">
-    <Transition
-      enter-active-class="transition-all duration-300 ease-out"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition-all duration-200 ease-in"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
-      <div
-        v-if="isOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-        @click.self="handleBackdropClick"
-      >
+    <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
+      enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
+      leave-from-class="opacity-100" leave-to-class="opacity-0">
+      <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+        @click.self="handleBackdropClick">
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
 
         <!-- Modal Container -->
-        <Transition
-          enter-active-class="transition-all duration-300 ease-out"
-          enter-from-class="opacity-0 scale-95 translate-y-4"
-          enter-to-class="opacity-100 scale-100 translate-y-0"
+        <Transition enter-active-class="transition-all duration-300 ease-out"
+          enter-from-class="opacity-0 scale-95 translate-y-4" enter-to-class="opacity-100 scale-100 translate-y-0"
           leave-active-class="transition-all duration-200 ease-in"
-          leave-from-class="opacity-100 scale-100 translate-y-0"
-          leave-to-class="opacity-0 scale-95 translate-y-4"
-        >
-          <div
-            v-if="isOpen"
+          leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 translate-y-4">
+          <div v-if="isOpen"
             class="relative w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl"
-            :class="sizeClasses[size]"
-          >
+            :class="sizeClasses[size]">
             <!-- Header -->
             <div class="flex items-center justify-between border-b border-border px-6 py-4">
               <div class="flex items-center gap-3">
@@ -43,11 +29,8 @@
                   <p v-if="subtitle" class="text-sm text-text-muted">{{ subtitle }}</p>
                 </div>
               </div>
-              <button
-                v-if="showCloseButton"
-                @click="close"
-                class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary"
-              >
+              <button v-if="showCloseButton" @click="close"
+                class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary">
                 <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -60,26 +43,22 @@
             </div>
 
             <!-- Footer -->
-            <div v-if="showFooter" class="flex items-center justify-end gap-3 border-t border-border bg-bg-secondary px-6 py-4">
+            <div v-if="showFooter"
+              class="flex items-center justify-end gap-3 border-t border-border bg-bg-secondary px-6 py-4">
               <slot name="footer">
-                <button
-                  v-if="showCancelButton"
-                  @click="handleCancel"
+                <button v-if="showCancelButton" @click="handleCancel"
                   class="rounded-xl border border-border bg-surface px-4 py-2 text-sm font-medium text-text-secondary transition-theme hover:bg-bg-secondary"
-                  :disabled="isLoading"
-                >
+                  :disabled="isLoading">
                   {{ cancelText }}
                 </button>
-                <button
-                  v-if="showConfirmButton"
-                  @click="handleConfirm"
+                <button v-if="showConfirmButton" @click="handleConfirm"
                   class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-text-inverse transition-theme disabled:opacity-50"
-                  :class="confirmButtonClass"
-                  :disabled="isLoading || isConfirmDisabled"
-                >
+                  :class="confirmButtonClass" :disabled="isLoading || isConfirmDisabled">
                   <svg v-if="isLoading" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <path class="opacity-75" fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                    </path>
                   </svg>
                   {{ isLoading ? loadingText : confirmText }}
                 </button>

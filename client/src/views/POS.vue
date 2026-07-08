@@ -11,37 +11,17 @@
         <p class="hidden text-sm text-text-muted sm:block">Registra pagos de servicios y productos</p>
       </div>
       <div class="flex items-center gap-3">
-        <div v-if="activeSaleType === 'retail_only'" class="flex flex-col sm:flex-row gap-2">
-          <div class="relative w-full sm:w-72">
-            <input v-model="retailProductSearch" type="text" placeholder="Buscar producto..."
-              class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
-              @focus="showRetailDropdown = true" @blur="onRetailBlur" />
-            <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            </div>
-            <div v-if="showRetailDropdown && retailFilteredProducts.length > 0" class="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface shadow-lg overflow-hidden max-h-52 overflow-y-auto">
-              <button v-for="product in retailFilteredProducts" :key="product.id"
-                @mousedown.prevent="addRetailProduct(product)"
-                :disabled="Number(product.available_qty ?? 0) <= 0"
-                class="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-50 border-b border-border last:border-b-0">
-                <div class="flex-1 min-w-0"><span class="text-text block truncate">{{ product.name }}</span><span class="text-xs text-text-muted">Stock: {{ Number(product.available_qty ?? 0) }}</span></div>
-                <span class="text-text-muted text-xs whitespace-nowrap font-medium">{{ formatDual(product.unit_price) }}</span>
-              </button>
-            </div>
-          </div>
-          <div class="relative w-full sm:w-56">
-            <input v-model="retailClientSearch" type="text" placeholder="Cliente (opcional)..."
-              class="w-full rounded-lg border border-border bg-surface pl-3 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
-              @focus="showRetailClientDropdown = true" @blur="onRetailClientBlur" @input="onRetailClientInput" />
-            <div v-if="showRetailClientDropdown && retailClientSuggestions.length > 0" class="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface shadow-lg overflow-hidden max-h-52 overflow-y-auto">
-              <button v-for="client in retailClientSuggestions" :key="client.id"
-                @mousedown.prevent="selectRetailClient(client)"
-                class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-bg-secondary border-b border-border last:border-b-0">
-                <div class="flex-1 min-w-0"><span class="text-text block truncate">{{ client.full_name }}</span><span class="text-xs text-text-muted">{{ client.phone }}</span></div>
-              </button>
-            </div>
-          </div>
-        </div>
+        <RetailProductSearch
+          v-if="activeSaleType === 'retail_only'"
+          ref="retailSearchRef"
+          :products="retailFilteredProducts"
+          :client-suggestions="retailClientSuggestions"
+          :business-id="businessId"
+          :branch-id="branchId"
+          @add-product="addRetailProduct"
+          @select-client="selectRetailClient"
+          @search-clients="onRetailSearchClients"
+        />
         <button v-else @click="startRetailOnly" class="flex items-center gap-1.5 rounded-lg border border-primary/30 px-3 py-2 text-xs font-semibold text-primary shadow-sm transition-all duration-200 hover:bg-primary/5">
           <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
           Venta directa
@@ -53,60 +33,21 @@
   <div v-if="queryError" class="mb-4 rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm text-danger">Error al cargar citas: {{ queryError }}</div>
 
   <div class="grid grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr]">
-    <!-- LEFT PANEL -->
-    <div class="space-y-3">
-      <div class="relative mb-3">
-        <input v-model="appointmentSearch" type="text" placeholder="Buscar cliente..."
-          class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15" />
-        <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-        </div>
-      </div>
-
-      <!-- Overdue appointments -->
-      <div v-if="overdueAppointments.length > 0" class="rounded-xl border border-border bg-surface p-4 mb-3">
-        <div class="flex items-center gap-2 mb-3">
-          <svg class="h-4 w-4 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-          <h3 class="text-sm font-semibold text-text">Citas realizadas</h3>
-          <span class="ml-auto rounded-full bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning">{{ overdueAppointments.length }}</span>
-        </div>
-        <div class="space-y-1.5">
-          <POSAppointmentCard
-            v-for="appt in overdueAppointments" :key="appt.id"
-            :appt="appt" :is-selected="selectedId === appt.id"
-            :products="products" :inline-product-search="inlineProductSearch"
-            :show-inline-dropdown="showInlineDropdown" variant="overdue"
-            @select="selectAppointment" @go-to-calendar="goToAppointmentInCalendar"
-            @update:inline-product-search="inlineProductSearch = $event"
-            @add-product="addInlineProduct" @blur="onInlineBlur"
-          />
-        </div>
-      </div>
-
-      <!-- Upcoming appointments -->
-      <div v-if="upcomingAppointments.length > 0" class="rounded-xl border border-border bg-surface p-4">
-        <div class="flex items-center gap-2 mb-3">
-          <svg class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-          <h3 class="text-sm font-semibold text-text">Citas pendientes</h3>
-          <span class="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{{ upcomingAppointments.length }}</span>
-        </div>
-        <div class="space-y-1.5">
-          <POSAppointmentCard
-            v-for="appt in upcomingAppointments" :key="appt.id"
-            :appt="appt" :is-selected="selectedId === appt.id"
-            :products="products" :inline-product-search="inlineProductSearch"
-            :show-inline-dropdown="showInlineDropdown" variant="upcoming"
-            @select="selectAppointment" @go-to-calendar="goToAppointmentInCalendar"
-            @update:inline-product-search="inlineProductSearch = $event"
-            @add-product="addInlineProduct" @blur="onInlineBlur"
-          />
-        </div>
-      </div>
-
-      <div v-if="filteredAppointments.length === 0" class="py-6 text-center text-sm text-text-muted rounded-xl border border-border bg-surface p-4">
-        {{ appointmentSearch ? 'Sin resultados' : 'No hay citas pendientes de pago' }}
-      </div>
-    </div>
+      <!-- LEFT PANEL -->
+      <AppointmentList
+        :overdue="overdueAppointments"
+        :upcoming="upcomingAppointments"
+        :total-count="filteredAppointments.length"
+        :selected-id="selectedId"
+        :products="products"
+        :inline-product-search="inlineProductSearch"
+        :show-inline-dropdown="showInlineDropdown"
+        @select="selectAppointment"
+        @go-to-calendar="goToAppointmentInCalendar"
+        @update:inline-product-search="inlineProductSearch = $event"
+        @add-product="addInlineProduct"
+        @blur="onInlineBlur"
+      />
 
     <!-- RIGHT PANEL -->
     <div class="space-y-4 lg:sticky lg:top-20 h-fit">
@@ -159,8 +100,9 @@ import { usePOSCart } from '../composables/pos/usePOSCart'
 import { usePOSPayment } from '../composables/pos/usePOSPayment'
 import { FeatureGate } from '../components/common'
 import POSPaymentPanel from '../components/pos/POSPaymentPanel.vue'
-import POSAppointmentCard from '../components/pos/POSAppointmentCard.vue'
 import POSConfirmModal from '../components/pos/POSConfirmModal.vue'
+import RetailProductSearch from '../components/pos/RetailProductSearch.vue'
+import AppointmentList from '../components/pos/AppointmentList.vue'
 
 interface TipParticipant { employeeId: string; employeeName: string }
 
@@ -181,7 +123,6 @@ const queryError = ref<string | null>(null)
 const appointmentSearch = ref('')
 const retailProcessing = ref(false)
 const retailProductSearch = ref('')
-const showRetailDropdown = ref(false)
 const inlineProductSearch = ref('')
 const showInlineDropdown = ref(false)
 const showTipAdjust = ref(false)
@@ -191,8 +132,7 @@ const tipManual = ref(false)
 const retailClientSearch = ref('')
 const retailClientId = ref<string | null>(null)
 const retailClientSuggestions = ref<{ id: string; full_name: string; phone: string }[]>([])
-const showRetailClientDropdown = ref(false)
-let retailClientTimeout: ReturnType<typeof setTimeout> | null = null
+const retailSearchRef = ref<InstanceType<typeof RetailProductSearch> | null>(null)
 
 const { data: appointmentsData } = useQuery({
   queryKey: computed(() => posKeys.pending(businessId.value, branchId.value)),
@@ -233,40 +173,23 @@ const filterProducts = (query: string): any[] => {
 }
 const retailFilteredProducts = computed(() => filterProducts(retailProductSearch.value))
 
-const addRetailProduct = (product: any) => { cartCtx.addProduct(product); retailProductSearch.value = ''; showRetailDropdown.value = false }
+const addRetailProduct = (product: any) => { cartCtx.addProduct(product); retailProductSearch.value = '' }
 const addInlineProduct = (product: any) => { cartCtx.addProduct(product); inlineProductSearch.value = ''; showInlineDropdown.value = false }
-const onRetailBlur = () => setTimeout(() => { showRetailDropdown.value = false }, 150)
 const onInlineBlur = () => setTimeout(() => { showInlineDropdown.value = false }, 150)
-
-const onRetailClientBlur = () => {
-  setTimeout(() => { showRetailClientDropdown.value = false }, 150)
-}
-
-const onRetailClientInput = () => {
-  if (retailClientTimeout) clearTimeout(retailClientTimeout)
-  retailClientId.value = null
-  const q = retailClientSearch.value.trim()
-  if (q.length < 1) {
-    retailClientSuggestions.value = []
-    showRetailClientDropdown.value = false
-    return
-  }
-  retailClientTimeout = setTimeout(async () => {
-    if (!businessId.value) return
-    try {
-      retailClientSuggestions.value = await searchClients(businessId.value, q, branchId.value)
-      showRetailClientDropdown.value = true
-    } catch {
-      retailClientSuggestions.value = []
-    }
-  }, 200)
-}
 
 const selectRetailClient = (client: { id: string; full_name: string; phone: string }) => {
   retailClientId.value = client.id
   retailClientSearch.value = client.full_name
   retailClientSuggestions.value = []
-  showRetailClientDropdown.value = false
+}
+
+const onRetailSearchClients = async (query: string) => {
+  if (!businessId.value) return
+  try {
+    retailClientSuggestions.value = await searchClients(businessId.value, query, branchId.value)
+  } catch {
+    retailClientSuggestions.value = []
+  }
 }
 
 const servicePrice = computed(() => {
@@ -330,7 +253,7 @@ const selectAppointment = (appt: any) => {
   setEqualTipAllocation()
 }
 const goToAppointmentInCalendar = (appt: any) => router.push({ name: 'admin-calendario', query: { fecha: new Date(appt.start_time).toISOString().slice(0, 10) } })
-const startRetailOnly = () => { selectedAppointment.value = null; activeSaleType.value = 'retail_only'; cartCtx.clearCart(); paymentCtx.reset(); retailProductSearch.value = ''; retailClientSearch.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false }
+const startRetailOnly = () => { selectedAppointment.value = null; activeSaleType.value = 'retail_only'; cartCtx.clearCart(); paymentCtx.reset(); retailProductSearch.value = ''; retailClientSearch.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailSearchRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false }
 const setTipAllocation = (employeeId: string, value: number) => { tipManual.value = true; tipAllocations.value = { ...tipAllocations.value, [employeeId]: Math.max(0, Number(value || 0)) } }
 
 const handleRetailPayment = async () => {

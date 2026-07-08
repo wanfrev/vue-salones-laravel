@@ -1,65 +1,33 @@
 <template>
-  <DrawerBase
-    :is-open="isOpen"
-    title="Filtros"
-    subtitle="Refina los resultados mostrados"
-    position="right"
-    confirm-text="Aplicar Filtros"
-    cancel-text="Limpiar Todo"
-    @close="close"
-    @confirm="applyFilters"
-    @cancel="clearFilters"
-  >
+  <DrawerBase :is-open="isOpen" title="Filtros" subtitle="Refina los resultados mostrados" position="right"
+    confirm-text="Aplicar Filtros" cancel-text="Limpiar Todo" @close="close" @confirm="applyFilters"
+    @cancel="clearFilters">
     <div class="space-y-6">
       <!-- Búsqueda -->
       <div class="space-y-2">
         <label class="text-sm font-medium text-text-secondary">Búsqueda</label>
-        <FormInput
-          v-model="localFilters.search"
-          placeholder="Buscar..."
-          size="sm"
-          prefix-icon="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-        />
+        <FormInput v-model="localFilters.search" placeholder="Buscar..." size="sm"
+          prefix-icon="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
       </div>
 
       <!-- Días sin visitar -->
       <div v-if="showDaysSinceFilter" class="space-y-2">
         <label class="text-sm font-medium text-text-secondary">Ventana de inactividad</label>
-        <FormInput
-          v-model="localFilters.daysSinceVisit"
-          type="number"
-          min="1"
-          placeholder="30"
-          size="sm"
-          hint="Mostrar clientes que no han visitado en los últimos N días"
-        />
+        <FormInput v-model="localFilters.daysSinceVisit" type="number" min="1" placeholder="30" size="sm"
+          hint="Mostrar clientes que no han visitado en los últimos N días" />
       </div>
 
       <!-- Fecha -->
       <div v-if="showDateFilter" class="space-y-3">
         <label class="text-sm font-medium text-text-secondary">Rango de Fechas</label>
-        <FormInput
-          v-model="localFilters.dateFrom"
-          type="date"
-          label="Desde"
-          size="sm"
-        />
-        <FormInput
-          v-model="localFilters.dateTo"
-          type="date"
-          label="Hasta"
-          size="sm"
-        />
+        <FormInput v-model="localFilters.dateFrom" type="date" label="Desde" size="sm" />
+        <FormInput v-model="localFilters.dateTo" type="date" label="Hasta" size="sm" />
       </div>
 
       <!-- Ordenar por -->
       <div class="space-y-2">
         <label class="text-sm font-medium text-text-secondary">Ordenar por</label>
-        <FormSelect
-          v-model="localFilters.sortBy"
-          :options="sortOptions"
-          size="sm"
-        />
+        <FormSelect v-model="localFilters.sortBy" :options="sortOptions" size="sm" />
       </div>
 
       <!-- Filtros activos -->

@@ -5,35 +5,23 @@
       <span v-if="required" class="text-danger">*</span>
     </label>
     <div :class="inline ? 'flex flex-wrap gap-4' : 'space-y-2'">
-      <div
-        v-for="option in options"
-        :key="option.value"
-        class="flex items-center gap-2"
-      >
+      <div v-for="option in options" :key="option.value" class="flex items-center gap-2">
         <div class="relative flex items-center">
-          <input
-            :id="`${radioId}-${option.value}`"
-            type="radio"
-            :name="radioId"
-            :value="option.value"
-            :checked="modelValue === option.value"
-            @change="handleChange(option.value)"
-            :disabled="disabled || option.disabled"
-            :class="[
+          <input :id="`${radioId}-${option.value}`" type="radio" :name="radioId" :value="option.value"
+            :checked="modelValue === option.value" @change="handleChange(option.value)"
+            :disabled="disabled || option.disabled" :class="[
               'peer h-4 w-4 cursor-pointer appearance-none rounded-full border transition-theme',
               'checked:border-primary checked:bg-primary',
               'focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20',
               'disabled:cursor-not-allowed disabled:opacity-50',
               error ? 'border-danger' : 'border-border hover:border-border-strong',
-            ]"
-          />
-          <div class="pointer-events-none absolute left-1/2 top-1/2 hidden h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-text-inverse peer-checked:block"></div>
+            ]" />
+          <div
+            class="pointer-events-none absolute left-1/2 top-1/2 hidden h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-text-inverse peer-checked:block">
+          </div>
         </div>
-        <label
-          :for="`${radioId}-${option.value}`"
-          class="cursor-pointer text-sm text-text"
-          :class="{ 'opacity-50': option.disabled }"
-        >
+        <label :for="`${radioId}-${option.value}`" class="cursor-pointer text-sm text-text"
+          :class="{ 'opacity-50': option.disabled }">
           {{ option.label }}
         </label>
       </div>

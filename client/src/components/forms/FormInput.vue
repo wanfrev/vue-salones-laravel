@@ -10,19 +10,9 @@
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="prefixIcon" />
         </svg>
       </div>
-      <input
-        :id="inputId"
-        :type="inputType"
-        :value="modelValue"
-        @input="handleInput"
-        @blur="$emit('blur', $event)"
-        @focus="$emit('focus', $event)"
-        :placeholder="placeholder"
-        :required="required"
-        :disabled="disabled"
-        :readonly="readonly"
-        :autocomplete="autocomplete"
-        :class="[
+      <input :id="inputId" :type="inputType" :value="modelValue" @input="handleInput" @blur="$emit('blur', $event)"
+        @focus="$emit('focus', $event)" :placeholder="placeholder" :required="required" :disabled="disabled"
+        :readonly="readonly" :autocomplete="autocomplete" :class="[
           'w-full rounded-xl border bg-surface text-text outline-none transition-theme',
           'focus:border-primary focus:ring-2 focus:ring-primary/20',
           'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary',
@@ -30,15 +20,11 @@
           prefixIcon ? 'pl-10' : 'pl-4',
           suffixIcon || showPasswordToggle ? 'pr-10' : 'pr-4',
           sizeClasses[size],
-        ]"
-      />
-      <button
-        v-if="showPasswordToggle && type === 'password'"
-        type="button"
+        ]" />
+      <button v-if="showPasswordToggle && type === 'password'" type="button"
         class="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium transition-colors text-primary hover:opacity-80"
         :aria-label="passwordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña'"
-        @click="passwordVisible = !passwordVisible"
-      >
+        @click="passwordVisible = !passwordVisible">
         {{ passwordVisible ? 'Ocultar' : 'Ver' }}
       </button>
       <div v-else-if="suffixIcon" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted">

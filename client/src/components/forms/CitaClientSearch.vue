@@ -61,27 +61,23 @@ const onFocus = () => { if (suggestions.value.length > 0) showSuggestions.value 
 
 <template>
   <div class="relative sm:col-span-2 lg:col-span-1">
-    <FormInput
-      :model-value="modelValue"
-      :label="t.client"
-      :placeholder="`Nombre del ${t.client.toLowerCase()}`"
-      required
-      prefix-icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-      :error="error"
-      @update:model-value="$emit('update:modelValue', $event)"
-      @blur="onBlur"
-      @focus="onFocus"
-      @input="onInput"
-    />
+    <FormInput :model-value="modelValue" :label="t.client" :placeholder="`Nombre del ${t.client.toLowerCase()}`"
+      required prefix-icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" :error="error"
+      @update:model-value="$emit('update:modelValue', $event)" @blur="onBlur" @focus="onFocus" @input="onInput" />
     <div v-if="showSuggestions && suggestions.length > 0"
       class="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface shadow-lg overflow-hidden">
-      <button v-for="client in suggestions" :key="client.id" type="button"
-        @mousedown.prevent="selectClient(client)"
+      <button v-for="client in suggestions" :key="client.id" type="button" @mousedown.prevent="selectClient(client)"
         class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-bg-secondary border-b border-border last:border-b-0">
         <div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+          </svg>
         </div>
-        <div class="flex-1 min-w-0"><div class="font-medium text-text truncate">{{ client.full_name }}</div><div class="text-xs text-text-muted">{{ client.phone }}</div></div>
+        <div class="flex-1 min-w-0">
+          <div class="font-medium text-text truncate">{{ client.full_name }}</div>
+          <div class="text-xs text-text-muted">{{ client.phone }}</div>
+        </div>
       </button>
     </div>
     <div v-if="showSuggestions && suggestions.length === 0 && modelValue.trim().length >= 1"

@@ -40,11 +40,9 @@
             <span class="text-sm font-medium text-text">{{ formatUSD(service.amount) }}</span>
           </div>
           <div class="h-2 w-full rounded-full bg-bg-secondary">
-            <div
-              class="h-2 rounded-full transition-all"
+            <div class="h-2 rounded-full transition-all"
               :class="service.percentage > 25 ? 'bg-primary' : 'bg-primary/60'"
-              :style="{ width: service.percentage + '%' }"
-            ></div>
+              :style="{ width: service.percentage + '%' }"></div>
           </div>
         </div>
       </div>

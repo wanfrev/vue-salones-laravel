@@ -5,28 +5,16 @@
       <span v-if="required" class="text-danger">*</span>
     </label>
     <div class="relative">
-      <select
-        :id="selectId"
-        :value="modelValue"
-        @change="handleChange"
-        @blur="$emit('blur', $event)"
-        :required="required"
-        :disabled="disabled"
-        :class="[
+      <select :id="selectId" :value="modelValue" @change="handleChange" @blur="$emit('blur', $event)"
+        :required="required" :disabled="disabled" :class="[
           'w-full appearance-none rounded-xl border bg-surface text-text outline-none transition-theme',
           'focus:border-primary focus:ring-2 focus:ring-primary/20',
           'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary',
           error ? 'border-danger focus:border-danger focus:ring-danger/20' : 'border-border hover:border-border-strong',
           sizeClasses[size],
-        ]"
-      >
+        ]">
         <option v-if="placeholder" value="" disabled>{{ placeholder }}</option>
-        <option
-          v-for="option in options"
-          :key="option.value"
-          :value="option.value"
-          :disabled="option.disabled"
-        >
+        <option v-for="option in options" :key="option.value" :value="option.value" :disabled="option.disabled">
           {{ option.label }}
         </option>
       </select>

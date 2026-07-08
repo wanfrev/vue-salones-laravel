@@ -1,14 +1,10 @@
 <template>
   <div class="relative">
-    <button
-      @click="isOpen = !isOpen"
-      class="relative rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary"
-    >
+    <button @click="isOpen = !isOpen"
+      class="relative rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary">
       <Bell :size="20" />
-      <span
-        v-if="unreadCount > 0"
-        class="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white"
-      >
+      <span v-if="unreadCount > 0"
+        class="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">
         {{ unreadCount > 9 ? '9+' : unreadCount }}
       </span>
     </button>
