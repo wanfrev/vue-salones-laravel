@@ -76,36 +76,35 @@ export const listCitaGroupMembers = async (groupId: string): Promise<Appointment
   return data as AppointmentWithRelations[]
 }
 
-export const saveCita = async (
-  businessId: string,
-  data: CitaFormData & { id?: string; clientPhone?: string },
-  createdBy?: string | null,
-  branchId?: string | null,
-  allowCreateClient?: boolean
-): Promise<Cita> => {
-  const parsed = citaFormSchema.safeParse(data)
-  if (!parsed.success) {
-    throw new Error(parsed.error.issues.map(e => e.message).join('. '))
-  }
+// ── Private helpers for saveCita ──────────────────────────────────────────────
 
-  const serviceId = parsed.data.service
+interface SaveDeps {
+  service: Service
+  clientId: string
+}
+
+async function resolveSaveDeps(
+  businessId: string,
+  data: { service: string; clientId?: string; clientName: string; clientPhone?: string; notes: string },
+  branchId: string | null | undefined,
+  allowCreateClient: boolean,
+): Promise<SaveDeps> {
   let svcQuery = supabase
     .from('services')
     .select('*')
-    .eq('id', serviceId)
+    .eq('id', data.service)
 
   if (branchId) {
     svcQuery = svcQuery.eq('branch_id', branchId)
   }
 
   const { data: service, error: serviceError } = await svcQuery.single()
-
   if (serviceError) throw serviceError
 
   let clientId: string
   if (data.clientId) {
     clientId = data.clientId
-  } else if (allowCreateClient === false) {
+  } else if (!allowCreateClient) {
     throw new Error('No tienes permiso para crear clientes. Selecciona un cliente existente.')
   } else {
     const client = await findOrCreateClientByPhone(businessId, {
@@ -116,104 +115,89 @@ export const saveCita = async (
     clientId = client.id
   }
 
-  // Single service (no extras) — backward compatible path
-  if (!data.extraServices || data.extraServices.length === 0) {
-    if (data.id) {
-      const { data: existing } = await supabase
-        .from('appointments')
-        .select('group_id')
-        .eq('id', data.id)
-        .maybeSingle()
-      const oldGroupId = (existing as any)?.group_id
-      if (oldGroupId) {
-        const { data: orphans } = await supabase
-          .from('appointments')
-          .select('id')
-          .eq('group_id', oldGroupId)
-          .neq('id', data.id)
-        const orphanIds = (orphans ?? []).map((o: any) => o.id)
-        if (orphanIds.length > 0) {
-          const { data: orphanTxs, error: orphanTxError } = await supabase
-            .from('transactions')
-            .select('id')
-            .in('appointment_id', orphanIds)
-          if (orphanTxError) throw orphanTxError
+  return { service: service as Service, clientId }
+}
 
-          for (const tx of (orphanTxs ?? []) as Array<{ id: string }>) {
-            const { error: txDeleteError } = await mutate
-              .from('transactions')
-              .delete()
-              .eq('id', tx.id)
-            if (txDeleteError) throw txDeleteError
-          }
+async function deleteOrphanGroupMembers(
+  appointmentId: string,
+): Promise<void> {
+  const { data: existing } = await supabase
+    .from('appointments')
+    .select('group_id')
+    .eq('id', appointmentId)
+    .maybeSingle()
+  const oldGroupId = (existing as any)?.group_id
+  if (!oldGroupId) return
 
-          const { data: deletedOrphans, error: delError } = await mutate
-            .from('appointments')
-            .delete()
-            .in('id', orphanIds)
-            .select('id')
-          if (delError) throw delError
-          if ((deletedOrphans ?? []).length !== orphanIds.length) {
-            throw new Error('No se pudieron actualizar todos los servicios de la cita. Intenta nuevamente.')
-          }
-        }
-      }
-    }
+  const { data: orphans } = await supabase
+    .from('appointments')
+    .select('id')
+    .eq('group_id', oldGroupId)
+    .neq('id', appointmentId)
+  const orphanIds = (orphans ?? []).map((o: any) => o.id)
+  if (orphanIds.length === 0) return
 
-    const payload = mapCitaFormToAppointmentInsert(
-      businessId,
-      data,
-      service as Service,
-      clientId,
-      createdBy,
-      branchId
-    )
+  const { data: orphanTxs, error: orphanTxError } = await supabase
+    .from('transactions')
+    .select('id')
+    .in('appointment_id', orphanIds)
+  if (orphanTxError) throw orphanTxError
 
-    ;(payload as any).group_id = null
-
-    const query = data.id
-      ? mutate.from('appointments').update(payload).eq('id', data.id).select(APPOINTMENT_SELECT).single()
-      : mutate.from('appointments').insert(payload).select(APPOINTMENT_SELECT).single()
-
-    const { data: saved, error } = await query
-    if (error) throw mapAgendaWriteError(error, 'guardar')
-
-    return mapAppointmentToCita(saved as AppointmentWithRelations)
+  for (const tx of (orphanTxs ?? []) as Array<{ id: string }>) {
+    const { error: txDeleteError } = await mutate
+      .from('transactions')
+      .delete()
+      .eq('id', tx.id)
+    if (txDeleteError) throw txDeleteError
   }
 
-  // Multi-service (grouped) path
-  const groupId = data.id
-    ? (await (async () => {
-        const { data: existing } = await supabase
-          .from('appointments')
-          .select('group_id')
-          .eq('id', data.id)
-          .maybeSingle()
-        return (existing as any)?.group_id || generateId()
-      })())
-    : generateId()
+  const { data: deletedOrphans, error: delError } = await mutate
+    .from('appointments')
+    .delete()
+    .in('id', orphanIds)
+    .select('id')
+  if (delError) throw delError
+  if ((deletedOrphans ?? []).length !== orphanIds.length) {
+    throw new Error('No se pudieron actualizar todos los servicios de la cita. Intenta nuevamente.')
+  }
+}
 
-  // Fetch all services for extra rows
-  const extraServiceIds = data.extraServices.map(e => e.serviceId)
-  let allSvcsQuery = supabase
-    .from('services')
-    .select('*')
-    .in('id', [serviceId, ...extraServiceIds])
-
-  if (branchId) {
-    allSvcsQuery = allSvcsQuery.eq('branch_id', branchId)
+async function saveSingleServiceAppointment(
+  businessId: string,
+  data: CitaFormData & { id?: string },
+  service: Service,
+  clientId: string,
+  createdBy: string | null | undefined,
+  branchId: string | null | undefined,
+): Promise<Cita> {
+  if (data.id) {
+    await deleteOrphanGroupMembers(data.id)
   }
 
-  const { data: servicesData, error: servicesError } = await allSvcsQuery
+  const payload = mapCitaFormToAppointmentInsert(businessId, data, service, clientId, createdBy, branchId)
+  ;(payload as any).group_id = null
 
-  if (servicesError) throw servicesError
-  const servicesMap = new Map((servicesData as Service[]).map(s => [s.id, s]))
+  const query = data.id
+    ? mutate.from('appointments').update(payload).eq('id', data.id).select(APPOINTMENT_SELECT).single()
+    : mutate.from('appointments').insert(payload).select(APPOINTMENT_SELECT).single()
 
-  // Primary service — always use form's price; the mapper decides override vs catalog
-  const primaryService = servicesMap.get(data.service) as Service | undefined
-  const primaryPrice = data.price
+  const { data: saved, error } = await query
+  if (error) throw mapAgendaWriteError(error, 'guardar')
 
-  const desiredPayloads = [mapServiceItemToAppointmentInsert(
+  return mapAppointmentToCita(saved as AppointmentWithRelations)
+}
+
+async function buildServicePayloads(
+  businessId: string,
+  data: CitaFormData,
+  clientId: string,
+  groupId: string,
+  primaryService: Service | undefined,
+  createdBy: string | null | undefined,
+  branchId: string | null | undefined,
+  servicesMap: Map<string, Service>,
+): Promise<Record<string, any>[]> {
+  const payloads = [mapServiceItemToAppointmentInsert(
     businessId,
     {
       serviceId: data.service,
@@ -222,86 +206,83 @@ export const saveCita = async (
       assistantPercentage: data.assistantPercentage,
       employeePercentageOverride: data.employeePercentageOverride,
       duration: data.duration,
-      price: primaryPrice,
+      price: data.price,
     },
-    clientId,
-    data.date,
-    data.time,
-    data.status,
-    data.notes,
-    groupId,
-    createdBy,
-    primaryService,
-    branchId
+    clientId, data.date, data.time, data.status, data.notes,
+    groupId, createdBy, primaryService, branchId,
   )]
 
-  // Extra services
   for (const extra of data.extraServices) {
-    desiredPayloads.push(mapServiceItemToAppointmentInsert(
+    payloads.push(mapServiceItemToAppointmentInsert(
       businessId,
       extra,
-      clientId,
-      data.date,
-      data.time,
-      data.status,
-      data.notes,
-      groupId,
-      createdBy,
+      clientId, data.date, data.time, data.status, data.notes,
+      groupId, createdBy,
       servicesMap.get(extra.serviceId) as Service,
-      branchId
+      branchId,
     ))
   }
 
-  if (data.id) {
-    const { data: existing } = await supabase
+  return payloads
+}
+
+async function saveNewGroup(
+  desiredPayloads: Record<string, any>[],
+  serviceId: string,
+  employeeId: string,
+): Promise<Cita> {
+  const { data: saved, error: insertError } = await mutate
+    .from('appointments')
+    .insert(desiredPayloads)
+    .select(APPOINTMENT_SELECT)
+
+  if (insertError) throw mapAgendaWriteError(insertError, 'guardar')
+
+  const results = saved as AppointmentWithRelations[]
+  const primary = results.find(r => r.service_id === serviceId && r.employee_id === employeeId) ?? results[0]
+  return mapAppointmentToCita(primary)
+}
+
+async function updateExistingGroup(
+  data: CitaFormData & { id: string },
+  desiredPayloads: Record<string, any>[],
+): Promise<Cita> {
+  const { data: existing } = await supabase
+    .from('appointments')
+    .select('group_id')
+    .eq('id', data.id)
+    .maybeSingle()
+
+  const targetGroupId = (existing as any)?.group_id
+
+  // Single → multi (no prior group)
+  if (!targetGroupId) {
+    const [primaryPayload, ...extraPayloads] = desiredPayloads
+    const { error: updatePrimaryError } = await mutate
       .from('appointments')
-      .select('group_id')
+      .update(primaryPayload)
       .eq('id', data.id)
-      .maybeSingle()
+    if (updatePrimaryError) throw mapAgendaWriteError(updatePrimaryError, 'guardar')
 
-    const targetGroupId = (existing as any)?.group_id
-
-    if (!targetGroupId) {
-      const [primaryPayload, ...extraPayloads] = desiredPayloads
-      const { error: updatePrimaryError } = await mutate
+    if (extraPayloads.length > 0) {
+      const { error: insertExtraError } = await mutate
         .from('appointments')
-        .update(primaryPayload)
-        .eq('id', data.id)
-
-      if (updatePrimaryError) throw mapAgendaWriteError(updatePrimaryError, 'guardar')
-
-      if (extraPayloads.length > 0) {
-        const { error: insertExtraError } = await mutate
-          .from('appointments')
-          .insert(extraPayloads)
-
-        if (insertExtraError) throw mapAgendaWriteError(insertExtraError, 'guardar')
-      }
-
-      const { data: refreshed, error: refreshError } = await supabase
-        .from('appointments')
-        .select(APPOINTMENT_SELECT)
-        .eq('id', data.id)
-        .single()
-
-      if (refreshError) throw refreshError
-      return mapAppointmentToCita(refreshed as AppointmentWithRelations)
+        .insert(extraPayloads)
+      if (insertExtraError) throw mapAgendaWriteError(insertExtraError, 'guardar')
     }
-
+  } else {
+    // Multi → multi (update group)
+    const orderedIds = [data.id]
     const { data: members, error: membersError } = await supabase
       .from('appointments')
       .select('id')
       .eq('group_id', targetGroupId)
       .order('created_at', { ascending: true })
-
     if (membersError) throw membersError
 
-    const orderedIds = [
-      data.id,
-      ...((members ?? []) as Array<{ id: string }>)
-        .map(m => m.id)
-        .filter(id => id !== data.id),
-    ]
+    orderedIds.push(...((members ?? []) as Array<{ id: string }>)
+      .map(m => m.id)
+      .filter(id => id !== data.id))
 
     const overlap = Math.min(orderedIds.length, desiredPayloads.length)
 
@@ -322,13 +303,10 @@ export const saveCita = async (
 
     if (orderedIds.length > desiredPayloads.length) {
       const idsToDelete = orderedIds.slice(desiredPayloads.length)
-
-      const { data: txsToDelete, error: txsToDeleteError } = await supabase
+      const { data: txsToDelete } = await supabase
         .from('transactions')
         .select('id')
         .in('appointment_id', idsToDelete)
-
-      if (txsToDeleteError) throw txsToDeleteError
 
       for (const tx of (txsToDelete ?? []) as Array<{ id: string }>) {
         const { error: txDeleteError } = await mutate
@@ -349,27 +327,79 @@ export const saveCita = async (
         throw new Error('No se pudieron eliminar algunos servicios del grupo. Revisa permisos e intenta nuevamente.')
       }
     }
-
-    const { data: refreshed, error: refreshError } = await supabase
-      .from('appointments')
-      .select(APPOINTMENT_SELECT)
-      .eq('id', data.id)
-      .single()
-
-    if (refreshError) throw refreshError
-    return mapAppointmentToCita(refreshed as AppointmentWithRelations)
   }
 
-  const { data: saved, error: insertError } = await mutate
+  const { data: refreshed, error: refreshError } = await supabase
     .from('appointments')
-    .insert(desiredPayloads)
     .select(APPOINTMENT_SELECT)
+    .eq('id', data.id)
+    .single()
 
-  if (insertError) throw mapAgendaWriteError(insertError, 'guardar')
+  if (refreshError) throw refreshError
+  return mapAppointmentToCita(refreshed as AppointmentWithRelations)
+}
 
-  const results = saved as AppointmentWithRelations[]
-  const primary = results.find(r => r.service_id === serviceId && r.employee_id === data.employee) ?? results[0]
-  return mapAppointmentToCita(primary)
+async function fetchServicesMap(
+  serviceIds: string[],
+  branchId: string | null | undefined,
+): Promise<Map<string, Service>> {
+  let query = supabase.from('services').select('*').in('id', serviceIds)
+  if (branchId) query = query.eq('branch_id', branchId)
+  const { data, error } = await query
+  if (error) throw error
+  return new Map((data as Service[]).map(s => [s.id, s]))
+}
+
+async function resolveGroupId(appointmentId?: string): Promise<string> {
+  if (!appointmentId) return generateId()
+
+  const { data: existing } = await supabase
+    .from('appointments')
+    .select('group_id')
+    .eq('id', appointmentId)
+    .maybeSingle()
+
+  return (existing as any)?.group_id || generateId()
+}
+
+// ── Main save function ────────────────────────────────────────────────────────
+
+export const saveCita = async (
+  businessId: string,
+  data: CitaFormData & { id?: string; clientPhone?: string },
+  createdBy?: string | null,
+  branchId?: string | null,
+  allowCreateClient?: boolean,
+): Promise<Cita> => {
+  const parsed = citaFormSchema.safeParse(data)
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues.map(e => e.message).join('. '))
+  }
+
+  const { service, clientId } = await resolveSaveDeps(
+    businessId, data, branchId, allowCreateClient ?? true,
+  )
+
+  if (!data.extraServices || data.extraServices.length === 0) {
+    return saveSingleServiceAppointment(businessId, data, service, clientId, createdBy, branchId)
+  }
+
+  // Multi-service (grouped) path
+  const groupId = await resolveGroupId(data.id)
+  const allServiceIds = [parsed.data.service, ...data.extraServices.map(e => e.serviceId)]
+  const servicesMap = await fetchServicesMap(allServiceIds, branchId)
+
+  const desiredPayloads = await buildServicePayloads(
+    businessId, parsed.data, clientId, groupId,
+    servicesMap.get(parsed.data.service) as Service | undefined,
+    createdBy, branchId, servicesMap,
+  )
+
+  if (data.id) {
+    return updateExistingGroup({ ...parsed.data, id: data.id }, desiredPayloads)
+  }
+
+  return saveNewGroup(desiredPayloads, parsed.data.service, parsed.data.employee)
 }
 
 export const updateCitaStatus = async (
