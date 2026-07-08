@@ -256,6 +256,7 @@ import {
   superadminKeys,
 } from '../services/superadminService'
 import { listBranches, branchesKeys } from '../services/branchesService'
+import { translateError } from '../lib/errors'
 import type { AuthProfile } from '../types/auth'
 import type { Business } from '../types/database'
 import FeatureFlagsCard from '../components/superadmin/FeatureFlagsCard.vue'
@@ -344,8 +345,7 @@ const { mutateAsync: updateBiz, isPending: isUpdating } = useMutation({
     queryClient.invalidateQueries({ queryKey: superadminKeys.businesses() }).catch(() => {})
   },
   onError: (err: unknown) => {
-    const message = err instanceof Error ? err.message : 'No fue posible actualizar el negocio.'
-    error(message)
+    error(translateError(err, 'No fue posible actualizar el negocio.'))
   },
 })
 
@@ -375,8 +375,7 @@ const { mutateAsync: suspendBiz, isPending: isSuspending } = useMutation({
     queryClient.invalidateQueries({ queryKey: superadminKeys.businesses() }).catch(() => {})
   },
   onError: (err: unknown) => {
-    const message = err instanceof Error ? err.message : 'No fue posible suspender el servicio.'
-    error(message)
+    error(translateError(err, 'No fue posible suspender el servicio.'))
   },
 })
 
@@ -387,8 +386,7 @@ const { mutateAsync: resumeBiz, isPending: isResuming } = useMutation({
     queryClient.invalidateQueries({ queryKey: superadminKeys.businesses() }).catch(() => {})
   },
   onError: (err: unknown) => {
-    const message = err instanceof Error ? err.message : 'No fue posible reactivar el servicio.'
-    error(message)
+    error(translateError(err, 'No fue posible reactivar el servicio.'))
   },
 })
 
@@ -404,8 +402,7 @@ const toggleFeature = async (key: string) => {
     queryClient.invalidateQueries({ queryKey: superadminKeys.businesses() }).catch(() => {})
     success(enabled ? 'Funcionalidad activada' : 'Funcionalidad desactivada')
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Error al cambiar la configuración'
-    error(message)
+    error(translateError(err, 'Error al cambiar la configuración'))
   } finally {
     isTogglingFeature.value = false
   }
@@ -436,8 +433,7 @@ const { mutateAsync: deleteBiz, isPending: isDeleting } = useMutation({
     router.push('/superadmin')
   },
   onError: (err: unknown) => {
-    const message = err instanceof Error ? err.message : 'No fue posible eliminar el negocio.'
-    error(message)
+    error(translateError(err, 'No fue posible eliminar el negocio.'))
   },
 })
 

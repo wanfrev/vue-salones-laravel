@@ -2,6 +2,7 @@ import { computed, watchEffect } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useAuthStore } from '../../store/auth'
 import { useNotification } from '../common/useNotification'
+import { translateError } from '../../lib/errors'
 import { api as supabase } from '../../lib/api'
 import router from '../../router'
 import {
@@ -89,7 +90,7 @@ export function useNotifications() {
       await invalidate()
     },
     onError: (err) => {
-      showError(err instanceof Error ? err.message : 'Error al marcar notificación')
+      showError(translateError(err, 'Error al marcar notificación'))
     },
   })
 
@@ -99,7 +100,7 @@ export function useNotifications() {
       await invalidate()
     },
     onError: (err) => {
-      showError(err instanceof Error ? err.message : 'Error al marcar todas leídas')
+      showError(translateError(err, 'Error al marcar todas leídas'))
     },
   })
 
@@ -109,7 +110,7 @@ export function useNotifications() {
       await invalidate()
     },
     onError: (err) => {
-      showError(err instanceof Error ? err.message : 'Error al eliminar notificación')
+      showError(translateError(err, 'Error al eliminar notificación'))
     },
   })
 

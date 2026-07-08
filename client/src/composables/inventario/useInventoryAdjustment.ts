@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../common/useAuth'
 import { useNotification } from '../common/useNotification'
+import { translateError } from '../../lib/errors'
 import { useBusinessStore } from '../../store/business'
 import { adjustInventory, inventarioKeys } from '../../services/inventarioService'
 import { posKeys } from '../../services/posService'
@@ -34,7 +35,7 @@ export function useInventoryAdjustment() {
       success('Stock ajustado correctamente')
     },
     onError: (err) => {
-      showError(err instanceof Error ? err.message : 'Error al ajustar el stock')
+      showError(translateError(err, 'Error al ajustar el stock'))
     },
   })
 
@@ -58,7 +59,7 @@ export function useInventoryAdjustment() {
     try {
       validateAdjustQuantity(qty)
     } catch (err) {
-      showError(err instanceof Error ? err.message : 'Cantidad inválida')
+      showError(translateError(err, 'Cantidad inválida'))
       return
     }
     await adjustMutation.mutateAsync({

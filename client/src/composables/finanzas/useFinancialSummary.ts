@@ -3,6 +3,7 @@ import { useQuery, useQueryClient, useMutation, keepPreviousData } from '@tansta
 import { useNotification } from '../common/useNotification'
 import { api as supabase } from '../../lib/api'
 import { useBusinessStore } from '../../store/business'
+import { translateError } from '../../lib/errors'
 import { updateTransaction, deleteTransaction, deleteProductSale } from '../../services/posService'
 import { toYmd, resolvePeriod, normalizeBucketKey, formatBucketLabel } from '../../lib/periodUtils'
 import { useTransactionEdit } from '../finanzas/useTransactionEdit'
@@ -45,6 +46,44 @@ type PaymentRow = {
 }
 
 export type { PaymentRow }
+
+/** Raw transaction row as returned by TRANSACTIONS_SELECT */
+export type DashboardTxRow = {
+  id: string
+  method: PaymentMethod
+  paid_at: string
+  created_at: string
+  total_amount: number
+  exchange_rate_used: number
+  tip_amount: number | null
+  notes: string | null
+  payments_breakdown: PaymentBreakdownItem[] | null
+  employee_percentage: number | null
+  assistant_percentage: number | null
+  appointment_id: string
+  appointments: {
+    client_id: string
+    service_id: string
+    employee_id: string
+    assistant_employee_id: string | null
+    employee_percentage_override: number | null
+    group_id: string | null
+    clients: { full_name: string } | null
+    services: { name: string } | null
+    employee_profile: {
+      full_name: string
+      pay_type: 'salary' | 'percentage' | 'mixed' | null
+      pay_percentage: number | null
+      base_salary: number | null
+    } | null
+    assistant_profile: {
+      full_name: string
+      pay_type: 'salary' | 'percentage' | 'mixed' | null
+      pay_percentage: number | null
+      base_salary: number | null
+    } | null
+  } | null
+}
 
 export type ServiceRevenue = { name: string; amount: number; percentage: number }
 export type ChartBar = { label: string; income: number; expense: number }
@@ -173,19 +212,19 @@ function useFinancialSummary(
   const editTransactionMutation = useMutation({
     mutationFn: (params: { transactionId: string; amount?: number; method?: PaymentMethod; notes?: string; exchangeRate?: number; paymentsBreakdown?: PaymentBreakdownItem[] }) => updateTransaction(params),
     onSuccess: () => { Promise.allSettled(['finanzas-transactions', 'financial-summary', 'finanzas-employee-payments', 'appointments', 'pos-pending', 'inventario', 'finanzas-product-sales'].map(k => queryClient.invalidateQueries({ exact: false, queryKey: [k] }))); notify('Cobro actualizado') },
-    onError: (err: unknown) => showError(err instanceof Error ? err.message : 'Error al actualizar'),
+    onError: (err: unknown) => showError(translateError(err, 'Error al actualizar cobro')),
   })
 
   const deleteTransactionMutation = useMutation({
     mutationFn: (params: { transactionId: string }) => deleteTransaction(params),
     onSuccess: () => { Promise.allSettled(['finanzas-transactions', 'financial-summary', 'finanzas-employee-payments', 'appointments', 'pos-pending', 'inventario', 'finanzas-product-sales'].map(k => queryClient.invalidateQueries({ exact: false, queryKey: [k] }))); notify('Cobro eliminado') },
-    onError: (err: unknown) => showError(err instanceof Error ? err.message : 'Error al eliminar'),
+    onError: (err: unknown) => showError(translateError(err, 'Error al eliminar cobro')),
   })
 
   const deleteProductSaleMutation = useMutation({
     mutationFn: (movementId: string) => deleteProductSale(movementId),
     onSuccess: () => { Promise.allSettled(['inventario', 'finanzas-product-sales', 'financial-summary'].map(k => queryClient.invalidateQueries({ exact: false, queryKey: [k] }))); notify('Venta de producto eliminada') },
-    onError: (err: unknown) => showError(err instanceof Error ? err.message : 'Error al eliminar'),
+    onError: (err: unknown) => showError(translateError(err, 'Error al eliminar cobro')),
   })
 
   const { showEditModal, editingTransaction, editingAmount, editingCurrency, setEditingCurrency, editingMethod, editingBreakdown, editingNotes, isEditingMixed, editingTotalAmount, paymentMethodOptions, startEdit, cancelEdit, setEditingMethod, updateBreakdownItem, addBreakdownItem, removeBreakdownItem, saveEdit: onSaveEdit, confirmDeleteTransaction } = useTransactionEdit(showError)

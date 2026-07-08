@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { api as supabase } from '../../lib/api'
 import { useNotification } from '../common/useNotification'
+import { translateError } from '../../lib/errors'
 import { useCurrency } from '../common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import {
@@ -89,7 +90,7 @@ export function useEmployeePayments(
       closeModal()
     },
     onError: (err) => {
-      showError(err instanceof Error ? err.message : 'Error al registrar el pago')
+      showError(translateError(err, 'Error al registrar el pago'))
     },
   })
 
@@ -166,7 +167,7 @@ export function useEmployeePayments(
     try {
       await createMutation.mutateAsync(paymentForm.value)
     } catch (err) {
-      paymentError.value = err instanceof Error ? err.message : 'Error al registrar el pago'
+      paymentError.value = translateError(err, 'Error al registrar el pago')
       throw err
     }
   }
@@ -185,7 +186,7 @@ export function useEmployeePayments(
       success('Registro eliminado correctamente')
     },
     onError: (err) => {
-      showError(err instanceof Error ? err.message : 'Error al eliminar el pago')
+      showError(translateError(err, 'Error al eliminar el pago'))
     },
   })
 
@@ -240,7 +241,7 @@ export function useEmployeePayments(
       closeConsumptionModal()
     },
     onError: (err) => {
-      showError(err instanceof Error ? err.message : 'Error al registrar el consumo')
+      showError(translateError(err, 'Error al registrar el consumo'))
     },
   })
 
@@ -279,7 +280,7 @@ export function useEmployeePayments(
     try {
       await consumeMutation.mutateAsync(consumptionForm.value)
     } catch (err) {
-      consumptionError.value = err instanceof Error ? err.message : 'Error al registrar el consumo'
+      consumptionError.value = translateError(err, 'Error al registrar el consumo')
       throw err
     }
   }
@@ -318,7 +319,7 @@ export function useEmployeePayments(
       closeModal()
     },
     onError: (err) => {
-      showError(err instanceof Error ? err.message : 'Error al actualizar el pago')
+      showError(translateError(err, 'Error al actualizar el pago'))
     },
   })
 
@@ -361,7 +362,7 @@ export function useEmployeePayments(
         currency: paymentForm.value.currency,
       })
     } catch (err) {
-      paymentError.value = err instanceof Error ? err.message : 'Error al actualizar el pago'
+      paymentError.value = translateError(err, 'Error al actualizar el pago')
       throw err
     }
   }

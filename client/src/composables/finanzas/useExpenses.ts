@@ -5,6 +5,7 @@ import { useCurrency } from '../common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { expensesKeys, listExpenses, saveExpense, deleteExpense, type ExpenseFormData, type ExpenseRow } from '../../services/expensesService'
 import { resolvePeriodDates } from '../../lib/periodUtils'
+import { translateError } from '../../lib/errors'
 
 type PeriodValue = 'month' | 'quarter' | 'year'
 
@@ -53,7 +54,7 @@ export function useExpenses(
       closeModal()
     },
     onError: (err) => {
-      showError(err instanceof Error ? err.message : 'Error al guardar el gasto')
+      showError(translateError(err, 'Error al guardar el gasto'))
     },
   })
 
@@ -69,7 +70,7 @@ export function useExpenses(
       success('Gasto eliminado correctamente')
     },
     onError: (err: unknown) => {
-      showError(err instanceof Error ? err.message : 'Error al eliminar el gasto')
+      showError(translateError(err, 'Error al eliminar el gasto'))
     },
   })
 
@@ -129,7 +130,7 @@ export function useExpenses(
     try {
       await saveMutation.mutateAsync({ ...expenseForm.value, id: editingExpenseId.value ?? undefined })
     } catch (err) {
-      saveError.value = err instanceof Error ? err.message : 'Error al guardar el gasto'
+      saveError.value = translateError(err, 'Error al guardar el gasto')
       throw err
     }
   }

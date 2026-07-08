@@ -317,6 +317,7 @@ import { FeatureGate } from '../components/common'
 import { useInventoryAdjustment } from '../composables/inventario/useInventoryAdjustment'
 import { inventarioKeys, listInventario, listInventoryMovements } from '../services/inventarioService'
 import { productosKeys, saveProducto } from '../services/productosService'
+import { translateError } from '../lib/errors'
 import { posKeys } from '../services/posService'
 import StockAdjustModal from '../components/inventario/StockAdjustModal.vue'
 import ProductoFormModal from '../components/modals/ProductoFormModal.vue'
@@ -391,7 +392,7 @@ const saveProductoMutation = useMutation({
     success('Producto guardado correctamente')
   },
   onError: (err) => {
-    showError(err instanceof Error ? err.message : 'Error al guardar el producto')
+    showError(translateError(err, 'Error al guardar el producto'))
   },
 })
 

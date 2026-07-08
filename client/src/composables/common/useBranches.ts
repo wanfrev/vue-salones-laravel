@@ -1,10 +1,10 @@
 import { ref, computed, type Ref } from 'vue'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useNotification } from '../common/useNotification'
+import { translateError } from '../../lib/errors'
 import { useBusinessStore } from '../../store/business'
 import {
   branchesKeys,
-  listBranches,
   saveBranch,
   deleteBranch,
   type Branch,
@@ -16,13 +16,8 @@ export function useBranches(businessId: Ref<string | null>) {
   const { success, error: showError } = useNotification()
   const businessStore = useBusinessStore()
 
-  const { data, isLoading } = useQuery({
-    queryKey: computed(() => branchesKeys.all(businessId.value)),
-    queryFn: () => listBranches(businessId.value!),
-    enabled: computed(() => !!businessId.value),
-  })
-
-  const branches = computed(() => data.value ?? [])
+  const branches = computed(() => businessStore.branches)
+  const isLoading = computed(() => businessStore.branchesLoading)
 
   const showModal = ref(false)
   const editingId = ref<string | null>(null)
@@ -67,30 +62,30 @@ export function useBranches(businessId: Ref<string | null>) {
       if (!businessId.value) throw new Error('No hay negocio activo')
       return saveBranch(businessId.value, params)
     },
-    onSuccess: async () => {
-      queryClient.invalidateQueries({ queryKey: branchesKeys.all(businessId.value), exact: false }).catch(() => {})
-      if (businessId.value) {
-        await businessStore.loadBranches(businessId.value)
-      }
+    onSuccess: () => {
+      Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: branchesKeys.all(businessId.value), exact: false }),
+        businessId.value ? businessStore.loadBranches(businessId.value) : Promise.resolve(),
+      ])
       success('Sucursal guardada correctamente')
       closeModal()
     },
     onError: (err) => {
-      showError(err instanceof Error ? err.message : 'Error al guardar la sucursal')
+      showError(translateError(err, 'Error al guardar la sucursal'))
     },
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteBranch(id),
-    onSuccess: async () => {
-      queryClient.invalidateQueries({ queryKey: branchesKeys.all(businessId.value), exact: false }).catch(() => {})
-      if (businessId.value) {
-        await businessStore.loadBranches(businessId.value)
-      }
+    onSuccess: () => {
+      Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: branchesKeys.all(businessId.value), exact: false }),
+        businessId.value ? businessStore.loadBranches(businessId.value) : Promise.resolve(),
+      ])
       success('Sucursal eliminada')
     },
     onError: (err) => {
-      showError(err instanceof Error ? err.message : 'Error al eliminar la sucursal')
+      showError(translateError(err, 'Error al eliminar la sucursal'))
     },
   })
 

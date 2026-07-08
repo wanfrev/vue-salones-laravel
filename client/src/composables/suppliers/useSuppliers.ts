@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useNotification } from '../common/useNotification'
+import { translateError } from '../../lib/errors'
 import { resolvePeriodDates } from '../../lib/periodUtils'
 import { useCurrency } from '../common/useCurrency'
 import { useBusinessStore } from '../../store/business'
@@ -43,7 +44,7 @@ export function useSuppliers(businessId: import('vue').Ref<string | null>) {
       closeModal()
     },
     onError: (err) => {
-      showError(err instanceof Error ? err.message : 'Error al guardar el proveedor')
+      showError(translateError(err, 'Error al guardar el proveedor'))
     },
   })
 
@@ -54,7 +55,7 @@ export function useSuppliers(businessId: import('vue').Ref<string | null>) {
       success('Proveedor eliminado correctamente')
     },
     onError: (err) => {
-      showError(err instanceof Error ? err.message : 'Error al eliminar el proveedor')
+      showError(translateError(err, 'Error al eliminar el proveedor'))
     },
   })
 
@@ -117,7 +118,7 @@ export function useSuppliers(businessId: import('vue').Ref<string | null>) {
     try {
       await saveMutation.mutateAsync({ ...form.value, id: editingId.value ?? undefined })
     } catch (err) {
-      saveError.value = err instanceof Error ? err.message : 'Error al guardar el proveedor'
+      saveError.value = translateError(err, 'Error al guardar el proveedor')
       throw err
     }
   }
@@ -198,7 +199,7 @@ export function useSupplierPayments(
       closeModal()
     },
     onError: (err) => {
-      showError(err instanceof Error ? err.message : 'Error al registrar el abono')
+      showError(translateError(err, 'Error al registrar el abono'))
     },
   })
 
@@ -213,7 +214,7 @@ export function useSupplierPayments(
       success('Abono eliminado correctamente')
     },
     onError: (err) => {
-      showError(err instanceof Error ? err.message : 'Error al eliminar el abono')
+      showError(translateError(err, 'Error al eliminar el abono'))
     },
   })
 
@@ -257,7 +258,7 @@ export function useSupplierPayments(
     try {
       await createMutation.mutateAsync({ ...form.value })
     } catch (err) {
-      saveError.value = err instanceof Error ? err.message : 'Error al registrar el abono'
+      saveError.value = translateError(err, 'Error al registrar el abono')
       throw err
     }
   }

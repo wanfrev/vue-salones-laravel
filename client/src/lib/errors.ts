@@ -108,7 +108,7 @@ export function handleDbError(error: unknown, fallback: string): never {
   throw new AppError(fallback)
 }
 
-export function translateError(err: unknown): string {
+export function translateError(err: unknown, fallback?: string): string {
   if (err instanceof DOMException && err.name === 'AbortError') {
     return 'La operación tardó demasiado. Verifica tu conexión a internet e intenta de nuevo.'
   }
@@ -118,7 +118,7 @@ export function translateError(err: unknown): string {
     if (/timeout|timed out|aborted/i.test(msg)) {
       return 'La operación tardó demasiado. Verifica tu conexión a internet e intenta de nuevo.'
     }
-    return msg || 'Error inesperado al procesar la solicitud.'
+    return msg || fallback || 'Error inesperado al procesar la solicitud.'
   }
-  return 'Error inesperado al procesar la solicitud.'
+  return fallback || 'Error inesperado al procesar la solicitud.'
 }

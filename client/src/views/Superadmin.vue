@@ -174,6 +174,7 @@ import { useNotification } from '../composables/common/useNotification'
 import { useAuth } from '../composables/common/useAuth'
 import { useThemeStore } from '../store/theme'
 import { createBusinessWithOwner, listBusinesses, superadminKeys } from '../services/superadminService'
+import { translateError } from '../lib/errors'
 import lumaLogoLight from '../assets/Luma.svg'
 import lumaLogoDark from '../assets/Luma blanco.svg'
 import type { Business } from '../types/database'
@@ -231,8 +232,7 @@ const { mutateAsync: createBusiness, isPending: isCreating } = useMutation({
     queryClient.invalidateQueries({ queryKey: superadminKeys.businesses() }).catch(() => {})
   },
   onError: (err: unknown) => {
-    const message = err instanceof Error ? err.message : 'No fue posible crear el negocio.'
-    error(message)
+    error(translateError(err, 'No fue posible crear el negocio.'))
   },
 })
 

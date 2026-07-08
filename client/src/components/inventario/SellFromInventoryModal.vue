@@ -34,6 +34,7 @@ import { useAuth } from '../../composables/common/useAuth'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useNotification } from '../../composables/common/useNotification'
 import { sellProduct } from '../../services/inventarioService'
+import { translateError } from '../../lib/errors'
 import type { InventarioItem } from '../../types/inventario'
 
 const props = defineProps<{
@@ -68,7 +69,7 @@ const saleMutation = useMutation({
     success('Venta registrada correctamente')
   },
   onError: (err) => {
-    showError(err instanceof Error ? err.message : 'Error al registrar la venta')
+    showError(translateError(err, 'Error al registrar la venta'))
   },
 })
 

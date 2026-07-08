@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useNotification } from '../common/useNotification'
+import { translateError } from '../../lib/errors'
 import { useBusinessStore } from '../../store/business'
 import { giftCardsKeys, listGiftCards, saveGiftCard, deleteGiftCard } from '../../services/giftCardsService'
 import type { GiftCard, GiftCardFormData } from '../../types/giftCard'
@@ -34,7 +35,7 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
       closeModal()
     },
     onError: (err: unknown) => {
-      showError(err instanceof Error ? err.message : 'Error al guardar gift card')
+      showError(translateError(err, 'Error al guardar gift card'))
     },
   })
 
@@ -47,7 +48,7 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
       success('Gift card eliminada correctamente')
     },
     onError: (err: unknown) => {
-      showError(err instanceof Error ? err.message : 'Error al eliminar gift card')
+      showError(translateError(err, 'Error al eliminar gift card'))
     },
   })
 
@@ -97,7 +98,7 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
     try {
       await saveMutation.mutateAsync({ ...form.value })
     } catch (err) {
-      saveError.value = err instanceof Error ? err.message : 'Error al guardar'
+      saveError.value = translateError(err, 'Error al guardar')
       throw err
     }
   }

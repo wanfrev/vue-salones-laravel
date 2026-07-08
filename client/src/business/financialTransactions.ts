@@ -10,6 +10,7 @@ import type {
   ProductSaleDetail,
   PaymentRow,
   EmployeeEarningSummary,
+  DashboardTxRow,
 } from "../composables/finanzas/useFinancialSummary";
 
 export function formatBreakdownLabel(
@@ -82,11 +83,11 @@ export function getProductSaleCurrency(
   };
 }
 
-export function buildTransactionsAll(rawTransactions: any[]): TransactionRow[] {
+export function buildTransactionsAll(rawTransactions: DashboardTxRow[]): TransactionRow[] {
   const groupMap = new Map<
     string,
     {
-      rows: any[];
+      rows: DashboardTxRow[];
       services: string[];
       employees: string[];
       totalAmount: number;
@@ -97,21 +98,21 @@ export function buildTransactionsAll(rawTransactions: any[]): TransactionRow[] {
   const singles: (TransactionRow & { _sortDate: string })[] = [];
 
   for (const row of rawTransactions) {
-    const groupId = (row as any).appointments?.group_id as string | null;
+    const groupId = row.appointments?.group_id as string | null;
     const serviceName = row.appointments?.services?.name ?? "—";
     const employeeName = row.appointments?.employee_profile?.full_name ?? "—";
-    const breakdown = (row as any).payments_breakdown as
+    const breakdown = row.payments_breakdown as
       | PaymentBreakdownItem[]
       | null;
     const firstBreakdown = breakdown?.[0];
     const isVES = firstBreakdown?.currency === "VES";
     const sumVES = sumVESBreakdownInputAmounts(breakdown);
     const vesAmount = isVES && sumVES > 0 ? sumVES : row.total_amount;
-    const sortDate = (row.paid_at ?? row.created_at) as string;
+    const sortDate = row.paid_at ?? row.created_at;
 
     if (groupId) {
-      const rowTip = Number((row as any).tip_amount ?? 0);
-      const serviceAmt = (row.total_amount as number) - rowTip;
+      const rowTip = Number(row.tip_amount ?? 0);
+      const serviceAmt = row.total_amount - rowTip;
       const existing = groupMap.get(groupId);
       if (existing) {
         existing.rows.push(row);
@@ -133,26 +134,26 @@ export function buildTransactionsAll(rawTransactions: any[]): TransactionRow[] {
         });
       }
     } else {
-      const rowTip = Number((row as any).tip_amount ?? 0);
-      const serviceAmt = (row.total_amount as number) - rowTip;
+      const rowTip = Number(row.tip_amount ?? 0);
+      const serviceAmt = row.total_amount - rowTip;
       const breakdownLabel = formatBreakdownLabel(breakdown);
       singles.push({
         id: row.id,
-        appointmentId: (row as any).appointment_id as string,
+        appointmentId: row.appointment_id as string,
         date: formatDate(row.paid_at ?? row.created_at),
         client: row.appointments?.clients?.full_name ?? "—",
         employee: employeeName,
         service: serviceName,
         method: breakdownLabel || formatMethod(row.method),
-        rawMethod: row.method as any,
+        rawMethod: row.method,
         amount: serviceAmt,
         exchangeRateUsed: row.exchange_rate_used ?? 1,
         breakdownLabel,
         breakdown,
         primaryCurrency: isVES ? "VES" : "USD",
         primaryAmount: vesAmount,
-        notes: (row as any).notes ?? null,
-        tipAmount: Number((row as any).tip_amount ?? 0),
+        notes: row.notes ?? null,
+        tipAmount: Number(row.tip_amount ?? 0),
         _sortDate: sortDate,
       });
     }
@@ -161,7 +162,7 @@ export function buildTransactionsAll(rawTransactions: any[]): TransactionRow[] {
   const grouped: (TransactionRow & { _sortDate: string })[] = [];
   for (const [, group] of groupMap) {
     const firstRow = group.rows[0];
-    const breakdown = (firstRow as any).payments_breakdown as
+    const breakdown = firstRow.payments_breakdown as
       | PaymentBreakdownItem[]
       | null;
     const breakdownLabel = formatBreakdownLabel(breakdown);
@@ -170,20 +171,20 @@ export function buildTransactionsAll(rawTransactions: any[]): TransactionRow[] {
     const sortDate = (firstRow.paid_at ?? firstRow.created_at) as string;
     grouped.push({
       id: firstRow.id,
-      appointmentId: (firstRow as any).appointment_id as string,
+      appointmentId: firstRow.appointment_id as string,
       date: formatDate(firstRow.paid_at ?? firstRow.created_at),
       client: firstRow.appointments?.clients?.full_name ?? "—",
       employee: group.employees.join(", "),
       service: group.services.join(" + "),
       method: breakdownLabel || formatMethod(firstRow.method),
-      rawMethod: firstRow.method as any,
+      rawMethod: firstRow.method,
       amount: group.totalAmount,
       exchangeRateUsed: firstRow.exchange_rate_used ?? 1,
       breakdownLabel,
       breakdown,
       primaryCurrency: isVES ? "VES" : "USD",
       primaryAmount: isVES ? group.totalVES : group.totalAmount,
-      notes: (firstRow as any).notes ?? null,
+      notes: firstRow.notes ?? null,
       tipAmount: group.totalTip,
       _sortDate: sortDate,
     });
@@ -232,7 +233,7 @@ export function buildProductSalesDetails(
 }
 
 export function buildUnifiedTransactions(
-  rawTransactions: any[],
+  rawTransactions: DashboardTxRow[],
   rawEmployeePayments: any[],
   rawExpenses: any[],
 ): UnifiedTransaction[] {
@@ -240,7 +241,7 @@ export function buildUnifiedTransactions(
   const groupMap = new Map<
     string,
     {
-      txs: any[];
+      txs: DashboardTxRow[];
       services: string[];
       employees: string[];
       totalAmount: number;
@@ -250,16 +251,16 @@ export function buildUnifiedTransactions(
   >();
 
   for (const tx of rawTransactions) {
-    const groupId = (tx as any).appointments?.group_id as string | null;
+    const groupId = tx.appointments?.group_id as string | null;
     const serviceName = tx.appointments?.services?.name ?? "—";
     const employeeName = tx.appointments?.employee_profile?.full_name ?? "—";
-    const breakdown = (tx as any).payments_breakdown as
+    const breakdown = tx.payments_breakdown as
       | PaymentBreakdownItem[]
       | null;
     const firstBreakdown = breakdown?.[0];
     const isVES = firstBreakdown?.currency === "VES";
     const sumVES = sumVESBreakdownInputAmounts(breakdown);
-    const txTip = Number((tx as any).tip_amount ?? 0);
+    const txTip = Number(tx.tip_amount ?? 0);
     const serviceAmt = (tx.total_amount as number) - txTip;
     const vesAmount = isVES && sumVES > 0 ? sumVES : serviceAmt;
 
@@ -296,8 +297,8 @@ export function buildUnifiedTransactions(
         exchangeRateUsed: tx.exchange_rate_used ?? 1,
         _currency: isVES ? "VES" : "USD",
         _originalAmount: vesAmount,
-        notes: (tx as any).notes ?? null,
-        tipAmount: Number((tx as any).tip_amount ?? 0),
+        notes: tx.notes ?? null,
+        tipAmount: Number(tx.tip_amount ?? 0),
         sortDate: tx.paid_at ?? tx.created_at,
       });
     }
@@ -305,7 +306,7 @@ export function buildUnifiedTransactions(
 
   for (const [, group] of groupMap) {
     const firstTx = group.txs[0];
-    const breakdown = (firstTx as any).payments_breakdown as
+    const breakdown = firstTx.payments_breakdown as
       | PaymentBreakdownItem[]
       | null;
     const firstBreakdown = breakdown?.[0];
@@ -323,7 +324,7 @@ export function buildUnifiedTransactions(
       exchangeRateUsed: firstTx.exchange_rate_used ?? 1,
       _currency: isVES ? "VES" : "USD",
       _originalAmount: isVES ? group.totalVES : group.totalAmount,
-      notes: (firstTx as any).notes ?? null,
+      notes: firstTx.notes ?? null,
       tipAmount: group.totalTip,
       sortDate: firstTx.paid_at ?? firstTx.created_at,
     });
@@ -380,10 +381,10 @@ export function buildUnifiedTransactions(
   return result.map(({ sortDate: _, ...tx }) => tx);
 }
 
-export function buildEmployeePayments(rawTransactions: any[]): PaymentRow[] {
+export function buildEmployeePayments(rawTransactions: DashboardTxRow[]): PaymentRow[] {
   const rows: PaymentRow[] = [];
   for (const row of rawTransactions) {
-    const tipAmount = Number((row as any).tip_amount ?? 0);
+    const tipAmount = Number(row.tip_amount ?? 0);
     const serviceAmount = Math.max(
       0,
       Number(row.total_amount ?? 0) - tipAmount,
@@ -425,7 +426,7 @@ export function buildEmployeePayments(rawTransactions: any[]): PaymentRow[] {
 }
 
 export function buildEmployeeEarningsByEmployee(
-  rawTransactions: any[],
+  rawTransactions: DashboardTxRow[],
 ): EmployeeEarningSummary[] {
   const map = new Map<
     string,
@@ -461,7 +462,7 @@ export function buildEmployeeEarningsByEmployee(
     const mainProfile = appt.employee_profile;
     if (mainId) {
       ensureEntry(mainId, mainProfile?.full_name ?? "—", mainProfile);
-      const tipAmount = Number((tx as any).tip_amount ?? 0);
+      const tipAmount = Number(tx.tip_amount ?? 0);
       const calc = computeServiceEarnings(
         Math.max(0, Number(tx.total_amount ?? 0) - tipAmount),
         mainProfile,

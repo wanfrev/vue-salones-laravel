@@ -1,7 +1,8 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api as supabase } from '../lib/api'
-import { listBranches } from '../services/branchesService'
+import { listBranches, branchesKeys } from '../services/branchesService'
 import type { Business, Terminology, Branch } from '../types/database'
 
 const DEFAULT_TERMINOLOGY: Terminology = {
@@ -36,9 +37,7 @@ function branchStorageKey(businessId: string): string {
 export const useBusinessStore = defineStore('business', () => {
   const business = ref<Business | null>(null)
   const loading = ref(false)
-  const branches = ref<Branch[]>([])
   const selectedBranchId = ref<string | null>(null)
-  const branchesLoading = ref(false)
 
   const nicheType = computed(() => business.value?.niche_type ?? 'salon')
   const terminology = computed(() => business.value?.terminology ?? DEFAULT_TERMINOLOGY)
@@ -52,6 +51,15 @@ export const useBusinessStore = defineStore('business', () => {
     return r != null && r > 0 ? Number(r) : null
   })
 
+  // Branches via TanStack Query — single source of truth
+  const { data: branchesData, isLoading: branchesLoading } = useQuery({
+    queryKey: computed(() => branchesKeys.all(business.value?.id)),
+    queryFn: () => listBranches(business.value!.id),
+    enabled: computed(() => !!business.value?.id && isMultiBranch.value),
+  })
+
+  const branches = computed<Branch[]>(() => branchesData.value ?? [])
+
   const currentBranch = computed(() =>
     selectedBranchId.value ? branches.value.find(b => b.id === selectedBranchId.value) ?? null : null
   )
@@ -64,7 +72,6 @@ export const useBusinessStore = defineStore('business', () => {
   const loadBusiness = async (nextBusinessId: string | null, employeeId?: string) => {
     if (!nextBusinessId) {
       business.value = null
-      branches.value = []
       selectedBranchId.value = null
       return
     }
@@ -86,52 +93,46 @@ export const useBusinessStore = defineStore('business', () => {
 
       business.value = data as Business
 
-      // Load branches and restore saved selection
-      await loadBranches(nextBusinessId, employeeId)
+      // Restore branch selection — branches are auto-fetched via useQuery
+      await restoreBranchSelection(employeeId)
     } finally {
       loading.value = false
     }
   }
 
   const loadBranches = async (businessId: string, employeeId?: string) => {
-    if (!businessId || !isMultiBranch.value) {
-      branches.value = []
-      selectedBranchId.value = null
-      return
+    // Branches are managed by TanStack Query. This shim invalidates + refetches.
+    const queryClient = useQueryClient()
+    await queryClient.invalidateQueries({ queryKey: branchesKeys.all(businessId) })
+    await queryClient.refetchQueries({ queryKey: branchesKeys.all(businessId) })
+    await restoreBranchSelection(employeeId)
+  }
+
+  async function restoreBranchSelection(employeeId?: string) {
+    const bizId = business.value?.id
+    if (!bizId || !isMultiBranch.value || branches.value.length === 0) return
+
+    if (employeeId) {
+      const { data: schedule } = await supabase
+        .from('employee_schedules')
+        .select('branch_id')
+        .eq('employee_id', employeeId)
+        .limit(1)
+        .maybeSingle()
+
+      if (schedule?.branch_id && branches.value.some(b => b.id === schedule.branch_id)) {
+        selectedBranchId.value = schedule.branch_id
+        localStorage.setItem(branchStorageKey(bizId), schedule.branch_id)
+        return
+      }
     }
 
-    branchesLoading.value = true
-    try {
-      const list = await listBranches(businessId)
-      branches.value = list as Branch[]
-
-      if (employeeId) {
-        const { data: schedule } = await supabase
-          .from('employee_schedules')
-          .select('branch_id')
-          .eq('employee_id', employeeId)
-          .limit(1)
-          .maybeSingle()
-
-        if (schedule?.branch_id && branches.value.some(b => b.id === schedule.branch_id)) {
-          selectedBranchId.value = schedule.branch_id
-          localStorage.setItem(branchStorageKey(businessId), schedule.branch_id)
-          return
-        }
-      }
-
-      const saved = localStorage.getItem(branchStorageKey(businessId))
-      if (saved && branches.value.some(b => b.id === saved)) {
-        selectedBranchId.value = saved
-      } else {
-        const def = branches.value.find(b => b.is_default) ?? branches.value[0] ?? null
-        selectedBranchId.value = def?.id ?? null
-      }
-    } catch {
-      branches.value = []
-      selectedBranchId.value = null
-    } finally {
-      branchesLoading.value = false
+    const saved = localStorage.getItem(branchStorageKey(bizId))
+    if (saved && branches.value.some(b => b.id === saved)) {
+      selectedBranchId.value = saved
+    } else {
+      const def = branches.value.find(b => b.is_default) ?? branches.value[0] ?? null
+      selectedBranchId.value = def?.id ?? null
     }
   }
 
@@ -146,7 +147,6 @@ export const useBusinessStore = defineStore('business', () => {
 
   const clearBusiness = () => {
     business.value = null
-    branches.value = []
     selectedBranchId.value = null
   }
 
