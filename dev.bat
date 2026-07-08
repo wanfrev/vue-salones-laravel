@@ -1,26 +1,26 @@
 @echo off
 chcp 65001 >nul
 title Luma - Salones
-
 set ROOT=%~dp0
 
 echo.
 echo   Luma - Salones
-echo   ---------------
+echo   Postgres 5434 ^| Redis 6379 ^| API 8000 ^| Front 5173
 echo.
 
-echo [*] Verificando Docker...
+echo [1] Verificando Docker...
 docker ps --filter name=luma-postgres --format "{{.Names}}" 2>nul | findstr "luma-postgres" >nul
 if %errorlevel% neq 0 (
-    echo     Error: luma-postgres no esta corriendo
+    echo     ERROR: luma-postgres no esta corriendo
     echo     Ejecuta: cd "%ROOT%" ^&^& docker compose up -d
     pause
     exit /b 1
 )
 echo     luma-postgres OK
+
 docker ps --filter name=luma-redis --format "{{.Names}}" 2>nul | findstr "luma-redis" >nul
 if %errorlevel% neq 0 (
-    echo     luma-redis no esta corriendo
+    echo     ERROR: luma-redis no esta corriendo
     echo     Ejecuta: cd "%ROOT%" ^&^& docker compose up -d
     pause
     exit /b 1
@@ -28,23 +28,19 @@ if %errorlevel% neq 0 (
 echo     luma-redis OK
 echo.
 
-echo [*] Iniciando Backend :8000...
+echo [2] Iniciando Backend :8000...
 start "Luma-Backend" cmd /k "cd /d "%ROOT%backend" && php artisan serve --host=0.0.0.0 --port=8000"
 
-echo [*] Iniciando Reverb :8080...
-start "Luma-Reverb" cmd /k "cd /d "%ROOT%backend" && php artisan reverb:start"
-
-echo [*] Iniciando Horizon...
-start "Luma-Horizon" cmd /k "cd /d "%ROOT%backend" && php artisan horizon"
-
-echo [*] Iniciando Frontend :5173...
+echo [3] Iniciando Frontend :5173...
 start "Luma-Frontend" cmd /k "cd /d "%ROOT%client" && npm run dev"
 
 echo.
-echo   Backend:  http://localhost:8000
-echo   Frontend: http://localhost:5173
-echo   Postgres: localhost:5432 / salones
+echo   Datos de prueba:
+echo     admin@demo.com     / password  (Admin)
+echo     super@demo.com     / password  (Superadmin)
+echo     empleado@demo.com  / password  (Empleado)
 echo.
-echo   Cierra las ventanas para detener todo.
+echo   Abre http://localhost:5173
+echo   F12 - Console para ver errores
 echo.
 pause
