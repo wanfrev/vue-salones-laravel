@@ -105,12 +105,12 @@ type Filter = {
   value: unknown
 }
 
-class ApiQueryBuilder {
+class ApiQueryBuilder<T = any> {
   private tableName: string
   private _method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' = 'GET'
   private _select: string = '*'
   private _filters: Filter[] = []
-  private _orFilters: string[] = []  // raw OR filter strings
+  private _orFilters: string[] = []
   private _orderColumn?: string
   private _orderAscending: boolean = true
   private _limit?: number
@@ -235,8 +235,8 @@ class ApiQueryBuilder {
   }
 
   // Makes the builder thennable
-  then<TResult1 = ApiResponse<any>, TResult2 = never>(
-    onfulfilled?: ((value: ApiResponse<any>) => TResult1 | PromiseLike<TResult1>) | null,
+  then<TResult1 = ApiResponse<T>, TResult2 = never>(
+    onfulfilled?: ((value: ApiResponse<T>) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
   ): Promise<TResult1 | TResult2> {
     return this.execute().then(onfulfilled, onrejected)
@@ -306,11 +306,11 @@ class ApiQueryBuilder {
     return { path: qs ? `${path}?${qs}` : path, method: this._method, body: this._body ? { data: this._body } : undefined }
   }
 
-  private async execute(): Promise<ApiResponse<any>> {
+  private async execute(): Promise<ApiResponse<T>> {
     const { path, method, body } = this.buildPathAndBody()
 
     if (this._single) {
-      const res = await apiFetch<any>(method, path, body)
+      const res = await apiFetch<T>(method, path, body)
       if (res.error) return { data: null, error: res.error }
       const d = res.data
       if (Array.isArray(d)) {
@@ -322,7 +322,7 @@ class ApiQueryBuilder {
       return { data: d, error: null }
     }
 
-    return apiFetch<any[]>(method, path, body)
+    return apiFetch<T>(method, path, body)
   }
 }
 
@@ -385,11 +385,11 @@ export const apiAuth = {
       authListeners.forEach(fn => fn(res.data))
       return { data: { session: res.data, user: res.data.user }, error: null as ApiError | null }
     }
-    return { data: null as any, error: res.error }
+    return { data: null as unknown as { session: ApiSession; user: ApiUser }, error: res.error }
   },
 
   async signOut(_opts?: { scope?: string }) {
-    await apiFetch('POST', '/auth/logout')
+    await apiFetch<void>('POST', '/auth/logout')
     currentSession = null
     setAuthToken(null)
     authListeners.forEach(fn => fn(null))
@@ -401,9 +401,9 @@ export const apiAuth = {
     if (res.data) {
       currentSession = res.data
       setAuthToken(res.data.access_token)
-      return { data: { session: res.data, user: res.data.user }, error: null as ApiError | null }
+      return { data: { session: res.data, user: res.data.user }, error: null }
     }
-    return { data: null as any, error: res.error }
+    return { data: null as unknown as { session: ApiSession; user: ApiUser }, error: res.error }
   },
 
   onAuthStateChange(callback: (event: 'SIGNED_IN' | 'SIGNED_OUT' | 'TOKEN_REFRESHED' | 'USER_UPDATED', session: ApiSession | null) => void) {
@@ -434,34 +434,47 @@ export const apiRpc = Object.assign(rpcCallable, {
 // ── Edge Functions (stub) ──────────────────────────────────────
 
 const functionsStub = {
-  invoke(_fn: string, _opts?: { body?: unknown }) {
+  invoke(_fn: string, _opts?: { body?: unknown }): Promise<ApiResponse<{ success: boolean }>> {
     return Promise.resolve({
-      data: { success: true } as any,
-      error: null as ApiError | null,
+      data: { success: true },
+      error: null,
     })
   },
 }
 
 // ── Realtime (stub) ────────────────────────────────────────────
 
-const channels = new Map<string, ReturnType<typeof createChannel>>()
+interface RealtimeChannel {
+  on(_event: string, _filter: unknown, _callback: Function): RealtimeChannel
+  subscribe(_callback?: Function): RealtimeChannel
+  unsubscribe(): RealtimeChannel
+}
 
-function createChannel(_name: string) {
-  return {
-    on(_event: string, _filter: unknown, _callback: Function) { return this as any },
-    subscribe(_callback?: Function) { return this as any },
-    unsubscribe() { return this },
+const channels = new Map<string, RealtimeChannel>()
+
+function createChannel(_name: string): RealtimeChannel {
+  const ch: RealtimeChannel = {
+    on() { return ch },
+    subscribe() { return ch },
+    unsubscribe() { return ch },
   }
+  return ch
 }
 
 const apiRealtime = {
-  channel(name: string) {
+  channel(name: string, _config?: unknown): RealtimeChannel {
     const ch = createChannel(name)
     channels.set(name, ch)
     return ch
   },
-  removeChannel(name: string) {
-    channels.delete(name)
+  removeChannel(channelOrName: string | RealtimeChannel) {
+    if (typeof channelOrName === 'string') {
+      channels.delete(channelOrName)
+    } else {
+      for (const [key, ch] of channels) {
+        if (ch === channelOrName) { channels.delete(key); break }
+      }
+    }
   },
   removeAllChannels() {
     channels.clear()
@@ -471,22 +484,22 @@ const apiRealtime = {
 // ── Public API ─────────────────────────────────────────────────
 
 export const api = {
-  from(table: string) {
+  from(table: string): ApiQueryBuilder {
     return new ApiQueryBuilder(table)
   },
 
-  rpc: apiRpc as any as typeof rpcCallable & { invoke: typeof rpcCallable },
+  rpc: apiRpc,
 
   auth: apiAuth,
 
   functions: functionsStub,
 
-  channel(name: string) {
-    return apiRealtime.channel(name) as any
+  channel(name: string, config?: unknown) {
+    return apiRealtime.channel(name, config)
   },
 
-  removeChannel(name: string) {
-    apiRealtime.removeChannel(name)
+  removeChannel(channelOrName: string | RealtimeChannel) {
+    apiRealtime.removeChannel(channelOrName)
   },
 
   removeAllChannels() {
