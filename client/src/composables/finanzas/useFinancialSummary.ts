@@ -9,8 +9,6 @@ import { useTransactionEdit } from '../finanzas/useTransactionEdit'
 import type { PaymentBreakdownItem } from '../../types/pos'
 import type { PaymentMethod } from '../../types/database'
 import {
-  formatBreakdownLabel,
-  sumVESBreakdownInputAmounts,
   buildTransactionsAll,
   buildProductSalesDetails,
   buildUnifiedTransactions,
@@ -82,6 +80,7 @@ function useFinancialSummary(
       if (error) throw error; return (data ?? []) as SummaryBucket[]
     },
     enabled: computed(() => !!businessId.value),
+    keepPreviousData: true,
   })
   const summaryBuckets = computed(() => summaryData.value ?? [])
 
@@ -96,6 +95,7 @@ function useFinancialSummary(
       const { data, error } = await query; if (error) throw error; return data ?? []
     },
     enabled: computed(() => !!businessId.value),
+    keepPreviousData: true,
   })
   const rawTransactions = computed(() => transactionsData.value ?? [])
 
