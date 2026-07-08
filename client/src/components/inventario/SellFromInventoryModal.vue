@@ -1,46 +1,21 @@
 <template>
-  <ModalBase
-    :is-open="isOpen"
-    title="Registrar venta"
-    subtitle="Descuenta del inventario por venta al cliente"
+  <ModalBase :is-open="isOpen" title="Registrar venta" subtitle="Descuenta del inventario por venta al cliente"
     icon="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z"
-    size="sm"
-    confirm-text="Registrar venta"
-    :is-confirm-disabled="saleQuantity <= 0"
-    :is-loading="isSaving"
-    @close="$emit('close')"
-    @confirm="handleConfirm"
-  >
+    size="sm" confirm-text="Registrar venta" :is-confirm-disabled="saleQuantity <= 0" :is-loading="isSaving"
+    @close="$emit('close')" @confirm="handleConfirm">
     <div class="space-y-4">
       <div class="rounded-lg bg-bg-secondary p-3">
         <p class="text-sm font-medium text-text">{{ item?.productName }}</p>
         <p v-if="item?.variantName" class="text-xs text-text-muted">{{ item.variantName }}</p>
         <p class="text-xs text-text-muted">Disponible: {{ item?.availableQty }}</p>
       </div>
-      <FormInput
-        v-model.number="saleQuantity"
-        label="Cantidad vendida"
-        type="number"
-        min="1"
-        :max="item?.availableQty ?? 1"
-        placeholder="1"
-        prefix-icon="M12 6v6m0 0v6m0-6h6m-6 0H6"
-      />
-      <FormInput
-        v-model.number="saleUnitPrice"
-        label="Precio unitario ($)"
-        type="number"
-        min="0"
-        step="0.01"
+      <FormInput v-model.number="saleQuantity" label="Cantidad vendida" type="number" min="1"
+        :max="item?.availableQty ?? 1" placeholder="1" prefix-icon="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+      <FormInput v-model.number="saleUnitPrice" label="Precio unitario ($)" type="number" min="0" step="0.01"
         :placeholder="String(item?.unitPrice ?? '0.00')"
-        prefix-icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-      />
-      <FormInput
-        v-model="saleNotes"
-        label="Notas"
-        placeholder="Opcional"
-        prefix-icon="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-      />
+        prefix-icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      <FormInput v-model="saleNotes" label="Notas" placeholder="Opcional"
+        prefix-icon="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
       <div v-if="saleTotalUsd > 0" class="rounded-lg bg-bg-secondary p-3 text-center">
         <p class="text-sm text-text-muted">Total de la venta</p>
         <p class="text-xl font-bold text-text">{{ formatUSD(saleTotalUsd) }}</p>

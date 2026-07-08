@@ -63,7 +63,7 @@ const onFocus = () => { if (suggestions.value.length > 0) showSuggestions.value 
   <div class="relative sm:col-span-2 lg:col-span-1">
     <FormInput :model-value="modelValue" :label="t.client" :placeholder="`Nombre del ${t.client.toLowerCase()}`"
       required prefix-icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" :error="error"
-      @update:model-value="$emit('update:modelValue', $event)" @blur="onBlur" @focus="onFocus" @input="onInput" />
+      @update:model-value="$emit('update:modelValue', String($event))" @blur="onBlur" @focus="onFocus" @input="onInput" />
     <div v-if="showSuggestions && suggestions.length > 0"
       class="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface shadow-lg overflow-hidden">
       <button v-for="client in suggestions" :key="client.id" type="button" @mousedown.prevent="selectClient(client)"
