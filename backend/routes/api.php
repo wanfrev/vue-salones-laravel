@@ -78,10 +78,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Services
     Route::get('/services', [ServiceController::class, 'index']);
     Route::post('/services', [ServiceController::class, 'store']);
-    Route::put('/services/{id}', [ServiceController::class, 'update']);
-    Route::delete('/services/{id}', [ServiceController::class, 'destroy']);
     Route::post('/services/categories/rename', [ServiceController::class, 'renameCategory']);
     Route::delete('/services/categories', [ServiceController::class, 'deleteCategory']);
+    Route::put('/services/{id}', [ServiceController::class, 'update']);
+    Route::delete('/services/{id}', [ServiceController::class, 'destroy']);
 
     // Clients
     Route::get('/clients', [ClientController::class, 'index']);

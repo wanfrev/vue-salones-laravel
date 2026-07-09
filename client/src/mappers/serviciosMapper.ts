@@ -77,8 +77,6 @@ export const mapServiceToServicio = (service: Service, citasMes = 0, ingresos = 
 }
 
 export const mapServicioFormToServiceInsert = (businessId: string, data: ServicioFormData) => {
-  const visuals = getServiceVisuals(data.category)
-
   return {
     business_id: businessId,
     name: data.name.trim(),
@@ -86,8 +84,6 @@ export const mapServicioFormToServiceInsert = (businessId: string, data: Servici
     duration_minutes: Number(data.duration),
     price: Number(data.price),
     category: data.category,
-    icon: visuals.icon,
-    color: visuals.color,
     active: data.status === 'Activo',
   }
 }

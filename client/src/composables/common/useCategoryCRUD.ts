@@ -54,14 +54,15 @@ export function useCategoryCRUD<T extends { category: string }>(params: UseCateg
     return services.value.filter(s => s.category === activeCategory.value)
   })
 
-  function invalidateCategoryQueries(bid: string) {
-    const promises = [queryClient.invalidateQueries({ queryKey: serviciosKeys.all(bid) })]
+  async function invalidateCategoryQueries(bid: string) {
+    const promises = [queryClient.invalidateQueries({ exact: false, queryKey: serviciosKeys.all(bid) })]
     if (extraInvalidations) {
       for (const keyFn of extraInvalidations) {
-        promises.push(queryClient.invalidateQueries({ queryKey: keyFn() as string[] }))
+        promises.push(queryClient.invalidateQueries({ exact: false, queryKey: keyFn() as string[] }))
       }
     }
-    return Promise.allSettled(promises)
+    await Promise.allSettled(promises)
+    await queryClient.refetchQueries({ exact: false, queryKey: serviciosKeys.all(bid) })
   }
 
   function openRenameCategoryModal(cat: string) {

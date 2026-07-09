@@ -44,7 +44,7 @@ const onInput = () => {
     } finally {
       searchLoading.value = false
     }
-  }, 300)
+  }, 500)
 }
 
 const selectClient = (client: { id: string; full_name: string; phone: string }) => {

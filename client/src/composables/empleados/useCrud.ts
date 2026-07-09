@@ -44,13 +44,15 @@ export function useCrud<TData, TForm, TId = string>(options: UseCrudOptions<TDat
 
   const items = computed<TData[]>(() => data.value ?? [])
 
-  const invalidateAll = () => {
+  const invalidateAll = async () => {
     if (!businessId.value) return
-    const keys = [queryClient.invalidateQueries({ exact: false, queryKey: queryKey(businessId.value, currentBranchId.value) })]
+    const key = queryKey(businessId.value, currentBranchId.value)
+    const keys = [queryClient.invalidateQueries({ exact: false, queryKey: key })]
     for (const extra of extraInvalidations) {
       keys.push(queryClient.invalidateQueries({ exact: false, queryKey: extra(businessId.value, currentBranchId.value) }))
     }
-    Promise.allSettled(keys)
+    await Promise.allSettled(keys)
+    await queryClient.refetchQueries({ exact: false, queryKey: key })
   }
 
   const saveMutation = useMutation({
@@ -87,21 +89,21 @@ export function useCrud<TData, TForm, TId = string>(options: UseCrudOptions<TDat
       saveError.value = translateError(err)
       showError(saveError.value)
     },
-    onSettled: (_data, error) => {
+    onSettled: async (_data, error) => {
       saveError.value = ''
+      modalRef?.value?.close()
       if (!error) {
         success(`${entityName} guardado correctamente`)
       }
-      invalidateAll()
-      modalRef?.value?.close()
+      await invalidateAll()
     },
   })
 
   const deleteMutation = deleteFn
     ? useMutation({
         mutationFn: (id: TId) => deleteFn(id),
-        onSuccess: () => {
-          invalidateAll()
+        onSuccess: async () => {
+          await invalidateAll()
           modalRef?.value?.close()
           success(`${entityName} eliminado correctamente`)
         },

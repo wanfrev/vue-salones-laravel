@@ -66,7 +66,15 @@ class ServiceService
     public function destroy(string $id, string $businessId): void
     {
         $service = $this->findForBusiness($id, $businessId);
-        $service->delete();
+
+        try {
+            $service->delete();
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ((string) $e->getCode() === '23503') {
+                throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'No se puede eliminar el servicio porque tiene citas asociadas.');
+            }
+            throw $e;
+        }
     }
 
     public function renameCategory(string $businessId, string $oldName, string $newName): void
@@ -98,7 +106,7 @@ class ServiceService
             ->update(['category' => $newName, 'updated_at' => now()]);
     }
 
-    public function deleteCategory(string $businessId, string $categoryName): void
+    public function deleteCategory(string $businessId, string $categoryName, string $replacementCategory = 'otros'): void
     {
         $business = Business::find($businessId);
         if (!$business) {
@@ -117,7 +125,7 @@ class ServiceService
 
         Service::where('business_id', $businessId)
             ->where('category', $categoryName)
-            ->update(['category' => 'otros', 'updated_at' => now()]);
+            ->update(['category' => $replacementCategory, 'updated_at' => now()]);
     }
 
     public function findForBusiness(string $id, string $businessId): Service

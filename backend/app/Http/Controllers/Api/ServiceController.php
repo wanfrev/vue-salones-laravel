@@ -13,22 +13,35 @@ class ServiceController
         private ServiceService $serviceService,
     ) {}
 
+    private function resolveBusinessId(Request $request): ?string
+    {
+        return $request->user()?->profile?->business_id;
+    }
+
+    private function dispatchChange(?string $businessId, string $entity, string $action, ?string $entityId = null): void
+    {
+        if (!$businessId) return;
+        try {
+            EntityChanged::dispatch($businessId, $entity, $action, $entityId);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("EntityChanged dispatch failed: {$e->getMessage()}");
+        }
+    }
+
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json([]);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
 
         return response()->json(
-            $this->serviceService->list($p->business_id, $request->branch_id)
+            $this->serviceService->list($businessId, $request->branch_id)
         );
     }
 
     public function store(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
         $data = $request->validate([
             'name' => 'required|string|max:255',
@@ -44,15 +57,15 @@ class ServiceController
             'service_category_id' => 'nullable|uuid',
         ]);
 
-        $service = $this->serviceService->store($data, $p->business_id);
-        EntityChanged::dispatch($p->business_id, 'service', 'created', $service->id);
+        $service = $this->serviceService->store($data, $businessId);
+        $this->dispatchChange($businessId, 'service', 'created', $service->id);
         return response()->json($service, 201);
     }
 
     public function update(Request $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
         $data = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -68,44 +81,49 @@ class ServiceController
             'service_category_id' => 'nullable|uuid',
         ]);
 
-        $service = $this->serviceService->update($id, $data, $p?->business_id);
-        EntityChanged::dispatch($p->business_id, 'service', 'updated', $id);
+        $service = $this->serviceService->update($id, $data, $businessId);
+        $this->dispatchChange($businessId, 'service', 'updated', $id);
         return response()->json($service);
     }
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
-        $this->serviceService->destroy($id, $p?->business_id);
-        EntityChanged::dispatch($p->business_id, 'service', 'deleted', $id);
+        $this->serviceService->destroy($id, $businessId);
+        $this->dispatchChange($businessId, 'service', 'deleted', $id);
         return response()->json(null, 204);
     }
 
     public function renameCategory(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
         $data = $request->validate([
             'oldName' => 'required|string',
             'newName' => 'required|string',
         ]);
 
-        $this->serviceService->renameCategory($p->business_id, $data['oldName'], $data['newName']);
+        $this->serviceService->renameCategory($businessId, $data['oldName'], $data['newName']);
         return response()->json(['success' => true]);
     }
 
     public function deleteCategory(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
-        $data = $request->validate(['categoryName' => 'required|string']);
-        $this->serviceService->deleteCategory($p->business_id, $data['categoryName']);
+        $data = $request->validate([
+            'categoryName' => 'required|string',
+            'replacementCategory' => 'nullable|string',
+        ]);
+        $this->serviceService->deleteCategory(
+            $businessId,
+            $data['categoryName'],
+            $data['replacementCategory'] ?? 'otros'
+        );
         return response()->json(['success' => true]);
     }
 }

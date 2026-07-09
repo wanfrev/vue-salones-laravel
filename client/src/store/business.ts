@@ -40,7 +40,7 @@ export const useBusinessStore = defineStore('business', () => {
   const selectedBranchId = ref<string | null>(null)
 
   const nicheType = computed(() => business.value?.niche_type ?? 'salon')
-  const terminology = computed(() => business.value?.terminology ?? DEFAULT_TERMINOLOGY)
+  const terminology = computed(() => ({ ...DEFAULT_TERMINOLOGY, ...(business.value?.terminology ?? {}) }))
   const jobTitles = computed(() => business.value?.job_titles ?? [])
   const serviceCategories = computed(() => business.value?.service_categories ?? [])
   const features = computed(() => ({ ...DEFAULT_FEATURES, ...(business.value as any)?.features }))

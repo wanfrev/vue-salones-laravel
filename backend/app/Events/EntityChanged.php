@@ -28,4 +28,14 @@ class EntityChanged implements ShouldBroadcast
     {
         return 'entity.changed';
     }
+
+    public static function safe(?string $businessId, string $entity, string $action, ?string $entityId = null): void
+    {
+        if (!$businessId) return;
+        try {
+            static::dispatch($businessId, $entity, $action, $entityId);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("EntityChanged broadcast failed: {$e->getMessage()}");
+        }
+    }
 }

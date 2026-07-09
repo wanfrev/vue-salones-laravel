@@ -1,4 +1,5 @@
 import { api as supabase, api as mutate } from '../lib/api'
+import { apiRequest } from '../lib/api'
 import { mapServiceToServicio, mapServicioFormToServiceInsert } from '../mappers/serviciosMapper'
 import type { Service } from '../types/database'
 import type { UpdateFor } from '../types/helpers'
@@ -110,8 +111,6 @@ export const deleteServicio = async (id: string): Promise<void> => {
     .from('services')
     .delete()
     .eq('id', id)
-    .select('id')
-    .single()
 
   if (error) {
     if (error.code === '23503') {
@@ -152,19 +151,11 @@ export const renameBusinessCategory = async (
     return getBusinessServiceCategories(businessId)
   }
 
-  const { error: updateServicesError } = await mutate
-    .from('services')
-    .update({ category: nextName })
-    .eq('business_id', businessId)
-    .eq('category', fromCategory)
+  await apiRequest('POST', '/services/categories/rename', {
+    data: { oldName: fromCategory, newName: nextName },
+  })
 
-  if (updateServicesError) throw updateServicesError
-
-  const currentCategories = await getBusinessServiceCategories(businessId)
-  const withoutOld = currentCategories.filter((cat) => cat !== fromCategory)
-  const withNew = withoutOld.includes(nextName) ? withoutOld : [...withoutOld, nextName]
-
-  return updateBusinessServiceCategories(businessId, withNew)
+  return getBusinessServiceCategories(businessId)
 }
 
 export const deleteBusinessCategory = async (
@@ -179,19 +170,9 @@ export const deleteBusinessCategory = async (
     return getBusinessServiceCategories(businessId)
   }
 
-  const { error: updateServicesError } = await mutate
-    .from('services')
-    .update({ category: replacement })
-    .eq('business_id', businessId)
-    .eq('category', category)
+  await apiRequest('DELETE', '/services/categories', {
+    data: { categoryName: category, replacementCategory: replacement },
+  })
 
-  if (updateServicesError) throw updateServicesError
-
-  const currentCategories = await getBusinessServiceCategories(businessId)
-  const withoutDeleted = currentCategories.filter((cat) => cat !== category)
-  const withReplacement = withoutDeleted.includes(replacement)
-    ? withoutDeleted
-    : [...withoutDeleted, replacement]
-
-  return updateBusinessServiceCategories(businessId, withReplacement)
+  return getBusinessServiceCategories(businessId)
 }

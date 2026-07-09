@@ -249,7 +249,10 @@ const categoryOptions = computed(() => {
     : businessStore.serviceCategories
   const fallbackItems = NICHE_CATEGORIES[nicheType.value] || NICHE_CATEGORIES.salon
   const items: { value: string; label: string }[] = rawBizCats.length > 0
-    ? rawBizCats.map(c => ({ value: c, label: c }))
+    ? rawBizCats.map(c => {
+        const name = typeof c === 'string' ? c : (c as any)?.name ?? ''
+        return { value: name, label: name }
+      })
     : fallbackItems.map(i => ({ ...i }))
   items.push({ value: '__new__', label: '+ Agregar nuevo' })
   return items

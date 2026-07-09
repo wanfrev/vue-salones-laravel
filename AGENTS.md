@@ -1,8 +1,67 @@
 # AGENTS.md — Luma (Salones)
 
-Multi-tenant salon management system. Vue 3 SPA + Laravel 13 API + PostgreSQL.
+Multi-tenant salon management system. Vue 3 SPA + Laravel 13 API + PostgreSQL (DBngin).
 
 > **Regla de oro**: cuando un componente o vista crezca más allá de ~200 líneas, extrae antes de añadir más funcionalidad.
+
+---
+
+## 0. Quick Start (Desarrollo Local)
+
+**Herramientas necesarias:**
+- **Laravel Herd** — Sirve el backend en `https://luma.test` (nginx + PHP-FPM 8.4, concurrente) — O usa `make backend` con el servidor built-in de PHP.
+- **DBngin** — PostgreSQL nativo en `localhost:5432` (sin Docker).
+- **Docker** — Solo para Redis (`docker compose up -d redis` o `make up`).
+- **Node.js** — Para Vite/Vue.
+
+**Arranque diario (Herd):**
+```bash
+# 1. Abrir Herd (auto-start recomendado)
+# 2. Abrir DBngin y asegurar que PostgreSQL está corriendo
+# 3. Terminal:
+cd client
+npm run dev
+# 4. Abrir http://localhost:5173
+```
+
+**Arranque diario (Makefile / sin Herd):**
+```bash
+make up          # docker compose up -d redis
+make backend     # PHP_CLI_SERVER_WORKERS=8 php artisan serve --port=8000
+make frontend    # cd client && npm run dev
+make worker      # php artisan queue:work (opcional)
+make reverb      # php artisan reverb:start (opcional, solo si necesitás WebSockets)
+```
+
+**Instalación inicial:**
+```bash
+make install     # composer install, npm install, .env, key:generate
+```
+
+**Base de datos:** `127.0.0.1:5432`, database `salones`, user `postgres`, sin password (trust auth vía DBngin). Si usás Docker en vez de DBngin, el compose expone PostgreSQL en `5434`.
+
+**Credenciales demo:** `admin@luma.app` / `password` | `superadmin@luma.app` / `password`
+
+**Stack:** PostgreSQL → Laravel 13 (PHP-FPM o built-in server) → Vue 3 (Vite HMR). Redis vía Docker para colas/cache.
+
+### Env vars críticos para desarrollo
+
+**Backend (`backend/.env`):**
+```
+DB_HOST=127.0.0.1, DB_PORT=5432, DB_DATABASE=salones, DB_USERNAME=postgres, DB_PASSWORD=
+REDIS_CLIENT=phpredis          # Extensión de PHP obligatoria para Predis
+QUEUE_CONNECTION=redis         # Para Horizon y colas
+CACHE_STORE=redis
+BROADCAST_CONNECTION=reverb    # WebSockets
+```
+
+**Frontend (`client/.env`):**
+```
+VITE_API_URL=http://localhost:8000/api          # Backend URL (o https://luma.test/api con Herd)
+VITE_REVERB_HOST=localhost                       # Reverb WebSocket host
+VITE_REVERB_APP_KEY=salones-reverb-key
+VITE_REVERB_PORT=8080
+```
 
 ---
 
@@ -36,7 +95,7 @@ Multi-tenant salon management system. Vue 3 SPA + Laravel 13 API + PostgreSQL.
 │   │   ├── Policies/           # 11 policies + trait OwnsBusinessResource
 │   │   └── Services/           # 21 services de negocio + BusinessContext
 │   ├── config/                 # octane.php, horizon.php, reverb.php, sanctum.php
-│   ├── database/migrations/    # Migraciones (solo users/cache/jobs; tablas de negocio están en Supabase PostgreSQL)
+│   ├── database/migrations/    # Migraciones (tablas de framework: users, cache, jobs, tokens)
 │   └── routes/
 │       ├── api.php             # 59 endpoints REST + RPC compat
 │       ├── channels.php        # Autorización de canales Reverb (business.{id})
@@ -129,14 +188,17 @@ Patrón común vía trait `OwnsBusinessResource`:
 - `view()`: mismo `business_id`
 - `create/update/delete`: admin del business
 
-### Middleware (5)
+### Middleware
+
+API middleware se registra en `backend/bootstrap/app.php:17-21` en este orden (importante):
+
 | Middleware | Propósito |
 |---|---|
+| `UnwrapApiData` | Desenvuelve body `{ data: { ... } }` enviado por el frontend → el controller recibe los datos directos |
+| `ParseApiFilters` | Traduce query params PostgREST-style (`?col=eq.val`) a `$request->merge(['col' => 'val'])` |
 | `SetBusinessContext` | Resuelve `business_id` + `branch_id` + `profile_id` del token y los inyecta como `BusinessContext` en el contenedor |
-| `EnsureSuperadmin` | Solo permite rol `superadmin` |
-| `ParseApiFilters` | Traduce query params PostgREST-style (`?col=eq.val`) a Laravel where |
-| `UnwrapApiData` | Desenvuelve body `{ data: { ... } }` enviado por el frontend |
-| `auth:sanctum` | Protege rutas API con token Bearer |
+| `auth:sanctum` (ruta) | Protege rutas API con token Bearer |
+| `EnsureSuperadmin` (alias `superadmin`) | Solo permite rol `superadmin` |
 
 ### Jobs (3)
 `ProcessPayment`, `ProcessSale`, `GenerateRemindersJob` — tareas async vía Redis + Horizon.
@@ -148,8 +210,11 @@ Evento broadcast por Reverb en canal privado `business.{id}`. Se dispara en todo
 
 ## 5. Comunicación Frontend ↔ Backend
 
-### Cliente HTTP: `lib/api.ts`
-Wrapper que emula la API de `supabase-js` pero hace HTTP calls a Laravel:
+### ⚠️ Cliente HTTP: `lib/api.ts` — wrapper custom, NO es supabase-js
+
+`api.ts` es un wrapper **propio** que emula la API de `supabase-js` (query builder con `.from().select().eq()`) pero traduce todo a HTTP calls contra Laravel. La conversión clave: `from('services')` → `GET /services`, filtros `.eq('col', 'val')` → query params `?col=eq.val`, e inserts/updates → body `{ data: {...} }` que el middleware `UnwrapApiData` desenvuelve.
+
+Los servicios frontend usan alias para mantener compatibilidad con código heredado de Supabase:
 ```ts
 import { api as supabase, api as mutate } from '../lib/api'
 
@@ -159,6 +224,8 @@ const { data, error } = await supabase.from('services').select('*').eq('business
 // Write
 const { error } = await mutate.from('services').update(payload).eq('id', id)
 ```
+
+> **No instalar ni usar `@supabase/supabase-js` en el frontend.** El paquete está solo como dependencia raíz legacy. Todo el acceso a datos pasa por `lib/api.ts`.
 
 ### WebSockets: `lib/echo.ts`
 Cliente Laravel Echo con PusherJS → Reverb:
@@ -285,30 +352,36 @@ const { data } = useQuery({
 ## 13. Comandos
 
 ```bash
-# Backend (Laravel)
+# Base de datos (desde backend/)
 cd backend
-cp .env.example .env              # configurar DB_HOST, DB_PORT, DB_DATABASE
-composer install
-php artisan key:generate
-php artisan migrate
-php artisan serve --port=8000     # Dev server
+php artisan migrate                 # Crear tablas de framework
+php artisan db:seed --class=DemoBusinessSeeder  # Datos demo
 
-# Realtime
-php artisan reverb:start          # WebSockets
+# Desarrollo (Herd + Vite)
+# 1. Herd sirve el backend en https://luma.test (auto)
+# 2. Terminal:
+cd client
+npm run dev                         # Vite en http://localhost:5173
 
-# Queues
-php artisan queue:work            # Procesar jobs
+# Desarrollo (Makefile, sin Herd)
+make up                             # docker compose up -d redis
+make backend                        # PHP_CLI_SERVER_WORKERS=8 php artisan serve --port=8000
+make frontend                       # cd client && npm run dev
+make worker                         # php artisan queue:work
+make reverb                         # php artisan reverb:start
 
-# Production (VPS)
-php artisan octane:start --server=frankenphp --host=0.0.0.0 --port=8000
-php artisan horizon               # Queue dashboard + workers
+# Realtime (solo si necesitás WebSockets)
+cd backend && php artisan reverb:start  # WebSockets en :8080
 
 # Frontend (Vue)
 cd client
-cp .env.example .env              # VITE_API_URL=http://localhost:8000/api
-npm install
-npm run dev                       # Vite dev server
-npm run build                     # Production build
-npm run test                      # vitest run (104 tests)
-npm run test:watch                # vitest watch
+npm run build                       # Production build (vue-tsc -b && vite build)
+npm run test                        # vitest run (104 tests)
+npm run test:watch                  # vitest watch
+
+# Backend (Laravel)
+cd backend
+php artisan test                    # PHPUnit
+php artisan route:list              # Verificar rutas
+./vendor/bin/pint                   # Code style (Laravel Pint, defaults)
 ```

@@ -14,7 +14,7 @@ class UnwrapApiData
 {
     public function handle(Request $request, Closure $next)
     {
-        if (in_array($request->method(), ['POST', 'PUT', 'PATCH'])) {
+        if (in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'])) {
             $body = $request->all();
 
             // If the body has a single 'data' key containing an array, unwrap it

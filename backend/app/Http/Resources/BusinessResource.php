@@ -23,7 +23,10 @@ class BusinessResource extends JsonResource
             'theme_config' => $this->theme_config,
             'terminology' => $this->terminology,
             'job_titles' => $this->job_titles,
-            'service_categories' => $this->service_categories,
+            'service_categories' => array_values(array_unique(array_map(
+                fn($cat) => is_string($cat) ? $cat : ($cat['name'] ?? ''),
+                $this->service_categories ?? []
+            ))),
             'features' => $this->features,
             'multi_branch_enabled' => $this->multi_branch_enabled,
             'active' => $this->active,

@@ -14,6 +14,16 @@ class BusinessController
         private BusinessService $businessService,
     ) {}
 
+    private function dispatchChange(?string $businessId, string $entity, string $action, ?string $entityId = null): void
+    {
+        if (!$businessId) return;
+        try {
+            EntityChanged::dispatch($businessId, $entity, $action, $entityId);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("EntityChanged dispatch failed: {$e->getMessage()}");
+        }
+    }
+
     public function show(string $id): JsonResponse
     {
         $business = $this->businessService->show($id);
@@ -35,7 +45,7 @@ class BusinessController
         ]);
 
         $business = $this->businessService->update($id, $data, $profileBusinessId);
-        EntityChanged::dispatch($profileBusinessId, 'business', 'updated', $id);
+        $this->dispatchChange($profileBusinessId, 'business', 'updated', $id);
         return response()->json(new BusinessResource($business));
     }
 }
