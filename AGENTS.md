@@ -251,9 +251,10 @@ const { data } = useQuery({
 ```
 
 **QueryClient defaults:**
-- `staleTime: 30s` — datos se consideran frescos 30s
-- `refetchOnMount: 'always'` — cada navegación refresca datos
-- `refetchOnWindowFocus: true` — al volver a la pestaña
+- `staleTime: 5min` — datos frescos 5 minutos, no refetch innecesarios
+- `refetchOnMount: true` — refetch solo si datos están stale (>5min)
+- `refetchOnWindowFocus: false` — no refetch al volver a la pestaña
+- `placeholderData: keepPreviousData` — evita flash de pantalla vacía al cambiar de período
 - Auth errors (401) → auto-redirect a login
 
 **Cache invalidation:** NUNCA usar `await` secuencial. Siempre `Promise.allSettled([...])`.

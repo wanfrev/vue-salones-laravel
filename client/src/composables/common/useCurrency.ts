@@ -67,23 +67,21 @@ export function useCurrency() {
     const businessId = authStore.businessId
 
     if (branchId) {
+      businessStore.updateBranch({ ves_exchange_rate: rate })
       const { error } = await supabase
         .from('branches')
         .update({ ves_exchange_rate: rate })
         .eq('id', branchId)
 
       if (error) throw error
-
-      businessStore.updateBranch({ ves_exchange_rate: rate })
     } else {
+      businessStore.updateBusiness({ ves_exchange_rate: rate })
       const { error } = await supabase
         .from('businesses')
         .update({ ves_exchange_rate: rate })
         .eq('id', businessId)
 
       if (error) throw error
-
-      businessStore.updateBusiness({ ves_exchange_rate: rate })
     }
   }
 

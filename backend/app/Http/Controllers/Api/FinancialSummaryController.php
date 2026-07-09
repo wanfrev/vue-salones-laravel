@@ -24,11 +24,7 @@ class FinancialSummaryController
         $employeeId = $request->get('p_employee_id');
 
         $summary = $this->financialService->summary($p->business_id, $start, $end, $branchId, $employeeId);
-        $kpis = $this->financialService->getKPIs($p->business_id, $start, $end, $branchId, $employeeId);
 
-        return response()->json([
-            'data' => $summary,
-            'kpis' => $kpis,
-        ]);
+        return response()->json($summary);
     }
 }

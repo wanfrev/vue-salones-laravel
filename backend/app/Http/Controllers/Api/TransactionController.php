@@ -25,14 +25,14 @@ class TransactionController
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId) return response()->json([]);
 
-        $data = $this->financialService->getTransactionsUnified(
-            $businessId,
-            $request->get('start'),
-            $request->get('end'),
-            $request->get('branch_id'),
+        return response()->json(
+            $this->financialService->getTransactionsUnified(
+                $businessId,
+                $request->get('start'),
+                $request->get('end'),
+                $request->get('branch_id'),
+            )
         );
-
-        return response()->json($data);
     }
 
     public function store(Request $request): JsonResponse

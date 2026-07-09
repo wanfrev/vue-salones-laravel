@@ -17,7 +17,7 @@ class ParseApiFilters
 
         foreach ($request->query() as $key => $value) {
             // Skip special params
-            if (in_array($key, ['select', 'order', 'limit', 'or'])) {
+            if (in_array($key, ['select', 'order', 'limit', 'offset', 'or', 'per_page', 'page'])) {
                 continue;
             }
 

@@ -114,7 +114,7 @@ export const useAgenda = () => {
       return data as any[]
     },
     enabled: computed(() => !!businessId.value),
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
     placeholderData: keepPreviousData,
   })
 

@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
+use App\Models\Service;
 use App\Services\ServiceService;
+use App\Support\PaginatesResults;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ServiceController
 {
+    use PaginatesResults;
     public function __construct(
         private ServiceService $serviceService,
     ) {}
@@ -33,9 +36,14 @@ class ServiceController
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId) return response()->json([]);
 
-        return response()->json(
-            $this->serviceService->list($businessId, $request->branch_id)
-        );
+        $query = Service::where('business_id', $businessId)->orderBy('name');
+        if ($request->branch_id) {
+            $query->where(function ($q) use ($request) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $request->branch_id);
+            });
+        }
+
+        return response()->json($this->paginateQuery($query, $request));
     }
 
     public function show(Request $request, string $id): JsonResponse

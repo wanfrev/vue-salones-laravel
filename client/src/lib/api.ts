@@ -206,6 +206,13 @@ class ApiQueryBuilder<T = any> {
     return this
   }
 
+  page(num: number): this {
+    if (!this._filters.some(f => f.column === '_page' && f.op === 'eq')) {
+      this._filters.push({ column: '_page', op: 'eq', value: num })
+    }
+    return this
+  }
+
   single(): this {
     this._single = true
     return this

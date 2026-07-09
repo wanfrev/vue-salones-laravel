@@ -92,7 +92,8 @@ class InventoryService
         ?string $startDate = null,
         ?string $endDate = null,
     ): Collection {
-        $query = InventoryMovement::where('business_id', $businessId)
+        $query = InventoryMovement::with(['product', 'client'])
+            ->where('business_id', $businessId)
             ->orderByDesc('created_at');
 
         if ($branchId) $query->where('branch_id', $branchId);
@@ -100,7 +101,12 @@ class InventoryService
         if ($startDate) $query->where('created_at', '>=', $startDate);
         if ($endDate) $query->where('created_at', '<=', $endDate);
 
-        return $query->get();
+        return $query->get()->map(function ($movement) {
+            $data = $movement->toArray();
+            $data['products'] = $movement->product ? ['id' => $movement->product->id, 'name' => $movement->product->name] : null;
+            $data['clients'] = $movement->client ? ['full_name' => $movement->client->full_name] : null;
+            return $data;
+        });
     }
 
     public function adjust(array $data, string $businessId, string $createdBy): InventoryMovement

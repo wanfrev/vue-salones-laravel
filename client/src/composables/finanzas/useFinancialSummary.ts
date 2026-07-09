@@ -214,19 +214,19 @@ function useFinancialSummary(
 
   const editTransactionMutation = useMutation({
     mutationFn: (params: { transactionId: string; amount?: number; method?: PaymentMethod; notes?: string; exchangeRate?: number; paymentsBreakdown?: PaymentBreakdownItem[] }) => updateTransaction(params),
-    onSuccess: () => { Promise.allSettled(['finanzas-transactions', 'financial-summary', 'finanzas-employee-payments', 'appointments', 'pos-pending', 'inventario', 'finanzas-product-sales'].map(k => queryClient.invalidateQueries({ exact: false, queryKey: [k] }))); notify('Cobro actualizado') },
+    onSuccess: async () => { await Promise.allSettled(['finanzas-transactions', 'financial-summary', 'finanzas-employee-payments', 'appointments', 'pos-pending', 'inventario', 'finanzas-product-sales'].map(k => queryClient.invalidateQueries({ exact: false, queryKey: [k] }))); notify('Cobro actualizado') },
     onError: (err: unknown) => showError(translateError(err, 'Error al actualizar cobro')),
   })
 
   const deleteTransactionMutation = useMutation({
     mutationFn: (params: { transactionId: string }) => deleteTransaction(params),
-    onSuccess: () => { Promise.allSettled(['finanzas-transactions', 'financial-summary', 'finanzas-employee-payments', 'appointments', 'pos-pending', 'inventario', 'finanzas-product-sales'].map(k => queryClient.invalidateQueries({ exact: false, queryKey: [k] }))); notify('Cobro eliminado') },
+    onSuccess: async () => { await Promise.allSettled(['finanzas-transactions', 'financial-summary', 'finanzas-employee-payments', 'appointments', 'pos-pending', 'inventario', 'finanzas-product-sales'].map(k => queryClient.invalidateQueries({ exact: false, queryKey: [k] }))); notify('Cobro eliminado') },
     onError: (err: unknown) => showError(translateError(err, 'Error al eliminar cobro')),
   })
 
   const deleteProductSaleMutation = useMutation({
     mutationFn: (movementId: string) => deleteProductSale(movementId),
-    onSuccess: () => { Promise.allSettled(['inventario', 'finanzas-product-sales', 'financial-summary'].map(k => queryClient.invalidateQueries({ exact: false, queryKey: [k] }))); notify('Venta de producto eliminada') },
+    onSuccess: async () => { await Promise.allSettled(['inventario', 'finanzas-product-sales', 'financial-summary'].map(k => queryClient.invalidateQueries({ exact: false, queryKey: [k] }))); notify('Venta de producto eliminada') },
     onError: (err: unknown) => showError(translateError(err, 'Error al eliminar cobro')),
   })
 

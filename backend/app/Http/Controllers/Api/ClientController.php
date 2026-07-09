@@ -5,12 +5,16 @@ namespace App\Http\Controllers\Api;
 use App\Events\EntityChanged;
 use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
+use App\Models\Client;
 use App\Services\ClientService;
+use App\Support\PaginatesResults;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ClientController
 {
+    use PaginatesResults;
+
     public function __construct(
         private ClientService $clientService,
     ) {}
@@ -25,9 +29,14 @@ class ClientController
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId) return response()->json([]);
 
-        return response()->json(
-            $this->clientService->list($businessId, $request->branch_id)
-        );
+        $query = Client::where('business_id', $businessId)->orderBy('full_name');
+        if ($request->branch_id) {
+            $query->where(function ($q) use ($request) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $request->branch_id);
+            });
+        }
+
+        return response()->json($this->paginateQuery($query, $request));
     }
 
     public function store(StoreClientRequest $request): JsonResponse
