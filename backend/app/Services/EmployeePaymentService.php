@@ -21,7 +21,9 @@ class EmployeePaymentService
             ->orderByDesc('payment_date');
 
         if ($branchId) {
-            $query->where('branch_id', $branchId);
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
         }
         if ($startDate) {
             $query->where('payment_date', '>=', $startDate);

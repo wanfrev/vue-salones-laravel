@@ -5,9 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Concerns\BelongsToBranch;
+use App\Models\Concerns\BelongsToBusiness;
 
 class Product extends Model
 {
+    use BelongsToBranch;
+    use BelongsToBusiness;
+
     public $incrementing = false;
     protected $keyType = 'string';
     protected $table = 'products';

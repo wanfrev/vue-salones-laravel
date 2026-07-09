@@ -177,7 +177,20 @@ Exports: `import { ModalBase, StatCard, ... } from '../components/common'`
 `Appointment`, `Auth`, `Branch`, `Business`, `Client`, `EmployeeBalance`, `EmployeeCommission`, `EmployeePayment`, `EmployeeSchedule`, `Expense`, `FinancialSummary`, `GiftCard`, `Inventory`, `Notification`, `Pos`, `Product`, `ProductCategory`, `Profile`, `Service`, `Superadmin`, `Supplier`, `SupplierPayment`, `Transaction`
 
 ### Services (21)
-Cada controller delega en un service. El service contiene la lógica de negocio pura.
+Cada controller delega en un service. El service contiene la lógica de negocio pura. **Los services NO deben filtrar manualmente por `business_id` o `branch_id`** — eso lo hacen los Global Scopes automáticamente.
+
+### Global Scopes (aislamiento automático)
+
+Dos scopes protegen todas las queries Eloquent automáticamente:
+
+| Scope | Trait | Filtro SQL |
+|---|---|---|
+| `BusinessScope` | `BelongsToBusiness` | `WHERE business_id = {context}` |
+| `BranchScope` | `BelongsToBranch` | `WHERE (branch_id IS NULL OR branch_id = {context})` |
+
+**17 modelos** tienen `BelongsToBusiness`. **14 modelos** tienen `BelongsToBranch`. Se aplican automáticamente cuando `SetBusinessContext` bindea el contexto al contenedor. Para superadmin, el scope no se activa (ve todo).
+
+> **Regla:** todo modelo nuevo con `business_id` o `branch_id` DEBE usar el trait correspondiente. No se filtra manualmente en services.
 
 ### Policies (11)
 `AppointmentPolicy`, `BusinessPolicy`, `ClientPolicy`, `ExpensePolicy`, `GiftCardPolicy`, `NotificationPolicy`, `ProductPolicy`, `ProfilePolicy`, `ServicePolicy`, `SupplierPolicy`, `TransactionPolicy`
@@ -192,19 +205,19 @@ Patrón común vía trait `OwnsBusinessResource`:
 
 API middleware se registra en `backend/bootstrap/app.php:17-21` en este orden (importante):
 
-| Middleware | Propósito |
-|---|---|
-| `UnwrapApiData` | Desenvuelve body `{ data: { ... } }` enviado por el frontend → el controller recibe los datos directos |
-| `ParseApiFilters` | Traduce query params PostgREST-style (`?col=eq.val`) a `$request->merge(['col' => 'val'])` |
-| `SetBusinessContext` | Resuelve `business_id` + `branch_id` + `profile_id` del token y los inyecta como `BusinessContext` en el contenedor |
-| `auth:sanctum` (ruta) | Protege rutas API con token Bearer |
-| `EnsureSuperadmin` (alias `superadmin`) | Solo permite rol `superadmin` |
+| # | Middleware | Propósito |
+|---|---|---|
+| 1 | `UnwrapApiData` | Desenvuelve body `{ data: { ... } }` → el controller recibe datos directos (POST, PUT, PATCH, DELETE) |
+| 2 | `ParseApiFilters` | Traduce query params PostgREST-style (`?col=eq.val`) a `$request->merge(['col' => 'val'])` |
+| 3 | `SetBusinessContext` | Resuelve `business_id` del perfil + `branch_id` del header `X-Branch-ID`, bindea `BusinessContext` y `branch-context-id` al contenedor |
+| 4 | `auth:sanctum` (ruta) | Protege rutas API con token Bearer |
+| 5 | `EnsureSuperadmin` (alias `superadmin`) | Solo permite rol `superadmin` |
 
 ### Jobs (3)
 `ProcessPayment`, `ProcessSale`, `GenerateRemindersJob` — tareas async vía Redis + Horizon.
 
 ### EntityChanged
-Evento broadcast por Reverb en canal privado `business.{id}`. Se dispara en todos los controladores de escritura. El frontend escucha `.entity.changed` e invalida caches de TanStack Query automáticamente.
+Evento broadcast por Reverb en canal privado `business.{id}`. Usar siempre `EntityChanged::safe()` (con try-catch interno). Se dispara en todos los controladores de escritura. El frontend escucha `.entity.changed` e invalida caches de TanStack Query.
 
 ---
 

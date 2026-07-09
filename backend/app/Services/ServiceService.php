@@ -12,13 +12,13 @@ class ServiceService
 {
     public function list(string $businessId, ?string $branchId = null): Collection
     {
-        $query = Service::where('business_id', $businessId)
+        $query = Service::query()
+            ->where('business_id', $businessId)
             ->orderBy('name');
 
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
-                $q->whereNull('branch_id')
-                  ->orWhere('branch_id', $branchId);
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
             });
         }
 

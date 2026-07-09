@@ -4,15 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
 use App\Http\Requests\StoreExpenseRequest;
-use App\Models\Expense;
 use App\Services\ExpenseService;
-use App\Support\PaginatesResults;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ExpenseController
 {
-    use PaginatesResults;
 
     public function __construct(
         private ExpenseService $expenseService,
@@ -28,12 +25,9 @@ class ExpenseController
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId) return response()->json([]);
 
-        $query = Expense::where('business_id', $businessId)->orderByDesc('expense_date');
-        if ($request->branch_id) $query->where('branch_id', $request->branch_id);
-        if ($request->start_date) $query->where('expense_date', '>=', $request->start_date);
-        if ($request->end_date) $query->where('expense_date', '<=', $request->end_date);
-
-        return response()->json($this->paginateQuery($query, $request));
+        return response()->json(
+            $this->expenseService->list($businessId, $request->branch_id, $request->start_date, $request->end_date)
+        );
     }
 
     public function store(StoreExpenseRequest $request): JsonResponse

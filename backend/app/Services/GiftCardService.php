@@ -11,10 +11,15 @@ class GiftCardService
 {
     public function list(string $businessId, ?string $branchId = null): Collection
     {
-        $query = GiftCard::where('business_id', $businessId)
+        $query = GiftCard::query()
+            ->where('business_id', $businessId)
             ->orderByDesc('created_at');
 
-        if ($branchId) $query->where('branch_id', $branchId);
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
 
         return $query->get();
     }

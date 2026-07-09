@@ -3,15 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
-use App\Models\Product;
 use App\Services\ProductService;
-use App\Support\PaginatesResults;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProductController
 {
-    use PaginatesResults;
 
     public function __construct(
         private ProductService $productService,
@@ -27,14 +24,9 @@ class ProductController
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId) return response()->json([]);
 
-        $query = Product::with('category')->where('business_id', $businessId)->orderBy('name');
-        if ($request->branch_id) {
-            $query->where(function ($q) use ($request) {
-                $q->whereNull('branch_id')->orWhere('branch_id', $request->branch_id);
-            });
-        }
-
-        return response()->json($this->paginateQuery($query, $request));
+        return response()->json(
+            $this->productService->list($businessId, $request->branch_id)
+        );
     }
 
     public function store(Request $request): JsonResponse

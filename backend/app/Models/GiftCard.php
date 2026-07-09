@@ -4,9 +4,14 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Concerns\BelongsToBranch;
+use App\Models\Concerns\BelongsToBusiness;
 
 class GiftCard extends Model
 {
+    use BelongsToBranch;
+    use BelongsToBusiness;
+
     public $incrementing = false;
     protected $keyType = 'string';
     protected $table = 'gift_cards';

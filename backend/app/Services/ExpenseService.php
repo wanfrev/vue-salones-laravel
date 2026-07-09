@@ -11,10 +11,15 @@ class ExpenseService
 {
     public function list(string $businessId, ?string $branchId = null, ?string $startDate = null, ?string $endDate = null): Collection
     {
-        $query = Expense::where('business_id', $businessId)
+        $query = Expense::query()
+            ->where('business_id', $businessId)
             ->orderByDesc('expense_date');
 
-        if ($branchId) $query->where('branch_id', $branchId);
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
         if ($startDate) $query->where('expense_date', '>=', $startDate);
         if ($endDate) $query->where('expense_date', '<=', $endDate);
 

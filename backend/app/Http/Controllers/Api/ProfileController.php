@@ -95,9 +95,9 @@ class ProfileController
         return response()->json($profile);
     }
 
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
-        $profile = $this->profileService->find($id);
+        $profile = $this->profileService->findForBusiness($id, $this->resolveBusinessId($request) ?? '');
         return response()->json($profile);
     }
 

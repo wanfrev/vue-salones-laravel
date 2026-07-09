@@ -187,8 +187,7 @@ export const listInventario = async (businessId: string, branchId?: string | nul
       .eq('active', true)
 
     if (branchId) {
-      // Include both branch-specific and global (branch_id IS NULL) products
-      productsQuery = productsQuery.or(`branch_id.is.null,branch_id.eq.${branchId}`)
+      productsQuery = productsQuery.eq('branch_id', branchId)
     }
 
     const { data: products } = await productsQuery

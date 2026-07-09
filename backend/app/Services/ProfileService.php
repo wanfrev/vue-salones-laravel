@@ -25,7 +25,6 @@ class ProfileService
     public function list(string $businessId, ?string $branchId = null): Collection
     {
         $query = Profile::with('schedules')
-            ->where('business_id', $businessId)
             ->where('role', 'empleado')
             ->where('active', true)
             ->orderBy('full_name');
@@ -36,7 +35,11 @@ class ProfileService
             );
         }
 
-        return $query->get();
+        return $query->get()->map(function ($profile) {
+            $data = $profile->toArray();
+            $data['employee_schedules'] = $profile->schedules?->toArray() ?? [];
+            return $data;
+        });
     }
 
     public function store(array $data, string $businessId): Profile

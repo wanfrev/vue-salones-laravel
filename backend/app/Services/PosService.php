@@ -51,6 +51,7 @@ class PosService
     ): string {
         $appointment = Appointment::with(['service', 'employeeProfile'])->find($appointmentId);
         if (!$appointment) throw new RuntimeException('Cita no encontrada.');
+        if ($businessId && $appointment->business_id !== $businessId) throw new RuntimeException('La cita no pertenece a este negocio.');
 
         $service = $appointment->service;
         $employeeProfile = $appointment->employeeProfile;
@@ -190,6 +191,7 @@ class PosService
     ): Transaction {
         $tx = Transaction::find($transactionId);
         if (!$tx) throw new RuntimeException('Transacción no encontrada.');
+        if ($businessId && $tx->business_id !== $businessId) throw new RuntimeException('La transacción no pertenece a este negocio.');
 
         $assistantAmount = round($amount * ($tx->assistant_percentage ?? 0) / 100, 2);
         $employeeAmount = round($amount * ($tx->employee_percentage ?? 0) / 100, 2);
@@ -219,6 +221,7 @@ class PosService
     {
         $tx = Transaction::find($transactionId);
         if (!$tx) throw new RuntimeException('Transacción no encontrada.');
+        if ($businessId && $tx->business_id !== $businessId) throw new RuntimeException('La transacción no pertenece a este negocio.');
 
         $appointmentId = $tx->appointment_id;
         $tx->delete();

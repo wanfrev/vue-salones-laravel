@@ -12,10 +12,15 @@ class SupplierService
 {
     public function list(string $businessId, ?string $branchId = null): Collection
     {
-        $query = Supplier::where('business_id', $businessId)
+        $query = Supplier::query()
+            ->where('business_id', $businessId)
             ->orderBy('first_name');
 
-        if ($branchId) $query->where('branch_id', $branchId);
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
 
         return $query->get();
     }

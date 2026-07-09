@@ -21,7 +21,9 @@ class SetBusinessContext
             ?? $request->input('business_id')
             ?? $request->header('X-Business-ID');
 
-        $branchId = $request->input('branch_id')
+        // Branch: from profile (fixed for employees) or from header (selected by admin)
+        // NEVER from query params — prevents tampering
+        $branchId = $profile->branch_id
             ?? $request->header('X-Branch-ID');
 
         if ($profile->role !== 'superadmin' && $businessId) {
@@ -38,6 +40,8 @@ class SetBusinessContext
         );
 
         app()->instance(BusinessContext::class, $context);
+        app()->instance('biz_id', $context->businessId ?: null);
+        app()->instance('branch_id', $context->branchId);
         $request->merge(['_context' => $context]);
 
         return $next($request);

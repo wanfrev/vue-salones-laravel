@@ -14,11 +14,18 @@ class InventoryService
 {
     public function locations(string $businessId, ?string $branchId = null): Collection
     {
-        return InventoryLocation::where('business_id', $businessId)
+        $query = InventoryLocation::query()
+            ->where('business_id', $businessId)
             ->where('active', true)
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->orderBy('name')
-            ->get();
+            ->orderBy('name');
+
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
+
+        return $query->get();
     }
 
     public function storeLocation(array $data, string $businessId): InventoryLocation
@@ -69,7 +76,9 @@ class InventoryService
             ->where('business_id', $businessId);
 
         if ($branchId) {
-            $query->where('branch_id', $branchId);
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
         }
 
         return $query->get()->map(function ($stock) {
@@ -96,7 +105,11 @@ class InventoryService
             ->where('business_id', $businessId)
             ->orderByDesc('created_at');
 
-        if ($branchId) $query->where('branch_id', $branchId);
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
         if ($productId) $query->where('product_id', $productId);
         if ($startDate) $query->where('created_at', '>=', $startDate);
         if ($endDate) $query->where('created_at', '<=', $endDate);
@@ -145,15 +158,21 @@ class InventoryService
 
     public function getDefaultLocation(string $businessId, ?string $branchId): string
     {
-        $query = InventoryLocation::where('business_id', $businessId)
+        $query = InventoryLocation::query()
+            ->where('business_id', $businessId)
             ->where('is_default', true)
             ->where('active', true);
 
-        if ($branchId) $query->where('branch_id', $branchId);
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
 
         $loc = $query->first();
         if (!$loc) {
-            $loc = InventoryLocation::where('business_id', $businessId)
+            $loc = InventoryLocation::query()
+                ->where('business_id', $businessId)
                 ->where('active', true)
                 ->first();
         }
@@ -182,13 +201,18 @@ class InventoryService
         ?string $variantId = null,
         ?string $branchId = null,
     ): ?InventoryStock {
-        $query = InventoryStock::where('business_id', $businessId)
+        $query = InventoryStock::query()
+            ->where('business_id', $businessId)
             ->where('product_id', $productId)
             ->where('location_id', $locationId);
 
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
         if ($variantId) $query->where('variant_id', $variantId);
         else $query->whereNull('variant_id');
-        if ($branchId) $query->where('branch_id', $branchId);
 
         return $query->first();
     }

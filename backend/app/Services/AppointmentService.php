@@ -29,7 +29,11 @@ class AppointmentService
                   ->orWhere('assistant_employee_id', $employeeId);
             });
         }
-        if ($branchId) $query->where('branch_id', $branchId);
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
         if ($status) $query->whereIn('status', (array) $status);
 
         return $query->get();
@@ -107,13 +111,19 @@ class AppointmentService
 
     public function getPendingPayments(string $businessId, ?string $branchId = null): Collection
     {
-        return Appointment::with(['client', 'service', 'employeeProfile'])
+        $query = Appointment::with(['client', 'service', 'employeeProfile'])
             ->where('business_id', $businessId)
             ->whereIn('status', ['completed', 'confirmed'])
             ->whereIn('payment_status', ['unpaid', 'partial'])
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->orderBy('start_time')
-            ->get()
+            ->orderBy('start_time');
+
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
+
+        return $query->get()
             ->map(fn($a) => array_merge($a->toArray(), [
                 'clients' => $a->client?->toArray(),
                 'services' => $a->service?->toArray(),
@@ -125,7 +135,6 @@ class AppointmentService
     {
         return Appointment::with(['client', 'service', 'employeeProfile'])
             ->where('group_id', $groupId)
-            ->where('business_id', $businessId)
             ->get();
     }
 

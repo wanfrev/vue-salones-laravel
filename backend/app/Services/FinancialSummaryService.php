@@ -32,7 +32,11 @@ class FinancialSummaryService
         if ($start && $end) {
             $query->whereBetween('transactions.paid_at', [$start . ' 00:00:00', $end . ' 23:59:59']);
         }
-        if ($branchId) $query->where('transactions.branch_id', $branchId);
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('transactions.branch_id')->orWhere('transactions.branch_id', $branchId);
+            });
+        }
         if ($employeeId) $query->where('appointments.employee_id', $employeeId);
 
         return $query->get();
@@ -53,7 +57,11 @@ class FinancialSummaryService
             $transactionsQuery->whereBetween('transactions.paid_at', [$start . ' 00:00:00', $end . ' 23:59:59']);
         }
 
-        if ($branchId) $transactionsQuery->where('transactions.branch_id', $branchId);
+        if ($branchId) {
+            $transactionsQuery->where(function ($q) use ($branchId) {
+                $q->whereNull('transactions.branch_id')->orWhere('transactions.branch_id', $branchId);
+            });
+        }
         if ($employeeId) $transactionsQuery->where('appointments.employee_id', $employeeId);
 
         $txTotals = $transactionsQuery->select(
@@ -70,7 +78,11 @@ class FinancialSummaryService
             ->where('business_id', $businessId)
             ->whereBetween('expense_date', [$start, $end]);
 
-        if ($branchId) $expensesQuery->where('branch_id', $branchId);
+        if ($branchId) {
+            $expensesQuery->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
 
         $totalExpenses = $expensesQuery->sum('amount');
 
@@ -79,7 +91,11 @@ class FinancialSummaryService
             ->where('type', 'payment')
             ->whereBetween('payment_date', [$start, $end]);
 
-        if ($branchId) $employeePaymentsQuery->where('branch_id', $branchId);
+        if ($branchId) {
+            $employeePaymentsQuery->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
         if ($employeeId) $employeePaymentsQuery->where('employee_id', $employeeId);
 
         $totalEmployeePayments = $employeePaymentsQuery->sum('amount');
@@ -89,7 +105,11 @@ class FinancialSummaryService
             ->where('movement_type', 'sale')
             ->whereBetween('created_at', [$start . ' 00:00:00', $end . ' 23:59:59']);
 
-        if ($branchId) $productSalesQuery->where('branch_id', $branchId);
+        if ($branchId) {
+            $productSalesQuery->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
 
         $productSales = $productSalesQuery->select(
             DB::raw('coalesce(sum(abs(quantity) * unit_cost), 0) as cost'),
@@ -140,7 +160,11 @@ class FinancialSummaryService
 
         if ($start) $query->where('paid_at', '>=', $start);
         if ($end) $query->where('paid_at', '<=', $end);
-        if ($branchId) $query->where('branch_id', $branchId);
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
         if ($employeeId) {
             $query->whereHas('appointment', fn($q) => $q->where('employee_id', $employeeId));
         }

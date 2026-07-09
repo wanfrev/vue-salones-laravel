@@ -121,6 +121,7 @@ export const useBusinessStore = defineStore('business', () => {
 
       if (schedule?.branch_id && branches.value.some(b => b.id === schedule.branch_id)) {
         selectedBranchId.value = schedule.branch_id
+        setSelectedBranchId(schedule.branch_id)
         localStorage.setItem(branchStorageKey(bizId), schedule.branch_id)
         return
       }
@@ -129,14 +130,17 @@ export const useBusinessStore = defineStore('business', () => {
     const saved = localStorage.getItem(branchStorageKey(bizId))
     if (saved && branches.value.some(b => b.id === saved)) {
       selectedBranchId.value = saved
+      setSelectedBranchId(saved)
     } else {
       const def = branches.value.find(b => b.is_default) ?? branches.value[0] ?? null
       selectedBranchId.value = def?.id ?? null
+      setSelectedBranchId(def?.id ?? null)
     }
   }
 
   const setBranch = (branchId: string | null) => {
     selectedBranchId.value = branchId
+    setSelectedBranchId(branchId)
     if (business.value?.id && branchId) {
       localStorage.setItem(branchStorageKey(business.value.id), branchId)
     } else if (business.value?.id) {

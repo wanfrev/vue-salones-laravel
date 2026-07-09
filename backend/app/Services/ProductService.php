@@ -70,7 +70,8 @@ class ProductService
 
     public function listCategories(string $businessId, ?string $branchId = null): Collection
     {
-        $query = ProductCategory::where('business_id', $businessId)
+        $query = ProductCategory::query()
+            ->where('business_id', $businessId)
             ->where('active', true)
             ->orderBy('name');
 

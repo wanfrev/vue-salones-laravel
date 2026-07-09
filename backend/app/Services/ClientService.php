@@ -11,13 +11,13 @@ class ClientService
 {
     public function list(string $businessId, ?string $branchId = null): Collection
     {
-        $query = Client::where('business_id', $businessId)
+        $query = Client::query()
+            ->where('business_id', $businessId)
             ->orderBy('full_name');
 
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
-                $q->whereNull('branch_id')
-                  ->orWhere('branch_id', $branchId);
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
             });
         }
 
@@ -70,7 +70,7 @@ class ClientService
     {
         $term = '%' . $query . '%';
 
-        return Client::where('business_id', $businessId)
+        return Client::query()
             ->where(function ($q) use ($term) {
                 $q->where('full_name', 'ilike', $term)
                   ->orWhere('phone', 'ilike', $term);
@@ -82,8 +82,7 @@ class ClientService
 
     public function findOrCreateByPhone(string $businessId, string $phone, array $extra = []): Client
     {
-        $client = Client::where('business_id', $businessId)
-            ->where('phone', $phone)
+        $client = Client::where('phone', $phone)
             ->first();
 
         if ($client) {

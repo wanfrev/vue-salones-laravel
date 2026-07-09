@@ -34,8 +34,7 @@ export const listProductos = async (businessId: string, branchId?: string | null
     .order('name')
 
   if (branchId) {
-    // Include both branch-specific and global (branch_id IS NULL) products
-    productsQuery = productsQuery.or(`branch_id.is.null,branch_id.eq.${branchId}`)
+    productsQuery = productsQuery.eq('branch_id', branchId)
   }
 
   const { data: products, error } = await productsQuery
@@ -48,8 +47,7 @@ export const listProductos = async (businessId: string, branchId?: string | null
     .eq('business_id', businessId)
 
   if (branchId) {
-    // Include branch-specific and global categories
-    catQuery = catQuery.or(`branch_id.is.null,branch_id.eq.${branchId}`)
+    catQuery = catQuery.eq('branch_id', branchId)
   }
 
   const { data: categories } = await catQuery
