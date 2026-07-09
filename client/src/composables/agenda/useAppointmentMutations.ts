@@ -57,14 +57,34 @@ export function useAppointmentMutations(options: {
   const saveCitaMutation = useMutation({
     mutationFn: (data: CitaFormData & { id?: string; clientPhone?: string }) =>
       saveCita(options.businessId.value!, data, options.createdBy?.value, businessStore.currentBranchId, allowCreateClient.value),
-    onSuccess: () => {
+    onMutate: async (data) => {
+      if (data.id) return null
+      await queryClient.cancelQueries({ queryKey: ['appointments'] })
+      const tempId = `temp-${Date.now()}`
+      const optimistic: any = { id: tempId, status: 'pending', paymentStatus: 'unpaid', ...data }
+      queryClient.setQueryData(['appointments'], (old: any) =>
+        Array.isArray(old) ? [optimistic, ...old] : old
+      )
+      return { tempId }
+    },
+    onSuccess: (_result, data, context) => {
+      if (context?.tempId) {
+        queryClient.setQueryData(['appointments'], (old: any) =>
+          Array.isArray(old) ? old.filter((c: any) => c.id !== context.tempId) : old
+        )
+      }
       invalidate()
       queryClient.refetchQueries({ exact: false, queryKey: ['appointments'], type: 'all' }).catch(() => {})
       options.modalRef?.value?.close()
       options.modalRef?.value?.onSaveComplete?.()
       success('Cita guardada correctamente')
     },
-    onError: (err) => {
+    onError: (err, _data, context) => {
+      if (context?.tempId) {
+        queryClient.setQueryData(['appointments'], (old: any) =>
+          Array.isArray(old) ? old.filter((c: any) => c.id !== context.tempId) : old
+        )
+      }
       options.modalRef?.value?.onSaveComplete?.()
       showError(translateError(err))
     },
@@ -119,6 +139,14 @@ export function useAppointmentMutations(options: {
 
   const deleteCitaMutation = useMutation({
     mutationFn: (id: string) => deleteCita(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['appointments'] })
+      const previous = queryClient.getQueryData(['appointments'])
+      queryClient.setQueryData(['appointments'], (old: any) =>
+        Array.isArray(old) ? old.filter((c: any) => c.id !== id) : old
+      )
+      return { previous }
+    },
     onSuccess: () => {
       invalidate()
       queryClient.refetchQueries({ exact: false, queryKey: ['appointments'], type: 'all' }).catch(() => {})
@@ -126,7 +154,10 @@ export function useAppointmentMutations(options: {
       options.modalRef?.value?.onSaveComplete?.()
       success('Cita eliminada correctamente')
     },
-    onError: (err) => {
+    onError: (err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['appointments'], context.previous)
+      }
       options.modalRef?.value?.onSaveComplete?.()
       showError(translateError(err))
     },

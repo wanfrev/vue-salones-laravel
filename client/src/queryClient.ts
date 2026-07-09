@@ -1,4 +1,4 @@
-import { QueryClient, QueryCache, MutationCache } from '@tanstack/vue-query'
+import { QueryClient, QueryCache, MutationCache, keepPreviousData } from '@tanstack/vue-query'
 import { setAuthToken } from './lib/api'
 
 const isAuthError = (err: unknown): boolean => {
@@ -39,12 +39,13 @@ export const queryClient = new QueryClient({
   }),
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000,
+      staleTime: 5 * 60 * 1000,
       gcTime: 30 * 60 * 1000,
       retry: 1,
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
       refetchOnMount: true,
+      placeholderData: keepPreviousData,
       networkMode: 'online',
     },
     mutations: {

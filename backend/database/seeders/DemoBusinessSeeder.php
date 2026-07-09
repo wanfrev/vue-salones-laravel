@@ -238,7 +238,7 @@ class DemoBusinessSeeder extends Seeder
                     'local_percentage' => 50, 'employee_percentage' => 50,
                     'method' => ['cash', 'card', 'transfer'][rand(0, 2)],
                     'exchange_rate_used' => 1, 'paid_at' => $date, 'created_by' => $adminId,
-                    'created_at' => $date, 'updated_at' => $date,
+                    'created_at' => $date,
                 ]);
                 $txCount++;
             }

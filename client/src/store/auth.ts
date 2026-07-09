@@ -190,6 +190,23 @@ export const useAuthStore = defineStore('auth', () => {
 
       session.value = data.session
       user.value = data.user
+
+      const sessionData = data.session as any
+      const embeddedProfile = sessionData?.user?.profile
+      const embeddedBusiness = sessionData?.business
+
+      if (embeddedProfile) {
+        if (!isRole(embeddedProfile.role)) throw new Error('El perfil no tiene un rol válido.')
+        if (!embeddedProfile.active) throw new Error('El usuario está inactivo.')
+        profile.value = embeddedProfile
+      }
+      if (embeddedBusiness) {
+        useBusinessStore().business = embeddedBusiness
+      }
+
+      if (!embeddedProfile || !embeddedBusiness) {
+        await hydrateUserContext(user.value!.id)
+      }
     } catch (err) {
       clearAuthState()
       throw err
