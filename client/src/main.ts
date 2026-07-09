@@ -36,11 +36,11 @@ if (typeof document !== 'undefined') {
       const auth = useAuthStore()
       if (auth.isAuthenticated) {
         auth.refreshSession().finally(() => {
-          queryClient.invalidateQueries()
+          queryClient.refetchQueries({ type: 'active' })
           setTimeout(() => { visibilityCooldown = false }, 5000)
         })
       } else {
-        queryClient.invalidateQueries()
+        queryClient.refetchQueries({ type: 'active' })
         setTimeout(() => { visibilityCooldown = false }, 5000)
       }
     }
@@ -48,7 +48,7 @@ if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', handleVisibilityChange, { passive: true })
 
   const handleOnline = () => {
-    queryClient.invalidateQueries()
+    queryClient.refetchQueries({ type: 'active' })
   }
   window.addEventListener('online', handleOnline, { passive: true })
 

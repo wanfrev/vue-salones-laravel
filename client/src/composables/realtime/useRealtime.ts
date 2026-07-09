@@ -14,6 +14,21 @@ export function useRealtime() {
   const queryClient = useQueryClient()
   const authStore = useAuthStore()
 
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null
+  const pendingPrefixes = new Set<string>()
+
+  const flushInvalidations = () => {
+    const prefixes = Array.from(pendingPrefixes)
+    pendingPrefixes.clear()
+    const businessId = authStore.businessId
+    if (!businessId) return
+    Promise.allSettled(
+      prefixes.map(prefix =>
+        queryClient.invalidateQueries({ queryKey: [prefix, businessId], exact: false })
+      )
+    )
+  }
+
   const handleEntityChange = (payload: EntityChangedPayload) => {
     const businessId = authStore.businessId
     if (!businessId || payload.businessId !== businessId) return
@@ -41,12 +56,10 @@ export function useRealtime() {
     }
 
     const prefixes = queryKeyMap[payload.entity] || [payload.entity]
+    prefixes.forEach(p => pendingPrefixes.add(p + '|' + businessId))
 
-    Promise.allSettled(
-      prefixes.map(prefix =>
-        queryClient.invalidateQueries({ queryKey: [prefix, businessId], exact: false })
-      )
-    )
+    if (debounceTimer) clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(flushInvalidations, 500)
   }
 
   let channel: any = null

@@ -121,12 +121,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // Product categories
     Route::get('/products/categories', [ProductCategoryController::class, 'index']);
     Route::post('/products/categories', [ProductCategoryController::class, 'store']);
+    Route::get('/product-categories', [ProductCategoryController::class, 'index']);
 
-    // Inventory
+    // Inventory (with dashes aliases for frontend compat)
     Route::get('/inventory', [InventoryController::class, 'index']);
+    Route::get('/inventory-stock', [InventoryController::class, 'index']);
     Route::get('/inventory/movements', [InventoryController::class, 'movements']);
+    Route::get('/inventory-movements', [InventoryController::class, 'movements']);
     Route::post('/inventory/adjust', [InventoryController::class, 'adjust']);
     Route::post('/inventory/sell', [InventoryController::class, 'sell']);
+    Route::get('/inventory-locations', [InventoryController::class, 'locations']);
 
     // Suppliers
     Route::get('/suppliers', [SupplierController::class, 'index']);

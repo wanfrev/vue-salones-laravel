@@ -93,8 +93,7 @@ export const useBusinessStore = defineStore('business', () => {
 
       business.value = data as Business
 
-      // Restore branch selection — branches are auto-fetched via useQuery
-      await restoreBranchSelection(employeeId)
+      restoreBranchSelection(employeeId)
     } finally {
       loading.value = false
     }

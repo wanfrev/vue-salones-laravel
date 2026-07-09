@@ -39,12 +39,12 @@ export const queryClient = new QueryClient({
   }),
   defaultOptions: {
     queries: {
-      staleTime: 30 * 1000,
+      staleTime: 60 * 1000,
       gcTime: 30 * 60 * 1000,
       retry: 1,
-      refetchOnWindowFocus: true,
+      refetchOnWindowFocus: false,
       refetchOnReconnect: true,
-      refetchOnMount: 'always',
+      refetchOnMount: true,
       networkMode: 'online',
     },
     mutations: {

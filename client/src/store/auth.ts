@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import type { Session, User, AuthChangeEvent } from '@supabase/supabase-js'
 import { api as supabase, getAuthToken } from '../lib/api'
 import { queryClient } from '../queryClient'
+import { useBusinessStore } from './business'
 import type { Role } from '../constants/roles'
 import { isRole } from '../constants/roles'
 import type { AuthProfile } from '../types/auth'
@@ -72,7 +73,6 @@ export const useAuthStore = defineStore('auth', () => {
 
   const hydrateUserContext = async (userId: string) => {
     await loadProfile(userId)
-    const { useBusinessStore } = await import('./business')
     const businessStore = useBusinessStore()
     await businessStore.loadBusiness(
       profile.value?.business_id ?? null,
@@ -105,14 +105,37 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = data.session?.user ?? null
 
       if (user.value) {
-        try {
-          await hydrateUserContext(user.value.id)
-        } catch (err) {
-          if (isProfileHardFailure(err)) {
+        const sessionData = data.session as any
+        const embeddedProfile = sessionData?.user?.profile
+        const embeddedBusiness = sessionData?.business
+
+        if (embeddedProfile) {
+          if (!isRole(embeddedProfile.role)) {
             clearAuthState()
-            await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
-          } else {
-            console.warn('[auth.initialize] transient hydration error; keeping session', err)
+            throw new Error('El perfil no tiene un rol válido.')
+          }
+          if (!embeddedProfile.active) {
+            clearAuthState()
+            throw new Error('El usuario está inactivo.')
+          }
+          profile.value = embeddedProfile
+        }
+
+        if (embeddedBusiness) {
+          const businessStore = useBusinessStore()
+          businessStore.business = embeddedBusiness
+        }
+
+        if (!embeddedProfile || !embeddedBusiness) {
+          try {
+            await hydrateUserContext(user.value.id)
+          } catch (err) {
+            if (isProfileHardFailure(err)) {
+              clearAuthState()
+              await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+            } else {
+              console.warn('[auth.initialize] transient hydration error; keeping session', err)
+            }
           }
         }
       }
@@ -123,19 +146,32 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = nextSession?.user ?? null
 
         if (user.value) {
-          try {
-            await hydrateUserContext(user.value.id)
-          } catch (err) {
-            if (isProfileHardFailure(err)) {
-              clearAuthState()
-              await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
-            } else {
-              console.warn('[auth.onAuthStateChange] transient hydration error; preserving local context', err)
+          const sessionData = nextSession as any
+          const embeddedProfile = sessionData?.user?.profile
+          const embeddedBusiness = sessionData?.business
+
+          if (embeddedProfile) {
+            profile.value = embeddedProfile
+          }
+          if (embeddedBusiness) {
+            const businessStore = useBusinessStore()
+            businessStore.business = embeddedBusiness
+          }
+
+          if (!embeddedProfile || !embeddedBusiness) {
+            try {
+              await hydrateUserContext(user.value.id)
+            } catch (err) {
+              if (isProfileHardFailure(err)) {
+                clearAuthState()
+                await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+              } else {
+                console.warn('[auth.onAuthStateChange] transient hydration error; preserving local context', err)
+              }
             }
           }
         } else {
           profile.value = null
-          const { useBusinessStore } = await import('./business')
           useBusinessStore().clearBusiness()
         }
       })
@@ -154,10 +190,6 @@ export const useAuthStore = defineStore('auth', () => {
 
       session.value = data.session
       user.value = data.user
-
-      if (data.user) {
-        await hydrateUserContext(data.user.id)
-      }
     } catch (err) {
       clearAuthState()
       throw err
@@ -171,7 +203,6 @@ export const useAuthStore = defineStore('auth', () => {
 
     clearAuthState()
     queryClient.clear()
-    const { useBusinessStore } = await import('./business')
     useBusinessStore().clearBusiness()
     if (authUnsubscribe) {
       authUnsubscribe()
@@ -199,17 +230,6 @@ export const useAuthStore = defineStore('auth', () => {
       if (data.session) {
         session.value = data.session
         user.value = data.session.user
-        if (user.value) {
-          try {
-            await hydrateUserContext(user.value.id)
-          } catch (err) {
-            if (isProfileHardFailure(err)) {
-              await signOut()
-              return false
-            }
-            console.warn('[auth.refreshSession] transient hydration error; keeping local context', err)
-          }
-        }
         return true
       }
       return false

@@ -12,6 +12,15 @@ use RuntimeException;
 
 class InventoryService
 {
+    public function locations(string $businessId, ?string $branchId = null): Collection
+    {
+        return InventoryLocation::where('business_id', $businessId)
+            ->where('active', true)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->orderBy('name')
+            ->get();
+    }
+
     public function index(string $businessId, ?string $branchId = null): Collection
     {
         $query = InventoryStock::with(['product', 'location'])

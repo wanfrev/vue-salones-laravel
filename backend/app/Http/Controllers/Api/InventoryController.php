@@ -13,6 +13,17 @@ class InventoryController
         private InventoryService $inventoryService,
     ) {}
 
+    public function locations(Request $request): JsonResponse
+    {
+        $user = $request->user()?->load('profile');
+        $p = $user?->profile;
+        if (!$p || !$p->business_id) return response()->json([]);
+
+        return response()->json(
+            $this->inventoryService->locations($p->business_id, $request->branch_id)
+        );
+    }
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user()?->load('profile');

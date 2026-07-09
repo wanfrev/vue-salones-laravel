@@ -19,10 +19,19 @@ class AuthController
             $request->validated('password'),
         );
 
+        $user = $result['user'];
+        $profile = $user->profile;
+        $business = null;
+
+        if ($profile?->business_id) {
+            $business = \App\Models\Business::find($profile->business_id);
+        }
+
         return response()->json([
             'access_token' => $result['access_token'],
             'token_type' => $result['token_type'],
-            'user' => new AuthResource($result['user']),
+            'user' => new AuthResource($user),
+            'business' => $business ? new \App\Http\Resources\BusinessResource($business) : null,
         ]);
     }
 
@@ -41,10 +50,18 @@ class AuthController
             return response()->json(['error' => ['message' => 'No autenticado.']], 401);
         }
 
+        $profile = $user->profile;
+        $business = null;
+
+        if ($profile?->business_id) {
+            $business = \App\Models\Business::find($profile->business_id);
+        }
+
         return response()->json([
             'access_token' => $request->bearerToken(),
             'token_type' => 'Bearer',
             'user' => new AuthResource($user),
+            'business' => $business ? new \App\Http\Resources\BusinessResource($business) : null,
         ]);
     }
 
