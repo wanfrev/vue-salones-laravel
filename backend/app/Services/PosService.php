@@ -185,6 +185,7 @@ class PosService
         string $method = 'cash',
         ?string $notes = null,
         ?float $exchangeRate = null,
+        ?array $paymentsBreakdown = null,
         string $businessId = '',
     ): Transaction {
         $tx = Transaction::find($transactionId);
@@ -194,7 +195,7 @@ class PosService
         $employeeAmount = round($amount * ($tx->employee_percentage ?? 0) / 100, 2);
         $localAmount = round($amount - $employeeAmount - $assistantAmount, 2);
 
-        $tx->update([
+        $updateData = [
             'total_amount' => $amount,
             'local_amount' => $localAmount,
             'employee_amount' => $employeeAmount,
@@ -203,7 +204,13 @@ class PosService
             'notes' => $notes,
             'exchange_rate_used' => $exchangeRate ?? $tx->exchange_rate_used,
             'updated_at' => now(),
-        ]);
+        ];
+
+        if ($paymentsBreakdown !== null) {
+            $updateData['payments_breakdown'] = $paymentsBreakdown;
+        }
+
+        $tx->update($updateData);
 
         return $tx->fresh();
     }

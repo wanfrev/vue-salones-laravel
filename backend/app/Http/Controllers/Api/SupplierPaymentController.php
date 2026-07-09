@@ -13,22 +13,25 @@ class SupplierPaymentController
         private SupplierPaymentService $paymentService,
     ) {}
 
+    private function resolveBusinessId(Request $request): ?string
+    {
+        return $request->user()?->profile?->business_id;
+    }
+
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json([]);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
 
         return response()->json(
-            $this->paymentService->list($p->business_id, $request->supplier_id)
+            $this->paymentService->list($businessId, $request->supplier_id)
         );
     }
 
     public function store(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
         $data = $request->validate([
             'supplier_id' => 'required|uuid',
@@ -39,18 +42,17 @@ class SupplierPaymentController
             'branch_id' => 'nullable|uuid',
         ]);
 
-        $payment = $this->paymentService->store($data, $p->business_id, $user->id);
-        EntityChanged::dispatch($p->business_id, 'supplier_payment', 'created', $payment->id);
+        $payment = $this->paymentService->store($data, $businessId, $request->user()->id);
+        EntityChanged::safe($businessId, 'supplier_payment', 'created', $payment->id);
         return response()->json($payment, 201);
     }
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
 
-        $this->paymentService->destroy($id, $p?->business_id);
-        EntityChanged::dispatch($p->business_id, 'supplier_payment', 'deleted', $id);
+        $this->paymentService->destroy($id, $businessId);
+        EntityChanged::safe($businessId, 'supplier_payment', 'deleted', $id);
         return response()->json(null, 204);
     }
 }

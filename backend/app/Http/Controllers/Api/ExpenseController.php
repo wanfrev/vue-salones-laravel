@@ -14,32 +14,34 @@ class ExpenseController
         private ExpenseService $expenseService,
     ) {}
 
+    private function resolveBusinessId(Request $request): ?string
+    {
+        return $request->user()?->profile?->business_id;
+    }
+
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json([]);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
 
         return response()->json(
-            $this->expenseService->list($p->business_id, $request->branch_id, $request->start_date, $request->end_date)
+            $this->expenseService->list($businessId, $request->branch_id, $request->start_date, $request->end_date)
         );
     }
 
     public function store(StoreExpenseRequest $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
-        $expense = $this->expenseService->store($request->validated(), $p->business_id, $user->id);
-        EntityChanged::dispatch($p->business_id, 'expense', 'created', $expense->id);
+        $expense = $this->expenseService->store($request->validated(), $businessId, $request->user()->id);
+        EntityChanged::safe($businessId, 'expense', 'created', $expense->id);
         return response()->json($expense, 201);
     }
 
     public function update(Request $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
 
         $data = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -52,18 +54,17 @@ class ExpenseController
             'notes' => 'nullable|string|max:500',
         ]);
 
-        $expense = $this->expenseService->update($id, $data, $p?->business_id);
-        EntityChanged::dispatch($p->business_id, 'expense', 'updated', $id);
+        $expense = $this->expenseService->update($id, $data, $businessId);
+        EntityChanged::safe($businessId, 'expense', 'updated', $id);
         return response()->json($expense);
     }
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
 
-        $this->expenseService->destroy($id, $p?->business_id);
-        EntityChanged::dispatch($p->business_id, 'expense', 'deleted', $id);
+        $this->expenseService->destroy($id, $businessId);
+        EntityChanged::safe($businessId, 'expense', 'deleted', $id);
         return response()->json(null, 204);
     }
 }

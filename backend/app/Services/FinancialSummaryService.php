@@ -17,7 +17,6 @@ class FinancialSummaryService
         $query = DB::table('transactions')
             ->join('appointments', 'transactions.appointment_id', '=', 'appointments.id')
             ->where('transactions.business_id', $businessId)
-            ->whereBetween('transactions.paid_at', [$start . ' 00:00:00', $end . ' 23:59:59'])
             ->select(
                 DB::raw("to_char(transactions.paid_at, 'YYYY-MM-DD') as bucket"),
                 DB::raw('count(distinct transactions.appointment_id) as appointments'),
@@ -30,6 +29,9 @@ class FinancialSummaryService
             ->groupBy(DB::raw("to_char(transactions.paid_at, 'YYYY-MM-DD')"))
             ->orderBy('bucket');
 
+        if ($start && $end) {
+            $query->whereBetween('transactions.paid_at', [$start . ' 00:00:00', $end . ' 23:59:59']);
+        }
         if ($branchId) $query->where('transactions.branch_id', $branchId);
         if ($employeeId) $query->where('appointments.employee_id', $employeeId);
 
@@ -45,8 +47,11 @@ class FinancialSummaryService
     ): array {
         $transactionsQuery = DB::table('transactions')
             ->join('appointments', 'transactions.appointment_id', '=', 'appointments.id')
-            ->where('transactions.business_id', $businessId)
-            ->whereBetween('transactions.paid_at', [$start . ' 00:00:00', $end . ' 23:59:59']);
+            ->where('transactions.business_id', $businessId);
+
+        if ($start && $end) {
+            $transactionsQuery->whereBetween('transactions.paid_at', [$start . ' 00:00:00', $end . ' 23:59:59']);
+        }
 
         if ($branchId) $transactionsQuery->where('transactions.branch_id', $branchId);
         if ($employeeId) $transactionsQuery->where('appointments.employee_id', $employeeId);
@@ -133,8 +138,8 @@ class FinancialSummaryService
         ->where('business_id', $businessId)
         ->orderByDesc('created_at');
 
-        if ($start) $query->where('created_at', '>=', $start);
-        if ($end) $query->where('created_at', '<=', $end);
+        if ($start) $query->where('paid_at', '>=', $start);
+        if ($end) $query->where('paid_at', '<=', $end);
         if ($branchId) $query->where('branch_id', $branchId);
         if ($employeeId) {
             $query->whereHas('appointment', fn($q) => $q->where('employee_id', $employeeId));

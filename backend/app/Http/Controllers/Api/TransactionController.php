@@ -15,14 +15,18 @@ class TransactionController
         private PosService $posService,
     ) {}
 
+    private function resolveBusinessId(Request $request): ?string
+    {
+        return $request->user()?->profile?->business_id;
+    }
+
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json([]);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
 
         $data = $this->financialService->getTransactionsUnified(
-            $p->business_id,
+            $businessId,
             $request->get('start'),
             $request->get('end'),
             $request->get('branch_id'),
@@ -33,9 +37,8 @@ class TransactionController
 
     public function store(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
         $data = $request->validate([
             'appointment_id' => 'required|uuid',
@@ -54,11 +57,11 @@ class TransactionController
                 notes: $data['notes'] ?? null,
                 exchangeRate: $data['exchange_rate_used'] ?? null,
                 paymentsBreakdown: $data['payments_breakdown'] ?? [],
-                businessId: $p->business_id,
-                createdBy: $user->id,
+                businessId: $businessId,
+                createdBy: $request->user()->id,
             );
 
-            EntityChanged::dispatch($p->business_id, 'transaction', 'created', $txId);
+            EntityChanged::safe($businessId, 'transaction', 'created', $txId);
             return response()->json(['id' => $txId], 201);
         } catch (\Throwable $e) {
             return response()->json(['error' => ['message' => $e->getMessage()]], 400);
@@ -67,14 +70,14 @@ class TransactionController
 
     public function update(Request $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
 
         $data = $request->validate([
             'amount' => 'required|numeric|min:0',
             'method' => 'sometimes|string|max:50',
             'notes' => 'nullable|string',
             'exchange_rate_used' => 'nullable|numeric|min:0',
+            'payments_breakdown' => 'nullable|array',
         ]);
 
         try {
@@ -84,10 +87,11 @@ class TransactionController
                 method: $data['method'] ?? 'cash',
                 notes: $data['notes'] ?? null,
                 exchangeRate: $data['exchange_rate_used'] ?? null,
-                businessId: $p?->business_id,
+                paymentsBreakdown: $data['payments_breakdown'] ?? null,
+                businessId: $businessId,
             );
 
-            EntityChanged::dispatch($p->business_id, 'transaction', 'updated', $id);
+            EntityChanged::safe($businessId, 'transaction', 'updated', $id);
             return response()->json($tx);
         } catch (\Throwable $e) {
             return response()->json(['error' => ['message' => $e->getMessage()]], 400);
@@ -96,12 +100,11 @@ class TransactionController
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
 
         try {
-            $this->posService->deleteTransaction($id, $p?->business_id);
-            EntityChanged::dispatch($p->business_id, 'transaction', 'deleted', $id);
+            $this->posService->deleteTransaction($id, $businessId);
+            EntityChanged::safe($businessId, 'transaction', 'deleted', $id);
             return response()->json(null, 204);
         } catch (\Throwable $e) {
             return response()->json(['error' => ['message' => $e->getMessage()]], 400);
