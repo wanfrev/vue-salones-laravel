@@ -20,7 +20,8 @@
           <p class="text-[10px] font-medium uppercase tracking-wider text-text-secondary sm:text-xs">Ingresos</p>
           <p class="text-lg font-bold leading-tight text-text tabular-nums sm:text-2xl lg:text-xl xl:text-2xl">{{
             formatUSD(incomeTotal) }}</p>
-          <p class="text-[10px] text-text-muted tabular-nums font-medium truncate">{{ formatVESEs(vesIncomeTotal) }}</p>
+          <p v-if="isLoading" class="h-3 w-24 mx-auto mt-1 rounded bg-bg-secondary animate-pulse sm:h-4 sm:w-32" />
+          <p v-else class="text-[10px] text-text-muted tabular-nums font-medium truncate">{{ formatVESEs(vesIncomeTotal) }}</p>
         </div>
       </div>
     </div>
@@ -41,7 +42,8 @@
         </div>
         <div class="min-w-0 flex-1 text-center">
           <p class="text-[10px] font-medium uppercase tracking-wider text-text-secondary sm:text-xs">Gastos</p>
-          <p class="text-lg font-bold leading-tight text-text tabular-nums sm:text-2xl lg:text-xl xl:text-2xl">{{
+          <p v-if="isLoading" class="h-5 w-16 mx-auto mt-1 rounded bg-bg-secondary animate-pulse sm:h-7 sm:w-20" />
+          <p v-else class="text-lg font-bold leading-tight text-text tabular-nums sm:text-2xl lg:text-xl xl:text-2xl">{{
             formatUSD(expenseTotal) }}</p>
         </div>
       </div>
@@ -63,7 +65,8 @@
         </div>
         <div class="min-w-0 flex-1 text-center">
           <p class="text-[10px] font-medium uppercase tracking-wider text-text-secondary sm:text-xs">Ganancia Neta</p>
-          <p class="text-lg font-bold leading-tight text-text tabular-nums sm:text-2xl lg:text-xl xl:text-2xl">{{
+          <p v-if="isLoading" class="h-5 w-16 mx-auto mt-1 rounded bg-bg-secondary animate-pulse sm:h-7 sm:w-20" />
+          <p v-else class="text-lg font-bold leading-tight text-text tabular-nums sm:text-2xl lg:text-xl xl:text-2xl">{{
             formatUSD(netTotal) }}</p>
         </div>
       </div>
@@ -102,6 +105,7 @@ defineProps<{
   netTotal: number
   margin: number
   activeCard?: 'income' | 'expense' | 'net' | null
+  isLoading?: boolean
 }>()
 
 defineEmits<{

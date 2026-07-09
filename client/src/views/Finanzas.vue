@@ -35,7 +35,7 @@
     <KpiCards
       :income-total="incomeTotal" :ves-income-total="vesIncomeTotal"
       :expense-total="expenseTotal" :net-total="netTotal" :margin="marginTotal"
-      :active-card="activeCard"
+      :active-card="activeCard" :is-loading="summaryCtx.isLoading.value"
       @click-income="toggleCard('income')" @click-expense="toggleCard('expense')" @click-net="toggleCard('net')"
     >
       <template #exchange-rate>

@@ -41,6 +41,7 @@
         <slot />
       </div>
     </main>
+    <GlobalLoading />
   </div>
 </template>
 
@@ -59,6 +60,7 @@ import Sidebar from './Sidebar.vue'
 import NotificationBell from '../common/NotificationBell.vue'
 import ThemeToggle from '../common/ThemeToggle.vue'
 import { BranchSwitcher } from '../common'
+import GlobalLoading from '../common/GlobalLoading.vue'
 
 const { logout, loading } = useAuth()
 const authStore = useAuthStore()

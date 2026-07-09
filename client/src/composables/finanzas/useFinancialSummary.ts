@@ -189,10 +189,10 @@ function useFinancialSummary(
   const employeePayments = computed(() => buildEmployeePayments(rawTransactions.value))
   const employeeEarningsByEmployee = computed(() => buildEmployeeEarningsByEmployee(rawTransactions.value))
 
-  const incomeTotal = computed(() => summaryBuckets.value.reduce((acc, row) => acc + row.total_amount, 0))
-  const localIncomeTotal = computed(() => summaryBuckets.value.reduce((acc, row) => acc + row.local_amount, 0))
-  const employeePaymentsTotal = computed(() => (rawEmployeePayments.value ?? []).reduce((sum, p) => sum + p.amount, 0))
-  const vesIncomeTotal = computed(() => rawTransactions.value.reduce((acc, tx) => acc + (tx.total_amount * (tx.exchange_rate_used ?? 1)), 0))
+  const incomeTotal = computed(() => summaryBuckets.value.reduce((acc, row) => acc + Number(row.total_amount ?? 0), 0))
+  const localIncomeTotal = computed(() => summaryBuckets.value.reduce((acc, row) => acc + Number(row.local_amount ?? 0), 0))
+  const employeePaymentsTotal = computed(() => (rawEmployeePayments.value ?? []).reduce((sum, p) => sum + Number(p.amount ?? 0), 0))
+  const vesIncomeTotal = computed(() => rawTransactions.value.reduce((acc, tx) => acc + (Number(tx.total_amount ?? 0) * Number(tx.exchange_rate_used ?? 1)), 0))
 
   const servicesRevenue = computed<ServiceRevenue[]>(() => {
     const totals = new Map<string, number>()
