@@ -13,6 +13,15 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ProfileService
 {
+    public function find(string $id): Profile
+    {
+        $profile = Profile::find($id);
+        if (! $profile) {
+            throw new NotFoundHttpException('Perfil no encontrado.');
+        }
+        return $profile;
+    }
+
     public function list(string $businessId, ?string $branchId = null): Collection
     {
         $query = Profile::with('schedules')

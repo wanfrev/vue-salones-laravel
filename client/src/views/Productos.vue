@@ -69,7 +69,6 @@
     @deactivate="openDeleteModal"
     @delete="openPermanentDeleteModal"
   />
-  </div>
 
   <ProductoFormModal
     ref="productoModalRef"

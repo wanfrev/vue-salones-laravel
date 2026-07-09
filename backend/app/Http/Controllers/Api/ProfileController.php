@@ -90,6 +90,12 @@ class ProfileController
         return response()->json($profile);
     }
 
+    public function show(string $id): JsonResponse
+    {
+        $profile = $this->profileService->find($id);
+        return response()->json($profile);
+    }
+
     public function destroy(Request $request, string $id): JsonResponse
     {
         $user = $request->user()?->load('profile');

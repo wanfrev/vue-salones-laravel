@@ -91,25 +91,11 @@ export const updateBusiness = async (input: UpdateBusinessInput): Promise<Busine
   if (input.multi_branch_enabled !== undefined) payload.multi_branch_enabled = input.multi_branch_enabled
   if (input.features !== undefined) payload.features = input.features
 
-  const { data, error } = await apiClient
-    .from('admin/businesses')
-    .update(payload)
-    .eq('id', input.business_id)
-    .select('*')
-    .single()
-
-  if (error) throw new Error(error.message || 'No fue posible actualizar el negocio.')
-  if (!data) throw new Error('No fue posible actualizar el negocio.')
-  return data as Business
+  return apiRequest<Business>('PUT', `/admin/businesses/${input.business_id}`, payload)
 }
 
 export const deleteBusiness = async (businessId: string): Promise<void> => {
-  const { error } = await apiClient
-    .from('admin/businesses')
-    .delete()
-    .eq('id', businessId)
-
-  if (error) throw new Error(error.message || 'No fue posible eliminar el negocio.')
+  await apiRequest<void>('DELETE', `/admin/businesses/${businessId}`)
 }
 
 export const suspendBusiness = async (businessId: string): Promise<void> => {

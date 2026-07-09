@@ -65,20 +65,29 @@ async function apiFetch<T>(
       body: body ? JSON.stringify(body) : undefined,
     })
 
+    if (res.status === 204) {
+      return { data: null, error: null }
+    }
+
     if (!res.ok) {
-      let errorBody: ApiError = { message: `HTTP ${res.status}` }
-      try {
-        const json = await res.json()
-        errorBody = {
-          message: json.message || json.error || `HTTP ${res.status}`,
-          code: json.code,
-          details: json.details,
-          hint: json.hint,
+        let errorBody: ApiError = { message: `HTTP ${res.status}` }
+        try {
+          const json = await res.json()
+          const message =
+            typeof json.message === 'string' ? json.message :
+            typeof json.error === 'string' ? json.error :
+            typeof json.error?.message === 'string' ? json.error.message :
+            json.message ?? json.error ?? `HTTP ${res.status}`
+          errorBody = {
+            message,
+            code: json.code ?? String(res.status),
+            details: json.details,
+            hint: json.hint,
+          }
+        } catch { /* not JSON */ }
+        if (res.status === 401) {
+          errorBody.code = '401'
         }
-      } catch { /* not JSON */ }
-      if (res.status === 401) {
-        errorBody.code = '401'
-      }
       return { data: null, error: errorBody }
     }
 
@@ -287,7 +296,7 @@ class ApiQueryBuilder<T = any> {
     }
 
     const idFilter = this._filters.find(f => f.column === 'id' && f.op === 'eq')
-    if (idFilter && this._method === 'GET') {
+    if (idFilter && ['GET', 'PUT', 'DELETE', 'PATCH'].includes(this._method)) {
       const path = `/${this.tablePath}/${idFilter.value}`
       const otherFilters = this._filters.filter(f => f !== idFilter)
       const otherParams = new URLSearchParams()
@@ -299,7 +308,7 @@ class ApiQueryBuilder<T = any> {
       for (const orStr of this._orFilters) otherParams.append('or', orStr)
       if (this._orderColumn) otherParams.set('order', `${this._orderColumn}.${this._orderAscending ? 'asc' : 'desc'}`)
       const oqs = otherParams.toString()
-      return { path: oqs ? `${path}?${oqs}` : path, method: 'GET' }
+      return { path: oqs ? `${path}?${oqs}` : path, method: this._method, body: this._body ? { data: this._body } : undefined }
     }
 
     const path = `/${this.tablePath}`

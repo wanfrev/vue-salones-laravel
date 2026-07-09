@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { Session, User, AuthChangeEvent } from '@supabase/supabase-js'
-import { api as supabase } from '../lib/api'
+import { api as supabase, getAuthToken } from '../lib/api'
 import { queryClient } from '../queryClient'
 import type { Role } from '../constants/roles'
 import { isRole } from '../constants/roles'
@@ -92,8 +92,14 @@ export const useAuthStore = defineStore('auth', () => {
     loading.value = true
 
     try {
+      const hadToken = !!getAuthToken()
       const { data, error } = await supabase.auth.getSession()
-      if (error) throw error
+      if (error) {
+        console.warn('[auth.initialize] getSession error (non-fatal):', error)
+        if (hadToken && error.code === '401') {
+          await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+        }
+      }
 
       session.value = data.session
       user.value = data.session?.user ?? null

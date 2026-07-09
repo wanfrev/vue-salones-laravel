@@ -21,11 +21,19 @@ class BranchController
         $profile = $user?->profile;
 
         if (!$profile || !$profile->business_id) {
+            if ($profile?->role === 'superadmin' && $request->input('business_id')) {
+                return response()->json(
+                    BranchResource::collection($this->branchService->list($request->input('business_id')))
+                );
+            }
             return response()->json([], 200);
         }
 
+        $overrideId = $request->input('business_id');
+        $businessId = ($profile->role === 'superadmin' && $overrideId) ? $overrideId : $profile->business_id;
+
         return response()->json(
-            BranchResource::collection($this->branchService->list($profile->business_id))
+            BranchResource::collection($this->branchService->list($businessId))
         );
     }
 

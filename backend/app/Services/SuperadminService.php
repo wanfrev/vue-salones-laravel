@@ -45,11 +45,11 @@ class SuperadminService
                 'timezone' => 'America/Santo_Domingo',
                 'currency' => 'USD',
                 'ves_exchange_rate' => 36.5,
-                'features' => json_encode([
+                'features' => [
                     'pos' => true, 'inventario' => true,
                     'productos' => true, 'proveedores' => true,
-                    'multi_branch' => false,
-                ]),
+                'multi_branch' => false,
+            ],
                 'active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -59,7 +59,7 @@ class SuperadminService
                 'id' => $userId,
                 'name' => $data['name'] . ' Admin',
                 'email' => $email,
-                'password' => bcrypt($data['ownerPassword']),
+                'password' => $data['ownerPassword'],
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -88,7 +88,7 @@ class SuperadminService
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
-            throw new HttpException(500, 'No fue posible crear el negocio.');
+            throw new HttpException(500, 'No fue posible crear el negocio: ' . $e->getMessage());
         }
 
         return [

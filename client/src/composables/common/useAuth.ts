@@ -1,9 +1,11 @@
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useAuthStore } from '../../store/auth'
 
 export const useAuth = () => {
   const authStore = useAuthStore()
+  const router = useRouter()
   const { loading: storeLoading } = storeToRefs(authStore)
   const errorMessage = ref('')
   const loading = computed(() => storeLoading.value)
@@ -26,6 +28,8 @@ export const useAuth = () => {
       await authStore.signOut()
     } catch {
       // local state cleared in signOut
+    } finally {
+      router.push('/')
     }
   }
 
