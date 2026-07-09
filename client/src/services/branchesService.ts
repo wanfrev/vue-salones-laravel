@@ -66,7 +66,7 @@ export const saveBranch = async (
       .select('*')
       .single()
 
-    if (error) throw error
+    if (error) throw new Error(error.message || 'Error al guardar la sucursal')
     return updated as Branch
   } else {
     if (data.isDefault) {
@@ -82,7 +82,7 @@ export const saveBranch = async (
       .select('*')
       .single()
 
-    if (error) throw error
+    if (error) throw new Error(error.message || 'Error al guardar la sucursal')
     return created as Branch
   }
 }
@@ -93,5 +93,5 @@ export const deleteBranch = async (id: string): Promise<void> => {
     .delete()
     .eq('id', id)
 
-  if (error) throw error
+  if (error) throw new Error(error.message || 'Error al eliminar la sucursal')
 }
