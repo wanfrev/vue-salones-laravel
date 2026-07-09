@@ -43,8 +43,10 @@ export function getEffectiveEmployeePercentage(row: {
   employee_percentage: number | null;
   appointments?: { employee_percentage_override: number | null } | null;
 }): number | null {
+  if (row.employee_percentage != null) return Number(row.employee_percentage)
   const overridePct = row.appointments?.employee_percentage_override;
-  return overridePct != null ? Number(overridePct) : null;
+  if (overridePct != null) return Number(overridePct)
+  return null;
 }
 
 export function getProductSaleCurrency(
@@ -463,8 +465,9 @@ export function buildEmployeeEarningsByEmployee(
     if (mainId) {
       ensureEntry(mainId, mainProfile?.full_name ?? "—", mainProfile);
       const tipAmount = Number(tx.tip_amount ?? 0);
+      const serviceAmount = Math.max(0, Number(tx.total_amount ?? 0) - tipAmount);
       const calc = computeServiceEarnings(
-        Math.max(0, Number(tx.total_amount ?? 0) - tipAmount),
+        serviceAmount,
         mainProfile,
         getEffectiveEmployeePercentage(tx),
       );
@@ -477,8 +480,10 @@ export function buildEmployeeEarningsByEmployee(
         appt.assistant_profile?.full_name ?? "—",
         appt.assistant_profile,
       );
+      const tipAmount = Number(tx.tip_amount ?? 0);
+      const serviceAmount = Math.max(0, Number(tx.total_amount ?? 0) - tipAmount);
       map.get(assistantId)!.commissionTotal +=
-        Number(tx.total_amount ?? 0) *
+        serviceAmount *
         (Number(tx.assistant_percentage ?? 0) / 100);
     }
   }

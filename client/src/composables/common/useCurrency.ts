@@ -8,10 +8,13 @@ export function useCurrency() {
   const businessStore = useBusinessStore()
 
   const employeeRate = computed(() => {
+    if (businessStore.employeeExchangeRate != null) {
+      return businessStore.employeeExchangeRate
+    }
     if (businessStore.currentBranch?.ves_exchange_rate != null) {
       return businessStore.currentBranch.ves_exchange_rate
     }
-    return businessStore.employeeExchangeRate ?? businessStore.business?.ves_exchange_rate ?? 1
+    return businessStore.business?.ves_exchange_rate ?? 1
   })
 
   const exchangeRate = computed(() => {
