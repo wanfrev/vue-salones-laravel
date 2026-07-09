@@ -6,17 +6,47 @@
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-1.5">
         <div v-if="isAdmin" class="flex items-center gap-2">
           <div class="relative">
-            <select v-model="selectedEmployeeId"
-              class="w-full appearance-none rounded-lg border border-border bg-surface pl-3 pr-8 py-1.5 text-sm font-medium text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto sm:pl-3.5 sm:pr-9"
+            <button @click="empDropdownOpen = !empDropdownOpen"
+              class="flex items-center gap-2 w-full rounded-lg border border-border bg-surface pl-2.5 pr-3 py-1.5 text-sm font-medium text-text outline-none transition-all hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto"
               :disabled="loadingEmployees">
-              <option value="all">Todos los empleados</option>
-              <option v-for="emp in employees" :key="emp.id" :value="emp.id">{{ emp.full_name }}</option>
-            </select>
-            <div class="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary flex-shrink-0">
+                {{ selectedEmployeeName ? getInitials(selectedEmployeeName) : '✦' }}
+              </div>
+              <span class="truncate max-w-[120px]">{{ selectedEmployeeName || 'Todos' }}</span>
+              <svg class="h-3.5 w-3.5 flex-shrink-0 text-text-muted transition-transform" :class="{ 'rotate-180': empDropdownOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
-            </div>
+            </button>
+            <Transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
+              <div v-if="empDropdownOpen" class="absolute left-0 top-full z-50 mt-1.5 w-56 rounded-xl border border-border bg-surface p-1.5 shadow-xl" @click.stop>
+                <button @click="selectedEmployeeId = 'all'; empDropdownOpen = false"
+                  class="flex items-center gap-2.5 w-full rounded-lg px-2.5 py-2 text-sm font-medium transition-colors"
+                  :class="selectedEmployeeId === 'all' ? 'bg-primary/10 text-primary' : 'text-text hover:bg-bg-secondary'">
+                  <div class="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
+                    <svg class="h-3.5 w-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </div>
+                  Todos los empleados
+                </button>
+                <div class="my-1 h-px bg-border"></div>
+                <div class="max-h-64 overflow-y-auto">
+                  <button v-for="emp in employees" :key="emp.id"
+                    @click="selectedEmployeeId = emp.id; empDropdownOpen = false"
+                    class="flex items-center gap-2.5 w-full rounded-lg px-2.5 py-2 text-sm transition-colors"
+                    :class="selectedEmployeeId === emp.id ? 'bg-primary/10 text-primary font-medium' : 'text-text hover:bg-bg-secondary'">
+                    <div class="flex h-7 w-7 items-center justify-center rounded-full flex-shrink-0 text-[10px] font-bold"
+                      :class="selectedEmployeeId === emp.id ? 'bg-primary/20 text-primary' : 'bg-bg-secondary text-text-secondary'">
+                      {{ getInitials(emp.full_name) }}
+                    </div>
+                    <span class="truncate">{{ emp.full_name }}</span>
+                    <svg v-if="selectedEmployeeId === emp.id" class="h-4 w-4 ml-auto flex-shrink-0 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </Transition>
           </div>
         </div>
         <div v-else class="flex items-center gap-2 px-1">
@@ -158,37 +188,32 @@
                 <div v-for="appt in col.appointments" :key="appt.id"
                   class="absolute left-0.5 right-0.5 sm:left-1 sm:right-1 rounded-lg cursor-pointer overflow-hidden transition-all duration-150 hover:scale-[1.02] hover:z-10 group"
                   :class="cardBgClass(appt.status)"
-                  :style="{ top: `${appt.top}px`, height: `${Math.max(appt.height, 64)}px` }"
+                  :style="{ top: `${appt.top}px`, height: `${Math.max(appt.height, 80)}px` }"
                   :title="`${appt.clientName} · ${appt.service} · ${appt.employeeName}\n${appt.time} · ${getStatusLabel(appt.status)}`"
                   @click.stop="showDetailPopup(appt, $event)">
                   <div class="absolute left-0 top-0 bottom-0 w-[3px] sm:w-[4px]"
                     :class="statusStripeClass(appt.status)" />
-                  <div class="flex flex-col h-full p-1.5 sm:p-2 text-xs leading-snug">
-                    <div class="flex items-center gap-1 min-w-0 sm:gap-1.5">
-                      <button class="h-2 w-2 rounded-full flex-shrink-0 transition-transform hover:scale-125"
-                        :class="statusDotClass(appt.status)" title="Cambiar estado"
-                        @click.stop="toggleStatusMenu(appt, $event)" />
-                      <span
-                        class="text-[11px] font-semibold text-text-muted tabular-nums whitespace-nowrap sm:text-sm">{{
-                        appt.time }}</span>
-                      <span class="font-bold text-text truncate text-[13px]">{{ appt.clientName }}</span>
+                  <div class="flex flex-col h-full px-2 py-1.5 sm:px-2.5 sm:py-2 text-xs leading-tight">
+                    <div class="flex items-center justify-between gap-1 min-w-0">
+                      <div class="flex items-center gap-1.5 min-w-0">
+                        <span
+                          class="text-[11px] font-semibold text-text-muted tabular-nums whitespace-nowrap sm:text-xs">{{
+                          appt.time }}</span>
+                        <span class="h-2 w-2 rounded-full flex-shrink-0"
+                          :class="statusDotClass(appt.status)" />
+                      </div>
                       <button v-if="appt.status !== 'paid' && appt.status !== 'cancelled'"
-                        class="ml-auto flex h-4 w-4 items-center justify-center rounded transition-all hover:scale-110 flex-shrink-0"
+                        class="flex h-5 w-5 items-center justify-center rounded transition-all hover:scale-110 flex-shrink-0"
                         :class="checkoutBtnClass(appt.status)" title="Cobrar" @click.stop="emitCheckout(appt.raw.id)">
-                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"
                           stroke-linecap="round" stroke-linejoin="round">
                           <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
                         </svg>
                       </button>
                     </div>
-                    <div class="flex items-center gap-1 min-w-0 mt-1 sm:gap-1.5">
-                      <span
-                        class="text-[10px] text-text-secondary bg-bg-secondary rounded px-1 py-0.5 truncate sm:text-xs sm:px-1.5">{{
-                        appt.service }}</span>
-                      <span v-if="appt.employeeName" class="text-[10px] text-text-muted truncate sm:text-xs">{{
-                        appt.employeeName
-                        }}</span>
-                    </div>
+                    <div class="font-bold text-text truncate text-[12px] sm:text-[13px] leading-tight mt-1">{{ appt.clientName }}</div>
+                    <div class="text-[10px] text-text-secondary truncate sm:text-xs leading-tight mt-0.5">{{ appt.service }}</div>
+                    <div v-if="appt.employeeName" class="text-[10px] text-text-muted truncate sm:text-xs leading-tight mt-0.5">{{ appt.employeeName }}</div>
                   </div>
                 </div>
               </div>
@@ -324,6 +349,12 @@ const viewMode = ref<'day' | 'week' | 'month' | 'year'>('day')
 const selectedDate = ref(toISODate(new Date()))
 const gridContainer = ref<HTMLElement | null>(null)
 const statusMenu = ref<{ appointmentId: string; currentStatus: string; x: number; y: number } | null>(null)
+const empDropdownOpen = ref(false)
+
+const selectedEmployeeName = computed(() => {
+  if (selectedEmployeeId.value === 'all') return ''
+  return employees.value?.find(e => e.id === selectedEmployeeId.value)?.full_name || ''
+})
 
 const viewOptions = [
   { value: 'day' as const, label: 'Día' },
@@ -547,7 +578,7 @@ function changeStatus(id: string, s: string) {
   statusMenu.value = null
 }
 
-function onDocClick(e: MouseEvent) { if (statusMenu.value && !(e.target as HTMLElement)?.closest('.fixed')) statusMenu.value = null }
+function onDocClick(e: MouseEvent) { if (statusMenu.value && !(e.target as HTMLElement)?.closest('.fixed')) statusMenu.value = null; if (empDropdownOpen.value && !(e.target as HTMLElement)?.closest('.relative')) empDropdownOpen.value = false }
 onMounted(() => document.addEventListener('click', onDocClick))
 onUnmounted(() => document.removeEventListener('click', onDocClick))
 

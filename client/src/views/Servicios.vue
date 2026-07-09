@@ -85,19 +85,21 @@
   </div>
 
   <!-- Category Tabs -->
-  <div class="mb-5 flex overflow-x-auto rounded-xl border border-border bg-surface p-1 shadow-sm scrollbar-hide">
+  <div class="mb-5 flex overflow-x-auto rounded-xl border border-border bg-surface shadow-sm scrollbar-hide">
     <button
-      v-for="cat in categories"
+      v-for="(cat, index) in categories"
       :key="cat.id"
       :class="[
-        'flex-1 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium text-center transition-theme',
+        'flex-1 whitespace-nowrap px-4 py-2.5 text-sm font-medium text-center transition-all relative',
+        index > 0 ? 'border-l border-border' : '',
         activeCategory === cat.id
-          ? 'bg-primary text-text-inverse shadow-sm shadow-primary/20'
-          : 'text-text-secondary hover:bg-bg-secondary'
+          ? 'bg-primary text-text-inverse shadow-sm'
+          : 'text-text-secondary hover:bg-bg-secondary hover:text-text'
       ]"
       @click="activeCategory = cat.id"
     >
-      {{ cat.name }}
+      <span class="relative z-10">{{ cat.name }}</span>
+      <div v-if="activeCategory === cat.id" class="absolute inset-x-0 bottom-0 h-0.5 bg-primary rounded-full" />
     </button>
   </div>
 

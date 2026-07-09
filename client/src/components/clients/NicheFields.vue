@@ -13,7 +13,7 @@
               :label="resolveLabel(field)" :placeholder="field.placeholder" :rows="2" />
           </div>
           <div v-else>
-            <FormSelect v-if="field.type === 'select'" :model-value="values[field.key] ?? ''"
+            <FormDropdown v-if="field.type === 'select'" :model-value="values[field.key] ?? ''"
               @update:model-value="update(field.key, $event)" :label="resolveLabel(field)"
               :options="field.options ?? []" :required="field.required" />
             <FormInput v-else :model-value="values[field.key] ?? ''" @update:model-value="update(field.key, $event)"
@@ -37,7 +37,7 @@
           </div>
           <template v-else>
             <div>
-              <FormSelect v-if="field.type === 'select'" :model-value="values[field.key] ?? ''"
+              <FormDropdown v-if="field.type === 'select'" :model-value="values[field.key] ?? ''"
                 @update:model-value="update(field.key, $event)" :label="resolveLabel(field)"
                 :options="field.options ?? []" />
               <FormInput v-else :model-value="values[field.key] ?? ''" @update:model-value="update(field.key, $event)"
@@ -46,7 +46,7 @@
             <!-- Render rest of the group -->
             <template v-for="other in groupFields(field.collapsibleGroup).slice(1)" :key="other.key">
               <div v-if="other.type !== 'textarea'">
-                <FormSelect v-if="other.type === 'select'" :model-value="values[other.key] ?? ''"
+                <FormDropdown v-if="other.type === 'select'" :model-value="values[other.key] ?? ''"
                   @update:model-value="update(other.key, $event)" :label="resolveLabel(other)"
                   :options="other.options ?? []" />
                 <FormInput v-else :model-value="values[other.key] ?? ''" @update:model-value="update(other.key, $event)"
@@ -66,7 +66,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { FormInput, FormSelect, FormTextarea } from '../forms'
+import { FormInput, FormDropdown, FormTextarea } from '../forms'
 import type { NicheConfig, NicheFieldConfig } from '../../config/nicheFields'
 
 interface Props {

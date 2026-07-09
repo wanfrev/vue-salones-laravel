@@ -1,10 +1,10 @@
 <template>
   <div class="space-y-3">
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <FormSelect :model-value="formData.payType"
+      <FormDropdown :model-value="formData.payType"
         @update:model-value="emit('update:modelValue', { ...formData, payType: $event as EmpleadoFormData['payType'] })"
         label="Tipo de pago" :options="payTypeOptions" required :error="errors.payType" />
-      <FormSelect :model-value="formData.salaryFrequency"
+      <FormDropdown :model-value="formData.salaryFrequency"
         @update:model-value="emit('update:modelValue', { ...formData, salaryFrequency: $event as EmpleadoFormData['salaryFrequency'] })"
         label="Frecuencia" :options="salaryFrequencyOptions" :disabled="formData.payType === 'percentage'"
         :error="errors.salaryFrequency" />
@@ -27,7 +27,7 @@
 </template>
 
 <script setup lang="ts">
-import { FormInput, FormSelect } from '../forms'
+import { FormInput, FormDropdown } from '../forms'
 import type { EmpleadoFormData } from '../../types/empleado'
 
 defineProps<{ formData: EmpleadoFormData; terminology: Record<string, string>; errors: Partial<Record<string, string>> }>()

@@ -139,14 +139,11 @@
                 class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
                 placeholder="0.00" />
             </div>
-            <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="sup-debt-currency">Moneda</label>
-              <select id="sup-debt-currency" v-model="suppliersCtx.form.value.debtCurrency"
-                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30">
-                <option value="USD">USD $</option>
-                <option value="VES">Bs</option>
-              </select>
-            </div>
+            <FormDropdown
+              v-model="suppliersCtx.form.value.debtCurrency"
+              label="Moneda"
+              :options="currencyOptions"
+            />
           </div>
           <div>
             <label class="mb-1 block text-sm font-medium text-text" for="sup-notes">Notas</label>
@@ -178,11 +175,17 @@ import { useSuppliers } from '../composables/suppliers/useSuppliers'
 import { getInitials } from '../lib/formatters'
 import { useCurrency } from '../composables/common/useCurrency'
 import { FeatureGate } from '../components/common'
+import { FormDropdown } from '../components/forms'
 
 const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)
 const suppliersCtx = useSuppliers(businessId)
 const { formatUSD, formatVESEs, formatVESInline } = useCurrency()
+
+const currencyOptions = [
+  { value: 'USD', label: 'USD $' },
+  { value: 'VES', label: 'Bs' },
+]
 
 const handleSave = async () => {
   try {

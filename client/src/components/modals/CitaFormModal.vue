@@ -30,7 +30,7 @@
         <FormInput v-model="formData.date" label="Fecha" type="date" required
           prefix-icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" :error="errors.date" />
         <FormTime v-model="formData.time" label="Hora" required :error="errors.time" />
-        <FormSelect v-model="formData.status" label="Estado" :options="statusOptions" required :error="errors.status" />
+        <FormDropdown v-model="formData.status" label="Estado" :options="statusOptions" required :error="errors.status" />
       </div>
 
       <!-- BLOQUE 2: TABLA DE SERVICIOS -->
@@ -53,9 +53,9 @@
 
         <div v-for="(row, index) in serviceRows" :key="index" class="rounded-lg border border-border bg-bg-secondary/30">
           <div class="grid grid-cols-1 sm:grid-cols-[2fr_1.5fr_1fr_80px_60px_36px_36px] gap-2 p-2.5 items-start">
-            <FormSelect :model-value="row.serviceId" :placeholder="`Seleccionar ${t.service.toLowerCase()}`" :options="serviceOptions" :error="getRowError(index, 'serviceId')" size="sm" @update:model-value="updateServiceRow(index, 'serviceId', $event)" />
-            <FormSelect :model-value="row.employeeId" :placeholder="t.employee" :options="employeeOptions" :disabled="isSingleEmployee" :error="getRowError(index, 'employeeId')" size="sm" @update:model-value="updateServiceRow(index, 'employeeId', $event)" />
-            <FormSelect :model-value="row.assistantEmployeeId" placeholder="Sin asist." :options="assistantOptions" :error="getRowError(index, 'assistantEmployeeId')" size="sm" @update:model-value="updateServiceRow(index, 'assistantEmployeeId', $event)" />
+            <FormDropdown :model-value="row.serviceId" :placeholder="`Seleccionar ${t.service.toLowerCase()}`" :options="serviceOptions" :error="getRowError(index, 'serviceId')" size="sm" searchable @update:model-value="updateServiceRow(index, 'serviceId', $event)" />
+            <FormDropdown :model-value="row.employeeId" :placeholder="t.employee" :options="employeeOptions" :disabled="isSingleEmployee" :error="getRowError(index, 'employeeId')" size="sm" @update:model-value="updateServiceRow(index, 'employeeId', $event)" />
+            <FormDropdown :model-value="row.assistantEmployeeId" placeholder="Sin asist." :options="assistantOptions" :error="getRowError(index, 'assistantEmployeeId')" size="sm" @update:model-value="updateServiceRow(index, 'assistantEmployeeId', $event)" />
             <div>
               <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm font-medium">$</span>
                 <input :value="String(row.price)" @input="setRowPrice(index, ($event.target as HTMLInputElement).value)" type="number" min="0" step="0.01" class="w-full rounded-lg border bg-surface text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 py-1.5 pl-6 pr-2 text-sm border-border hover:border-border-strong text-right" />
@@ -129,12 +129,12 @@ import { useModal } from '../../composables/common/useModal'
 import { useNotification } from '../../composables/common/useNotification'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
-import { toISODate, minutesToHHmm } from '../../lib/formatters'
+import { toISODate, minutesToHHmm, getInitials } from '../../lib/formatters'
 import { listCitaGroupMembers } from '../../services/agendaService'
 import type { Cita, CitaFormData, CitaFormServiceItem, PaymentEditContext } from '../../types/cita'
 import ModalBase from '../common/ModalBase.vue'
 import { DualAmount } from '../common'
-import { FormInput, FormSelect, FormTextarea, FormTime } from '../forms'
+import { FormInput, FormSelect, FormDropdown, FormTextarea, FormTime } from '../forms'
 import CitaClientSearch from '../forms/CitaClientSearch.vue'
 import PaymentEditor from './PaymentEditor.vue'
 
@@ -170,21 +170,23 @@ const onClientSelected = (client: { id: string }) => {
 const isLoading = computed(() => saveInProgress.value)
 const isEditing = computed(() => !!(modalData.value?.cita?.id))
 
-const serviceOptions = computed(() => (props.servicios ?? []).map(s => ({ value: s.id, label: `${s.name} - $${s.price} (${s.duration} min)` })))
+const serviceOptions = computed(() => (props.servicios ?? []).map(s => ({ value: s.id, label: s.name, sublabel: `$${s.price} · ${s.duration} min`, icon: '✂' })))
 const employeeOptions = computed(() => {
   const empList = props.empleados ?? []
-  if (isEmployee.value) { const me = empList.find(e => e.id === (authStore.profile?.id ?? '')); return me ? [{ value: me.id, label: me.name }] : [] }
-  return empList.map(e => ({ value: e.id, label: e.name }))
+  if (isEmployee.value) { const me = empList.find(e => e.id === (authStore.profile?.id ?? '')); return me ? [{ value: me.id, label: me.name, icon: getInitials(me.name) }] : [] }
+  return empList.map(e => ({ value: e.id, label: e.name, icon: getInitials(e.name) }))
 })
 const assistantOptions = computed(() => {
   const empList = props.empleados ?? []
   if (isEmployee.value) return [{ value: '', label: 'Sin asistente' }]
-  return [{ value: '', label: 'Sin asistente' }, ...empList.map(e => ({ value: e.id, label: e.name }))]
+  return [{ value: '', label: 'Sin asistente' }, ...empList.map(e => ({ value: e.id, label: e.name, icon: getInitials(e.name) }))]
 })
 const isSingleEmployee = computed(() => employeeOptions.value.length <= 1)
 const statusOptions = [
-  { value: 'confirmed', label: 'Confirmada' }, { value: 'pending', label: 'Pendiente' },
-  { value: 'paid', label: 'Pagada' }, { value: 'cancelled', label: 'Cancelada' },
+  { value: 'confirmed', label: 'Confirmada', icon: '✓' },
+  { value: 'pending', label: 'Pendiente', icon: '◉' },
+  { value: 'paid', label: 'Pagada', icon: '$' },
+  { value: 'cancelled', label: 'Cancelada', icon: '✕' },
 ]
 
 const emptyServiceRow = (): CitaFormServiceItem => ({

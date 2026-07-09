@@ -27,12 +27,14 @@
           />
 
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <FormSelect
+            <FormDropdown
               v-if="!showingCustomRole"
               v-model="formData.role"
               label="Rol / Puesto"
+              placeholder="Seleccionar rol..."
               :options="roleOptions"
               required
+              searchable
               :error="errors.role"
             />
             <div v-else class="flex gap-2">
@@ -156,7 +158,7 @@ import { useBusinessStore } from '../../store/business'
 import { addBusinessJobTitle } from '../../services/equipoService'
 import type { Empleado, EmpleadoFormData } from '../../types/empleado'
 import ModalBase from '../common/ModalBase.vue'
-import { FormInput, FormSelect } from '../forms'
+import { FormInput, FormDropdown } from '../forms'
 import SalaryConfig from '../equipo/SalaryConfig.vue'
 import ScheduleEditor from '../equipo/ScheduleEditor.vue'
 

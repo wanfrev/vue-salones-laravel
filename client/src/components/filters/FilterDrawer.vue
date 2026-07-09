@@ -27,7 +27,7 @@
       <!-- Ordenar por -->
       <div class="space-y-2">
         <label class="text-sm font-medium text-text-secondary">Ordenar por</label>
-        <FormSelect v-model="localFilters.sortBy" :options="sortOptions" size="sm" />
+        <FormDropdown v-model="localFilters.sortBy" :options="sortOptions" size="sm" />
       </div>
 
       <!-- Filtros activos -->
@@ -44,7 +44,7 @@
 import { ref, computed } from 'vue'
 import { useDrawer } from '../../composables/common/useDrawer'
 import DrawerBase from '../common/DrawerBase.vue'
-import { FormInput, FormSelect } from '../forms'
+import { FormInput, FormDropdown } from '../forms'
 
 const DRAWER_ID = 'filter-drawer'
 
@@ -66,9 +66,9 @@ const props = withDefaults(defineProps<Props>(), {
   showDateFilter: true,
   showDaysSinceFilter: false,
   sortOptions: () => [
-    { value: 'newest', label: 'Más reciente' },
-    { value: 'oldest', label: 'Más antiguo' },
-    { value: 'name', label: 'Nombre' },
+    { value: 'newest', label: 'Más reciente', icon: '↓' },
+    { value: 'oldest', label: 'Más antiguo', icon: '↑' },
+    { value: 'name', label: 'Nombre', icon: 'A' },
   ],
 })
 

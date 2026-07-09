@@ -21,25 +21,23 @@
             :class="cell.iso === todayIso ? 'bg-primary text-white' : cell.iso === selectedDate ? 'bg-primary/15 text-primary' : 'text-text'">
             {{ cell.number }}
           </span>
-          <div class="mt-px space-y-px overflow-hidden">
+          <div class="mt-1 space-y-1 overflow-hidden">
             <div v-for="appt in cell.appointments.slice(0, 2)" :key="appt.id"
-              class="flex flex-col gap-px rounded-sm px-0.5 py-px cursor-pointer transition-colors hover:brightness-95 sm:gap-0.5 sm:rounded sm:px-1"
+              class="flex flex-col gap-0.5 rounded-md px-1.5 py-1 cursor-pointer transition-colors hover:brightness-95 sm:gap-1 sm:rounded-md sm:px-2 sm:py-1.5"
               :class="monthCardBg(appt.status)"
               :title="`${appt.clientName} · ${appt.service} · ${appt.employeeName}\n${appt.time} · ${getStatusLabel(appt.status)}`"
               @click.stop="$emit('eventClick', appt.raw)">
-              <div class="flex items-center gap-0.5 sm:gap-1">
-                <span class="h-1 w-1 rounded-full flex-shrink-0 sm:h-1.5 sm:w-1.5"
+              <div class="flex items-center justify-between gap-1 min-w-0">
+                <span class="text-[9px] text-text-muted font-semibold tabular-nums sm:text-[10px]">{{ appt.time }}</span>
+                <span class="h-1.5 w-1.5 rounded-full flex-shrink-0 sm:h-2 sm:w-2"
                   :class="statusDotClass(appt.status)" />
-                <span class="text-[8px] font-medium leading-tight truncate sm:text-[10px]">{{ appt.clientName }}</span>
-                <span class="text-[7px] text-text-muted ml-auto flex-shrink-0 hidden sm:inline">{{ appt.time }}</span>
               </div>
-              <div class="flex items-center gap-0.5 text-[7px] text-text-muted truncate sm:text-[9px] sm:ml-2">
-                <span>{{ appt.service }}</span>
-                <span v-if="appt.employeeName">· {{ appt.employeeName }}</span>
-              </div>
+              <div class="text-[10px] font-bold leading-tight truncate sm:text-xs">{{ appt.clientName }}</div>
+              <div class="text-[9px] text-text-secondary truncate sm:text-[10px] leading-tight">{{ appt.service }}</div>
+              <div v-if="appt.employeeName" class="text-[9px] text-text-muted truncate sm:text-[10px] leading-tight">{{ appt.employeeName }}</div>
             </div>
             <div v-if="cell.appointments.length > 2"
-              class="text-[8px] font-medium text-text-muted pl-0.5 sm:text-[9px] sm:pl-1">
+              class="text-[9px] font-medium text-text-muted pl-0.5 sm:text-[10px] sm:pl-1">
               +{{ cell.appointments.length - 2 }} más
             </div>
           </div>

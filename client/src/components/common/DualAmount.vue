@@ -1,5 +1,5 @@
 <template>
-  <div :class="orientation === 'inline' ? 'flex items-baseline gap-1.5' : ''">
+  <div :class="orientation === 'inline' ? 'flex items-baseline gap-1.5' : 'flex flex-col items-end'">
     <span :class="['font-semibold tabular-nums whitespace-nowrap', primaryClass, amountSizeClass]">
       <template v-if="showSign">{{ sign || (isNegative ? '-' : '') }}</template>
       {{ displayPrimary }}

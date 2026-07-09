@@ -9,8 +9,7 @@
           </svg>
         </button>
         <div class="flex flex-col">
-          <img :src="lumaLogo" alt="Luma" class="-ml-1 h-7 w-auto object-contain" />
-          <span class="text-[10px] text-text-muted uppercase tracking-wide">Admin</span>
+          <img :src="lumaLogo" alt="Luma" class="h-7 w-auto object-contain" />
         </div>
         <BranchSwitcher v-if="businessStore.isMultiBranch" />
       </div>

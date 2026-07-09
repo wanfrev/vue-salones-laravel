@@ -20,11 +20,13 @@
           required
           :error="errors.name"
         />
-        <FormSelect
+        <FormDropdown
           v-if="!showingCustomCategory"
           v-model="formData.categoryId"
           label="Categoría"
+          placeholder="Seleccionar categoría..."
           :options="categoryOptions"
+          searchable
           :error="errors.categoryId"
         />
         <div v-else class="flex gap-2">
@@ -76,7 +78,7 @@
           required
           :error="errors.unit"
         />
-        <FormSelect
+        <FormDropdown
           v-model="formData.active"
           label="Estado"
           :options="statusOptions"
@@ -138,7 +140,7 @@ import { useBusinessStore } from '../../store/business'
 import { mapCategoryToOption } from '../../mappers/productosMapper'
 import type { Producto, ProductoFormData } from '../../types/producto'
 import ModalBase from '../common/ModalBase.vue'
-import { FormInput, FormSelect, FormTextarea, FormToggle } from '../forms'
+import { FormInput, FormDropdown, FormTextarea, FormToggle } from '../forms'
 
 const MODAL_ID = 'producto-form-modal'
 

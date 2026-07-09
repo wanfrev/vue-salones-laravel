@@ -24,12 +24,14 @@
 
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <!-- Categoría -->
-        <FormSelect
+        <FormDropdown
           v-if="!showingCustomCategory"
           v-model="formData.category"
           label="Categoría"
+          placeholder="Seleccionar categoría..."
           :options="categoryOptions"
           required
+          searchable
           :error="errors.category"
         />
         <div v-else class="flex gap-2">
@@ -51,7 +53,7 @@
         </div>
 
         <!-- Estado -->
-        <FormSelect
+        <FormDropdown
           v-model="formData.status"
           label="Estado"
           :options="statusOptions"
@@ -106,7 +108,7 @@ import { addBusinessCategory } from '../../services/equipoService'
 import { getBusinessServiceCategories } from '../../services/serviciosService'
 import type { Servicio, ServicioFormData } from '../../types/servicio'
 import ModalBase from '../common/ModalBase.vue'
-import { FormInput, FormSelect, FormTextarea } from '../forms'
+import { FormInput, FormDropdown, FormTextarea } from '../forms'
 
 const MODAL_ID = 'servicio-form-modal'
 
@@ -248,12 +250,15 @@ const categoryOptions = computed(() => {
     ? dbCategories.value
     : businessStore.serviceCategories
   const fallbackItems = NICHE_CATEGORIES[nicheType.value] || NICHE_CATEGORIES.salon
-  const items: { value: string; label: string }[] = rawBizCats.length > 0
-    ? rawBizCats.map(c => {
-        const name = typeof c === 'string' ? c : (c as any)?.name ?? ''
-        return { value: name, label: name }
-      })
-    : fallbackItems.map(i => ({ ...i }))
+  const items: { value: string; label: string }[] = []
+  if (rawBizCats.length > 0) {
+    rawBizCats.forEach(c => {
+      const name = typeof c === 'string' ? c : (c as any)?.name ?? ''
+      items.push({ value: name, label: name })
+    })
+  } else {
+    fallbackItems.forEach(i => items.push({ ...i }))
+  }
   items.push({ value: '__new__', label: '+ Agregar nuevo' })
   return items
 })
@@ -279,7 +284,7 @@ const defaultFormData: ServicioFormData = {
   price: 0,
   duration: 30,
   status: 'Activo',
-  category: 'corte',
+  category: '',
 }
 
 const formData = ref<ServicioFormData>({ ...defaultFormData })
@@ -365,10 +370,11 @@ const open = (servicio?: Servicio) => {
       price: servicio.price || 0,
       duration: servicio.duration || 30,
       status: servicio.status || 'Activo',
-      category: servicio.category || 'corte',
+      category: servicio.category || '',
     }
   } else {
-    formData.value = { ...defaultFormData, category: defaultCategory.value }
+    const firstCategory = categoryOptions.value.length > 0 ? categoryOptions.value[0].value : ''
+    formData.value = { ...defaultFormData, category: firstCategory }
     showingCustomCategory.value = false
   }
   errors.value = {}
