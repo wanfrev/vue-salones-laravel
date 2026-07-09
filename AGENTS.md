@@ -177,20 +177,15 @@ Exports: `import { ModalBase, StatCard, ... } from '../components/common'`
 `Appointment`, `Auth`, `Branch`, `Business`, `Client`, `EmployeeBalance`, `EmployeeCommission`, `EmployeePayment`, `EmployeeSchedule`, `Expense`, `FinancialSummary`, `GiftCard`, `Inventory`, `Notification`, `Pos`, `Product`, `ProductCategory`, `Profile`, `Service`, `Superadmin`, `Supplier`, `SupplierPayment`, `Transaction`
 
 ### Services (21)
-Cada controller delega en un service. El service contiene la lógica de negocio pura. **Los services NO deben filtrar manualmente por `business_id` o `branch_id`** — eso lo hacen los Global Scopes automáticamente.
-
-### Global Scopes (aislamiento automático)
-
-Dos scopes protegen todas las queries Eloquent automáticamente:
-
-| Scope | Trait | Filtro SQL |
-|---|---|---|
-| `BusinessScope` | `BelongsToBusiness` | `WHERE business_id = {context}` |
-| `BranchScope` | `BelongsToBranch` | `WHERE (branch_id IS NULL OR branch_id = {context})` |
-
-**17 modelos** tienen `BelongsToBusiness`. **14 modelos** tienen `BelongsToBranch`. Se aplican automáticamente cuando `SetBusinessContext` bindea el contexto al contenedor. Para superadmin, el scope no se activa (ve todo).
-
-> **Regla:** todo modelo nuevo con `business_id` o `branch_id` DEBE usar el trait correspondiente. No se filtra manualmente en services.
+Cada controller delega en un service. El service contiene la lógica de negocio pura. **Los services deben filtrar manualmente por `business_id` y `branch_id`.** El patrón multi-branch es:
+```php
+if ($branchId) {
+    $query->where(function ($q) use ($branchId) {
+        $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+    });
+}
+```
+> Los Global Scopes (`BusinessScope`, `BranchScope`) están implementados pero **desactivados** (comentados en los traits). Reactivarlos cuando se estabilice la arquitectura.
 
 ### Policies (11)
 `AppointmentPolicy`, `BusinessPolicy`, `ClientPolicy`, `ExpensePolicy`, `GiftCardPolicy`, `NotificationPolicy`, `ProductPolicy`, `ProfilePolicy`, `ServicePolicy`, `SupplierPolicy`, `TransactionPolicy`
@@ -207,9 +202,9 @@ API middleware se registra en `backend/bootstrap/app.php:17-21` en este orden (i
 
 | # | Middleware | Propósito |
 |---|---|---|
-| 1 | `UnwrapApiData` | Desenvuelve body `{ data: { ... } }` → el controller recibe datos directos (POST, PUT, PATCH, DELETE) |
+| 1 | `UnwrapApiData` | Desenvuelve body `{ data: { ... } }` (POST, PUT, PATCH, DELETE) |
 | 2 | `ParseApiFilters` | Traduce query params PostgREST-style (`?col=eq.val`) a `$request->merge(['col' => 'val'])` |
-| 3 | `SetBusinessContext` | Resuelve `business_id` del perfil + `branch_id` del header `X-Branch-ID`, bindea `BusinessContext` y `branch-context-id` al contenedor |
+| 3 | `SetBusinessContext` | Resuelve `business_id` del perfil + `branch_id` del request, inyecta `BusinessContext` |
 | 4 | `auth:sanctum` (ruta) | Protege rutas API con token Bearer |
 | 5 | `EnsureSuperadmin` (alias `superadmin`) | Solo permite rol `superadmin` |
 
@@ -217,7 +212,7 @@ API middleware se registra en `backend/bootstrap/app.php:17-21` en este orden (i
 `ProcessPayment`, `ProcessSale`, `GenerateRemindersJob` — tareas async vía Redis + Horizon.
 
 ### EntityChanged
-Evento broadcast por Reverb en canal privado `business.{id}`. Usar siempre `EntityChanged::safe()` (con try-catch interno). Se dispara en todos los controladores de escritura. El frontend escucha `.entity.changed` e invalida caches de TanStack Query.
+Evento broadcast por Reverb en canal privado `business.{id}`. Usar siempre `EntityChanged::safe()` (try-catch interno). Se dispara en todos los controladores de escritura.
 
 ---
 
@@ -270,7 +265,7 @@ const { data } = useQuery({
 - `placeholderData: keepPreviousData` — evita flash de pantalla vacía al cambiar de período
 - Auth errors (401) → auto-redirect a login
 
-**Cache invalidation:** NUNCA usar `await` secuencial. Siempre `Promise.allSettled([...])`.
+**Cache invalidation:** Usar `await Promise.allSettled([...])` + `await refetchQueries(...)` para que los cambios se reflejen al instante.
 
 ---
 
@@ -353,9 +348,9 @@ const { data } = useQuery({
 ```
 [ ] npm run build pasa (vite build)
 [ ] php artisan route:list sin errores
-[ ] Si tocaste controller: EntityChanged::dispatch en writes
+[ ] Si tocaste controller: EntityChanged::safe en writes
 [ ] Si tocaste service: filtra por business_id en TODAS las queries
-[ ] Si tocaste frontend composable: invalidaciones con Promise.allSettled
+[ ] Si tocaste frontend composable: await Promise.allSettled + refetchQueries
 [ ] Si tocaste policy: before() permite superadmin bypass
 [ ] Si tocaste mappers con números nullable: usaste ?? no ||
 [ ] Si tocaste una vista: NO excede 300 líneas
