@@ -168,6 +168,16 @@ export const useAuthStore = defineStore('auth', () => {
 
   const signOut = async () => {
     loading.value = true
+
+    clearAuthState()
+    queryClient.clear()
+    const { useBusinessStore } = await import('./business')
+    useBusinessStore().clearBusiness()
+    if (authUnsubscribe) {
+      authUnsubscribe()
+      authUnsubscribe = null
+    }
+
     try {
       await Promise.race([
         supabase.auth.signOut({ scope: 'local' }),
@@ -176,14 +186,6 @@ export const useAuthStore = defineStore('auth', () => {
     } catch {
       await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
     } finally {
-      clearAuthState()
-      queryClient.clear()
-      const { useBusinessStore } = await import('./business')
-      useBusinessStore().clearBusiness()
-      if (authUnsubscribe) {
-        authUnsubscribe()
-        authUnsubscribe = null
-      }
       loading.value = false
       initialized.value = false
     }
