@@ -22,7 +22,7 @@ install:
 # ─── Desarrollo ────────────────────────────────────────────────────
 
 backend:
-	cd backend && php artisan serve --port=8000
+	PHP_CLI_SERVER_WORKERS=8 php artisan serve --port=8000
 
 reverb:
 	cd backend && php artisan reverb:start

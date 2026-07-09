@@ -28,8 +28,8 @@ if %errorlevel% neq 0 (
 echo     luma-redis OK
 echo.
 
-echo [2] Iniciando Backend :8000...
-start "Luma-Backend" cmd /k "cd /d "%ROOT%backend" && php artisan serve --host=0.0.0.0 --port=8000"
+echo [2] Iniciando Backend :8000 (8 workers)...
+start "Luma-Backend" cmd /k "cd /d "%ROOT%backend" && set PHP_CLI_SERVER_WORKERS=8 && php artisan serve --host=0.0.0.0 --port=8000"
 
 echo [3] Iniciando Frontend :5173...
 start "Luma-Frontend" cmd /k "cd /d "%ROOT%client" && npm run dev"

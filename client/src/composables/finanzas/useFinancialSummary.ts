@@ -121,7 +121,10 @@ function useFinancialSummary(
     enabled: computed(() => !!businessId.value),
     placeholderData: keepPreviousData,
   })
-  const summaryBuckets = computed(() => summaryData.value ?? [])
+  const summaryBuckets = computed<SummaryBucket[]>(() => {
+    const v = summaryData.value
+    return Array.isArray(v) ? v : []
+  })
 
   const transactionsQueryKey = computed(() => ['finanzas-transactions', businessId.value, selectedPeriod.value, selectedMonth?.value ?? null, branchId.value] as const)
   const { data: transactionsData, isLoading: isTransactionsLoading } = useQuery({

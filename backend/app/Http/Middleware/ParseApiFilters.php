@@ -28,10 +28,21 @@ class ParseApiFilters
 
                 if ($op === 'eq') {
                     $parsed[$key] = $val === 'null' ? null : $val;
+                } elseif ($op === 'neq') {
+                    $parsed["{$key}_not"] = $val === 'null' ? null : $val;
                 } elseif ($op === 'in') {
-                    // in.(val1,val2) format
                     $val = trim($val, '()');
                     $parsed[$key] = $val === '' ? [] : explode(',', $val);
+                } elseif ($op === 'gt') {
+                    $parsed[$key] = $val;
+                } elseif ($op === 'gte') {
+                    $parsed[$key] = $val;
+                } elseif ($op === 'lt') {
+                    $parsed[$key] = $val;
+                } elseif ($op === 'lte') {
+                    $parsed[$key] = $val;
+                } elseif ($op === 'like' || $op === 'ilike') {
+                    $parsed[$key] = str_replace('*', '%', $val);
                 }
             } else {
                 $parsed[$key] = $value;

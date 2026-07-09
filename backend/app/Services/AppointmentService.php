@@ -15,7 +15,7 @@ class AppointmentService
         ?string $endDate = null,
         ?string $employeeId = null,
         ?string $branchId = null,
-        ?string $status = null,
+        string|array|null $status = null,
     ): Collection {
         $query = Appointment::with(['client', 'service', 'employeeProfile', 'assistantProfile'])
             ->where('business_id', $businessId)
@@ -25,7 +25,7 @@ class AppointmentService
         if ($endDate) $query->where('start_time', '<=', $endDate);
         if ($employeeId) $query->where('employee_id', $employeeId);
         if ($branchId) $query->where('branch_id', $branchId);
-        if ($status) $query->where('status', $status);
+        if ($status) $query->whereIn('status', (array) $status);
 
         return $query->get();
     }
