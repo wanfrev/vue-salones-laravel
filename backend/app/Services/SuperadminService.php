@@ -3,10 +3,8 @@
 namespace App\Services;
 
 use App\Models\Business;
-use App\Models\Branch;
 use App\Models\Profile;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -30,10 +28,9 @@ class SuperadminService
             throw new HttpException(422, 'Ya existe un usuario registrado con este correo electrónico.');
         }
 
-        $businessId = Str::uuid()->toString();
-        $userId = Str::uuid()->toString();
-        $branchId = Str::uuid()->toString();
-        $slug = Str::slug($data['name']);
+    $businessId = Str::uuid()->toString();
+    $userId = Str::uuid()->toString();
+    $slug = Str::slug($data['name']);
 
         DB::beginTransaction();
         try {
@@ -64,28 +61,18 @@ class SuperadminService
                 'updated_at' => now(),
             ]);
 
-            Profile::create([
-                'id' => $userId,
-                'business_id' => $businessId,
-                'full_name' => $data['name'] . ' Admin',
-                'role' => 'admin',
-                'email' => $email,
-                'active' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        Profile::create([
+            'id' => $userId,
+            'business_id' => $businessId,
+            'full_name' => $data['name'] . ' Admin',
+            'role' => 'admin',
+            'email' => $email,
+            'active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
 
-            Branch::create([
-                'id' => $branchId,
-                'business_id' => $businessId,
-                'name' => 'Principal',
-                'is_default' => true,
-                'active' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-
-            DB::commit();
+        DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
             throw new HttpException(500, 'No fue posible crear el negocio: ' . $e->getMessage());
