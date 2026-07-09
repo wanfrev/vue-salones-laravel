@@ -46,9 +46,13 @@ class BranchController
             return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
         }
 
-        $branch = $this->branchService->store($request->validated(), $profile->business_id);
-        EntityChanged::dispatch($profile->business_id, 'branch', 'created', $branch->id);
-        return response()->json(new BranchResource($branch), 201);
+        try {
+            $branch = $this->branchService->store($request->validated(), $profile->business_id);
+            EntityChanged::dispatch($profile->business_id, 'branch', 'created', $branch->id);
+            return response()->json(new BranchResource($branch), 201);
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            return response()->json(['error' => ['message' => 'Ya existe una sucursal con ese nombre.']], 422);
+        }
     }
 
     public function update(StoreBranchRequest $request, string $id): JsonResponse
