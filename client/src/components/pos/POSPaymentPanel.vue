@@ -17,7 +17,7 @@
         <template v-else-if="selectedAppointment">
           <div class="flex items-center justify-between text-sm mt-1">
             <span class="text-text-muted">Cliente</span>
-            <span class="font-medium text-text">{{ selectedAppointment.clients?.full_name || '—' }}</span>
+            <span class="font-medium text-text">{{ selectedAppointment.client?.full_name || selectedAppointment.clients?.full_name || '—' }}</span>
           </div>
           <div v-if="selectedAppointment.appointment_date" class="flex items-center justify-between text-sm mt-1">
             <span class="text-text-muted">Fecha</span>
@@ -41,11 +41,15 @@
           <template v-else>
             <div class="flex items-center justify-between text-sm mt-1">
               <span class="text-text-muted">Servicio</span>
-              <span class="font-medium text-text">{{ selectedAppointment.services?.name || '—' }}</span>
+              <span class="font-medium text-text">{{ (selectedAppointment.service?.name ?? selectedAppointment.services?.name) || '—' }}</span>
             </div>
             <div class="flex items-center justify-between text-sm mt-1">
               <span class="text-text-muted">Empleado</span>
-              <span class="font-medium text-text">{{ selectedAppointment.profiles?.full_name || '—' }}</span>
+              <span class="font-medium text-text">{{ (selectedAppointment.employee_profile?.full_name ?? selectedAppointment.profiles?.full_name) || '—' }}</span>
+            </div>
+            <div v-if="selectedAppointment.assistant_employee_id" class="flex items-center justify-between text-sm mt-1">
+              <span class="text-text-muted">Asistente</span>
+              <span class="font-medium text-text">{{ (selectedAppointment.assistant_profile?.full_name) || '—' }} ({{ selectedAppointment.assistant_percentage ?? 0 }}%)</span>
             </div>
           </template>
         </template>

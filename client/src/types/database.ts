@@ -150,8 +150,11 @@ export interface Appointment {
 
 export interface AppointmentWithRelations extends Appointment {
   clients?: Pick<Client, 'id' | 'full_name' | 'phone' | 'email'> | null
+  client?: Pick<Client, 'id' | 'full_name' | 'phone' | 'email'> | null
   services?: Pick<Service, 'id' | 'name' | 'duration_minutes' | 'price' | 'color'> | null
+  service?: Pick<Service, 'id' | 'name' | 'duration_minutes' | 'price' | 'color'> | null
   profiles?: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
+  employee_profile?: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
   assistant_profile?: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
 }
 

@@ -26,6 +26,7 @@ class RecordSaleRequest extends FormRequest
             'products.*.unit_cost' => 'nullable|numeric|min:0',
             'products.*.variant_id' => 'nullable|uuid',
             'products.*.location_id' => 'nullable|uuid',
+            'tip_amount' => 'nullable|numeric|min:0',
         ];
     }
 }

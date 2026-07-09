@@ -26,8 +26,8 @@
       >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-text">{{ appt.clients?.full_name || 'Cliente' }}</p>
-            <p class="text-xs text-text-muted">{{ appt.services?.name || 'Servicio' }}</p>
+            <p class="text-sm font-medium text-text">{{ appt.client?.full_name || appt.clients?.full_name || 'Cliente' }}</p>
+            <p class="text-xs text-text-muted">{{ (appt.service?.name ?? appt.services?.name) || 'Servicio' }}</p>
           </div>
           <div class="text-right">
             <p class="text-sm font-bold text-text">${{ appt.groupPrice ?? appt.price_override ?? appt.services?.price ?? 0 }}</p>

@@ -21,6 +21,48 @@ class InventoryService
             ->get();
     }
 
+    public function storeLocation(array $data, string $businessId): InventoryLocation
+    {
+        return InventoryLocation::create([
+            'id' => Str::uuid()->toString(),
+            'business_id' => $businessId,
+            'branch_id' => $data['branch_id'] ?? null,
+            'name' => $data['name'],
+            'is_default' => $data['is_default'] ?? false,
+            'active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    public function storeStock(array $data, string $businessId): InventoryStock
+    {
+        return InventoryStock::create([
+            'id' => Str::uuid()->toString(),
+            'business_id' => $businessId,
+            'branch_id' => $data['branch_id'] ?? null,
+            'location_id' => $data['location_id'],
+            'product_id' => $data['product_id'],
+            'quantity' => $data['quantity'] ?? 0,
+            'updated_at' => now(),
+        ]);
+    }
+
+    public function updateStock(string $id, array $data): InventoryStock
+    {
+        $stock = InventoryStock::find($id);
+        if (!$stock) throw new NotFoundHttpException('Stock no encontrado.');
+        $stock->update(['quantity' => $data['quantity'], 'updated_at' => now()]);
+        return $stock;
+    }
+
+    public function deleteStock(string $id, string $businessId): void
+    {
+        $stock = InventoryStock::where('id', $id)->where('business_id', $businessId)->first();
+        if (!$stock) throw new NotFoundHttpException('Stock no encontrado.');
+        $stock->delete();
+    }
+
     public function index(string $businessId, ?string $branchId = null): Collection
     {
         $query = InventoryStock::with(['product', 'location'])
@@ -30,7 +72,17 @@ class InventoryService
             $query->where('branch_id', $branchId);
         }
 
-        return $query->get();
+        return $query->get()->map(function ($stock) {
+            $data = $stock->toArray();
+            $data['products'] = $stock->product ? [
+                'name' => $stock->product->name,
+                'sku' => $stock->product->sku,
+                'unit_cost' => $stock->product->unit_cost,
+                'unit_price' => $stock->product->unit_price,
+                'reorder_point' => $stock->product->reorder_point,
+            ] : null;
+            return $data;
+        });
     }
 
     public function movements(

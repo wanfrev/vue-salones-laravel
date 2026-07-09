@@ -3,6 +3,7 @@ import { useQuery, keepPreviousData } from '@tanstack/vue-query'
 import { api as supabase } from '../../lib/api'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
+import { APPOINTMENT_SELECT } from '../../services/agendaService'
 import type { Profile, Service } from '../../types/database'
 
 function defaultWeekRange() {
@@ -98,15 +99,15 @@ export const useAgenda = () => {
       const { start, end } = range as { start: Date; end: Date }
       let query = supabase
         .from('appointments')
-        .select('*, clients(id, full_name)')
+        .select(APPOINTMENT_SELECT)
         .eq('business_id', bizId)
       if (branchId) {
         query = query.eq('branch_id', branchId)
       }
-      query = query.gte('start_time', start.toISOString())
-        .lte('start_time', end.toISOString())
+      query = query.gte('start_date', start.toISOString())
+        .lte('end_date', end.toISOString())
       if (empId !== 'all') {
-        query = query.or(`employee_id.eq.${empId},assistant_employee_id.eq.${empId}`)
+        query = query.eq('employee_id', empId)
       }
       const { data, error } = await query
       if (error) throw error

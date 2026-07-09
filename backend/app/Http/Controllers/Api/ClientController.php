@@ -15,63 +15,64 @@ class ClientController
         private ClientService $clientService,
     ) {}
 
+    private function resolveBusinessId(Request $request): ?string
+    {
+        return $request->user()?->profile?->business_id;
+    }
+
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json([]);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
 
         return response()->json(
-            $this->clientService->list($p->business_id, $request->branch_id)
+            $this->clientService->list($businessId, $request->branch_id)
         );
     }
 
     public function store(StoreClientRequest $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
-        $client = $this->clientService->store($request->validated(), $p->business_id);
-        EntityChanged::dispatch($p->business_id, 'client', 'created', $client->id);
+        $client = $this->clientService->store($request->validated(), $businessId);
+        EntityChanged::safe($businessId, 'client', 'created', $client->id);
         return response()->json($client, 201);
     }
 
     public function update(UpdateClientRequest $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
-        $client = $this->clientService->update($id, $request->validated(), $p?->business_id);
-        EntityChanged::dispatch($p->business_id, 'client', 'updated', $id);
+        $client = $this->clientService->update($id, $request->validated(), $businessId);
+        EntityChanged::safe($businessId, 'client', 'updated', $id);
         return response()->json($client);
     }
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
-        $this->clientService->destroy($id, $p?->business_id);
-        EntityChanged::dispatch($p->business_id, 'client', 'deleted', $id);
+        $this->clientService->destroy($id, $businessId);
+        EntityChanged::safe($businessId, 'client', 'deleted', $id);
         return response()->json(null, 204);
     }
 
     public function search(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json([]);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
 
         $request->validate(['q' => 'required|string|min:2']);
-        return response()->json($this->clientService->search($p->business_id, $request->q));
+        return response()->json($this->clientService->search($businessId, $request->q));
     }
 
     public function findOrCreateByPhone(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
         $data = $request->validate([
             'phone' => 'required|string|max:50',
@@ -80,16 +81,15 @@ class ClientController
             'branch_id' => 'nullable|uuid',
         ]);
 
-        $client = $this->clientService->findOrCreateByPhone($p->business_id, $data['phone'], $data);
+        $client = $this->clientService->findOrCreateByPhone($businessId, $data['phone'], $data);
         return response()->json($client, $client->wasRecentlyCreated ? 201 : 200);
     }
 
     public function history(Request $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json([]);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
 
-        return response()->json($this->clientService->getHistory($id, $p->business_id));
+        return response()->json($this->clientService->getHistory($id, $businessId));
     }
 }

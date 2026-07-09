@@ -17,7 +17,7 @@ class InventoryMovement extends Model
         'location_id', 'product_id', 'variant_id',
         'movement_type', 'quantity', 'unit_cost',
         'exchange_rate_used', 'reference_type', 'reference_id',
-        'notes', 'created_by', 'created_at',
+        'notes', 'created_by', 'client_id', 'created_at', 'updated_at',
     ];
 
     protected function casts(): array

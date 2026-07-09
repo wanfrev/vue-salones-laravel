@@ -432,7 +432,7 @@ function mapAppt(a: any, svcList: any[], empName: string) {
     : undefined
   return {
     id: a.id,
-    clientName: a.clients?.full_name || 'Cliente',
+    clientName: a.client?.full_name || a.clients?.full_name || 'Cliente',
     service: svc?.name || 'Servicio',
     time: dateToHHmm12(start),
     top: Math.max(0, (topMin / 60) * HOUR_HEIGHT),
@@ -459,7 +459,7 @@ const gridColumns = computed<GridColumn[]>(() => {
       const d = new Date(sow); d.setDate(sow.getDate() + i)
       const iso = toISODate(d)
       const dayAppts = appts
-        .filter(a => toISODate(new Date(a.start_time)) === iso && (empId === 'all' || a.employee_id === empId) && (!searchQuery.value || (a.clients?.full_name || '').toLowerCase().includes(searchQuery.value.toLowerCase())))
+        .filter(a => toISODate(new Date(a.start_time)) === iso && (empId === 'all' || a.employee_id === empId) && (!searchQuery.value || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(searchQuery.value.toLowerCase())))
         .map(a => mapAppt(a, svcs, emps.find(e => e.id === a.employee_id)?.full_name || ''))
         .sort((a, b) => a.top - b.top)
       const isT = iso === todayIso.value
@@ -472,7 +472,7 @@ const gridColumns = computed<GridColumn[]>(() => {
 
   return cols.map(c => {
     const cAppts = appts
-      .filter(a => (c.id === '__default__' || (toISODate(new Date(a.start_time)) === selectedDate.value && a.employee_id === c.id)) && (!searchQuery.value || (a.clients?.full_name || '').toLowerCase().includes(searchQuery.value.toLowerCase())))
+      .filter(a => (c.id === '__default__' || (toISODate(new Date(a.start_time)) === selectedDate.value && a.employee_id === c.id)) && (!searchQuery.value || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(searchQuery.value.toLowerCase())))
       .map(a => mapAppt(a, svcs, c.name))
       .sort((a, b) => a.top - b.top)
     return { key: c.id, label: c.id === '__default__' ? 'Citas' : c.name.split(' ')[0], avatar: c.id === '__default__' ? undefined : getInitials(c.name), widthPercent: 100 / cols.length, appointments: cAppts }
@@ -517,11 +517,15 @@ function emitEventClick(raw: any) {
     ? Number(raw.price_override)
     : Number(svc?.price ?? 0)
   emit('eventClick', {
-    id: raw.id, title: raw.clients?.full_name || 'Cliente', start, end, status,
+    id: raw.id, title: raw.client?.full_name || raw.clients?.full_name || 'Cliente', start, end, status,
     citaData: {
-      id: raw.id, clientId: raw.client_id, clientName: raw.clients?.full_name || 'Cliente',
+      id: raw.id, clientId: raw.client_id, clientName: raw.client?.full_name || raw.clients?.full_name || 'Cliente',
       serviceId: raw.service_id, service: svc?.name || 'Servicio', employeeId: raw.employee_id,
-      employee: employees.value?.find(e => e.id === raw.employee_id)?.full_name || 'Empleado', groupId: raw.group_id || undefined,
+      employee: employees.value?.find(e => e.id === raw.employee_id)?.full_name || 'Empleado',
+      assistantId: raw.assistant_employee_id || undefined,
+      assistantName: raw.assistant_profile?.full_name ?? undefined,
+      assistantPercentage: raw.assistant_percentage ?? undefined,
+      groupId: raw.group_id || undefined,
       date: toISODate(start), time: dateToHHmm(start),
       duration: effectiveDuration,
       price: effectivePrice, status: status as Cita['status'], notes: raw.internal_notes || '',

@@ -7,7 +7,7 @@
     size="xl"
     :is-loading="isLoading"
     :is-confirm-disabled="!isFormValid || saveInProgress"
-    :confirm-text="isEditing ? `Actualizar ${t.appointment}` : `Agendar ${t.appointment}`"
+    :confirm-text="confirmButtonLabel"
     @close="close"
     @confirm="handleSubmit"
   >
@@ -228,7 +228,7 @@ const updateServiceRow = (index: number, field: keyof CitaFormServiceItem, value
   }
   if (index === 0) {
     const fd = formData.value; const map: Record<string, keyof typeof fd> = { serviceId: 'service', employeeId: 'employee', assistantEmployeeId: 'assistantEmployee', assistantPercentage: 'assistantPercentage', price: 'price', duration: 'duration' }
-    const k = map[field]; if (k) set(fd, field, value)
+    const k = map[field]; if (k) set(fd, k, value)
     if (field === 'assistantEmployeeId' && !value) fd.assistantPercentage = 0
   } else {
     const extra = formData.value.extraServices[index - 1]
@@ -288,7 +288,20 @@ const isFormValid = computed(() => {
   const hp = formData.value.service !== '' && formData.value.employee !== ''
   const ev = formData.value.extraServices.every(e => e.serviceId !== '' && e.employeeId !== '')
   const hc = canCreateClients.value || !!formData.value.clientId
-  return formData.value.clientName.trim().length >= 2 && /^[\d\s\-\+\(\)]+$/.test(formData.value.clientPhone.trim()) && formData.value.clientPhone.trim().length >= 7 && hp && ev && hc && formData.value.date !== '' && formData.value.time !== '' && servicesLoaded.value && employeesLoaded.value
+  return formData.value.clientName.trim().length >= 2 && formData.value.clientPhone.trim().length >= 7 && hp && ev && hc && formData.value.date !== '' && formData.value.time !== ''
+})
+
+const confirmButtonLabel = computed(() => {
+  if (saveInProgress.value) return 'Guardando...'
+  if (!formData.value.date) return 'Falta la fecha'
+  if (!formData.value.time) return 'Falta la hora'
+  if (formData.value.clientName.trim().length < 2) return 'Falta nombre del cliente'
+  if (formData.value.clientPhone.trim().length < 7) return 'Falta teléfono'
+  if (!formData.value.service) return 'Falta seleccionar servicio'
+  if (!formData.value.employee) return 'Falta seleccionar empleado'
+  if (formData.value.extraServices.some(e => !e.serviceId || !e.employeeId)) return 'Falta completar servicios extras'
+  if (!canCreateClients.value && !formData.value.clientId) return 'Cliente no válido'
+  return isEditing.value ? `Actualizar ${t.value.appointment}` : `Agendar ${t.value.appointment}`
 })
 
 watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData], async ([open, cita, paymentData]) => {

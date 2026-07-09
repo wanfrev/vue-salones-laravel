@@ -17,6 +17,15 @@ class EmployeeScheduleService
             ->get();
     }
 
+    public function listByBusiness(string $businessId): Collection
+    {
+        return EmployeeSchedule::whereHas('employee', fn($q) => $q->where('business_id', $businessId))
+            ->with('employee')
+            ->orderBy('weekday')
+            ->orderBy('start_time')
+            ->get();
+    }
+
     public function getByEmployee(string $employeeId): Collection
     {
         return $this->list($employeeId);

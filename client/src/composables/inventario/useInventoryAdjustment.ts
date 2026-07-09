@@ -5,6 +5,7 @@ import { useNotification } from '../common/useNotification'
 import { translateError } from '../../lib/errors'
 import { useBusinessStore } from '../../store/business'
 import { adjustInventory, inventarioKeys } from '../../services/inventarioService'
+import { productosKeys } from '../../services/productosService'
 import { posKeys } from '../../services/posService'
 import { validateAdjustQuantity } from '../../business/stockRules'
 import type { InventarioItem } from '../../types/inventario'
@@ -29,6 +30,7 @@ export function useInventoryAdjustment() {
       Promise.allSettled([
         queryClient.invalidateQueries({ exact: false, queryKey: inventarioKeys.all(businessId.value, branchId.value) }),
         queryClient.invalidateQueries({ exact: false, queryKey: inventarioKeys.movements(businessId.value, branchId.value) }),
+        queryClient.invalidateQueries({ exact: false, queryKey: productosKeys.all(businessId.value, branchId.value) }),
         queryClient.invalidateQueries({ exact: false, queryKey: posKeys.products(businessId.value, branchId.value) }),
       ])
       closeAdjustModal()

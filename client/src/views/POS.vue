@@ -44,6 +44,7 @@
         :show-inline-dropdown="showInlineDropdown"
         @select="selectAppointment"
         @go-to-calendar="goToAppointmentInCalendar"
+        @update:search="appointmentSearch = $event"
         @update:inline-product-search="inlineProductSearch = $event"
         @add-product="addInlineProduct"
         @blur="onInlineBlur"
@@ -158,9 +159,9 @@ const filteredAppointments = computed(() => {
   const q = normalize(appointmentSearch.value)
   const rawQ = appointmentSearch.value.toLowerCase()
   return appointments.value.filter((a: any) => {
-    const name = normalize(a.clients?.full_name ?? '')
-    const phone = (a.clients?.phone ?? '').replace(/\D/g, '')
-    return name.startsWith(q) || phone.startsWith(rawQ) || normalize(a.services?.name ?? '').startsWith(q)
+    const name = normalize((a.client?.full_name ?? a.clients?.full_name) ?? '')
+    const phone = (a.client?.phone ?? a.clients?.phone ?? '').replace(/\D/g, '')
+    return name.startsWith(q) || phone.startsWith(rawQ) || normalize((a.service?.name ?? a.services?.name) ?? '').startsWith(q)
   })
 })
 const now = computed(() => new Date())
@@ -320,7 +321,7 @@ const handleGroupPayment = async (appt: any) => {
 }
 
 const showConfirmModal = ref(false)
-const confirmClientName = computed(() => activeSaleType.value === 'retail_only' ? null : selectedAppointment.value?.clients?.full_name || null)
+const confirmClientName = computed(() => activeSaleType.value === 'retail_only' ? null : (selectedAppointment.value?.client?.full_name ?? selectedAppointment.value?.clients?.full_name) || null)
 const handleProcessPayment = () => { if (grandTotal.value > 0) showConfirmModal.value = true }
 const cancelPayment = () => { showConfirmModal.value = false }
 

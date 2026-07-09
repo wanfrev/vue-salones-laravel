@@ -53,10 +53,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import POSAppointmentCard from './POSAppointmentCard.vue'
 
-defineProps<{
+const props = defineProps<{
   overdue: any[]
   upcoming: any[]
   totalCount: number
@@ -66,13 +66,15 @@ defineProps<{
   showInlineDropdown: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   select: [appt: any]
   'go-to-calendar': [appt: any]
   'update:inline-product-search': [value: string]
   'add-product': [product: any]
   blur: []
+  'update:search': [value: string]
 }>()
 
 const search = ref('')
+watch(search, (val) => emit('update:search', val))
 </script>

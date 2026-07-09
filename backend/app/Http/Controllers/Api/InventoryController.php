@@ -13,50 +13,138 @@ class InventoryController
         private InventoryService $inventoryService,
     ) {}
 
+    private function resolveBusinessId(Request $request): ?string
+    {
+        return $request->user()?->profile?->business_id;
+    }
+
+    public function variants(Request $request): JsonResponse
+    {
+        return response()->json([]);
+    }
+
     public function locations(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json([]);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
 
         return response()->json(
-            $this->inventoryService->locations($p->business_id, $request->branch_id)
+            $this->inventoryService->locations($businessId, $request->branch_id)
         );
+    }
+
+    public function storeLocation(Request $request): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'is_default' => 'boolean',
+            'branch_id' => 'nullable|uuid',
+        ]);
+
+        $location = $this->inventoryService->storeLocation($data, $businessId);
+        return response()->json($location, 201);
+    }
+
+    public function storeStock(Request $request): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+
+        $data = $request->validate([
+            'product_id' => 'required|uuid',
+            'location_id' => 'required|uuid',
+            'quantity' => 'required|numeric|min:0',
+            'branch_id' => 'nullable|uuid',
+        ]);
+
+        $stock = $this->inventoryService->storeStock($data, $businessId);
+        return response()->json($stock, 201);
+    }
+
+    public function updateStock(Request $request, string $id): JsonResponse
+    {
+        $data = $request->validate([
+            'quantity' => 'required|numeric|min:0',
+        ]);
+
+        $stock = $this->inventoryService->updateStock($id, $data);
+        return response()->json($stock);
+    }
+
+    public function storeMovement(Request $request): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+
+        $data = $request->validate([
+            'product_id' => 'required|uuid',
+            'location_id' => 'required|uuid',
+            'quantity' => 'required|numeric|not_in:0',
+            'movement_type' => 'required|string',
+            'variant_id' => 'nullable|uuid',
+            'unit_cost' => 'nullable|numeric|min:0',
+            'notes' => 'nullable|string',
+            'branch_id' => 'nullable|uuid',
+            'reference_id' => 'nullable|string',
+            'currency' => 'nullable|string',
+            'exchange_rate' => 'nullable|numeric|min:0',
+            'client_id' => 'nullable|string',
+        ]);
+
+        $movement = $this->inventoryService->recordMovement(
+            $businessId,
+            $data['location_id'],
+            $data['product_id'],
+            $data['variant_id'] ?? null,
+            $data['movement_type'],
+            (float) $data['quantity'],
+            (float) ($data['unit_cost'] ?? 0),
+            null,
+            $data['reference_id'] ?? null,
+            $data['notes'] ?? null,
+            $request->user()->id,
+            $data['branch_id'] ?? null,
+        );
+        return response()->json($movement, 201);
+    }
+
+    public function deleteStock(Request $request, string $id): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        $this->inventoryService->deleteStock($id, $businessId);
+        return response()->json(null, 204);
     }
 
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json([]);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
 
         return response()->json(
-            $this->inventoryService->index($p->business_id, $request->branch_id)
+            $this->inventoryService->index($businessId, $request->branch_id)
         );
     }
 
     public function movements(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json([]);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
 
         return response()->json(
             $this->inventoryService->movements(
-                $p->business_id,
-                $request->branch_id,
-                $request->product_id,
-                $request->start_date,
-                $request->end_date,
+                $businessId, $request->branch_id,
+                $request->product_id, $request->start_date, $request->end_date,
             )
         );
     }
 
     public function adjust(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
         $data = $request->validate([
             'product_id' => 'required|uuid',
@@ -69,8 +157,8 @@ class InventoryController
         ]);
 
         try {
-            $movement = $this->inventoryService->adjust($data, $p->business_id, $user->id);
-            EntityChanged::dispatch($p->business_id, 'inventory', 'updated', $movement->id);
+            $movement = $this->inventoryService->adjust($data, $businessId, $request->user()->id);
+            EntityChanged::safe($businessId, 'inventory', 'updated', $movement->id);
             return response()->json($movement, 201);
         } catch (\Throwable $e) {
             return response()->json(['error' => ['message' => $e->getMessage()]], 400);
@@ -79,9 +167,8 @@ class InventoryController
 
     public function sell(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
         $data = $request->validate([
             'product_id' => 'required|uuid',
@@ -95,8 +182,8 @@ class InventoryController
         ]);
 
         try {
-            $movement = $this->inventoryService->sellProduct($data, $p->business_id, $user->id);
-            EntityChanged::dispatch($p->business_id, 'inventory', 'updated', $movement->id);
+            $movement = $this->inventoryService->sellProduct($data, $businessId, $request->user()->id);
+            EntityChanged::safe($businessId, 'inventory', 'updated', $movement->id);
             return response()->json($movement, 201);
         } catch (\Throwable $e) {
             return response()->json(['error' => ['message' => $e->getMessage()]], 400);

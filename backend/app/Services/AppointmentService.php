@@ -23,7 +23,12 @@ class AppointmentService
 
         if ($startDate) $query->where('start_time', '>=', $startDate);
         if ($endDate) $query->where('start_time', '<=', $endDate);
-        if ($employeeId) $query->where('employee_id', $employeeId);
+        if ($employeeId) {
+            $query->where(function ($q) use ($employeeId) {
+                $q->where('employee_id', $employeeId)
+                  ->orWhere('assistant_employee_id', $employeeId);
+            });
+        }
         if ($branchId) $query->where('branch_id', $branchId);
         if ($status) $query->whereIn('status', (array) $status);
 
@@ -108,7 +113,12 @@ class AppointmentService
             ->whereIn('payment_status', ['unpaid', 'partial'])
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->orderBy('start_time')
-            ->get();
+            ->get()
+            ->map(fn($a) => array_merge($a->toArray(), [
+                'clients' => $a->client?->toArray(),
+                'services' => $a->service?->toArray(),
+                'profiles' => $a->employeeProfile?->toArray(),
+            ]));
     }
 
     public function groupMembers(string $groupId, string $businessId): Collection

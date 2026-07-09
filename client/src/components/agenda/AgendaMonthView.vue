@@ -121,7 +121,7 @@ function getApptsForDate(iso: string) {
         : undefined
       return {
         id: a.id,
-        clientName: a.clients?.full_name || 'Cliente',
+        clientName: a.client?.full_name || a.clients?.full_name || 'Cliente',
         service: isGroup ? groupNames!.join(' + ') : (svc?.name || 'Servicio'),
         time: dateToHHmm12(new Date(a.start_time)),
         status: normalizeAppointmentStatus(a),

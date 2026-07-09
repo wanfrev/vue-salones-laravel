@@ -17,8 +17,7 @@ class UnwrapApiData
         if (in_array($request->method(), ['POST', 'PUT', 'PATCH', 'DELETE'])) {
             $body = $request->all();
 
-            // If the body has a single 'data' key containing an array, unwrap it
-            if (count($body) === 1 && array_key_exists('data', $body) && is_array($body['data'])) {
+            if (array_key_exists('data', $body) && is_array($body['data'])) {
                 $request->replace($body['data']);
             }
         }

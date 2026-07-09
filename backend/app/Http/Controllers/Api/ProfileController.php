@@ -13,24 +13,27 @@ class ProfileController
         private ProfileService $profileService,
     ) {}
 
+    private function resolveBusinessId(Request $request): ?string
+    {
+        return $request->user()?->profile?->business_id;
+    }
+
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
             return response()->json([]);
         }
 
         return response()->json(
-            $this->profileService->list($p->business_id, $request->branch_id)
+            $this->profileService->list($businessId, $request->branch_id)
         );
     }
 
     public function store(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
             return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
         }
 
@@ -53,8 +56,8 @@ class ProfileController
         ]);
 
         try {
-            $profile = $this->profileService->store($data, $p->business_id);
-            EntityChanged::dispatch($p->business_id, 'profile', 'created', $profile->id);
+            $profile = $this->profileService->store($data, $businessId);
+            EntityChanged::safe($businessId, 'profile', 'created', $profile->id);
             return response()->json($profile, 201);
         } catch (\Throwable $e) {
             return response()->json(['error' => ['message' => $e->getMessage()]], 500);
@@ -63,8 +66,10 @@ class ProfileController
 
     public function update(Request $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
+            return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        }
 
         $data = $request->validate([
             'full_name' => 'sometimes|string|max:255',
@@ -85,8 +90,8 @@ class ProfileController
             'schedules.*.end_time' => 'required|date_format:H:i',
         ]);
 
-        $profile = $this->profileService->update($id, $data, $p?->business_id);
-        EntityChanged::dispatch($p->business_id, 'profile', 'updated', $id);
+        $profile = $this->profileService->update($id, $data, $businessId);
+        EntityChanged::safe($businessId, 'profile', 'updated', $id);
         return response()->json($profile);
     }
 
@@ -98,11 +103,13 @@ class ProfileController
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
+            return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        }
 
-        $this->profileService->destroy($id, $p?->business_id);
-        EntityChanged::dispatch($p->business_id, 'profile', 'deleted', $id);
+        $this->profileService->destroy($id, $businessId);
+        EntityChanged::safe($businessId, 'profile', 'deleted', $id);
         return response()->json(null, 204);
     }
 }

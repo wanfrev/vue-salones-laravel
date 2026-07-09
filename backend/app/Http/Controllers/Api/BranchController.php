@@ -15,6 +15,11 @@ class BranchController
         private BranchService $branchService,
     ) {}
 
+    private function resolveBusinessId(Request $request): ?string
+    {
+        return $request->user()?->profile?->business_id;
+    }
+
     public function index(Request $request): JsonResponse
     {
         $user = $request->user()?->load('profile');
@@ -39,16 +44,14 @@ class BranchController
 
     public function store(StoreBranchRequest $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $profile = $user?->profile;
-
-        if (!$profile || !$profile->business_id) {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
             return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
         }
 
         try {
-            $branch = $this->branchService->store($request->validated(), $profile->business_id);
-            EntityChanged::dispatch($profile->business_id, 'branch', 'created', $branch->id);
+            $branch = $this->branchService->store($request->validated(), $businessId);
+            EntityChanged::safe($businessId, 'branch', 'created', $branch->id);
             return response()->json(new BranchResource($branch), 201);
         } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
             return response()->json(['error' => ['message' => 'Ya existe una sucursal con ese nombre.']], 422);
@@ -57,21 +60,25 @@ class BranchController
 
     public function update(StoreBranchRequest $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $profile = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
+            return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        }
 
-        $branch = $this->branchService->update($id, $request->validated(), $profile?->business_id);
-        EntityChanged::dispatch($profile->business_id, 'branch', 'updated', $id);
+        $branch = $this->branchService->update($id, $request->validated(), $businessId);
+        EntityChanged::safe($businessId, 'branch', 'updated', $id);
         return response()->json(new BranchResource($branch));
     }
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $profile = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
+            return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        }
 
-        $this->branchService->destroy($id, $profile?->business_id);
-        EntityChanged::dispatch($profile->business_id, 'branch', 'deleted', $id);
+        $this->branchService->destroy($id, $businessId);
+        EntityChanged::safe($businessId, 'branch', 'deleted', $id);
         return response()->json(null, 204);
     }
 }

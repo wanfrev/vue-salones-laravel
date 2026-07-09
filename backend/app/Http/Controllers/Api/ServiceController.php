@@ -38,6 +38,14 @@ class ServiceController
         );
     }
 
+    public function show(Request $request, string $id): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        $service = $this->serviceService->findForBusiness($id, $businessId);
+        return response()->json($service);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);

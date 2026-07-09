@@ -47,6 +47,7 @@ class PosService
         array $paymentsBreakdown = [],
         string $businessId = '',
         string $createdBy = '',
+        ?float $tipAmount = null,
     ): string {
         $appointment = Appointment::with(['service', 'employeeProfile'])->find($appointmentId);
         if (!$appointment) throw new RuntimeException('Cita no encontrada.');
@@ -86,6 +87,7 @@ class PosService
             'payments_breakdown' => $paymentsBreakdown,
             'created_by' => $createdBy,
             'notes' => $notes,
+            'tip_amount' => $tipAmount,
             'paid_at' => now(),
             'created_at' => now(),
             'updated_at' => now(),
@@ -113,6 +115,7 @@ class PosService
         array $paymentsBreakdown = [],
         string $businessId = '',
         string $createdBy = '',
+        ?float $tipAmount = null,
     ): string {
         $txId = $this->recordPayment(
             appointmentId: $appointmentId,
@@ -123,6 +126,7 @@ class PosService
             paymentsBreakdown: $paymentsBreakdown,
             businessId: $businessId,
             createdBy: $createdBy,
+            tipAmount: $tipAmount,
         );
 
         if (!empty($products)) {

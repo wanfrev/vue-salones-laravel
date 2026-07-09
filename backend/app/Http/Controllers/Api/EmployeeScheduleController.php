@@ -14,11 +14,18 @@ class EmployeeScheduleController
 
     public function index(Request $request): JsonResponse
     {
-        $request->validate(['employee_id' => 'required|uuid']);
+        if ($request->employee_id) {
+            return response()->json($this->scheduleService->list($request->employee_id));
+        }
 
-        $schedules = $this->scheduleService->list($request->employee_id);
+        $user = $request->user()?->load('profile');
+        $businessId = $user?->profile?->business_id;
 
-        return response()->json($schedules);
+        if ($businessId) {
+            return response()->json($this->scheduleService->listByBusiness($businessId));
+        }
+
+        return response()->json([]);
     }
 
     public function store(Request $request): JsonResponse

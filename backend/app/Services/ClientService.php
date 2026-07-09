@@ -55,7 +55,15 @@ class ClientService
     public function destroy(string $id, string $businessId): void
     {
         $client = $this->findForBusiness($id, $businessId);
-        $client->delete();
+
+        try {
+            $client->delete();
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ((string) $e->getCode() === '23503') {
+                throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'No se puede eliminar el cliente porque tiene citas registradas. Para eliminarlo, primero elimina sus citas.');
+            }
+            throw $e;
+        }
     }
 
     public function search(string $businessId, string $query): Collection

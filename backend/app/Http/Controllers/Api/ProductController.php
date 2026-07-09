@@ -13,22 +13,25 @@ class ProductController
         private ProductService $productService,
     ) {}
 
+    private function resolveBusinessId(Request $request): ?string
+    {
+        return $request->user()?->profile?->business_id;
+    }
+
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json([]);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
 
         return response()->json(
-            $this->productService->list($p->business_id, $request->branch_id)
+            $this->productService->list($businessId, $request->branch_id)
         );
     }
 
     public function store(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
         $data = $request->validate([
             'name' => 'required|string|max:255',
@@ -46,15 +49,15 @@ class ProductController
             'metadata' => 'nullable|array',
         ]);
 
-        $product = $this->productService->store($data, $p->business_id);
-        EntityChanged::dispatch($p->business_id, 'product', 'created', $product->id);
+        $product = $this->productService->store($data, $businessId);
+        EntityChanged::safe($businessId, 'product', 'created', $product->id);
         return response()->json($product, 201);
     }
 
     public function update(Request $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
         $data = $request->validate([
             'name' => 'sometimes|string|max:255',
@@ -72,18 +75,18 @@ class ProductController
             'metadata' => 'nullable|array',
         ]);
 
-        $product = $this->productService->update($id, $data, $p?->business_id);
-        EntityChanged::dispatch($p->business_id, 'product', 'updated', $id);
+        $product = $this->productService->update($id, $data, $businessId);
+        EntityChanged::safe($businessId, 'product', 'updated', $id);
         return response()->json($product);
     }
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
-        $this->productService->destroy($id, $p?->business_id);
-        EntityChanged::dispatch($p->business_id, 'product', 'deleted', $id);
+        $this->productService->destroy($id, $businessId);
+        EntityChanged::safe($businessId, 'product', 'deleted', $id);
         return response()->json(null, 204);
     }
 }

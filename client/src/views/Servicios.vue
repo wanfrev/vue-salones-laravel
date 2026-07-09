@@ -101,10 +101,25 @@
     </button>
   </div>
 
+  <!-- Search -->
+  <div class="mb-4">
+    <div class="relative">
+      <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      <input
+        v-model="searchQuery"
+        type="text"
+        placeholder="Buscar por nombre o categoría..."
+        class="w-full rounded-xl border border-border bg-surface py-2.5 pl-10 pr-4 text-sm text-text placeholder:text-text-muted outline-none transition-theme focus:border-primary"
+      />
+    </div>
+  </div>
+
   <!-- Services Grid -->
   <div class="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
     <ServiceCard
-      v-for="service in filteredByCategory"
+      v-for="service in filteredServices"
       :key="service.id"
       :service="service"
       :appointment-label="(businessStore.terminology.appointment || 'cita').toLowerCase()"
@@ -115,10 +130,10 @@
 
   <!-- Empty State -->
   <EmptyState
-    v-if="filteredByCategory.length === 0"
+    v-if="filteredServices.length === 0"
     icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
     title="No hay servicios"
-    subtitle="No se encontraron servicios en esta categoría."
+    :subtitle="searchQuery ? 'No se encontraron servicios con ese criterio de búsqueda.' : 'No se encontraron servicios en esta categoría.'"
   />
 
   <!-- Modals -->
@@ -228,6 +243,7 @@ const servicioModalRef = ref<InstanceType<typeof ServicioFormModal> | null>(null
 const isDeleteModalOpen = ref(false)
 const servicioToDelete = ref<Servicio | null>(null)
 const showCatMenu = ref(false)
+const searchQuery = ref('')
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 
@@ -275,6 +291,18 @@ const {
   success,
   error: showError,
   warning,
+})
+
+const filteredServices = computed(() => {
+  let result = filteredByCategory.value
+  if (searchQuery.value) {
+    const q = searchQuery.value.toLowerCase()
+    result = result.filter(s =>
+      s.name.toLowerCase().includes(q) ||
+      s.category.toLowerCase().includes(q)
+    )
+  }
+  return result
 })
 
 const totalServicios = computed(() => servicios.value.filter(s => s.status === 'Activo').length)

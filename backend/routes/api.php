@@ -78,6 +78,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Services
     Route::get('/services', [ServiceController::class, 'index']);
     Route::post('/services', [ServiceController::class, 'store']);
+    Route::get('/services/{id}', [ServiceController::class, 'show']);
     Route::post('/services/categories/rename', [ServiceController::class, 'renameCategory']);
     Route::delete('/services/categories', [ServiceController::class, 'deleteCategory']);
     Route::put('/services/{id}', [ServiceController::class, 'update']);
@@ -95,6 +96,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Appointments
     Route::get('/appointments', [AppointmentController::class, 'index']);
     Route::post('/appointments', [AppointmentController::class, 'store']);
+    Route::get('/appointments/{id}', [AppointmentController::class, 'show']);
     Route::put('/appointments/{id}', [AppointmentController::class, 'update']);
     Route::delete('/appointments/{id}', [AppointmentController::class, 'destroy']);
     Route::patch('/appointments/{id}/status', [AppointmentController::class, 'updateStatus']);
@@ -122,15 +124,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/products/categories', [ProductCategoryController::class, 'index']);
     Route::post('/products/categories', [ProductCategoryController::class, 'store']);
     Route::get('/product-categories', [ProductCategoryController::class, 'index']);
+    Route::post('/product-categories', [ProductCategoryController::class, 'store']);
 
     // Inventory (with dashes aliases for frontend compat)
     Route::get('/inventory', [InventoryController::class, 'index']);
     Route::get('/inventory-stock', [InventoryController::class, 'index']);
+    Route::post('/inventory-stock', [InventoryController::class, 'storeStock']);
+    Route::put('/inventory-stock/{id}', [InventoryController::class, 'updateStock']);
+    Route::delete('/inventory-stock/{id}', [InventoryController::class, 'deleteStock']);
     Route::get('/inventory/movements', [InventoryController::class, 'movements']);
     Route::get('/inventory-movements', [InventoryController::class, 'movements']);
+    Route::post('/inventory-movements', [InventoryController::class, 'storeMovement']);
     Route::post('/inventory/adjust', [InventoryController::class, 'adjust']);
     Route::post('/inventory/sell', [InventoryController::class, 'sell']);
     Route::get('/inventory-locations', [InventoryController::class, 'locations']);
+    Route::post('/inventory-locations', [InventoryController::class, 'storeLocation']);
+    Route::get('/product-variants', [InventoryController::class, 'variants']);
 
     // Suppliers
     Route::get('/suppliers', [SupplierController::class, 'index']);

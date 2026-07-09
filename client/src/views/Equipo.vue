@@ -116,11 +116,12 @@ const emptyExpenses = ref<{ date: string; amount: number }[]>([])
 const summaryCtx = useFinancialSummary(businessId, selectedPeriod, emptyExpenses, selectedMonth)
 const paymentsCtx = useEmployeePayments(businessId, periodDates)
 
-const onPaymentSaved = () => {
-  Promise.allSettled([
+const onPaymentSaved = async () => {
+  await Promise.allSettled([
     queryClient.invalidateQueries({ queryKey: employeePaymentKeys.all(businessId.value) }),
     queryClient.invalidateQueries({ queryKey: ['financial-summary', businessId.value] }),
   ])
+  await queryClient.refetchQueries({ queryKey: employeePaymentKeys.all(businessId.value), exact: false })
 }
 
 const { items: team, handleSave: handleSaveEmpleado, handleDelete: handleDeleteEmpleado, isSaving } = useCrud<Empleado, EmpleadoFormData>({

@@ -29,7 +29,7 @@ export function useAppointmentMutations(options: {
     !isEmployee.value || businessStore.hasFeature('employees_create_clients')
   )
 
-  const invalidate = () => {
+  const invalidate = async () => {
     const bid = options.businessId.value
     const brId = businessStore.currentBranchId
     const keys = [
@@ -48,10 +48,10 @@ export function useAppointmentMutations(options: {
       dashboardKeys.appointments(bid),
       dashboardKeys.earnings(bid),
     ]
-    // Fire and forget to avoid UI freezing
-    Promise.allSettled(keys.map(key =>
+    await Promise.allSettled(keys.map(key =>
       queryClient.invalidateQueries({ queryKey: key, exact: false })
     ))
+    await queryClient.refetchQueries({ queryKey: ['appointments'], exact: false })
   }
 
   const saveCitaMutation = useMutation({

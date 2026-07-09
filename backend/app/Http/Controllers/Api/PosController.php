@@ -55,11 +55,12 @@ class PosController
                 notes: $data['notes'] ?? null,
                 exchangeRate: $data['exchange_rate_used'] ?? null,
                 paymentsBreakdown: $data['payments_breakdown'] ?? [],
+                tipAmount: $data['tip_amount'] ?? null,
                 businessId: $p->business_id,
                 createdBy: $user->id,
             );
 
-            EntityChanged::dispatch($p->business_id, 'transaction', 'created', $txId);
+            EntityChanged::safe($p->business_id, 'transaction', 'created', $txId);
 
             ProcessPayment::dispatch(
                 transactionId: $txId,
@@ -92,11 +93,12 @@ class PosController
                 notes: $data['notes'] ?? null,
                 exchangeRate: $data['exchange_rate_used'] ?? null,
                 paymentsBreakdown: $data['payments_breakdown'] ?? [],
+                tipAmount: $data['tip_amount'] ?? null,
                 businessId: $p->business_id,
                 createdBy: $user->id,
             );
 
-            EntityChanged::dispatch($p->business_id, 'transaction', 'created', $txId);
+            EntityChanged::safe($p->business_id, 'transaction', 'created', $txId);
 
             ProcessSale::dispatch(
                 transactionId: $txId,

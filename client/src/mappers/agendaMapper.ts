@@ -18,10 +18,10 @@ const toTimeInput = (iso: string) => {
 }
 
 export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cita => {
-  const service = appointment.services
-  const employee = appointment.profiles
+  const service = appointment.services ?? (appointment as any).service
+  const employee = appointment.profiles ?? (appointment as any).employee_profile
   const assistant = appointment.assistant_profile
-  const client = appointment.clients
+  const client = appointment.clients ?? (appointment as any).client
   const normalizedStatus = normalizeAppointmentStatus(appointment) as 'confirmed' | 'pending' | 'cancelled' | 'paid'
 
   return {

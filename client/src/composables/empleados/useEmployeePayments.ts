@@ -77,8 +77,8 @@ export function useEmployeePayments(
         branchId.value,
       )
     },
-    onSuccess: () => {
-      Promise.allSettled([
+    onSuccess: async () => {
+      await Promise.allSettled([
         queryClient.invalidateQueries({ queryKey: ['employee-payments', businessId.value], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['employee-earnings', businessId.value], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['employee-history', businessId.value], exact: false }),
@@ -86,6 +86,7 @@ export function useEmployeePayments(
         queryClient.invalidateQueries({ queryKey: ['finanzas-transactions'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['finanzas-employee-payments'], exact: false }),
       ])
+      await queryClient.refetchQueries({ queryKey: ['employee-payments', businessId.value], exact: false })
       success('Pago registrado correctamente')
       closeModal()
     },
@@ -174,8 +175,8 @@ export function useEmployeePayments(
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteEmployeePayment(id),
-    onSuccess: () => {
-      Promise.allSettled([
+    onSuccess: async () => {
+      await Promise.allSettled([
         queryClient.invalidateQueries({ queryKey: ['employee-payments', businessId.value], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['employee-earnings', businessId.value], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['employee-history', businessId.value], exact: false }),
@@ -183,6 +184,7 @@ export function useEmployeePayments(
         queryClient.invalidateQueries({ queryKey: ['finanzas-transactions'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['finanzas-employee-payments'], exact: false }),
       ])
+      await queryClient.refetchQueries({ queryKey: ['employee-payments', businessId.value], exact: false })
       success('Registro eliminado correctamente')
     },
     onError: (err) => {
@@ -228,8 +230,8 @@ export function useEmployeePayments(
         branchId.value,
       )
     },
-    onSuccess: () => {
-      Promise.allSettled([
+    onSuccess: async () => {
+      await Promise.allSettled([
         queryClient.invalidateQueries({ queryKey: ['employee-payments', businessId.value], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['employee-earnings', businessId.value], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['employee-history', businessId.value], exact: false }),
@@ -237,6 +239,7 @@ export function useEmployeePayments(
         queryClient.invalidateQueries({ queryKey: ['finanzas-transactions'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['finanzas-employee-payments'], exact: false }),
       ])
+      await queryClient.refetchQueries({ queryKey: ['employee-payments', businessId.value], exact: false })
       success('Consumo registrado correctamente')
       closeConsumptionModal()
     },
@@ -306,8 +309,8 @@ export function useEmployeePayments(
         employeePaymentsRate.value,
       )
     },
-    onSuccess: () => {
-      Promise.allSettled([
+    onSuccess: async () => {
+      await Promise.allSettled([
         queryClient.invalidateQueries({ queryKey: ['employee-payments', businessId.value], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['employee-earnings', businessId.value], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['employee-history', businessId.value], exact: false }),
@@ -315,6 +318,7 @@ export function useEmployeePayments(
         queryClient.invalidateQueries({ queryKey: ['finanzas-transactions'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['finanzas-employee-payments'], exact: false }),
       ])
+      await queryClient.refetchQueries({ queryKey: ['employee-payments', businessId.value], exact: false })
       success('Registro actualizado correctamente')
       closeModal()
     },

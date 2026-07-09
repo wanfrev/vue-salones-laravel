@@ -40,11 +40,11 @@ const inlineFilteredProducts = computed(() => {
     >
       <div class="flex items-center justify-between">
         <div class="min-w-0 flex-1">
-          <p class="text-sm font-medium text-text truncate">{{ appt.clients?.full_name || 'Cliente' }}</p>
-          <p class="text-xs text-text-muted truncate">{{ appt.services?.name || 'Servicio' }}<span v-if="appt.employeeName"> · {{ appt.employeeName }}</span></p>
+          <p class="text-sm font-medium text-text truncate">{{ appt.client?.full_name || appt.clients?.full_name || 'Cliente' }}</p>
+          <p class="text-xs text-text-muted truncate">{{ (appt.service?.name ?? appt.services?.name) || 'Servicio' }}<span v-if="appt.employeeName"> · {{ appt.employeeName }}</span></p>
         </div>
         <div class="text-right shrink-0 ml-3">
-          <p class="text-sm font-bold text-text">${{ appt.groupPrice ?? appt.price_override ?? appt.services?.price ?? 0 }}</p>
+          <p class="text-sm font-bold text-text">${{ appt.groupPrice ?? appt.price_override ?? (appt.service?.price ?? appt.services?.price) ?? 0 }}</p>
           <p class="text-xs text-text-muted">{{ formatTime(appt.start_time) }}</p>
         </div>
       </div>

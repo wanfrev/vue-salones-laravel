@@ -14,17 +14,21 @@ class EmployeePaymentController
         private EmployeePaymentService $paymentService,
     ) {}
 
+    private function resolveBusinessId(Request $request): ?string
+    {
+        return $request->user()?->profile?->business_id;
+    }
+
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
             return response()->json([]);
         }
 
         return response()->json(
             $this->paymentService->list(
-                $p->business_id,
+                $businessId,
                 $request->branch_id,
                 $request->start_date,
                 $request->end_date,
@@ -35,21 +39,22 @@ class EmployeePaymentController
 
     public function store(StoreEmployeePaymentRequest $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
             return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
         }
 
-        $payment = $this->paymentService->store($request->validated(), $p->business_id, $user->id);
-        EntityChanged::dispatch($p->business_id, 'employee_payment', 'created', $payment->id);
+        $payment = $this->paymentService->store($request->validated(), $businessId, $request->user()->id);
+        EntityChanged::safe($businessId, 'employee_payment', 'created', $payment->id);
         return response()->json($payment, 201);
     }
 
     public function update(Request $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
+            return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        }
 
         $data = $request->validate([
             'amount' => 'sometimes|numeric|min:0',
@@ -61,18 +66,20 @@ class EmployeePaymentController
             'original_amount' => 'nullable|numeric|min:0',
         ]);
 
-        $payment = $this->paymentService->update($id, $data, $p?->business_id);
-        EntityChanged::dispatch($p->business_id, 'employee_payment', 'updated', $id);
+        $payment = $this->paymentService->update($id, $data, $businessId);
+        EntityChanged::safe($businessId, 'employee_payment', 'updated', $id);
         return response()->json($payment);
     }
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
+            return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        }
 
-        $this->paymentService->destroy($id, $p?->business_id);
-        EntityChanged::dispatch($p->business_id, 'employee_payment', 'deleted', $id);
+        $this->paymentService->destroy($id, $businessId);
+        EntityChanged::safe($businessId, 'employee_payment', 'deleted', $id);
         return response()->json(null, 204);
     }
 }

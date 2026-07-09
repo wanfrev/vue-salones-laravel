@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\EntityChanged;
 use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,22 +13,25 @@ class ProductCategoryController
         private ProductService $productService,
     ) {}
 
+    private function resolveBusinessId(Request $request): ?string
+    {
+        return $request->user()?->profile?->business_id;
+    }
+
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json([]);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
 
         return response()->json(
-            $this->productService->listCategories($p->business_id, $request->branch_id)
+            $this->productService->listCategories($businessId, $request->branch_id)
         );
     }
 
     public function store(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
         $data = $request->validate([
             'name' => 'required|string|max:255',
@@ -36,7 +40,8 @@ class ProductCategoryController
             'branch_id' => 'nullable|uuid',
         ]);
 
-        $category = $this->productService->storeCategory($data, $p->business_id);
+        $category = $this->productService->storeCategory($data, $businessId);
+        EntityChanged::safe($businessId, 'product_category', 'created', $category->id);
         return response()->json($category, 201);
     }
 }
