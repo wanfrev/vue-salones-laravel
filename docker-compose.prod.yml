@@ -100,9 +100,7 @@ services:
     restart: unless-stopped
     command: /app/docker-entrypoint-web.sh
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
+      - "8081:80"
     environment:
       <<: *web-env
     depends_on:

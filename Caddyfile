@@ -1,8 +1,9 @@
 {
+    auto_https off
     {$CADDY_GLOBAL_OPTIONS}
 }
 
-{$DOMAIN:localhost} {
+:80 {
     root * /app/public
 
     encode zstd gzip
