@@ -27,11 +27,7 @@
   <!-- TAB 1: Resumen -->
   <template v-if="activeTab === 'resumen'">
     <div class="mb-4">
-      <KpiCards :income-total="incomeTotal" :ves-income-total="vesIncomeTotal" :expense-total="expenseTotal" :net-total="netTotal" :margin="marginTotal" :active-card="activeCard" :is-loading="summaryCtx.isLoading.value" @click-income="toggleCard('income')" @click-expense="toggleCard('expense')" @click-net="toggleCard('net')">
-        <template #exchange-rate>
-          <ExchangeRateCard :is-editable="rateCtx.isEditable.value" :edit-rate-value="rateCtx.editRateValue.value" :updating-rate="rateCtx.updatingRate.value" :display-rate="rateCtx.displayRate.value" @update:edit-rate-value="rateCtx.editRateValue.value = $event" @update-rate="rateCtx.handleUpdate" />
-        </template>
-      </KpiCards>
+      <KpiCards :income-total="incomeTotal" :ves-income-total="vesIncomeTotal" :expense-total="expenseTotal" :net-total="netTotal" :margin="marginTotal" :active-card="activeCard" :is-loading="summaryCtx.isLoading.value" @click-income="toggleCard('income')" @click-expense="toggleCard('expense')" @click-net="toggleCard('net')" />
     </div>
     <Transition name="accordion">
       <CurrencyBreakdown v-if="activeBreakdown" :data="activeBreakdown" class="mb-4" @close="activeCard = null" />
@@ -64,9 +60,7 @@ import { useCurrency } from '../composables/common/useCurrency'
 import { usePeriodSelection } from '../composables/finanzas/usePeriodSelection'
 import { useFinancialSummary } from '../composables/finanzas/useFinancialSummary'
 import { useExpenses } from '../composables/finanzas/useExpenses'
-import { useExchangeRate } from '../composables/finanzas/useExchangeRate'
 import { useSupplierPayments } from '../composables/suppliers/useSuppliers'
-import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
 import KpiCards from '../components/finanzas/KpiCards.vue'
 import SupplierPaymentsSection from '../components/finanzas/SupplierPaymentsSection.vue'
 import ExpenseFormModal from '../components/finanzas/ExpenseFormModal.vue'
@@ -94,7 +88,6 @@ const expensesCtx = useExpenses(businessId, selectedPeriod, selectedMonth)
 const expenses = expensesCtx.expenses
 const supplierPaymentsCtx = useSupplierPayments(businessId, selectedPeriod, selectedMonth)
 const summaryCtx = useFinancialSummary(businessId, selectedPeriod, expenses, selectedMonth)
-const rateCtx = useExchangeRate()
 
 const incomeTotal = summaryCtx.incomeTotal
 const localIncomeTotal = summaryCtx.localIncomeTotal
