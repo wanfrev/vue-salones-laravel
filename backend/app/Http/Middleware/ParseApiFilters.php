@@ -17,7 +17,17 @@ class ParseApiFilters
 
         foreach ($request->query() as $key => $value) {
             // Skip special params
-            if (in_array($key, ['select', 'order', 'limit', 'offset', 'or', 'per_page', 'page'])) {
+            if (in_array($key, ['select', 'order', 'limit', 'offset', 'per_page', 'page'])) {
+                continue;
+            }
+
+            // Handle PostgREST "or" parameter: extract employee_id filters
+            if ($key === 'or' && is_string($value)) {
+                foreach (explode(',', $value) as $condition) {
+                    if (preg_match('/^employee_id\.eq\.(.+)$/', trim($condition), $m)) {
+                        $parsed['employee_id'] = $m[1];
+                    }
+                }
                 continue;
             }
 

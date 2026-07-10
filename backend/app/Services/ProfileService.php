@@ -110,6 +110,12 @@ class ProfileService
         if (array_key_exists('disable_agenda', $data)) {
             $profileFields['disable_agenda'] = $data['disable_agenda'];
         }
+        if (array_key_exists('can_create_appointments', $data)) {
+            $profileFields['can_create_appointments'] = $data['can_create_appointments'];
+        }
+        if (array_key_exists('can_create_clients', $data)) {
+            $profileFields['can_create_clients'] = $data['can_create_clients'];
+        }
         if (array_key_exists('active', $data)) {
             $profileFields['active'] = $data['active'];
         }

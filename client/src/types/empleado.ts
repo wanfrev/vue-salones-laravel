@@ -34,4 +34,6 @@ export interface EmpleadoFormData {
   salaryFrequency: 'weekly' | 'biweekly' | 'monthly'
   activeDays: number[]
   disableAgenda: boolean
+  canCreateAppointments: boolean
+  canCreateClients: boolean
 }

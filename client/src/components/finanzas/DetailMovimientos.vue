@@ -22,18 +22,29 @@ const props = defineProps<{
   selectedPeriod: { value: string }
   selectedMonth: { value: string }
   businessId: import('vue').Ref<string | null>
+  hideTabs?: string[]
+  showOnly?: string
 }>()
 
 const { formatUSD, formatVESInline, formatVESEs } = useCurrency()
 const router = useRouter()
 
-const detailTabs = [
+const allTabs = [
   { key: 'cobros' as const, label: 'Cobros de Citas', shortLabel: 'Cobros' },
   { key: 'ventas' as const, label: 'Ventas de Productos', shortLabel: 'Ventas' },
   { key: 'gastos' as const, label: 'Gastos Operativos', shortLabel: 'Gastos' },
   { key: 'servicios' as const, label: 'Catálogo de Servicios', shortLabel: 'Servicios' },
 ]
-const activeDetailTab = ref<'cobros' | 'ventas' | 'gastos' | 'servicios'>('cobros')
+
+const detailTabs = computed(() => {
+  if (props.showOnly) return allTabs.filter(t => t.key === props.showOnly)
+  if (props.hideTabs) return allTabs.filter(t => !props.hideTabs!.includes(t.key))
+  return allTabs
+})
+
+const activeDetailTab = ref<'cobros' | 'ventas' | 'gastos' | 'servicios'>(
+  props.showOnly ? (props.showOnly as any) : 'cobros',
+)
 
 const allCobrosRows = computed(() => props.summaryCtx.appointmentIncomeDetails.value)
 const allVentasRows = computed(() => props.summaryCtx.productSalesDetails.value)

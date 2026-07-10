@@ -23,6 +23,7 @@
           <p v-if="isLoading" class="h-3 w-24 mx-auto mt-1 rounded bg-bg-secondary animate-pulse sm:h-4 sm:w-32" />
           <p v-else class="text-[10px] text-text-muted tabular-nums font-medium truncate">{{ formatVESEs(vesIncomeTotal) }}</p>
         </div>
+        <svg :class="['h-4 w-4 text-text-muted/50 shrink-0 transition-transform duration-300', activeCard === 'income' && 'rotate-180 text-success']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </div>
     </div>
 
@@ -46,6 +47,7 @@
           <p v-else class="text-lg font-bold leading-tight text-text tabular-nums sm:text-2xl lg:text-xl xl:text-2xl">{{
             formatUSD(expenseTotal) }}</p>
         </div>
+        <svg :class="['h-4 w-4 text-text-muted/50 shrink-0 transition-transform duration-300', activeCard === 'expense' && 'rotate-180 text-warning']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </div>
     </div>
 
@@ -69,6 +71,7 @@
           <p v-else class="text-lg font-bold leading-tight text-text tabular-nums sm:text-2xl lg:text-xl xl:text-2xl">{{
             formatUSD(netTotal) }}</p>
         </div>
+        <svg :class="['h-4 w-4 text-text-muted/50 shrink-0 transition-transform duration-300', activeCard === 'net' && 'rotate-180 text-info']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </div>
     </div>
 

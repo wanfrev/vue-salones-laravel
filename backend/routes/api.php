@@ -69,6 +69,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/employee-commissions', [EmployeeCommissionController::class, 'index']);
     Route::get('/employee-debt', [EmployeeCommissionController::class, 'debt']);
     Route::get('/employee-balance/{employeeId}', [EmployeeCommissionController::class, 'balance']);
+    Route::get('/employee-history/{employeeId}', [EmployeeCommissionController::class, 'history']);
 
     // Employee schedules
     Route::get('/employee-schedules', [EmployeeScheduleController::class, 'index']);

@@ -204,4 +204,83 @@ class EmployeeCommissionService
             'pending' => round($pending, 2),
         ];
     }
+
+    /**
+     * Appointment history for a specific employee.
+     * Returns completed appointments with commission/earnings data.
+     */
+    public function getEmployeeHistory(
+        string $businessId,
+        string $employeeId,
+        ?string $branchId = null,
+        ?string $startDate = null,
+        ?string $endDate = null,
+    ): Collection {
+        $query = DB::table('transactions')
+            ->join('appointments', 'transactions.appointment_id', '=', 'appointments.id')
+            ->leftJoin('clients', 'appointments.client_id', '=', 'clients.id')
+            ->leftJoin('services', 'appointments.service_id', '=', 'services.id')
+            ->where('transactions.business_id', $businessId)
+            ->where(function ($q) use ($employeeId) {
+                $q->where('appointments.employee_id', $employeeId)
+                  ->orWhere('appointments.assistant_employee_id', $employeeId);
+            })
+            ->whereIn('appointments.status', ['completed', 'confirmed', 'pending'])
+            ->select(
+                'appointments.id as appointment_id',
+                'appointments.start_time',
+                'appointments.status',
+                'appointments.payment_status',
+                'appointments.employee_id',
+                'appointments.assistant_employee_id',
+                'appointments.employee_percentage_override',
+                'clients.full_name as client_name',
+                'services.name as service_name',
+                'services.price as service_price',
+                'transactions.total_amount',
+                'transactions.employee_amount',
+                'transactions.employee_percentage',
+                'transactions.assistant_percentage',
+                'transactions.tip_amount',
+                'transactions.paid_at',
+                'transactions.exchange_rate_used',
+            )
+            ->orderByDesc('transactions.paid_at');
+
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('appointments.branch_id')
+                  ->orWhere('appointments.branch_id', $branchId);
+            });
+        }
+        if ($startDate && $endDate) {
+            $query->whereBetween('transactions.paid_at', [$startDate, $endDate]);
+        }
+
+        return $query->get()->map(function ($row) {
+            $pct = (float) ($row->employee_percentage_override
+                ?? $row->employee_percentage
+                ?? 0);
+            $tip = (float) ($row->tip_amount ?? 0);
+            $earnings = $pct > 0
+                ? ((float) $row->total_amount - $tip) * ($pct / 100) + $tip
+                : 0;
+
+            return [
+                'id' => $row->appointment_id,
+                'date' => $row->paid_at ?? $row->start_time,
+                'time' => $row->start_time,
+                'client_name' => $row->client_name ?? '—',
+                'service_name' => $row->service_name ?? '—',
+                'service_price' => (float) ($row->service_price ?? $row->total_amount ?? 0),
+                'amount' => (float) ($row->total_amount ?? 0),
+                'percentage' => round($pct, 1),
+                'earnings' => round($earnings, 2),
+                'tip_amount' => round($tip, 2),
+                'status' => $row->payment_status === 'paid' ? 'completed' : $row->status,
+                'payment_status' => $row->payment_status,
+                'exchange_rate_used' => (float) ($row->exchange_rate_used ?? 1),
+            ];
+        });
+    }
 }

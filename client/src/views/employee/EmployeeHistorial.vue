@@ -3,10 +3,24 @@
     <div class="space-y-4">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-semibold text-text">Servicios realizados</h2>
-          <p class="text-sm text-text-muted">Historial de servicios que has completado</p>
+          <h2 class="text-lg font-semibold text-text">Historial</h2>
+          <p class="text-sm text-text-muted">Servicios realizados</p>
         </div>
-        <span class="text-sm font-medium text-text-muted">{{ historyAppointments.length }} servicios</span>
+        <span class="text-sm font-medium text-text-muted">{{ filteredAppointments.length }} servicios</span>
+      </div>
+
+      <div class="relative max-w-md">
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Buscar por cliente o servicio..."
+          class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
+        />
+        <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
       </div>
 
       <div v-if="loadingHistory" class="flex items-center justify-center py-12">
@@ -16,7 +30,7 @@
         </svg>
       </div>
 
-      <div v-else-if="historyAppointments.length === 0" class="rounded-lg border border-border bg-surface p-8 text-center">
+      <div v-else-if="filteredAppointments.length === 0" class="rounded-lg border border-border bg-surface p-8 text-center">
         <p class="text-sm text-text-muted">Aún no tienes servicios realizados.</p>
       </div>
 
@@ -27,37 +41,32 @@
               <th class="px-4 py-3 text-left font-medium text-text-muted">Fecha</th>
               <th class="px-4 py-3 text-left font-medium text-text-muted">Cliente</th>
               <th class="px-4 py-3 text-left font-medium text-text-muted">Servicio</th>
-              <th class="px-4 py-3 text-right font-medium text-text-muted">Precio servicio</th>
-              <th class="px-4 py-3 text-center font-medium text-text-muted">Comisión</th>
+              <th class="px-4 py-3 text-right font-medium text-text-muted">Precio</th>
+              <th class="px-4 py-3 text-center font-medium text-text-muted">% Comisión</th>
               <th class="px-4 py-3 text-right font-medium text-text-muted">Ganancia</th>
               <th class="px-4 py-3 text-center font-medium text-text-muted">Estado</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
-            <tr v-for="appt in historyAppointments" :key="appt.id" class="transition-colors hover:bg-bg-secondary/50">
+            <tr v-for="appt in filteredAppointments" :key="appt.id" class="transition-colors hover:bg-bg-secondary/50">
               <td class="px-4 py-3 text-text">
-                <span class="block text-sm">{{ appt.date }}</span>
-                <span class="block text-xs text-text-muted">{{ appt.time }}</span>
+                <span class="block text-sm">{{ formatDate(appt.date) }}</span>
+                <span class="block text-xs text-text-muted">{{ formatTime(appt.time) }}</span>
               </td>
-              <td class="px-4 py-3 font-medium text-text">{{ appt.clientName }}</td>
-              <td class="px-4 py-3 text-text-secondary">{{ appt.serviceName }}</td>
-              <td class="px-4 py-3 text-right text-text">${{ appt.servicePrice }}</td>
+              <td class="px-4 py-3 font-medium text-text">{{ appt.client_name }}</td>
+              <td class="px-4 py-3 text-text-secondary">{{ appt.service_name }}</td>
+              <td class="px-4 py-3 text-right text-text">${{ formatNum(appt.service_price) }}</td>
               <td class="px-4 py-3 text-center text-text-secondary">
                 <template v-if="payInfo?.type === 'salary'">—</template>
                 <template v-else>{{ appt.percentage }}%</template>
               </td>
               <td class="px-4 py-3 text-right font-semibold" :class="appt.earnings > 0 ? 'text-success' : 'text-text-secondary'">
                 <template v-if="payInfo?.type === 'salary'">Sueldo base</template>
-                <template v-else>${{ appt.earnings.toFixed(2) }}</template>
+                <template v-else>${{ formatNum(appt.earnings) }}</template>
               </td>
               <td class="px-4 py-3 text-center">
-                <span
-                  :class="[
-                    'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold',
-                    getStatusColor(appt.status)
-                  ]"
-                >
-                  {{ getStatusLabel(appt.status) }}
+                <span :class="['inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold', getStatusColor(appt.status)]">
+                  {{ getStatusLabel(appt.payment_status === 'paid' ? 'completed' : appt.status) }}
                 </span>
               </td>
             </tr>
@@ -80,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { getStatusLabel, getStatusColor } from '../../lib/formatters'
 import { useAuthStore } from '../../store/auth'
@@ -94,6 +103,8 @@ const businessStore = useBusinessStore()
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 const employeeId = computed(() => authStore.profile?.id ?? '')
+
+const search = ref('')
 
 const payInfo = computed(() => {
   const profile = authStore.profile
@@ -111,27 +122,27 @@ const { data: historyData, isLoading: loadingHistory } = useQuery({
   enabled: computed(() => !!businessId.value && !!employeeId.value),
 })
 
-type HistoryRow = EmployeeAppointmentRecord & {
-  percentage: number
-  earnings: number
+const historyAppointments = computed<EmployeeAppointmentRecord[]>(() => historyData.value ?? [])
+
+const filteredAppointments = computed(() => {
+  if (!search.value) return historyAppointments.value
+  const q = search.value.toLowerCase()
+  return historyAppointments.value.filter(a =>
+    a.client_name.toLowerCase().includes(q) || a.service_name.toLowerCase().includes(q),
+  )
+})
+
+function formatDate(d: string): string {
+  if (!d) return '—'
+  try { return new Date(d).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' }) } catch { return d.slice(0, 10) }
 }
 
-const historyAppointments = computed<HistoryRow[]>(() => {
-  const raw = historyData.value ?? []
-  const info = payInfo.value
-  if (!info || info.type === 'salary') {
-    return raw.map(r => ({
-      ...r,
-      percentage: 0,
-      earnings: 0,
-    }))
-  }
-  const isPaidOrCompleted = (r: EmployeeAppointmentRecord) =>
-    r.status === 'completed' || r.paymentStatus === 'paid'
-  return raw.map(r => ({
-    ...r,
-    percentage: info.percentage,
-    earnings: isPaidOrCompleted(r) ? r.servicePrice * (info.percentage / 100) : 0,
-  }))
-})
+function formatTime(d: string): string {
+  if (!d) return '—'
+  try { return new Date(d).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: true }) } catch { return d.slice(11, 16) }
+}
+
+function formatNum(n: number): string {
+  return n.toFixed(2)
+}
 </script>

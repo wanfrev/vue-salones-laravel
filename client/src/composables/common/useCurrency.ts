@@ -8,6 +8,10 @@ export function useCurrency() {
   const businessStore = useBusinessStore()
 
   const employeeRate = computed(() => {
+    const profileRate = (authStore.profile as any)?.employee_ves_rate
+    if (profileRate != null && Number(profileRate) > 0) {
+      return Number(profileRate)
+    }
     if (businessStore.employeeExchangeRate != null) {
       return businessStore.employeeExchangeRate
     }

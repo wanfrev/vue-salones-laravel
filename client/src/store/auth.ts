@@ -31,7 +31,7 @@ export const useAuthStore = defineStore('auth', () => {
   const loadProfile = async (userId: string) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, business_id, full_name, role, phone, avatar_url, active, pay_type, pay_percentage, base_salary, disable_agenda')
+      .select('id, business_id, full_name, role, phone, avatar_url, active, pay_type, pay_percentage, base_salary, disable_agenda, employee_ves_rate, can_create_appointments, can_create_clients')
       .eq('id', userId)
       .maybeSingle()
 

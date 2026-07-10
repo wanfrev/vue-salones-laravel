@@ -1,83 +1,59 @@
 <template>
-  <header class="mb-5 lg:mb-8">
+  <header class="mb-4 lg:mb-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1.5">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
           <span>Finanzas</span>
         </div>
         <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Dashboard Financiero</h1>
       </div>
       <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-2">
         <div class="flex rounded-xl border border-border bg-surface p-0.5 sm:p-1 shadow-sm">
-          <button v-for="period in periods" :key="period.value"
-            @click="selectedPeriod = period.value"
-            :class="['rounded-lg px-3 py-1.5 text-xs font-medium transition-theme sm:px-4',
-              selectedPeriod === period.value ? 'bg-primary text-text-inverse shadow-sm shadow-primary/20' : 'text-text-secondary hover:text-text hover:bg-bg-secondary'
-            ]">{{ period.label }}</button>
+          <button v-for="period in periods" :key="period.value" @click="selectedPeriod = period.value" :class="['rounded-lg px-3 py-1.5 text-xs font-medium transition-theme sm:px-4', selectedPeriod === period.value ? 'bg-primary text-text-inverse shadow-sm shadow-primary/20' : 'text-text-secondary hover:text-text hover:bg-bg-secondary']">{{ period.label }}</button>
         </div>
         <div class="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-border bg-surface px-2.5 py-1.5 shadow-sm">
-          <label for="month-picker" class="text-xs font-medium text-text-muted hidden sm:inline">Mes</label>
-          <input id="month-picker" v-model="selectedMonth" type="month"
-            class="rounded-md border border-border bg-surface px-2 py-1 text-xs text-text outline-none transition-theme focus:border-primary w-full sm:w-auto"
-            @change="selectedPeriod = 'month'" />
-          <button type="button"
-            class="rounded-md border border-border px-2 py-1 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text whitespace-nowrap"
-            @click="resetToCurrentMonth">Ahora</button>
+          <input id="month-picker" v-model="selectedMonth" type="month" class="rounded-md border border-border bg-surface px-2 py-1 text-xs text-text outline-none transition-theme focus:border-primary w-full sm:w-auto" @change="selectedPeriod = 'month'" />
+          <button type="button" class="rounded-md border border-border px-2 py-1 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text whitespace-nowrap" @click="resetToCurrentMonth">Ahora</button>
         </div>
       </div>
     </div>
+    <!-- Main tabs -->
+    <div class="flex rounded-xl border border-border bg-surface p-0.5 mt-4 shadow-sm w-fit">
+      <button v-for="tab in mainTabs" :key="tab.key" @click="activeTab = tab.key" :class="['rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200', activeTab === tab.key ? 'bg-primary text-text-inverse shadow-sm' : 'text-text-secondary hover:text-text hover:bg-bg-secondary']">{{ tab.label }}</button>
+    </div>
   </header>
 
-  <div class="mb-4">
-    <KpiCards
-      :income-total="incomeTotal" :ves-income-total="vesIncomeTotal"
-      :expense-total="expenseTotal" :net-total="netTotal" :margin="marginTotal"
-      :active-card="activeCard" :is-loading="summaryCtx.isLoading.value"
-      @click-income="toggleCard('income')" @click-expense="toggleCard('expense')" @click-net="toggleCard('net')"
-    >
-      <template #exchange-rate>
-        <ExchangeRateCard
-          :is-editable="rateCtx.isEditable.value" :edit-rate-value="rateCtx.editRateValue.value"
-          :updating-rate="rateCtx.updatingRate.value" :display-rate="rateCtx.displayRate.value"
-          @update:edit-rate-value="rateCtx.editRateValue.value = $event"
-          @update-rate="rateCtx.handleUpdate"
-        />
-      </template>
-    </KpiCards>
-  </div>
+  <!-- TAB 1: Resumen -->
+  <template v-if="activeTab === 'resumen'">
+    <div class="mb-4">
+      <KpiCards :income-total="incomeTotal" :ves-income-total="vesIncomeTotal" :expense-total="expenseTotal" :net-total="netTotal" :margin="marginTotal" :active-card="activeCard" :is-loading="summaryCtx.isLoading.value" @click-income="toggleCard('income')" @click-expense="toggleCard('expense')" @click-net="toggleCard('net')">
+        <template #exchange-rate>
+          <ExchangeRateCard :is-editable="rateCtx.isEditable.value" :edit-rate-value="rateCtx.editRateValue.value" :updating-rate="rateCtx.updatingRate.value" :display-rate="rateCtx.displayRate.value" @update:edit-rate-value="rateCtx.editRateValue.value = $event" @update-rate="rateCtx.handleUpdate" />
+        </template>
+      </KpiCards>
+    </div>
+    <Transition name="accordion">
+      <CurrencyBreakdown v-if="activeBreakdown" :data="activeBreakdown" class="mb-4" @close="activeCard = null" />
+    </Transition>
+    <RecentTransactionsCard :transactions="visibleTransactions" :can-view-all="canViewAllTransactions" @view-all="activeTab = 'ingresos'" />
+  </template>
 
-  <CurrencyBreakdown v-if="activeBreakdown" :data="activeBreakdown" class="mb-4" @close="activeCard = null" />
+  <!-- TAB 2: Ingresos Detallados -->
+  <template v-if="activeTab === 'ingresos'">
+    <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :hide-tabs="['gastos', 'servicios']" />
+  </template>
 
-  <RecentTransactionsCard
-    :transactions="visibleTransactions" :can-view-all="canViewAllTransactions"
-    @view-all="goToAllRecords('transacciones')"
-  />
+  <!-- TAB 3: Egresos y Proveedores -->
+  <template v-if="activeTab === 'egresos'">
+    <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :show-only="'gastos'" />
+    <div class="mt-4">
+      <SupplierPaymentsSection :ctx="supplierPaymentsCtx" />
+    </div>
+  </template>
 
-  <DetailMovimientos
-    :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx"
-    :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }"
-    :business-id="businessId"
-  />
-
-  <div class="mb-4">
-    <SupplierPaymentsSection :ctx="supplierPaymentsCtx" />
-  </div>
-
-  <ExpenseFormModal
-    :is-open="expensesCtx.showExpenseModal.value" :is-editing="!!expensesCtx.editingExpenseId.value"
-    :form="expensesCtx.expenseForm.value" :save-error="expensesCtx.saveError.value"
-    :is-saving="expensesCtx.saveMutation.isPending.value"
-    @close="expensesCtx.closeModal" @save="handleExpenseSave"
-  />
-
-  <EditCobroModal
-    :show="summaryCtx.showEditModal.value"
-    :summary-ctx="summaryCtx"
-    @close="summaryCtx.cancelEdit()"
-  />
+  <ExpenseFormModal :is-open="expensesCtx.showExpenseModal.value" :is-editing="!!expensesCtx.editingExpenseId.value" :form="expensesCtx.expenseForm.value" :save-error="expensesCtx.saveError.value" :is-saving="expensesCtx.saveMutation.isPending.value" @close="expensesCtx.closeModal" @save="handleExpenseSave" />
+  <EditCobroModal :show="summaryCtx.showEditModal.value" :summary-ctx="summaryCtx" @close="summaryCtx.cancelEdit()" />
 </template>
 
 <script setup lang="ts">
@@ -106,6 +82,13 @@ const router = useRouter()
 
 const { selectedPeriod, selectedMonth, resetToCurrentMonth, periods } = usePeriodSelection()
 const businessId = computed(() => authStore.businessId)
+
+const activeTab = ref<'resumen' | 'ingresos' | 'egresos'>('resumen')
+const mainTabs = [
+  { key: 'resumen' as const, label: 'Resumen' },
+  { key: 'ingresos' as const, label: 'Ingresos' },
+  { key: 'egresos' as const, label: 'Egresos' },
+]
 
 const expensesCtx = useExpenses(businessId, selectedPeriod, selectedMonth)
 const expenses = expensesCtx.expenses
@@ -193,3 +176,22 @@ const handleExpenseSave = async () => {
   catch { /* handled by composable */ }
 }
 </script>
+
+<style>
+.accordion-enter-active,
+.accordion-leave-active {
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+.accordion-enter-from,
+.accordion-leave-to {
+  opacity: 0;
+  max-height: 0;
+  margin-bottom: 0;
+}
+.accordion-enter-to,
+.accordion-leave-from {
+  opacity: 1;
+  max-height: 600px;
+}
+</style>

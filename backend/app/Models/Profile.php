@@ -19,6 +19,7 @@ class Profile extends Model
         'pay_type', 'pay_percentage', 'base_salary', 'salary_frequency',
         'employee_ves_rate',
         'disable_agenda',
+        'can_create_appointments', 'can_create_clients',
     ];
 
     protected function casts(): array
@@ -26,6 +27,8 @@ class Profile extends Model
         return [
             'active' => 'boolean',
             'disable_agenda' => 'boolean',
+            'can_create_appointments' => 'boolean',
+            'can_create_clients' => 'boolean',
             'pay_percentage' => 'float',
             'base_salary' => 'float',
             'employee_ves_rate' => 'float',

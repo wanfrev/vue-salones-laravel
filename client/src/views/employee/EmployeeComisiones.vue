@@ -1,6 +1,16 @@
 <template>
   <AppLayout>
     <div class="space-y-6">
+      <!-- Month filter -->
+      <div class="flex items-center gap-2">
+        <input
+          type="month"
+          :value="selectedMonth"
+          @change="selectedMonth = ($event.target as HTMLInputElement).value"
+          class="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary"
+        />
+      </div>
+
       <!-- Summary Cards -->
       <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div class="rounded-xl border border-border bg-surface p-4">
@@ -108,7 +118,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { formatMethod, formatDate, formatNumber } from '../../lib/formatters'
@@ -125,6 +135,15 @@ const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 const employeeId = computed(() => authStore.profile?.id ?? '')
 
+const selectedMonth = ref(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`)
+
+const dateRange = computed(() => {
+  const [y, m] = selectedMonth.value.split('-').map(Number)
+  const start = `${y}-${String(m).padStart(2, '0')}-01`
+  const end = `${y}-${String(m).padStart(2, '0')}-${new Date(y, m, 0).getDate()}`
+  return { start, end }
+})
+
 const payInfo = computed(() => {
   const profile = authStore.profile
   if (!profile) return null
@@ -135,17 +154,17 @@ const payInfo = computed(() => {
 })
 
 const { data: earningsData, isLoading: loadingEarnings } = useQuery({
-  queryKey: dashboardKeys.earnings(businessId.value, employeeId.value, branchId.value),
-  queryFn: () => listEmployeeTransactions(businessId.value!, employeeId.value!, branchId.value),
+  queryKey: dashboardKeys.earnings(businessId.value, employeeId.value, branchId.value, dateRange.value.start, dateRange.value.end),
+  queryFn: () => listEmployeeTransactions(businessId.value!, employeeId.value!, branchId.value, dateRange.value.start, dateRange.value.end),
   enabled: computed(() => !!businessId.value && !!employeeId.value),
 })
 const earnings = computed(() => earningsData.value ?? [])
 
 const totalBilled = computed(() =>
-  formatNumber(earnings.value.reduce((sum, r) => sum + r.totalAmount, 0))
+  formatNumber(earnings.value.reduce((sum, r) => sum + (r.totalAmount ?? 0), 0))
 )
 const totalEarned = computed(() =>
-  earnings.value.reduce((sum, r) => sum + r.employeeEarnings, 0).toFixed(2)
+  earnings.value.reduce((sum, r) => sum + (r.employeeEarnings ?? 0), 0).toFixed(2)
 )
 
 const { data: paymentsData } = useQuery({
@@ -158,24 +177,13 @@ const { formatUSD, formatVESEs } = useCurrency()
 
 const paymentsWithCurrency = computed(() => {
   return (paymentsData.value ?? []).map((p: any) => {
-    let currency: 'USD' | 'VES' = 'USD'
-    let originalAmount = Number(p.amount)
-    const notes = p.notes ?? ''
-    const vesMatch = notes.match(/^\[VES:(\d+(?:\.\d+)?)\]/)
-    if (vesMatch) {
-      currency = 'VES'
-      originalAmount = Number(vesMatch[1])
-    }
-    const usdMatch = !vesMatch && notes.match(/^\[USD:(\d+(?:\.\d+)?)\]/)
-    if (usdMatch) {
-      currency = 'USD'
-      originalAmount = Number(usdMatch[1])
-    }
+    const currency = p.currency ?? 'USD'
+    const originalAmount = Number(p.original_amount ?? p.amount ?? 0)
     return {
       ...p,
       currency,
       originalAmount,
-      displayAmount: currency === 'VES' ? formatVESEs(originalAmount) : formatUSD(Number(p.amount)),
+      displayAmount: currency === 'VES' ? formatVESEs(originalAmount) : formatUSD(Number(p.amount ?? 0)),
     }
   })
 })
