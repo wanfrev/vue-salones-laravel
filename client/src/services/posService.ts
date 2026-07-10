@@ -1,4 +1,4 @@
-import { api as supabase, api as mutate } from '../lib/api'
+import { api as supabase, api as mutate, apiRequest } from '../lib/api'
 import { getDefaultLocation } from './inventarioService'
 import type { PaymentMethod } from '../types/database'
 import type { POSProductItem, PaymentBreakdownItem } from '../types/pos'
@@ -64,33 +64,18 @@ export const recordSale = async (params: {
     unit_cost: p.unitCost,
   }))
 
-  const rpcPayload = {
-    p_appointment_id: params.appointmentId,
-    p_amount: params.amount,
-    p_method: params.method,
-    p_products: productsPayload,
-    p_notes: params.notes ?? null,
-    p_exchange_rate: params.exchangeRate,
-    p_payments_breakdown: params.paymentsBreakdown,
-    p_tip_amount: params.tipAmount ?? 0,
-  }
+  const response = await apiRequest<{ id: string }>('POST', '/pos/sale', {
+    appointment_id: params.appointmentId,
+    amount: params.amount,
+    method: params.method,
+    products: productsPayload,
+    notes: params.notes ?? null,
+    exchange_rate_used: params.exchangeRate,
+    payments_breakdown: params.paymentsBreakdown,
+    tip_amount: params.tipAmount ?? 0,
+  })
 
-  const { data, error } = await supabase.rpc('record_sale', rpcPayload)
-
-  if (error && error.code === 'PGRST202') {
-    const legacy = await supabase.rpc('record_sale', {
-      p_appointment_id: params.appointmentId,
-      p_amount: params.amount,
-      p_method: params.method,
-      p_products: productsPayload,
-      p_notes: params.notes ?? null,
-    })
-    if (legacy.error) throw legacy.error
-    return legacy.data as string
-  }
-
-  if (error) throw error
-  return data as string
+  return response.id
 }
 
 export const updateTransaction = async (params: {
@@ -207,19 +192,17 @@ export const recordPaymentOnly = async (params: {
   paymentsBreakdown: PaymentBreakdownItem[]
   tipAmount?: number
 }): Promise<string> => {
-  const rpcPayload = {
-    p_appointment_id: params.appointmentId,
-    p_amount: params.amount,
-    p_method: params.method,
-    p_notes: params.notes ?? null,
-    p_exchange_rate: params.exchangeRate,
-    p_payments_breakdown: params.paymentsBreakdown,
-    p_tip_amount: params.tipAmount ?? 0,
-  }
+  const response = await apiRequest<{ id: string }>('POST', '/pos/payment', {
+    appointment_id: params.appointmentId,
+    amount: params.amount,
+    method: params.method,
+    notes: params.notes ?? null,
+    exchange_rate_used: params.exchangeRate,
+    payments_breakdown: params.paymentsBreakdown,
+    tip_amount: params.tipAmount ?? 0,
+  })
 
-  const { data, error } = await supabase.rpc('record_payment', rpcPayload)
-  if (error) throw error
-  return data as string
+  return response.id
 }
 
 export const markAppointmentsAsPaid = async (appointmentIds: string[]): Promise<void> => {

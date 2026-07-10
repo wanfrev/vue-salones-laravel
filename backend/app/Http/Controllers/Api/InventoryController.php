@@ -88,10 +88,12 @@ class InventoryController
             'unit_cost' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
             'branch_id' => 'nullable|uuid',
+            'reference_type' => 'nullable|string|max:50',
             'reference_id' => 'nullable|string',
             'currency' => 'nullable|string',
+            'exchange_rate_used' => 'nullable|numeric|min:0',
             'exchange_rate' => 'nullable|numeric|min:0',
-            'client_id' => 'nullable|string',
+            'client_id' => 'nullable|uuid',
         ]);
 
         $movement = $this->inventoryService->recordMovement(
@@ -102,11 +104,13 @@ class InventoryController
             $data['movement_type'],
             (float) $data['quantity'],
             (float) ($data['unit_cost'] ?? 0),
-            null,
+                $data['reference_type'] ?? null,
             $data['reference_id'] ?? null,
             $data['notes'] ?? null,
             $request->user()->id,
             $data['branch_id'] ?? null,
+                (float) ($data['exchange_rate_used'] ?? $data['exchange_rate'] ?? 1),
+                $data['client_id'] ?? null,
         );
         return response()->json($movement, 201);
     }
@@ -178,7 +182,11 @@ class InventoryController
             'branch_id' => 'nullable|uuid',
             'unit_cost' => 'nullable|numeric|min:0',
             'reference_id' => 'nullable|uuid',
+            'reference_type' => 'nullable|string|max:50',
             'notes' => 'nullable|string',
+            'client_id' => 'nullable|uuid',
+            'exchange_rate_used' => 'nullable|numeric|min:0',
+            'exchange_rate' => 'nullable|numeric|min:0',
         ]);
 
         try {

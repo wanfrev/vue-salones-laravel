@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import { useQuery, useQueryClient, useMutation, keepPreviousData } from '@tanstack/vue-query'
 import { useNotification } from '../common/useNotification'
-import { api as supabase } from '../../lib/api'
+import { api as supabase, apiRequest } from '../../lib/api'
 import { useBusinessStore } from '../../store/business'
 import { translateError } from '../../lib/errors'
 import { updateTransaction, deleteTransaction, deleteProductSale } from '../../services/posService'
@@ -115,8 +115,14 @@ function useFinancialSummary(
     queryKey: summaryQueryKey,
     queryFn: async () => {
       const cfg = periodConfig.value
-      const { data, error } = await supabase.rpc('financial_summary', { p_business_id: businessId.value!, p_period_start: toYmd(cfg.start), p_period_end: toYmd(cfg.end), p_period: cfg.bucket, p_branch_id: branchId.value })
-      if (error) throw error; return (data ?? []) as SummaryBucket[]
+      const data = await apiRequest<SummaryBucket[]>('POST', '/rpc/financial_summary', {
+        p_business_id: businessId.value!,
+        p_period_start: toYmd(cfg.start),
+        p_period_end: toYmd(cfg.end),
+        p_period: cfg.bucket,
+        p_branch_id: branchId.value,
+      })
+      return (data ?? []) as SummaryBucket[]
     },
     enabled: computed(() => !!businessId.value),
     placeholderData: keepPreviousData,
@@ -131,10 +137,11 @@ function useFinancialSummary(
     queryKey: transactionsQueryKey,
     queryFn: async () => {
       const cfg = periodConfig.value
-      const start = `${toYmd(cfg.start)}T00:00:00`; const end = `${toYmd(cfg.end)}T23:59:59`
-      let query = supabase.from('transactions').select(TRANSACTIONS_SELECT).eq('business_id', businessId.value!).gte('paid_at', start).lte('paid_at', end).order('paid_at', { ascending: false }).limit(2000)
-      if (branchId.value) query = query.eq('branch_id', branchId.value)
-      const { data, error } = await query; if (error) throw error; return data ?? []
+      const start = `${toYmd(cfg.start)}T00:00:00`
+      const end = `${toYmd(cfg.end)}T23:59:59`
+      const params = new URLSearchParams({ start, end })
+      if (branchId.value) params.set('branch_id', branchId.value)
+      return await apiRequest<DashboardTxRow[]>('GET', `/transactions?${params.toString()}`)
     },
     enabled: computed(() => !!businessId.value),
     placeholderData: keepPreviousData,
@@ -153,21 +160,46 @@ function useFinancialSummary(
 
   const { data: rawEmployeePayments } = useQuery({
     queryKey: computed(() => ['finanzas-employee-payments', businessId.value, selectedPeriod.value, selectedMonth?.value ?? null, branchId.value] as const),
-    queryFn: async () => { const cfg = periodConfig.value; const start = toYmd(cfg.start); const end = toYmd(cfg.end); let q = supabase.from('employee_payments').select(EMPLOYEE_PAYMENTS_SELECT).eq('business_id', businessId.value!).gte('payment_date', start).lte('payment_date', end); if (branchId.value) q = q.eq('branch_id', branchId.value); const { data, error } = await q; if (error) throw error; return data ?? [] },
+    queryFn: async () => {
+      const cfg = periodConfig.value
+      const params = new URLSearchParams({
+        start_date: toYmd(cfg.start),
+        end_date: toYmd(cfg.end),
+      })
+      if (branchId.value) params.set('branch_id', branchId.value)
+      return await apiRequest<any[]>('GET', `/employee-payments?${params.toString()}`)
+    },
     enabled: computed(() => !!businessId.value),
     placeholderData: keepPreviousData,
   })
 
   const { data: rawExpenses } = useQuery({
     queryKey: computed(() => ['finanzas-expenses', businessId.value, selectedPeriod.value, selectedMonth?.value ?? null, branchId.value] as const),
-    queryFn: async () => { const cfg = periodConfig.value; const start = toYmd(cfg.start); const end = toYmd(cfg.end); let q = supabase.from('expenses').select('*').eq('business_id', businessId.value!).gte('expense_date', start).lte('expense_date', end); if (branchId.value) q = q.eq('branch_id', branchId.value); const { data, error } = await q; if (error) throw error; return data ?? [] },
+    queryFn: async () => {
+      const cfg = periodConfig.value
+      const params = new URLSearchParams({
+        start_date: toYmd(cfg.start),
+        end_date: toYmd(cfg.end),
+      })
+      if (branchId.value) params.set('branch_id', branchId.value)
+      return await apiRequest<any[]>('GET', `/expenses?${params.toString()}`)
+    },
     enabled: computed(() => !!businessId.value),
     placeholderData: keepPreviousData,
   })
 
   const { data: rawInventoryMovements } = useQuery({
     queryKey: computed(() => ['finanzas-product-sales', businessId.value, selectedPeriod.value, selectedMonth?.value ?? null, branchId.value] as const),
-    queryFn: async () => { const cfg = periodConfig.value; const start = `${toYmd(cfg.start)}T00:00:00`; const end = `${toYmd(cfg.end)}T23:59:59`; let q = supabase.from('inventory_movements').select('*, products(id, name), clients(full_name)').eq('business_id', businessId.value!).eq('movement_type', 'sale').gte('created_at', start).lte('created_at', end).order('created_at', { ascending: false }).limit(2000); if (branchId.value) q = q.eq('branch_id', branchId.value); const { data, error } = await q; if (error) throw error; return data ?? [] },
+    queryFn: async () => {
+      const cfg = periodConfig.value
+      const params = new URLSearchParams({
+        start_date: toYmd(cfg.start),
+        end_date: toYmd(cfg.end),
+      })
+      if (branchId.value) params.set('branch_id', branchId.value)
+      const rows = await apiRequest<any[]>('GET', `/inventory-movements?${params.toString()}`)
+      return (rows ?? []).filter((row: any) => row.movement_type === 'sale')
+    },
     enabled: computed(() => !!businessId.value),
     placeholderData: keepPreviousData,
   })

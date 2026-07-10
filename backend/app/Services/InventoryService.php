@@ -153,6 +153,8 @@ class InventoryService
             notes: $data['notes'] ?? null,
             createdBy: $createdBy,
             branchId: $data['branch_id'] ?? null,
+            exchangeRateUsed: (float) ($data['exchange_rate_used'] ?? 1),
+            clientId: $data['client_id'] ?? null,
         );
     }
 
@@ -259,6 +261,8 @@ class InventoryService
         ?string $notes = null,
         ?string $createdBy = null,
         ?string $branchId = null,
+        float $exchangeRateUsed = 1,
+        ?string $clientId = null,
     ): InventoryMovement {
         return InventoryMovement::create([
             'id' => Str::uuid()->toString(),
@@ -270,11 +274,12 @@ class InventoryService
             'movement_type' => $movementType,
             'quantity' => $quantity,
             'unit_cost' => $unitCost,
-            'exchange_rate_used' => 1,
+            'exchange_rate_used' => $exchangeRateUsed,
             'reference_type' => $referenceType,
             'reference_id' => $referenceId,
             'notes' => $notes,
             'created_by' => $createdBy,
+            'client_id' => $clientId,
             'created_at' => now(),
         ]);
     }
@@ -288,9 +293,11 @@ class InventoryService
             'location_id' => $data['location_id'] ?? null,
             'branch_id' => $data['branch_id'] ?? null,
             'unit_cost' => $data['unit_cost'] ?? 0,
-            'reference_type' => 'appointment',
+            'reference_type' => $data['reference_type'] ?? 'direct_sale',
             'reference_id' => $data['reference_id'] ?? null,
             'notes' => $data['notes'] ?? 'Venta de producto',
+            'exchange_rate_used' => $data['exchange_rate_used'] ?? $data['exchange_rate'] ?? 1,
+            'client_id' => $data['client_id'] ?? null,
         ], $businessId, $createdBy);
     }
 
