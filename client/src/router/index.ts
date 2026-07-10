@@ -111,14 +111,9 @@ const router = createRouter({
           component: () => import('../views/Servicios.vue'),
         },
         {
-          path: 'productos',
-          name: 'admin-productos',
-          component: () => import('../views/Productos.vue'),
-        },
-        {
           path: 'inventario',
           name: 'admin-inventario',
-          component: () => import('../views/Inventario.vue'),
+          component: () => import('../views/Productos.vue'),
         },
         {
           path: 'pos',
@@ -167,7 +162,7 @@ const router = createRouter({
     { path: '/finanzas', redirect: '/admin/finanzas' },
     { path: '/equipo', redirect: '/admin/equipo' },
     { path: '/servicios', redirect: '/admin/servicios' },
-    { path: '/productos', redirect: '/admin/productos' },
+    { path: '/productos', redirect: '/admin/inventario' },
     { path: '/inventario', redirect: '/admin/inventario' },
     { path: '/proveedores', redirect: '/admin/proveedores' },
     { path: '/gift-cards', redirect: '/admin/gift-cards' },

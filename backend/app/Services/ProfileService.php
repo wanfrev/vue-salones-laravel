@@ -44,22 +44,18 @@ class ProfileService
 
     public function store(array $data, string $businessId): Profile
     {
-        $userId = Str::uuid()->toString();
         $email = strtolower($data['email']);
 
         DB::beginTransaction();
         try {
-            User::create([
-                'id' => $userId,
+            $user = User::create([
                 'name' => $data['full_name'],
                 'email' => $email,
-                'password' => bcrypt($data['password']),
-                'created_at' => now(),
-                'updated_at' => now(),
+                'password' => $data['password'],
             ]);
 
             Profile::create([
-                'id' => $userId,
+                'id' => $user->id,
                 'business_id' => $businessId,
                 'full_name' => $data['full_name'],
                 'role' => 'empleado',
@@ -70,19 +66,17 @@ class ProfileService
                 'pay_percentage' => $data['pay_percentage'] ?? 50,
                 'base_salary' => $data['base_salary'] ?? 0,
                 'active' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
             ]);
 
-            $this->syncSchedules($userId, $data['schedules'] ?? []);
+            $this->syncSchedules($user->id, $data['schedules'] ?? []);
 
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
-            throw new HttpException(500, 'Error al crear empleado.');
+            throw new HttpException(500, 'Error al crear empleado: ' . $e->getMessage());
         }
 
-        return Profile::with('schedules')->find($userId);
+        return Profile::with('schedules')->find($user->id);
     }
 
     public function update(string $id, array $data, string $businessId): Profile

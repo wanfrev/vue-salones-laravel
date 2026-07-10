@@ -23,17 +23,6 @@ export interface EmployeeInput {
 export const adminCreateEmployee = async (input: EmployeeInput): Promise<{ id: string }> => {
   const email = input.email.trim().toLowerCase()
 
-  // Pre-check email uniqueness
-  const { data: existing } = await apiClient
-    .from('profiles')
-    .select('id')
-    .eq('email', email)
-    .maybeSingle()
-
-  if (existing) {
-    throw new Error('Ya existe un usuario registrado con este correo electrónico.')
-  }
-
   const { data, error } = await apiClient
     .from('profiles')
     .insert({

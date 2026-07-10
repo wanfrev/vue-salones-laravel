@@ -1,5 +1,5 @@
 <template>
-  <FeatureGate feature="productos">
+  <FeatureGate feature="inventario">
   <header class="mb-4 lg:mb-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
@@ -9,7 +9,7 @@
           </svg>
           <span class="font-medium uppercase tracking-wider">Inventario</span>
         </div>
-        <h1 class="text-2xl font-bold text-text lg:text-3xl">Productos</h1>
+        <h1 class="text-2xl font-bold text-text lg:text-3xl">Inventario</h1>
       </div>
       <button
         @click="productoModalRef?.open()"
@@ -32,11 +32,24 @@
   />
 
   <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-    <div class="relative flex-1 max-w-md">
+    <div v-if="activeTab !== 'movimientos'" class="relative flex-1 max-w-md">
       <input
         v-model="searchQuery"
         type="text"
         placeholder="Buscar producto por nombre o SKU..."
+        class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
+      />
+      <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+    </div>
+    <div v-else class="relative flex-1 max-w-md">
+      <input
+        v-model="movementSearch"
+        type="text"
+        placeholder="Buscar en movimientos..."
         class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
       />
       <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
@@ -62,13 +75,102 @@
     </div>
   </div>
 
-  <ProductGrid
-    :products="filteredProductos"
-    @edit="producto => productoModalRef?.open(producto)"
-    @adjust="openAdjustModal"
-    @deactivate="openDeleteModal"
-    @delete="openPermanentDeleteModal"
-  />
+  <!-- Product tabs -->
+  <template v-if="activeTab !== 'movimientos'">
+    <ProductGrid
+      :products="filteredProductos"
+      @edit="producto => productoModalRef?.open(producto)"
+      @adjust="openAdjustModal"
+      @deactivate="openDeleteModal"
+      @delete="openPermanentDeleteModal"
+    />
+  </template>
+
+  <!-- Movimientos tab -->
+  <div v-else class="space-y-4">
+    <div class="lg:hidden space-y-3 mb-4">
+      <div v-for="mov in filteredMovements" :key="mov.id" class="group rounded-xl border border-border bg-surface p-4 shadow-sm transition-all duration-200 hover:shadow-md">
+        <div class="flex items-start justify-between mb-2">
+          <div>
+            <p class="text-xs text-text-muted">{{ formatDateTime(mov.createdAt) }}</p>
+            <p class="font-medium text-text">{{ mov.productName }} <span v-if="mov.variantName" class="text-xs text-text-muted">({{ mov.variantName }})</span></p>
+          </div>
+          <span :class="[
+            'shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+            mov.movementType === 'purchase' ? 'bg-success/10 text-success' :
+            mov.movementType === 'sale' ? 'bg-primary/10 text-primary' :
+            mov.movementType === 'adjustment' ? 'bg-warning/10 text-warning' :
+            'bg-info/10 text-info'
+          ]">
+            <span :class="['h-1.5 w-1.5 rounded-full', mov.movementType === 'purchase' ? 'bg-success' : mov.movementType === 'sale' ? 'bg-primary' : mov.movementType === 'adjustment' ? 'bg-warning' : 'bg-info']" />
+            {{ formatMovementType(mov.movementType) }}
+          </span>
+        </div>
+        <div class="flex items-center justify-between text-sm">
+          <div class="flex items-center gap-4">
+            <span class="font-medium tabular-nums" :class="mov.quantity < 0 ? 'text-danger' : 'text-success'">{{ mov.quantity > 0 ? '+' : '' }}{{ mov.quantity }}</span>
+            <span class="text-text-muted">Costo: <span class="text-text tabular-nums">${{ mov.unitCost.toFixed(2) }}</span></span>
+          </div>
+          <span class="text-xs text-text-muted truncate max-w-28 text-right">{{ mov.notes || '—' }}</span>
+        </div>
+      </div>
+      <div v-if="filteredMovements.length === 0" class="py-16 text-center">
+        <div class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-bg-secondary">
+          <svg class="h-8 w-8 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+        </div>
+        <h3 class="mt-4 text-lg font-medium text-text">Sin movimientos</h3>
+        <p class="mt-1 text-sm text-text-muted">No hay movimientos registrados.</p>
+      </div>
+    </div>
+
+    <div class="hidden lg:block rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="border-b border-border bg-bg-secondary/50">
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Fecha</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Producto</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Tipo</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-text-muted">Cantidad</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-text-muted">Costo</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Notas</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border-subtle">
+            <tr v-for="mov in filteredMovements" :key="mov.id" class="text-sm transition-all duration-200 hover:bg-bg-secondary/50">
+              <td class="px-4 py-3 text-text-muted whitespace-nowrap">{{ formatDateTime(mov.createdAt) }}</td>
+              <td class="px-4 py-3">
+                <span class="font-medium text-text">{{ mov.productName }}</span>
+                <span v-if="mov.variantName" class="text-xs text-text-muted ml-1">({{ mov.variantName }})</span>
+              </td>
+              <td class="px-4 py-3">
+                <span :class="[
+                  'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+                  mov.movementType === 'purchase' ? 'bg-success/10 text-success' :
+                  mov.movementType === 'sale' ? 'bg-primary/10 text-primary' :
+                  mov.movementType === 'adjustment' ? 'bg-warning/10 text-warning' :
+                  'bg-info/10 text-info'
+                ]">
+                  <span :class="['h-1.5 w-1.5 rounded-full', mov.movementType === 'purchase' ? 'bg-success' : mov.movementType === 'sale' ? 'bg-primary' : mov.movementType === 'adjustment' ? 'bg-warning' : 'bg-info']" />
+                  {{ formatMovementType(mov.movementType) }}
+                </span>
+              </td>
+              <td class="px-4 py-3 text-right font-medium tabular-nums" :class="mov.quantity < 0 ? 'text-danger' : 'text-success'">{{ mov.quantity > 0 ? '+' : '' }}{{ mov.quantity }}</td>
+              <td class="px-4 py-3 text-right tabular-nums text-text">${{ mov.unitCost.toFixed(2) }}</td>
+              <td class="px-4 py-3 text-text-muted max-w-40 truncate">{{ mov.notes || '—' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div v-if="filteredMovements.length === 0" class="py-16 text-center">
+        <div class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-bg-secondary">
+          <svg class="h-8 w-8 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
+        </div>
+        <h3 class="mt-4 text-lg font-medium text-text">Sin movimientos</h3>
+        <p class="mt-1 text-sm text-text-muted">No hay movimientos registrados.</p>
+      </div>
+    </div>
+  </div>
 
   <ProductoFormModal
     ref="productoModalRef"
@@ -135,13 +237,24 @@
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from 'vue'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { formatDateTime, formatMovementType } from '../lib/formatters'
+import { useAuth } from '../composables/common/useAuth'
+import { useBusinessStore } from '../store/business'
 import { useProductCRUD } from '../composables/inventario/useProductCRUD'
 import { useProductStockAdjust } from '../composables/inventario/useProductStockAdjust'
+import { inventarioKeys, listInventoryMovements } from '../services/inventarioService'
 import ProductStats from '../components/productos/ProductStats.vue'
 import ProductoFormModal from '../components/modals/ProductoFormModal.vue'
 import ProductStockAdjustModal from '../components/productos/ProductStockAdjustModal.vue'
 import ProductGrid from '../components/productos/ProductGrid.vue'
 import { ModalBase, FeatureGate } from '../components/common'
+
+const { authStore } = useAuth()
+const businessStore = useBusinessStore()
+const branchId = computed(() => businessStore.currentBranchId)
+const businessId = computed(() => authStore.businessId)
 
 const {
   productoModalRef,
@@ -180,9 +293,28 @@ const {
   confirmAdjust,
 } = useProductStockAdjust()
 
+const movementSearch = ref('')
+
+const { data: movementsData } = useQuery({
+  queryKey: computed(() => inventarioKeys.movements(businessId.value, branchId.value)),
+  queryFn: () => listInventoryMovements(businessId.value!, branchId.value),
+  enabled: computed(() => !!businessId.value),
+})
+
+const movements = computed(() => movementsData.value ?? [])
+
+const filteredMovements = computed(() => {
+  if (!movementSearch.value) return movements.value
+  const q = movementSearch.value.toLowerCase()
+  return movements.value.filter((m: any) =>
+    m.productName.toLowerCase().includes(q) || m.notes?.toLowerCase().includes(q),
+  )
+})
+
 const tabs = [
   { label: 'Todos', value: 'todos' },
   { label: 'Activos', value: 'activos' },
   { label: 'Inactivos', value: 'inactivos' },
+  { label: 'Movimientos', value: 'movimientos' },
 ]
 </script>
