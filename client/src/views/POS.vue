@@ -11,6 +11,14 @@
         <p class="hidden text-sm text-text-muted sm:block">Registra pagos de servicios y productos</p>
       </div>
       <div class="flex items-center gap-3">
+        <ExchangeRateCard
+          :is-editable="rateCtx.isEditable.value"
+          :edit-rate-value="rateCtx.editRateValue.value"
+          :updating-rate="rateCtx.updatingRate.value"
+          :display-rate="rateCtx.displayRate.value"
+          @update:edit-rate-value="rateCtx.editRateValue.value = $event"
+          @update-rate="rateCtx.handleUpdate"
+        />
         <RetailProductSearch
           v-if="activeSaleType === 'retail_only'"
           ref="retailSearchRef"
@@ -104,6 +112,8 @@ import POSPaymentPanel from '../components/pos/POSPaymentPanel.vue'
 import POSConfirmModal from '../components/pos/POSConfirmModal.vue'
 import RetailProductSearch from '../components/pos/RetailProductSearch.vue'
 import AppointmentList from '../components/pos/AppointmentList.vue'
+import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
+import { useExchangeRate } from '../composables/finanzas/useExchangeRate'
 
 interface TipParticipant { employeeId: string; employeeName: string }
 
@@ -112,6 +122,7 @@ const router = useRouter()
 const { exchangeRate, formatDual } = useCurrency()
 const { error: showError, success: showSuccess } = useNotification()
 const businessStore = useBusinessStore()
+const rateCtx = useExchangeRate()
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 
