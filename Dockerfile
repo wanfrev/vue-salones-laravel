@@ -2,6 +2,19 @@
 FROM node:22-alpine AS frontend-builder
 
 WORKDIR /app/client
+
+ARG VITE_API_URL=https://localhost/api
+ARG VITE_REVERB_HOST=localhost
+ARG VITE_REVERB_APP_KEY=salones-key
+ARG VITE_REVERB_PORT=443
+ARG VITE_REVERB_SCHEME=https
+
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_REVERB_HOST=${VITE_REVERB_HOST}
+ENV VITE_REVERB_APP_KEY=${VITE_REVERB_APP_KEY}
+ENV VITE_REVERB_PORT=${VITE_REVERB_PORT}
+ENV VITE_REVERB_SCHEME=${VITE_REVERB_SCHEME}
+
 COPY client/package.json client/package-lock.json* ./
 RUN npm ci --no-audit --no-fund
 COPY client/ ./
@@ -50,4 +63,4 @@ EXPOSE 80 443 443/udp
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:80/up || exit 1
 
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
+CMD ["/app/docker-entrypoint-web.sh"]

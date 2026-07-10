@@ -30,7 +30,7 @@
         header Connection *Upgrade*
         header Upgrade    websocket
     }
-    reverse_proxy @reverb localhost:8080
+    reverse_proxy @reverb reverb:8080
 
     # Static frontend assets (built by Vite)
     handle /build/* {
