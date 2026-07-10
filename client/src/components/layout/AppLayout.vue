@@ -22,13 +22,27 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
         </button>
-        <ThemeToggle />
         <NotificationBell />
-        <button @click="logout" :disabled="loading" class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed">
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-        </button>
+        <div class="relative">
+          <button @click="profileOpen = !profileOpen" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary">
+            <div class="flex h-7 w-7 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary-hover text-[10px] font-bold text-text-inverse shadow-sm">
+              {{ getInitials(authStore.profile?.full_name) }}
+            </div>
+          </button>
+          <div v-if="profileOpen" class="absolute right-0 top-full mt-2 w-56 rounded-xl border border-border bg-surface shadow-lg z-50 overflow-hidden">
+            <div class="px-4 py-3 border-b border-border">
+              <p class="text-sm font-medium text-text truncate">{{ authStore.profile?.full_name || 'Usuario' }}</p>
+              <p class="text-xs text-text-muted capitalize">{{ authStore.role }}</p>
+            </div>
+            <button @click="logout" :disabled="loading" class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-secondary disabled:opacity-40 disabled:cursor-not-allowed">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              Cerrar sesión
+            </button>
+          </div>
+          <div v-if="profileOpen" class="fixed inset-0 z-40" @click="profileOpen = false" />
+        </div>
       </div>
     </header>
 
@@ -58,9 +72,9 @@ import lumaLogoLight from '../../assets/Luma.svg'
 import lumaLogoDark from '../../assets/Luma blanco.svg'
 import Sidebar from './Sidebar.vue'
 import NotificationBell from '../common/NotificationBell.vue'
-import ThemeToggle from '../common/ThemeToggle.vue'
 import { BranchSwitcher } from '../common'
 import GlobalLoading from '../common/GlobalLoading.vue'
+import { getInitials } from '../../lib/formatters'
 
 const { logout, loading } = useAuth()
 const authStore = useAuthStore()
@@ -73,6 +87,7 @@ useRealtime()
 const lumaLogo = computed(() => (themeStore.isDark ? lumaLogoDark : lumaLogoLight))
 
 const isSidebarOpen = ref(false)
+const profileOpen = ref(false)
 
 const businessName = computed(() => businessStore.business?.name ?? '')
 

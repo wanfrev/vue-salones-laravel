@@ -12,7 +12,7 @@ export default defineConfig({
     vue(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['favicon.svg', 'icons.svg', 'lumalogo.jpg'],
+      includeAssets: ['lumalogo.jpg'],
       manifest: {
         name: 'Salones PWA',
         short_name: 'Salones',

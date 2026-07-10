@@ -14,6 +14,26 @@
     </div>
   </header>
 
+  <!-- Apariencia -->
+  <SectionCard
+    class="mb-6"
+    title="Apariencia"
+    subtitle="Personaliza el tema visual de la aplicación"
+    icon="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+  >
+    <div class="flex items-center gap-4">
+      <button
+        v-for="opt in themeOptions" :key="opt.value"
+        @click="themeStore.setMode(opt.value)"
+        class="flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-theme cursor-pointer min-w-[100px]"
+        :class="themeStore.mode === opt.value ? 'border-primary bg-primary/5' : 'border-border hover:border-border-strong'"
+      >
+        <component :is="opt.icon" class="h-6 w-6" :class="themeStore.mode === opt.value ? 'text-primary' : 'text-text-muted'" />
+        <span class="text-sm font-medium" :class="themeStore.mode === opt.value ? 'text-primary' : 'text-text'">{{ opt.label }}</span>
+      </button>
+    </div>
+  </SectionCard>
+
   <!-- Not enabled gate -->
   <div v-if="!businessStore.isMultiBranch" class="flex flex-col items-center justify-center py-16 text-center">
     <div class="flex h-16 w-16 items-center justify-center rounded-full bg-bg-secondary mb-4">
@@ -119,15 +139,38 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, h } from 'vue'
 import { useAuth } from '../composables/common/useAuth'
 import { useBusinessStore } from '../store/business'
 import { useBranches } from '../composables/common/useBranches'
+import { useThemeStore, type ThemeMode } from '../store/theme'
 import { SectionCard, EmptyState } from '../components/common'
 import { BranchFormModal } from '../components/modals'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
+const themeStore = useThemeStore()
 const businessId = computed(() => authStore.businessId)
 const branchesCtx = useBranches(businessId)
+
+const SunIcon = () =>
+  h('svg', { class: 'h-6 w-6', fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '2' }, [
+    h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z' }),
+  ])
+
+const MoonIcon = () =>
+  h('svg', { class: 'h-6 w-6', fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '2' }, [
+    h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z' }),
+  ])
+
+const MonitorIcon = () =>
+  h('svg', { class: 'h-6 w-6', fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '2' }, [
+    h('path', { 'stroke-linecap': 'round', 'stroke-linejoin': 'round', d: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' }),
+  ])
+
+const themeOptions = [
+  { value: 'light' as ThemeMode, label: 'Claro', icon: SunIcon },
+  { value: 'dark' as ThemeMode, label: 'Oscuro', icon: MoonIcon },
+  { value: 'system' as ThemeMode, label: 'Sistema', icon: MonitorIcon },
+]
 </script>
