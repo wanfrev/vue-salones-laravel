@@ -1,40 +1,26 @@
 #!/bin/sh
-set -e
+echo "🚀 Luma Web — Iniciando..."
 
-echo "🚀 Luma — Iniciando en producción..."
+DB_HOST="${DB_HOST:-postgres}"
+DB_PORT="${DB_PORT:-5432}"
+DB_USERNAME="${DB_USERNAME:-postgres}"
+DB_DATABASE="${DB_DATABASE:-salones}"
+REDIS_HOST="${REDIS_HOST:-redis}"
+REDIS_PORT="${REDIS_PORT:-6379}"
 
-# Wait for DB
-if [ -n "$DB_HOST" ]; then
-    echo "⏳ Esperando PostgreSQL ($DB_HOST:$DB_PORT)..."
-    until pg_isready -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USERNAME" -d "$DB_DATABASE" -t 3 2>/dev/null; do
-        sleep 1
-    done
-    echo "✅ PostgreSQL listo"
-fi
+echo "⏳ Esperando PostgreSQL ($DB_HOST:$DB_PORT)..."
+until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" -t 2 2>/dev/null; do sleep 1; done
+echo "✅ PostgreSQL listo"
 
-# Wait for Redis
-if [ -n "$REDIS_HOST" ]; then
-    echo "⏳ Esperando Redis ($REDIS_HOST:$REDIS_PORT)..."
-    until redis-cli -h "$REDIS_HOST" -p "${REDIS_PORT:-6379}" ${REDIS_PASSWORD:+-a "$REDIS_PASSWORD"} ping 2>/dev/null | grep -q PONG; do
-        sleep 1
-    done
-    echo "✅ Redis listo"
-fi
+echo "⏳ Esperando Redis ($REDIS_HOST:$REDIS_PORT)..."
+until php -r "try { (new Redis())->connect('$REDIS_HOST', (int)'$REDIS_PORT'); echo 'OK'; } catch (\Exception \$e) { exit(1); }" 2>/dev/null; do sleep 1; done
+echo "✅ Redis listo"
 
 cd /app
 
-# Optimizaciones de Laravel
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan event:cache
-
-# Migraciones automáticas (Coolify gestiona esto si prefiere, descomenta si quieres auto-migrar)
-# php artisan migrate --force
-
-# Link de storage
+php artisan config:cache 2>/dev/null || echo "⚠️ config:cache skipped"
+php artisan route:cache 2>/dev/null || echo "⚠️ route:cache skipped"
 php artisan storage:link --force 2>/dev/null || true
 
-# Iniciar Octane con FrankenPHP
-echo "🔥 Iniciando Laravel Octane con FrankenPHP..."
-exec php artisan octane:frankenphp --workers=${OCTANE_WORKERS:-auto} --max-execution-time=${OCTANE_MAX_EXECUTION_TIME:-60}
+echo "🔥 Iniciando Laravel Octane + FrankenPHP..."
+exec php artisan octane:frankenphp --workers=${OCTANE_WORKERS:-3} --max-execution-time=${OCTANE_MAX_EXECUTION_TIME:-60}
