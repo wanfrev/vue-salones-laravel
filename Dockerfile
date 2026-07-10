@@ -58,6 +58,8 @@ RUN composer install --no-dev --no-interaction --no-progress --optimize-autoload
 
 COPY Caddyfile /etc/caddy/Caddyfile
 
+RUN chmod +x /app/docker-entrypoint-*.sh
+
 EXPOSE 80 443 443/udp
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
