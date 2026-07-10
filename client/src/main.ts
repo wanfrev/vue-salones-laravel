@@ -22,36 +22,6 @@ app.use(router)
 app.mount('#app')
 
 if (typeof document !== 'undefined') {
-  let lastVisibleAt = Date.now()
-  let visibilityCooldown = false
-  const handleVisibilityChange = () => {
-    if (document.hidden) {
-      lastVisibleAt = Date.now()
-      return
-    }
-    if (visibilityCooldown) return
-    const idleMs = Date.now() - lastVisibleAt
-    if (idleMs > 60_000) {
-      visibilityCooldown = true
-      const auth = useAuthStore()
-      if (auth.isAuthenticated) {
-        auth.refreshSession().finally(() => {
-          queryClient.refetchQueries({ type: 'active' })
-          setTimeout(() => { visibilityCooldown = false }, 5000)
-        })
-      } else {
-        queryClient.refetchQueries({ type: 'active' })
-        setTimeout(() => { visibilityCooldown = false }, 5000)
-      }
-    }
-  }
-  document.addEventListener('visibilitychange', handleVisibilityChange, { passive: true })
-
-  const handleOnline = () => {
-    queryClient.refetchQueries({ type: 'active' })
-  }
-  window.addEventListener('online', handleOnline, { passive: true })
-
   setInterval(() => {
     const auth = useAuthStore()
     if (auth.isAuthenticated) {
