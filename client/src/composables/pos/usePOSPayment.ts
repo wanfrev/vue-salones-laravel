@@ -3,15 +3,9 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../common/useAuth'
 import { useNotification } from '../common/useNotification'
 import { useBusinessStore } from '../../store/business'
-import { recordSale, posKeys } from '../../services/posService'
+import { recordSale, recordDirectSale, posKeys } from '../../services/posService'
 import type { PaymentMethod } from '../../types/database'
 import type { POSProductItem, PaymentBreakdownItem, TipAllocationItem } from '../../types/pos'
-
-function withTipAllocations(breakdown: PaymentBreakdownItem[], tipAllocations?: TipAllocationItem[]): PaymentBreakdownItem[] {
-  if (!tipAllocations || tipAllocations.length === 0 || breakdown.length === 0) return breakdown
-  const [first, ...rest] = breakdown
-  return [{ ...(first as any), tip_allocations: tipAllocations } as PaymentBreakdownItem, ...rest]
-}
 
 export function usePOSPayment() {
   const { authStore } = useAuth()
@@ -40,11 +34,11 @@ export function usePOSPayment() {
     { label: 'Otro', value: 'other' as PaymentMethod, currency: null as null },
   ]
 
+  const mixedMethods = paymentMethods.filter(m => m.value !== 'mixed')
+
   const methodCurrency = (method: PaymentMethod): 'USD' | 'VES' | null => {
     return paymentMethods.find(m => m.value === method)?.currency ?? null
   }
-
-  const mixedMethods = paymentMethods.filter(m => m.value !== 'mixed')
 
   const selectMethod = (method: PaymentMethod) => {
     paymentMethod.value = method
@@ -66,14 +60,25 @@ export function usePOSPayment() {
   const recordMutation = useMutation({
     mutationFn: (params: {
       appointmentId: string
-      amount: number
+      serviceAmount: number
       method: PaymentMethod
       products: POSProductItem[]
       notes: string
       exchangeRate: number
       paymentsBreakdown: PaymentBreakdownItem[]
       tipAmount?: number
-    }) => recordSale({ ...params, businessId: businessId.value!, branchId: branchId.value }),
+    }) => recordSale({
+      appointmentId: params.appointmentId,
+      serviceAmount: params.serviceAmount,
+      method: params.method,
+      products: params.products,
+      notes: params.notes,
+      exchangeRate: params.exchangeRate,
+      paymentsBreakdown: params.paymentsBreakdown,
+      tipAmount: params.tipAmount,
+      businessId: businessId.value!,
+      branchId: branchId.value,
+    }),
     onMutate: async ({ appointmentId }) => {
       await queryClient.cancelQueries({ queryKey: ['pos-pending'] })
       const previousQueries = queryClient.getQueriesData({ queryKey: ['pos-pending'] })
@@ -102,38 +107,63 @@ export function usePOSPayment() {
         queryClient.invalidateQueries({ exact: false, queryKey: posKeys.products(businessId.value, branchId.value) }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['inventario'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['appointments'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['servicios'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['employee-earnings'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['employee-history'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['financial-summary'] }),
+      ])
+    },
+  })
+
+  const directSaleMutation = useMutation({
+    mutationFn: (params: {
+      totalAmount: number
+      method: PaymentMethod
+      products: POSProductItem[]
+      notes: string
+      exchangeRate: number
+      paymentsBreakdown: PaymentBreakdownItem[]
+      clientId?: string | null
+    }) => recordDirectSale({
+      totalAmount: params.totalAmount,
+      method: params.method,
+      products: params.products,
+      notes: params.notes,
+      exchangeRate: params.exchangeRate,
+      paymentsBreakdown: params.paymentsBreakdown,
+      clientId: params.clientId,
+      businessId: businessId.value!,
+      branchId: branchId.value,
+    }),
+    onSettled: () => {
+      Promise.allSettled([
+        queryClient.invalidateQueries({ exact: false, queryKey: ['inventario'] }),
+        queryClient.invalidateQueries({ exact: false, queryKey: posKeys.products(businessId.value, branchId.value) }),
       ])
     },
   })
 
   const processPayment = async (
     appointmentId: string,
-    grandTotal: number,
-    products: POSProductItem[],
+    serviceAmount: number,
+    cartProducts: POSProductItem[],
     exchangeRate: number,
     formatDual: (n: number) => string,
-    tipAllocations?: TipAllocationItem[],
-  ) => {
-    if (grandTotal <= 0) {
+    _tipAllocations?: TipAllocationItem[],
+  ): Promise<boolean> => {
+    if (serviceAmount + cartProducts.reduce((s, p) => s + p.quantity * p.unitPrice, 0) <= 0) {
       showError('El total debe ser mayor a 0')
       return false
     }
 
     isProcessing.value = true
     try {
-      let breakdown = paymentsBreakdown.value
-      if (paymentMethod.value !== 'mixed') {
-        const currency = methodCurrency(paymentMethod.value) ?? otherCurrency.value
+      const method = paymentMethod.value
+      let breakdown: PaymentBreakdownItem[]
+
+      if (method !== 'mixed') {
+        const currency = methodCurrency(method) ?? otherCurrency.value
+        const grandTotal = serviceAmount + cartProducts.reduce((s, p) => s + p.unitPrice * p.quantity, 0)
         const inputAmount = currency === 'VES' ? grandTotal * exchangeRate : grandTotal
-        breakdown = [{ method: paymentMethod.value, inputAmount, currency, amount: grandTotal }]
+        breakdown = [{ method, inputAmount, currency, amount: grandTotal }]
       } else {
-        breakdown = breakdown.map(item => ({
+        breakdown = paymentsBreakdown.value.map(item => ({
           ...item,
           amount: item.currency === 'VES' ? item.inputAmount / exchangeRate : item.inputAmount,
         }))
@@ -141,21 +171,71 @@ export function usePOSPayment() {
 
       await recordMutation.mutateAsync({
         appointmentId,
-        amount: grandTotal - tipAmount.value,
-        method: paymentMethod.value,
-        products,
+        serviceAmount,
+        method,
+        products: cartProducts,
         notes: paymentNotes.value,
         exchangeRate,
-        paymentsBreakdown: withTipAllocations(breakdown, tipAllocations),
+        paymentsBreakdown: breakdown,
         tipAmount: tipAmount.value,
       })
 
-      success(`Cobro de ${formatDual(grandTotal)} registrado correctamente`)
+      success(`Cobro de ${formatDual(serviceAmount + cartProducts.reduce((s, p) => s + p.unitPrice * p.quantity, 0))} registrado`)
       return true
     } catch (err) {
-      const message = (err as any)?.message ?? (err as any)?.error_description ?? (typeof err === 'string' ? err : 'Error al procesar el pago')
+      const message = (err as any)?.message ?? 'Error al procesar el pago'
       showError(message)
       console.error('[processPayment]', err)
+      return false
+    } finally {
+      isProcessing.value = false
+    }
+  }
+
+  const processDirectSale = async (
+    totalAmount: number,
+    cartProducts: POSProductItem[],
+    exchangeRate: number,
+    formatDual: (n: number) => string,
+    clientId?: string | null,
+  ): Promise<boolean> => {
+    if (totalAmount <= 0) {
+      showError('El total debe ser mayor a 0')
+      return false
+    }
+
+    isProcessing.value = true
+    try {
+      const method = paymentMethod.value
+      let breakdown: PaymentBreakdownItem[]
+
+      if (method !== 'mixed') {
+        const currency = methodCurrency(method) ?? otherCurrency.value
+        const inputAmount = currency === 'VES' ? totalAmount * exchangeRate : totalAmount
+        breakdown = [{ method, inputAmount, currency, amount: totalAmount }]
+      } else {
+        breakdown = paymentsBreakdown.value.map(item => ({
+          ...item,
+          amount: item.currency === 'VES' ? item.inputAmount / exchangeRate : item.inputAmount,
+        }))
+      }
+
+      await directSaleMutation.mutateAsync({
+        totalAmount,
+        method,
+        products: cartProducts,
+        notes: paymentNotes.value,
+        exchangeRate,
+        paymentsBreakdown: breakdown,
+        clientId: clientId ?? null,
+      })
+
+      success(`Venta directa de ${formatDual(totalAmount)} registrada`)
+      return true
+    } catch (err) {
+      const message = (err as any)?.message ?? 'Error al procesar la venta directa'
+      showError(message)
+      console.error('[processDirectSale]', err)
       return false
     } finally {
       isProcessing.value = false
@@ -183,6 +263,7 @@ export function usePOSPayment() {
     addSplit,
     removeSplit,
     processPayment,
+    processDirectSale,
     reset,
   }
 }

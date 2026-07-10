@@ -11,10 +11,12 @@ use App\Http\Controllers\Api\EmployeePaymentController;
 use App\Http\Controllers\Api\EmployeeScheduleController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\FinancialSummaryController;
+
 use App\Http\Controllers\Api\GiftCardController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PosController;
+
 use App\Http\Controllers\Api\ProductCategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileController;
@@ -23,6 +25,7 @@ use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierPaymentController;
 use App\Http\Controllers\Api\SuperadminController;
 use App\Http\Controllers\Api\TransactionController;
+
 use Illuminate\Support\Facades\Route;
 
 // Broadcasting auth (rate limited)
@@ -102,18 +105,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/appointments/{id}/status', [AppointmentController::class, 'updateStatus']);
     Route::patch('/appointments/{id}/time', [AppointmentController::class, 'updateTime']);
 
-    // Transactions
-    Route::get('/transactions', [TransactionController::class, 'index']);
-    Route::post('/transactions', [TransactionController::class, 'store']);
-    Route::put('/transactions/{id}', [TransactionController::class, 'update']);
-    Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
-
-    // Expenses
-    Route::get('/expenses', [ExpenseController::class, 'index']);
-    Route::post('/expenses', [ExpenseController::class, 'store']);
-    Route::put('/expenses/{id}', [ExpenseController::class, 'update']);
-    Route::delete('/expenses/{id}', [ExpenseController::class, 'destroy']);
-
     // Products
     Route::get('/products', [ProductController::class, 'index']);
     Route::post('/products', [ProductController::class, 'store']);
@@ -153,12 +144,26 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/supplier-payments', [SupplierPaymentController::class, 'store']);
     Route::delete('/supplier-payments/{id}', [SupplierPaymentController::class, 'destroy']);
 
+    // Finanzas
+    Route::get('/finanzas/summary', [FinancialSummaryController::class, 'summary']);
+    Route::get('/finanzas/transactions', [FinancialSummaryController::class, 'transactions']);
+    Route::get('/finanzas/product-sales', [FinancialSummaryController::class, 'productSales']);
+
+    // Transactions
+    Route::put('/transactions/{id}', [TransactionController::class, 'update']);
+    Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
+
+    // Expenses
+    Route::get('/expenses', [ExpenseController::class, 'index']);
+    Route::post('/expenses', [ExpenseController::class, 'store']);
+    Route::put('/expenses/{id}', [ExpenseController::class, 'update']);
+    Route::delete('/expenses/{id}', [ExpenseController::class, 'destroy']);
+
     // POS
     Route::get('/pos/pending', [PosController::class, 'pendingAppointments']);
     Route::get('/pos/products', [PosController::class, 'saleableProducts']);
-    Route::post('/pos/payment', [PosController::class, 'recordPayment']);
     Route::post('/pos/sale', [PosController::class, 'recordSale']);
-    Route::post('/pos/mark-paid', [PosController::class, 'markAppointmentsAsPaid']);
+    Route::post('/pos/direct-sale', [PosController::class, 'directSale']);
 
     // Gift Cards
     Route::get('/gift-cards', [GiftCardController::class, 'index']);
@@ -171,14 +176,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'dismiss']);
-
-    // Financial (RPC compat)
-    Route::post('/rpc/financial-summary', FinancialSummaryController::class);
-    Route::post('/rpc/financial_summary', FinancialSummaryController::class);
-
-    // POS RPC compat (legacy Supabase functions)
-    Route::post('/rpc/record_sale', [PosController::class, 'recordSale']);
-    Route::post('/rpc/record_payment', [PosController::class, 'recordPayment']);
 
     // Superadmin only
     Route::middleware('superadmin')->prefix('admin')->group(function () {

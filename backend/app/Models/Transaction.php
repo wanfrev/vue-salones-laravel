@@ -15,6 +15,8 @@ class Transaction extends Model
     public $incrementing = false;
     protected $keyType = 'string';
 
+    const UPDATED_AT = null;
+
     protected $fillable = [
         'id', 'business_id', 'branch_id', 'appointment_id',
         'total_amount', 'local_amount', 'employee_amount', 'assistant_amount',

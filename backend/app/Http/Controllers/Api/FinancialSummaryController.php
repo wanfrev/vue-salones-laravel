@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\EntityChanged;
 use App\Services\FinancialSummaryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,19 +13,62 @@ class FinancialSummaryController
         private FinancialSummaryService $financialService,
     ) {}
 
-    public function __invoke(Request $request): JsonResponse
+    private function resolveBusinessId(Request $request): ?string
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json([]);
+        return $request->user()?->profile?->business_id;
+    }
 
-        $start = $request->get('p_period_start');
-        $end = $request->get('p_period_end');
-        $branchId = $request->get('p_branch_id');
-        $employeeId = $request->get('p_employee_id');
+    public function summary(Request $request): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
+            return response()->json(['buckets' => [], 'kpis' => []]);
+        }
 
-        $summary = $this->financialService->summary($p->business_id, $start, $end, $branchId, $employeeId);
+        $start = $request->get('start');
+        $end = $request->get('end');
+        $branchId = $request->get('branch_id');
 
-        return response()->json($summary);
+        $buckets = $this->financialService->summary($businessId, $start, $end, $branchId);
+        $kpis = $this->financialService->getKPIs($businessId, $start, $end, $branchId);
+
+        return response()->json([
+            'buckets' => $buckets,
+            'kpis' => $kpis,
+        ]);
+    }
+
+    public function transactions(Request $request): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
+            return response()->json([]);
+        }
+
+        return response()->json(
+            $this->financialService->getTransactionsWithDetails(
+                $businessId,
+                $request->get('start'),
+                $request->get('end'),
+                $request->get('branch_id'),
+            )
+        );
+    }
+
+    public function productSales(Request $request): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
+            return response()->json([]);
+        }
+
+        return response()->json(
+            $this->financialService->getProductSales(
+                $businessId,
+                $request->get('start'),
+                $request->get('end'),
+                $request->get('branch_id'),
+            )
+        );
     }
 }

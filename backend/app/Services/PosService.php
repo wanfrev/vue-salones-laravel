@@ -5,29 +5,35 @@ namespace App\Services;
 use App\Models\Appointment;
 use App\Models\Product;
 use App\Models\Transaction;
+use App\Models\Client;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use RuntimeException;
+use Illuminate\Support\Facades\DB;
 
 class PosService
 {
     public function __construct(
-        private AppointmentService $appointmentService,
         private InventoryService $inventoryService,
     ) {}
 
-    public function pendingAppointments(string $businessId, ?string $branchId = null): Collection
+    /**
+     * Appointments pending payment: confirmed/completed but not fully paid.
+     * Separated into "realizadas" (past) and "pendientes" (future).
+     */
+    public function getPendingAppointments(string $businessId, ?string $branchId = null): Collection
     {
-        return $this->appointmentService->getPendingPayments($businessId, $branchId);
-    }
-
-    public function saleableProducts(string $businessId, ?string $branchId = null): Collection
-    {
-        $query = Product::with('category')
+        $query = Appointment::with([
+            'client',
+            'service',
+            'employeeProfile',
+            'assistantProfile',
+            'transactions',
+        ])
             ->where('business_id', $businessId)
-            ->where('active', true)
-            ->where('is_sellable', true)
-            ->orderBy('name');
+            ->whereIn('status', ['confirmed', 'completed', 'pending'])
+            ->where('payment_status', '!=', 'paid')
+            ->orderBy('start_time');
 
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
@@ -38,199 +44,166 @@ class PosService
         return $query->get();
     }
 
-    public function recordPayment(
+    /**
+     * Products that can be sold at POS (active, sellable, with stock).
+     */
+    public function getSaleableProducts(string $businessId, ?string $branchId = null): Collection
+    {
+        $products = Product::with('category')
+            ->where('business_id', $businessId)
+            ->where('active', true)
+            ->where('is_sellable', true)
+            ->orderBy('name');
+
+        if ($branchId) {
+            $products->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
+
+        $products = $products->get();
+        $productIds = $products->pluck('id')->toArray();
+
+        if (empty($productIds)) {
+            return collect();
+        }
+
+        $stockQuery = DB::table('inventory_stock')
+            ->select('product_id', DB::raw('SUM(quantity) as total_qty'), DB::raw('COALESCE(SUM(reserved_qty), 0) as total_reserved'))
+            ->where('business_id', $businessId)
+            ->whereIn('product_id', $productIds)
+            ->groupBy('product_id');
+
+        if ($branchId) {
+            $stockQuery->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
+
+        $stockMap = $stockQuery->get()->keyBy('product_id');
+
+        return $products->map(function (Product $product) use ($stockMap) {
+            $stock = $stockMap->get($product->id);
+            $available = $stock ? max(0, (float) $stock->total_qty - (float) $stock->total_reserved) : 0;
+            $product->available_qty = $available;
+            return $product;
+        });
+    }
+
+    /**
+     * Process a sale: appointment payment + optional product sales.
+     * - Products sold go 100% to business (no employee commission on products).
+     * - Tips go 100% to employee.
+     * - Service commission is split per employee/local percentages.
+     */
+    public function processSale(
         string $appointmentId,
-        float $amount,
-        string $method = 'cash',
-        ?string $notes = null,
-        ?float $exchangeRate = null,
-        array $paymentsBreakdown = [],
-        string $businessId = '',
-        string $createdBy = '',
-        ?float $tipAmount = null,
+        float $serviceAmount,
+        string $method,
+        array $products,
+        ?string $notes,
+        ?float $exchangeRate,
+        array $paymentsBreakdown,
+        ?float $tipAmount,
+        string $businessId,
+        string $createdBy,
     ): string {
-        $appointment = Appointment::with(['service', 'employeeProfile'])->find($appointmentId);
-        if (!$appointment) throw new RuntimeException('Cita no encontrada.');
-        if ($businessId && $appointment->business_id !== $businessId) throw new RuntimeException('La cita no pertenece a este negocio.');
+        $appointment = Appointment::with(['service', 'employeeProfile'])
+            ->findOrFail($appointmentId);
+
+        if ($appointment->business_id !== $businessId) {
+            throw new RuntimeException('La cita no pertenece a este negocio.');
+        }
 
         $service = $appointment->service;
-        $employeeProfile = $appointment->employeeProfile;
-        $effectivePrice = $appointment->price_override ?? $service->price ?? $amount;
+        $employee = $appointment->employeeProfile;
 
-        $assistantPct = $appointment->assistant_percentage ?? 0;
+        $effectivePrice = $appointment->price_override ?? $service->price ?? $serviceAmount;
 
-        $employeePct = $appointment->employee_percentage_override
-            ?? $employeeProfile?->pay_percentage
-            ?? (100 - ($service->local_percentage ?? 50));
+        $assistantPct = (float) ($appointment->assistant_percentage ?? 0);
+
+        $employeePct = (float) ($appointment->employee_percentage_override
+            ?? $employee?->pay_percentage
+            ?? (100 - ($service->local_percentage ?? 50)));
 
         $localPct = 100 - $employeePct - $assistantPct;
 
-        $assistantAmount = round($amount * $assistantPct / 100, 2);
-        $employeeAmount = round($amount * $employeePct / 100, 2);
-        $localAmount = round($amount - $employeeAmount - $assistantAmount, 2);
+        $tip = $tipAmount ?? 0;
 
-        $rate = $exchangeRate ?? 1;
+        $rate = $exchangeRate ?: 1;
 
-        $tx = Transaction::create([
-            'id' => Str::uuid()->toString(),
-            'business_id' => $appointment->business_id,
-            'branch_id' => $appointment->branch_id,
-            'appointment_id' => $appointmentId,
-            'total_amount' => $amount,
-            'local_amount' => $localAmount,
-            'employee_amount' => $employeeAmount,
-            'assistant_amount' => $assistantAmount,
-            'local_percentage' => $localPct,
-            'employee_percentage' => $employeePct,
-            'assistant_percentage' => $assistantPct,
-            'method' => $method,
-            'exchange_rate_used' => $rate,
-            'payments_breakdown' => $paymentsBreakdown,
-            'created_by' => $createdBy,
-            'notes' => $notes,
-            'tip_amount' => $tipAmount,
-            'paid_at' => now(),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        if ($localPct < 0) {
+            $localPct = 0;
+        }
 
-        $paidSoFar = Transaction::where('appointment_id', $appointmentId)->sum('total_amount');
-        $paymentStatus = match (true) {
-            $paidSoFar >= $effectivePrice => 'paid',
-            $paidSoFar > 0 => 'partial',
-            default => 'unpaid',
-        };
+        return DB::transaction(function () use (
+            $appointment, $appointmentId, $serviceAmount, $method, $products,
+            $notes, $rate, $paymentsBreakdown, $tip, $businessId, $createdBy,
+            $employeePct, $localPct, $assistantPct, $effectivePrice
+        ) {
+            $assistantAmount = round($serviceAmount * $assistantPct / 100, 2);
+            $employeeAmount = round($serviceAmount * $employeePct / 100, 2);
+            $localAmount = round($serviceAmount - $employeeAmount - $assistantAmount, 2);
 
-        $appointment->update(['payment_status' => $paymentStatus]);
+            $tx = Transaction::create([
+                'id' => Str::uuid()->toString(),
+                'business_id' => $businessId,
+                'branch_id' => $appointment->branch_id,
+                'appointment_id' => $appointmentId,
+                'total_amount' => $serviceAmount,
+                'local_amount' => $localAmount,
+                'employee_amount' => $employeeAmount,
+                'assistant_amount' => $assistantAmount,
+                'local_percentage' => $localPct,
+                'employee_percentage' => $employeePct,
+                'assistant_percentage' => $assistantPct,
+                'method' => $method,
+                'exchange_rate_used' => $rate,
+                'payments_breakdown' => $paymentsBreakdown,
+                'created_by' => $createdBy,
+                'notes' => $notes,
+                'tip_amount' => $tip,
+                'paid_at' => now(),
+            ]);
 
-        return $tx->id;
-    }
-
-    public function recordSale(
-        string $appointmentId,
-        float $amount,
-        string $method = 'cash',
-        array $products = [],
-        ?string $notes = null,
-        ?float $exchangeRate = null,
-        array $paymentsBreakdown = [],
-        string $businessId = '',
-        string $createdBy = '',
-        ?float $tipAmount = null,
-    ): string {
-        $txId = $this->recordPayment(
-            appointmentId: $appointmentId,
-            amount: $amount,
-            method: $method,
-            notes: $notes,
-            exchangeRate: $exchangeRate,
-            paymentsBreakdown: $paymentsBreakdown,
-            businessId: $businessId,
-            createdBy: $createdBy,
-            tipAmount: $tipAmount,
-        );
-
-        if (!empty($products)) {
-            $appointment = Appointment::find($appointmentId);
-            $defaultLocation = $this->inventoryService->getDefaultLocation(
-                $appointment->business_id,
-                $appointment->branch_id,
-            );
-
-            foreach ($products as $product) {
-                $stock = $this->inventoryService->getStockRecord(
-                    businessId: $appointment->business_id,
-                    productId: $product['product_id'],
-                    locationId: $product['location_id'] ?? $defaultLocation,
-                    variantId: $product['variant_id'] ?? null,
-                    branchId: $appointment->branch_id,
+            if (!empty($products)) {
+                $defaultLocation = $this->inventoryService->getDefaultLocation(
+                    $businessId,
+                    $appointment->branch_id,
                 );
 
-                if (!$stock || $stock->quantity < ($product['quantity'] ?? 1)) {
-                    throw new RuntimeException('Stock insuficiente para ' . ($product['name'] ?? $product['product_id']));
+                foreach ($products as $product) {
+                    $this->validateAndDeductStock(
+                        $businessId,
+                        $product['product_id'],
+                        $product['variant_id'] ?? null,
+                        $product['quantity'] ?? 1,
+                        $product['name'] ?? $product['product_id'],
+                        $appointment->branch_id,
+                        $defaultLocation,
+                    );
+
+                    $unitCost = (float) ($product['unit_cost'] ?? 0);
+
+                    $this->inventoryService->recordMovement(
+                        businessId: $businessId,
+                        locationId: $product['location_id'] ?? $defaultLocation,
+                        productId: $product['product_id'],
+                        variantId: $product['variant_id'] ?? null,
+                        movementType: 'sale',
+                        quantity: -($product['quantity'] ?? 1),
+                        unitCost: $unitCost,
+                        referenceType: 'appointment',
+                        referenceId: $appointmentId,
+                        notes: 'Venta en punto de venta — cita',
+                        createdBy: $createdBy,
+                        branchId: $appointment->branch_id,
+                    );
                 }
-
-                $qty = $product['quantity'] ?? 1;
-                $this->inventoryService->updateStockQuantity($stock->id, $stock->quantity - $qty);
-
-                $this->inventoryService->recordMovement(
-                    businessId: $appointment->business_id,
-                    locationId: $product['location_id'] ?? $defaultLocation,
-                    productId: $product['product_id'],
-                    variantId: $product['variant_id'] ?? null,
-                    movementType: 'sale',
-                    quantity: -$qty,
-                    unitCost: $product['unit_cost'] ?? 0,
-                    referenceType: 'appointment',
-                    referenceId: $appointmentId,
-                    notes: 'Venta punto de venta',
-                    createdBy: $createdBy,
-                    branchId: $appointment->branch_id,
-                );
             }
-        }
 
-        return $txId;
-    }
-
-    public function markAppointmentsAsPaid(array $appointmentIds, string $businessId): void
-    {
-        Appointment::whereIn('id', $appointmentIds)
-            ->where('business_id', $businessId)
-            ->update(['payment_status' => 'paid', 'updated_at' => now()]);
-    }
-
-    public function updateTransaction(
-        string $transactionId,
-        float $amount,
-        string $method = 'cash',
-        ?string $notes = null,
-        ?float $exchangeRate = null,
-        ?array $paymentsBreakdown = null,
-        string $businessId = '',
-    ): Transaction {
-        $tx = Transaction::find($transactionId);
-        if (!$tx) throw new RuntimeException('Transacción no encontrada.');
-        if ($businessId && $tx->business_id !== $businessId) throw new RuntimeException('La transacción no pertenece a este negocio.');
-
-        $assistantAmount = round($amount * ($tx->assistant_percentage ?? 0) / 100, 2);
-        $employeeAmount = round($amount * ($tx->employee_percentage ?? 0) / 100, 2);
-        $localAmount = round($amount - $employeeAmount - $assistantAmount, 2);
-
-        $updateData = [
-            'total_amount' => $amount,
-            'local_amount' => $localAmount,
-            'employee_amount' => $employeeAmount,
-            'assistant_amount' => $assistantAmount,
-            'method' => $method,
-            'notes' => $notes,
-            'exchange_rate_used' => $exchangeRate ?? $tx->exchange_rate_used,
-            'updated_at' => now(),
-        ];
-
-        if ($paymentsBreakdown !== null) {
-            $updateData['payments_breakdown'] = $paymentsBreakdown;
-        }
-
-        $tx->update($updateData);
-
-        return $tx->fresh();
-    }
-
-    public function deleteTransaction(string $transactionId, string $businessId): void
-    {
-        $tx = Transaction::find($transactionId);
-        if (!$tx) throw new RuntimeException('Transacción no encontrada.');
-        if ($businessId && $tx->business_id !== $businessId) throw new RuntimeException('La transacción no pertenece a este negocio.');
-
-        $appointmentId = $tx->appointment_id;
-        $tx->delete();
-
-        $appointment = Appointment::find($appointmentId);
-        if ($appointment) {
-            $paidSoFar = Transaction::where('appointment_id', $appointmentId)->sum('total_amount');
-            $service = $appointment->service;
-            $effectivePrice = $appointment->price_override ?? $service?->price ?? 0;
+            $paidSoFar = Transaction::where('appointment_id', $appointmentId)
+                ->sum('total_amount');
 
             $paymentStatus = match (true) {
                 $paidSoFar >= $effectivePrice => 'paid',
@@ -239,6 +212,128 @@ class PosService
             };
 
             $appointment->update(['payment_status' => $paymentStatus]);
+
+            return $tx->id;
+        });
+    }
+
+    /**
+     * Direct product sale — no appointment, no employee commission.
+     * All revenue goes to the business.
+     */
+    public function processDirectSale(
+        float $totalAmount,
+        string $method,
+        array $products,
+        ?string $notes,
+        ?float $exchangeRate,
+        array $paymentsBreakdown,
+        ?string $clientId,
+        string $businessId,
+        ?string $branchId,
+        string $createdBy,
+    ): string {
+        if (empty($products)) {
+            throw new RuntimeException('La venta directa requiere al menos un producto.');
         }
+
+        $rate = $exchangeRate ?: 1;
+
+        $clientName = null;
+        if ($clientId) {
+            $client = Client::where('business_id', $businessId)->find($clientId);
+            $clientName = $client?->full_name;
+        }
+
+        return DB::transaction(function () use (
+            $totalAmount, $method, $products, $notes, $rate,
+            $paymentsBreakdown, $clientId, $businessId, $branchId, $createdBy, $clientName
+        ) {
+            $tx = Transaction::create([
+                'id' => Str::uuid()->toString(),
+                'business_id' => $businessId,
+                'branch_id' => $branchId,
+                'appointment_id' => null,
+                'total_amount' => $totalAmount,
+                'local_amount' => $totalAmount,
+                'employee_amount' => 0,
+                'assistant_amount' => 0,
+                'local_percentage' => 100,
+                'employee_percentage' => 0,
+                'assistant_percentage' => 0,
+                'method' => $method,
+                'exchange_rate_used' => $rate,
+                'payments_breakdown' => $paymentsBreakdown,
+                'created_by' => $createdBy,
+                'notes' => $notes ?? ($clientName ? "Venta directa — {$clientName}" : 'Venta directa'),
+                'tip_amount' => 0,
+                'paid_at' => now(),
+            ]);
+
+            $defaultLocation = $this->inventoryService->getDefaultLocation(
+                $businessId,
+                $branchId,
+            );
+
+            foreach ($products as $product) {
+                $this->validateAndDeductStock(
+                    $businessId,
+                    $product['product_id'],
+                    $product['variant_id'] ?? null,
+                    $product['quantity'] ?? 1,
+                    $product['name'] ?? $product['product_id'],
+                    $branchId,
+                    $defaultLocation,
+                );
+
+                $unitCost = (float) ($product['unit_cost'] ?? 0);
+
+                $this->inventoryService->recordMovement(
+                    businessId: $businessId,
+                    locationId: $product['location_id'] ?? $defaultLocation,
+                    productId: $product['product_id'],
+                    variantId: $product['variant_id'] ?? null,
+                    movementType: 'sale',
+                    quantity: -($product['quantity'] ?? 1),
+                    unitCost: $unitCost,
+                    referenceType: 'direct',
+                    referenceId: $tx->id,
+                    notes: $clientName
+                        ? "Venta directa — {$clientName}"
+                        : 'Venta directa — Mostrador',
+                    createdBy: $createdBy,
+                    branchId: $branchId,
+                );
+            }
+
+            return $tx->id;
+        });
+    }
+
+    private function validateAndDeductStock(
+        string $businessId,
+        string $productId,
+        ?string $variantId,
+        int $quantity,
+        string $productName,
+        ?string $branchId,
+        string $defaultLocation,
+    ): void {
+        $stock = $this->inventoryService->getStockRecord(
+            businessId: $businessId,
+            productId: $productId,
+            locationId: $defaultLocation,
+            variantId: $variantId,
+            branchId: $branchId,
+        );
+
+        if (!$stock || $stock->quantity < $quantity) {
+            throw new RuntimeException("Stock insuficiente para {$productName}. Disponible: " . ($stock->quantity ?? 0));
+        }
+
+        $this->inventoryService->updateStockQuantity(
+            $stock->id,
+            $stock->quantity - $quantity,
+        );
     }
 }

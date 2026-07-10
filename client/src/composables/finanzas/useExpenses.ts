@@ -4,7 +4,6 @@ import { useNotification } from '../common/useNotification'
 import { useCurrency } from '../common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { expensesKeys, listExpenses, saveExpense, deleteExpense, type ExpenseFormData, type ExpenseRow } from '../../services/expensesService'
-import { resolvePeriodDates } from '../../lib/periodUtils'
 import { translateError } from '../../lib/errors'
 
 type PeriodValue = 'month' | 'quarter' | 'year'
@@ -22,11 +21,28 @@ export function useExpenses(
 
   const periodDates = computed(() => {
     if (!selectedPeriod) return { start: '', end: '' }
-    return resolvePeriodDates(selectedPeriod.value, selectedMonth?.value)
+    const today = new Date()
+    const toYmd = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+    if (selectedPeriod.value === 'month') {
+      const monthMatch = selectedMonth?.value.match(/^(\d{4})-(\d{2})$/)
+      if (monthMatch) {
+        const y = Number(monthMatch[1])
+        const m = Number(monthMatch[2]) - 1
+        const isCurrent = y === today.getFullYear() && m === today.getMonth()
+        return { start: toYmd(new Date(y, m, 1)), end: toYmd(isCurrent ? today : new Date(y, m + 1, 0)) }
+      }
+    }
+    if (selectedPeriod.value === 'quarter') {
+      const qs = Math.floor(today.getMonth() / 3) * 3
+      return { start: toYmd(new Date(today.getFullYear(), qs, 1)), end: toYmd(today) }
+    }
+    return { start: toYmd(new Date(today.getFullYear(), 0, 1)), end: toYmd(today) }
   })
 
   const queryKey = computed(() =>
-    expensesKeys.filtered(businessId.value, branchId.value, periodDates.value.start, periodDates.value.end)
+    expensesKeys.filtered(businessId.value, branchId.value, periodDates.value.start, periodDates.value.end),
   )
 
   const { data, isLoading, isError, error: queryError } = useQuery({
@@ -35,7 +51,18 @@ export function useExpenses(
     enabled: computed(() => !!businessId.value && !!selectedPeriod?.value),
   })
 
-  const expenses = computed(() => data.value ?? [])
+  const expenses = computed(() => (data.value ?? []).map((row: ExpenseRow) => ({
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    amount: row.amount,
+    currency: row.currency,
+    originalAmount: row.original_amount,
+    exchangeRateUsed: row.exchange_rate_used,
+    date: row.expense_date,
+    notes: row.notes,
+  })))
+
   const expenseTotal = computed(() => expenses.value.reduce((acc, row) => acc + row.amount, 0))
 
   const saveMutation = useMutation({
@@ -46,12 +73,11 @@ export function useExpenses(
     onSuccess: async () => {
       await Promise.allSettled([
         queryClient.invalidateQueries({ queryKey: expensesKeys.all(businessId.value, branchId.value), exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['financial-summary', businessId.value], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['finanzas-summary', businessId.value], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['finanzas-transactions', businessId.value], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['finanzas-expenses', businessId.value], exact: false }),
       ])
-      await queryClient.refetchQueries({ queryKey: expensesKeys.all(businessId.value, branchId.value), exact: false })
-      success('Gasto registrado correctamente')
+      success('Gasto registrado')
       closeModal()
     },
     onError: (err) => {
@@ -64,12 +90,10 @@ export function useExpenses(
     onSuccess: async () => {
       await Promise.allSettled([
         queryClient.invalidateQueries({ queryKey: expensesKeys.all(businessId.value, branchId.value), exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['financial-summary', businessId.value], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['finanzas-summary', businessId.value], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['finanzas-transactions', businessId.value], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['finanzas-expenses', businessId.value], exact: false }),
       ])
-      await queryClient.refetchQueries({ queryKey: expensesKeys.all(businessId.value, branchId.value), exact: false })
-      success('Gasto eliminado correctamente')
+      success('Gasto eliminado')
     },
     onError: (err: unknown) => {
       showError(translateError(err, 'Error al eliminar el gasto'))
@@ -83,7 +107,7 @@ export function useExpenses(
     category: 'General',
     amount: 0,
     currency: 'USD',
-    date: new Date().toISOString().slice(0, 10),
+    expenseDate: new Date().toISOString().slice(0, 10),
     notes: '',
   })
 
@@ -95,36 +119,29 @@ export function useExpenses(
       category: 'General',
       amount: 0,
       currency: 'USD',
-      date: new Date().toISOString().slice(0, 10),
+      expenseDate: new Date().toISOString().slice(0, 10),
       notes: '',
     }
     editingExpenseId.value = null
     saveError.value = ''
   }
 
-  const openNew = () => {
-    resetForm()
-    showExpenseModal.value = true
-  }
-
-  const openEdit = (expense: ExpenseRow) => {
+  const openNew = () => { resetForm(); showExpenseModal.value = true }
+  const openEdit = (expense: any) => {
     editingExpenseId.value = expense.id
     expenseForm.value = {
       name: expense.name,
       category: expense.category,
-      amount: expense.originalAmount,
-      currency: expense.currency,
-      date: expense.date,
-      notes: expense.notes,
+      amount: expense.currency === 'VES' ? expense.originalAmount : expense.amount,
+      currency: expense.currency ?? 'USD',
+      expenseDate: expense.date ?? expense.expense_date,
+      notes: expense.notes ?? '',
     }
     saveError.value = ''
     showExpenseModal.value = true
   }
 
-  const closeModal = () => {
-    showExpenseModal.value = false
-    resetForm()
-  }
+  const closeModal = () => { showExpenseModal.value = false; resetForm() }
 
   const handleSave = async () => {
     if (saveMutation.isPending.value) return
@@ -138,7 +155,7 @@ export function useExpenses(
   }
 
   const handleDelete = (id: string) => {
-    if (window.confirm('¿Eliminar este gasto? Esta acción no se puede deshacer.')) {
+    if (window.confirm('¿Eliminar este gasto?')) {
       deleteMutation.mutate(id)
     }
   }

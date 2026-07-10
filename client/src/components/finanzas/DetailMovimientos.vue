@@ -37,7 +37,7 @@ const activeDetailTab = ref<'cobros' | 'ventas' | 'gastos' | 'servicios'>('cobro
 
 const allCobrosRows = computed(() => props.summaryCtx.appointmentIncomeDetails.value)
 const allVentasRows = computed(() => props.summaryCtx.productSalesDetails.value)
-const allGastosRows = computed(() => props.expenses.value)
+const allGastosRows = computed(() => props.expensesCtx.expenses.value as any[])
 
 const cobrosSearch = ref('')
 const normalize = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')

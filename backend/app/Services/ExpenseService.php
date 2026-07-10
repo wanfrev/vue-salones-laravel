@@ -9,8 +9,12 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ExpenseService
 {
-    public function list(string $businessId, ?string $branchId = null, ?string $startDate = null, ?string $endDate = null): Collection
-    {
+    public function list(
+        string $businessId,
+        ?string $branchId = null,
+        ?string $startDate = null,
+        ?string $endDate = null,
+    ): Collection {
         $query = Expense::query()
             ->where('business_id', $businessId)
             ->orderByDesc('expense_date');
@@ -20,8 +24,12 @@ class ExpenseService
                 $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
             });
         }
-        if ($startDate) $query->where('expense_date', '>=', $startDate);
-        if ($endDate) $query->where('expense_date', '<=', $endDate);
+        if ($startDate) {
+            $query->where('expense_date', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->where('expense_date', '<=', $endDate);
+        }
 
         return $query->get();
     }
@@ -33,7 +41,7 @@ class ExpenseService
             'business_id' => $businessId,
             'branch_id' => $data['branch_id'] ?? null,
             'name' => $data['name'],
-            'category' => $data['category'] ?? 'general',
+            'category' => $data['category'] ?? 'General',
             'amount' => $data['amount'],
             'expense_date' => $data['expense_date'] ?? now()->toDateString(),
             'currency' => $data['currency'] ?? 'USD',
@@ -41,15 +49,13 @@ class ExpenseService
             'exchange_rate_used' => $data['exchange_rate_used'] ?? 1,
             'notes' => $data['notes'] ?? null,
             'created_by' => $createdBy,
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
     }
 
     public function update(string $id, array $data, string $businessId): Expense
     {
         $expense = $this->findForBusiness($id, $businessId);
-        $expense->update($data + ['updated_at' => now()]);
+        $expense->update($data);
         return $expense->fresh();
     }
 
@@ -59,7 +65,7 @@ class ExpenseService
         $expense->delete();
     }
 
-    public function findForBusiness(string $id, string $businessId): Expense
+    private function findForBusiness(string $id, string $businessId): Expense
     {
         $expense = Expense::find($id);
         if (!$expense || $expense->business_id !== $businessId) {

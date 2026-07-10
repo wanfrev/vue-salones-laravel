@@ -3,10 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
-use App\Http\Requests\RecordPaymentRequest;
-use App\Http\Requests\RecordSaleRequest;
-use App\Jobs\ProcessPayment;
-use App\Jobs\ProcessSale;
+use App\Http\Requests\ProcessSaleRequest;
+use App\Http\Requests\DirectSaleRequest;
 use App\Services\PosService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,116 +15,84 @@ class PosController
         private PosService $posService,
     ) {}
 
+    private function resolveBusinessId(Request $request): ?string
+    {
+        return $request->user()?->profile?->business_id;
+    }
+
     public function pendingAppointments(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json([]);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
 
         return response()->json(
-            $this->posService->pendingAppointments($p->business_id, $request->branch_id)
+            $this->posService->getPendingAppointments($businessId, $request->get('branch_id'))
         );
     }
 
     public function saleableProducts(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json([]);
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
 
         return response()->json(
-            $this->posService->saleableProducts($p->business_id, $request->branch_id)
+            $this->posService->getSaleableProducts($businessId, $request->get('branch_id'))
         );
     }
 
-    public function recordPayment(RecordPaymentRequest $request): JsonResponse
+    public function recordSale(ProcessSaleRequest $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        $businessId = $this->resolveBusinessId($request);
 
         $data = $request->validated();
 
         try {
-            $txId = $this->posService->recordPayment(
+            $txId = $this->posService->processSale(
                 appointmentId: $data['appointment_id'],
-                amount: $data['amount'],
-                method: $data['method'],
-                notes: $data['notes'] ?? null,
-                exchangeRate: $data['exchange_rate_used'] ?? null,
-                paymentsBreakdown: $data['payments_breakdown'] ?? [],
-                tipAmount: $data['tip_amount'] ?? null,
-                businessId: $p->business_id,
-                createdBy: $user->id,
-            );
-
-            EntityChanged::safe($p->business_id, 'transaction', 'created', $txId);
-
-            ProcessPayment::dispatch(
-                transactionId: $txId,
-                businessId: $p->business_id,
-                appointmentId: $data['appointment_id'],
-                amount: $data['amount'],
-                method: $data['method'],
-            );
-
-            return response()->json(['id' => $txId], 201);
-        } catch (\Throwable $e) {
-            return response()->json(['error' => ['message' => $e->getMessage()]], 400);
-        }
-    }
-
-    public function recordSale(RecordSaleRequest $request): JsonResponse
-    {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
-
-        $data = $request->validated();
-
-        try {
-            $txId = $this->posService->recordSale(
-                appointmentId: $data['appointment_id'],
-                amount: $data['amount'],
+                serviceAmount: (float) $data['service_amount'],
                 method: $data['method'],
                 products: $data['products'] ?? [],
                 notes: $data['notes'] ?? null,
                 exchangeRate: $data['exchange_rate_used'] ?? null,
                 paymentsBreakdown: $data['payments_breakdown'] ?? [],
                 tipAmount: $data['tip_amount'] ?? null,
-                businessId: $p->business_id,
-                createdBy: $user->id,
+                businessId: $businessId,
+                createdBy: $request->user()->id,
             );
 
-            EntityChanged::safe($p->business_id, 'transaction', 'created', $txId);
-
-            ProcessSale::dispatch(
-                transactionId: $txId,
-                businessId: $p->business_id,
-                appointmentId: $data['appointment_id'],
-                amount: $data['amount'],
-                method: $data['method'],
-                products: $data['products'] ?? [],
-            );
+            EntityChanged::safe($businessId, 'transaction', 'created', $txId);
 
             return response()->json(['id' => $txId], 201);
         } catch (\Throwable $e) {
-            return response()->json(['error' => ['message' => $e->getMessage()]], 400);
+            return response()->json(['message' => $e->getMessage()], 400);
         }
     }
 
-    public function markAppointmentsAsPaid(Request $request): JsonResponse
+    public function directSale(DirectSaleRequest $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        $businessId = $this->resolveBusinessId($request);
 
-        $data = $request->validate([
-            'appointment_ids' => 'required|array',
-            'appointment_ids.*' => 'uuid',
-        ]);
+        $data = $request->validated();
 
-        $this->posService->markAppointmentsAsPaid($data['appointment_ids'], $p->business_id);
-        return response()->json(['success' => true]);
+        try {
+            $txId = $this->posService->processDirectSale(
+                totalAmount: (float) $data['total_amount'],
+                method: $data['method'],
+                products: $data['products'],
+                notes: $data['notes'] ?? null,
+                exchangeRate: $data['exchange_rate_used'] ?? null,
+                paymentsBreakdown: $data['payments_breakdown'] ?? [],
+                clientId: $data['client_id'] ?? null,
+                businessId: $businessId,
+                branchId: $data['branch_id'] ?? null,
+                createdBy: $request->user()->id,
+            );
+
+            EntityChanged::safe($businessId, 'transaction', 'created', $txId);
+
+            return response()->json(['id' => $txId], 201);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 400);
+        }
     }
 }

@@ -94,7 +94,7 @@ import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
 import KpiCards from '../components/finanzas/KpiCards.vue'
 import SupplierPaymentsSection from '../components/finanzas/SupplierPaymentsSection.vue'
 import ExpenseFormModal from '../components/finanzas/ExpenseFormModal.vue'
-import CurrencyBreakdown, { type CurrencyBreakdownData } from '../components/finanzas/CurrencyBreakdown.vue'
+import CurrencyBreakdown from '../components/finanzas/CurrencyBreakdown.vue'
 import RecentTransactionsCard from '../components/finanzas/RecentTransactionsCard.vue'
 import DetailMovimientos from '../components/finanzas/DetailMovimientos.vue'
 import EditCobroModal from '../components/finanzas/EditCobroModal.vue'
@@ -123,9 +123,11 @@ const marginTotal = computed(() => (localIncomeTotal.value > 0 ? (netTotal.value
 const activeCard = ref<'income' | 'expense' | 'net' | null>(null)
 const toggleCard = (card: 'income' | 'expense' | 'net') => { activeCard.value = activeCard.value === card ? null : card }
 
-const incomeBreakdown = computed<CurrencyBreakdownData>(() => {
-  const usdByMethod: Record<string, number> = {}; const vesByMethod: Record<string, number> = {}
-  let totalUSD = 0; let totalVES = 0
+const incomeBreakdown = computed(() => {
+  const usdByMethod: Record<string, number> = {}
+  const vesByMethod: Record<string, number> = {}
+  let totalUSD = 0
+  let totalVES = 0
   for (const tx of summaryCtx.transactionsAll.value) {
     if (tx.breakdown && tx.breakdown.length > 0) {
       for (const item of tx.breakdown) {
@@ -133,7 +135,7 @@ const incomeBreakdown = computed<CurrencyBreakdownData>(() => {
         else { totalUSD += item.amount; usdByMethod[item.method] = (usdByMethod[item.method] ?? 0) + item.amount }
       }
     } else if (tx.exchangeRateUsed > 1) {
-      const vesAmount = tx.amount * tx.exchangeRateUsed; totalVES += vesAmount; vesByMethod[tx.rawMethod] = (vesByMethod[tx.rawMethod] ?? 0) + vesAmount
+      const vAmt = tx.amount * tx.exchangeRateUsed; totalVES += vAmt; vesByMethod[tx.rawMethod] = (vesByMethod[tx.rawMethod] ?? 0) + vAmt
     } else { totalUSD += tx.amount; usdByMethod[tx.rawMethod] = (usdByMethod[tx.rawMethod] ?? 0) + tx.amount }
   }
   return {
@@ -144,9 +146,11 @@ const incomeBreakdown = computed<CurrencyBreakdownData>(() => {
   }
 })
 
-const expenseBreakdown = computed<CurrencyBreakdownData>(() => {
-  const usdByCat: Record<string, number> = {}; const vesByCat: Record<string, number> = {}
-  let totalUSD = 0; let totalVES = 0
+const expenseBreakdown = computed(() => {
+  const usdByCat: Record<string, number> = {}
+  const vesByCat: Record<string, number> = {}
+  let totalUSD = 0
+  let totalVES = 0
   for (const exp of expenses.value) {
     if (exp.currency === 'VES') { totalVES += exp.originalAmount; vesByCat[exp.category] = (vesByCat[exp.category] ?? 0) + exp.originalAmount }
     else { totalUSD += exp.amount; usdByCat[exp.category] = (usdByCat[exp.category] ?? 0) + exp.amount }
@@ -159,13 +163,18 @@ const expenseBreakdown = computed<CurrencyBreakdownData>(() => {
   }
 })
 
-const netBreakdown = computed<CurrencyBreakdownData>(() => {
-  const incUSD = incomeBreakdown.value.usdTotal; const incVES = incomeBreakdown.value.vesTotal
-  const expUSD = expenseBreakdown.value.usdTotal; const expVES = expenseBreakdown.value.vesTotal
-  return { title: 'Desglose de Ganancia por moneda', usdTotal: Math.max(0, incUSD - expUSD), vesTotal: Math.max(0, incVES - expVES), usdItems: [], vesItems: [], usdLabel: '', vesLabel: '' }
+const netBreakdown = computed(() => {
+  return {
+    title: 'Desglose de Ganancia por moneda',
+    usdTotal: Math.max(0, incomeBreakdown.value.usdTotal - expenseBreakdown.value.usdTotal),
+    vesTotal: Math.max(0, incomeBreakdown.value.vesTotal - expenseBreakdown.value.vesTotal),
+    usdItems: [] as { label: string; amount: number }[],
+    vesItems: [] as { label: string; amount: number }[],
+    usdLabel: '', vesLabel: '',
+  }
 })
 
-const activeBreakdown = computed<CurrencyBreakdownData | null>(() => {
+const activeBreakdown = computed(() => {
   if (activeCard.value === 'income') return incomeBreakdown.value
   if (activeCard.value === 'expense') return expenseBreakdown.value
   if (activeCard.value === 'net') return netBreakdown.value

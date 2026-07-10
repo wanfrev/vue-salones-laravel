@@ -89,7 +89,7 @@ const inlineFilteredProducts = computed(() => {
             class="flex w-full items-center justify-between gap-2 px-3 py-1.5 text-left text-xs transition-colors hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-50 border-b border-border last:border-b-0"
           >
             <span class="text-text truncate">{{ product.name }}</span>
-            <span class="text-text-muted whitespace-nowrap">{{ props.appt?.groupPrice ?? '0' }}</span>
+            <span class="text-text-muted whitespace-nowrap">${{ Number(product.unit_price ?? product.price ?? 0).toFixed(2) }}</span>
           </button>
         </div>
       </div>

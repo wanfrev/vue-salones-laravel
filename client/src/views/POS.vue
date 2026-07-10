@@ -198,7 +198,7 @@ const servicePrice = computed(() => {
   if (!appt) return 0
   if (Array.isArray(appt.members) && appt.members.length > 0) return appt.members.reduce((sum: number, m: any) => sum + Number(m.price ?? 0), 0)
   if (appt.groupPrice != null) return appt.groupPrice
-  return appt.price_override != null ? Number(appt.price_override) : Number(appt.services?.price ?? 0)
+  return appt.price_override != null ? Number(appt.price_override) : Number(appt.service?.price ?? appt.services?.price ?? 0)
 })
 
 const grandTotal = computed(() => activeSaleType.value === 'retail_only' ? cartCtx.productsTotal.value : servicePrice.value + cartCtx.productsTotal.value + paymentCtx.tipAmount.value)
@@ -212,7 +212,7 @@ const tipParticipants = computed<TipParticipant[]>(() => {
     return Array.from(map.entries()).map(([id, name]) => ({ employeeId: id, employeeName: name }))
   }
   const result: TipParticipant[] = []
-  if (appt.employee_id) result.push({ employeeId: appt.employee_id, employeeName: appt.profiles?.full_name ?? 'Empleado' })
+  if (appt.employee_id) result.push({ employeeId: appt.employee_id, employeeName: appt.employee_profile?.full_name ?? appt.profiles?.full_name ?? 'Empleado' })
   if (appt.assistant_employee_id) result.push({ employeeId: appt.assistant_employee_id, employeeName: appt.assistant_profile?.full_name ?? 'Asistente' })
   return [...new Map(result.map(p => [p.employeeId, p])).values()]
 })

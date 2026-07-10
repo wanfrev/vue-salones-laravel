@@ -1,43 +1,76 @@
 import { ref, computed, watch } from 'vue'
-import { useCurrency } from '../common/useCurrency'
+import { useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useAuth } from '../common/useAuth'
 import { useNotification } from '../common/useNotification'
+import { useCurrency } from '../common/useCurrency'
+import { apiRequest } from '../../lib/api'
+import { useBusinessStore } from '../../store/business'
 
 export function useExchangeRate() {
-  const { exchangeRate, setExchangeRate, isAdmin } = useCurrency()
+  const { authStore } = useAuth()
+  const queryClient = useQueryClient()
   const { success, error: showError } = useNotification()
+  const businessStore = useBusinessStore()
+  const { exchangeRate } = useCurrency()
 
-  const editRateValue = ref(0)
+  const isEditable = computed(() => {
+    const role = authStore.role
+    return role === 'admin' || role === 'superadmin'
+  })
+  const editRateValue = ref(exchangeRate.value)
   const updatingRate = ref(false)
 
   watch(exchangeRate, (val) => {
     editRateValue.value = val
-  }, { immediate: true })
+  })
 
-  const isEditable = computed(() => isAdmin.value)
-  const displayRate = computed(() =>
-    exchangeRate.value.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-  )
+  const displayRate = computed(() => String(exchangeRate.value))
+
+  const updateMutation = useMutation({
+    mutationFn: async (rate: number) => {
+      const branchId = businessStore.currentBranchId
+      const businessId = authStore.businessId
+
+      if (branchId) {
+        await apiRequest('PUT', `/branches/${branchId}`, {
+          name: businessStore.currentBranch?.name ?? '',
+          ves_exchange_rate: rate,
+        })
+        if (businessStore.currentBranch) {
+          businessStore.currentBranch.ves_exchange_rate = rate
+        }
+      } else if (businessId) {
+        await apiRequest('PUT', `/businesses/${businessId}`, {
+          ves_exchange_rate: rate,
+        })
+        if (businessStore.business) {
+          businessStore.business.ves_exchange_rate = rate
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['branches'] })
+      success('Tasa actualizada')
+    },
+    onError: (err: any) => {
+      showError(err?.message ?? 'Error al actualizar la tasa')
+    },
+  })
 
   const handleUpdate = async () => {
-    if (!editRateValue.value || editRateValue.value <= 0) {
-      showError('Ingresa una tasa válida mayor a 0')
-      return
-    }
+    if (editRateValue.value <= 0) return
     updatingRate.value = true
     try {
-      await setExchangeRate(editRateValue.value)
-      success(`Tasa actualizada a 1 USD = ${editRateValue.value} Bs`)
-    } catch {
-      showError('Error al actualizar la tasa')
+      await updateMutation.mutateAsync(editRateValue.value)
     } finally {
       updatingRate.value = false
     }
   }
 
   return {
+    isEditable,
     editRateValue,
     updatingRate,
-    isEditable,
     displayRate,
     handleUpdate,
   }

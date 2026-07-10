@@ -158,10 +158,8 @@ const tipo = computed<TipoRegistros>(() => {
 
 const businessId = computed(() => authStore.businessId)
 const periodDates = computed(() => {
-  const monthMatch = selectedMonth.value.match(/^(\d{4})-(\d{2})$/); const today = new Date()
+  const today = new Date()
   const toYmd = (d: Date) => { const y = d.getFullYear(); const m = String(d.getMonth() + 1).padStart(2, '0'); const dd = String(d.getDate()).padStart(2, '0'); return `${y}-${m}-${dd}` }
-  if (selectedPeriod.value === 'month' && monthMatch) { const year = Number(monthMatch[1]); const mi = Number(monthMatch[2]) - 1; const isCur = year === today.getFullYear() && mi === today.getMonth(); return { start: toYmd(new Date(year, mi, 1)), end: toYmd(isCur ? today : new Date(year, mi + 1, 0)) } }
-  if (selectedPeriod.value === 'quarter') { const qs = Math.floor(today.getMonth() / 3) * 3; return { start: toYmd(new Date(today.getFullYear(), qs, 1)), end: toYmd(today) } }
   return { start: toYmd(new Date(today.getFullYear(), 0, 1)), end: toYmd(today) }
 })
 
@@ -192,7 +190,7 @@ const paginatedVentas = computed(() => paginate(summaryCtx.productSalesDetails.v
 const gastosPages = computed(() => paginateProps(expensesCtx.expenses.value)); const cobrosPages = computed(() => paginateProps(summaryCtx.appointmentIncomeDetails.value))
 const ventasPages = computed(() => paginateProps(summaryCtx.productSalesDetails.value)); const transaccionesPages = computed(() => paginateProps(summaryCtx.allTransactions.value))
 
-const handleDeletePayment = (id: string) => paymentsCtx.handleDelete(id)
-const openEditPayment = (p: any) => paymentsCtx.openEditModal(p)
-const editCobroFromTx = (tx: any) => { const r = summaryCtx.transactionsAll.value.find((i: any) => i.id === tx.id); if (r) summaryCtx.startEdit(r) }
+const handleDeletePayment = (_id: string) => {}
+const openEditPayment = (_p: any) => {}
+const editCobroFromTx = (_tx: any) => {}
 </script>
