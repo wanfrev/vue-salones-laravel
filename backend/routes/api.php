@@ -5,7 +5,6 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\ClientController;
-use App\Http\Controllers\Api\EmployeeBalanceController;
 use App\Http\Controllers\Api\EmployeeCommissionController;
 use App\Http\Controllers\Api\EmployeePaymentController;
 use App\Http\Controllers\Api\EmployeeScheduleController;
@@ -53,12 +52,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/branches/{id}', [BranchController::class, 'update']);
     Route::delete('/branches/{id}', [BranchController::class, 'destroy']);
 
-    // Employee schedules
-    Route::get('/employee-schedules', [EmployeeScheduleController::class, 'index']);
-    Route::post('/employee-schedules', [EmployeeScheduleController::class, 'store']);
-    Route::put('/employee-schedules/{id}', [EmployeeScheduleController::class, 'update']);
-    Route::delete('/employee-schedules/{id}', [EmployeeScheduleController::class, 'destroy']);
-
     // Profiles / Employees
     Route::get('/profiles', [ProfileController::class, 'index']);
     Route::get('/profiles/{id}', [ProfileController::class, 'show']);
@@ -72,11 +65,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/employee-payments/{id}', [EmployeePaymentController::class, 'update']);
     Route::delete('/employee-payments/{id}', [EmployeePaymentController::class, 'destroy']);
 
-    // Employee balance
-    Route::get('/employee-balance/{employeeId}', [EmployeeBalanceController::class, 'show']);
-
     // Employee commissions
     Route::get('/employee-commissions', [EmployeeCommissionController::class, 'index']);
+    Route::get('/employee-debt', [EmployeeCommissionController::class, 'debt']);
+    Route::get('/employee-balance/{employeeId}', [EmployeeCommissionController::class, 'balance']);
+
+    // Employee schedules
+    Route::get('/employee-schedules', [EmployeeScheduleController::class, 'index']);
+    Route::post('/employee-schedules', [EmployeeScheduleController::class, 'store']);
+    Route::put('/employee-schedules/{id}', [EmployeeScheduleController::class, 'update']);
+    Route::delete('/employee-schedules/{id}', [EmployeeScheduleController::class, 'destroy']);
 
     // Services
     Route::get('/services', [ServiceController::class, 'index']);

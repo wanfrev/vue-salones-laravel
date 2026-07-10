@@ -25,14 +25,14 @@ class EmployeePaymentService
                 $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
             });
         }
+        if ($employeeId) {
+            $query->where('employee_id', $employeeId);
+        }
         if ($startDate) {
             $query->where('payment_date', '>=', $startDate);
         }
         if ($endDate) {
             $query->where('payment_date', '<=', $endDate);
-        }
-        if ($employeeId) {
-            $query->where('employee_id', $employeeId);
         }
 
         return $query->get();
@@ -46,26 +46,22 @@ class EmployeePaymentService
             'branch_id' => $data['branch_id'] ?? null,
             'employee_id' => $data['employee_id'],
             'amount' => $data['amount'],
-            'currency' => $data['currency'],
+            'currency' => $data['currency'] ?? 'USD',
             'original_amount' => $data['original_amount'] ?? 0,
             'exchange_rate_used' => $data['exchange_rate_used'] ?? 1,
-            'payment_method' => $data['payment_method'],
-            'type' => $data['type'],
+            'payment_method' => $data['payment_method'] ?? 'transfer',
+            'type' => $data['type'] ?? 'payment',
             'concept' => $data['concept'] ?? null,
             'notes' => $data['notes'] ?? null,
-            'payment_date' => $data['payment_date'],
+            'payment_date' => $data['payment_date'] ?? now()->toDateString(),
             'created_by' => $createdBy,
-            'created_at' => now(),
-            'updated_at' => now(),
         ]);
     }
 
     public function update(string $id, array $data, string $businessId): EmployeePayment
     {
         $payment = $this->findForBusiness($id, $businessId);
-
-        $payment->update($data + ['updated_at' => now()]);
-
+        $payment->update($data);
         return $payment->fresh();
     }
 
@@ -75,7 +71,7 @@ class EmployeePaymentService
         $payment->delete();
     }
 
-    public function findForBusiness(string $id, string $businessId): EmployeePayment
+    private function findForBusiness(string $id, string $businessId): EmployeePayment
     {
         $payment = EmployeePayment::find($id);
         if (!$payment || $payment->business_id !== $businessId) {

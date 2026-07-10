@@ -12,21 +12,53 @@ class EmployeeCommissionController
         private EmployeeCommissionService $commissionService,
     ) {}
 
+    private function resolveBusinessId(Request $request): ?string
+    {
+        return $request->user()?->profile?->business_id;
+    }
+
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user()?->load('profile');
-        $p = $user?->profile;
-        if (!$p || !$p->business_id) {
-            return response()->json([]);
-        }
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
 
-        $rows = $this->commissionService->getBreakdown(
-            $p->business_id,
-            $request->get('start_date'),
-            $request->get('end_date'),
-            $request->get('branch_id'),
+        return response()->json(
+            $this->commissionService->getCommissions(
+                $businessId,
+                $request->get('branch_id'),
+                $request->get('start_date'),
+                $request->get('end_date'),
+            )
         );
+    }
 
-        return response()->json($rows);
+    public function debt(Request $request): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
+
+        return response()->json(
+            $this->commissionService->getEmployeeDebt(
+                $businessId,
+                $request->get('branch_id'),
+                $request->get('start_date'),
+                $request->get('end_date'),
+            )
+        );
+    }
+
+    public function balance(Request $request, string $employeeId): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['pending' => 0], 200);
+
+        return response()->json(
+            $this->commissionService->getEmployeeBalance(
+                $businessId,
+                $employeeId,
+                $request->get('start_date'),
+                $request->get('end_date'),
+            )
+        );
     }
 }

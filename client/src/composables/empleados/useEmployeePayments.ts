@@ -1,398 +1,390 @@
-import { computed, ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { api as supabase } from '../../lib/api'
+import { useAuth } from '../common/useAuth'
 import { useNotification } from '../common/useNotification'
-import { translateError } from '../../lib/errors'
 import { useCurrency } from '../common/useCurrency'
 import { useBusinessStore } from '../../store/business'
+import { translateError } from '../../lib/errors'
 import {
+  employeePaymentKeys,
   listEmployeePayments,
   createEmployeePayment,
   createEmployeeConsumption,
   updateEmployeePayment,
   deleteEmployeePayment,
-  employeePaymentKeys,
+  getCommissions,
+  getEmployeeDebt,
+  getEmployeeBalance,
+  listSchedules,
 } from '../../services/employeePaymentsService'
-
-interface EmployeeOption {
-  id: string
-  name: string
-}
-
-function localDateStr(): string {
-  const d = new Date()
-  const yyyy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  return `${yyyy}-${mm}-${dd}`
-}
 
 export function useEmployeePayments(
   businessId: import('vue').Ref<string | null>,
-  periodDates?: import('vue').Ref<{ start: string; end: string }>,
+  periodDates: import('vue').Ref<{ start: string; end: string }>,
 ) {
   const queryClient = useQueryClient()
   const { success, error: showError } = useNotification()
-  const { employeeRate } = useCurrency()
+  const { authStore } = useAuth()
   const businessStore = useBusinessStore()
+  const { exchangeRate } = useCurrency()
   const branchId = computed(() => businessStore.currentBranchId)
-  const employeePaymentsRate = computed(() => employeeRate.value)
 
-  const { data: paymentsData, isLoading } = useQuery({
+  // ── Payments list ──
+  const { data: paymentsData, isLoading: isPaymentsLoading } = useQuery({
     queryKey: computed(() => [
-      ...employeePaymentKeys.all(businessId.value, branchId.value),
-      periodDates?.value.start ?? null,
-      periodDates?.value.end ?? null,
-    ] as const),
+      ...employeePaymentKeys.all(businessId.value),
+      branchId.value,
+      periodDates.value.start,
+      periodDates.value.end,
+    ]),
     queryFn: () => listEmployeePayments(
       businessId.value!,
+      periodDates.value.start,
+      periodDates.value.end,
       branchId.value,
-      periodDates?.value.start,
-      periodDates?.value.end,
     ),
     enabled: computed(() => !!businessId.value),
   })
 
-  const paymentsMade = computed(() => paymentsData.value ?? [])
+  const payments = computed(() => (paymentsData.value ?? []).map((p: any) => ({
+    id: p.id,
+    employeeId: p.employee_id,
+    employeeName: p.employee_profile?.full_name ?? '—',
+    amount: p.amount,
+    currency: p.currency ?? 'USD',
+    originalAmount: p.original_amount ?? 0,
+    exchangeRateUsed: p.exchange_rate_used ?? 1,
+    paymentMethod: p.payment_method,
+    type: p.type,
+    concept: p.concept,
+    notes: p.notes,
+    paymentDate: p.payment_date,
+  })))
 
-  const createMutation = useMutation({
-    mutationFn: (params: {
-      employeeId: string
-      amount: number
-      method: string
-      notes: string
-      date: string
-      currency: 'USD' | 'VES'
-    }) => {
-      if (!businessId.value) throw new Error('No hay negocio activo')
-      return createEmployeePayment(
-        businessId.value,
-        params.employeeId,
-        params.amount,
-        params.method,
-        params.notes,
-        params.date,
-        params.currency,
-        employeePaymentsRate.value,
-        branchId.value,
-      )
-    },
-    onSuccess: async () => {
-      await Promise.allSettled([
-        queryClient.invalidateQueries({ queryKey: ['employee-payments', businessId.value], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['employee-earnings', businessId.value], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['employee-history', businessId.value], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['financial-summary'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['finanzas-transactions'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['finanzas-employee-payments'], exact: false }),
-      ])
-      await queryClient.refetchQueries({ queryKey: ['employee-payments', businessId.value], exact: false })
-      success('Pago registrado correctamente')
-      closeModal()
-    },
-    onError: (err) => {
-      showError(translateError(err, 'Error al registrar el pago'))
-    },
+  const paymentsMade = computed(() =>
+    payments.value.filter(p => p.type === 'payment'),
+  )
+
+  // ── Commissions (Servicios Realizados) ──
+  const { data: commissionsData } = useQuery({
+    queryKey: computed(() => [
+      'employee-commissions', businessId.value, branchId.value,
+      periodDates.value.start, periodDates.value.end,
+    ]),
+    queryFn: () => getCommissions(
+      businessId.value!,
+      periodDates.value.start,
+      periodDates.value.end,
+      branchId.value,
+    ),
+    enabled: computed(() => !!businessId.value),
   })
 
-  const paymentError = ref('')
+  const commissions = computed(() => commissionsData.value ?? [])
 
+  const commissionsTotal = computed(() =>
+    commissions.value.reduce((s: number, c: any) => s + Number(c.employee_amount ?? 0) + Number(c.tip_amount ?? 0), 0),
+  )
+
+  // ── Employee Debt ──
+  const { data: debtData } = useQuery({
+    queryKey: computed(() => [
+      'employee-debt', businessId.value, branchId.value,
+      periodDates.value.start, periodDates.value.end,
+    ]),
+    queryFn: () => getEmployeeDebt(
+      businessId.value!,
+      periodDates.value.start,
+      periodDates.value.end,
+      branchId.value,
+    ),
+    enabled: computed(() => !!businessId.value),
+  })
+
+  const debt = computed(() => debtData.value ?? [])
+
+  const debtTotal = computed(() =>
+    debt.value.reduce((s: number, d: any) => s + Number(d.pending ?? 0), 0),
+  )
+
+  // ── Schedules ──
+  const { data: schedulesData } = useQuery({
+    queryKey: computed(() => ['employee-schedules', businessId.value]),
+    queryFn: () => listSchedules(businessId.value!),
+    enabled: computed(() => !!businessId.value),
+  })
+
+  const schedules = computed(() => (schedulesData.value ?? []).map((s: any) => ({
+    id: s.id,
+    employeeId: s.employee_id,
+    name: s.employee?.full_name ?? '—',
+    weekday: s.weekday,
+    start: s.start_time,
+    end: s.end_time,
+    available: true,
+    break: '—',
+  })))
+
+  // ── Payment form state ──
   const showPaymentModal = ref(false)
+  const showConsumptionModal = ref(false)
+  const editingPaymentId = ref<string | null>(null)
+  const isSaving = ref(false)
+  const saveError = ref('')
+
   const paymentForm = ref({
     employeeId: '',
     amount: 0,
-    method: 'cash',
-    date: localDateStr(),
-    notes: '',
     currency: 'USD' as 'USD' | 'VES',
+    originalAmount: 0,
+    paymentMethod: 'transfer',
+    paymentDate: new Date().toISOString().slice(0, 10),
+    notes: '',
+    startDate: '',
+    endDate: '',
   })
-  const employeeList = ref<EmployeeOption[]>([])
 
-  const loadEmployees = async () => {
-    if (!businessId.value) {
-      showError('No se pudo cargar la lista de empleados: no hay negocio activo')
-      return
-    }
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id, full_name, employee_schedules(branch_id)')
-      .eq('business_id', businessId.value)
-      .eq('role', 'empleado')
-      .eq('active', true)
-      .order('full_name')
-    if (error) {
-      console.error('[loadEmployees]', error)
-      showError('Error al cargar empleados')
-      return
-    }
-    let rows = (data ?? []) as any[]
-    if (branchId.value) {
-      rows = rows.filter((p: any) =>
-        p.employee_schedules?.some((s: any) => s.branch_id === branchId.value)
-      )
-    }
-    employeeList.value = rows.map((p: any) => ({
-      id: p.id, name: p.full_name,
-    }))
+  const consumptionForm = ref({
+    employeeId: '',
+    concept: '',
+    amount: 0,
+    currency: 'USD' as 'USD' | 'VES',
+    paymentDate: new Date().toISOString().slice(0, 10),
+    notes: '',
+  })
+
+  // Employee balance for selected employee + date range
+  const { data: selectedBalance, refetch: refetchBalance } = useQuery({
+    queryKey: computed(() => [
+      'employee-balance', paymentForm.value.employeeId,
+      paymentForm.value.startDate, paymentForm.value.endDate,
+    ]),
+    queryFn: () => getEmployeeBalance(
+      businessId.value!,
+      paymentForm.value.employeeId,
+      paymentForm.value.startDate || undefined,
+      paymentForm.value.endDate || undefined,
+    ),
+    enabled: computed(() => !!businessId.value && !!paymentForm.value.employeeId),
+  })
+
+  const employeeBalance = computed(() => selectedBalance.value ?? {
+    commission: 0, tips: 0, base_salary: 0, total_earned: 0,
+    total_paid: 0, total_consumed: 0, pending: 0,
+  })
+
+  // Get employee pay info
+  const getEmployeePayInfo = (employeeId: string): { payType: string; payPercentage: number } | null => {
+    // Look through debt data for this employee
+    const d = debt.value.find((d: any) => d.employee_id === employeeId)
+    if (d) return { payType: d.pay_type, payPercentage: Number(d.pay_percentage ?? 0) }
+    return null
   }
 
-  const openModal = async () => {
-    paymentForm.value = {
-      employeeId: '',
-      amount: 0,
-      method: 'cash',
-      date: localDateStr(),
-      notes: '',
-      currency: 'USD',
+  const onEmployeeChange = () => {
+    if (paymentForm.value.employeeId && paymentForm.value.startDate && paymentForm.value.endDate) {
+      refetchBalance()
     }
-    paymentError.value = ''
-    showPaymentModal.value = true
-    await loadEmployees()
   }
 
-  const closeModal = () => {
-    showPaymentModal.value = false
-  }
+  // ── Mutations ──
+  const savePaymentMutation = useMutation({
+    mutationFn: () => {
+      const rate = exchangeRate.value
+      const f = paymentForm.value
+      const payload: any = {
+        employee_id: f.employeeId,
+        amount: f.amount,
+        currency: f.currency,
+        payment_method: f.paymentMethod,
+        type: 'payment',
+        payment_date: f.paymentDate,
+        notes: f.notes || null,
+        branch_id: branchId.value,
+      }
+      if (f.currency === 'VES') {
+        payload.original_amount = f.amount
+        payload.exchange_rate_used = rate
+        payload.amount = f.amount / rate
+      }
+      return editingPaymentId.value
+        ? updateEmployeePayment(editingPaymentId.value, payload)
+        : createEmployeePayment(businessId.value!, payload)
+    },
+    onSuccess: async () => {
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: employeePaymentKeys.all(businessId.value) }),
+        queryClient.invalidateQueries({ queryKey: ['employee-debt'] }),
+        queryClient.invalidateQueries({ queryKey: ['employee-balance'] }),
+        queryClient.invalidateQueries({ queryKey: ['finanzas-summary'] }),
+      ])
+      success('Pago registrado')
+      closePaymentModal()
+    },
+    onError: (err) => showError(translateError(err, 'Error al guardar pago')),
+  })
 
-  const handleSave = async () => {
-    if (createMutation.isPending.value) return
-    if (!paymentForm.value.employeeId) {
-      paymentError.value = 'Selecciona un empleado'
-      return
-    }
-    if (paymentForm.value.amount <= 0) {
-      paymentError.value = 'El monto debe ser mayor a 0'
-      return
-    }
-    paymentError.value = ''
-    try {
-      await createMutation.mutateAsync(paymentForm.value)
-    } catch (err) {
-      paymentError.value = translateError(err, 'Error al registrar el pago')
-      throw err
-    }
-  }
+  const saveConsumptionMutation = useMutation({
+    mutationFn: () => {
+      const f = consumptionForm.value
+      return createEmployeeConsumption(businessId.value!, {
+        employee_id: f.employeeId,
+        amount: f.amount,
+        currency: f.currency,
+        concept: f.concept,
+        notes: f.notes || null,
+        payment_date: f.paymentDate,
+        branch_id: branchId.value,
+      })
+    },
+    onSuccess: async () => {
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: employeePaymentKeys.all(businessId.value) }),
+        queryClient.invalidateQueries({ queryKey: ['employee-debt'] }),
+        queryClient.invalidateQueries({ queryKey: ['employee-balance'] }),
+        queryClient.invalidateQueries({ queryKey: ['finanzas-summary'] }),
+      ])
+      success('Consumo registrado')
+      closeConsumptionModal()
+    },
+    onError: (err) => showError(translateError(err, 'Error al registrar consumo')),
+  })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteEmployeePayment(id),
     onSuccess: async () => {
       await Promise.allSettled([
-        queryClient.invalidateQueries({ queryKey: ['employee-payments', businessId.value], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['employee-earnings', businessId.value], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['employee-history', businessId.value], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['financial-summary'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['finanzas-transactions'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['finanzas-employee-payments'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: employeePaymentKeys.all(businessId.value) }),
+        queryClient.invalidateQueries({ queryKey: ['employee-debt'] }),
       ])
-      await queryClient.refetchQueries({ queryKey: ['employee-payments', businessId.value], exact: false })
-      success('Registro eliminado correctamente')
+      success('Eliminado')
     },
-    onError: (err) => {
-      showError(translateError(err, 'Error al eliminar el pago'))
-    },
+    onError: (err) => showError(translateError(err, 'Error al eliminar')),
   })
 
-  const handleDelete = (id: string) => {
-    const msg = '¿Eliminar este pago?\n\nEsta acción no se puede deshacer.'
-    if (window.confirm(msg)) {
-      deleteMutation.mutate(id)
-    }
+  // Payment totals
+  const totalPaid = computed(() => paymentsMade.value.reduce((s, p) => s + p.amount, 0))
+  const totalConsumed = computed(() =>
+    payments.value.filter(p => p.type === 'consumption').reduce((s, p) => s + p.amount, 0),
+  )
+  const totalNet = computed(() => totalPaid.value - totalConsumed.value)
+
+  // Modal helpers
+  const openPaymentModal = () => {
+    resetPaymentForm()
+    showPaymentModal.value = true
   }
-
-  // --- Consumption / Debit flow ---
-  const showConsumptionModal = ref(false)
-  const consumptionForm = ref({
-    employeeId: '',
-    amount: 0,
-    concept: '',
-    date: localDateStr(),
-    currency: 'USD' as 'USD' | 'VES',
-  })
-  const consumptionError = ref('')
-
-  const consumeMutation = useMutation({
-    mutationFn: (params: {
-      employeeId: string
-      amount: number
-      concept: string
-      date: string
-      currency: 'USD' | 'VES'
-    }) => {
-      if (!businessId.value) throw new Error('No hay negocio activo')
-      return createEmployeeConsumption(
-        businessId.value,
-        params.employeeId,
-        params.amount,
-        params.concept,
-        params.date,
-        params.currency,
-        employeePaymentsRate.value,
-        branchId.value,
-      )
-    },
-    onSuccess: async () => {
-      await Promise.allSettled([
-        queryClient.invalidateQueries({ queryKey: ['employee-payments', businessId.value], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['employee-earnings', businessId.value], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['employee-history', businessId.value], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['financial-summary'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['finanzas-transactions'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['finanzas-employee-payments'], exact: false }),
-      ])
-      await queryClient.refetchQueries({ queryKey: ['employee-payments', businessId.value], exact: false })
-      success('Consumo registrado correctamente')
-      closeConsumptionModal()
-    },
-    onError: (err) => {
-      showError(translateError(err, 'Error al registrar el consumo'))
-    },
-  })
-
-  const openConsumptionModal = async () => {
-    consumptionForm.value = {
+  const openEditPayment = (payment: any) => {
+    editingPaymentId.value = payment.id
+    paymentForm.value = {
+      employeeId: payment.employeeId,
+      amount: payment.currency === 'VES' ? payment.originalAmount : payment.amount,
+      currency: payment.currency ?? 'USD',
+      originalAmount: payment.originalAmount ?? 0,
+      paymentMethod: payment.paymentMethod,
+      paymentDate: payment.paymentDate ?? '',
+      notes: payment.notes ?? '',
+      startDate: '',
+      endDate: '',
+    }
+    saveError.value = ''
+    showPaymentModal.value = true
+  }
+  const closePaymentModal = () => {
+    showPaymentModal.value = false
+    editingPaymentId.value = null
+  }
+  const resetPaymentForm = () => {
+    paymentForm.value = {
       employeeId: '',
       amount: 0,
-      concept: '',
-      date: localDateStr(),
       currency: 'USD',
+      originalAmount: 0,
+      paymentMethod: 'transfer',
+      paymentDate: new Date().toISOString().slice(0, 10),
+      notes: '',
+      startDate: '',
+      endDate: '',
     }
-    consumptionError.value = ''
-    showConsumptionModal.value = true
-    await loadEmployees()
+    editingPaymentId.value = null
+    saveError.value = ''
   }
 
+  const openConsumptionModal = () => {
+    consumptionForm.value = {
+      employeeId: '',
+      concept: '',
+      amount: 0,
+      currency: 'USD',
+      paymentDate: new Date().toISOString().slice(0, 10),
+      notes: '',
+    }
+    saveError.value = ''
+    showConsumptionModal.value = true
+  }
   const closeConsumptionModal = () => {
     showConsumptionModal.value = false
   }
 
+  const handleSavePayment = async () => {
+    isSaving.value = true
+    saveError.value = ''
+    try {
+      await savePaymentMutation.mutateAsync()
+    } catch (err) {
+      saveError.value = translateError(err, 'Error')
+    } finally {
+      isSaving.value = false
+    }
+  }
+
   const handleSaveConsumption = async () => {
-    if (consumeMutation.isPending.value) return
-    if (!consumptionForm.value.employeeId) {
-      consumptionError.value = 'Selecciona un empleado'
-      return
-    }
-    if (consumptionForm.value.amount <= 0) {
-      consumptionError.value = 'El monto debe ser mayor a 0'
-      return
-    }
-    if (!consumptionForm.value.concept.trim()) {
-      consumptionError.value = 'Describe el consumo (servicio o producto)'
-      return
-    }
-    consumptionError.value = ''
+    isSaving.value = true
+    saveError.value = ''
     try {
-      await consumeMutation.mutateAsync(consumptionForm.value)
+      await saveConsumptionMutation.mutateAsync()
     } catch (err) {
-      consumptionError.value = translateError(err, 'Error al registrar el consumo')
-      throw err
+      saveError.value = translateError(err, 'Error')
+    } finally {
+      isSaving.value = false
     }
   }
 
-  const editingPaymentId = ref<string | null>(null)
-
-  const updateMutation = useMutation({
-    mutationFn: (params: {
-      id: string
-      amount: number
-      method: string
-      notes: string
-      date: string
-      currency: 'USD' | 'VES'
-    }) => {
-      return updateEmployeePayment(
-        params.id,
-        params.amount,
-        params.method,
-        params.notes,
-        params.date,
-        params.currency,
-        employeePaymentsRate.value,
-      )
-    },
-    onSuccess: async () => {
-      await Promise.allSettled([
-        queryClient.invalidateQueries({ queryKey: ['employee-payments', businessId.value], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['employee-earnings', businessId.value], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['employee-history', businessId.value], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['financial-summary'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['finanzas-transactions'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['finanzas-employee-payments'], exact: false }),
-      ])
-      await queryClient.refetchQueries({ queryKey: ['employee-payments', businessId.value], exact: false })
-      success('Registro actualizado correctamente')
-      closeModal()
-    },
-    onError: (err) => {
-      showError(translateError(err, 'Error al actualizar el pago'))
-    },
-  })
-
-  const openEditModal = (payment: {
-    id: string
-    amount: number
-    originalAmount: number
-    currency: 'USD' | 'VES'
-    paymentMethod: string
-    paymentDate: string
-    notes: string | null
-  }) => {
-    editingPaymentId.value = payment.id
-    paymentForm.value = {
-      employeeId: '',
-      amount: payment.currency === 'VES' ? payment.originalAmount : payment.amount,
-      method: payment.paymentMethod,
-      date: payment.paymentDate,
-      notes: payment.notes ?? '',
-      currency: payment.currency,
-    }
-    paymentError.value = ''
-    showPaymentModal.value = true
-  }
-
-  const handleUpdate = async () => {
-    if (updateMutation.isPending.value || !editingPaymentId.value) return
-    if (paymentForm.value.amount <= 0) {
-      paymentError.value = 'El monto debe ser mayor a 0'
-      return
-    }
-    paymentError.value = ''
-    try {
-      await updateMutation.mutateAsync({
-        id: editingPaymentId.value,
-        amount: paymentForm.value.amount,
-        method: paymentForm.value.method,
-        notes: paymentForm.value.notes,
-        date: paymentForm.value.date,
-        currency: paymentForm.value.currency,
-      })
-    } catch (err) {
-      paymentError.value = translateError(err, 'Error al actualizar el pago')
-      throw err
+  const handleDelete = (id: string) => {
+    if (window.confirm('¿Eliminar este registro?')) {
+      deleteMutation.mutate(id)
     }
   }
 
   return {
+    payments,
     paymentsMade,
-    isLoading,
-    createMutation,
-    updateMutation,
-    deleteMutation,
-    consumeMutation,
-    paymentError,
+    commissions,
+    commissionsTotal,
+    debt,
+    debtTotal,
+    schedules,
+    totalPaid,
+    totalConsumed,
+    totalNet,
+    isLoading: isPaymentsLoading,
+    // Payment modal
     showPaymentModal,
-    showConsumptionModal,
-    paymentForm,
-    consumptionForm,
-    employeeList,
     editingPaymentId,
-    consumptionError,
-    openModal,
-    openEditModal,
-    closeModal,
+    paymentForm,
+    showConsumptionModal,
+    consumptionForm,
+    isSaving,
+    saveError,
+    employeeBalance,
+    getEmployeePayInfo,
+    onEmployeeChange,
+    openPaymentModal,
+    openEditPayment,
+    closePaymentModal,
     openConsumptionModal,
     closeConsumptionModal,
-    handleSave,
-    handleUpdate,
+    handleSavePayment,
     handleSaveConsumption,
     handleDelete,
   }

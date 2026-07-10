@@ -307,6 +307,35 @@ function useFinancialSummary(
     return rows
   })
 
+  // ── Employee earnings by employee ──
+  const employeeEarningsByEmployee = computed(() => {
+    const map = new Map<string, { employeeId: string; employeeName: string; payType: string; payPercentage: number; baseSalary: number; commissionTotal: number; totalEarned: number }>()
+    for (const tx of (transactionsData.value ?? [])) {
+      if (!tx.employee_name) continue
+      const eid = (tx.is_direct_sale ? 'direct' : tx.appointment_id) ?? tx.employee_name
+      if (!map.has(tx.employee_name)) {
+        map.set(tx.employee_name, {
+          employeeId: eid,
+          employeeName: tx.employee_name,
+          payType: tx.employee_pay_type ?? 'percentage',
+          payPercentage: Number(tx.employee_pay_percentage ?? 0),
+          baseSalary: 0,
+          commissionTotal: 0,
+          totalEarned: 0,
+        })
+      }
+      const entry = map.get(tx.employee_name)!
+      const tip = Number(tx.tip_amount ?? 0)
+      const amt = Number(tx.total_amount ?? 0)
+      const serviceAmt = Math.max(0, amt - tip)
+      const pct = Number(tx.employee_percentage ?? tx.employee_pay_percentage ?? 0)
+      const earnings = serviceAmt * (pct / 100) + tip
+      entry.commissionTotal += earnings
+      entry.totalEarned += earnings
+    }
+    return [...map.values()]
+  })
+
   // ── Services revenue ──
   const servicesRevenue = computed<ServiceRevenue[]>(() => {
     const totals = new Map<string, number>()
@@ -487,6 +516,7 @@ function useFinancialSummary(
     servicesRevenue,
     chartData,
     employeePayments,
+    employeeEarningsByEmployee,
     appointmentIncomeDetails,
     productSalesTotal,
     vesProductSalesTotal,

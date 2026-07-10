@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\EntityChanged;
 use App\Services\EmployeeScheduleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,20 +13,19 @@ class EmployeeScheduleController
         private EmployeeScheduleService $scheduleService,
     ) {}
 
+    private function resolveBusinessId(Request $request): ?string
+    {
+        return $request->user()?->profile?->business_id;
+    }
+
     public function index(Request $request): JsonResponse
     {
-        if ($request->employee_id) {
-            return response()->json($this->scheduleService->list($request->employee_id));
-        }
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
 
-        $user = $request->user()?->load('profile');
-        $businessId = $user?->profile?->business_id;
-
-        if ($businessId) {
-            return response()->json($this->scheduleService->listByBusiness($businessId));
-        }
-
-        return response()->json([]);
+        return response()->json(
+            $this->scheduleService->list($businessId)
+        );
     }
 
     public function store(Request $request): JsonResponse
@@ -39,16 +39,17 @@ class EmployeeScheduleController
         ]);
 
         $schedule = $this->scheduleService->store($data);
+
         return response()->json($schedule, 201);
     }
 
     public function update(Request $request, string $id): JsonResponse
     {
         $data = $request->validate([
-            'branch_id' => 'nullable|uuid',
             'weekday' => 'sometimes|integer|min:0|max:6',
             'start_time' => 'sometimes|date_format:H:i',
             'end_time' => 'sometimes|date_format:H:i',
+            'branch_id' => 'nullable|uuid',
         ]);
 
         $schedule = $this->scheduleService->update($id, $data);

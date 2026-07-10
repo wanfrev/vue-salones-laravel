@@ -5,171 +5,203 @@ namespace App\Services;
 use App\Models\Profile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class EmployeeCommissionService
 {
-    public function getBreakdown(string $businessId, ?string $startDate = null, ?string $endDate = null, ?string $branchId = null): Collection
-    {
-        $startDate = $startDate ?? now()->startOfMonth()->toDateString();
-        $endDate = $endDate ?? now()->toDateString();
-
+    /**
+     * Service-level commission details for all employees in a period.
+     */
+    public function getCommissions(
+        string $businessId,
+        ?string $branchId = null,
+        ?string $startDate = null,
+        ?string $endDate = null,
+    ): Collection {
         $query = DB::table('transactions')
             ->join('appointments', 'transactions.appointment_id', '=', 'appointments.id')
-            ->join('profiles as emp', 'appointments.employee_id', '=', 'emp.id')
-            ->join('services', 'appointments.service_id', '=', 'services.id')
+            ->join('profiles', 'appointments.employee_id', '=', 'profiles.id')
+            ->leftJoin('services', 'appointments.service_id', '=', 'services.id')
             ->leftJoin('clients', 'appointments.client_id', '=', 'clients.id')
             ->where('transactions.business_id', $businessId)
-            ->whereBetween('transactions.created_at', [
-                $startDate . ' 00:00:00',
-                $endDate . ' 23:59:59',
-            ])
+            ->whereIn('appointments.status', ['confirmed', 'completed', 'pending'])
             ->select(
-                'transactions.id',
-                'transactions.total_amount as amount',
-                'transactions.employee_percentage as percentage',
-                'transactions.employee_amount as earnings',
-                'transactions.tip_amount as tip_amount',
-                'transactions.method',
-                'transactions.exchange_rate_used',
-                'transactions.payments_breakdown',
-                'transactions.paid_at as created_at',
-                'appointments.employee_id',
-                'appointments.assistant_employee_id',
-                'appointments.assistant_percentage',
-                'appointments.employee_percentage_override',
-                'appointments.group_id',
-                'emp.full_name as employee_name',
-                'emp.pay_type',
-                'emp.pay_percentage',
-                'emp.base_salary',
+                'profiles.full_name as employee_name',
+                'profiles.pay_type',
+                'profiles.pay_percentage',
+                'profiles.base_salary',
                 'services.name as service_name',
-                'services.id as service_id',
                 'clients.full_name as client_name',
-                'clients.id as client_id',
+                'transactions.total_amount',
+                'transactions.employee_amount',
+                'transactions.employee_percentage',
+                'transactions.tip_amount',
+                'transactions.exchange_rate_used',
+                'transactions.paid_at',
             )
-            ->orderByDesc('transactions.created_at');
+            ->orderByDesc('transactions.paid_at');
 
+        if ($startDate && $endDate) {
+            $query->whereBetween('transactions.paid_at', [$startDate, $endDate]);
+        }
         if ($branchId) {
-            $query->where('transactions.branch_id', $branchId);
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('transactions.branch_id')->orWhere('transactions.branch_id', $branchId);
+            });
         }
 
-        $rows = $query->get();
-
-        $assistantQuery = DB::table('transactions')
-            ->join('appointments', 'transactions.appointment_id', '=', 'appointments.id')
-            ->join('profiles as emp', 'appointments.assistant_employee_id', '=', 'emp.id')
-            ->join('services', 'appointments.service_id', '=', 'services.id')
-            ->leftJoin('clients', 'appointments.client_id', '=', 'clients.id')
-            ->where('transactions.business_id', $businessId)
-            ->whereNotNull('appointments.assistant_employee_id')
-            ->where('appointments.assistant_percentage', '>', 0)
-            ->whereBetween('transactions.created_at', [
-                $startDate . ' 00:00:00',
-                $endDate . ' 23:59:59',
-            ])
-            ->select(
-                'transactions.id',
-                'transactions.total_amount as amount',
-                'transactions.assistant_percentage as percentage',
-                'transactions.assistant_amount as earnings',
-                DB::raw('0 as tip_amount'),
-                'transactions.method',
-                'transactions.exchange_rate_used',
-                'transactions.payments_breakdown',
-                'transactions.paid_at as created_at',
-                'appointments.assistant_employee_id as employee_id',
-                DB::raw('null as assistant_employee_id'),
-                DB::raw('null as assistant_percentage'),
-                DB::raw('null as employee_percentage_override'),
-                'appointments.group_id',
-                'emp.full_name as employee_name',
-                'emp.pay_type',
-                'emp.pay_percentage',
-                'emp.base_salary',
-                'services.name as service_name',
-                'services.id as service_id',
-                'clients.full_name as client_name',
-                'clients.id as client_id',
-            )
-            ->orderByDesc('transactions.created_at');
-
-        if ($branchId) {
-            $assistantQuery->where('transactions.branch_id', $branchId);
-        }
-
-        $assistantRows = $assistantQuery->get();
-
-        return $rows->concat($assistantRows)->sortByDesc('created_at')->values();
+        return $query->get()->map(fn($row) => [
+            'employee_name' => $row->employee_name,
+            'pay_type' => $row->pay_type,
+            'pay_percentage' => (float) ($row->pay_percentage ?? 0),
+            'service_name' => $row->service_name ?? '—',
+            'client_name' => $row->client_name ?? '—',
+            'total_amount' => (float) $row->total_amount,
+            'employee_amount' => (float) $row->employee_amount,
+            'employee_percentage' => (float) ($row->employee_percentage ?? 0),
+            'tip_amount' => (float) ($row->tip_amount ?? 0),
+            'exchange_rate_used' => (float) ($row->exchange_rate_used ?? 1),
+            'paid_at' => $row->paid_at,
+        ]);
     }
 
-    public function getEmployeeBalance(string $employeeId, string $businessId, ?string $yearMonth = null, ?string $startDateOverride = null, ?string $endDateOverride = null): array
-    {
+    /**
+     * Per-employee debt summary.
+     * Returns: total owed, total paid, pending per employee.
+     */
+    public function getEmployeeDebt(
+        string $businessId,
+        ?string $branchId = null,
+        ?string $startDate = null,
+        ?string $endDate = null,
+    ): Collection {
+        // Total commission earned per employee
+        $earningsQuery = DB::table('transactions')
+            ->join('appointments', 'transactions.appointment_id', '=', 'appointments.id')
+            ->join('profiles', 'appointments.employee_id', '=', 'profiles.id')
+            ->where('transactions.business_id', $businessId)
+            ->whereIn('appointments.status', ['confirmed', 'completed', 'pending'])
+            ->select(
+                'profiles.id as employee_id',
+                'profiles.full_name as employee_name',
+                'profiles.pay_type',
+                'profiles.pay_percentage',
+                'profiles.base_salary',
+                DB::raw('COALESCE(SUM(transactions.employee_amount), 0) as commission'),
+                DB::raw('COALESCE(SUM(transactions.tip_amount), 0) as tips'),
+            )
+            ->groupBy('profiles.id', 'profiles.full_name', 'profiles.pay_type', 'profiles.pay_percentage', 'profiles.base_salary');
+
+        if ($startDate && $endDate) {
+            $earningsQuery->whereBetween('transactions.paid_at', [$startDate, $endDate]);
+        }
+        if ($branchId) {
+            $earningsQuery->where(function ($q) use ($branchId) {
+                $q->whereNull('transactions.branch_id')->orWhere('transactions.branch_id', $branchId);
+            });
+        }
+
+        $earnings = $earningsQuery->get()->keyBy('employee_id');
+
+        // Total paid per employee
+        $paidQuery = DB::table('employee_payments')
+            ->where('business_id', $businessId)
+            ->select(
+                'employee_id',
+                DB::raw("COALESCE(SUM(CASE WHEN type = 'payment' THEN amount ELSE 0 END), 0) as paid"),
+                DB::raw("COALESCE(SUM(CASE WHEN type = 'consumption' THEN amount ELSE 0 END), 0) as consumed"),
+            )
+            ->groupBy('employee_id');
+
+        if ($startDate && $endDate) {
+            $paidQuery->whereBetween('payment_date', [$startDate, $endDate]);
+        }
+        if ($branchId) {
+            $paidQuery->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
+
+        $paid = $paidQuery->get()->keyBy('employee_id');
+
+        return $earnings->map(function ($row) use ($paid) {
+            $p = $paid->get($row->employee_id);
+            $totalPaid = (float) ($p->paid ?? 0);
+            $totalConsumed = (float) ($p->consumed ?? 0);
+            $commission = (float) $row->commission;
+            $tips = (float) $row->tips;
+            $base = (float) ($row->base_salary ?? 0);
+            $totalEarned = $commission + $tips + $base;
+            $pending = $totalEarned - $totalPaid + $totalConsumed;
+
+            return [
+                'employee_id' => $row->employee_id,
+                'employee_name' => $row->employee_name,
+                'pay_type' => $row->pay_type,
+                'pay_percentage' => (float) ($row->pay_percentage ?? 0),
+                'base_salary' => (float) ($row->base_salary ?? 0),
+                'commission' => round($commission, 2),
+                'tips' => round($tips, 2),
+                'total' => round($totalEarned, 2),
+                'paid' => round($totalPaid, 2),
+                'consumed' => round($totalConsumed, 2),
+                'pending' => round($pending, 2),
+            ];
+        })->values();
+    }
+
+    /**
+     * Get employee balance for a specific employee + date range.
+     */
+    public function getEmployeeBalance(
+        string $businessId,
+        string $employeeId,
+        ?string $startDate = null,
+        ?string $endDate = null,
+    ): array {
+        // Earned
+        $earned = DB::table('transactions')
+            ->join('appointments', 'transactions.appointment_id', '=', 'appointments.id')
+            ->where('transactions.business_id', $businessId)
+            ->where('appointments.employee_id', $employeeId)
+            ->whereIn('appointments.status', ['confirmed', 'completed', 'pending'])
+            ->when($startDate && $endDate, fn($q) => $q->whereBetween('transactions.paid_at', [$startDate, $endDate]))
+            ->select(
+                DB::raw('COALESCE(SUM(transactions.employee_amount), 0) as commission'),
+                DB::raw('COALESCE(SUM(transactions.tip_amount), 0) as tips'),
+            )
+            ->first();
+
+        $commission = (float) ($earned->commission ?? 0);
+        $tips = (float) ($earned->tips ?? 0);
+
+        // Base salary
         $profile = Profile::find($employeeId);
-        if (!$profile || $profile->business_id !== $businessId) {
-            throw new NotFoundHttpException('Empleado no encontrado.');
-        }
+        $baseSalary = $profile ? (float) ($profile->base_salary ?? 0) : 0;
 
-        if ($startDateOverride && $endDateOverride) {
-            $startDate = $startDateOverride;
-            $endDate = $endDateOverride;
-        } else {
-            $yearMonth = $yearMonth ?? now()->format('Y-m');
-            $startDate = $yearMonth . '-01';
-            $endDate = (new \DateTime($startDate))->modify('last day of this month')->format('Y-m-d');
-        }
-
-        $totalEarned = DB::table('transactions')
-            ->join('appointments', 'transactions.appointment_id', '=', 'appointments.id')
-            ->where('appointments.employee_id', $employeeId)
-            ->where('transactions.business_id', $businessId)
-            ->whereBetween('transactions.paid_at', [$startDate, $endDate . ' 23:59:59'])
-            ->sum('transactions.employee_amount');
-
-        $assistantEarned = DB::table('transactions')
-            ->join('appointments', 'transactions.appointment_id', '=', 'appointments.id')
-            ->where('appointments.assistant_employee_id', $employeeId)
-            ->where('transactions.business_id', $businessId)
-            ->whereBetween('transactions.paid_at', [$startDate, $endDate . ' 23:59:59'])
-            ->sum('transactions.assistant_amount');
-
-        $tipsEarned = DB::table('transactions')
-            ->join('appointments', 'transactions.appointment_id', '=', 'appointments.id')
-            ->where('appointments.employee_id', $employeeId)
-            ->where('transactions.business_id', $businessId)
-            ->whereBetween('transactions.paid_at', [$startDate, $endDate . ' 23:59:59'])
-            ->sum('transactions.tip_amount');
-
-        $totalEarned = floatval($totalEarned) + floatval($assistantEarned) + floatval($tipsEarned);
-
-        $totalPaid = DB::table('employee_payments')
-            ->where('employee_id', $employeeId)
+        // Paid
+        $paid = DB::table('employee_payments')
             ->where('business_id', $businessId)
-            ->where('type', 'payment')
-            ->whereBetween('payment_date', [$startDate, $endDate])
-            ->sum('amount');
-
-        $totalConsumed = DB::table('employee_payments')
             ->where('employee_id', $employeeId)
-            ->where('business_id', $businessId)
-            ->where('type', 'consumption')
-            ->whereBetween('payment_date', [$startDate, $endDate])
-            ->sum('amount');
+            ->when($startDate && $endDate, fn($q) => $q->whereBetween('payment_date', [$startDate, $endDate]))
+            ->select(
+                DB::raw("COALESCE(SUM(CASE WHEN type = 'payment' THEN amount ELSE 0 END), 0) as paid"),
+                DB::raw("COALESCE(SUM(CASE WHEN type = 'consumption' THEN amount ELSE 0 END), 0) as consumed"),
+            )
+            ->first();
 
-        $baseSalary = floatval($profile->base_salary ?? 0);
-        $totalEarned += $baseSalary;
+        $totalPaid = (float) ($paid->paid ?? 0);
+        $totalConsumed = (float) ($paid->consumed ?? 0);
+        $totalEarned = $commission + $tips + $baseSalary;
+        $pending = $totalEarned - $totalPaid + $totalConsumed;
 
         return [
-            'employee_id' => $employeeId,
-            'employee_name' => $profile->full_name,
-            'pay_type' => $profile->pay_type,
-            'pay_percentage' => floatval($profile->pay_percentage ?? 0),
-            'base_salary' => $baseSalary,
+            'commission' => round($commission, 2),
+            'tips' => round($tips, 2),
+            'base_salary' => round($baseSalary, 2),
             'total_earned' => round($totalEarned, 2),
-            'total_paid' => round(floatval($totalPaid), 2),
-            'total_consumed' => round(floatval($totalConsumed), 2),
-            'pending_balance' => round($totalEarned - floatval($totalPaid) - floatval($totalConsumed), 2),
-            'year_month' => $yearMonth,
+            'total_paid' => round($totalPaid, 2),
+            'total_consumed' => round($totalConsumed, 2),
+            'pending' => round($pending, 2),
         ];
     }
 }
