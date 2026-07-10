@@ -115,8 +115,6 @@ services:
     build: *build-def
     restart: unless-stopped
     command: /app/docker-entrypoint-reverb.sh
-    ports:
-      - "8080:8080"
     environment:
       <<: *shared-env
       REVERB_APP_ID: ${REVERB_APP_ID:-salones}
