@@ -17,6 +17,7 @@ const emit = defineEmits<{
   'update:inlineProductSearch': [value: string]
   addProduct: [product: any]
   blur: []
+  focus: []
 }>()
 
 const normalize = (s: string): string =>
@@ -67,7 +68,7 @@ const inlineFilteredProducts = computed(() => {
         <input
           :value="inlineProductSearch"
           @input="$emit('update:inlineProductSearch', ($event.target as HTMLInputElement).value)"
-          @focus="showInlineDropdown = true"
+          @focus="$emit('focus')"
           @blur="$emit('blur')"
           type="text"
           placeholder="Agregar producto..."

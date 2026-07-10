@@ -47,7 +47,7 @@
         @update:search="appointmentSearch = $event"
         @update:inline-product-search="inlineProductSearch = $event"
         @add-product="addInlineProduct"
-        @blur="onInlineBlur"
+        @blur="onInlineBlur" @focus="showInlineDropdown = true"
       />
 
     <!-- RIGHT PANEL -->
