@@ -20,6 +20,7 @@ import {
 export type UnifiedTransaction = {
   id: string; date: string; description: string; method: string; amount: number
   type: 'ingreso' | 'nomina' | 'gasto'; exchangeRateUsed?: number; breakdownLabel?: string
+  source: 'appointment_payment' | 'product_sale' | 'employee_payment' | 'expense'; sourceLabel: string
   _currency?: 'USD' | 'VES'; _originalAmount?: number; notes?: string | null; tipAmount?: number
 }
 
@@ -216,7 +217,14 @@ function useFinancialSummary(
   })
   const productSalesDetails = computed(() => buildProductSalesDetails(rawInventoryMovements.value ?? [], appointmentPaymentMap.value))
 
-  const unifiedTransactions = computed(() => buildUnifiedTransactions(rawTransactions.value, rawEmployeePayments.value ?? [], rawExpenses.value ?? []))
+  const unifiedTransactions = computed(() =>
+    buildUnifiedTransactions(
+      rawTransactions.value,
+      rawEmployeePayments.value ?? [],
+      rawExpenses.value ?? [],
+      rawInventoryMovements.value ?? [],
+    )
+  )
   const transactions = computed(() => unifiedTransactions.value)
   const employeePayments = computed(() => buildEmployeePayments(rawTransactions.value))
   const employeeEarningsByEmployee = computed(() => buildEmployeeEarningsByEmployee(rawTransactions.value))

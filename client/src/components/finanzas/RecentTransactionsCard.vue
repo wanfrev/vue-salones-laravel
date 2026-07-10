@@ -45,6 +45,7 @@
               </svg>
               {{ tx.description }}
             </div>
+            <div class="mt-1 text-[11px] text-text-muted">{{ tx.sourceLabel }}</div>
           </div>
           <span :class="['rounded-full px-2.5 py-0.5 text-xs font-semibold shrink-0',
             tx.type === 'ingreso' ? 'bg-success/10 text-success' :
@@ -104,6 +105,7 @@
                 </svg>
                 {{ tx.description }}
               </div>
+              <div class="mt-1 text-[11px] text-text-muted">{{ tx.sourceLabel }}</div>
             </td>
             <td class="px-4 py-3.5">
               <span :class="['rounded-full px-2.5 py-0.5 text-xs font-semibold',

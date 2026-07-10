@@ -238,6 +238,7 @@ export function buildUnifiedTransactions(
   rawTransactions: DashboardTxRow[],
   rawEmployeePayments: any[],
   rawExpenses: any[],
+  rawInventoryMovements: any[] = [],
 ): UnifiedTransaction[] {
   const result: Array<UnifiedTransaction & { sortDate: string }> = [];
   const groupMap = new Map<
@@ -301,6 +302,8 @@ export function buildUnifiedTransactions(
         _originalAmount: vesAmount,
         notes: tx.notes ?? null,
         tipAmount: Number(tx.tip_amount ?? 0),
+        source: "appointment_payment",
+        sourceLabel: "Cobro cita",
         sortDate: tx.paid_at ?? tx.created_at,
       });
     }
@@ -328,7 +331,44 @@ export function buildUnifiedTransactions(
       _originalAmount: isVES ? group.totalVES : group.totalAmount,
       notes: firstTx.notes ?? null,
       tipAmount: group.totalTip,
+      source: "appointment_payment",
+      sourceLabel: "Cobro cita",
       sortDate: firstTx.paid_at ?? firstTx.created_at,
+    });
+  }
+
+  for (const movement of rawInventoryMovements ?? []) {
+    if ((movement as any).movement_type !== "sale") continue;
+
+    // Appointment-linked product sales are already reflected in transaction totals.
+    if ((movement as any).reference_type === "appointment" && (movement as any).reference_id) continue;
+
+    const quantity = Math.abs(Number((movement as any).quantity ?? 0));
+    const unitPrice = Number((movement as any).unit_cost ?? 0);
+    const amountUsd = quantity * unitPrice;
+    const rate = Number((movement as any).exchange_rate_used ?? 1);
+    const notes = String((movement as any).notes ?? "");
+    const vesMatch = notes.match(/^\s*\[VES:([0-9]+(?:\.[0-9]+)?)\]/i);
+    const isVes = !!vesMatch;
+    const parsedRate = vesMatch ? Number(vesMatch[1]) : rate;
+    const effectiveRate = parsedRate > 0 ? parsedRate : 1;
+    const client = (movement as any).clients?.full_name
+      ? ` · ${(movement as any).clients.full_name}`
+      : "";
+
+    result.push({
+      id: `product-${(movement as any).id}`,
+      date: formatDate((movement as any).created_at),
+      description: `Venta directa · ${(movement as any).products?.name ?? "Producto"}${client}`,
+      method: "Inventario",
+      amount: amountUsd,
+      type: "ingreso",
+      exchangeRateUsed: effectiveRate,
+      _currency: isVes ? "VES" : "USD",
+      _originalAmount: isVes ? amountUsd * effectiveRate : amountUsd,
+      source: "product_sale",
+      sourceLabel: "Venta producto",
+      sortDate: (movement as any).created_at,
     });
   }
 
@@ -343,6 +383,8 @@ export function buildUnifiedTransactions(
       method: formatMethod(ep.payment_method),
       amount: ep.amount,
       type: "nomina",
+      source: "employee_payment",
+      sourceLabel: "Nomina",
       sortDate: ep.payment_date,
       _currency: epCurrency,
       _originalAmount:
@@ -364,6 +406,8 @@ export function buildUnifiedTransactions(
       method: "—",
       amount: ex.amount,
       type: "gasto",
+      source: "expense",
+      sourceLabel: "Gasto",
       exchangeRateUsed:
         exCurrency === "VES"
           ? Number((ex as any).exchange_rate_used ?? 1)
