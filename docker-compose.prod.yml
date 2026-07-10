@@ -63,13 +63,6 @@ services:
   postgres:
     image: postgres:18-alpine
     restart: unless-stopped
-    command: >
-      -c shared_buffers=512MB
-      -c effective_cache_size=1536MB
-      -c maintenance_work_mem=128MB
-      -c wal_buffers=16MB
-      -c random_page_cost=1.1
-      -c effective_io_concurrency=200
     environment:
       POSTGRES_USER: ${DB_USERNAME:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
