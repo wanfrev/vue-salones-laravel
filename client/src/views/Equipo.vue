@@ -51,7 +51,7 @@
     :selected-month="selectedMonth" :selected-period="selectedPeriod"
     @update:selected-period="selectedPeriod = $event"
     @update:selected-month="selectedMonth = $event"
-    @reset-current-month="resetToCurrentMonth"
+    @reset-current-month="resetToCurrent"
     @open-payment="paymentsCtx.openModal()"
     @open-consumption="paymentsCtx.openConsumptionModal()"
     @open-edit-payment="(ep) => paymentsCtx.openEditModal(ep)"
@@ -110,7 +110,7 @@ const empleadoModalRef = ref<InstanceType<typeof EmpleadoFormModal> | null>(null
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 
-const { selectedPeriod, selectedMonth, resetToCurrentMonth } = usePeriodSelection()
+const { selectedPeriod, selectedMonth, resetToCurrent } = usePeriodSelection()
 const periodDates = computed(() => resolvePeriodDates(selectedPeriod.value, selectedMonth.value))
 const emptyExpenses = ref<{ date: string; amount: number }[]>([])
 const summaryCtx = useFinancialSummary(businessId, selectedPeriod, emptyExpenses, selectedMonth)
