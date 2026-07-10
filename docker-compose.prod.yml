@@ -70,11 +70,6 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backups:/backups
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_DATABASE:-salones}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -82,11 +77,6 @@ services:
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
       - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   app:
     build: *build-def
@@ -98,9 +88,9 @@ services:
       <<: *web-env
     depends_on:
       postgres:
-        condition: service_healthy
+        condition: service_started
       redis:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - app_storage:/app/storage
 
@@ -113,9 +103,9 @@ services:
       HORIZON_ENV: production
     depends_on:
       postgres:
-        condition: service_healthy
+        condition: service_started
       redis:
-        condition: service_healthy
+        condition: service_started
       app:
         condition: service_started
     volumes:
@@ -138,9 +128,9 @@ services:
       REVERB_ALLOWED_ORIGINS: https://${DOMAIN:-localhost}
     depends_on:
       postgres:
-        condition: service_healthy
+        condition: service_started
       redis:
-        condition: service_healthy
+        condition: service_started
       app:
         condition: service_started
 
@@ -152,7 +142,7 @@ services:
       <<: *shared-env
     depends_on:
       postgres:
-        condition: service_healthy
+        condition: service_started
       app:
         condition: service_started
 
