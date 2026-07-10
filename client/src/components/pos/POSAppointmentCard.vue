@@ -44,22 +44,23 @@ const inlineFilteredProducts = computed(() => {
           <p class="text-sm font-medium text-text truncate">{{ appt.client?.full_name || appt.clients?.full_name || 'Cliente' }}</p>
           <p class="text-xs text-text-muted truncate">{{ (appt.service?.name ?? appt.services?.name) || 'Servicio' }}<span v-if="appt.employeeName"> · {{ appt.employeeName }}</span></p>
         </div>
-        <div class="text-right shrink-0 ml-3">
-          <p class="text-sm font-bold text-text">${{ appt.groupPrice ?? appt.price_override ?? (appt.service?.price ?? appt.services?.price) ?? 0 }}</p>
-          <p class="text-xs text-text-muted">{{ formatTime(appt.start_time) }}</p>
+        <div class="flex items-center gap-2 shrink-0 ml-3">
+          <div class="text-right">
+            <p class="text-sm font-bold text-text">${{ appt.groupPrice ?? appt.price_override ?? (appt.service?.price ?? appt.services?.price) ?? 0 }}</p>
+            <p class="text-xs text-text-muted">{{ formatTime(appt.start_time) }}</p>
+          </div>
+          <button
+            type="button"
+            @click.stop="$emit('goToCalendar', appt)"
+            class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-text-muted hover:text-primary hover:bg-primary/5 transition-colors"
+            title="Ir a la cita en el calendario"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </button>
         </div>
       </div>
-    </button>
-    <button
-      type="button"
-      @click="$emit('goToCalendar', appt)"
-      class="flex items-center gap-1 w-full rounded-lg px-2.5 py-1 text-xs text-text-muted hover:text-primary hover:bg-primary/5 transition-colors"
-      title="Ir a la cita en el calendario"
-    >
-      <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-      </svg>
-      Ir a cita
     </button>
 
     <!-- Inline product search (shown when this appointment is selected) -->

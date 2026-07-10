@@ -53,6 +53,41 @@ class AppointmentController
         $appointment = $this->appointmentService->store($request->validated(), $businessId, $request->user()->id);
         $appointment->load(['client', 'service', 'employeeProfile', 'assistantProfile']);
         EntityChanged::safe($businessId, 'appointment', 'created', $appointment->id);
+
+        // Notify assigned employee
+        $notifService = app(\App\Services\NotificationService::class);
+        $clientName = $appointment->client?->full_name ?? 'Cliente';
+        $serviceName = $appointment->service?->name ?? 'Servicio';
+
+        $notifService->create([
+            'business_id' => $businessId,
+            'profile_id' => $appointment->employee_id,
+            'appointment_id' => $appointment->id,
+            'type' => 'new_appointment',
+            'title' => 'Nueva cita agendada',
+            'message' => "{$clientName} — {$serviceName}",
+            'client_name' => $clientName,
+            'service_name' => $serviceName,
+            'appointment_time' => $appointment->start_time,
+        ]);
+
+        // Notify assistant if assigned
+        if ($appointment->assistant_employee_id) {
+            $notifService->create([
+                'business_id' => $businessId,
+                'profile_id' => $appointment->assistant_employee_id,
+                'appointment_id' => $appointment->id,
+                'type' => 'new_appointment',
+                'title' => 'Nueva cita como asistente',
+                'message' => "{$clientName} — {$serviceName}",
+                'client_name' => $clientName,
+                'service_name' => $serviceName,
+                'appointment_time' => $appointment->start_time,
+            ]);
+        }
+
+        EntityChanged::safe($businessId, 'notification', 'created', $appointment->id);
+
         return response()->json($appointment, 201);
     }
 

@@ -1,4 +1,4 @@
-import { api as supabase, api as mutate } from '../lib/api'
+import { apiRequest } from '../lib/api'
 
 export type NotificationType = 'reminder' | 'status_change' | 'new_appointment' | 'unpaid_alert' | 'low_stock'
 
@@ -25,42 +25,18 @@ export const notificationKeys = {
   unread: (profileId?: string | null) => ['notifications', profileId, 'unread'] as const,
 }
 
-export const listUnreadNotifications = async (profileId: string): Promise<NotificationRecord[]> => {
-  const { data, error } = await supabase
-    .from('notifications')
-    .select('*')
-    .eq('profile_id', profileId)
-    .eq('is_read', false)
-    .order('created_at', { ascending: false })
-
-  if (error) throw error
-  return data as NotificationRecord[]
+export const listUnreadNotifications = async (): Promise<NotificationRecord[]> => {
+  return await apiRequest<NotificationRecord[]>('GET', '/notifications?unread_only=true')
 }
 
 export const markNotificationAsRead = async (id: string): Promise<void> => {
-  const { error } = await mutate
-    .from('notifications')
-    .update({ is_read: true, read_at: new Date().toISOString() })
-    .eq('id', id)
-
-  if (error) throw error
+  await apiRequest<void>('PATCH', `/notifications/${id}/read`)
 }
 
-export const markAllNotificationsAsRead = async (profileId: string): Promise<void> => {
-  const { error } = await mutate
-    .from('notifications')
-    .update({ is_read: true, read_at: new Date().toISOString() })
-    .eq('profile_id', profileId)
-    .eq('is_read', false)
-
-  if (error) throw error
+export const markAllNotificationsAsRead = async (): Promise<void> => {
+  await apiRequest<void>('PATCH', '/notifications/read-all')
 }
 
 export const dismissNotification = async (id: string): Promise<void> => {
-  const { error } = await mutate
-    .from('notifications')
-    .delete()
-    .eq('id', id)
-
-  if (error) throw error
+  await apiRequest<void>('DELETE', `/notifications/${id}`)
 }

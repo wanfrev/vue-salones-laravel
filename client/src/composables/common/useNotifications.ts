@@ -1,9 +1,9 @@
-import { computed, watchEffect } from 'vue'
+import { computed, watchEffect, watch } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useAuthStore } from '../../store/auth'
 import { useNotification } from '../common/useNotification'
 import { translateError } from '../../lib/errors'
-import { api as supabase } from '../../lib/api'
+import { echoClient } from '../../lib/echo'
 import router from '../../router'
 import {
   listUnreadNotifications,
@@ -15,17 +15,48 @@ import {
 import type { NotificationRecord } from '../../services/notificationService'
 import { sanitizePhone } from '../../lib/formatters'
 
+let permissionRequested = false
+
+function requestNotificationPermission() {
+  if (permissionRequested) return
+  permissionRequested = true
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission()
+  }
+}
+
+function showBrowserNotification(notification: NotificationRecord) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return
+  try {
+    const n = new Notification(notification.title, {
+      body: notification.message,
+      icon: '/favicon.ico',
+      tag: notification.id,
+      data: { id: notification.id, appointment_id: notification.appointment_id, type: notification.type },
+    })
+    n.onclick = () => {
+      window.focus()
+      if (notification.appointment_id) {
+        router.push({ path: '/admin', query: { appointment: notification.appointment_id } })
+      }
+      n.close()
+    }
+  } catch { /* browser might block */ }
+}
+
 export function useNotifications() {
   const authStore = useAuthStore()
   const queryClient = useQueryClient()
   const { error: showError } = useNotification()
 
   const profileId = computed(() => authStore.profile?.id ?? null)
+  const businessId = computed(() => authStore.businessId)
 
   const { data: unreadNotifications, isLoading } = useQuery({
     queryKey: computed(() => notificationKeys.unread(profileId.value)),
-    queryFn: () => listUnreadNotifications(profileId.value!),
+    queryFn: () => listUnreadNotifications(),
     enabled: computed(() => !!profileId.value),
+    refetchInterval: 30000,
   })
 
   const notifications = computed(() => unreadNotifications.value ?? [])
@@ -35,96 +66,56 @@ export function useNotifications() {
     queryClient.invalidateQueries({ exact: false, queryKey: ['notifications'] }).catch(() => {})
   }
 
-  // Real-time channel: listen for new notifications
+  // Real-time via Laravel Echo / Reverb
   watchEffect((onCleanup) => {
-    if (!profileId.value) return
+    if (!businessId.value) return
 
-    const channel = supabase
-      .channel(`notifications-${profileId.value}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `profile_id=eq.${profileId.value}`,
-        },
-        () => {
-          invalidate()
-        },
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `profile_id=eq.${profileId.value}`,
-        },
-        () => {
-          invalidate()
-        },
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'DELETE',
-          schema: 'public',
-          table: 'notifications',
-          filter: `profile_id=eq.${profileId.value}`,
-        },
-        () => {
-          invalidate()
-        },
-      )
-      .subscribe()
+    const channel = echoClient.private(`business.${businessId.value}`)
+
+    channel.listen('.entity.changed', (payload: any) => {
+      if (payload?.entity === 'notification') {
+        invalidate()
+      }
+    })
 
     onCleanup(() => {
-      supabase.removeChannel(channel)
+      echoClient.leave(`business.${businessId.value}`)
     })
   })
 
   const markAsReadMutation = useMutation({
     mutationFn: (id: string) => markNotificationAsRead(id),
-    onSuccess: async () => {
-      await invalidate()
-    },
-    onError: (err) => {
-      showError(translateError(err, 'Error al marcar notificación'))
-    },
+    onSuccess: async () => { await invalidate() },
+    onError: (err) => { showError(translateError(err, 'Error al marcar notificación')) },
   })
 
   const markAllAsReadMutation = useMutation({
-    mutationFn: () => markAllNotificationsAsRead(profileId.value!),
-    onSuccess: async () => {
-      await invalidate()
-    },
-    onError: (err) => {
-      showError(translateError(err, 'Error al marcar todas leídas'))
-    },
+    mutationFn: () => markAllNotificationsAsRead(),
+    onSuccess: async () => { await invalidate() },
+    onError: (err) => { showError(translateError(err, 'Error al marcar todas leídas')) },
   })
 
   const dismissMutation = useMutation({
     mutationFn: (id: string) => dismissNotification(id),
-    onSuccess: async () => {
-      await invalidate()
-    },
-    onError: (err) => {
-      showError(translateError(err, 'Error al eliminar notificación'))
-    },
+    onSuccess: async () => { await invalidate() },
+    onError: (err) => { showError(translateError(err, 'Error al eliminar notificación')) },
   })
 
-  const handleMarkAsRead = (id: string) => {
-    markAsReadMutation.mutate(id)
-  }
+  // Request browser notification permission on mount
+  requestNotificationPermission()
 
-  const handleMarkAllAsRead = () => {
-    markAllAsReadMutation.mutate()
-  }
+  // Show browser notification when new notifications arrive
+  watch(notifications, (current, previous) => {
+    if (!previous || previous.length === 0) return
+    const newNotifs = current.filter(n => !previous.find(p => p.id === n.id))
+    for (const n of newNotifs) {
+      showBrowserNotification(n)
+    }
+  })
 
-  const handleDismiss = (id: string) => {
-    dismissMutation.mutate(id)
-  }
+  const handleMarkAsRead = (id: string) => { markAsReadMutation.mutate(id) }
+  const handleMarkAllAsRead = () => { markAllAsReadMutation.mutate() }
+  const handleDismiss = (id: string) => { dismissMutation.mutate(id) }
 
   const handleSendWhatsApp = (notification: NotificationRecord) => {
     handleMarkAsRead(notification.id)
@@ -140,7 +131,7 @@ export function useNotifications() {
   }
 
   const handleNavigateToInventory = () => {
-    router.push('/inventario')
+    router.push('/admin/inventario')
   }
 
   return {

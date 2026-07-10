@@ -43,6 +43,11 @@
               <MessageCircle :size="14" />
               WhatsApp
             </button>
+            <button @click="handleNavigateToAppointment(notif)"
+              class="flex items-center gap-1 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20">
+              <Calendar :size="14" />
+              Ver cita
+            </button>
             <button @click="handleDismiss(notif.id)"
               class="rounded-lg px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text-secondary">
               Ignorar
