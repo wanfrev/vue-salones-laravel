@@ -126,7 +126,7 @@ export const useAuthStore = defineStore('auth', () => {
           businessStore.business = embeddedBusiness
         }
 
-        if (!embeddedProfile || !embeddedBusiness) {
+        if (!embeddedProfile) {
           try {
             await hydrateUserContext(user.value.id)
           } catch (err) {
@@ -137,6 +137,9 @@ export const useAuthStore = defineStore('auth', () => {
               console.warn('[auth.initialize] transient hydration error; keeping session', err)
             }
           }
+        } else if (!embeddedBusiness) {
+          const businessStore = useBusinessStore()
+          await businessStore.loadBusiness(embeddedProfile.business_id ?? null).catch(() => {})
         }
       }
 
@@ -158,7 +161,7 @@ export const useAuthStore = defineStore('auth', () => {
             businessStore.business = embeddedBusiness
           }
 
-          if (!embeddedProfile || !embeddedBusiness) {
+          if (!embeddedProfile) {
             try {
               await hydrateUserContext(user.value.id)
             } catch (err) {
@@ -169,6 +172,9 @@ export const useAuthStore = defineStore('auth', () => {
                 console.warn('[auth.onAuthStateChange] transient hydration error; preserving local context', err)
               }
             }
+          } else if (!embeddedBusiness) {
+            const businessStore = useBusinessStore()
+            await businessStore.loadBusiness(embeddedProfile.business_id ?? null).catch(() => {})
           }
         } else {
           profile.value = null
@@ -204,8 +210,11 @@ export const useAuthStore = defineStore('auth', () => {
         useBusinessStore().business = embeddedBusiness
       }
 
-      if (!embeddedProfile || !embeddedBusiness) {
+      if (!embeddedProfile) {
         await hydrateUserContext(user.value!.id)
+      } else if (!embeddedBusiness) {
+        const businessStore = useBusinessStore()
+        await businessStore.loadBusiness(embeddedProfile.business_id ?? null)
       }
     } catch (err) {
       clearAuthState()
