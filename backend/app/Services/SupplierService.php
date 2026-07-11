@@ -10,7 +10,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class SupplierService
 {
-    public function list(string $businessId, ?string $branchId = null): Collection
+    public function list(string $businessId, ?string $branchId = null, ?bool $active = null): Collection
     {
         $query = Supplier::query()
             ->where('business_id', $businessId)
@@ -20,6 +20,10 @@ class SupplierService
             $query->where(function ($q) use ($branchId) {
                 $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
             });
+        }
+
+        if ($active !== null) {
+            $query->where('active', $active);
         }
 
         return $query->get();

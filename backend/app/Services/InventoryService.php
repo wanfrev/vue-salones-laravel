@@ -12,7 +12,7 @@ use RuntimeException;
 
 class InventoryService
 {
-    public function locations(string $businessId, ?string $branchId = null): Collection
+    public function locations(string $businessId, ?string $branchId = null, ?bool $isDefault = null): Collection
     {
         $query = InventoryLocation::query()
             ->where('business_id', $businessId)
@@ -23,6 +23,10 @@ class InventoryService
             $query->where(function ($q) use ($branchId) {
                 $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
             });
+        }
+
+        if ($isDefault !== null) {
+            $query->where('is_default', $isDefault);
         }
 
         return $query->get();
@@ -70,7 +74,7 @@ class InventoryService
         $stock->delete();
     }
 
-    public function index(string $businessId, ?string $branchId = null): Collection
+    public function index(string $businessId, ?string $branchId = null, ?string $productId = null, ?string $locationId = null): Collection
     {
         $query = InventoryStock::with(['product', 'location'])
             ->where('business_id', $businessId);
@@ -79,6 +83,14 @@ class InventoryService
             $query->where(function ($q) use ($branchId) {
                 $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
             });
+        }
+
+        if ($productId) {
+            $query->where('product_id', $productId);
+        }
+
+        if ($locationId) {
+            $query->where('location_id', $locationId);
         }
 
         return $query->get()->map(function ($stock) {

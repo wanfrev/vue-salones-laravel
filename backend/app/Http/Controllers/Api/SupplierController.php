@@ -19,8 +19,13 @@ class SupplierController
         $p = $user?->profile;
         if (!$p || !$p->business_id) return response()->json([]);
 
+        $active = null;
+        if ($request->has('active')) {
+            $active = filter_var($request->input('active'), FILTER_VALIDATE_BOOL);
+        }
+
         return response()->json(
-            $this->supplierService->list($p->business_id, $request->branch_id)
+            $this->supplierService->list($p->business_id, $request->branch_id, $active)
         );
     }
 
@@ -44,7 +49,7 @@ class SupplierController
         ]);
 
         $supplier = $this->supplierService->store($data, $p->business_id);
-        EntityChanged::dispatch($p->business_id, 'supplier', 'created', $supplier->id);
+        EntityChanged::safe($p->business_id, 'supplier', 'created', $supplier->id);
         return response()->json($supplier, 201);
     }
 
@@ -67,7 +72,7 @@ class SupplierController
         ]);
 
         $supplier = $this->supplierService->update($id, $data, $p?->business_id);
-        EntityChanged::dispatch($p->business_id, 'supplier', 'updated', $id);
+        EntityChanged::safe($p->business_id, 'supplier', 'updated', $id);
         return response()->json($supplier);
     }
 
@@ -77,7 +82,7 @@ class SupplierController
         $p = $user?->profile;
 
         $this->supplierService->destroy($id, $p?->business_id);
-        EntityChanged::dispatch($p->business_id, 'supplier', 'deleted', $id);
+        EntityChanged::safe($p->business_id, 'supplier', 'deleted', $id);
         return response()->json(null, 204);
     }
 

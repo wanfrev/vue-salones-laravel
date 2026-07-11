@@ -28,8 +28,13 @@ class InventoryController
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId) return response()->json([]);
 
+        $isDefault = null;
+        if ($request->has('is_default')) {
+            $isDefault = filter_var($request->input('is_default'), FILTER_VALIDATE_BOOL);
+        }
+
         return response()->json(
-            $this->inventoryService->locations($businessId, $request->branch_id)
+            $this->inventoryService->locations($businessId, $request->branch_id, $isDefault)
         );
     }
 
@@ -128,7 +133,12 @@ class InventoryController
         if (!$businessId) return response()->json([]);
 
         return response()->json(
-            $this->inventoryService->index($businessId, $request->branch_id)
+            $this->inventoryService->index(
+                $businessId,
+                $request->branch_id,
+                $request->product_id,
+                $request->location_id
+            )
         );
     }
 
