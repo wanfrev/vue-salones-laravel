@@ -92,6 +92,13 @@ function sumVESBreakdown(breakdown: PaymentBreakdownItem[] | null | undefined): 
   return breakdown.filter(b => b.currency === 'VES').reduce((s, b) => s + Number(b.inputAmount ?? 0), 0)
 }
 
+function extractClientFromNotes(notes: string | null | undefined): string | null {
+  if (!notes) return null
+  const match = notes.match(/^Venta directa — (.+)$/)
+  if (match && match[1] && match[1] !== 'Mostrador') return match[1]
+  return null
+}
+
 function useFinancialSummary(
   businessId: import('vue').Ref<string | null>,
   selectedPeriod: import('vue').Ref<'month' | 'quarter' | 'year'>,
@@ -168,12 +175,15 @@ function useFinancialSummary(
       const tip = Number(tx.tip_amount ?? 0)
       const serviceAmt = Number(tx.total_amount ?? 0) - tip
 
+      const clientFromNotes = extractClientFromNotes(tx.notes)
+      const client = tx.client_name ?? clientFromNotes ?? 'Venta directa'
+
       return {
         id: tx.id,
         appointmentId: tx.appointment_id,
         groupId: tx.group_id ?? null,
         date: formatDate(tx.paid_at),
-        client: tx.client_name ?? 'Venta directa',
+        client,
         employee: tx.employee_name ?? '—',
         service: tx.service_name ?? 'Producto',
         method: breakdownLabel || formatMethod(method),
@@ -286,10 +296,11 @@ function useFinancialSummary(
       const tip = Number(tx.tip_amount ?? 0)
       const amt = Number(tx.total_amount ?? 0)
       const serviceAmt = amt - tip
+      const clientLabel = tx.client_name ?? extractClientFromNotes(tx.notes) ?? 'Venta directa'
       result.push({
         id: tx.id,
         date: formatDate(tx.paid_at),
-        description: `${tx.client_name ?? 'Venta directa'} · ${tx.service_name ?? '—'}`,
+        description: `${clientLabel} · ${tx.service_name ?? '—'}`,
         method: formatMethod(tx.method),
         amount: serviceAmt,
         type: 'ingreso',
