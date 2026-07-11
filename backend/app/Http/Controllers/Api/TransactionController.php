@@ -18,6 +18,22 @@ class TransactionController
         return $request->user()?->profile?->business_id;
     }
 
+    public function index(Request $request): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
+            return response()->json([]);
+        }
+
+        $query = \App\Models\Transaction::where('business_id', $businessId);
+
+        if ($request->has('appointment_id')) {
+            $query->where('appointment_id', $request->get('appointment_id'));
+        }
+
+        return response()->json($query->orderByDesc('paid_at')->get());
+    }
+
     public function update(Request $request, string $id): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);

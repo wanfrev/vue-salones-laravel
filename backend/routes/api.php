@@ -149,6 +149,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/finanzas/product-sales', [FinancialSummaryController::class, 'productSales']);
 
     // Transactions
+    Route::get('/transactions', [TransactionController::class, 'index']);
     Route::put('/transactions/{id}', [TransactionController::class, 'update']);
     Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
 
