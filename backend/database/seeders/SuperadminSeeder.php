@@ -12,31 +12,30 @@ class SuperadminSeeder extends Seeder
     {
         $userId = '00000000-0000-0000-0000-000000000001';
 
-        if (DB::table('users')->where('email', 'superadmin@luma.app')->exists()) {
-            $this->command->info('Superadmin ya existe, saltando...');
-            return;
+        if (!DB::table('users')->where('email', 'superadmin@luma.app')->exists()) {
+            DB::table('users')->insert([
+                'id' => $userId,
+                'name' => 'Superadmin Luma',
+                'email' => 'superadmin@luma.app',
+                'password' => bcrypt('password'),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
 
-        DB::table('users')->insert([
-            'id' => $userId,
-            'name' => 'Superadmin Luma',
-            'email' => 'superadmin@luma.app',
-            'password' => bcrypt('password'),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        if (!DB::table('profiles')->where('id', $userId)->exists()) {
+            DB::table('profiles')->insert([
+                'id' => $userId,
+                'business_id' => null,
+                'full_name' => 'Superadmin Luma',
+                'role' => 'superadmin',
+                'email' => 'superadmin@luma.app',
+                'active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
-        DB::table('profiles')->insert([
-            'id' => $userId,
-            'business_id' => null,
-            'full_name' => 'Superadmin Luma',
-            'role' => 'superadmin',
-            'email' => 'superadmin@luma.app',
-            'active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
-        $this->command->info('Superadmin creado: superadmin@luma.app / password');
+        $this->command->info('Superadmin listo: superadmin@luma.app / password');
     }
 }
