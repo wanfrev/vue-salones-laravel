@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Events\EntityChanged;
 use App\Http\Requests\StoreBranchRequest;
 use App\Http\Resources\BranchResource;
+use App\Models\Branch;
 use App\Services\BranchService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -40,6 +41,15 @@ class BranchController
         return response()->json(
             BranchResource::collection($this->branchService->list($businessId))
         );
+    }
+
+    public function show(string $id): JsonResponse
+    {
+        $branch = Branch::find($id);
+        if (!$branch) {
+            return response()->json(['error' => ['message' => 'Sucursal no encontrada.']], 404);
+        }
+        return response()->json(new BranchResource($branch));
     }
 
     public function store(StoreBranchRequest $request): JsonResponse
