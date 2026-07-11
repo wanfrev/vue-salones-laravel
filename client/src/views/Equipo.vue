@@ -136,6 +136,7 @@ const { items: team, handleSave: handleSaveEmpleado, handleDelete: handleDeleteE
     (id) => ['dashboard-services', id],
     (id) => ['dashboard-payments', id],
     (id) => ['dashboard-history', id],
+    (id) => ['employees', id, branchId.value],
   ],
 })
 

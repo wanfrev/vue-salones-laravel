@@ -343,6 +343,11 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
 
     isInitialSetup.value = true
 
+    if (primaryPrice === 0 && cita.serviceId) {
+      const svc = props.servicios?.find(s => s.id === cita.serviceId)
+      if (svc) primaryPrice = svc.price
+    }
+
     formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: phone, service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '' }
   } else {
     isInitialSetup.value = true
