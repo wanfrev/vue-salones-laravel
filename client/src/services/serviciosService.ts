@@ -161,17 +161,17 @@ export const renameBusinessCategory = async (
 export const deleteBusinessCategory = async (
   businessId: string,
   categoryToDelete: string,
-  replacementCategory: string
+  replacementCategory?: string
 ): Promise<string[]> => {
   const category = categoryToDelete.trim()
-  const replacement = replacementCategory.trim()
+  const replacement = (replacementCategory ?? '').trim()
 
-  if (!category || !replacement || category === replacement) {
+  if (!category || category === replacement) {
     return getBusinessServiceCategories(businessId)
   }
 
   await apiRequest('DELETE', '/services/categories', {
-    data: { categoryName: category, replacementCategory: replacement },
+    data: { categoryName: category, replacementCategory: replacement || null },
   })
 
   return getBusinessServiceCategories(businessId)

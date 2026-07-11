@@ -10,7 +10,7 @@ import type { Business } from '../../types/database'
 interface UseCategoryCRUDParams<T extends { category: string }> {
   businessId: Ref<string | null>
   services: Ref<T[]>
-  businessStore: { updateBusiness: (data: Partial<Business>) => void }
+  businessStore: { updateBusiness: (data: Partial<Business>) => void; serviceCategories: string[] }
   success: (msg: string) => void
   error: (msg: string) => void
   warning: (msg: string) => void
@@ -40,8 +40,11 @@ export function useCategoryCRUD<T extends { category: string }>(params: UseCateg
   const isDeleteCategoryOpen = ref(false)
 
   const categories = computed(() => {
-    const list = services.value.map(s => s.category).filter(Boolean)
-    const unique = Array.from(new Set(list))
+    const serviceCats = services.value.map(s => s.category).filter(Boolean)
+    const bizCats = (businessStore.serviceCategories ?? []).map(c =>
+      typeof c === 'string' ? c : (c as any)?.name ?? ''
+    ).filter(Boolean)
+    const unique = Array.from(new Set([...bizCats, ...serviceCats]))
     return [{ id: 'all', name: 'Todos' }, ...unique.map(cat => ({ id: cat, name: cat }))]
   })
 
@@ -55,7 +58,10 @@ export function useCategoryCRUD<T extends { category: string }>(params: UseCateg
   })
 
   async function invalidateCategoryQueries(bid: string) {
-    const promises = [queryClient.invalidateQueries({ exact: false, queryKey: serviciosKeys.all(bid) })]
+    const promises = [
+      queryClient.invalidateQueries({ exact: false, queryKey: serviciosKeys.all(bid) }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['business', bid] }),
+    ]
     if (extraInvalidations) {
       for (const keyFn of extraInvalidations) {
         promises.push(queryClient.invalidateQueries({ exact: false, queryKey: keyFn() as string[] }))
@@ -101,12 +107,7 @@ export function useCategoryCRUD<T extends { category: string }>(params: UseCateg
 
   function openDeleteCategoryModal(cat: string) {
     categoryToDelete.value = cat
-    const def = categories.value.find(item => item.id !== 'all' && item.id !== cat)?.id
-    replacementCategory.value = def ?? ''
-    if (!replacementCategory.value) {
-      showWarning('Debe existir al menos otra categoría para poder eliminarla')
-      return
-    }
+    replacementCategory.value = ''
     isDeleteCategoryOpen.value = true
   }
 
@@ -120,14 +121,14 @@ export function useCategoryCRUD<T extends { category: string }>(params: UseCateg
     const bid = businessId.value
     if (!bid) return
     const cat = categoryToDelete.value
-    const repl = replacementCategory.value
-    if (!cat || !repl) { closeDeleteCategoryModal(); return }
+    const repl = replacementCategory.value.trim() || undefined
+    if (!cat) { closeDeleteCategoryModal(); return }
     try {
       isUpdatingCategory.value = true
       const updated = await deleteBusinessCategory(bid, cat, repl)
       businessStore.updateBusiness({ service_categories: updated })
       await invalidateCategoryQueries(bid)
-      if (activeCategory.value === cat) activeCategory.value = repl
+      if (activeCategory.value === cat) activeCategory.value = 'all'
       closeDeleteCategoryModal()
       success('Categoría eliminada')
     } catch (err) {

@@ -106,7 +106,7 @@ class ServiceService
             ->update(['category' => $newName, 'updated_at' => now()]);
     }
 
-    public function deleteCategory(string $businessId, string $categoryName, string $replacementCategory = 'otros'): void
+    public function deleteCategory(string $businessId, string $categoryName, string $replacementCategory = ''): void
     {
         $business = Business::find($businessId);
         if (!$business) {
@@ -123,9 +123,15 @@ class ServiceService
             'updated_at' => now(),
         ]);
 
-        Service::where('business_id', $businessId)
-            ->where('category', $categoryName)
-            ->update(['category' => $replacementCategory, 'updated_at' => now()]);
+        if ($replacementCategory !== '') {
+            Service::where('business_id', $businessId)
+                ->where('category', $categoryName)
+                ->update(['category' => $replacementCategory, 'updated_at' => now()]);
+        } else {
+            Service::where('business_id', $businessId)
+                ->where('category', $categoryName)
+                ->update(['category' => '', 'updated_at' => now()]);
+        }
     }
 
     public function findForBusiness(string $id, string $businessId): Service

@@ -130,7 +130,7 @@ class ServiceController
         $this->serviceService->deleteCategory(
             $businessId,
             $data['categoryName'],
-            $data['replacementCategory'] ?? 'otros'
+            $data['replacementCategory'] ?? ''
         );
         return response()->json(['success' => true]);
     }

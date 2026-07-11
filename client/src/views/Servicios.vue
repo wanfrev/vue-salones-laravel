@@ -35,8 +35,21 @@
                 <span class="truncate font-medium text-text">{{ cat.name }}</span>
                 <span class="flex items-center gap-1 shrink-0 ml-2">
                   <span class="rounded px-1.5 py-0.5 text-[10px] font-semibold text-primary bg-primary/10 cursor-pointer hover:bg-primary/20" @click.stop="openRenameCategoryModal(cat.id); showCatMenu = false">Editar</span>
-                  <span v-if="categories.length > 2" class="rounded px-1.5 py-0.5 text-[10px] font-semibold text-danger bg-danger/10 cursor-pointer hover:bg-danger/20" @click.stop="openDeleteCategoryModal(cat.id); showCatMenu = false">Eliminar</span>
+                  <span class="rounded px-1.5 py-0.5 text-[10px] font-semibold text-danger bg-danger/10 cursor-pointer hover:bg-danger/20" @click.stop="openDeleteCategoryModal(cat.id); showCatMenu = false">Eliminar</span>
                 </span>
+              </button>
+              <div v-if="addingCategory" class="flex items-center gap-1.5 px-3 py-2 border-t border-border-subtle">
+                <input v-model="newCatName" type="text" placeholder="Nombre de categoría..."
+                  class="flex-1 rounded border border-border bg-bg px-2 py-1 text-sm text-text outline-none focus:border-primary"
+                  @keyup.enter="addCategory" />
+                <button @click="addCategory" class="rounded bg-primary px-2 py-1 text-xs font-semibold text-white">Agregar</button>
+                <button @click="addingCategory = false; newCatName = ''" class="rounded px-1.5 py-1 text-xs text-text-muted hover:text-text">✕</button>
+              </div>
+              <button v-else
+                @click="addingCategory = true"
+                class="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-primary font-medium transition-colors hover:bg-primary/5 border-t border-border-subtle">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                Agregar categoría
               </button>
             </div>
           </div>
@@ -191,7 +204,7 @@
   <ModalBase
     :is-open="isDeleteCategoryOpen"
     title="Eliminar categoría"
-    subtitle="Sus servicios se moverán a otra categoría"
+    subtitle="Los servicios quedarán sin categoría o se moverán a otra"
     icon="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
     variant="danger"
     size="sm"
@@ -204,13 +217,15 @@
   >
     <p class="mb-3 text-sm text-text-secondary">
       La categoría <strong>{{ categoryToDelete }}</strong> será eliminada.
+      Los servicios se mostrarán en <strong>Todos</strong>.
     </p>
-    <label class="mb-2 block text-sm font-medium text-text" for="replacement-category">Mover servicios a</label>
+    <label class="mb-2 block text-sm font-medium text-text" for="replacement-category">Mover a otra categoría (opcional)</label>
     <select
       id="replacement-category"
       v-model="replacementCategory"
       class="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary"
     >
+      <option value="">Sin categoría</option>
       <option
         v-for="cat in deleteCategoryOptions"
         :key="cat.id"
@@ -223,6 +238,7 @@
 </template>
 
 <script setup lang="ts">
+import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { ref, computed } from 'vue'
 import { useCrud } from '../composables/empleados/useCrud'
 import { useAuth } from '../composables/common/useAuth'
@@ -234,10 +250,12 @@ import { ServicioFormModal } from '../components/modals'
 import { ModalBase, StatCard, EmptyState } from '../components/common'
 import ServiceCard from '../components/servicios/ServiceCard.vue'
 import { deleteServicio, listServicios, saveServicio, serviciosKeys } from '../services/serviciosService'
+import { addBusinessCategory } from '../services/equipoService'
 import type { Servicio, ServicioFormData } from '../types/servicio'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
+const queryClient = useQueryClient()
 const { formatVESInline, formatUSD } = useCurrency()
 const { success, error: showError, warning } = useNotification()
 
@@ -245,6 +263,8 @@ const servicioModalRef = ref<InstanceType<typeof ServicioFormModal> | null>(null
 const isDeleteModalOpen = ref(false)
 const servicioToDelete = ref<Servicio | null>(null)
 const showCatMenu = ref(false)
+const addingCategory = ref(false)
+const newCatName = ref('')
 const searchQuery = ref('')
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
@@ -294,6 +314,23 @@ const {
   error: showError,
   warning,
 })
+
+const addCategory = async () => {
+  const name = newCatName.value.trim()
+  if (!name || !businessId.value) return
+  const exists = categories.value.some(c => c.name.toLowerCase() === name.toLowerCase())
+  if (exists) { showError('Esa categoría ya existe'); return }
+  try {
+    await addBusinessCategory(businessId.value, name)
+    newCatName.value = ''
+    addingCategory.value = false
+    success('Categoría agregada')
+    queryClient.invalidateQueries({ queryKey: ['business', businessId.value] }).catch(() => {})
+    queryClient.invalidateQueries({ queryKey: serviciosKeys.all(businessId.value) }).catch(() => {})
+  } catch (err) {
+    showError('Error al agregar categoría')
+  }
+}
 
 const filteredServices = computed(() => {
   let result = filteredByCategory.value
