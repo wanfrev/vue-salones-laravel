@@ -34,11 +34,7 @@ const onEmployeeChange = async () => {
 }
 
 const handleSubmitPayment = async () => {
-  if (props.paymentsCtx.editingPaymentId.value) {
-    try { await props.paymentsCtx.handleUpdate(); emit('close'); emit('payment-saved') } catch { }
-  } else {
-    try { await props.paymentsCtx.handleSave(); emit('close'); emit('payment-saved') } catch { }
-  }
+  try { await props.paymentsCtx.handleSavePayment(); emit('close'); emit('payment-saved') } catch { }
 }
 </script>
 
@@ -109,7 +105,7 @@ const handleSubmitPayment = async () => {
                 <option value="VES">Bs</option>
               </select></div>
             <div><label class="mb-1 block text-sm font-medium text-text">Método</label><select
-                v-model="paymentsCtx.paymentForm.value.method"
+                v-model="paymentsCtx.paymentForm.value.paymentMethod"
                 class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30">
                 <option value="cash">Efectivo</option>
                 <option value="card">Tarjeta</option>
@@ -119,7 +115,7 @@ const handleSubmitPayment = async () => {
               </select></div>
           </div>
           <div><label class="mb-1 block text-sm font-medium text-text">Fecha</label><input
-              v-model="paymentsCtx.paymentForm.value.date" type="date"
+              v-model="paymentsCtx.paymentForm.value.paymentDate" type="date"
               class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
               required /></div>
           <div><label class="mb-1 block text-sm font-medium text-text">Notas</label><input

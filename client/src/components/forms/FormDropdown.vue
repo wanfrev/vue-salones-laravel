@@ -26,7 +26,7 @@
       </button>
 
       <Transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
-        <div v-if="isOpen" class="absolute left-0 top-full z-50 mt-1.5 w-full min-w-[180px] rounded-xl border border-border bg-surface p-1.5 shadow-xl max-h-64 overflow-hidden flex flex-col">
+        <div v-if="isOpen" class="absolute left-0 top-full z-50 mt-1.5 w-auto min-w-[260px] max-w-[400px] rounded-xl border border-border bg-surface p-1.5 shadow-xl max-h-64 overflow-hidden flex flex-col">
           <div v-if="searchable && options.length > 3" class="px-2 py-1.5 mb-1">
             <input v-model="searchQuery" type="text" placeholder="Buscar..."
               class="w-full rounded-lg border border-border bg-bg px-3 py-1.5 text-sm text-text outline-none placeholder:text-text-muted focus:border-primary focus:ring-1 focus:ring-primary/20"
@@ -48,8 +48,8 @@
                 :class="modelValue === option.value ? 'bg-primary/20 text-primary' : 'bg-bg-secondary text-text-secondary'">
                 <span class="text-[10px] font-bold">{{ option.icon }}</span>
               </div>
-              <span class="truncate flex-1 text-left">{{ option.label }}</span>
-              <span v-if="option.sublabel" class="text-[11px] text-text-muted truncate">{{ option.sublabel }}</span>
+              <span class="flex-1 text-left whitespace-normal break-words">{{ option.label }}</span>
+              <span v-if="option.sublabel" class="text-[11px] text-text-muted whitespace-nowrap shrink-0 ml-1">{{ option.sublabel }}</span>
               <svg v-if="modelValue === option.value" class="h-4 w-4 flex-shrink-0 text-primary ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
               </svg>

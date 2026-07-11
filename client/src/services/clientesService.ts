@@ -1,4 +1,4 @@
-import { api as supabase, api as mutate } from '../lib/api'
+import { api as supabase, api as mutate, apiRequest } from '../lib/api'
 import { clienteFormSchema } from '../lib/validation'
 import { computeClientStats } from '../business/clientStats'
 import { mapClienteFormToClientInsert, mapClientToCliente } from '../mappers/clientesMapper'
@@ -143,22 +143,11 @@ export const findOrCreateClientByPhone = async (
   input: { fullName: string; phone: string; email?: string | null; notes?: string | null },
   branchId?: string | null
 ): Promise<Client> => {
-  const { data, error } = await mutate
-    .from('clients')
-    .upsert(
-      {
-        business_id: businessId,
-        branch_id: branchId ?? null,
-        full_name: input.fullName.trim(),
-        phone: input.phone.trim(),
-        email: input.email?.trim() || null,
-        notes: input.notes?.trim() || null,
-      },
-      { onConflict: 'business_id,phone' }
-    )
-    .select('*')
-    .single()
-
-  if (error) throw error
-  return data as Client
+  return apiRequest<Client>('POST', '/clients/find-or-create-by-phone', {
+    full_name: input.fullName.trim(),
+    phone: input.phone.trim(),
+    email: input.email?.trim() || null,
+    branch_id: branchId ?? null,
+    notes: input.notes?.trim() || null,
+  })
 }

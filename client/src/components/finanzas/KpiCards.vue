@@ -20,6 +20,7 @@
           <p class="text-[10px] font-medium uppercase tracking-wider text-text-secondary sm:text-xs">Ingresos</p>
           <p class="text-lg font-bold leading-tight text-text tabular-nums sm:text-2xl lg:text-xl xl:text-2xl">{{
             formatUSD(incomeTotal) }}</p>
+          <p v-if="tipsTotal > 0" class="mt-0.5 text-[10px] font-semibold text-primary sm:text-xs">+{{ formatUSD(tipsTotal) }} propinas</p>
           <p v-if="isLoading" class="h-3 w-24 mx-auto mt-1 rounded bg-bg-secondary animate-pulse sm:h-4 sm:w-32" />
           <p v-else class="text-[10px] text-text-muted tabular-nums font-medium truncate">{{ formatVESEs(vesIncomeTotal) }}</p>
         </div>
@@ -104,6 +105,7 @@ import { useCurrency } from '../../composables/common/useCurrency'
 defineProps<{
   incomeTotal: number
   vesIncomeTotal: number
+  tipsTotal?: number
   expenseTotal: number
   netTotal: number
   margin: number

@@ -6,6 +6,10 @@ import RecordSection from '../finanzas/RecordSection.vue'
 
 const { formatEmployeeVESInline } = useCurrency()
 
+const fmtDate = (d: string) => {
+  try { const dt = new Date(d); return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}` } catch { return d }
+}
+
 const props = defineProps<{
   summaryCtx: any
   paymentsCtx: any
@@ -241,7 +245,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
           </template>
           <template #desktop-tbody="{ items }">
             <tr v-for="ep in items" :key="ep.id" class="text-xs transition-theme hover:bg-bg-secondary/40">
-              <td class="px-3 py-3 whitespace-nowrap text-text-secondary">{{ ep.paymentDate }}</td>
+              <td class="px-3 py-3 whitespace-nowrap text-text-secondary">{{ fmtDate(ep.paymentDate) }}</td>
               <td class="px-3 py-3 font-medium text-text">{{ ep.employeeName }}</td>
               <td class="px-3 py-3 text-text-secondary hidden sm:table-cell">
                 <span v-if="ep.type === 'consumption'"
@@ -279,7 +283,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
             <div v-for="ep in items" :key="ep.id"
               class="rounded-lg border border-border-subtle bg-bg-secondary/30 p-3 space-y-2 text-sm">
               <div class="flex items-center justify-between"><span class="font-medium text-text">{{ ep.employeeName
-                  }}</span><span class="text-xs text-text-muted">{{ ep.paymentDate }}</span></div>
+                  }}</span><span class="text-xs text-text-muted">{{ fmtDate(ep.paymentDate) }}</span></div>
               <div class="flex items-center justify-between text-xs"><span class="text-text-muted">{{ ep.type ===
                 'consumption' ? (ep.concept || 'Consumo') : formatMethod(ep.paymentMethod) }}</span><span
                   class="text-right"><span class="font-semibold text-danger">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</span><span class="text-text-muted ml-1">{{ ep.currency === 'VES' ? formatUSD(ep.amount) : formatVESInline(ep.amount, ep.exchangeRateUsed) + ' Bs' }}</span></span></div>

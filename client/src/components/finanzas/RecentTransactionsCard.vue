@@ -67,6 +67,10 @@
               {{ tx._currency === 'VES' ? formatUSD(tx.amount) : formatVESInline(tx.amount, tx.exchangeRateUsed) + ' Bs'
               }}
             </div>
+            <span v-if="tx.type === 'ingreso' && (tx.tipAmount ?? 0) > 0"
+              class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary mt-1">
+              +${{ (tx.tipAmount ?? 0).toFixed(2) }} propina
+            </span>
           </div>
         </div>
       </div>
@@ -130,6 +134,10 @@
               <div class="text-xs text-text-muted tabular-nums whitespace-nowrap">
                 {{ tx._currency === 'VES' ? formatUSD(tx.amount) : formatVESInline(tx.amount, tx.exchangeRateUsed) + ' Bs' }}
               </div>
+              <span v-if="tx.type === 'ingreso' && (tx.tipAmount ?? 0) > 0"
+                class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary mt-1">
+                +${{ (tx.tipAmount ?? 0).toFixed(2) }} propina
+              </span>
             </td>
           </tr>
         </tbody>

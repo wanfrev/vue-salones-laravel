@@ -16,6 +16,7 @@ class AppointmentService
         ?string $employeeId = null,
         ?string $branchId = null,
         string|array|null $status = null,
+        ?string $groupId = null,
     ): Collection {
         $query = Appointment::with(['client', 'service', 'employeeProfile', 'assistantProfile'])
             ->where('business_id', $businessId)
@@ -35,6 +36,7 @@ class AppointmentService
             });
         }
         if ($status) $query->whereIn('status', (array) $status);
+        if ($groupId) $query->where('group_id', $groupId);
 
         return $query->get();
     }

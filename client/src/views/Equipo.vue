@@ -52,7 +52,7 @@
     @update:selected-period="selectedPeriod = $event"
     @update:selected-month="selectedMonth = $event"
     @reset-current-month="resetToCurrent"
-    @open-payment="paymentsCtx.openModal()"
+    @open-payment="paymentsCtx.openPaymentModal()"
     @open-consumption="paymentsCtx.openConsumptionModal()"
     @open-edit-payment="(ep) => paymentsCtx.openEditModal(ep)"
     @delete-payment="(id) => paymentsCtx.handleDelete(id)"

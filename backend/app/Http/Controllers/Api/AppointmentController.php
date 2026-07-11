@@ -33,6 +33,7 @@ class AppointmentController
                 $request->employee_id,
                 $request->branch_id,
                 $request->status,
+                $request->group_id,
             )
         );
     }

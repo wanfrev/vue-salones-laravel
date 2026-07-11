@@ -120,5 +120,9 @@ export function translateError(err: unknown, fallback?: string): string {
     }
     return msg || fallback || 'Error inesperado al procesar la solicitud.'
   }
+  if (err && typeof err === 'object' && 'message' in err) {
+    const msg = (err as Record<string, unknown>).message
+    if (typeof msg === 'string' && msg.trim()) return msg.trim()
+  }
   return fallback || 'Error inesperado al procesar la solicitud.'
 }

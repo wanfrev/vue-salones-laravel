@@ -130,6 +130,7 @@ function useFinancialSummary(
 
   const incomeTotal = computed(() => kpis.value.total_income ?? 0)
   const localIncomeTotal = computed(() => kpis.value.local_income ?? 0)
+  const tipsTotal = computed(() => kpis.value.tips ?? 0)
   const employeePaymentsTotal = computed(() => kpis.value.total_employee_payments ?? 0)
   const vesIncomeTotal = computed(() => incomeTotal.value * exchangeRate.value)
 
@@ -511,6 +512,7 @@ function useFinancialSummary(
     transactionsAll: appointmentIncomeDetails,
     incomeTotal,
     localIncomeTotal,
+    tipsTotal,
     employeePaymentsTotal,
     vesIncomeTotal,
     servicesRevenue,

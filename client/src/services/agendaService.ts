@@ -99,7 +99,7 @@ async function resolveSaveDeps(
   }
 
   const { data: service, error: serviceError } = await svcQuery.single()
-  if (serviceError) throw serviceError
+  if (serviceError) throw new Error(serviceError.message || 'Servicio no encontrado')
 
   let clientId: string
   if (data.clientId) {

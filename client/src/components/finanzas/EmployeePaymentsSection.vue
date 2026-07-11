@@ -98,7 +98,7 @@
           class="rounded-lg border border-border-subtle bg-bg-secondary p-3">
           <div class="flex items-start justify-between mb-1">
             <div>
-              <div class="text-xs text-text-muted">{{ ep.paymentDate }}</div>
+              <div class="text-xs text-text-muted">{{ fmtDate(ep.paymentDate) }}</div>
               <div class="font-medium text-text text-sm">{{ ep.employeeName }}</div>
             </div>
             <div class="flex items-center gap-1 shrink-0">
@@ -149,7 +149,7 @@
           <tbody class="divide-y divide-border-subtle">
             <tr v-for="ep in visiblePaymentsMade" :key="ep.id"
               class="text-sm transition-theme hover:bg-bg-secondary/50">
-              <td class="py-2 text-text-secondary whitespace-nowrap">{{ ep.paymentDate }}</td>
+              <td class="py-2 text-text-secondary whitespace-nowrap">{{ fmtDate(ep.paymentDate) }}</td>
               <td class="py-2 font-medium text-text">{{ ep.employeeName }}</td>
               <td class="py-2 text-text-secondary">
                 <div class="flex items-center gap-1.5">
@@ -333,7 +333,7 @@
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-text">Método</label>
-              <select v-model="paymentsCtx.paymentForm.value.method"
+              <select v-model="paymentsCtx.paymentForm.value.paymentMethod"
                 class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30">
                 <option value="cash">Efectivo</option>
                 <option value="card">Tarjeta</option>
@@ -345,7 +345,7 @@
           </div>
           <div>
             <label class="mb-1 block text-sm font-medium text-text">Fecha</label>
-            <input v-model="paymentsCtx.paymentForm.value.date" type="date"
+            <input v-model="paymentsCtx.paymentForm.value.paymentDate" type="date"
               class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
               required />
           </div>
@@ -447,6 +447,10 @@ import { useEmployeePayments } from '../../composables/empleados/useEmployeePaym
 import { getEmployeeBalance, type EmployeeBalance, type EmployeePaymentRecord } from '../../services/employeePaymentsService'
 import type { EmployeeEarningSummary } from '../../composables/finanzas/useFinancialSummary'
 
+const fmtDate = (d: string) => {
+  try { const dt = new Date(d); return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}` } catch { return d }
+}
+
 interface PaymentRow {
   id: string; employee: string; service: string; amount: number; percentage: number; earnings: number; tipAmount: number
 }
@@ -514,7 +518,7 @@ function payTypeLabel(): string {
 }
 
 const openPaymentModal = () => {
-  paymentsCtx.openModal()
+  paymentsCtx.openPaymentModal()
   selectedBalance.value = null
   const now = new Date()
   earningsStartDate.value = toYmd(new Date(now.getFullYear(), now.getMonth(), 1))
@@ -545,7 +549,7 @@ const onEmployeeChange = async () => {
 
 const handleSavePayment = async () => {
   try {
-    await paymentsCtx.handleSave()
+    await paymentsCtx.handleSavePayment()
     closePaymentModal()
     emit('saved')
   } catch {
@@ -554,22 +558,12 @@ const handleSavePayment = async () => {
 }
 
 const openEditPaymentModal = (payment: EmployeePaymentRecord) => {
-  paymentsCtx.openEditModal(payment)
+  paymentsCtx.openEditPayment(payment)
   selectedBalance.value = null
 }
 
 const handleSubmitPayment = async () => {
-  if (paymentsCtx.editingPaymentId.value) {
-    try {
-      await paymentsCtx.handleUpdate()
-      closePaymentModal()
-      emit('saved')
-    } catch {
-      // Error handled by composable
-    }
-  } else {
-    await handleSavePayment()
-  }
+  await handleSavePayment()
 }
 
 const handleDeletePayment = (id: string) => {
