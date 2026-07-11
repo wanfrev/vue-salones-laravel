@@ -315,8 +315,8 @@ const handleGroupPayment = async (appt: any) => {
       const amount = i === 0 ? serviceShare + productsTotal : serviceShare
       const employeeId = members[i]?.employeeId
       const fullTip = employeeId ? (tipAllocations.value[employeeId] ?? 0) : 0
-      const tipProportion = employeeId && fullTip > 0 ? members[i].price / (employeeTotalPrice.get(employeeId) ?? 1) : 0
-      const memberTip = Number((fullTip * tipProportion).toFixed(2))
+      const memberServices = members.filter(m => m.employeeId === employeeId).length
+      const memberTip = Number(((memberServices > 0 ? fullTip / memberServices : 0)).toFixed(2))
       const memberBreakdown = methodBreakdowns.map(b => ({ ...b, inputAmount: Math.round(b.inputAmount * proportion * 100) / 100, amount: Math.round(b.amount * proportion * 100) / 100 }))
 
       if (i === 0) {

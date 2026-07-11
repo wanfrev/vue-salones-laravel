@@ -198,6 +198,7 @@ class FinancialSummaryService
             return [
                 'id' => $tx->id,
                 'appointment_id' => $tx->appointment_id,
+                'group_id' => $appt?->group_id,
                 'paid_at' => is_string($tx->paid_at) ? $tx->paid_at : $tx->paid_at?->toISOString(),
                 'total_amount' => $tx->total_amount,
                 'local_amount' => $tx->local_amount,

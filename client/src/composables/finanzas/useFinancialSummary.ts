@@ -158,7 +158,7 @@ function useFinancialSummary(
   })
 
   const appointmentIncomeDetails = computed<TransactionRow[]>(() => {
-    return (transactionsData.value ?? []).map((tx: any) => {
+    const raw = (transactionsData.value ?? []).map((tx: any) => {
       const breakdown = tx.payments_breakdown as PaymentBreakdownItem[] | null
       const firstBreakdown = breakdown?.[0]
       const isVES = firstBreakdown?.currency === 'VES'
@@ -171,6 +171,7 @@ function useFinancialSummary(
       return {
         id: tx.id,
         appointmentId: tx.appointment_id,
+        groupId: tx.group_id ?? null,
         date: formatDate(tx.paid_at),
         client: tx.client_name ?? 'Venta directa',
         employee: tx.employee_name ?? '—',
@@ -187,6 +188,38 @@ function useFinancialSummary(
         tipAmount: tip,
       }
     })
+
+    // Group by group_id (appointments with same group_id are merged into one row)
+    const groupKey = (row: TransactionRow) => row.groupId ?? row.appointmentId ?? row.id
+    const groupMap = new Map<string, TransactionRow & { employees: string[]; services: string[] }>()
+
+    for (const row of raw) {
+      const key = groupKey(row)
+      if (groupMap.has(key)) {
+        const existing = groupMap.get(key)!
+        existing.amount += row.amount
+        existing.tipAmount += row.tipAmount
+        existing.primaryAmount = existing.primaryCurrency === 'VES' && row.primaryCurrency === 'VES'
+          ? existing.primaryAmount + row.primaryAmount
+          : existing.amount
+        if (!existing.employees.includes(row.employee)) existing.employees.push(row.employee)
+        if (!existing.services.includes(row.service)) existing.services.push(row.service)
+      } else {
+        groupMap.set(key, {
+          ...row,
+          employees: [row.employee],
+          services: [row.service],
+        })
+      }
+    }
+
+    return Array.from(groupMap.values()).map(r => ({
+      ...r,
+      employee: r.employees.filter(e => e && e !== '—').join(', ') || '—',
+      service: r.services.filter(s => s).join(' + '),
+      employees: undefined as any,
+      services: undefined as any,
+    }))
   })
 
   // ── Product Sales ──
