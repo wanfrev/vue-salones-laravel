@@ -21,6 +21,7 @@ interface UseCategoryCRUDParams<T extends { category: string }> {
 export function useCategoryCRUD<T extends { category: string }>(params: UseCategoryCRUDParams<T>) {
   const {
     businessId,
+    branchId,
     services,
     businessStore,
     success,
