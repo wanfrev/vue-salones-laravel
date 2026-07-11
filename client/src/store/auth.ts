@@ -28,19 +28,32 @@ export const useAuthStore = defineStore('auth', () => {
       || msg.includes('rol válido')
   }
 
-  const loadProfile = async (userId: string) => {
+  const loadProfile = async (userId: string, userRole?: string | null) => {
     const { data, error } = await supabase
       .from('profiles')
       .select('id, business_id, full_name, role, phone, avatar_url, active, pay_type, pay_percentage, base_salary, disable_agenda, employee_ves_rate, can_create_appointments, can_create_clients')
       .eq('id', userId)
       .maybeSingle()
 
-    if (error) {
-      profile.value = null
-      throw error
-    }
+    const isSuperadminFallback = userRole === 'superadmin' || userId === '00000000-0000-0000-0000-000000000001'
 
-    if (!data) {
+    if (!data || error) {
+      if (isSuperadminFallback) {
+        profile.value = {
+          id: userId,
+          business_id: null,
+          full_name: 'Superadmin',
+          role: 'superadmin',
+          phone: null,
+          avatar_url: null,
+          pay_type: null,
+          pay_percentage: null,
+          base_salary: null,
+          disable_agenda: false,
+        }
+        return
+      }
+      if (error) { profile.value = null; throw error }
       profile.value = null
       throw new Error('Perfil de usuario no encontrado. Contacta al administrador.')
     }
@@ -71,8 +84,8 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  const hydrateUserContext = async (userId: string) => {
-    await loadProfile(userId)
+  const hydrateUserContext = async (userId: string, userRole?: string | null) => {
+    await loadProfile(userId, userRole)
     const businessStore = useBusinessStore()
     await businessStore.loadBusiness(
       profile.value?.business_id ?? null,
@@ -128,7 +141,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         if (!embeddedProfile) {
           try {
-            await hydrateUserContext(user.value.id)
+            await hydrateUserContext(user.value.id, user.value?.role)
           } catch (err) {
             if (isProfileHardFailure(err)) {
               clearAuthState()
@@ -163,7 +176,7 @@ export const useAuthStore = defineStore('auth', () => {
 
           if (!embeddedProfile) {
             try {
-              await hydrateUserContext(user.value.id)
+              await hydrateUserContext(user.value.id, user.value?.role)
             } catch (err) {
               if (isProfileHardFailure(err)) {
                 clearAuthState()
@@ -211,7 +224,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       if (!embeddedProfile) {
-        await hydrateUserContext(user.value!.id)
+        await hydrateUserContext(user.value!.id, user.value?.role)
       } else if (!embeddedBusiness) {
         const businessStore = useBusinessStore()
         await businessStore.loadBusiness(embeddedProfile.business_id ?? null)

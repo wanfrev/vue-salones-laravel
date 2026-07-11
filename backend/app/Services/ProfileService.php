@@ -140,7 +140,10 @@ class ProfileService
     public function findForBusiness(string $id, string $businessId): Profile
     {
         $profile = Profile::find($id);
-        if (!$profile || $profile->business_id !== $businessId) {
+        if (!$profile) {
+            throw new NotFoundHttpException('Empleado no encontrado.');
+        }
+        if ($businessId !== '' && $profile->business_id !== $businessId) {
             throw new NotFoundHttpException('Empleado no encontrado.');
         }
         return $profile;
