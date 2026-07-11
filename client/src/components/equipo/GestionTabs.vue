@@ -33,6 +33,10 @@ const emit = defineEmits<{
   'update:selectedPeriod': [v: string]
   'update:selectedMonth': [v: string]
   resetCurrentMonth: []
+  openPayment: []
+  openConsumption: []
+  openEditPayment: [payment: any]
+  deletePayment: [id: string]
 }>()
 
 const tabs = [
@@ -132,7 +136,20 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
     <KpiBanner v-if="activeTab === 'nomina'" variant="danger"
       icon="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
       label="Total Pagado + Consumido" :value="formatUSD(totalNominaPagada + totalConsumido)"
-      :sublabel="`${paymentsCtx.paymentsMade.value.length} registro(s)`" />
+      :sublabel="`${paymentsCtx.paymentsMade.value.length} registro(s)`">
+      <template #actions>
+        <button @click="$emit('openPayment')"
+          class="ml-auto flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shrink-0"><svg
+            class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg><span class="hidden sm:inline">Registrar pago</span><span class="sm:hidden">+ Pago</span></button>
+        <button @click="$emit('openConsumption')"
+          class="flex items-center gap-1.5 rounded-lg bg-danger/10 px-3 py-2 text-xs font-semibold text-danger transition-theme hover:bg-danger/20 shrink-0 border border-danger/20"><svg
+            class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4" />
+          </svg><span class="hidden sm:inline">Debitar consumo</span><span class="sm:hidden">Debitar</span></button>
+      </template>
+    </KpiBanner>
     <KpiBanner v-if="activeTab === 'deuda'" variant="warning"
       icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
       label="Deuda Pendiente Total" :value="formatUSD(totalDeudaPendiente)"
@@ -210,6 +227,8 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
               Método</th>
             <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
               Monto</th>
+            <th class="px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+              Acción</th>
           </template>
           <template #desktop-tbody="{ items }">
             <tr v-for="ep in items" :key="ep.id" class="text-xs transition-theme hover:bg-bg-secondary/40">
@@ -227,6 +246,24 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
                 <div class="text-[10px] text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) :
                   formatVESInline(ep.amount, ep.exchangeRateUsed) + ' Bs' }}</div>
               </td>
+              <td class="px-3 py-3 text-center">
+                <div class="flex items-center justify-center gap-1">
+                  <button @click="$emit('openEditPayment', ep)"
+                    class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-primary/10 hover:text-primary"
+                    title="Editar pago"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                      stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg></button>
+                  <button @click="$emit('deletePayment', ep.id)"
+                    class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+                    title="Eliminar pago"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                      stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg></button>
+                </div>
+              </td>
             </tr>
           </template>
           <template #mobile-cards="{ items }">
@@ -237,6 +274,11 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
               <div class="flex items-center justify-between text-xs"><span class="text-text-muted">{{ ep.type ===
                 'consumption' ? (ep.concept || 'Consumo') : formatMethod(ep.paymentMethod) }}</span><span
                   class="text-right"><span class="font-semibold text-danger">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</span><span class="text-text-muted ml-1">{{ ep.currency === 'VES' ? formatUSD(ep.amount) : formatVESInline(ep.amount, ep.exchangeRateUsed) + ' Bs' }}</span></span></div>
+              <div class="flex items-center justify-end gap-1 pt-1 border-t border-border-subtle"><button
+                  @click="$emit('openEditPayment', ep)"
+                  class="rounded-md bg-primary/10 px-2 py-1 text-xs text-primary">Editar</button><button
+                  @click="$emit('deletePayment', ep.id)"
+                  class="rounded-md bg-danger/10 px-2 py-1 text-xs text-danger">Eliminar</button></div>
             </div>
           </template>
         </RecordSection>

@@ -52,6 +52,24 @@
     @update:selected-period="selectedPeriod = $event"
     @update:selected-month="selectedMonth = $event"
     @reset-current-month="resetToCurrent"
+    @open-payment="paymentsCtx.openPaymentModal()"
+    @open-consumption="paymentsCtx.openConsumptionModal()"
+    @open-edit-payment="(ep) => paymentsCtx.openEditModal(ep)"
+    @delete-payment="(id) => paymentsCtx.handleDelete(id)"
+  />
+
+  <EmployeePaymentModal
+    :payments-ctx="paymentsCtx" :business-id="authStore.businessId"
+    :branch-id="businessStore.currentBranchId"
+    @close="paymentsCtx.closeModal()"
+    @payment-saved="onPaymentSaved"
+  />
+
+  <EmployeeConsumptionModal
+    :payments-ctx="paymentsCtx" :business-id="authStore.businessId"
+    :branch-id="businessStore.currentBranchId"
+    @close="paymentsCtx.closeConsumptionModal()"
+    @consumption-saved="onPaymentSaved"
   />
 
   <EmployeeRateModal :show="showEmployeeRateModal" @close="showEmployeeRateModal = false" />
@@ -74,8 +92,12 @@ import { resolvePeriodDates } from '../lib/periodUtils'
 import { EmpleadoFormModal } from '../components/modals'
 import { useFinancialSummary } from '../composables/finanzas/useFinancialSummary'
 import { useEmployeePayments } from '../composables/empleados/useEmployeePayments'
+import { useQueryClient } from '@tanstack/vue-query'
+import { employeePaymentKeys } from '../services/employeePaymentsService'
 import { StatCard } from '../components/common'
 import EmployeeGrid from '../components/common/EmployeeGrid.vue'
+import EmployeePaymentModal from '../components/equipo/EmployeePaymentModal.vue'
+import EmployeeConsumptionModal from '../components/equipo/EmployeeConsumptionModal.vue'
 import EmployeeRateModal from '../components/equipo/EmployeeRateModal.vue'
 import GestionTabs from '../components/equipo/GestionTabs.vue'
 import type { Empleado, EmpleadoFormData } from '../types/empleado'
@@ -83,6 +105,7 @@ import type { Empleado, EmpleadoFormData } from '../types/empleado'
 const router = useRouter()
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
+const queryClient = useQueryClient()
 const empleadoModalRef = ref<InstanceType<typeof EmpleadoFormModal> | null>(null)
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
@@ -92,6 +115,14 @@ const periodDates = computed(() => resolvePeriodDates(selectedPeriod.value, sele
 const emptyExpenses = ref<{ date: string; amount: number }[]>([])
 const summaryCtx = useFinancialSummary(businessId, selectedPeriod, emptyExpenses, selectedMonth)
 const paymentsCtx = useEmployeePayments(businessId, periodDates)
+
+const onPaymentSaved = async () => {
+  await Promise.allSettled([
+    queryClient.invalidateQueries({ queryKey: employeePaymentKeys.all(businessId.value) }),
+    queryClient.invalidateQueries({ queryKey: ['financial-summary', businessId.value] }),
+  ])
+  await queryClient.refetchQueries({ queryKey: employeePaymentKeys.all(businessId.value), exact: false })
+}
 
 const { items: team, handleSave: handleSaveEmpleado, handleDelete: handleDeleteEmpleado, isSaving } = useCrud<Empleado, EmpleadoFormData>({
   businessId, branchId,
