@@ -66,6 +66,10 @@ class ProfileService
                 'pay_type' => $data['pay_type'],
                 'pay_percentage' => $data['pay_percentage'] ?? 50,
                 'base_salary' => $data['base_salary'] ?? 0,
+                'salary_frequency' => $data['salary_frequency'] ?? null,
+                'disable_agenda' => $data['disable_agenda'] ?? false,
+                'can_create_appointments' => $data['can_create_appointments'] ?? true,
+                'can_create_clients' => $data['can_create_clients'] ?? true,
                 'active' => true,
             ]);
 

@@ -38,6 +38,7 @@ export const useAgenda = () => {
         .eq('business_id', businessId.value)
         .eq('role', 'empleado')
         .eq('active', true)
+        .eq('disable_agenda', false)
       if (error) throw error
       if (currentBranchId.value) {
         return (data as Profile[]).filter(p =>

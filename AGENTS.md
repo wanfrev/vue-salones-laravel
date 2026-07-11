@@ -86,18 +86,18 @@ VITE_REVERB_PORT=8080
 │   │   ├── Enums/              # AppRole
 │   │   ├── Events/             # EntityChanged (broadcast vía Reverb)
 │   │   ├── Http/
-│   │   │   ├── Controllers/Api/ # 23 controladores REST
+│   │   │   ├── Controllers/Api/ # 24 controladores REST
 │   │   │   ├── Middleware/     # SetBusinessContext, EnsureSuperadmin, ParseApiFilters, UnwrapApiData
-│   │   │   ├── Requests/       # Form Requests (StoreBranchRequest, CreateBusinessRequest)
+│   │   │   ├── Requests/       # Form Requests (StoreBranchRequest, CreateBusinessRequest, etc.)
 │   │   │   └── Resources/      # API Resources (AuthResource, BusinessResource, BranchResource)
 │   │   ├── Jobs/               # ProcessPayment, ProcessSale, GenerateRemindersJob
 │   │   ├── Models/             # 26 modelos Eloquent (UUID PK, no auto-increment)
 │   │   ├── Policies/           # 11 policies + trait OwnsBusinessResource
 │   │   └── Services/           # 21 services de negocio + BusinessContext
 │   ├── config/                 # octane.php, horizon.php, reverb.php, sanctum.php
-│   ├── database/migrations/    # Migraciones (tablas de framework: users, cache, jobs, tokens)
+│   ├── database/migrations/    # 11 migraciones (framework + negocio)
 │   └── routes/
-│       ├── api.php             # 59 endpoints REST + RPC compat
+│       ├── api.php             # 65+ endpoints REST + RPC compat
 │       ├── channels.php        # Autorización de canales Reverb (business.{id})
 │       └── console.php         # Schedule (reminders:generate daily at 08:00)
 │
@@ -106,15 +106,15 @@ VITE_REVERB_PORT=8080
 │   ├── components/             # UI components by domain
 │   │   ├── agenda/             # AgendaCalendar, AgendaListView, AgendaMonthView, AgendaYearView
 │   │   ├── common/             # UI primitives reutilizables (ver §3)
-│   │   ├── equipo/             # EmployeePaymentModal, EmployeeConsumptionModal, EmployeeRateModal, GestionTabs
+│   │   ├── equipo/             # EmployeePaymentModal, ScheduleEditor, GestionTabs, etc.
 │   │   ├── finanzas/           # KpiCards, KpiBanner, RecordSection, EditCobroModal, DetailMovimientos, etc.
-│   │   ├── forms/              # FormInput, FormSelect, FormSearchSelect, CitaClientSearch, etc.
-│   │   ├── modals/             # CitaFormModal, ClienteFormModal, EmpleadoFormModal, etc.
+│   │   ├── forms/              # FormInput, FormSelect, FormDropdown, FormTime, FormSearchSelect, etc.
+│   │   ├── modals/             # CitaFormModal, ClienteFormModal, EmpleadoFormModal, ServicioFormModal, etc.
 │   │   ├── pos/                # POSCart, POSPaymentPanel, POSAppointmentCard, POSConfirmModal, etc.
 │   │   └── ...                 # clientes/, filters/, inventario/, layout/, productos/, servicios/
 │   ├── composables/            # Stateful logic (TanStack Query + reactive state), organizado por dominio
 │   │   ├── agenda/             # useAgenda, useAdminAgenda, useAppointmentMutations
-│   │   ├── common/             # useAuth, useCurrency, useModal, useNotification, usePagination, etc.
+│   │   ├── common/             # useAuth, useCategoryCRUD, useCurrency, useModal, useNotification, etc.
 │   │   ├── empleados/          # useCrud, useEmployeePayments
 │   │   ├── finanzas/           # useFinancialSummary, useExpenses, useExchangeRate, usePeriodSelection, useTransactionEdit
 │   │   ├── inventario/         # useInventoryAdjustment, useProductCRUD, useProductStockAdjust
@@ -127,12 +127,13 @@ VITE_REVERB_PORT=8080
 │   ├── store/                  # Pinia stores (auth, business, theme)
 │   ├── types/                  # View models + database.ts (types DB)
 │   └── views/                  # Route-level views (lean, delegan a composables + components)
-│       └── employee/           # Vistas del dashboard de empleado
+│       ├── employee/           # Vistas del dashboard de empleado
+│       ├── Finanzas.vue        # Dashboard financiero con KPI + detalle de movimientos
+│       ├── POS.vue             # Punto de venta (cobro de citas + venta directa)
+│       ├── Servicios.vue       # Catálogo de servicios con categorías por sucursal
+│       └── ...
 │
-└── supabase/                   # Schema original (solo referencia; la BD se gestiona vía Supabase local)
-    ├── migrations/             # 70 migraciones SQL (referencia del schema)
-    ├── functions/              # 3 Edge Functions (manage-user, superadmin-invite, generate-reminders)
-    └── seed.sql                # Datos semilla
+└── salones_backup.sql          # Backup completo PostgreSQL (schema + data demo)
 ```
 
 ### Layer rules
@@ -340,6 +341,150 @@ const { data } = useQuery({
 7. **Reverb usa `PrivateChannel`** — el frontend debe usar `echoClient.private()`, no `.channel()`.
 8. **Multi-branch**: tablas con `branch_id` nullable → queries deben incluir `whereNull('branch_id')->orWhere('branch_id', $id)`.
 9. **SignOut no debe forzar recarga de página** — la store limpia estado y el router redirige.
+10. **`EntityChanged::safe()` no `EntityChanged::dispatch()`** — si el broadcast/queue está caído, `dispatch()` lanza excepción → 500. Usar siempre `safe()` que tiene try-catch interno.
+11. **Partial unique indexes con `branch_id`** — cuando una columna nullable (`branch_id`) es parte de un unique constraint, usar partial indexes: `WHERE branch_id IS NOT NULL` y `WHERE branch_id IS NULL` por separado. PostgreSQL trata NULLs como distintos entre sí en unique indexes normales.
+12. **Service categories en `branches`** — las categorías de servicios se persisten en `branches.service_categories` (JSONB) cuando hay sucursal seleccionada, o en `businesses.service_categories` cuando no. NO usar la tabla `service_categories` (eliminada).
+13. **Frontend NO debe persistir categorías** — el backend (`ServiceService::store()`) agrega automáticamente la categoría al crear un servicio. El frontend solo lee de la API.
+14. **Formato de categorías**: backend almacena `[{id, name}]`, `BusinessResource`/`BranchResource` normalizan a `["name"]`. No mezclar formatos.
+15. **`disable_agenda` debe filtrarse en el calendar query** — además de ocultar sidebar/rutas, el query de empleados en `useAgenda.ts` debe incluir `.eq('disable_agenda', false)` para que no aparezcan como columnas en el calendario.
+16. **Al crear empleados, incluir TODOS los campos** — `ProfileService::store()` debe incluir `disable_agenda`, `can_create_appointments`, `can_create_clients`, `salary_frequency`. El `update()` ya lo hacía pero `create()` los ignoraba silenciosamente.
+
+---
+
+## 12. Multi-branch: reglas específicas
+
+### Tablas con `branch_id` (multi-branch aware)
+`appointments`, `branches`, `clients`, `client_preferred_services`, `employee_absences`, `employee_payments`, `employee_schedules`, `expenses`, `gift_cards`, `inventory_locations`, `inventory_movements`, `inventory_stock`, `product_categories`, `product_variants`, `products`, `profiles`, `services`, `supplier_payments`, `suppliers`, `transactions`
+
+### Tablas SIN `branch_id` (solo business-level)
+`businesses`, `users`, `notifications`, tablas de framework
+
+### Reglas
+- **`branches.service_categories`** JSONB: categorías de servicio por sucursal. Si `branch_id` es null, se usa `businesses.service_categories`.
+- **`profiles.branch_id`**: nuevo (2026-07-11). Relación directa empleado→sucursal. Complementa `employee_schedules.branch_id`.
+- **Unique constraints con `branch_id`**: usar partial indexes (ver lección #11).
+- **`inventory_stock_unique_idx`**: dos partial indexes — `WHERE branch_id IS NOT NULL` (4 columnas) y `WHERE branch_id IS NULL` (3 columnas).
+- **`clients` phone unique**: mismo patrón de partial indexes con/sin `branch_id`.
+
+---
+
+## 13. Service Categories (categorías de servicios)
+
+### Dónde se persisten
+- **Con sucursal seleccionada**: `branches.service_categories` JSONB (columna agregada 2026-07-11)
+- **Sin sucursal** (multi-branch off): `businesses.service_categories` JSONB
+
+### Flujo
+1. Usuario crea servicio con nueva categoría "VIP"
+2. Backend `ServiceService::store()` auto-agrega `{id: uuid, name: "VIP"}` al JSONB de la sucursal/negocio
+3. `BranchResource`/`BusinessResource` normaliza a `["VIP"]` en la respuesta API
+4. Frontend lee categorías vía `getEntityServiceCategories(bizId, branchId)`
+5. `GET /branches/{id}` devuelve `service_categories` normalizado
+
+### Renombrar/eliminar categorías
+- Backend: `ServiceService::renameCategory()` / `deleteCategory()` aceptan `?branchId`
+- Con `branchId`: opera sobre `branches.service_categories` + `services` de esa sucursal
+- Sin `branchId`: opera sobre `businesses.service_categories` + `services` con `branch_id IS NULL`
+
+### Lo que NO existe
+- **No hay tabla `service_categories`** — fue eliminada (migración 2026-07-11). Era código muerto heredado de Supabase.
+- **No hay `services.service_category_id`** — columna eliminada. Solo existe `services.category` (TEXT).
+- **No hay categorías default** — el dropdown del modal de servicios solo muestra categorías reales del negocio/sucursal. El usuario debe crear la primera vía "Crear nueva categoría".
+
+---
+
+## 14. Inventario (multi-branch)
+
+### Stock único por sucursal
+- `inventory_stock_unique_branch_idx`: `(location_id, product_id, variant_id, branch_id) WHERE branch_id IS NOT NULL`
+- `inventory_stock_unique_global_idx`: `(location_id, product_id, variant_id) WHERE branch_id IS NULL`
+- Permite mismo producto en misma ubicación en diferentes sucursales
+
+### Filtros en queries
+- `InventoryService::index()` filtra por `product_id` y `location_id` si vienen en el request (vía `ParseApiFilters`)
+- `InventoryService::locations()` filtra por `is_default` si viene en el request
+- El frontend `getStockRecord()` envía estos filtros y el backend ahora los respeta (antes los ignoraba)
+
+---
+
+## 15. Finanzas
+
+### Agrupación de cobros
+- Transacciones con mismo `appointments.group_id` se agrupan en UNA sola fila en el display de finanzas
+- Se suman montos y tips. Servicios se concatenan con " + ", empleados con ", "
+- Backend: `FinancialSummaryService::getTransactionsWithDetails()` incluye `group_id` en la respuesta
+
+### Nombres de productos en transacciones
+- Ventas directas de productos aparecen en "Transacciones recientes" con el nombre real del producto (ej: "Shampoo Profesional")
+- Se agregan entradas de `productSalesData` al listado unificado de `transactions`
+
+### Clientes en ventas directas
+- El nombre del cliente se extrae del campo `notes` del transaction (formato: `"Venta directa — {nombre}"`)
+- Si no hay cliente: "Venta directa — Mostrador" → se muestra como "Venta directa"
+
+### Pagos a proveedores filtrados por sucursal
+- `SupplierPaymentService::list()` filtra por `branch_id`
+- `FinancialSummaryService::getKPIs()` filtra supplier payments por `branch_id` en el KPI de egresos
+
+---
+
+## 16. POS (Punto de Venta)
+
+### Tips (propinas)
+- Se dividen **igualmente** entre empleados (no proporcional al precio del servicio)
+- El usuario puede ajustar manualmente vía "Asignar propina" en el panel de pago
+- `setEqualTipAllocation()` distribuye el tip total equitativamente entre participantes
+
+### Ventas directas
+- Crean un `Transaction` + inventory movements
+- El `client_id` se pasa en el request y se guarda en `notes` del transaction
+- `recordMovement` incluye `client_id` para trazabilidad
+
+---
+
+## 17. Empleados
+
+### `disable_agenda`
+- Si `true`: el empleado NO aparece como columna en el calendario (filtrado en `useAgenda.ts`)
+- Si `true`: sidebar oculta links de Agenda/Calendario + router redirige a `/dashboard/historial`
+- Se persiste correctamente tanto en CREATE como en UPDATE (`ProfileService`)
+- Campo: `profiles.disable_agenda` (boolean, default false)
+
+### `profiles.branch_id`
+- Columna nueva (2026-07-11). Relación directa empleado→sucursal.
+- Complementa `employee_schedules.branch_id` (un empleado podía no tener horario y por tanto no pertenecer a ninguna sucursal)
+- `SetBusinessContext` lo lee como fallback para resolver el `branch_id` del contexto
+
+### Layout del editor de horarios
+- `ScheduleEditor.vue`: `grid-cols-2 sm:grid-cols-3` para evitar solapamiento en pantallas medianas
+
+---
+
+## 18. Deploy en producción (VPS)
+
+```bash
+# 1. Pull del código
+cd /var/www/vue-salones-laravel && git pull
+
+# 2. Backend: migraciones + clear cache
+cd backend
+php artisan migrate
+php artisan config:clear
+
+# 3. Frontend: build
+cd ../client && npm run build
+
+# 4. Recargar PHP-FPM
+systemctl reload php8.4-fpm
+```
+
+**Nota:** Si la BD se restauró desde `salones_backup.sql`, las migraciones de Laravel ya están aplicadas en el schema del dump. Usar:
+```bash
+php artisan tinker --execute='foreach (["2026_07_11_000000_add_service_categories_to_branches","2026_07_11_000001_fix_inventory_stock_unique_index","2026_07_11_000002_drop_service_categories_table","2026_07_11_000003_add_branch_id_to_profiles","2026_07_11_000004_fix_clients_phone_unique_constraint"] as $m) { if (!DB::table("migrations")->where("migration",$m)->exists()) { DB::table("migrations")->insert(["migration"=>$m,"batch"=>1]); } }'
+php artisan migrate
+```
+
+**PostgreSQL en VPS:** requiere configurar `pg_hba.conf` con `trust` para conexiones locales, o asignar contraseña al usuario `postgres` y configurarla en `.env`.
 
 ---
 
