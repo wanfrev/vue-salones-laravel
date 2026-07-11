@@ -157,7 +157,7 @@ const { data: appointmentsData } = useQuery({
 const { data: productsData } = useQuery({
   queryKey: computed(() => posKeys.products(businessId.value, branchId.value)),
   queryFn: () => listSaleableProducts(businessId.value!, branchId.value),
-  enabled: computed(() => !!businessId.value),
+  enabled: computed(() => !!businessId.value), staleTime: 0,
 })
 
 const appointments = computed(() => groupPendingAppointments(appointmentsData.value ?? []))

@@ -51,7 +51,10 @@ export function useAppointmentMutations(options: {
     await Promise.allSettled(keys.map(key =>
       queryClient.invalidateQueries({ queryKey: key, exact: false })
     ))
-    await queryClient.refetchQueries({ queryKey: ['appointments'], exact: false })
+    await Promise.allSettled([
+      queryClient.refetchQueries({ queryKey: ['appointments'], exact: false }),
+      queryClient.refetchQueries({ queryKey: posKeys.pending(bid, brId), exact: true }),
+    ])
   }
 
   const saveCitaMutation = useMutation({
