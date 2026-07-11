@@ -102,9 +102,7 @@
 import { ref, computed, watch } from 'vue'
 import { useModal } from '../../composables/common/useModal'
 import { useNotification } from '../../composables/common/useNotification'
-import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
-import { addBusinessCategory, addBranchCategory } from '../../services/equipoService'
 import { getEntityServiceCategories } from '../../services/serviciosService'
 import type { Servicio, ServicioFormData } from '../../types/servicio'
 import ModalBase from '../common/ModalBase.vue'
@@ -126,7 +124,6 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { isOpen, modalData, close } = useModal(MODAL_ID)
 const { error: showError } = useNotification()
-const authStore = useAuthStore()
 const businessStore = useBusinessStore()
 
 const t = computed(() => businessStore.terminology)
@@ -162,70 +159,6 @@ const descriptionPlaceholder = computed(() => {
   return map[nicheType.value] || 'Describe el servicio, incluye detalles importantes...'
 })
 
-const NICHE_CATEGORIES: Record<string, { value: string; label: string }[]> = {
-  salon: [
-    { value: 'corte', label: 'Corte de Cabello' },
-    { value: 'color', label: 'Coloración' },
-    { value: 'manos', label: 'Manos & Pies' },
-    { value: 'tratamientos', label: 'Tratamientos' },
-    { value: 'barberia', label: 'Barbería' },
-    { value: 'maquillaje', label: 'Maquillaje' },
-    { value: 'otros', label: 'Otros' },
-  ],
-  barberia: [
-    { value: 'corte', label: 'Corte de Cabello' },
-    { value: 'barba', label: 'Barba & Bigote' },
-    { value: 'arreglo', label: 'Arreglo de Cabello' },
-    { value: 'tratamientos', label: 'Tratamientos' },
-    { value: 'otros', label: 'Otros' },
-  ],
-  spa: [
-    { value: 'masajes', label: 'Masajes' },
-    { value: 'faciales', label: 'Faciales' },
-    { value: 'corporales', label: 'Tratamientos Corporales' },
-    { value: 'depilacion', label: 'Depilación' },
-    { value: 'otros', label: 'Otros' },
-  ],
-  dog_spa: [
-    { value: 'baño', label: 'Baño & Peluquería' },
-    { value: 'corte', label: 'Corte & Estilo' },
-    { value: 'veterinario', label: 'Servicios Veterinarios' },
-    { value: 'spa', label: 'Spa & Relax' },
-    { value: 'accesorios', label: 'Accesorios' },
-    { value: 'otros', label: 'Otros' },
-  ],
-  spa_perros: [
-    { value: 'baño', label: 'Baño & Peluquería' },
-    { value: 'corte', label: 'Corte & Estilo' },
-    { value: 'veterinario', label: 'Servicios Veterinarios' },
-    { value: 'spa', label: 'Spa & Relax' },
-    { value: 'accesorios', label: 'Accesorios' },
-    { value: 'otros', label: 'Otros' },
-  ],
-  vet: [
-    { value: 'baño', label: 'Baño & Peluquería' },
-    { value: 'corte', label: 'Corte & Estilo' },
-    { value: 'veterinario', label: 'Servicios Veterinarios' },
-    { value: 'spa', label: 'Spa & Relax' },
-    { value: 'accesorios', label: 'Accesorios' },
-    { value: 'otros', label: 'Otros' },
-  ],
-  nail_bar: [
-    { value: 'manos', label: 'Manos' },
-    { value: 'pies', label: 'Pies' },
-    { value: 'disenos', label: 'Diseños' },
-    { value: 'tratamientos', label: 'Tratamientos' },
-    { value: 'otros', label: 'Otros' },
-  ],
-  centro_estetico: [
-    { value: 'faciales', label: 'Faciales' },
-    { value: 'corporales', label: 'Tratamientos Corporales' },
-    { value: 'depilacion', label: 'Depilación' },
-    { value: 'maquillaje', label: 'Maquillaje' },
-    { value: 'otros', label: 'Otros' },
-  ],
-}
-
 const showingCustomCategory = ref(false)
 const categoriesVersion = ref(0)
 const dbCategories = ref<string[]>([])
@@ -250,15 +183,10 @@ const categoryOptions = computed(() => {
   const rawBizCats = dbCategories.value.length > 0
     ? dbCategories.value
     : businessStore.serviceCategories
-  const fallbackItems = NICHE_CATEGORIES[nicheType.value] || NICHE_CATEGORIES.salon
   const items: { value: string; label: string }[] = []
-  if (rawBizCats.length > 0) {
-    rawBizCats.forEach(c => {
-      const name = typeof c === 'string' ? c : (c as any)?.name ?? ''
-      items.push({ value: name, label: name })
-    })
-  } else {
-    fallbackItems.forEach(i => items.push({ ...i }))
+  for (const c of rawBizCats) {
+    const name = typeof c === 'string' ? c : (c as any)?.name ?? ''
+    if (name) items.push({ value: name, label: name })
   }
   items.push({ value: '__new__', label: '+ Agregar nuevo' })
   return items
@@ -275,8 +203,8 @@ const statusOptions = [
 ]
 
 const defaultCategory = computed(() => {
-  const cats = categoryOptions.value
-  return cats.length > 0 ? cats[0].value : 'corte'
+  const cats = categoryOptions.value.filter(c => c.value !== '__new__')
+  return cats.length > 0 ? cats[0].value : ''
 })
 
 const defaultFormData: ServicioFormData = {
@@ -338,26 +266,6 @@ const handleSubmit = async () => {
   }
 
   const category = formData.value.category.trim()
-
-  const businessId = authStore.businessId
-  const branchId = (modalData.value as any)?.branchId as string | undefined
-  const targetCats = branchId
-    ? businessStore.branchServiceCategories
-    : businessStore.serviceCategories
-
-  if (businessId && category && !targetCats.includes(category)) {
-    try {
-      if (branchId) {
-        const updated = await addBranchCategory(branchId, category)
-        businessStore.updateBranch({ service_categories: updated as any })
-      } else {
-        const updated = await addBusinessCategory(businessId, category)
-        businessStore.updateBusiness({ service_categories: updated })
-      }
-    } catch (err) {
-      console.error('Error persisting category:', err)
-    }
-  }
 
   const servicioData: ServicioFormData & { id?: string } = {
     ...formData.value,
