@@ -183,12 +183,11 @@ const categoryOptions = computed(() => {
   const rawBizCats = dbCategories.value.length > 0
     ? dbCategories.value
     : businessStore.serviceCategories
-  const items: { value: string; label: string }[] = []
+  const items: { value: string; label: string }[] = [{ value: '__new__', label: '+ Crear nueva categoría' }]
   for (const c of rawBizCats) {
     const name = typeof c === 'string' ? c : (c as any)?.name ?? ''
     if (name) items.push({ value: name, label: name })
   }
-  items.push({ value: '__new__', label: '+ Agregar nuevo' })
   return items
 })
 
@@ -291,8 +290,8 @@ const open = (servicio?: Servicio, branchId?: string) => {
       category: servicio.category || '',
     }
   } else {
-    const firstCategory = categoryOptions.value.length > 0 ? categoryOptions.value[0].value : ''
-    formData.value = { ...defaultFormData, category: firstCategory }
+    const firstRealCategory = categoryOptions.value.find(c => c.value !== '__new__')?.value ?? ''
+    formData.value = { ...defaultFormData, category: firstRealCategory }
     showingCustomCategory.value = false
   }
   errors.value = {}
