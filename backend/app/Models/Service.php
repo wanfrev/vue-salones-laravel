@@ -16,7 +16,7 @@ class Service extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id', 'business_id', 'branch_id', 'service_category_id',
+        'id', 'business_id', 'branch_id',
         'name', 'description', 'duration_minutes', 'price',
         'local_percentage', 'color', 'category', 'icon', 'active',
     ];

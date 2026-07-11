@@ -88,7 +88,6 @@ export interface Service {
   price: number
   local_percentage: number
   color: string | null
-  service_category_id?: string | null
   category: string
   icon: string | null
   active: boolean
@@ -205,18 +204,6 @@ export interface EmployeeAbsence {
   ends_at: string
   reason: string | null
   created_by: string | null
-  created_at: string
-  updated_at: string
-}
-
-export interface ServiceCategory {
-  id: string
-  business_id: string
-  parent_id: string | null
-  name: string
-  description: string | null
-  active: boolean
-  metadata: Record<string, unknown>
   created_at: string
   updated_at: string
 }
@@ -403,7 +390,6 @@ export interface Database {
       profiles: TableShape<Profile>
       employee_schedules: TableShape<EmployeeSchedule>
       services: TableShape<Service>
-      service_categories: TableShape<ServiceCategory>
       service_variants: TableShape<ServiceVariant>
       employee_services: TableShape<EmployeeService>
       client_preferred_services: TableShape<ClientPreferredService>

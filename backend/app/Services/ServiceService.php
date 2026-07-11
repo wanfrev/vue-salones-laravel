@@ -37,7 +37,6 @@ class ServiceService
             'id' => Str::uuid()->toString(),
             'business_id' => $businessId,
             'branch_id' => $data['branch_id'] ?? null,
-            'service_category_id' => $data['service_category_id'] ?? null,
             'name' => $data['name'],
             'description' => $data['description'] ?? null,
             'duration_minutes' => $data['duration_minutes'] ?? 60,
@@ -85,7 +84,7 @@ class ServiceService
 
         $service->update(array_filter($data, fn($k) => in_array($k, [
             'name', 'description', 'duration_minutes', 'price', 'local_percentage',
-            'color', 'category', 'icon', 'active', 'service_category_id', 'branch_id',
+            'color', 'category', 'icon', 'active', 'branch_id',
         ]), ARRAY_FILTER_USE_KEY) + ['updated_at' => now()]);
 
         return $service->fresh();

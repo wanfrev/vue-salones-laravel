@@ -62,7 +62,6 @@ class ServiceController
             'icon' => 'nullable|string|max:50',
             'active' => 'boolean',
             'branch_id' => 'nullable|uuid',
-            'service_category_id' => 'nullable|uuid',
         ]);
 
         $service = $this->serviceService->store($data, $businessId);
@@ -86,7 +85,6 @@ class ServiceController
             'icon' => 'nullable|string|max:50',
             'active' => 'boolean',
             'branch_id' => 'nullable|uuid',
-            'service_category_id' => 'nullable|uuid',
         ]);
 
         $service = $this->serviceService->update($id, $data, $businessId);
