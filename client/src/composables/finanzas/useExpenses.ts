@@ -49,6 +49,7 @@ export function useExpenses(
     queryKey,
     queryFn: () => listExpenses(businessId.value!, periodDates.value.start, periodDates.value.end, branchId.value),
     enabled: computed(() => !!businessId.value && !!selectedPeriod?.value),
+    staleTime: 0,
   })
 
   const expenses = computed(() => (data.value ?? []).map((row: ExpenseRow) => ({

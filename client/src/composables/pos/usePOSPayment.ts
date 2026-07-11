@@ -107,6 +107,9 @@ export function usePOSPayment() {
         queryClient.invalidateQueries({ exact: false, queryKey: posKeys.products(businessId.value, branchId.value) }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['inventario'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['appointments'] }),
+        queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
+        queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
+        queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
       ])
     },
   })
@@ -135,6 +138,9 @@ export function usePOSPayment() {
       Promise.allSettled([
         queryClient.invalidateQueries({ exact: false, queryKey: ['inventario'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: posKeys.products(businessId.value, branchId.value) }),
+        queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
+        queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
+        queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
       ])
     },
   })
