@@ -101,15 +101,22 @@ export function usePOSPayment() {
         }
       }
     },
-    onSettled: () => {
-      Promise.allSettled([
+    onSettled: async () => {
+      const bid = businessId.value
+      const brId = branchId.value
+      await Promise.allSettled([
         queryClient.invalidateQueries({ exact: false, queryKey: ['pos-pending'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: posKeys.products(businessId.value, branchId.value) }),
+        queryClient.invalidateQueries({ exact: false, queryKey: posKeys.products(bid, brId) }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['inventario'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['appointments'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
+      ])
+      await Promise.allSettled([
+        queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
+        queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-summary'] }),
+        queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
       ])
     },
   })
@@ -134,13 +141,18 @@ export function usePOSPayment() {
       businessId: businessId.value!,
       branchId: branchId.value,
     }),
-    onSettled: () => {
-      Promise.allSettled([
+    onSettled: async () => {
+      await Promise.allSettled([
         queryClient.invalidateQueries({ exact: false, queryKey: ['inventario'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: posKeys.products(businessId.value, branchId.value) }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
+      ])
+      await Promise.allSettled([
+        queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
+        queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-summary'] }),
+        queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
       ])
     },
   })
