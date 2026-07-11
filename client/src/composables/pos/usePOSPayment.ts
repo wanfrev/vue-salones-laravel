@@ -112,6 +112,8 @@ export function usePOSPayment() {
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
+        queryClient.invalidateQueries({ exact: false, queryKey: ['expenses'] }),
+        queryClient.invalidateQueries({ exact: false, queryKey: ['supplier-payments'] }),
       ])
       await Promise.allSettled([
         queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
@@ -148,6 +150,8 @@ export function usePOSPayment() {
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
+        queryClient.invalidateQueries({ exact: false, queryKey: ['expenses'] }),
+        queryClient.invalidateQueries({ exact: false, queryKey: ['supplier-payments'] }),
       ])
       await Promise.allSettled([
         queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
@@ -165,7 +169,7 @@ export function usePOSPayment() {
     formatDual: (n: number) => string,
     _tipAllocations?: TipAllocationItem[],
   ): Promise<boolean> => {
-    if (serviceAmount + cartProducts.reduce((s, p) => s + p.quantity * p.unitPrice, 0) <= 0) {
+    if (serviceAmount <= 0) {
       showError('El total debe ser mayor a 0')
       return false
     }
@@ -177,9 +181,8 @@ export function usePOSPayment() {
 
       if (method !== 'mixed') {
         const currency = methodCurrency(method) ?? otherCurrency.value
-        const grandTotal = serviceAmount + cartProducts.reduce((s, p) => s + p.unitPrice * p.quantity, 0)
-        const inputAmount = currency === 'VES' ? grandTotal * exchangeRate : grandTotal
-        breakdown = [{ method, inputAmount, currency, amount: grandTotal }]
+        const inputAmount = currency === 'VES' ? serviceAmount * exchangeRate : serviceAmount
+        breakdown = [{ method, inputAmount, currency, amount: serviceAmount }]
       } else {
         breakdown = paymentsBreakdown.value.map(item => ({
           ...item,
@@ -198,7 +201,7 @@ export function usePOSPayment() {
         tipAmount: tipAmount.value,
       })
 
-      success(`Cobro de ${formatDual(serviceAmount + cartProducts.reduce((s, p) => s + p.unitPrice * p.quantity, 0))} registrado`)
+      success(`Cobro de ${formatDual(serviceAmount)} registrado`)
       return true
     } catch (err) {
       const message = (err as any)?.message ?? 'Error al procesar el pago'

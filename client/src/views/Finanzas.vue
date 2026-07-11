@@ -104,8 +104,8 @@ const summaryCtx = useFinancialSummary(businessId, selectedPeriod, expenses, sel
 const incomeTotal = summaryCtx.incomeTotal
 const localIncomeTotal = summaryCtx.localIncomeTotal
 const vesIncomeTotal = summaryCtx.vesIncomeTotal
-const expenseTotal = computed(() => expensesCtx.expenseTotal.value)
-const netTotal = computed(() => localIncomeTotal.value - expensesCtx.expenseTotal.value - supplierPaymentsCtx.paymentTotal.value)
+const expenseTotal = computed(() => expensesCtx.expenseTotal.value + supplierPaymentsCtx.paymentTotal.value)
+const netTotal = computed(() => localIncomeTotal.value - expenseTotal.value)
 const marginTotal = computed(() => (localIncomeTotal.value > 0 ? (netTotal.value / localIncomeTotal.value) * 100 : 0))
 
 const activeCard = ref<'income' | 'expense' | 'net' | null>(null)

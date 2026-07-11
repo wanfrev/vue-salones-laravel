@@ -97,13 +97,12 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
 import { useNotification } from '../composables/common/useNotification'
 import { useBusinessStore } from '../store/business'
 import { listPendingAppointments, listSaleableProducts, posKeys, groupPendingAppointments, recordSale, recordPaymentOnly } from '../services/posService'
-import { sellProduct } from '../services/inventarioService'
 import { searchClients } from '../services/clientesService'
 import { usePOSCart } from '../composables/pos/usePOSCart'
 import { usePOSPayment } from '../composables/pos/usePOSPayment'
@@ -122,6 +121,7 @@ const router = useRouter()
 const { exchangeRate, formatDual } = useCurrency()
 const { error: showError, success: showSuccess } = useNotification()
 const businessStore = useBusinessStore()
+const queryClient = useQueryClient()
 const rateCtx = useExchangeRate()
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
@@ -272,16 +272,15 @@ const handleRetailPayment = async () => {
   if (retailProcessing.value || cartCtx.cart.value.length === 0) return
   retailProcessing.value = true
   try {
-    const method = paymentCtx.paymentMethod.value
-    const currency = paymentCtx.paymentMethods.find((m: any) => m.value === method)?.currency ?? paymentCtx.otherCurrency.value
-    const rate = exchangeRate.value
-    for (const item of cartCtx.cart.value) {
-      const saleCurrency = method === 'other' ? paymentCtx.otherCurrency.value : (currency as 'USD' | 'VES') ?? 'USD'
-      await sellProduct(businessId.value!, item.productId, item.quantity, paymentCtx.paymentNotes.value || `POS Venta directa`, null, item.unitPrice, rate, saleCurrency, branchId.value, retailClientId.value)
-    }
-    cartCtx.clearCart(); paymentCtx.reset()
-  } catch (err) { showError((err as any)?.message ?? 'Error al procesar') }
-  finally { retailProcessing.value = false }
+    const ok = await paymentCtx.processDirectSale(
+      cartCtx.productsTotal.value,
+      cartCtx.cart.value,
+      exchangeRate.value,
+      formatDual,
+      retailClientId.value,
+    )
+    if (ok) { cartCtx.clearCart(); paymentCtx.reset() }
+  } finally { retailProcessing.value = false }
 }
 
 const handleGroupPayment = async (appt: any) => {
@@ -327,6 +326,21 @@ const handleGroupPayment = async (appt: any) => {
       }
     }
     showSuccess(`Cobro registrado correctamente`); selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset()
+    await Promise.allSettled([
+      queryClient.invalidateQueries({ exact: false, queryKey: ['pos-pending'] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['inventario'] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['appointments'] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['expenses'] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['supplier-payments'] }),
+    ])
+    await Promise.allSettled([
+      queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
+      queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-summary'] }),
+      queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
+    ])
   } catch (err: any) { showError(err?.message ?? 'Error al procesar pago') }
   finally { paymentCtx.isProcessing.value = false }
 }
