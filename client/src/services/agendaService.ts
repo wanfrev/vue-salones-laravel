@@ -16,13 +16,18 @@ function mapAgendaWriteError(error: unknown, action: 'guardar' | 'reagendar'): E
   }
   const candidate = error as Record<string, unknown>
   const message = String(candidate.message ?? '')
-  const isOverlap = candidate.code === '23P01' ||
-    message.includes('appointments_no_employee_overlap')
+  const isOverlap = message.includes('23P01') ||
+    message.includes('El empleado ya tiene una cita en ese horario') ||
+    message.includes('El asistente ya tiene una cita')
   if (isOverlap) {
     return new Error(`No se puede ${action} la cita: el empleado ya tiene otra cita en ese horario.`)
   }
+  if (message.includes('23505') || message.includes('duplicad')) {
+    return new Error(`No se puede ${action} la cita: registro duplicado.`)
+  }
   const mapped = (() => { try { handleDbError(error, ''); return null } catch (e) { return e as Error } })()
   if (mapped) return mapped
+  if (message) return new Error(message)
   return error instanceof Error ? error : new Error(`Error al ${action} la cita`)
 }
 
@@ -231,15 +236,26 @@ async function saveNewGroup(
   serviceId: string,
   employeeId: string,
 ): Promise<Cita> {
-  const { data: saved, error: insertError } = await mutate
-    .from('appointments')
-    .insert(desiredPayloads)
-    .select(APPOINTMENT_SELECT)
+  const results: AppointmentWithRelations[] = []
+  let primaryIdx = -1
 
-  if (insertError) throw mapAgendaWriteError(insertError, 'guardar')
+  for (let i = 0; i < desiredPayloads.length; i++) {
+    const payload = desiredPayloads[i]
+    const { data: saved, error } = await mutate
+      .from('appointments')
+      .insert(payload)
+      .select(APPOINTMENT_SELECT)
+      .single()
 
-  const results = saved as AppointmentWithRelations[]
-  const primary = results.find(r => r.service_id === serviceId && r.employee_id === employeeId) ?? results[0]
+    if (error) throw mapAgendaWriteError(error, 'guardar')
+    const row = saved as AppointmentWithRelations
+    results.push(row)
+    if (primaryIdx === -1 && row.service_id === serviceId && row.employee_id === employeeId) {
+      primaryIdx = i
+    }
+  }
+
+  const primary = primaryIdx >= 0 ? results[primaryIdx] : results[0]
   return mapAppointmentToCita(primary)
 }
 
@@ -265,10 +281,12 @@ async function updateExistingGroup(
     if (updatePrimaryError) throw mapAgendaWriteError(updatePrimaryError, 'guardar')
 
     if (extraPayloads.length > 0) {
-      const { error: insertExtraError } = await mutate
-        .from('appointments')
-        .insert(extraPayloads)
-      if (insertExtraError) throw mapAgendaWriteError(insertExtraError, 'guardar')
+      for (const payload of extraPayloads) {
+        const { error: insertExtraError } = await mutate
+          .from('appointments')
+          .insert(payload)
+        if (insertExtraError) throw mapAgendaWriteError(insertExtraError, 'guardar')
+      }
     }
   } else {
     // Multi → multi (update group)
@@ -295,10 +313,12 @@ async function updateExistingGroup(
     }
 
     if (desiredPayloads.length > orderedIds.length) {
-      const { error: insertError } = await mutate
-        .from('appointments')
-        .insert(desiredPayloads.slice(orderedIds.length))
-      if (insertError) throw mapAgendaWriteError(insertError, 'guardar')
+      for (const payload of desiredPayloads.slice(orderedIds.length)) {
+        const { error: insertError } = await mutate
+          .from('appointments')
+          .insert(payload)
+        if (insertError) throw mapAgendaWriteError(insertError, 'guardar')
+      }
     }
 
     if (orderedIds.length > desiredPayloads.length) {
