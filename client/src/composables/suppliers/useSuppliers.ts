@@ -218,6 +218,11 @@ export function useSupplierPayments(
     },
   })
 
+  const todayStr = () => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+
   const showModal = ref(false)
   const saveError = ref('')
 
@@ -226,7 +231,7 @@ export function useSupplierPayments(
     amount: 0,
     currency: 'USD',
     paymentMethod: 'cash',
-    paymentDate: new Date().toISOString().slice(0, 10),
+    paymentDate: todayStr(),
     notes: '',
   })
 
@@ -236,7 +241,7 @@ export function useSupplierPayments(
       amount: 0,
       currency: 'USD',
       paymentMethod: 'cash',
-      paymentDate: new Date().toISOString().slice(0, 10),
+      paymentDate: todayStr(),
       notes: '',
     }
     saveError.value = ''

@@ -41,7 +41,7 @@
           </div>
           <div>
             <label class="mb-1 block text-sm font-medium text-text" for="exp-date">Fecha</label>
-            <input id="exp-date" v-model="form.date" type="date"
+            <input id="exp-date" v-model="form.expenseDate" type="date"
               class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
               required />
           </div>

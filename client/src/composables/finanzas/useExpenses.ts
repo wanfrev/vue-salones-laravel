@@ -103,12 +103,17 @@ export function useExpenses(
 
   const showExpenseModal = ref(false)
   const editingExpenseId = ref<string | null>(null)
+  const todayStr = () => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+
   const expenseForm = ref<ExpenseFormData>({
     name: '',
     category: 'General',
     amount: 0,
     currency: 'USD',
-    expenseDate: new Date().toISOString().slice(0, 10),
+    expenseDate: todayStr(),
     notes: '',
   })
 
@@ -120,7 +125,7 @@ export function useExpenses(
       category: 'General',
       amount: 0,
       currency: 'USD',
-      expenseDate: new Date().toISOString().slice(0, 10),
+      expenseDate: todayStr(),
       notes: '',
     }
     editingExpenseId.value = null
