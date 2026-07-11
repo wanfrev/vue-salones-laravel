@@ -14,7 +14,7 @@ class Business extends Model
         'id', 'name', 'slug', 'phone', 'address', 'timezone', 'currency',
         'ves_exchange_rate', 'employee_ves_rate', 'niche_type',
         'theme_config', 'terminology', 'job_titles', 'service_categories',
-        'features', 'multi_branch_enabled', 'active',
+        'features', 'multi_branch_enabled', 'active', 'deleted_at',
     ];
 
     protected function casts(): array

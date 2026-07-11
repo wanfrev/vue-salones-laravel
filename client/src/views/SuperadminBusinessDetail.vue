@@ -427,13 +427,26 @@ const confirmResume = () => {
 // ─── Delete ──────────────────────────────────────────────────
 const { mutateAsync: deleteBiz, isPending: isDeleting } = useMutation({
   mutationFn: deleteBusiness,
+  onMutate: async (id) => {
+    await queryClient.cancelQueries({ queryKey: superadminKeys.businesses() })
+    const previous = queryClient.getQueryData(superadminKeys.businesses())
+    queryClient.setQueryData(superadminKeys.businesses(), (old: Business[] | undefined) =>
+      (old ?? []).filter(b => b.id !== id)
+    )
+    return { previous }
+  },
   onSuccess: async () => {
     success('Negocio eliminado completamente.')
-    queryClient.invalidateQueries({ queryKey: superadminKeys.businesses() }).catch(() => {})
     router.push('/superadmin')
   },
-  onError: (err: unknown) => {
+  onError: (err: unknown, _id, context) => {
+    if (context?.previous) {
+      queryClient.setQueryData(superadminKeys.businesses(), context.previous)
+    }
     error(translateError(err, 'No fue posible eliminar el negocio.'))
+  },
+  onSettled: () => {
+    queryClient.invalidateQueries({ queryKey: superadminKeys.businesses() }).catch(() => {})
   },
 })
 
