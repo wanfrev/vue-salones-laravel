@@ -142,29 +142,29 @@ async function deleteOrphanGroupMembers(
   const orphanIds = (orphans ?? []).map((o: any) => o.id)
   if (orphanIds.length === 0) return
 
-  const { data: orphanTxs, error: orphanTxError } = await supabase
-    .from('transactions')
-    .select('id')
-    .in('appointment_id', orphanIds)
-  if (orphanTxError) throw orphanTxError
-
-  for (const tx of (orphanTxs ?? []) as Array<{ id: string }>) {
-    const { error: txDeleteError } = await mutate
+  for (const orphanId of orphanIds) {
+    const { data: orphanTxs } = await supabase
       .from('transactions')
+      .select('id')
+      .eq('appointment_id', orphanId)
+
+    for (const tx of (orphanTxs ?? []) as Array<{ id: string }>) {
+      const { error: txDeleteError } = await mutate
+        .from('transactions')
+        .delete()
+        .eq('id', tx.id)
+      if (txDeleteError) throw txDeleteError
+    }
+
+    const { error: delError } = await mutate
+      .from('appointments')
       .delete()
-      .eq('id', tx.id)
-    if (txDeleteError) throw txDeleteError
+      .eq('id', orphanId)
+
+    if (delError) throw delError
   }
 
-  const { data: deletedOrphans, error: delError } = await mutate
-    .from('appointments')
-    .delete()
-    .in('id', orphanIds)
-    .select('id')
-  if (delError) throw delError
-  if ((deletedOrphans ?? []).length !== orphanIds.length) {
-    throw new Error('No se pudieron actualizar todos los servicios de la cita. Intenta nuevamente.')
-  }
+  return
 }
 
 async function saveSingleServiceAppointment(
@@ -439,12 +439,21 @@ export const updateCitaStatus = async (
   const groupId = (appt as any)?.group_id
 
   if (groupId) {
-    const { error } = await mutate
+    const { data: members, error: membersError } = await supabase
       .from('appointments')
-      .update(statusPayload)
+      .select('id')
       .eq('group_id', groupId)
 
-    if (error) throw error
+    if (membersError) throw membersError
+
+    for (const member of (members ?? []) as Array<{ id: string }>) {
+      const { error } = await mutate
+        .from('appointments')
+        .update(statusPayload)
+        .eq('id', member.id)
+
+      if (error) throw error
+    }
     return
   }
 
@@ -461,21 +470,30 @@ export const updateAppointmentTime = async (
   startTime: string,
   endTime: string
 ): Promise<void> => {
-  const { data: appt } = await supabase
+  const { data: appt, error: findError } = await supabase
     .from('appointments')
     .select('group_id')
     .eq('id', id)
     .maybeSingle()
 
+  if (findError) throw findError
+
   const groupId = (appt as any)?.group_id
 
   if (groupId) {
-    const { error } = await mutate
+    const { data: members } = await supabase
       .from('appointments')
-      .update({ start_time: startTime, end_time: endTime })
+      .select('id')
       .eq('group_id', groupId)
 
-    if (error) throw mapAgendaWriteError(error, 'reagendar')
+    const ids = (members ?? []).map((m: any) => m.id)
+    for (const memberId of ids) {
+      const { error } = await mutate
+        .from('appointments')
+        .update({ start_time: startTime, end_time: endTime })
+        .eq('id', memberId)
+      if (error) throw mapAgendaWriteError(error, 'reagendar')
+    }
     return
   }
 
@@ -506,30 +524,30 @@ export const deleteCita = async (id: string): Promise<void> => {
       .select('id')
       .eq('group_id', groupId)
 
-    const allIds = (groupMembers ?? []).map((m: any) => m.id)
-
-    const { data: transactions } = await supabase
-      .from('transactions')
-      .select('id')
-      .in('appointment_id', allIds)
-
-    for (const tx of (transactions ?? []) as Array<{ id: string }>) {
-      const { error: txError } = await mutate
+    for (const member of (groupMembers ?? []) as Array<{ id: string }>) {
+      const { data: transactions } = await supabase
         .from('transactions')
-        .delete()
-        .eq('id', tx.id)
-      if (txError) {
-        throw new Error(txError.message || 'Error al eliminar pagos asociados')
+        .select('id')
+        .eq('appointment_id', member.id)
+
+      for (const tx of (transactions ?? []) as Array<{ id: string }>) {
+        const { error: txError } = await mutate
+          .from('transactions')
+          .delete()
+          .eq('id', tx.id)
+        if (txError) {
+          throw new Error(txError.message || 'Error al eliminar pagos asociados')
+        }
       }
-    }
 
-    const { error } = await mutate
-      .from('appointments')
-      .delete()
-      .eq('group_id', groupId)
+      const { error } = await mutate
+        .from('appointments')
+        .delete()
+        .eq('id', member.id)
 
-    if (error) {
-      throw new Error(error.message || error.details || 'Error al eliminar la cita grupal')
+      if (error) {
+        throw new Error(error.message || error.details || 'Error al eliminar la cita grupal')
+      }
     }
     return
   }

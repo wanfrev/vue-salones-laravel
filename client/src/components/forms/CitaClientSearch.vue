@@ -24,24 +24,27 @@ const showSuggestions = ref(false)
 const searchLoading = ref(false)
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
-const doSearch = async (query: string) => {
-  if (!props.businessId) return
-  searchLoading.value = true
-  try {
-    suggestions.value = await searchClients(props.businessId, query, props.branchId)
-    showSuggestions.value = suggestions.value.length > 0
-  } catch {
-    suggestions.value = []
-    showSuggestions.value = false
-  } finally {
-    searchLoading.value = false
-  }
-}
-
 const onInput = () => {
   if (searchTimeout) clearTimeout(searchTimeout)
   const query = props.modelValue.trim()
-  searchTimeout = setTimeout(() => doSearch(query), 300)
+  if (query.length < 1) {
+    suggestions.value = []
+    showSuggestions.value = false
+    return
+  }
+  searchTimeout = setTimeout(async () => {
+    if (!props.businessId) return
+    searchLoading.value = true
+    try {
+      suggestions.value = await searchClients(props.businessId, query, props.branchId)
+      showSuggestions.value = true
+    } catch {
+      suggestions.value = []
+      showSuggestions.value = false
+    } finally {
+      searchLoading.value = false
+    }
+  }, 300)
 }
 
 const selectClient = (client: { id: string; full_name: string; phone: string }) => {
@@ -53,10 +56,7 @@ const selectClient = (client: { id: string; full_name: string; phone: string }) 
 }
 
 const onBlur = () => setTimeout(() => { showSuggestions.value = false }, 200)
-const onFocus = () => {
-  if (suggestions.value.length > 0) { showSuggestions.value = true; return }
-  doSearch(props.modelValue.trim())
-}
+const onFocus = () => { if (suggestions.value.length > 0) showSuggestions.value = true }
 </script>
 
 <template>
@@ -80,7 +80,7 @@ const onFocus = () => {
         </div>
       </button>
     </div>
-    <div v-if="showSuggestions && suggestions.length === 0 && (modelValue.trim().length >= 1 || searchLoading)"
+    <div v-if="showSuggestions && suggestions.length === 0 && modelValue.trim().length >= 1"
       class="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface shadow-lg px-4 py-3 text-center text-sm text-text-muted">
       <template v-if="searchLoading">Buscando...</template>
       <template v-else-if="!canCreateClients">No puedes crear clientes.</template>

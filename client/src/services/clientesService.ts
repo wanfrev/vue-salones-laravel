@@ -118,16 +118,15 @@ export const searchClients = async (
   query: string,
   branchId?: string | null
 ): Promise<Pick<Client, 'id' | 'full_name' | 'phone'>[]> => {
+  if (!query.trim()) return []
+
   let q = supabase
     .from('clients')
     .select('id, full_name, phone')
     .eq('business_id', businessId)
+    .ilike('full_name', `%${query}%`)
     .order('full_name')
     .limit(30)
-
-  if (query.trim()) {
-    q = q.ilike('full_name', `%${query}%`)
-  }
 
   if (branchId) {
     q = q.eq('branch_id', branchId)
