@@ -16,6 +16,8 @@ const props = defineProps<{
   businessStore: any
   teamSchedule: any[]
   totalComisiones: number
+  totalNominaPagada: number
+  totalConsumido: number
   totalDeudaPendiente: number
   deudaConSaldo: any[]
   formatUSD: (n: number) => string
@@ -35,10 +37,11 @@ const emit = defineEmits<{
 
 const tabs = [
   { key: 'pagos' as const, label: 'Servicios Realizados', shortLabel: 'Servicios' },
+  { key: 'nomina' as const, label: 'Pago de Nómina', shortLabel: 'Nómina' },
   { key: 'deuda' as const, label: 'Deuda por Empleado', shortLabel: 'Deuda' },
   { key: 'horarios' as const, label: 'Horarios del Equipo', shortLabel: 'Horarios' },
 ]
-const activeTab = ref<'pagos' | 'deuda' | 'horarios'>('pagos')
+const activeTab = ref<'pagos' | 'nomina' | 'deuda' | 'horarios'>('pagos')
 
 // Pagination
 const pageSize = 10
@@ -51,9 +54,11 @@ const pageProps = <T>(data: T[]) => {
 }
 
 const paginatedServicios = computed(() => paginate(props.summaryCtx.employeePayments.value))
+const paginatedNomina = computed(() => paginate(props.paymentsCtx.paymentsMade.value))
 const paginatedDeuda = computed(() => paginate(props.deudaConSaldo))
 const paginatedHorarios = computed(() => paginate(props.teamSchedule))
 const serviciosP = computed(() => pageProps(props.summaryCtx.employeePayments.value))
+const nominaP = computed(() => pageProps(props.paymentsCtx.paymentsMade.value))
 const deudaP = computed(() => pageProps(props.deudaConSaldo))
 const horariosP = computed(() => pageProps(props.teamSchedule))
 </script>
@@ -123,7 +128,11 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
     <KpiBanner v-if="activeTab === 'pagos'" variant="success"
       icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
       label="Total Comisiones" :value="formatUSD(totalComisiones)"
-      :sublabel="`${summaryCtx.employeePayments.value.length} servicio(s)`" />
+      :sublabel="`${summaryCtx.employeePayments.value.length} servicio(s)`"     />
+    <KpiBanner v-if="activeTab === 'nomina'" variant="danger"
+      icon="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+      label="Total Pagado + Consumido" :value="formatUSD(totalNominaPagada + totalConsumido)"
+      :sublabel="`${paymentsCtx.paymentsMade.value.length} registro(s)`" />
     <KpiBanner v-if="activeTab === 'deuda'" variant="warning"
       icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
       label="Deuda Pendiente Total" :value="formatUSD(totalDeudaPendiente)"
@@ -181,6 +190,53 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
                     class="font-semibold text-success">{{ formatUSD(payment.earnings) }}</span><span
                     class="text-text-muted ml-1">{{ formatVESInline(payment.earnings) }} Bs</span></span>
               </div>
+            </div>
+          </template>
+        </RecordSection>
+      </div>
+
+      <!-- Nómina -->
+      <div v-if="activeTab === 'nomina'">
+        <RecordSection title="" :items="paginatedNomina" :total-count="paymentsCtx.paymentsMade.value.length"
+          empty-message="No hay pagos de nómina registrados" :pages="nominaP" :page-size="pageSize" @prev="tabPage--"
+          @next="tabPage++">
+          <template #desktop-thead>
+            <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+              Fecha</th>
+            <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">{{
+              businessStore.terminology.employee || 'Empleado' }}</th>
+            <th
+              class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
+              Método</th>
+            <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+              Monto</th>
+          </template>
+          <template #desktop-tbody="{ items }">
+            <tr v-for="ep in items" :key="ep.id" class="text-xs transition-theme hover:bg-bg-secondary/40">
+              <td class="px-3 py-3 whitespace-nowrap text-text-secondary">{{ fmtDate(ep.paymentDate) }}</td>
+              <td class="px-3 py-3 font-medium text-text">{{ ep.employeeName }}</td>
+              <td class="px-3 py-3 text-text-secondary hidden sm:table-cell">
+                <span v-if="ep.type === 'consumption'"
+                  class="inline-flex items-center gap-1 rounded-full bg-danger/10 px-2 py-0.5 text-[11px] font-medium text-danger">{{
+                    ep.concept || 'Consumo' }}</span>
+                <span v-else>{{ formatMethod(ep.paymentMethod) }}</span>
+              </td>
+              <td class="px-3 py-3 text-right">
+                <div :class="['font-medium', ep.type === 'consumption' ? 'text-danger' : 'text-danger']">{{ ep.currency
+                  === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</div>
+                <div class="text-[10px] text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) :
+                  formatVESInline(ep.amount, ep.exchangeRateUsed) + ' Bs' }}</div>
+              </td>
+            </tr>
+          </template>
+          <template #mobile-cards="{ items }">
+            <div v-for="ep in items" :key="ep.id"
+              class="rounded-lg border border-border-subtle bg-bg-secondary/30 p-3 space-y-2 text-sm">
+              <div class="flex items-center justify-between"><span class="font-medium text-text">{{ ep.employeeName
+                  }}</span><span class="text-xs text-text-muted">{{ fmtDate(ep.paymentDate) }}</span></div>
+              <div class="flex items-center justify-between text-xs"><span class="text-text-muted">{{ ep.type ===
+                'consumption' ? (ep.concept || 'Consumo') : formatMethod(ep.paymentMethod) }}</span><span
+                  class="text-right"><span class="font-semibold text-danger">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</span><span class="text-text-muted ml-1">{{ ep.currency === 'VES' ? formatUSD(ep.amount) : formatVESInline(ep.amount, ep.exchangeRateUsed) + ' Bs' }}</span></span></div>
             </div>
           </template>
         </RecordSection>

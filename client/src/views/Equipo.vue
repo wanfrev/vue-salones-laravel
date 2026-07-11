@@ -42,7 +42,8 @@
   <GestionTabs
     :summary-ctx="summaryCtx" :payments-ctx="paymentsCtx" :business-store="businessStore"
     :team-schedule="teamSchedule"
-    :total-comisiones="totalComisiones" :total-deuda-pendiente="totalDeudaPendiente"
+    :total-comisiones="totalComisiones" :total-nomina-pagada="totalNominaPagada"
+    :total-consumido="totalConsumido" :total-deuda-pendiente="totalDeudaPendiente"
     :deuda-con-saldo="deudaConSaldo"
     :format-u-s-d="formatUSD" :format-v-e-s-inline="formatVESInline" :format-v-e-s-es="formatVESEs"
     :format-method="formatMethod"
@@ -141,5 +142,7 @@ const employeeDebtSummary = computed(() => {
 
 const deudaConSaldo = computed(() => employeeDebtSummary.value.filter(r => r.pendingBalance > 0))
 const totalComisiones = computed(() => summaryCtx.employeePayments.value.reduce((acc, p) => acc + p.earnings, 0))
+const totalNominaPagada = computed(() => paymentsCtx.paymentsMade.value.filter(p => p.type !== 'consumption').reduce((acc, p) => acc + p.amount, 0))
+const totalConsumido = computed(() => paymentsCtx.paymentsMade.value.filter(p => p.type === 'consumption').reduce((acc, p) => acc + p.amount, 0))
 const totalDeudaPendiente = computed(() => deudaConSaldo.value.reduce((acc, r) => acc + r.pendingBalance, 0))
 </script>
