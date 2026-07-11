@@ -9,8 +9,9 @@ import type { Business } from '../../types/database'
 
 interface UseCategoryCRUDParams<T extends { category: string }> {
   businessId: Ref<string | null>
+  branchId?: Ref<string | null>
   services: Ref<T[]>
-  businessStore: { updateBusiness: (data: Partial<Business>) => void; serviceCategories: string[] }
+  businessStore: { updateBusiness: (data: Partial<Business>) => void; serviceCategories: string[]; branchServiceCategories: string[]; updateBranch?: (data: Record<string, unknown>) => void }
   success: (msg: string) => void
   error: (msg: string) => void
   warning: (msg: string) => void
@@ -41,10 +42,14 @@ export function useCategoryCRUD<T extends { category: string }>(params: UseCateg
 
   const categories = computed(() => {
     const serviceCats = services.value.map(s => s.category).filter(Boolean)
-    const bizCats = (businessStore.serviceCategories ?? []).map(c =>
+    const bizCats = (branchId?.value
+      ? businessStore.branchServiceCategories
+      : businessStore.serviceCategories
+    ) ?? []
+    const flatBizCats = (bizCats as any[]).map(c =>
       typeof c === 'string' ? c : (c as any)?.name ?? ''
     ).filter(Boolean)
-    const unique = Array.from(new Set([...bizCats, ...serviceCats]))
+    const unique = Array.from(new Set([...flatBizCats, ...serviceCats]))
     return [{ id: 'all', name: 'Todos' }, ...unique.map(cat => ({ id: cat, name: cat }))]
   })
 
@@ -62,6 +67,11 @@ export function useCategoryCRUD<T extends { category: string }>(params: UseCateg
       queryClient.invalidateQueries({ exact: false, queryKey: serviciosKeys.all(bid) }),
       queryClient.invalidateQueries({ exact: false, queryKey: ['business', bid] }),
     ]
+    if (branchId?.value) {
+      promises.push(
+        queryClient.invalidateQueries({ exact: false, queryKey: ['branches', bid] })
+      )
+    }
     if (extraInvalidations) {
       for (const keyFn of extraInvalidations) {
         promises.push(queryClient.invalidateQueries({ exact: false, queryKey: keyFn() as string[] }))
@@ -91,8 +101,12 @@ export function useCategoryCRUD<T extends { category: string }>(params: UseCateg
     if (!cur || !next || next === cur) { closeRenameCategoryModal(); return }
     try {
       isUpdatingCategory.value = true
-      const updated = await renameBusinessCategory(bid, cur, next)
-      businessStore.updateBusiness({ service_categories: updated })
+      const updated = await renameBusinessCategory(bid, cur, next, branchId?.value ?? null)
+      if (branchId?.value) {
+        businessStore.updateBranch?.({ service_categories: updated } as Record<string, unknown>)
+      } else {
+        businessStore.updateBusiness({ service_categories: updated })
+      }
       await invalidateCategoryQueries(bid)
       activeCategory.value = next
       closeRenameCategoryModal()
@@ -125,8 +139,12 @@ export function useCategoryCRUD<T extends { category: string }>(params: UseCateg
     if (!cat) { closeDeleteCategoryModal(); return }
     try {
       isUpdatingCategory.value = true
-      const updated = await deleteBusinessCategory(bid, cat, repl)
-      businessStore.updateBusiness({ service_categories: updated })
+      const updated = await deleteBusinessCategory(bid, cat, repl, branchId?.value ?? null)
+      if (branchId?.value) {
+        businessStore.updateBranch?.({ service_categories: updated } as Record<string, unknown>)
+      } else {
+        businessStore.updateBusiness({ service_categories: updated })
+      }
       await invalidateCategoryQueries(bid)
       if (activeCategory.value === cat) activeCategory.value = 'all'
       closeDeleteCategoryModal()

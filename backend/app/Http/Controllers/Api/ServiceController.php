@@ -112,9 +112,15 @@ class ServiceController
         $data = $request->validate([
             'oldName' => 'required|string',
             'newName' => 'required|string',
+            'branch_id' => 'nullable|uuid',
         ]);
 
-        $this->serviceService->renameCategory($businessId, $data['oldName'], $data['newName']);
+        $this->serviceService->renameCategory(
+            $businessId,
+            $data['oldName'],
+            $data['newName'],
+            $data['branch_id'] ?? null
+        );
         return response()->json(['success' => true]);
     }
 
@@ -126,11 +132,13 @@ class ServiceController
         $data = $request->validate([
             'categoryName' => 'required|string',
             'replacementCategory' => 'nullable|string',
+            'branch_id' => 'nullable|uuid',
         ]);
         $this->serviceService->deleteCategory(
             $businessId,
             $data['categoryName'],
-            $data['replacementCategory'] ?? ''
+            $data['replacementCategory'] ?? '',
+            $data['branch_id'] ?? null
         );
         return response()->json(['success' => true]);
     }

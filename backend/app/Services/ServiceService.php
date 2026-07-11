@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Branch;
 use App\Models\Business;
 use App\Models\Service;
 use Illuminate\Support\Collection;
@@ -32,7 +33,7 @@ class ServiceService
 
     public function store(array $data, string $businessId): Service
     {
-        return Service::create([
+        $service = Service::create([
             'id' => Str::uuid()->toString(),
             'business_id' => $businessId,
             'branch_id' => $data['branch_id'] ?? null,
@@ -49,6 +50,33 @@ class ServiceService
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+
+        $cat = $data['category'] ?? '';
+        if ($cat === '' || $cat === 'otros') {
+            return $service;
+        }
+
+        if (!empty($data['branch_id'])) {
+            $branch = Branch::find($data['branch_id']);
+            if ($branch) {
+                $categories = $branch->service_categories ?? [];
+                if (!$this->categoryExists($categories, $cat)) {
+                    $categories[] = ['id' => Str::uuid()->toString(), 'name' => $cat];
+                    $branch->update(['service_categories' => $categories, 'updated_at' => now()]);
+                }
+            }
+        } else {
+            $business = Business::find($businessId);
+            if ($business) {
+                $categories = $business->service_categories ?? [];
+                if (!$this->categoryExists($categories, $cat)) {
+                    $categories[] = ['id' => Str::uuid()->toString(), 'name' => $cat];
+                    $business->update(['service_categories' => $categories, 'updated_at' => now()]);
+                }
+            }
+        }
+
+        return $service;
     }
 
     public function update(string $id, array $data, string $businessId): Service
@@ -77,37 +105,63 @@ class ServiceService
         }
     }
 
-    public function renameCategory(string $businessId, string $oldName, string $newName): void
+    public function renameCategory(string $businessId, string $oldName, string $newName, ?string $branchId = null): void
     {
+        if ($branchId) {
+            $branch = Branch::find($branchId);
+            if (!$branch) {
+                throw new NotFoundHttpException('Sucursal no encontrada.');
+            }
+            $categories = $branch->service_categories ?? [];
+            $this->renameInArray($categories, $oldName, $newName);
+            $branch->update(['service_categories' => $categories, 'updated_at' => now()]);
+
+            Service::where('business_id', $businessId)
+                ->where('branch_id', $branchId)
+                ->where('category', $oldName)
+                ->update(['category' => $newName, 'updated_at' => now()]);
+            return;
+        }
+
         $business = Business::find($businessId);
         if (!$business) {
             throw new NotFoundHttpException('Negocio no encontrado.');
         }
 
         $categories = $business->service_categories ?? [];
-
-        foreach ($categories as &$cat) {
-            if (($cat['name'] ?? $cat) === $oldName) {
-                if (is_array($cat)) {
-                    $cat['name'] = $newName;
-                } else {
-                    $cat = $newName;
-                }
-            }
-        }
-
-        $business->update([
-            'service_categories' => $categories,
-            'updated_at' => now(),
-        ]);
+        $this->renameInArray($categories, $oldName, $newName);
+        $business->update(['service_categories' => $categories, 'updated_at' => now()]);
 
         Service::where('business_id', $businessId)
+            ->whereNull('branch_id')
             ->where('category', $oldName)
             ->update(['category' => $newName, 'updated_at' => now()]);
     }
 
-    public function deleteCategory(string $businessId, string $categoryName, string $replacementCategory = ''): void
+    public function deleteCategory(string $businessId, string $categoryName, string $replacementCategory = '', ?string $branchId = null): void
     {
+        if ($branchId) {
+            $branch = Branch::find($branchId);
+            if (!$branch) {
+                throw new NotFoundHttpException('Sucursal no encontrada.');
+            }
+            $categories = $branch->service_categories ?? [];
+            $categories = array_values(array_filter($categories, fn($cat) =>
+                ($cat['name'] ?? $cat) !== $categoryName
+            ));
+            $branch->update(['service_categories' => $categories, 'updated_at' => now()]);
+
+            $query = Service::where('business_id', $businessId)
+                ->where('branch_id', $branchId)
+                ->where('category', $categoryName);
+            if ($replacementCategory !== '') {
+                $query->update(['category' => $replacementCategory, 'updated_at' => now()]);
+            } else {
+                $query->update(['category' => '', 'updated_at' => now()]);
+            }
+            return;
+        }
+
         $business = Business::find($businessId);
         if (!$business) {
             throw new NotFoundHttpException('Negocio no encontrado.');
@@ -117,20 +171,38 @@ class ServiceService
         $categories = array_values(array_filter($categories, fn($cat) =>
             ($cat['name'] ?? $cat) !== $categoryName
         ));
+        $business->update(['service_categories' => $categories, 'updated_at' => now()]);
 
-        $business->update([
-            'service_categories' => $categories,
-            'updated_at' => now(),
-        ]);
-
+        $query = Service::where('business_id', $businessId)
+            ->whereNull('branch_id')
+            ->where('category', $categoryName);
         if ($replacementCategory !== '') {
-            Service::where('business_id', $businessId)
-                ->where('category', $categoryName)
-                ->update(['category' => $replacementCategory, 'updated_at' => now()]);
+            $query->update(['category' => $replacementCategory, 'updated_at' => now()]);
         } else {
-            Service::where('business_id', $businessId)
-                ->where('category', $categoryName)
-                ->update(['category' => '', 'updated_at' => now()]);
+            $query->update(['category' => '', 'updated_at' => now()]);
+        }
+    }
+
+    private function categoryExists(array $categories, string $name): bool
+    {
+        foreach ($categories as $cat) {
+            if (($cat['name'] ?? $cat) === $name) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function renameInArray(array &$categories, string $oldName, string $newName): void
+    {
+        foreach ($categories as &$cat) {
+            if (($cat['name'] ?? $cat) === $oldName) {
+                if (is_array($cat)) {
+                    $cat['name'] = $newName;
+                } else {
+                    $cat = $newName;
+                }
+            }
         }
     }
 

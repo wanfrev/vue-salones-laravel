@@ -1,4 +1,6 @@
 import { api as supabase, api as mutate } from '../lib/api'
+import { apiRequest } from '../lib/api'
+import type { UpdateFor } from '../types/helpers'
 
 export interface Branch {
   id: string
@@ -9,6 +11,7 @@ export interface Branch {
   is_default: boolean
   active: boolean
   ves_exchange_rate: number | null
+  service_categories: string[]
   created_at: string
   updated_at: string
 }
@@ -94,4 +97,69 @@ export const deleteBranch = async (id: string): Promise<void> => {
     .eq('id', id)
 
   if (error) throw new Error(error.message || 'Error al eliminar la sucursal')
+}
+
+async function updateBranchCategories(branchId: string, categories: string[]): Promise<string[]> {
+  const { error } = await mutate
+    .from('branches')
+    .update({ service_categories: categories } satisfies Partial<UpdateFor<'branches'>>)
+    .eq('id', branchId)
+
+  if (error) throw error
+  return categories
+}
+
+export async function getBranchServiceCategories(branchId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('branches')
+    .select('service_categories')
+    .eq('id', branchId)
+    .single()
+
+  if (error) throw error
+  return (data?.service_categories ?? []) as string[]
+}
+
+export async function addBranchCategory(branchId: string, category: string): Promise<string[]> {
+  const current = await getBranchServiceCategories(branchId)
+  if (current.includes(category)) return current
+  return updateBranchCategories(branchId, [...current, category])
+}
+
+export const renameBranchCategory = async (
+  businessId: string,
+  branchId: string,
+  fromCategory: string,
+  toCategory: string
+): Promise<string[]> => {
+  const nextName = toCategory.trim()
+  if (!fromCategory.trim() || !nextName || fromCategory === nextName) {
+    return getBranchServiceCategories(branchId)
+  }
+
+  await apiRequest('POST', '/services/categories/rename', {
+    data: { oldName: fromCategory, newName: nextName, branch_id: branchId },
+  })
+
+  return getBranchServiceCategories(branchId)
+}
+
+export const deleteBranchCategory = async (
+  businessId: string,
+  branchId: string,
+  categoryToDelete: string,
+  replacementCategory?: string
+): Promise<string[]> => {
+  const category = categoryToDelete.trim()
+  const replacement = (replacementCategory ?? '').trim()
+
+  if (!category || category === replacement) {
+    return getBranchServiceCategories(branchId)
+  }
+
+  await apiRequest('DELETE', '/services/categories', {
+    data: { categoryName: category, replacementCategory: replacement || null, branch_id: branchId },
+  })
+
+  return getBranchServiceCategories(branchId)
 }

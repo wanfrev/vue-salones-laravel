@@ -383,6 +383,7 @@ export interface Branch {
   is_default: boolean
   active: boolean
   ves_exchange_rate: number | null
+  service_categories: string[]
   created_at: string
   updated_at: string
 }

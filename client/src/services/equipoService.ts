@@ -97,6 +97,32 @@ export async function addBusinessArrayField(businessId: string, column: string, 
 export const addBusinessCategory = (businessId: string, category: string): Promise<string[]> =>
   addBusinessArrayField(businessId, 'service_categories', category)
 
+export async function addBranchArrayField(branchId: string, column: string, value: string): Promise<string[]> {
+  const { data: branch, error: fetchError } = await supabase
+    .from('branches')
+    .select(column)
+    .eq('id', branchId)
+    .single()
+
+  if (fetchError) throw fetchError
+
+  const current: string[] = (branch?.[column] ?? []) as string[]
+  if (current.includes(value)) return current
+
+  const updated = [...current, value]
+
+  const { error } = await mutate
+    .from('branches')
+    .update({ [column]: updated } satisfies Partial<UpdateFor<'branches'>>)
+    .eq('id', branchId)
+
+  if (error) throw error
+  return updated
+}
+
+export const addBranchCategory = (branchId: string, category: string): Promise<string[]> =>
+  addBranchArrayField(branchId, 'service_categories', category)
+
 export const addBusinessJobTitle = (businessId: string, title: string): Promise<string[]> =>
   addBusinessArrayField(businessId, 'job_titles', title)
 

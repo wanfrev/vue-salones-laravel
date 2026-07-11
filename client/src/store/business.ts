@@ -43,6 +43,10 @@ export const useBusinessStore = defineStore('business', () => {
   const terminology = computed(() => ({ ...DEFAULT_TERMINOLOGY, ...(business.value?.terminology ?? {}) }))
   const jobTitles = computed(() => business.value?.job_titles ?? [])
   const serviceCategories = computed(() => business.value?.service_categories ?? [])
+  const branchServiceCategories = computed(() => {
+    if (!isMultiBranch.value || !currentBranch.value) return serviceCategories.value
+    return (currentBranch.value as any).service_categories ?? []
+  })
   const features = computed(() => ({ ...DEFAULT_FEATURES, ...(business.value as any)?.features }))
   const hasFeature = (key: FeatureKey): boolean => features.value[key]
   const isMultiBranch = computed(() => features.value.multi_branch)
@@ -181,6 +185,7 @@ export const useBusinessStore = defineStore('business', () => {
     terminology,
     jobTitles,
     serviceCategories,
+    branchServiceCategories,
     isMultiBranch,
     employeeExchangeRate,
     features,

@@ -18,6 +18,10 @@ class BranchResource extends JsonResource
             'is_default' => $this->is_default,
             'active' => $this->active,
             'ves_exchange_rate' => $this->ves_exchange_rate,
+            'service_categories' => array_values(array_unique(array_map(
+                fn($cat) => is_string($cat) ? $cat : ($cat['name'] ?? ''),
+                $this->service_categories ?? []
+            ))),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

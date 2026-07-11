@@ -251,6 +251,7 @@ import { ModalBase, StatCard, EmptyState } from '../components/common'
 import ServiceCard from '../components/servicios/ServiceCard.vue'
 import { deleteServicio, listServicios, saveServicio, serviciosKeys } from '../services/serviciosService'
 import { addBusinessCategory } from '../services/equipoService'
+import { addBranchCategory } from '../services/equipoService'
 import type { Servicio, ServicioFormData } from '../types/servicio'
 
 const { authStore } = useAuth()
@@ -308,8 +309,14 @@ const {
   confirmDeleteCategory,
 } = useCategoryCRUD({
   businessId,
+  branchId,
   services: servicios,
-  businessStore,
+  businessStore: {
+    updateBusiness: (data) => businessStore.updateBusiness(data),
+    serviceCategories: businessStore.serviceCategories,
+    branchServiceCategories: businessStore.branchServiceCategories,
+    updateBranch: (data) => businessStore.updateBranch(data as any),
+  },
   success,
   error: showError,
   warning,
@@ -321,11 +328,16 @@ const addCategory = async () => {
   const exists = categories.value.some(c => c.name.toLowerCase() === name.toLowerCase())
   if (exists) { showError('Esa categoría ya existe'); return }
   try {
-    await addBusinessCategory(businessId.value, name)
+    if (branchId.value) {
+      await addBranchCategory(branchId.value, name)
+      queryClient.invalidateQueries({ queryKey: ['branches', businessId.value] }).catch(() => {})
+    } else {
+      await addBusinessCategory(businessId.value, name)
+      queryClient.invalidateQueries({ queryKey: ['business', businessId.value] }).catch(() => {})
+    }
     newCatName.value = ''
     addingCategory.value = false
     success('Categoría agregada')
-    queryClient.invalidateQueries({ queryKey: ['business', businessId.value] }).catch(() => {})
     queryClient.invalidateQueries({ queryKey: serviciosKeys.all(businessId.value) }).catch(() => {})
   } catch (err) {
     showError('Error al agregar categoría')
@@ -354,11 +366,11 @@ const precioPromedioNumerico = computed(() => {
 })
 
 const handleNewServicio = () => {
-  servicioModalRef.value?.open()
+  servicioModalRef.value?.open(undefined, branchId.value ?? undefined)
 }
 
 const handleEditServicio = (servicio: Servicio) => {
-  servicioModalRef.value?.open(servicio)
+  servicioModalRef.value?.open(servicio, branchId.value ?? undefined)
 }
 
 const handleDeleteServicio = (servicio: Servicio) => {

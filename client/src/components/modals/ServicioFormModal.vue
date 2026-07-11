@@ -104,8 +104,8 @@ import { useModal } from '../../composables/common/useModal'
 import { useNotification } from '../../composables/common/useNotification'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
-import { addBusinessCategory } from '../../services/equipoService'
-import { getBusinessServiceCategories } from '../../services/serviciosService'
+import { addBusinessCategory, addBranchCategory } from '../../services/equipoService'
+import { getEntityServiceCategories } from '../../services/serviciosService'
 import type { Servicio, ServicioFormData } from '../../types/servicio'
 import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormDropdown, FormTextarea } from '../forms'
@@ -234,9 +234,10 @@ watch(isOpen, async (open) => {
   if (open) {
     categoriesVersion.value++
     const bizId = businessStore.business?.id
+    const branchId = (modalData.value as any)?.branchId as string | undefined
     if (bizId) {
       try {
-        dbCategories.value = await getBusinessServiceCategories(bizId)
+        dbCategories.value = await getEntityServiceCategories(bizId, branchId ?? null)
       } catch {
         dbCategories.value = []
       }
@@ -339,11 +340,20 @@ const handleSubmit = async () => {
   const category = formData.value.category.trim()
 
   const businessId = authStore.businessId
-  const bizCats = businessStore.serviceCategories
-  if (businessId && category && !bizCats.includes(category)) {
+  const branchId = (modalData.value as any)?.branchId as string | undefined
+  const targetCats = branchId
+    ? businessStore.branchServiceCategories
+    : businessStore.serviceCategories
+
+  if (businessId && category && !targetCats.includes(category)) {
     try {
-      const updated = await addBusinessCategory(businessId, category)
-      businessStore.updateBusiness({ service_categories: updated })
+      if (branchId) {
+        const updated = await addBranchCategory(branchId, category)
+        businessStore.updateBranch({ service_categories: updated as any })
+      } else {
+        const updated = await addBusinessCategory(businessId, category)
+        businessStore.updateBusiness({ service_categories: updated })
+      }
     } catch (err) {
       console.error('Error persisting category:', err)
     }
@@ -361,8 +371,8 @@ const handleSubmit = async () => {
   emit('save', servicioData)
 }
 
-const open = (servicio?: Servicio) => {
-  useModal(MODAL_ID).open({ servicio })
+const open = (servicio?: Servicio, branchId?: string) => {
+  useModal(MODAL_ID).open({ servicio, branchId })
   if (servicio) {
     formData.value = {
       name: servicio.name || '',

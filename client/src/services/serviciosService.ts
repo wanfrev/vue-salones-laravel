@@ -131,6 +131,14 @@ export async function getBusinessServiceCategories(businessId: string): Promise<
   return (data?.service_categories ?? []) as string[]
 }
 
+export async function getEntityServiceCategories(businessId: string, branchId?: string | null): Promise<string[]> {
+  if (branchId) {
+    const { getBranchServiceCategories } = await import('./branchesService')
+    return getBranchServiceCategories(branchId)
+  }
+  return getBusinessServiceCategories(businessId)
+}
+
 async function updateBusinessServiceCategories(businessId: string, categories: string[]): Promise<string[]> {
   const { error } = await mutate
     .from('businesses')
@@ -141,38 +149,58 @@ async function updateBusinessServiceCategories(businessId: string, categories: s
   return categories
 }
 
+async function updateBranchServiceCategories(branchId: string, categories: string[]): Promise<string[]> {
+  const { error } = await mutate
+    .from('branches')
+    .update({ service_categories: categories } satisfies Partial<UpdateFor<'branches'>>)
+    .eq('id', branchId)
+
+  if (error) throw error
+  return categories
+}
+
 export const renameBusinessCategory = async (
   businessId: string,
   fromCategory: string,
-  toCategory: string
+  toCategory: string,
+  branchId?: string | null
 ): Promise<string[]> => {
   const nextName = toCategory.trim()
   if (!fromCategory.trim() || !nextName || fromCategory === nextName) {
-    return getBusinessServiceCategories(businessId)
+    return branchId
+      ? (await import('./branchesService')).getBranchServiceCategories(branchId)
+      : getBusinessServiceCategories(businessId)
   }
 
   await apiRequest('POST', '/services/categories/rename', {
-    data: { oldName: fromCategory, newName: nextName },
+    data: { oldName: fromCategory, newName: nextName, ...(branchId ? { branch_id: branchId } : {}) },
   })
 
-  return getBusinessServiceCategories(businessId)
+  return branchId
+    ? (await import('./branchesService')).getBranchServiceCategories(branchId)
+    : getBusinessServiceCategories(businessId)
 }
 
 export const deleteBusinessCategory = async (
   businessId: string,
   categoryToDelete: string,
-  replacementCategory?: string
+  replacementCategory?: string,
+  branchId?: string | null
 ): Promise<string[]> => {
   const category = categoryToDelete.trim()
   const replacement = (replacementCategory ?? '').trim()
 
   if (!category || category === replacement) {
-    return getBusinessServiceCategories(businessId)
+    return branchId
+      ? (await import('./branchesService')).getBranchServiceCategories(branchId)
+      : getBusinessServiceCategories(businessId)
   }
 
   await apiRequest('DELETE', '/services/categories', {
-    data: { categoryName: category, replacementCategory: replacement || null },
+    data: { categoryName: category, replacementCategory: replacement || null, ...(branchId ? { branch_id: branchId } : {}) },
   })
 
-  return getBusinessServiceCategories(businessId)
+  return branchId
+    ? (await import('./branchesService')).getBranchServiceCategories(branchId)
+    : getBusinessServiceCategories(businessId)
 }

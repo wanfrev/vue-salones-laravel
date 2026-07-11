@@ -16,6 +16,7 @@ class Branch extends Model
     protected $fillable = [
         'id', 'business_id', 'name', 'address', 'phone',
         'is_default', 'active', 'ves_exchange_rate',
+        'service_categories',
     ];
 
     protected function casts(): array
@@ -24,6 +25,7 @@ class Branch extends Model
             'is_default' => 'boolean',
             'active' => 'boolean',
             'ves_exchange_rate' => 'float',
+            'service_categories' => 'json',
         ];
     }
 
