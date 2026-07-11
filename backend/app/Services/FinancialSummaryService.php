@@ -9,6 +9,28 @@ use Illuminate\Support\Facades\DB;
 
 class FinancialSummaryService
 {
+    private function resolveTimezone(string $businessId): string
+    {
+        return \App\Models\Business::find($businessId)?->timezone ?: 'UTC';
+    }
+
+    /**
+     * Convert a local date string (from the frontend) to UTC for DB queries.
+     */
+    private function toUtc(?string $dateStr, string $timezone): ?string
+    {
+        if (!$dateStr) return null;
+        try {
+            $len = strlen($dateStr);
+            $format = $len <= 10 ? 'Y-m-d' : 'Y-m-d H:i:s';
+            return \Carbon\Carbon::parse($dateStr, $timezone)
+                ->setTimezone('UTC')
+                ->format($format);
+        } catch (\Throwable) {
+            return $dateStr;
+        }
+    }
+
     /**
      * Period-bucketed transaction summary for charts.
      */
@@ -32,8 +54,10 @@ class FinancialSummaryService
             ->groupBy(DB::raw("to_char(transactions.paid_at, 'YYYY-MM-DD')"))
             ->orderBy('bucket');
 
+        $tz = $this->resolveTimezone($businessId);
+
         if ($start && $end) {
-            $query->whereBetween('transactions.paid_at', [$start, $end]);
+            $query->whereBetween('transactions.paid_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
         }
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
@@ -57,8 +81,10 @@ class FinancialSummaryService
         $txQuery = DB::table('transactions')
             ->where('business_id', $businessId);
 
+        $tz = $this->resolveTimezone($businessId);
+
         if ($start && $end) {
-            $txQuery->whereBetween('paid_at', [$start, $end]);
+            $txQuery->whereBetween('paid_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
         }
         if ($branchId) {
             $txQuery->where(function ($q) use ($branchId) {
@@ -153,11 +179,13 @@ class FinancialSummaryService
             ->where('business_id', $businessId)
             ->orderByDesc('paid_at');
 
+        $tz = $this->resolveTimezone($businessId);
+
         if ($start) {
-            $query->where('paid_at', '>=', $start);
+            $query->where('paid_at', '>=', $this->toUtc($start, $tz));
         }
         if ($end) {
-            $query->where('paid_at', '<=', $end);
+            $query->where('paid_at', '<=', $this->toUtc($end, $tz));
         }
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
@@ -225,8 +253,10 @@ class FinancialSummaryService
             )
             ->orderByDesc('inventory_movements.created_at');
 
+        $tz = $this->resolveTimezone($businessId);
+
         if ($start && $end) {
-            $query->whereBetween('inventory_movements.created_at', [$start, $end]);
+            $query->whereBetween('inventory_movements.created_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
         }
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
