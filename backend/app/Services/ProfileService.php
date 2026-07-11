@@ -57,6 +57,7 @@ class ProfileService
             Profile::create([
                 'id' => $user->id,
                 'business_id' => $businessId,
+                'branch_id' => $data['branch_id'] ?? null,
                 'full_name' => $data['full_name'],
                 'role' => 'empleado',
                 'phone' => $data['phone'] ?? null,
@@ -102,6 +103,7 @@ class ProfileService
             'pay_type' => $data['pay_type'] ?? null,
             'pay_percentage' => $data['pay_percentage'] ?? null,
             'base_salary' => $data['base_salary'] ?? null,
+            'branch_id' => $data['branch_id'] ?? null,
         ], fn($v) => $v !== null) + ['updated_at' => now()];
 
         if (array_key_exists('salary_frequency', $data)) {

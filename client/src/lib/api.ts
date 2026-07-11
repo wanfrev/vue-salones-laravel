@@ -359,6 +359,7 @@ export type ApiUser = {
   profile?: {
     id: string
     business_id: string | null
+    branch_id: string | null
     full_name: string
     role: string
     phone: string | null

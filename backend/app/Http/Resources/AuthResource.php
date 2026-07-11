@@ -18,6 +18,7 @@ class AuthResource extends JsonResource
             'profile' => $profile ? [
                 'id' => $profile->id,
                 'business_id' => $profile->business_id,
+                'branch_id' => $profile->branch_id,
                 'full_name' => $profile->full_name,
                 'role' => $profile->role,
                 'phone' => $profile->phone,

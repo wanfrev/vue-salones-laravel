@@ -52,6 +52,7 @@ export interface Business {
 export interface Profile {
   id: string
   business_id: string | null
+  branch_id: string | null
   full_name: string
   role: AppRole
   job_title: string | null

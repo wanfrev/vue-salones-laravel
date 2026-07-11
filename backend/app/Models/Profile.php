@@ -14,7 +14,7 @@ class Profile extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id', 'business_id', 'full_name', 'role', 'phone', 'avatar_url',
+        'id', 'business_id', 'branch_id', 'full_name', 'role', 'phone', 'avatar_url',
         'active', 'email', 'job_title',
         'pay_type', 'pay_percentage', 'base_salary', 'salary_frequency',
         'employee_ves_rate',
