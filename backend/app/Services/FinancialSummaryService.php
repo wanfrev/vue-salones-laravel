@@ -138,6 +138,11 @@ class FinancialSummaryService
         if ($start && $end) {
             $supQuery->whereBetween('payment_date', [$start, $end]);
         }
+        if ($branchId) {
+            $supQuery->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
 
         $totalSupplierPayments = (float) $supQuery->sum('amount');
 

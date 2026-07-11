@@ -24,7 +24,7 @@ class SupplierPaymentController
         if (!$businessId) return response()->json([]);
 
         return response()->json(
-            $this->paymentService->list($businessId, $request->supplier_id)
+            $this->paymentService->list($businessId, $request->supplier_id, $request->branch_id)
         );
     }
 

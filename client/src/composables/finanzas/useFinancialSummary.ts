@@ -289,7 +289,7 @@ function useFinancialSummary(
       result.push({
         id: tx.id,
         date: formatDate(tx.paid_at),
-        description: `${tx.client_name ?? 'Venta directa'} · ${tx.service_name ?? 'Producto'}`,
+        description: `${tx.client_name ?? 'Venta directa'} · ${tx.service_name ?? '—'}`,
         method: formatMethod(tx.method),
         amount: serviceAmt,
         type: 'ingreso',
@@ -312,6 +312,24 @@ function useFinancialSummary(
         type: 'gasto',
         source: 'expense',
         sourceLabel: 'Gasto',
+      })
+    }
+
+    // Product sales (con nombre real del producto)
+    for (const ps of (productSalesData.value ?? [])) {
+      const clientLabel = (ps as any).client_name as string | undefined
+      const productName = (ps as any).product ?? 'Producto'
+      result.push({
+        id: 'ps-' + (ps as any).id,
+        date: formatDate((ps as any).date ?? (ps as any).created_at),
+        description: clientLabel ? `${clientLabel} · ${productName}` : productName,
+        method: formatMethod((ps as any).payment_method ?? 'cash'),
+        amount: Number((ps as any).total ?? 0),
+        type: 'ingreso',
+        exchangeRateUsed: Number((ps as any).exchange_rate_used ?? 1),
+        notes: (ps as any).notes ?? null,
+        source: 'product_sale',
+        sourceLabel: 'Venta producto',
       })
     }
 

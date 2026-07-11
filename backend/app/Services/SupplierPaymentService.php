@@ -10,13 +10,19 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class SupplierPaymentService
 {
-    public function list(string $businessId, ?string $supplierId = null): Collection
+    public function list(string $businessId, ?string $supplierId = null, ?string $branchId = null): Collection
     {
         $query = SupplierPayment::with('supplier')
             ->where('business_id', $businessId)
             ->orderByDesc('payment_date');
 
         if ($supplierId) $query->where('supplier_id', $supplierId);
+
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
 
         return $query->get();
     }
