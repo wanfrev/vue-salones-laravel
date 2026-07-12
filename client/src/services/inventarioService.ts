@@ -37,7 +37,7 @@ export async function getDefaultLocation(businessId: string, branchId?: string |
       .select('id')
       .single()
     if (insertErr) {
-      const isDuplicate = insertErr.code === '23505' && insertErr.message.includes('inventory_locations_business_id_name_key')
+      const isDuplicate = insertErr.message.includes('inventory_locations_business_id_name_key')
       if (isDuplicate && branchId) {
         const { data: existingLoc } = await supabase
           .from('inventory_locations')
