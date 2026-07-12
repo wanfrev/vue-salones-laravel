@@ -212,9 +212,7 @@ function useFinancialSummary(
         const existing = groupMap.get(key)!
         existing.amount += row.amount
         existing.tipAmount += row.tipAmount
-        existing.primaryAmount = existing.primaryCurrency === 'VES' && row.primaryCurrency === 'VES'
-          ? existing.primaryAmount + row.primaryAmount
-          : existing.amount
+        existing.primaryAmount += row.primaryAmount
         if (!existing.employees.includes(row.employee)) existing.employees.push(row.employee)
         if (!existing.services.includes(row.service)) existing.services.push(row.service)
       } else {
@@ -226,13 +224,18 @@ function useFinancialSummary(
       }
     }
 
-    return Array.from(groupMap.values()).map(r => ({
-      ...r,
-      employee: r.employees.filter(e => e && e !== '—').join(', ') || '—',
-      service: r.services.filter(s => s).join(' + '),
-      employees: undefined as any,
-      services: undefined as any,
-    }))
+    return Array.from(groupMap.values()).map(r => {
+      const isGrouped = raw.filter(x => groupKey(x) === groupKey(r)).length > 1
+      return {
+        ...r,
+        employee: r.employees.filter(e => e && e !== '—').join(', ') || '—',
+        service: r.services.filter(s => s).join(' + '),
+        method: isGrouped ? formatMethod(r.rawMethod) : r.method,
+        breakdownLabel: isGrouped ? '' : r.breakdownLabel,
+        employees: undefined as any,
+        services: undefined as any,
+      }
+    })
   })
 
   // ── Product Sales ──
