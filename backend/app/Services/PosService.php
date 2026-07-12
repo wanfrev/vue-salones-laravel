@@ -107,6 +107,7 @@ class PosService
         ?float $tipAmount,
         string $businessId,
         string $createdBy,
+        float $productsAmount = 0,
     ): string {
         $appointment = Appointment::with(['service', 'employeeProfile'])
             ->findOrFail($appointmentId);
@@ -139,18 +140,20 @@ class PosService
         return DB::transaction(function () use (
             $appointment, $appointmentId, $serviceAmount, $method, $products,
             $notes, $rate, $paymentsBreakdown, $tip, $businessId, $createdBy,
-            $employeePct, $localPct, $assistantPct, $effectivePrice
+            $employeePct, $localPct, $assistantPct, $effectivePrice, $productsAmount
         ) {
+            $totalAmount = $serviceAmount + $productsAmount;
+
             $assistantAmount = round($serviceAmount * $assistantPct / 100, 2);
             $employeeAmount = round($serviceAmount * $employeePct / 100, 2);
-            $localAmount = round($serviceAmount - $employeeAmount - $assistantAmount, 2);
+            $localAmount = round($totalAmount - $employeeAmount - $assistantAmount, 2);
 
             $tx = Transaction::create([
                 'id' => Str::uuid()->toString(),
                 'business_id' => $businessId,
                 'branch_id' => $appointment->branch_id,
                 'appointment_id' => $appointmentId,
-                'total_amount' => $serviceAmount,
+                'total_amount' => $totalAmount,
                 'local_amount' => $localAmount,
                 'employee_amount' => $employeeAmount,
                 'assistant_amount' => $assistantAmount,

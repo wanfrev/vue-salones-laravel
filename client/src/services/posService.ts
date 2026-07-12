@@ -72,6 +72,7 @@ export const recordSale = async (params: {
   appointmentId: string
   serviceAmount?: number
   amount?: number
+  productsAmount?: number
   method: PaymentMethod
   products?: POSProductItem[]
   notes?: string
@@ -101,6 +102,7 @@ export const recordSale = async (params: {
   const response = await apiRequest<{ id: string }>('POST', '/pos/sale', {
     appointment_id: params.appointmentId,
     service_amount: serviceAmount,
+    products_amount: params.productsAmount ?? 0,
     method: params.method,
     products: productsPayload,
     notes: params.notes ?? null,

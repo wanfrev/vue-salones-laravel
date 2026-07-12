@@ -67,9 +67,11 @@ export function usePOSPayment() {
       exchangeRate: number
       paymentsBreakdown: PaymentBreakdownItem[]
       tipAmount?: number
+      productsAmount?: number
     }) => recordSale({
       appointmentId: params.appointmentId,
       serviceAmount: params.serviceAmount,
+      productsAmount: params.productsAmount,
       method: params.method,
       products: params.products,
       notes: params.notes,
@@ -168,6 +170,7 @@ export function usePOSPayment() {
     exchangeRate: number,
     formatDual: (n: number) => string,
     _tipAllocations?: TipAllocationItem[],
+    productsAmount = 0,
   ): Promise<boolean> => {
     if (serviceAmount <= 0) {
       showError('El total debe ser mayor a 0')
@@ -193,6 +196,7 @@ export function usePOSPayment() {
       await recordMutation.mutateAsync({
         appointmentId,
         serviceAmount,
+        productsAmount,
         method,
         products: cartProducts,
         notes: paymentNotes.value,

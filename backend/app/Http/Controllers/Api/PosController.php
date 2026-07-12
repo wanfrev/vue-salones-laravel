@@ -58,6 +58,7 @@ class PosController
                 tipAmount: $data['tip_amount'] ?? null,
                 businessId: $businessId,
                 createdBy: $request->user()->id,
+                productsAmount: (float) ($data['products_amount'] ?? 0),
             );
 
             EntityChanged::safe($businessId, 'transaction', 'created', $txId);

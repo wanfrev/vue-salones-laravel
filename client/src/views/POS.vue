@@ -313,6 +313,8 @@ const handleGroupPayment = async (appt: any) => {
       if (!isLast) remainingService -= serviceShare
 
       const amount = i === 0 ? serviceShare + productsTotal : serviceShare
+      const amountWithoutProducts = serviceShare
+      const productsForThis = i === 0 ? productsTotal : 0
       const employeeId = members[i]?.employeeId
       const fullTip = employeeId ? (tipAllocations.value[employeeId] ?? 0) : 0
       const memberServices = members.filter(m => m.employeeId === employeeId).length
@@ -320,7 +322,7 @@ const handleGroupPayment = async (appt: any) => {
       const memberBreakdown = methodBreakdowns.map(b => ({ ...b, inputAmount: Math.round(b.inputAmount * proportion * 100) / 100, amount: Math.round(b.amount * proportion * 100) / 100 }))
 
       if (i === 0) {
-        await recordSale({ appointmentId: groupIds[i], amount, method: method as any, products, notes, exchangeRate: exchangeRt, paymentsBreakdown: memberBreakdown as any, businessId: businessId.value!, branchId: branchId.value, tipAmount: memberTip })
+        await recordSale({ appointmentId: groupIds[i], serviceAmount: amountWithoutProducts, amount, productsAmount: productsForThis, method: method as any, products, notes, exchangeRate: exchangeRt, paymentsBreakdown: memberBreakdown as any, businessId: businessId.value!, branchId: branchId.value, tipAmount: memberTip })
       } else {
         await recordPaymentOnly({ appointmentId: groupIds[i], amount, method: method as any, notes, exchangeRate: exchangeRt, paymentsBreakdown: memberBreakdown as any, tipAmount: memberTip })
       }
@@ -356,7 +358,7 @@ const confirmPayment = async () => {
   if (!selectedAppointment.value) return
   const appt = selectedAppointment.value
   if (appt.isGroup && appt.groupIds?.length > 1) { await handleGroupPayment(appt); return }
-  const ok = await paymentCtx.processPayment(appt.id, grandTotal.value, cartCtx.cart.value, exchangeRate.value, formatDual, normalizedTipAllocations.value)
+  const ok = await paymentCtx.processPayment(appt.id, servicePrice.value, cartCtx.cart.value, exchangeRate.value, formatDual, normalizedTipAllocations.value, cartCtx.productsTotal.value)
   if (ok) { selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset() }
 }
 </script>

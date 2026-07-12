@@ -27,6 +27,7 @@ class ProcessSaleRequest extends FormRequest
             'payments_breakdown.*.currency' => 'required|in:USD,VES',
             'payments_breakdown.*.amount' => 'required|numeric|min:0',
             'tip_amount' => 'nullable|numeric|min:0',
+            'products_amount' => 'nullable|numeric|min:0',
         ];
     }
 }
