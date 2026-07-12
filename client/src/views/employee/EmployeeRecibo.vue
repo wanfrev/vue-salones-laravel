@@ -18,8 +18,8 @@
             <p v-if="payInfo" class="text-sm text-text-muted">
               {{ payInfo.typeLabel }}
               <template v-if="payInfo.type === 'percentage'"> · {{ payInfo.percentage }}% comisión</template>
-              <template v-else-if="payInfo.type === 'mixed'"> · {{ payInfo.percentage }}% comisión + ${{ payInfo.baseSalary.toFixed(2) }} base</template>
-              <template v-else-if="payInfo.type === 'salary'"> · ${{ payInfo.baseSalary.toFixed(2) }} mensual</template>
+              <template v-else-if="payInfo.type === 'mixed'"> · {{ payInfo.percentage }}% comisión + ${{ payInfo.baseSalary.toFixed(2) }} base {{ payInfo.frequencyLabel }}</template>
+              <template v-else-if="payInfo.type === 'salary'"> · ${{ payInfo.baseSalary.toFixed(2) }} {{ payInfo.frequencyLabel }}</template>
             </p>
           </div>
         </div>
@@ -401,7 +401,10 @@ const payInfo = computed(() => {
   const percentage = Number((profile as any).pay_percentage ?? 50)
   const baseSalary = Number((profile as any).base_salary ?? 0)
   const typeLabel = type === 'salary' ? 'Sueldo base' : type === 'mixed' ? 'Sueldo + %' : 'Porcentaje'
-  return { type, percentage, baseSalary, typeLabel }
+  const freq = (profile as any).salary_frequency ?? 'monthly'
+  const freqMap: Record<string, string> = { weekly: 'semanal', biweekly: 'quincenal', monthly: 'mensual' }
+  const frequencyLabel = freqMap[freq] ?? 'mensual'
+  return { type, percentage, baseSalary, typeLabel, frequencyLabel }
 })
 
 const initials = computed(() => getInitials(authStore.profile?.full_name))
