@@ -373,6 +373,7 @@ function useFinancialSummary(
       if (!tx.employee_name) continue
       const tip = Number(tx.tip_amount ?? 0)
       const amt = Number(tx.total_amount ?? 0)
+      const empAmt = Number(tx.employee_amount ?? 0)
       const pct = Number(tx.employee_percentage ?? 0)
       rows.push({
         id: tx.id,
@@ -381,7 +382,7 @@ function useFinancialSummary(
         service: tx.service_name ?? '—',
         amount: amt,
         percentage: pct,
-        earnings: amt * (pct / 100) + tip,
+        earnings: empAmt + tip,
         tipAmount: tip,
       })
     }
@@ -407,9 +408,8 @@ function useFinancialSummary(
       }
       const entry = map.get(tx.employee_name)!
       const tip = Number(tx.tip_amount ?? 0)
-      const amt = Number(tx.total_amount ?? 0)
-      const pct = Number(tx.employee_percentage ?? tx.employee_pay_percentage ?? 0)
-      const earnings = amt * (pct / 100) + tip
+      const empAmt = Number(tx.employee_amount ?? 0)
+      const earnings = empAmt + tip
       entry.commissionTotal += earnings
       entry.totalEarned += earnings
     }

@@ -262,10 +262,11 @@ class EmployeeCommissionService
                 ?? $row->employee_percentage
                 ?? 0);
             $tip = (float) ($row->tip_amount ?? 0);
-            $totalAmount = (float) ($row->total_amount ?? 0);
-            $earnings = $pct > 0
-                ? ($totalAmount * ($pct / 100)) + $tip
-                : 0;
+            $empAmount = (float) ($row->employee_amount ?? 0);
+            $earnings = $empAmount + $tip;
+            $serviceAmount = $pct > 0 && $empAmount > 0
+                ? round($empAmount / $pct * 100, 2)
+                : (float) ($row->service_price ?? $row->total_amount ?? 0);
 
             return [
                 'id' => $row->appointment_id,
@@ -273,8 +274,8 @@ class EmployeeCommissionService
                 'time' => $row->start_time,
                 'client_name' => $row->client_name ?? '—',
                 'service_name' => $row->service_name ?? '—',
-                'service_price' => (float) ($row->service_price ?? $row->total_amount ?? 0),
-                'amount' => (float) ($row->total_amount ?? 0),
+                'service_price' => (float) ($row->service_price ?? $serviceAmount),
+                'amount' => $serviceAmount,
                 'percentage' => round($pct, 1),
                 'earnings' => round($earnings, 2),
                 'tip_amount' => round($tip, 2),
