@@ -54,20 +54,22 @@
     @reset-current-month="resetToCurrent"
     @open-payment="paymentsCtx.openPaymentModal()"
     @open-consumption="paymentsCtx.openConsumptionModal()"
-    @open-edit-payment="(ep) => paymentsCtx.openEditModal(ep)"
+    @open-edit-payment="(ep) => paymentsCtx.openEditPayment(ep)"
     @delete-payment="(id) => paymentsCtx.handleDelete(id)"
   />
 
   <EmployeePaymentModal
     :payments-ctx="paymentsCtx" :business-id="authStore.businessId"
     :branch-id="businessStore.currentBranchId"
-    @close="paymentsCtx.closeModal()"
+    :employees="team"
+    @close="paymentsCtx.closePaymentModal()"
     @payment-saved="onPaymentSaved"
   />
 
   <EmployeeConsumptionModal
     :payments-ctx="paymentsCtx" :business-id="authStore.businessId"
     :branch-id="businessStore.currentBranchId"
+    :employees="team"
     @close="paymentsCtx.closeConsumptionModal()"
     @consumption-saved="onPaymentSaved"
   />
