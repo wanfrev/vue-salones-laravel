@@ -22,7 +22,7 @@ class ProfileService
         return $profile;
     }
 
-    public function list(string $businessId, ?string $branchId = null): Collection
+    public function list(string $businessId, ?string $branchId = null, $disableAgenda = null): Collection
     {
         $query = Profile::with('schedules')
             ->where('role', 'empleado')
@@ -33,6 +33,10 @@ class ProfileService
             $query->whereHas('schedules', fn($q) =>
                 $q->where('branch_id', $branchId)
             );
+        }
+
+        if ($disableAgenda !== null) {
+            $query->where('disable_agenda', filter_var($disableAgenda, FILTER_VALIDATE_BOOL));
         }
 
         return $query->get()->map(function ($profile) {

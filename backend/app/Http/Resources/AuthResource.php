@@ -27,6 +27,7 @@ class AuthResource extends JsonResource
                 'pay_type' => $profile->pay_type,
                 'pay_percentage' => $profile->pay_percentage,
                 'base_salary' => $profile->base_salary,
+                'disable_agenda' => $profile->disable_agenda,
             ] : null,
         ];
     }

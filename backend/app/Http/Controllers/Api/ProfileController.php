@@ -26,7 +26,7 @@ class ProfileController
         }
 
         return response()->json(
-            $this->profileService->list($businessId, $request->branch_id)
+            $this->profileService->list($businessId, $request->branch_id, $request->disable_agenda)
         );
     }
 
