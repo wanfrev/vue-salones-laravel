@@ -167,6 +167,8 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
           <template #desktop-thead>
             <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">{{
               businessStore.terminology.employee || 'Empleado' }}</th>
+            <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+              Cliente</th>
             <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">{{
               businessStore.terminology.service || 'Servicio' }}</th>
             <th
@@ -182,6 +184,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
           <template #desktop-tbody="{ items }">
             <tr v-for="payment in items" :key="payment.id" class="text-xs transition-theme hover:bg-bg-secondary/40">
               <td class="px-3 py-3 font-medium text-text">{{ payment.employee }}</td>
+              <td class="px-3 py-3 text-text-secondary">{{ payment.client || '—' }}</td>
               <td class="px-3 py-3 text-text-secondary">{{ payment.service }}</td>
               <td class="px-3 py-3 text-right hidden sm:table-cell">
                 <div class="text-text">{{ formatUSD(payment.amount) }}</div>
@@ -204,6 +207,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
               <div class="flex items-center justify-between"><span class="font-medium text-text">{{ payment.employee
                   }}</span><span class="text-xs font-semibold text-text-secondary">{{ payment.percentage }}%
                   Empleado</span></div>
+              <div v-if="payment.client" class="text-xs text-text-secondary">{{ payment.client }}</div>
               <div class="text-xs text-text-secondary">{{ payment.service }}</div>
               <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                 <span class="text-text-muted">Costo</span><span class="text-right"><span class="text-text">{{
