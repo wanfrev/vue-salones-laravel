@@ -202,6 +202,7 @@ class PosService
                         createdBy: $createdBy,
                         branchId: $appointment->branch_id,
                         exchangeRateUsed: $rate,
+                        clientId: $appointment->client_id,
                     );
                 }
             }
@@ -308,6 +309,7 @@ class PosService
                     createdBy: $createdBy,
                     branchId: $branchId,
                     exchangeRateUsed: $rate,
+                    clientId: $clientId,
                 );
             }
 

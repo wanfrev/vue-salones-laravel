@@ -239,10 +239,7 @@ class FinancialSummaryService
     ): Collection {
         $query = DB::table('inventory_movements')
             ->leftJoin('products', 'inventory_movements.product_id', '=', 'products.id')
-            ->leftJoin('clients', function ($join) {
-                $join->on('inventory_movements.reference_id', '=', 'clients.id')
-                    ->where('inventory_movements.reference_type', '=', 'direct');
-            })
+            ->leftJoin('clients', 'inventory_movements.client_id', '=', 'clients.id')
             ->where('inventory_movements.business_id', $businessId)
             ->where('inventory_movements.movement_type', 'sale')
             ->select(
