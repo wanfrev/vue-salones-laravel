@@ -262,8 +262,9 @@ class EmployeeCommissionService
                 ?? $row->employee_percentage
                 ?? 0);
             $tip = (float) ($row->tip_amount ?? 0);
+            $totalAmount = (float) ($row->total_amount ?? 0);
             $earnings = $pct > 0
-                ? ((float) $row->total_amount - $tip) * ($pct / 100) + $tip
+                ? ($totalAmount * ($pct / 100)) + $tip
                 : 0;
 
             return [
