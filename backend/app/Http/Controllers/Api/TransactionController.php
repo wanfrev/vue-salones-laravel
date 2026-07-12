@@ -72,7 +72,7 @@ class TransactionController
             if ($tx->appointment_id) {
                 $appointment = \App\Models\Appointment::find($tx->appointment_id);
                 if ($appointment) {
-                    $appointment->update(['payment_status' => 'pending', 'updated_at' => now()]);
+                    $appointment->update(['payment_status' => 'unpaid', 'updated_at' => now()]);
                 }
             }
             $tx->delete();

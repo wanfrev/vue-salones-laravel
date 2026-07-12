@@ -197,5 +197,5 @@ const ventasPages = computed(() => paginateProps(summaryCtx.productSalesDetails.
 
 const handleDeletePayment = (_id: string) => {}
 const openEditPayment = (_p: any) => {}
-const editCobroFromTx = (_tx: any) => {}
+const editCobroFromTx = (_tx: any) => { if (summaryCtx.startEdit) summaryCtx.startEdit(_tx) }
 </script>
