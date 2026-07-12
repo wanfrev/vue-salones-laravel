@@ -176,6 +176,8 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
               {{ businessStore.terminology.employee || 'Empleado' }}</th>
             <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
               Comisión</th>
+            <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+              Propina</th>
           </template>
           <template #desktop-tbody="{ items }">
             <tr v-for="payment in items" :key="payment.id" class="text-xs transition-theme hover:bg-bg-secondary/40">
@@ -189,6 +191,10 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
               <td class="px-3 py-3 text-right">
                 <div class="font-semibold text-success">{{ formatUSD(payment.earnings) }}</div>
                 <div class="text-[10px] text-text-muted">{{ formatVESInline(payment.earnings) }} Bs</div>
+              </td>
+              <td class="px-3 py-3 text-right">
+                <span v-if="(payment.tipAmount ?? 0) > 0" class="font-semibold text-primary">{{ formatUSD(payment.tipAmount) }}</span>
+                <span v-else class="text-text-muted">—</span>
               </td>
             </tr>
           </template>
@@ -206,6 +212,10 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
                 <span class="text-text-muted">Comisión</span><span class="text-right"><span
                     class="font-semibold text-success">{{ formatUSD(payment.earnings) }}</span><span
                     class="text-text-muted ml-1">{{ formatVESInline(payment.earnings) }} Bs</span></span>
+                <span class="text-text-muted">Propina</span><span class="text-right">
+                  <span v-if="(payment.tipAmount ?? 0) > 0" class="font-semibold text-primary">{{ formatUSD(payment.tipAmount) }}</span>
+                  <span v-else class="text-text-muted">—</span>
+                </span>
               </div>
             </div>
           </template>
