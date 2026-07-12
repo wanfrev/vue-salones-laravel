@@ -6,6 +6,7 @@ use App\Events\EntityChanged;
 use App\Services\FinancialSummaryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TransactionController
 {
@@ -67,7 +68,15 @@ class TransactionController
             return response()->json(['message' => 'Transacción no encontrada.'], 404);
         }
 
-        $tx->delete();
+        DB::transaction(function () use ($tx) {
+            if ($tx->appointment_id) {
+                $appointment = \App\Models\Appointment::find($tx->appointment_id);
+                if ($appointment) {
+                    $appointment->update(['payment_status' => 'pending', 'updated_at' => now()]);
+                }
+            }
+            $tx->delete();
+        });
 
         EntityChanged::safe($businessId, 'transaction', 'deleted', $id);
 

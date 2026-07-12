@@ -174,7 +174,7 @@ function useFinancialSummary(
       const breakdownLabel = formatBreakdownLabel(breakdown)
       const sumVES = sumVESBreakdown(breakdown)
       const tip = Number(tx.tip_amount ?? 0)
-      const serviceAmt = Number(tx.total_amount ?? 0) - tip
+      const serviceAmt = Number(tx.total_amount ?? 0)
 
       const clientFromNotes = extractClientFromNotes(tx.notes)
       const client = tx.client_name ?? clientFromNotes ?? 'Venta directa'
@@ -304,7 +304,6 @@ function useFinancialSummary(
     for (const tx of (transactionsData.value ?? [])) {
       const tip = Number(tx.tip_amount ?? 0)
       const amt = Number(tx.total_amount ?? 0)
-      const serviceAmt = amt - tip
       const clientLabel = tx.client_name ?? extractClientFromNotes(tx.notes) ?? 'Venta directa'
       const serviceLabel = tx.service_name ?? productNamesByTxId.get(tx.id) ?? '—'
       result.push({
@@ -313,7 +312,7 @@ function useFinancialSummary(
         description: `${clientLabel} · ${serviceLabel}`,
         employee: (tx.employee_name as string) || undefined,
         method: formatMethod(tx.method),
-        amount: serviceAmt,
+        amount: amt,
         type: 'ingreso',
         exchangeRateUsed: Number(tx.exchange_rate_used ?? 1),
         notes: tx.notes,
