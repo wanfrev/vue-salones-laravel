@@ -14,6 +14,7 @@ export type UnifiedTransaction = {
   id: string
   date: string
   description: string
+  employee?: string
   method: string
   amount: number
   type: 'ingreso' | 'nomina' | 'gasto'
@@ -301,6 +302,7 @@ function useFinancialSummary(
         id: tx.id,
         date: formatDate(tx.paid_at),
         description: `${clientLabel} · ${tx.service_name ?? '—'}`,
+        employee: (tx.employee_name as string) || undefined,
         method: formatMethod(tx.method),
         amount: serviceAmt,
         type: 'ingreso',
