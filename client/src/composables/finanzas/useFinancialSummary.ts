@@ -341,8 +341,9 @@ function useFinancialSummary(
       })
     }
 
-    // Product sales (con nombre real del producto)
+    // Product sales (con nombre real del producto, solo ventas directas)
     for (const ps of (productSalesData.value ?? [])) {
+      if ((ps as any).is_appointment_sale) continue
       const clientLabel = (ps as any).client_name as string | undefined
       const productName = (ps as any).product ?? 'Producto'
       result.push({
