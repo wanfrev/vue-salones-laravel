@@ -27,6 +27,9 @@ export type EmployeeBalance = {
   total_paid: number
   total_consumed: number
   pending: number
+  pay_type?: string | null
+  pay_percentage?: number
+  employee_ves_rate?: number
 }
 
 export const listEmployeePayments = async (

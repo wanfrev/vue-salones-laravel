@@ -174,9 +174,11 @@ class EmployeeCommissionService
         $commission = (float) ($earned->commission ?? 0);
         $tips = (float) ($earned->tips ?? 0);
 
-        // Base salary
         $profile = Profile::find($employeeId);
         $baseSalary = $profile ? (float) ($profile->base_salary ?? 0) : 0;
+        $payType = $profile ? ($profile->pay_type ?? null) : null;
+        $payPercentage = $profile ? (float) ($profile->pay_percentage ?? 0) : 0;
+        $employeeVesRate = $profile ? (float) ($profile->employee_ves_rate ?? 0) : 0;
 
         // Paid
         $paid = DB::table('employee_payments')
@@ -202,6 +204,9 @@ class EmployeeCommissionService
             'total_paid' => round($totalPaid, 2),
             'total_consumed' => round($totalConsumed, 2),
             'pending' => round($pending, 2),
+            'pay_type' => $payType,
+            'pay_percentage' => round($payPercentage, 2),
+            'employee_ves_rate' => round($employeeVesRate, 2),
         ];
     }
 

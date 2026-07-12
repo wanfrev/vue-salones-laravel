@@ -296,21 +296,21 @@
             </div>
             <div class="flex items-center justify-between text-sm">
               <span class="text-text-muted">Generado en servicios</span>
-              <span class="font-medium text-success">{{ formatUSD(selectedBalance.totalEarned) }}</span>
+              <span class="font-medium text-success">{{ formatUSD(selectedBalance.total_earned) }}</span>
             </div>
             <div class="flex items-center justify-between text-sm">
               <span class="text-text-muted">Pagado hasta ahora</span>
-              <span class="font-medium text-danger">{{ formatUSD(selectedBalance.totalPaid) }}</span>
+              <span class="font-medium text-danger">{{ formatUSD(selectedBalance.total_paid) }}</span>
             </div>
             <div class="flex items-center justify-between border-t border-border pt-2">
               <span class="text-sm font-semibold text-text">Saldo pendiente</span>
               <span class="text-base font-bold"
-                :class="selectedBalance.pendingBalance > 0 ? 'text-primary' : 'text-text-muted'">
-                {{ formatUSD(selectedBalance.pendingBalance) }}
+                :class="selectedBalance.pending > 0 ? 'text-primary' : 'text-text-muted'">
+                {{ formatUSD(selectedBalance.pending) }}
               </span>
             </div>
-            <button v-if="selectedBalance.pendingBalance > 0" type="button"
-              @click="paymentsCtx.paymentForm.value.amount = selectedBalance.pendingBalance"
+            <button v-if="selectedBalance.pending > 0" type="button"
+              @click="paymentsCtx.paymentForm.value.amount = selectedBalance.pending"
               class="w-full mt-1 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary transition-theme hover:bg-primary/10">
               Pagar saldo pendiente
             </button>
@@ -511,9 +511,9 @@ const employeeDebtSummary = computed(() => {
 function payTypeLabel(): string {
   if (!selectedBalance.value) return '—'
   const b = selectedBalance.value
-  if (b.payType === 'salary') return `Sueldo base ($${b.baseSalary})`
-  if (b.payType === 'mixed') return `Sueldo + % ($${b.baseSalary} + ${b.payPercentage}%)`
-  if (b.payType === 'percentage') return `${b.payPercentage}% por servicio`
+  if (b.pay_type === 'salary') return `Sueldo base ($${b.base_salary})`
+  if (b.pay_type === 'mixed') return `Sueldo + % ($${b.base_salary} + ${b.pay_percentage}%)`
+  if (b.pay_type === 'percentage') return `${b.pay_percentage}% por servicio`
   return 'Por servicio'
 }
 
@@ -541,7 +541,7 @@ const onEmployeeChange = async () => {
     return
   }
   try {
-    selectedBalance.value = await getEmployeeBalance(props.businessId, employeeId, null, earningsStartDate.value || null, earningsEndDate.value || null)
+    selectedBalance.value = await getEmployeeBalance(props.businessId, employeeId, earningsStartDate.value || undefined, earningsEndDate.value || undefined)
   } catch {
     selectedBalance.value = null
   }

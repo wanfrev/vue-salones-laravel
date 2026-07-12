@@ -187,10 +187,17 @@ export function useEmployeePayments(
     }
   }
 
+  // ── Employee-specific rate (from balance) ──
+  const employeeVesRate = computed(() => {
+    const rate = selectedBalance.value?.employee_ves_rate
+    if (rate != null && Number(rate) > 0) return Number(rate)
+    return exchangeRate.value
+  })
+
   // ── Mutations ──
   const savePaymentMutation = useMutation({
     mutationFn: () => {
-      const rate = exchangeRate.value
+      const rate = employeeVesRate.value
       const f = paymentForm.value
       const payload: any = {
         employee_id: f.employeeId,

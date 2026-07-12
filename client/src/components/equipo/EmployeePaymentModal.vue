@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { reactive } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { formatPayType } from '../../lib/formatters'
+import { getEmployeeBalance, type EmployeeBalance } from '../../services/employeePaymentsService'
 
 const props = defineProps<{
   paymentsCtx: any
@@ -12,7 +13,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['close', 'payment-saved'])
-const { formatUSD, formatVESInline } = useCurrency()
+const { formatUSD, formatVESInline, exchangeRate } = useCurrency()
 const businessStore = useBusinessStore()
 
 const ctx = reactive(props.paymentsCtx)
@@ -22,9 +23,6 @@ const now = new Date()
 const periodStart = ref(toYmd(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7)))
 const periodEnd = ref(toYmd(now))
 
-import { ref, watch } from 'vue'
-import { getEmployeeBalance, type EmployeeBalance } from '../../services/employeePaymentsService'
-
 const balance = ref<EmployeeBalance | null>(null)
 const loadingBalance = ref(false)
 
@@ -33,7 +31,7 @@ const fetchBalance = async () => {
   if (!empId || !props.businessId) { balance.value = null; return }
   loadingBalance.value = true
   try {
-    balance.value = await getEmployeeBalance(props.businessId, empId, props.branchId, periodStart.value || undefined, periodEnd.value || undefined)
+    balance.value = await getEmployeeBalance(props.businessId, empId, periodStart.value || undefined, periodEnd.value || undefined)
   } catch {
     balance.value = null
   } finally {
@@ -45,6 +43,29 @@ watch(() => ctx.paymentForm.employeeId, fetchBalance)
 watch([periodStart, periodEnd], fetchBalance)
 watch(ctx.showPaymentModal, (v) => {
   if (v) { balance.value = null; fetchBalance() }
+})
+
+const effectiveRate = computed(() => {
+  if (balance.value?.employee_ves_rate && balance.value.employee_ves_rate > 0) {
+    return balance.value.employee_ves_rate
+  }
+  return exchangeRate.value
+})
+
+const rateLabel = computed(() => {
+  if (balance.value?.employee_ves_rate && balance.value.employee_ves_rate > 0) {
+    return `tasa del empleado: ${balance.value.employee_ves_rate}`
+  }
+  return `tasa global: ${exchangeRate.value}`
+})
+
+const convertedAmount = computed(() => {
+  const amount = ctx.paymentForm.amount
+  if (!amount || amount <= 0) return ''
+  if (ctx.paymentForm.currency === 'USD') {
+    return `${formatVESInline(amount, effectiveRate.value)} Bs`
+  }
+  return `${formatUSD(amount / effectiveRate.value)}`
 })
 
 const handleSubmit = async () => {
@@ -84,45 +105,63 @@ const handleSubmit = async () => {
             </div>
           </div>
 
-          <div v-if="loadingBalance" class="text-center text-sm text-text-muted py-2">Cargando balance...</div>
+          <div v-if="loadingBalance" class="text-center text-sm text-text-muted py-3">Cargando balance...</div>
 
-          <div v-else-if="balance" class="rounded-lg bg-bg-secondary p-3 space-y-2">
-            <div class="flex items-center justify-between text-sm">
-              <span class="text-text-muted">Tipo de pago</span>
-              <span class="font-medium text-text">{{ formatPayType(balance.payType, balance.baseSalary, balance.payPercentage) }}</span>
+          <div v-else-if="balance" class="rounded-xl border border-border bg-bg-secondary/50 p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-medium text-text-muted uppercase tracking-wide">Tipo de pago</span>
+              <span class="text-sm font-semibold text-text">{{ formatPayType(balance.pay_type, balance.base_salary, balance.pay_percentage) }}</span>
             </div>
-            <div class="flex items-center justify-between text-sm">
-              <span class="text-text-muted">Generado en servicios</span>
-              <span class="font-medium text-success">{{ formatUSD(balance.totalEarned) }}</span>
+
+            <div class="space-y-2">
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-text-muted">Devengado</span>
+                <span class="font-semibold text-text">{{ formatUSD(balance.total_earned) }}</span>
+              </div>
+              <div class="flex items-center justify-between text-sm">
+                <span class="text-text-muted">Pagado</span>
+                <span class="font-medium text-success">{{ formatUSD(balance.total_paid) }}</span>
+              </div>
+              <div v-if="balance.total_consumed > 0" class="flex items-center justify-between text-sm">
+                <span class="text-text-muted">Consumos / Deducciones</span>
+                <span class="font-medium text-warning">{{ formatUSD(balance.total_consumed) }}</span>
+              </div>
             </div>
-            <div class="flex items-center justify-between text-sm">
-              <span class="text-text-muted">Pagado hasta ahora</span>
-              <span class="font-medium text-danger">{{ formatUSD(balance.totalPaid) }}</span>
-            </div>
-            <div class="flex items-center justify-between border-t border-border pt-2">
-              <span class="text-sm font-semibold text-text">Saldo pendiente</span>
-              <span class="text-base font-bold" :class="balance.pendingBalance > 0 ? 'text-primary' : 'text-text-muted'">
-                {{ formatUSD(balance.pendingBalance) }}
+
+            <div class="flex items-center justify-between border-t border-border pt-2.5">
+              <span class="text-sm font-semibold text-text">Pendiente por pagar</span>
+              <span class="text-base font-bold" :class="balance.pending > 0 ? 'text-primary' : 'text-success'">
+                {{ formatUSD(balance.pending) }}
               </span>
             </div>
-            <button v-if="balance.pendingBalance > 0" type="button"
-              @click="ctx.paymentForm.amount = balance.pendingBalance"
-              class="w-full mt-1 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary transition-theme hover:bg-primary/10">
-              Pagar saldo pendiente
+
+            <button v-if="balance.pending > 0" type="button"
+              @click="ctx.paymentForm.amount = balance.pending"
+              class="w-full rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/10">
+              Pagar saldo pendiente ({{ formatUSD(balance.pending) }})
             </button>
           </div>
 
           <div class="grid grid-cols-3 gap-3">
-            <div><label class="mb-1 block text-sm font-medium text-text">Monto</label>
+            <div class="col-span-3 sm:col-span-1">
+              <label class="mb-1 block text-sm font-medium text-text">Monto</label>
               <input v-model.number="ctx.paymentForm.amount" type="number" min="0.01" step="0.01" placeholder="0.00" required
-                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary" /></div>
-            <div><label class="mb-1 block text-sm font-medium text-text">Moneda</label>
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary" />
+              <p v-if="convertedAmount" class="mt-1 text-xs text-text-muted">
+                {{ ctx.paymentForm.currency === 'USD' ? '≈' : '=' }} {{ convertedAmount }}
+                <span class="text-text-muted/60">({{ rateLabel }})</span>
+              </p>
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text">Moneda</label>
               <select v-model="ctx.paymentForm.currency"
                 class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary">
                 <option value="USD">USD $</option>
                 <option value="VES">Bs</option>
-              </select></div>
-            <div><label class="mb-1 block text-sm font-medium text-text">Método</label>
+              </select>
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text">Método</label>
               <select v-model="ctx.paymentForm.paymentMethod"
                 class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary">
                 <option value="cash">Efectivo</option>
@@ -130,14 +169,19 @@ const handleSubmit = async () => {
                 <option value="transfer">Transferencia</option>
                 <option value="zelle">Zelle</option>
                 <option value="pago_movil">Pago Móvil</option>
-              </select></div>
+              </select>
+            </div>
           </div>
-          <div><label class="mb-1 block text-sm font-medium text-text">Fecha</label>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-text">Fecha</label>
             <input v-model="ctx.paymentForm.paymentDate" type="date" required
-              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary" /></div>
-          <div><label class="mb-1 block text-sm font-medium text-text">Notas</label>
+              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary" />
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-text">Notas</label>
             <input v-model="ctx.paymentForm.notes" type="text" placeholder="Ej: Comisión servicios, adelanto..."
-              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary" /></div>
+              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary" />
+          </div>
 
           <div v-if="ctx.saveError" class="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{{ ctx.saveError }}</div>
 
