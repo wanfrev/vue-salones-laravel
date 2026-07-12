@@ -292,16 +292,25 @@ function useFinancialSummary(
   const transactions = computed<UnifiedTransaction[]>(() => {
     const result: UnifiedTransaction[] = []
 
+    // Build product name lookup from product sales data
+    const productNamesByTxId = new Map<string, string>()
+    for (const ps of (productSalesData.value ?? [])) {
+      const refId = (ps as any).reference_id as string | undefined
+      const product = (ps as any).product as string | undefined
+      if (refId && product) productNamesByTxId.set(refId, product)
+    }
+
     // Appointment payments
     for (const tx of (transactionsData.value ?? [])) {
       const tip = Number(tx.tip_amount ?? 0)
       const amt = Number(tx.total_amount ?? 0)
       const serviceAmt = amt - tip
       const clientLabel = tx.client_name ?? extractClientFromNotes(tx.notes) ?? 'Venta directa'
+      const serviceLabel = tx.service_name ?? productNamesByTxId.get(tx.id) ?? '—'
       result.push({
         id: tx.id,
         date: formatDate(tx.paid_at),
-        description: `${clientLabel} · ${tx.service_name ?? '—'}`,
+        description: `${clientLabel} · ${serviceLabel}`,
         employee: (tx.employee_name as string) || undefined,
         method: formatMethod(tx.method),
         amount: serviceAmt,
