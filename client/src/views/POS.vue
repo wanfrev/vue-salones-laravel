@@ -182,7 +182,8 @@ const upcomingAppointments = computed(() => filteredAppointments.value.filter(a 
 
 const filterProducts = (query: string): any[] => {
   if (!query) return (products.value as any[]).filter((p: any) => Number(p.available_qty ?? 0) > 0).slice(0, 6)
-  return (products.value as any[]).filter((p: any) => p.name.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
+  const q = query.toLowerCase()
+  return (products.value as any[]).filter((p: any) => p.name.toLowerCase().startsWith(q)).slice(0, 8)
 }
 const retailFilteredProducts = computed(() => filterProducts(retailProductSearch.value))
 
@@ -194,6 +195,7 @@ const selectRetailClient = (client: { id: string; full_name: string; phone: stri
   retailClientId.value = client.id
   retailClientSearch.value = client.full_name
   retailClientSuggestions.value = []
+  retailSearchRef.value?.reset()
 }
 
 const onRetailSearchClients = async (query: string) => {
