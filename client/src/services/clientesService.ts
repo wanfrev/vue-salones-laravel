@@ -120,22 +120,10 @@ export const searchClients = async (
 ): Promise<Pick<Client, 'id' | 'full_name' | 'phone'>[]> => {
   if (!query.trim()) return []
 
-  let q = supabase
-    .from('clients')
-    .select('id, full_name, phone')
-    .eq('business_id', businessId)
-    .ilike('full_name', `%${query}%`)
-    .order('full_name')
-    .limit(30)
+  const params = new URLSearchParams({ q: query })
+  if (branchId) params.set('branch_id', branchId)
 
-  if (branchId) {
-    q = q.eq('branch_id', branchId)
-  }
-
-  const { data, error } = await q
-
-  if (error) throw error
-  return (data ?? []) as Pick<Client, 'id' | 'full_name' | 'phone'>[]
+  return await apiRequest<any[]>('GET', `/clients/search?${params.toString()}`) ?? []
 }
 
 export const findOrCreateClientByPhone = async (

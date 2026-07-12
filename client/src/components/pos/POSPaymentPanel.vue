@@ -8,7 +8,7 @@
         <template v-if="isRetailOnly && !selectedAppointment">
           <div class="flex items-center justify-between text-sm">
             <span class="text-text-muted">Cliente</span>
-            <span class="font-medium text-text">Venta Directa / Mostrador</span>
+            <span class="font-medium text-text">{{ retailClientName || 'Venta Directa / Mostrador' }}</span>
           </div>
           <div class="flex items-center justify-between text-sm mt-1">
             <span class="text-text-muted">Servicio</span>
@@ -324,6 +324,7 @@ defineProps<{
   tipRemaining: number
   showTipAdjust: boolean
   isRetailOnly?: boolean
+  retailClientName?: string | null
 }>()
 
 defineEmits<{

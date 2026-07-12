@@ -72,6 +72,7 @@
         :tip-participants="tipParticipants" :tip-allocations="tipAllocations"
         :tip-allocated-total="tipAllocatedTotal" :tip-remaining="tipRemaining"
         :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
+        :retail-client-name="retailClientId ? retailClientSearch : null"
         @select-method="paymentCtx.selectMethod"
         @update:other-currency="paymentCtx.otherCurrency.value = $event"
         @add-split="paymentCtx.addSplit" @remove-split="paymentCtx.removeSplit"

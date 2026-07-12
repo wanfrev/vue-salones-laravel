@@ -66,18 +66,26 @@ class ClientService
         }
     }
 
-    public function search(string $businessId, string $query): Collection
+    public function search(string $businessId, string $query, ?string $branchId = null): Collection
     {
         $term = '%' . $query . '%';
 
-        return Client::query()
+        $q = Client::query()
+            ->where('business_id', $businessId)
             ->where(function ($q) use ($term) {
                 $q->where('full_name', 'ilike', $term)
                   ->orWhere('phone', 'ilike', $term);
             })
             ->orderBy('full_name')
-            ->limit(20)
-            ->get();
+            ->limit(20);
+
+        if ($branchId) {
+            $q->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
+
+        return $q->get();
     }
 
     public function findOrCreateByPhone(string $businessId, string $phone, array $extra = []): Client

@@ -66,7 +66,7 @@ class ClientController
         if (!$businessId) return response()->json([]);
 
         $request->validate(['q' => 'required|string|min:2']);
-        return response()->json($this->clientService->search($businessId, $request->q));
+        return response()->json($this->clientService->search($businessId, $request->q, $request->branch_id));
     }
 
     public function findOrCreateByPhone(Request $request): JsonResponse
