@@ -79,7 +79,11 @@ export function useCategoryCRUD<T extends { category: string }>(params: UseCateg
       }
     }
     await Promise.allSettled(promises)
-    await queryClient.refetchQueries({ exact: false, queryKey: serviciosKeys.all(bid) })
+    await Promise.allSettled([
+      queryClient.refetchQueries({ exact: false, queryKey: serviciosKeys.all(bid) }),
+      queryClient.refetchQueries({ exact: false, queryKey: ['business', bid] }),
+      ...(branchId?.value ? [queryClient.refetchQueries({ exact: false, queryKey: ['branches', bid] })] : []),
+    ])
   }
 
   function openRenameCategoryModal(cat: string) {
