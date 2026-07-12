@@ -255,6 +255,7 @@ class FinancialSummaryService
                 'inventory_movements.exchange_rate_used',
                 'inventory_movements.notes',
                 'products.name as product_name',
+                'products.unit_price as product_unit_price',
                 'clients.full_name as client_name',
             )
             ->orderByDesc('inventory_movements.created_at');
@@ -273,7 +274,7 @@ class FinancialSummaryService
 
         return $query->get()->map(function ($row) {
             $qty = abs((float) $row->quantity);
-            $unitPrice = (float) $row->unit_cost;
+            $unitPrice = (float) ($row->product_unit_price ?? $row->unit_cost);
             $total = $qty * $unitPrice;
             $rate = (float) ($row->exchange_rate_used ?? 1);
 
@@ -287,6 +288,7 @@ class FinancialSummaryService
                 'total' => round($total, 2),
                 'exchange_rate_used' => $rate,
                 'reference_type' => $row->reference_type,
+                'reference_id' => $row->reference_id,
                 'is_appointment_sale' => $row->reference_type === 'appointment',
                 'notes' => $row->notes,
             ];

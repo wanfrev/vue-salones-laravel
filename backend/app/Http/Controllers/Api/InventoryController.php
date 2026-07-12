@@ -127,6 +127,20 @@ class InventoryController
         return response()->json(null, 204);
     }
 
+    public function destroyMovement(Request $request, string $id): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+
+        try {
+            $this->inventoryService->deleteProductSale($id, $businessId, $request->user()->id);
+            EntityChanged::safe($businessId, 'inventory', 'deleted', $id);
+            return response()->json(null, 204);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => ['message' => $e->getMessage()]], 400);
+        }
+    }
+
     public function index(Request $request): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);

@@ -126,6 +126,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/inventory/movements', [InventoryController::class, 'movements']);
     Route::get('/inventory-movements', [InventoryController::class, 'movements']);
     Route::post('/inventory-movements', [InventoryController::class, 'storeMovement']);
+    Route::delete('/inventory-movements/{id}', [InventoryController::class, 'destroyMovement']);
     Route::post('/inventory/adjust', [InventoryController::class, 'adjust']);
     Route::post('/inventory/sell', [InventoryController::class, 'sell']);
     Route::get('/inventory-locations', [InventoryController::class, 'locations']);
