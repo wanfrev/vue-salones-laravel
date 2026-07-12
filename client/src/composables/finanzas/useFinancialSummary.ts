@@ -166,7 +166,9 @@ function useFinancialSummary(
   })
 
   const appointmentIncomeDetails = computed<TransactionRow[]>(() => {
-    const raw = (transactionsData.value ?? []).map((tx: any) => {
+    const raw = (transactionsData.value ?? [])
+      .filter((tx: any) => tx.appointment_id)
+      .map((tx: any) => {
       const breakdown = tx.payments_breakdown as PaymentBreakdownItem[] | null
       const firstBreakdown = breakdown?.[0]
       const isVES = firstBreakdown?.currency === 'VES'

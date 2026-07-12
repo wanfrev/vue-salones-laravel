@@ -201,6 +201,7 @@ class PosService
                         notes: 'Venta en punto de venta — cita',
                         createdBy: $createdBy,
                         branchId: $appointment->branch_id,
+                        exchangeRateUsed: $rate,
                     );
                 }
             }
@@ -306,6 +307,7 @@ class PosService
                         : 'Venta directa — Mostrador',
                     createdBy: $createdBy,
                     branchId: $branchId,
+                    exchangeRateUsed: $rate,
                 );
             }
 
