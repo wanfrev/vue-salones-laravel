@@ -380,7 +380,7 @@ function useFinancialSummary(
         employee: tx.employee_name ?? '—',
         client: tx.client_name ?? '—',
         service: tx.service_name ?? '—',
-        amount: amt,
+        amount: pct > 0 && empAmt > 0 ? Math.round((empAmt / pct * 100) * 100) / 100 : amt,
         percentage: pct,
         earnings: empAmt + tip,
         tipAmount: tip,
