@@ -172,12 +172,12 @@ const isEditing = computed(() => !!(modalData.value?.cita?.id))
 
 const serviceOptions = computed(() => (props.servicios ?? []).map(s => ({ value: s.id, label: s.name, sublabel: `$${s.price} · ${s.duration} min`, icon: '✂' })))
 const employeeOptions = computed(() => {
-  const empList = props.empleados ?? []
+  const empList = (props.empleados ?? []).filter(e => !(e as any).disableAgenda)
   if (isEmployee.value) { const me = empList.find(e => e.id === (authStore.profile?.id ?? '')); return me ? [{ value: me.id, label: me.name, icon: getInitials(me.name) }] : [] }
   return empList.map(e => ({ value: e.id, label: e.name, icon: getInitials(e.name) }))
 })
 const assistantOptions = computed(() => {
-  const empList = props.empleados ?? []
+  const empList = (props.empleados ?? []).filter(e => !(e as any).disableAgenda)
   if (isEmployee.value) return [{ value: '', label: 'Sin asistente' }]
   return [{ value: '', label: 'Sin asistente' }, ...empList.map(e => ({ value: e.id, label: e.name, icon: getInitials(e.name) }))]
 })
