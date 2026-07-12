@@ -118,9 +118,10 @@ export const searchClients = async (
   query: string,
   branchId?: string | null
 ): Promise<Pick<Client, 'id' | 'full_name' | 'phone'>[]> => {
-  if (!query.trim()) return []
+  const q = query.trim()
+  if (!q) return []
 
-  const params = new URLSearchParams({ q: query })
+  const params = new URLSearchParams({ q })
   if (branchId) params.set('branch_id', branchId)
 
   return await apiRequest<any[]>('GET', `/clients/search?${params.toString()}`) ?? []

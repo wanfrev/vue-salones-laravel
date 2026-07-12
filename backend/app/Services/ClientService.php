@@ -68,7 +68,7 @@ class ClientService
 
     public function search(string $businessId, string $query, ?string $branchId = null): Collection
     {
-        $term = '%' . $query . '%';
+        $term = $query . '%';
 
         $q = Client::query()
             ->where('business_id', $businessId)

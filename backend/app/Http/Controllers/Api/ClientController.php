@@ -65,7 +65,7 @@ class ClientController
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId) return response()->json([]);
 
-        $request->validate(['q' => 'required|string|min:2']);
+        $request->validate(['q' => 'required|string|min:1']);
         return response()->json($this->clientService->search($businessId, $request->q, $request->branch_id));
     }
 
