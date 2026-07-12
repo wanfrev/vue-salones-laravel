@@ -233,8 +233,9 @@ export function useEmployeePayments(
 
   const saveConsumptionMutation = useMutation({
     mutationFn: () => {
+      const rate = employeeVesRate.value
       const f = consumptionForm.value
-      return createEmployeeConsumption(businessId.value!, {
+      const payload: any = {
         employee_id: f.employeeId,
         amount: f.amount,
         currency: f.currency,
@@ -242,7 +243,13 @@ export function useEmployeePayments(
         notes: f.notes || null,
         payment_date: f.paymentDate,
         branch_id: branchId.value,
-      })
+      }
+      if (f.currency === 'VES') {
+        payload.original_amount = f.amount
+        payload.exchange_rate_used = rate
+        payload.amount = f.amount / rate
+      }
+      return createEmployeeConsumption(businessId.value!, payload)
     },
     onSuccess: async () => {
       await Promise.allSettled([

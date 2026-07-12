@@ -42,7 +42,7 @@ const fetchBalance = async () => {
 watch(() => ctx.paymentForm.employeeId, fetchBalance)
 watch([periodStart, periodEnd], fetchBalance)
 watch(ctx.showPaymentModal, (v) => {
-  if (v) { balance.value = null; fetchBalance() }
+  if (v) { balance.value = null; showConsumptionForm.value = false; fetchBalance() }
 })
 
 const effectiveRate = computed(() => {
@@ -71,6 +71,62 @@ const convertedAmount = computed(() => {
 const handleSubmit = async () => {
   try { await ctx.handleSavePayment(); emit('payment-saved'); emit('close') } catch { }
 }
+
+const showConsumptionForm = ref(false)
+const consumptionForm = reactive({
+  concept: '',
+  amount: 0,
+  currency: 'USD' as 'USD' | 'VES',
+  paymentDate: toYmd(now),
+  notes: '',
+})
+const consumptionSaving = ref(false)
+const consumptionError = ref('')
+
+const openConsumptionForm = () => {
+  consumptionForm.concept = ''
+  consumptionForm.amount = 0
+  consumptionForm.currency = 'USD'
+  consumptionForm.paymentDate = toYmd(now)
+  consumptionForm.notes = ''
+  consumptionError.value = ''
+  showConsumptionForm.value = true
+}
+
+const cancelConsumption = () => {
+  showConsumptionForm.value = false
+}
+
+const handleSaveConsumption = async () => {
+  if (!ctx.paymentForm.employeeId) return
+  consumptionSaving.value = true
+  consumptionError.value = ''
+  try {
+    ctx.consumptionForm.employeeId = ctx.paymentForm.employeeId
+    ctx.consumptionForm.concept = consumptionForm.concept
+    ctx.consumptionForm.amount = consumptionForm.amount
+    ctx.consumptionForm.currency = consumptionForm.currency
+    ctx.consumptionForm.paymentDate = consumptionForm.paymentDate
+    ctx.consumptionForm.notes = consumptionForm.notes || ''
+    await ctx.handleSaveConsumption()
+    showConsumptionForm.value = false
+    await fetchBalance()
+    emit('payment-saved')
+  } catch (err: any) {
+    consumptionError.value = err?.message || 'Error al registrar consumo'
+  } finally {
+    consumptionSaving.value = false
+  }
+}
+
+const consumptionConvertedAmount = computed(() => {
+  const amount = consumptionForm.amount
+  if (!amount || amount <= 0) return ''
+  if (consumptionForm.currency === 'USD') {
+    return `${formatVESInline(amount, effectiveRate.value)} Bs`
+  }
+  return `${formatUSD(amount / effectiveRate.value)}`
+})
 </script>
 
 <template>
@@ -140,6 +196,78 @@ const handleSubmit = async () => {
               class="w-full rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/10">
               Pagar saldo pendiente ({{ formatUSD(balance.pending) }})
             </button>
+          </div>
+
+          <div v-if="balance && !ctx.editingPaymentId" class="space-y-3">
+            <button v-if="!showConsumptionForm" type="button"
+              @click="openConsumptionForm"
+              class="w-full rounded-lg border border-warning/30 bg-warning/5 px-3 py-2 text-xs font-semibold text-warning transition-theme hover:bg-warning/10">
+              + Debitar consumo / deducción
+            </button>
+
+            <div v-else class="rounded-xl border border-warning/20 bg-warning/5 p-4 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm font-semibold text-text">Debitar consumo</span>
+                <button type="button" @click="cancelConsumption"
+                  class="rounded-lg p-1 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div>
+                <label class="mb-1 block text-xs font-medium text-text-muted">Concepto</label>
+                <input v-model="consumptionForm.concept" type="text"
+                  class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-warning"
+                  placeholder="Ej: Producto, servicio consumido..." required />
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="mb-1 block text-xs font-medium text-text-muted">Monto</label>
+                  <input v-model.number="consumptionForm.amount" type="number" min="0.01" step="0.01" placeholder="0.00" required
+                    class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-warning" />
+                  <p v-if="consumptionConvertedAmount" class="mt-1 text-xs text-text-muted">
+                    {{ consumptionForm.currency === 'USD' ? '≈' : '=' }} {{ consumptionConvertedAmount }}
+                    <span class="text-text-muted/60">({{ rateLabel }})</span>
+                  </p>
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs font-medium text-text-muted">Moneda</label>
+                  <select v-model="consumptionForm.currency"
+                    class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-warning">
+                    <option value="USD">USD $</option>
+                    <option value="VES">Bs</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="mb-1 block text-xs font-medium text-text-muted">Fecha</label>
+                <input v-model="consumptionForm.paymentDate" type="date" required
+                  class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-warning" />
+              </div>
+
+              <div>
+                <label class="mb-1 block text-xs font-medium text-text-muted">Notas</label>
+                <input v-model="consumptionForm.notes" type="text" placeholder="Opcional"
+                  class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-warning" />
+              </div>
+
+              <div v-if="consumptionError" class="rounded-lg bg-danger/10 px-3 py-2 text-xs text-danger">{{ consumptionError }}</div>
+
+              <div class="flex items-center justify-end gap-2">
+                <button type="button" @click="cancelConsumption"
+                  class="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary">
+                  Cancelar
+                </button>
+                <button type="button" @click="handleSaveConsumption" :disabled="consumptionSaving"
+                  class="inline-flex items-center justify-center rounded-lg bg-warning px-3 py-1.5 text-xs font-semibold text-text-inverse shadow-sm transition-theme hover:bg-warning-hover disabled:cursor-not-allowed disabled:opacity-60">
+                  {{ consumptionSaving ? 'Guardando...' : 'Debitar' }}
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="grid grid-cols-3 gap-3">
