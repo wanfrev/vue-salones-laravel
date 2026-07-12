@@ -171,8 +171,10 @@ import { useAdminAgenda } from '../composables/agenda/useAdminAgenda'
 import { useBusinessStore } from '../store/business'
 import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
 import { CitaFormModal } from '../components/modals'
+import { api as supabase } from '../lib/api'
 import AgendaListView from '../components/agenda/AgendaListView.vue'
-import type { Cita } from '../types/cita'
+import type { Cita, PaymentEditContext } from '../types/cita'
+import type { PaymentMethod } from '../types/database'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
@@ -219,8 +221,37 @@ const handleNewCita = () => {
   citaModalRef.value?.open()
 }
 
-const handleEditCita = (cita: Cita) => {
+const handleEditCita = async (cita: Cita) => {
   editingCita.value = cita
+  if (cita.paymentStatus === 'paid' || cita.status === 'paid') {
+    const { data: tx } = await supabase
+      .from('transactions')
+      .select('id, total_amount, method, exchange_rate_used, payments_breakdown, notes, tip_amount')
+      .eq('appointment_id', cita.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (tx) {
+      const paymentData: PaymentEditContext = {
+        transactionId: tx.id,
+        method: tx.method as PaymentMethod,
+        amount: tx.total_amount,
+        currency: 'USD',
+        exchangeRate: tx.exchange_rate_used ?? 1,
+        tipAmount: Number((tx as any).tip_amount ?? 0),
+        notes: (tx as any).notes || undefined,
+        breakdown: (tx as any).payments_breakdown || undefined,
+      }
+      const firstBreakdown = (tx as any).payments_breakdown?.[0]
+      if (firstBreakdown?.currency === 'VES') {
+        paymentData.currency = 'VES'
+        paymentData.amount = (tx as any).payments_breakdown.reduce((sum: number, item: any) => sum + item.inputAmount, 0)
+      }
+      citaModalRef.value?.open(cita, paymentData)
+      return
+    }
+  }
   citaModalRef.value?.open(cita)
 }
 
