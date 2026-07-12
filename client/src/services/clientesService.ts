@@ -121,10 +121,25 @@ export const searchClients = async (
   const q = query.trim()
   if (!q) return []
 
-  const params = new URLSearchParams({ q })
-  if (branchId) params.set('branch_id', branchId)
+  let qb = supabase
+    .from('clients')
+    .select('id, full_name, phone')
+    .eq('business_id', businessId)
+    .order('full_name')
+    .limit(30)
 
-  return await apiRequest<any[]>('GET', `/clients/search?${params.toString()}`) ?? []
+  if (branchId) {
+    qb = qb.eq('branch_id', branchId)
+  }
+
+  const { data, error } = await qb
+
+  if (error) throw error
+
+  return ((data ?? []) as Client[]).filter(c =>
+    c.full_name?.toLowerCase().startsWith(q.toLowerCase()) ||
+    c.phone?.startsWith(q)
+  ).slice(0, 20)
 }
 
 export const findOrCreateClientByPhone = async (
