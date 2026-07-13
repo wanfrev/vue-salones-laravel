@@ -75,7 +75,7 @@ export function useAdminAgenda(businessId: () => string | null) {
   })
 
   const activeCitas = computed(() =>
-    citas.value.filter(c => c.status !== 'paid' && c.status !== 'cancelled')
+    citas.value.filter(c => c.status !== 'cancelled')
   )
 
   const historialCitas = computed(() =>
