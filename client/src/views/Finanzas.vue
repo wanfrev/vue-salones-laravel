@@ -203,7 +203,7 @@ summaryCtx.startEdit = (tx: any) => {
 const citaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
 
 const { data: serviciosData } = useQuery({
-  queryKey: computed(() => ['finanzas-servicios', businessId.value]),
+  queryKey: computed(() => ['finanzas-servicios', businessId.value, businessStore.currentBranchId]),
   queryFn: () => listServicios(businessId.value!, businessStore.currentBranchId),
   enabled: computed(() => !!businessId.value),
 })
@@ -212,7 +212,7 @@ const serviciosList = computed(() => (serviciosData.value ?? []).map((s: any) =>
 })))
 
 const { data: empleadosData } = useQuery({
-  queryKey: computed(() => ['finanzas-empleados', businessId.value]),
+  queryKey: computed(() => ['finanzas-empleados', businessId.value, businessStore.currentBranchId]),
   queryFn: () => listEquipo(businessId.value!, businessStore.currentBranchId),
   enabled: computed(() => !!businessId.value),
 })
