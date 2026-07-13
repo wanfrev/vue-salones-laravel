@@ -205,6 +205,7 @@ export function useEmployeePayments(
     mutationFn: () => {
       const rate = employeeVesRate.value
       const f = paymentForm.value
+      console.log('[DEBUG savePayment] currency:', f.currency, 'amount:', f.amount, 'rate:', rate, 'f:', JSON.parse(JSON.stringify(f)))
       const payload: any = {
         employee_id: f.employeeId,
         amount: f.amount,
@@ -220,6 +221,7 @@ export function useEmployeePayments(
         payload.exchange_rate_used = rate
         payload.amount = f.amount / rate
       }
+      console.log('[DEBUG savePayment] payload:', JSON.parse(JSON.stringify(payload)))
       return editingPaymentId.value
         ? updateEmployeePayment(editingPaymentId.value, payload)
         : createEmployeePayment(businessId.value!, payload)
