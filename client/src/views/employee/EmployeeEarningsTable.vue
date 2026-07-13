@@ -1,7 +1,8 @@
 <template>
   <div v-if="earnings.length > 0" class="mb-6">
-    <div class="border-b border-border pb-2 mb-3">
+    <div class="flex items-center justify-between border-b border-border pb-2 mb-3">
       <h3 class="text-sm font-semibold text-text">Desglose de ganancias</h3>
+      <span class="text-xs text-text-muted">{{ earnings.length }} servicios</span>
     </div>
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -38,12 +39,15 @@
         </tbody>
       </table>
     </div>
-    <div v-if="hasMore" class="flex justify-center border-t border-border pt-3">
+    <div v-if="hasMore && !showAll" class="mt-1 rounded-lg bg-primary/5 px-3 py-2 text-center text-xs text-primary">
+      Mostrando {{ visibleLimit ?? 8 }} de {{ earnings.length }} servicios.
+    </div>
+    <div class="flex justify-center border-t border-border pt-3" :class="hasMore ? '' : 'hidden'">
       <button type="button"
-        class="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-primary transition-theme hover:bg-bg-secondary"
+        class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-primary transition-theme hover:bg-primary hover:text-text-inverse"
         @click="$emit('toggle')"
       >
-        {{ showAll ? 'Ver menos' : `Ver todos (${earnings.length})` }}
+        {{ showAll ? 'Ver menos' : `Ver todos los ${earnings.length} servicios` }}
       </button>
     </div>
   </div>
