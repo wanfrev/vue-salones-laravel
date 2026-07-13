@@ -25,6 +25,7 @@ class ProfileService
     public function list(string $businessId, ?string $branchId = null, $disableAgenda = null): Collection
     {
         $query = Profile::with('schedules')
+            ->where('business_id', $businessId)
             ->where('role', 'empleado')
             ->where('active', true)
             ->orderBy('full_name');
