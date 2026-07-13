@@ -52,6 +52,11 @@ const effectiveRate = computed(() => {
   return employeeRate.value
 })
 
+const pendingBalance = computed(() => {
+  if (!balance.value) return 0
+  return Math.max(0, balance.value.total_earned - balance.value.total_paid - balance.value.total_consumed)
+})
+
 const rateLabel = computed(() => {
   if (balance.value?.employee_ves_rate && balance.value.employee_ves_rate > 0) {
     return `tasa del empleado: ${balance.value.employee_ves_rate}`
@@ -186,15 +191,15 @@ const consumptionConvertedAmount = computed(() => {
 
             <div class="flex items-center justify-between border-t border-border pt-2.5">
               <span class="text-sm font-semibold text-text">Pendiente por pagar</span>
-              <span class="text-base font-bold" :class="balance.pending > 0 ? 'text-primary' : 'text-success'">
-                {{ formatUSD(balance.pending) }}
+              <span class="text-base font-bold" :class="pendingBalance > 0 ? 'text-primary' : 'text-success'">
+                {{ formatUSD(pendingBalance) }}
               </span>
             </div>
 
-            <button v-if="balance.pending > 0" type="button"
-              @click="ctx.paymentForm.amount = balance.pending"
+            <button v-if="pendingBalance > 0" type="button"
+              @click="ctx.paymentForm.amount = pendingBalance"
               class="w-full rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/10">
-              Pagar saldo pendiente ({{ formatUSD(balance.pending) }})
+              Pagar saldo pendiente ({{ formatUSD(pendingBalance) }})
             </button>
           </div>
 

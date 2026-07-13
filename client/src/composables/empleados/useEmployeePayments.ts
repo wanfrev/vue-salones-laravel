@@ -112,7 +112,12 @@ export function useEmployeePayments(
   const debt = computed(() => debtData.value ?? [])
 
   const debtTotal = computed(() =>
-    debt.value.reduce((s: number, d: any) => s + Number(d.pending ?? 0), 0),
+    debt.value.reduce((s: number, d: any) => {
+      const total = Number(d.total ?? 0)
+      const paid = Number(d.paid ?? 0)
+      const consumed = Number(d.consumed ?? 0)
+      return s + Math.max(0, total - paid - consumed)
+    }, 0),
   )
 
   // ── Schedules ──

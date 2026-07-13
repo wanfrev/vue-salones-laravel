@@ -87,10 +87,13 @@ class EmployeeCommissionService
         ?string $startDate = null,
         ?string $endDate = null,
     ): Collection {
-        // Total commission earned per employee
+        // Total commission earned per employee (both main + assistant roles)
         $earningsQuery = DB::table('transactions')
             ->join('appointments', 'transactions.appointment_id', '=', 'appointments.id')
-            ->join('profiles', 'appointments.employee_id', '=', 'profiles.id')
+            ->leftJoin('profiles', function ($join) {
+                $join->on('profiles.id', '=', 'appointments.employee_id')
+                    ->orOn('profiles.id', '=', 'appointments.assistant_employee_id');
+            })
             ->where('transactions.business_id', $businessId)
             ->whereIn('appointments.status', ['confirmed', 'completed', 'pending'])
             ->select(
@@ -100,10 +103,11 @@ class EmployeeCommissionService
                 'profiles.pay_percentage',
                 'profiles.base_salary',
                 'profiles.employee_ves_rate',
-                DB::raw('COALESCE(SUM(transactions.employee_amount), 0) as commission'),
+                DB::raw("COALESCE(SUM(CASE WHEN appointments.employee_id = profiles.id THEN transactions.employee_amount ELSE transactions.assistant_amount END), 0) as commission"),
                 DB::raw('COALESCE(SUM(transactions.tip_amount), 0) as tips'),
             )
-            ->groupBy('profiles.id', 'profiles.full_name', 'profiles.pay_type', 'profiles.pay_percentage', 'profiles.base_salary', 'profiles.employee_ves_rate');
+            ->groupBy('profiles.id', 'profiles.full_name', 'profiles.pay_type', 'profiles.pay_percentage', 'profiles.base_salary', 'profiles.employee_ves_rate')
+            ->where('profiles.role', 'empleado');
 
         if ($startDate && $endDate) {
             $earningsQuery->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)]);
@@ -149,7 +153,7 @@ class EmployeeCommissionService
             $tips = (float) $row->tips;
             $base = (float) ($row->base_salary ?? 0);
             $totalEarned = $commission + $tips + $base;
-            $pending = $totalEarned - $totalPaid + $totalConsumed;
+            $pending = $totalEarned - $totalPaid - $totalConsumed;
 
             $profileRate = (float) ($row->employee_ves_rate ?? 0);
             $businessRate = (float) (Business::where('id', $businessId)->value('employee_ves_rate') ?? 0);
@@ -250,7 +254,7 @@ class EmployeeCommissionService
         $totalPaid = (float) ($paid->paid ?? 0);
         $totalConsumed = (float) ($paid->consumed ?? 0);
         $totalEarned = $commission + $tips + $baseSalary;
-        $pending = $totalEarned - $totalPaid + $totalConsumed;
+        $pending = $totalEarned - $totalPaid - $totalConsumed;
 
         return [
             'commission' => round($commission, 2),
