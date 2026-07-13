@@ -41,14 +41,14 @@
         <div class="flex items-center justify-between">
           <div>
             <div class="font-medium text-text text-sm">{{ formatUSD(payment.earnings) }}</div>
-            <div class="text-xs text-text-muted">{{ formatEmployeeVESInline(payment.earnings) }} Bs</div>
+            <div class="text-xs text-text-muted">{{ formatVESInline(payment.earnings) }} Bs</div>
             <span v-if="payment.tipAmount > 0"
               class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">+${{
                 payment.tipAmount.toFixed(2) }} propina</span>
           </div>
           <div class="text-right">
             <div class="text-text text-sm">{{ formatUSD(payment.amount) }}</div>
-            <div class="text-xs text-text-muted">{{ formatEmployeeVESInline(payment.amount) }} Bs</div>
+            <div class="text-xs text-text-muted">{{ formatVESInline(payment.amount) }} Bs</div>
           </div>
         </div>
       </div>
@@ -74,12 +74,12 @@
             <td class="py-3 text-text-secondary">{{ payment.service }}</td>
             <td class="py-3 text-right">
               <div class="text-text">{{ formatUSD(payment.amount) }}</div>
-              <div class="text-xs text-text-muted">{{ formatEmployeeVESInline(payment.amount) }} Bs</div>
+              <div class="text-xs text-text-muted">{{ formatVESInline(payment.amount) }} Bs</div>
             </td>
             <td class="py-3 text-right text-text-secondary">{{ payment.percentage }}%</td>
             <td class="py-3 text-right">
               <div class="font-semibold text-success">{{ formatUSD(payment.earnings) }}</div>
-              <div class="text-xs text-text-muted">{{ formatEmployeeVESInline(payment.earnings) }} Bs</div>
+              <div class="text-xs text-text-muted">{{ formatVESInline(payment.earnings) }} Bs</div>
               <span v-if="payment.tipAmount > 0"
                 class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary mt-1">+${{
                   payment.tipAmount.toFixed(2) }} propina</span>
@@ -129,7 +129,7 @@
               <div class="font-medium text-danger text-sm">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) :
                 formatUSD(ep.amount) }}</div>
               <div class="text-xs text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) :
-                formatEmployeeVESInline(ep.amount) + ' Bs' }}</div>
+                formatVESInline(ep.amount) + ' Bs' }}</div>
             </div>
           </div>
         </div>
@@ -163,7 +163,7 @@
                 <div class="font-medium text-danger">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) :
                   formatUSD(ep.amount) }}</div>
                 <div class="text-xs text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) :
-                  formatEmployeeVESInline(ep.amount) + ' Bs' }}</div>
+                  formatVESInline(ep.amount) + ' Bs' }}</div>
               </td>
               <td class="py-2 text-center">
                 <div class="flex items-center justify-center gap-1">
@@ -223,11 +223,11 @@
               <td class="py-2 text-right font-semibold text-text">{{ formatUSD(row.totalEarned) }}</td>
               <td class="py-2 text-right">
                 <div class="font-medium text-danger">{{ formatUSD(row.totalPaid) }}</div>
-                <div class="text-xs text-text-muted">{{ formatEmployeeVESInline(row.totalPaid) }} Bs</div>
+                <div class="text-xs text-text-muted">{{ formatVESInline(row.totalPaid) }} Bs</div>
               </td>
               <td class="py-2 text-right">
                 <div class="font-medium text-warning">{{ formatUSD((row as any).totalConsumed ?? 0) }}</div>
-                <div class="text-xs text-text-muted">{{ formatEmployeeVESInline((row as any).totalConsumed ?? 0) }} Bs
+                <div class="text-xs text-text-muted">{{ formatVESInline((row as any).totalConsumed ?? 0) }} Bs
                 </div>
               </td>
               <td class="py-2 text-right">
@@ -468,7 +468,7 @@ const emit = defineEmits<{
   'view-all': []
 }>()
 
-const { formatUSD, formatVESEs, formatEmployeeVESInline } = useCurrency()
+const { formatUSD, formatVESEs, formatVESInline } = useCurrency()
 
 const paymentsCtx = useEmployeePayments(computed(() => props.businessId))
 
