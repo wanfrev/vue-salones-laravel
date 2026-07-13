@@ -176,7 +176,22 @@ export const recordDirectSale = async (params: {
   return response.id
 }
 
-export const updateTransaction = async (_params: any): Promise<void> => {}
+export const updateTransaction = async (params: {
+  transactionId: string
+  amount: number
+  method: string
+  notes?: string | null
+  exchangeRate?: number
+  paymentsBreakdown?: any[]
+}): Promise<void> => {
+  await apiRequest('PUT', `/transactions/${params.transactionId}`, {
+    total_amount: params.amount,
+    method: params.method,
+    notes: params.notes ?? null,
+    exchange_rate_used: params.exchangeRate ?? null,
+    payments_breakdown: params.paymentsBreakdown ?? undefined,
+  })
+}
 
 export const deleteTransaction = async (_params: any): Promise<void> => {}
 
