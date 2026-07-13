@@ -45,6 +45,7 @@ export type TransactionRow = {
   primaryAmount: number
   notes?: string | null
   tipAmount?: number
+  transactionIds?: string[]
 }
 
 export type ProductSaleDetail = {
@@ -202,12 +203,13 @@ function useFinancialSummary(
         primaryAmount: isVES && sumVES > 0 ? sumVES : serviceAmt,
         notes: tx.notes ?? null,
         tipAmount: tip,
+        transactionIds: [tx.id],
       }
     })
 
     // Group by group_id (appointments with same group_id are merged into one row)
-    const groupKey = (row: TransactionRow) => row.groupId ?? row.appointmentId ?? row.id
-    const groupMap = new Map<string, TransactionRow & { employees: string[]; services: string[] }>()
+    const groupKey = (row: TransactionRow) => (row as any).groupId ?? row.appointmentId ?? row.id
+    const groupMap = new Map<string, TransactionRow & { employees: string[]; services: string[]; transactionIds: string[] }>()
 
     for (const row of raw) {
       const key = groupKey(row)
@@ -218,11 +220,13 @@ function useFinancialSummary(
         existing.primaryAmount += row.primaryAmount
         if (!existing.employees.includes(row.employee)) existing.employees.push(row.employee)
         if (!existing.services.includes(row.service)) existing.services.push(row.service)
+        if (row.transactionIds) existing.transactionIds.push(...row.transactionIds)
       } else {
         groupMap.set(key, {
           ...row,
           employees: [row.employee],
           services: [row.service],
+          transactionIds: [...(row.transactionIds ?? [row.id])],
         })
       }
     }
@@ -583,8 +587,12 @@ function useFinancialSummary(
   }
 
   const handleConfirmDelete = (txId: string) => {
-    if (window.confirm('¿Eliminar este cobro?')) {
-      deleteTransactionMutation.mutate({ transactionId: txId })
+    const item = appointmentIncomeDetails.value.find(r => r.id === txId || (r.transactionIds?.includes(txId) ?? false))
+    const ids = item?.transactionIds && item.transactionIds.length > 1 ? item.transactionIds : [txId]
+    const label = ids.length > 1 ? `¿Eliminar los ${ids.length} cobros de esta cita?` : '¿Eliminar este cobro?'
+    if (window.confirm(label)) {
+      Promise.all(ids.map(id => deleteTransactionMutation.mutateAsync({ transactionId: id })))
+        .catch((err: unknown) => showError(translateError(err, 'Error al eliminar cobro')))
     }
   }
 
