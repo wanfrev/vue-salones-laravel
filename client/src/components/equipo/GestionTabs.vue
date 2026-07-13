@@ -58,11 +58,11 @@ const pageProps = <T>(data: T[]) => {
 }
 
 const paginatedServicios = computed(() => paginate(props.summaryCtx.employeePayments.value))
-const paginatedNomina = computed(() => paginate(props.paymentsCtx.paymentsMade.value))
+const paginatedNomina = computed(() => paginate(props.paymentsCtx.payments.value))
 const paginatedDeuda = computed(() => paginate(props.deudaConSaldo))
 const paginatedHorarios = computed(() => paginate(props.teamSchedule))
 const serviciosP = computed(() => pageProps(props.summaryCtx.employeePayments.value))
-const nominaP = computed(() => pageProps(props.paymentsCtx.paymentsMade.value))
+const nominaP = computed(() => pageProps(props.paymentsCtx.payments.value))
 const deudaP = computed(() => pageProps(props.deudaConSaldo))
 const horariosP = computed(() => pageProps(props.teamSchedule))
 </script>
@@ -136,7 +136,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
     <KpiBanner v-if="activeTab === 'nomina'" variant="danger"
       icon="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
       label="Total Pagado + Consumido" :value="formatUSD(totalNominaPagada + totalConsumido)"
-      :sublabel="`${paymentsCtx.paymentsMade.value.length} registro(s)`">
+      :sublabel="`${paymentsCtx.payments.value.length} registro(s)`">
       <template #actions>
         <button @click="$emit('openPayment')"
           class="ml-auto flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shrink-0"><svg
@@ -228,7 +228,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
 
       <!-- Nómina -->
       <div v-if="activeTab === 'nomina'">
-        <RecordSection title="" :items="paginatedNomina" :total-count="paymentsCtx.paymentsMade.value.length"
+        <RecordSection title="" :items="paginatedNomina" :total-count="paymentsCtx.payments.value.length"
           empty-message="No hay pagos de nómina registrados" :pages="nominaP" :page-size="pageSize" @prev="tabPage--"
           @next="tabPage++">
           <template #desktop-thead>
