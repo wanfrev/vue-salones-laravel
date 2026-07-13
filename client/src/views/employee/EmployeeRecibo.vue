@@ -24,6 +24,10 @@
           </div>
         </div>
 
+        <div class="rounded-lg bg-bg-secondary/50 border border-border px-3 py-2 mb-5 text-center">
+          <p class="text-xs text-text-muted">{{ rateLabel }}</p>
+        </div>
+
         <div v-if="loadingEarnings" class="flex items-center justify-center py-8">
           <svg class="h-6 w-6 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -480,6 +484,17 @@ const { data: paymentsData, refetch: refetchPayments } = useQuery({
 })
 const payments = computed(() => paymentsData.value ?? [])
 const { formatUSD, formatVESEs, employeeRate } = useCurrency()
+
+const rateLabel = computed(() => {
+  const profileRate = (authStore.profile as any)?.employee_ves_rate
+  if (profileRate != null && Number(profileRate) > 0) {
+    return `Tasa del empleado: ${Number(profileRate).toLocaleString('es-VE')} Bs/USD`
+  }
+  if (businessStore.employeeExchangeRate != null) {
+    return `Tasa empleados: ${businessStore.employeeExchangeRate.toLocaleString('es-VE')} Bs/USD`
+  }
+  return `Tasa global: ${employeeRate.value.toLocaleString('es-VE')} Bs/USD`
+})
 
 const formatEmployeeVES = (usdValue: number): string => {
   return formatVESEs(usdValue * employeeRate.value)
