@@ -165,12 +165,18 @@ const handleViewAgenda = (e: Empleado) => { router.push('/admin?employee=' + e.i
 
 const { formatUSD, formatVESInline, formatVESEs } = useCurrency()
 const employeeDebtSummary = computed(() => {
-  return (summaryCtx.employeeEarningsByEmployee.value ?? []).map(s => {
-    const allPayments = paymentsCtx.payments.value.filter(p => p.employeeId === s.employeeId)
-    const totalPaid = allPayments.filter(p => p.type !== 'consumption').reduce((sum, p) => sum + p.amount, 0)
-    const totalConsumed = allPayments.filter(p => p.type === 'consumption').reduce((sum, p) => sum + p.amount, 0)
-    return { ...s, totalPaid, totalConsumed, pendingBalance: Math.max(0, s.totalEarned - totalPaid - totalConsumed) }
-  }).filter(s => s.totalEarned > 0 || s.totalPaid > 0 || s.totalConsumed > 0)
+  return (paymentsCtx.debt.value ?? []).map((d: any) => ({
+    employeeId: d.employee_id,
+    employeeName: d.employee_name,
+    payType: d.pay_type,
+    payPercentage: Number(d.pay_percentage ?? 0),
+    baseSalary: Number(d.base_salary ?? 0),
+    commissionTotal: Number(d.commission ?? 0) + Number(d.tips ?? 0),
+    totalEarned: Number(d.total ?? 0),
+    totalPaid: Number(d.paid ?? 0),
+    totalConsumed: Number(d.consumed ?? 0),
+    pendingBalance: Math.max(0, Number(d.total ?? 0) - Number(d.paid ?? 0) - Number(d.consumed ?? 0)),
+  })).filter(d => d.totalEarned > 0 || d.totalPaid > 0 || d.totalConsumed > 0)
 })
 
 const deudaConSaldo = computed(() => employeeDebtSummary.value.filter(r => r.pendingBalance > 0))
