@@ -486,10 +486,6 @@ const payments = computed(() => paymentsData.value ?? [])
 const { formatUSD, formatVESEs, employeeRate } = useCurrency()
 
 const rateLabel = computed(() => {
-  const profileRate = (authStore.profile as any)?.employee_ves_rate
-  if (profileRate != null && Number(profileRate) > 0) {
-    return `Tasa del empleado: ${Number(profileRate).toLocaleString('es-VE')} Bs/USD`
-  }
   if (businessStore.employeeExchangeRate != null) {
     return `Tasa empleados: ${businessStore.employeeExchangeRate.toLocaleString('es-VE')} Bs/USD`
   }
