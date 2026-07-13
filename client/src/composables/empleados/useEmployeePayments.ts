@@ -220,10 +220,10 @@ export function useEmployeePayments(
     },
     onSuccess: async () => {
       await Promise.allSettled([
-        queryClient.invalidateQueries({ queryKey: employeePaymentKeys.all(businessId.value) }),
-        queryClient.invalidateQueries({ queryKey: ['employee-debt'] }),
-        queryClient.invalidateQueries({ queryKey: ['employee-balance'] }),
-        queryClient.invalidateQueries({ queryKey: ['finanzas-summary'] }),
+        queryClient.invalidateQueries({ queryKey: employeePaymentKeys.all(businessId.value), exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['employee-debt'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['employee-balance'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['finanzas-summary'], exact: false }),
       ])
       success('Pago registrado')
       closePaymentModal()
@@ -253,10 +253,10 @@ export function useEmployeePayments(
     },
     onSuccess: async () => {
       await Promise.allSettled([
-        queryClient.invalidateQueries({ queryKey: employeePaymentKeys.all(businessId.value) }),
-        queryClient.invalidateQueries({ queryKey: ['employee-debt'] }),
-        queryClient.invalidateQueries({ queryKey: ['employee-balance'] }),
-        queryClient.invalidateQueries({ queryKey: ['finanzas-summary'] }),
+        queryClient.invalidateQueries({ queryKey: employeePaymentKeys.all(businessId.value), exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['employee-debt'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['employee-balance'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['finanzas-summary'], exact: false }),
       ])
       success('Consumo registrado')
       closeConsumptionModal()
@@ -268,8 +268,8 @@ export function useEmployeePayments(
     mutationFn: (id: string) => deleteEmployeePayment(id),
     onSuccess: async () => {
       await Promise.allSettled([
-        queryClient.invalidateQueries({ queryKey: employeePaymentKeys.all(businessId.value) }),
-        queryClient.invalidateQueries({ queryKey: ['employee-debt'] }),
+        queryClient.invalidateQueries({ queryKey: employeePaymentKeys.all(businessId.value), exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['employee-debt'], exact: false }),
       ])
       success('Eliminado')
     },

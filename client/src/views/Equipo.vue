@@ -120,8 +120,8 @@ const paymentsCtx = useEmployeePayments(businessId, periodDates)
 
 const onPaymentSaved = async () => {
   await Promise.allSettled([
-    queryClient.invalidateQueries({ queryKey: employeePaymentKeys.all(businessId.value) }),
-    queryClient.invalidateQueries({ queryKey: ['financial-summary', businessId.value] }),
+    queryClient.invalidateQueries({ queryKey: employeePaymentKeys.all(businessId.value), exact: false }),
+    queryClient.invalidateQueries({ queryKey: ['financial-summary', businessId.value], exact: false }),
   ])
   await queryClient.refetchQueries({ queryKey: employeePaymentKeys.all(businessId.value), exact: false })
 }
