@@ -5,7 +5,6 @@
     <div v-for="p in visiblePayments" :key="p.id" class="flex justify-between items-center py-2 border-b border-border last:border-b-0">
       <div>
         <p class="text-sm font-medium text-text">{{ p.displayAmount }}</p>
-        <p class="text-xs text-text-muted">{{ p.displayVES }}</p>
         <p class="text-xs text-text-muted">{{ formatDate(p.payment_date) }} · {{ formatMethod(p.payment_method) }}
           <span v-if="p.type === 'consumption'" class="ml-1 rounded bg-warning/10 px-1.5 py-0.5 text-[10px] font-semibold text-warning">Consumo</span>
         </p>
