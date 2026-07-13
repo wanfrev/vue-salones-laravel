@@ -65,7 +65,7 @@ export function useCategoryCRUD<T extends { category: string }>(params: UseCateg
 
   async function invalidateCategoryQueries(bid: string) {
     const promises = [
-      queryClient.invalidateQueries({ exact: false, queryKey: serviciosKeys.all(bid) }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['servicios', bid] }),
       queryClient.invalidateQueries({ exact: false, queryKey: ['business', bid] }),
     ]
     if (branchId?.value) {
@@ -80,7 +80,7 @@ export function useCategoryCRUD<T extends { category: string }>(params: UseCateg
     }
     await Promise.allSettled(promises)
     await Promise.allSettled([
-      queryClient.refetchQueries({ exact: false, queryKey: serviciosKeys.all(bid) }),
+      queryClient.refetchQueries({ exact: false, queryKey: ['servicios', bid] }),
       queryClient.refetchQueries({ exact: false, queryKey: ['business', bid] }),
       ...(branchId?.value ? [queryClient.refetchQueries({ exact: false, queryKey: ['branches', bid] })] : []),
     ])

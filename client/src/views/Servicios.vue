@@ -330,15 +330,15 @@ const addCategory = async () => {
   try {
     if (branchId.value) {
       await addBranchCategory(branchId.value, name)
-      queryClient.invalidateQueries({ queryKey: ['branches', businessId.value] }).catch(() => {})
+      queryClient.invalidateQueries({ exact: false, queryKey: ['branches', businessId.value] }).catch(() => {})
     } else {
       await addBusinessCategory(businessId.value, name)
-      queryClient.invalidateQueries({ queryKey: ['business', businessId.value] }).catch(() => {})
+      queryClient.invalidateQueries({ exact: false, queryKey: ['business', businessId.value] }).catch(() => {})
     }
     newCatName.value = ''
     addingCategory.value = false
     success('Categoría agregada')
-    queryClient.invalidateQueries({ queryKey: serviciosKeys.all(businessId.value) }).catch(() => {})
+    queryClient.invalidateQueries({ exact: false, queryKey: ['servicios', businessId.value] }).catch(() => {})
   } catch (err) {
     showError('Error al agregar categoría')
   }
