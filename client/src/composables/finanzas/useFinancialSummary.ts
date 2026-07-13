@@ -59,6 +59,8 @@ export type ProductSaleDetail = {
   exchangeRateUsed: number
   originalAmount: number
   isAppointmentSale: boolean
+  paymentMethod: string
+  breakdown?: PaymentBreakdownItem[] | null
 }
 
 export type PaymentRow = {
@@ -290,6 +292,8 @@ function useFinancialSummary(
       exchangeRateUsed: Number(r.exchange_rate_used ?? 1),
       originalAmount: Number(r.total ?? 0) * Number(r.exchange_rate_used ?? 1),
       isAppointmentSale: r.is_appointment_sale ?? false,
+      paymentMethod: r.payment_method ?? 'cash',
+      breakdown: r.payments_breakdown ?? null,
     }))
   })
 
@@ -346,11 +350,15 @@ function useFinancialSummary(
       if ((ps as any).is_appointment_sale) continue
       const clientLabel = (ps as any).client_name as string | undefined
       const productName = (ps as any).product ?? 'Producto'
+      const method = (ps as any).payment_method ?? 'cash'
+      const breakdown = (ps as any).payments_breakdown ?? null
       result.push({
         id: 'ps-' + (ps as any).id,
         date: formatDate((ps as any).date ?? (ps as any).created_at),
         description: clientLabel ? `${clientLabel} · ${productName}` : productName,
-        method: formatMethod((ps as any).payment_method ?? 'cash'),
+        method: formatMethod(method),
+        breakdownLabel: formatBreakdownLabel(breakdown),
+        breakdown: breakdown,
         amount: Number((ps as any).total ?? 0),
         type: 'ingreso',
         exchangeRateUsed: Number((ps as any).exchange_rate_used ?? 1),

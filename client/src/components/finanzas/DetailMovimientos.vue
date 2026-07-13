@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
+import { formatMethod } from '../../lib/formatters'
 import { useCrud } from '../../composables/empleados/useCrud'
 import { useCategoryCRUD } from '../../composables/common/useCategoryCRUD'
 import { useNotification } from '../../composables/common/useNotification'
@@ -442,6 +443,9 @@ const confirmDeleteServicio = async () => {
                   class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
                   Precio</th>
                 <th
+                  class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
+                  Método</th>
+                <th
                   class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
                   Total</th>
                 <th
@@ -459,6 +463,25 @@ const confirmDeleteServicio = async () => {
                 <td
                   class="px-3 py-3 text-right tabular-nums text-text-secondary whitespace-nowrap hidden sm:table-cell">
                   {{ formatUSD(row.unitPrice) }}</td>
+                <td
+                  class="px-3 py-3 text-text-secondary hidden sm:table-cell">
+                  <span v-if="row.paymentMethod === 'cash'">Efectivo ($)</span>
+                  <span v-else-if="row.paymentMethod === 'cash_ves'">Efectivo (Bs)</span>
+                  <span v-else-if="row.paymentMethod === 'card'">Tarjeta</span>
+                  <span v-else-if="row.paymentMethod === 'transfer'">Transferencia</span>
+                  <span v-else-if="row.paymentMethod === 'zelle'">Zelle</span>
+                  <span v-else-if="row.paymentMethod === 'pago_movil'">Pago Móvil</span>
+                  <span v-else-if="row.paymentMethod === 'punto_venta'">Punto de Venta (Bs)</span>
+                  <span v-else-if="row.paymentMethod === 'mixed'">
+                    <span class="font-medium text-warning">Mixto</span>
+                    <div v-if="row.breakdown && row.breakdown.length > 1" class="text-[10px] text-text-muted mt-0.5">
+                      <span v-for="(b, bi) in row.breakdown" :key="bi">
+                        {{ formatMethod(b.method) }} {{ b.currency === 'VES' ? b.inputAmount.toLocaleString('es-VE', { minimumFractionDigits: 2 }) + ' Bs' : '$' + b.inputAmount.toFixed(2) }}<span v-if="bi < row.breakdown.length - 1"> / </span>
+                      </span>
+                    </div>
+                  </span>
+                  <span v-else>{{ formatMethod(row.paymentMethod) }}</span>
+                </td>
                 <td class="px-3 py-3 text-right font-semibold text-info tabular-nums whitespace-nowrap">
                   <div>{{ row.currency === 'VES' ? formatVESEs(row.originalAmount) : formatUSD(row.total) }}</div>
                   <div class="text-[10px] text-text-muted mt-0.5">{{ row.currency === 'VES' ? formatUSD(row.total) :

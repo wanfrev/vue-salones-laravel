@@ -259,6 +259,7 @@ class FinancialSummaryService
                 'products.unit_price as product_unit_price',
                 'clients.full_name as client_name',
                 'transactions.method as payment_method',
+                'transactions.payments_breakdown',
             )
             ->orderByDesc('inventory_movements.created_at');
 
@@ -293,6 +294,8 @@ class FinancialSummaryService
                 'reference_id' => $row->reference_id,
                 'is_appointment_sale' => $row->reference_type === 'appointment',
                 'notes' => $row->notes,
+                'payment_method' => $row->payment_method ?? 'cash',
+                'payments_breakdown' => $row->payments_breakdown ? json_decode($row->payments_breakdown, true) : null,
             ];
         });
     }
