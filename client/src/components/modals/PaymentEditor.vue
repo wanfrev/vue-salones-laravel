@@ -169,9 +169,15 @@ const updatePaymentBreakdownItem = (index: number, field: 'method' | 'amount', v
 function setPaymentContext(data: PaymentEditContext | null) {
   if (data) {
     paymentContext.value = data
-    paymentMethod.value = data.method
+    const hasMultipleBreakdown = data.breakdown && data.breakdown.length > 1
+    paymentMethod.value = hasMultipleBreakdown ? 'mixed' : data.method
     paymentCurrency.value = data.currency
-    paymentAmount.value = data.amount
+    if (hasMultipleBreakdown) {
+      const sumInCurrency = data.breakdown!.reduce((s, b) => s + (b.currency === 'VES' ? b.inputAmount : b.amount), 0)
+      paymentAmount.value = parseFloat(sumInCurrency.toFixed(2))
+    } else {
+      paymentAmount.value = data.amount
+    }
     paymentTipAmount.value = Number(data.tipAmount ?? 0)
     paymentExchangeRate.value = data.exchangeRate
     paymentNotes.value = data.notes || ''

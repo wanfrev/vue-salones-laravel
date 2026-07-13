@@ -185,9 +185,6 @@ function useFinancialSummary(
       const clientFromNotes = extractClientFromNotes(tx.notes)
       const client = tx.client_name ?? clientFromNotes ?? 'Venta directa'
 
-      const hasGroup = tx.group_id && typeof tx.group_id === 'string' && tx.group_id.length > 10
-      const isGroupMixed = hasGroup && breakdown && breakdown.length > 1
-
       return {
         id: tx.id,
         appointmentId: tx.appointment_id,
@@ -196,11 +193,11 @@ function useFinancialSummary(
         client,
         employee: tx.employee_name ?? '—',
         service: tx.service_name ?? 'Producto',
-        method: isGroupMixed ? 'Mixto' : (breakdownLabel || formatMethod(method)),
+        method: breakdownLabel || formatMethod(method),
         rawMethod: method as PaymentMethod,
         amount: serviceAmt,
         exchangeRateUsed: Number(tx.exchange_rate_used ?? 1),
-        breakdownLabel: isGroupMixed ? '' : breakdownLabel,
+        breakdownLabel,
         breakdown,
         primaryCurrency: isVES ? 'VES' : 'USD',
         primaryAmount: isVES && sumVES > 0 ? sumVES : serviceAmt,
@@ -535,16 +532,18 @@ function useFinancialSummary(
     { label: 'Zelle', value: 'zelle' },
     { label: 'Pago Móvil', value: 'pago_movil' },
     { label: 'Punto de Vta (Bs)', value: 'punto_venta' },
+    { label: 'Mixto', value: 'mixed' },
     { label: 'Otro', value: 'other' },
   ])
 
   const setEditingCurrency = (_v: 'USD' | 'VES') => {}
 
   const startEdit = (item: any) => {
+    const hasMixed = item.breakdown && item.breakdown.length > 1
     editingTransaction.value = item
     editingAmount.value = item.amount ?? 0
     editingCurrency.value = item.primaryCurrency ?? 'USD'
-    editingMethod.value = item.rawMethod ?? 'cash'
+    editingMethod.value = hasMixed ? 'mixed' : (item.rawMethod ?? 'cash')
     editingNotes.value = item.notes ?? ''
     editingBreakdown.value = item.breakdown && item.breakdown.length > 0
       ? [...item.breakdown]
