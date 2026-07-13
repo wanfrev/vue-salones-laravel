@@ -24,7 +24,7 @@ function getWeekRange(date: Date): { start: Date; end: Date } {
 
 export function useAdminAgenda(businessId: () => string | null) {
   const selectedDate = ref<Date>(new Date())
-  const filterDate = ref<string | null>(null)
+  const filterDate = ref<string | null>(toISODate(new Date()))
   const dateFilterMode = ref<DateFilterMode>('day')
   const businessStore = useBusinessStore()
 
