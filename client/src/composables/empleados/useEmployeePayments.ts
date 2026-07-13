@@ -187,10 +187,12 @@ export function useEmployeePayments(
     }
   }
 
-  // ── Employee-specific rate (from balance) ──
+  // ── Employee-specific rate (from balance, then business, then global) ──
   const employeeVesRate = computed(() => {
-    const rate = selectedBalance.value?.employee_ves_rate
-    if (rate != null && Number(rate) > 0) return Number(rate)
+    const profileRate = selectedBalance.value?.employee_ves_rate
+    if (profileRate != null && Number(profileRate) > 0) return Number(profileRate)
+    const businessEmpRate = businessStore.employeeExchangeRate
+    if (businessEmpRate != null && businessEmpRate > 0) return businessEmpRate
     return exchangeRate.value
   })
 
