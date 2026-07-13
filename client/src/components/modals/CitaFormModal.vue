@@ -308,7 +308,6 @@ const confirmButtonLabel = computed(() => {
 
 watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData], async ([open, cita, paymentData]) => {
   if (!open) return; commissionDetailOpen.clear(); activeEmployeeOverrides.clear()
-  paymentEditorRef.value?.setPaymentContext(paymentData as PaymentEditContext | null)
   if (cita) {
     let phone = ''
     let groupMembers: CitaFormServiceItem[] = []
@@ -353,6 +352,8 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
     isInitialSetup.value = true
     formData.value = defaultFormData()
   }
+  await nextTick()
+  paymentEditorRef.value?.setPaymentContext(paymentData as PaymentEditContext | null)
   activeEmployeeOverrides.clear()
   commissionDetailOpen.clear()
   if (formData.value.employeePercentageOverride != null) { activeEmployeeOverrides.add(0); commissionDetailOpen.add(0) }

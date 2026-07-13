@@ -559,7 +559,7 @@ function emitEventClick(raw: any) {
       groupId: raw.group_id || undefined,
       date: toISODate(start), time: dateToHHmm(start),
       duration: effectiveDuration,
-      price: effectivePrice, status: status as Cita['status'], notes: raw.internal_notes || '',
+      price: effectivePrice, status: status as Cita['status'], paymentStatus: raw.payment_status as Cita['paymentStatus'], notes: raw.internal_notes || '',
     },
   })
 }
