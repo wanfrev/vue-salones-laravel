@@ -12,7 +12,6 @@
             <th class="py-2 pr-2 text-left font-medium text-text-muted">Cliente</th>
             <th class="py-2 pr-2 text-left font-medium text-text-muted">Servicio</th>
             <th class="py-2 px-2 text-right font-medium text-text-muted">Total</th>
-            <th class="py-2 px-2 text-center font-medium text-text-muted whitespace-nowrap">Moneda</th>
             <th class="py-2 px-2 text-center font-medium text-text-muted">%</th>
             <th class="py-2 pl-2 text-right font-medium text-text-muted">Ganancia</th>
           </tr>
@@ -23,12 +22,6 @@
             <td class="py-2 pr-2 text-text-secondary">{{ (row as any).clientName || '—' }}</td>
             <td class="py-2 pr-2 text-text">{{ row.serviceName }}</td>
             <td class="py-2 px-2 text-right text-text-secondary">${{ row.totalAmount.toFixed(2) }}</td>
-            <td class="py-2 px-2 text-center">
-              <span v-if="row.currency === 'VES'" class="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
-                Bs @ {{ row.exchangeRateUsed.toFixed(2) }}
-              </span>
-              <span v-else class="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">USD</span>
-            </td>
             <td class="py-2 px-2 text-center text-text-secondary">{{ row.employeePercentage }}%</td>
             <td class="py-2 pl-2 text-right font-semibold text-success">
               <div>${{ row.employeeEarnings.toFixed(2) }}</div>
