@@ -156,8 +156,7 @@ export const useBusinessStore = defineStore('business', () => {
   // Select default branch when branches load and none is selected
   watch(branches, (list) => {
     if (list.length > 0 && !selectedBranchId.value) {
-      const def = list.find(b => b.is_default) ?? list[0]
-      if (def) selectedBranchId.value = def.id
+      restoreBranchSelection()
     }
   })
 
