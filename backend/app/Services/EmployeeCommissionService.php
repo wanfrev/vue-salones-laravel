@@ -9,6 +9,18 @@ use Illuminate\Support\Facades\DB;
 class EmployeeCommissionService
 {
     /**
+     * Normalize a date string to ensure the full day is included.
+     * If endDate is date-only (length 10, no time), append 23:59:59.
+     */
+    private function normalizeEndDate(?string $endDate): ?string
+    {
+        if ($endDate && strlen($endDate) === 10) {
+            return $endDate . ' 23:59:59';
+        }
+        return $endDate;
+    }
+
+    /**
      * Service-level commission details for all employees in a period.
      */
     public function getCommissions(
@@ -41,7 +53,7 @@ class EmployeeCommissionService
             ->orderByDesc('transactions.paid_at');
 
         if ($startDate && $endDate) {
-            $query->whereBetween('transactions.paid_at', [$startDate, $endDate]);
+            $query->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)]);
         }
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
@@ -92,7 +104,7 @@ class EmployeeCommissionService
             ->groupBy('profiles.id', 'profiles.full_name', 'profiles.pay_type', 'profiles.pay_percentage', 'profiles.base_salary');
 
         if ($startDate && $endDate) {
-            $earningsQuery->whereBetween('transactions.paid_at', [$startDate, $endDate]);
+            $earningsQuery->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)]);
         }
         if ($branchId) {
             $earningsQuery->where(function ($q) use ($branchId) {
@@ -113,7 +125,7 @@ class EmployeeCommissionService
             ->groupBy('employee_id');
 
         if ($startDate && $endDate) {
-            $paidQuery->whereBetween('payment_date', [$startDate, $endDate]);
+            $paidQuery->whereBetween('payment_date', [$startDate, $this->normalizeEndDate($endDate)]);
         }
         if ($branchId) {
             $paidQuery->where(function ($q) use ($branchId) {
@@ -164,7 +176,7 @@ class EmployeeCommissionService
             ->where('transactions.business_id', $businessId)
             ->where('appointments.employee_id', $employeeId)
             ->whereIn('appointments.status', ['confirmed', 'completed', 'pending'])
-            ->when($startDate && $endDate, fn($q) => $q->whereBetween('transactions.paid_at', [$startDate, $endDate]))
+            ->when($startDate && $endDate, fn($q) => $q->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)]))
             ->select(
                 DB::raw('COALESCE(SUM(transactions.employee_amount), 0) as commission'),
                 DB::raw('COALESCE(SUM(transactions.tip_amount), 0) as tips'),
@@ -184,7 +196,7 @@ class EmployeeCommissionService
         $paid = DB::table('employee_payments')
             ->where('business_id', $businessId)
             ->where('employee_id', $employeeId)
-            ->when($startDate && $endDate, fn($q) => $q->whereBetween('payment_date', [$startDate, $endDate]))
+            ->when($startDate && $endDate, fn($q) => $q->whereBetween('payment_date', [$startDate, $this->normalizeEndDate($endDate)]))
             ->select(
                 DB::raw("COALESCE(SUM(CASE WHEN type = 'payment' THEN amount ELSE 0 END), 0) as paid"),
                 DB::raw("COALESCE(SUM(CASE WHEN type = 'consumption' THEN amount ELSE 0 END), 0) as consumed"),
@@ -259,7 +271,7 @@ class EmployeeCommissionService
             });
         }
         if ($startDate && $endDate) {
-            $query->whereBetween('transactions.paid_at', [$startDate, $endDate]);
+            $query->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)]);
         }
 
         return $query->get()->map(function ($row) {
