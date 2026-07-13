@@ -46,20 +46,24 @@ export function useEmployeePayments(
     enabled: computed(() => !!businessId.value),
   })
 
-  const payments = computed(() => (paymentsData.value ?? []).map((p: any) => ({
-    id: p.id,
-    employeeId: p.employee_id,
-    employeeName: p.employee_profile?.full_name ?? '—',
-    amount: p.amount,
-    currency: p.currency ?? 'USD',
-    originalAmount: p.original_amount ?? 0,
-    exchangeRateUsed: p.exchange_rate_used ?? 1,
-    paymentMethod: p.payment_method,
-    type: p.type,
-    concept: p.concept,
-    notes: p.notes,
-    paymentDate: p.payment_date,
-  })))
+  const payments = computed(() => (paymentsData.value ?? []).map((p: any) => {
+    const hasOriginalAmount = p.original_amount != null && Number(p.original_amount) > 0
+    const currency = p.currency === 'VES' || hasOriginalAmount ? 'VES' : 'USD'
+    return {
+      id: p.id,
+      employeeId: p.employee_id,
+      employeeName: p.employee_profile?.full_name ?? '—',
+      amount: p.amount,
+      currency,
+      originalAmount: hasOriginalAmount ? Number(p.original_amount) : 0,
+      exchangeRateUsed: p.exchange_rate_used ?? 1,
+      paymentMethod: p.payment_method,
+      type: p.type,
+      concept: p.concept,
+      notes: p.notes,
+      paymentDate: p.payment_date,
+    }
+  }))
 
   const paymentsMade = computed(() =>
     payments.value.filter(p => p.type === 'payment'),
