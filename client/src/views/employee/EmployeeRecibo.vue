@@ -98,6 +98,7 @@
             :earnings="filteredEarningsWithVES"
             :show-all="showAllServices"
             :has-more="hasMoreServices"
+            :visible-limit="VISIBLE_SERVICES"
             @toggle="showAllServices = !showAllServices"
           />
 
@@ -276,7 +277,7 @@ const selectedDate = ref(new Date())
 const showHistory = ref(false)
 const showAllServices = ref(false)
 const showAllPayments = ref(false)
-const VISIBLE_SERVICES = 10
+const VISIBLE_SERVICES = 8
 const VISIBLE_PAYMENTS = 5
 
 const periodTabs = [

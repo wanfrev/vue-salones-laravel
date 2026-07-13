@@ -59,11 +59,12 @@ const props = defineProps<{
   earnings: any[]
   showAll: boolean
   hasMore: boolean
+  visibleLimit?: number
 }>()
 
 defineEmits<{ toggle: [] }>()
 
 const { formatVESEs } = useCurrency()
 
-const visibleEarnings = computed(() => props.showAll ? props.earnings : props.earnings.slice(0, 5))
+const visibleEarnings = computed(() => props.showAll ? props.earnings : props.earnings.slice(0, props.visibleLimit ?? 8))
 </script>
