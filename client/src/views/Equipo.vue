@@ -166,16 +166,16 @@ const handleViewAgenda = (e: Empleado) => { router.push('/admin?employee=' + e.i
 const { formatUSD, formatVESInline, formatVESEs } = useCurrency()
 const employeeDebtSummary = computed(() => {
   return (summaryCtx.employeeEarningsByEmployee.value ?? []).map(s => {
-    const payments = paymentsCtx.paymentsMade.value.filter(p => p.employeeId === s.employeeId)
-    const totalPaid = payments.filter(p => p.type !== 'consumption').reduce((sum, p) => sum + p.amount, 0)
-    const totalConsumed = payments.filter(p => p.type === 'consumption').reduce((sum, p) => sum + p.amount, 0)
+    const allPayments = paymentsCtx.payments.value.filter(p => p.employeeId === s.employeeId)
+    const totalPaid = allPayments.filter(p => p.type !== 'consumption').reduce((sum, p) => sum + p.amount, 0)
+    const totalConsumed = allPayments.filter(p => p.type === 'consumption').reduce((sum, p) => sum + p.amount, 0)
     return { ...s, totalPaid, totalConsumed, pendingBalance: Math.max(0, s.totalEarned - totalPaid - totalConsumed) }
   }).filter(s => s.totalEarned > 0 || s.totalPaid > 0 || s.totalConsumed > 0)
 })
 
 const deudaConSaldo = computed(() => employeeDebtSummary.value.filter(r => r.pendingBalance > 0))
 const totalComisiones = computed(() => summaryCtx.employeePayments.value.reduce((acc, p) => acc + p.earnings, 0))
-const totalNominaPagada = computed(() => paymentsCtx.paymentsMade.value.filter(p => p.type !== 'consumption').reduce((acc, p) => acc + p.amount, 0))
-const totalConsumido = computed(() => paymentsCtx.paymentsMade.value.filter(p => p.type === 'consumption').reduce((acc, p) => acc + p.amount, 0))
+const totalNominaPagada = computed(() => paymentsCtx.payments.value.filter(p => p.type !== 'consumption').reduce((acc, p) => acc + p.amount, 0))
+const totalConsumido = computed(() => paymentsCtx.payments.value.filter(p => p.type === 'consumption').reduce((acc, p) => acc + p.amount, 0))
 const totalDeudaPendiente = computed(() => deudaConSaldo.value.reduce((acc, r) => acc + r.pendingBalance, 0))
 </script>
