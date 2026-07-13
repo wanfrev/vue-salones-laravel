@@ -86,7 +86,9 @@ import { useQuery } from '@tanstack/vue-query'
 import { api as supabase } from '../lib/api'
 import { listServicios } from '../services/serviciosService'
 import { listEquipo } from '../services/equipoService'
+import { APPOINTMENT_SELECT } from '../services/agendaService'
 import type { Cita, PaymentEditContext } from '../types/cita'
+import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import type { PaymentMethod } from '../types/database'
 import { formatMethod } from '../lib/formatters'
 
@@ -242,7 +244,7 @@ const openCitaEditFromCobro = async (tx: any) => {
   if (!tx.appointmentId) return
   const { data: cita } = await supabase
     .from('appointments')
-    .select('*')
+    .select(APPOINTMENT_SELECT)
     .eq('id', tx.appointmentId)
     .maybeSingle()
   if (!cita) return
@@ -257,7 +259,7 @@ const openCitaEditFromCobro = async (tx: any) => {
     notes: tx.notes || undefined,
     breakdown: tx.breakdown || undefined,
   }
-  citaModalRef.value?.open(cita as Cita, paymentData)
+  citaModalRef.value?.open(mapAppointmentToCita(cita), paymentData)
 }
 </script>
 
