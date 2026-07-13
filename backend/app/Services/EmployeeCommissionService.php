@@ -311,7 +311,7 @@ class EmployeeCommissionService
                 'transactions.paid_at',
                 'transactions.exchange_rate_used',
             )
-            ->orderByDesc('transactions.paid_at');
+            ->orderByDesc('appointments.start_time');
 
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
@@ -320,7 +320,7 @@ class EmployeeCommissionService
             });
         }
         if ($startDate && $endDate) {
-            $query->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)]);
+            $query->whereBetween('appointments.start_time', [$startDate, $this->normalizeEndDate($endDate)]);
         }
 
         return $query->get()->map(function ($row) use ($employeeId) {
@@ -339,7 +339,7 @@ class EmployeeCommissionService
 
             return [
                 'id' => $row->appointment_id,
-                'date' => $row->paid_at ?? $row->start_time,
+                'date' => $row->start_time,
                 'time' => $row->start_time,
                 'client_name' => $row->client_name ?? '—',
                 'service_name' => $row->service_name ?? '—',
