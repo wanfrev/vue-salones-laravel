@@ -34,6 +34,7 @@ class AppointmentController
                 $request->branch_id,
                 $request->status,
                 $request->group_id,
+                $request->id_not,
             )
         );
     }

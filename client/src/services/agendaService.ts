@@ -139,7 +139,7 @@ async function deleteOrphanGroupMembers(
     .select('id')
     .eq('group_id', oldGroupId)
     .neq('id', appointmentId)
-  const orphanIds = (orphans ?? []).map((o: any) => o.id)
+  const orphanIds = (orphans ?? []).map((o: any) => o.id).filter((id: string) => id !== appointmentId)
   if (orphanIds.length === 0) return
 
   for (const orphanId of orphanIds) {
