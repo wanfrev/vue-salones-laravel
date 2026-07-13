@@ -185,6 +185,9 @@ function useFinancialSummary(
       const clientFromNotes = extractClientFromNotes(tx.notes)
       const client = tx.client_name ?? clientFromNotes ?? 'Venta directa'
 
+      const hasGroup = tx.group_id && typeof tx.group_id === 'string' && tx.group_id.length > 10
+      const isGroupMixed = hasGroup && breakdown && breakdown.length > 1
+
       return {
         id: tx.id,
         appointmentId: tx.appointment_id,
@@ -193,11 +196,11 @@ function useFinancialSummary(
         client,
         employee: tx.employee_name ?? '—',
         service: tx.service_name ?? 'Producto',
-        method: breakdownLabel || formatMethod(method),
+        method: isGroupMixed ? 'Mixto' : (breakdownLabel || formatMethod(method)),
         rawMethod: method as PaymentMethod,
         amount: serviceAmt,
         exchangeRateUsed: Number(tx.exchange_rate_used ?? 1),
-        breakdownLabel,
+        breakdownLabel: isGroupMixed ? '' : breakdownLabel,
         breakdown,
         primaryCurrency: isVES ? 'VES' : 'USD',
         primaryAmount: isVES && sumVES > 0 ? sumVES : serviceAmt,
