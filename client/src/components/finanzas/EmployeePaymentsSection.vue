@@ -129,7 +129,7 @@
               <div class="font-medium text-danger text-sm">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) :
                 formatUSD(ep.amount) }}</div>
               <div class="text-xs text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) :
-                formatEmployeeVESInline(ep.amount, ep.exchangeRateUsed) + ' Bs' }}</div>
+                formatEmployeeVESInline(ep.amount) + ' Bs' }}</div>
             </div>
           </div>
         </div>
@@ -163,7 +163,7 @@
                 <div class="font-medium text-danger">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) :
                   formatUSD(ep.amount) }}</div>
                 <div class="text-xs text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) :
-                  formatEmployeeVESInline(ep.amount, ep.exchangeRateUsed) + ' Bs' }}</div>
+                  formatEmployeeVESInline(ep.amount) + ' Bs' }}</div>
               </td>
               <td class="py-2 text-center">
                 <div class="flex items-center justify-center gap-1">

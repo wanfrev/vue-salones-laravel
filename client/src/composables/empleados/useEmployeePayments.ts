@@ -47,15 +47,14 @@ export function useEmployeePayments(
   })
 
   const payments = computed(() => (paymentsData.value ?? []).map((p: any) => {
-    const hasOriginalAmount = p.original_amount != null && Number(p.original_amount) > 0
-    const currency = p.currency === 'VES' || hasOriginalAmount ? 'VES' : 'USD'
+    const currency = p.currency === 'VES' ? 'VES' : 'USD'
     return {
       id: p.id,
       employeeId: p.employee_id,
       employeeName: p.employee_profile?.full_name ?? '—',
       amount: p.amount,
       currency,
-      originalAmount: hasOriginalAmount ? Number(p.original_amount) : 0,
+      originalAmount: Number(p.original_amount ?? 0),
       exchangeRateUsed: p.exchange_rate_used ?? 1,
       paymentMethod: p.payment_method,
       type: p.type,
