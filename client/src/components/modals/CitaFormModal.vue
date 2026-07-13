@@ -341,12 +341,24 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
             : Math.round((new Date(selectedMember.end_time).getTime() - new Date(selectedMember.start_time).getTime()) / 60000) || (selectedMember.services?.duration_minutes ?? 30)
           primaryPrice = selectedMember.price_override != null
             ? Number(selectedMember.price_override)
-            : Number(selectedMember.services?.price ?? 0)
+            : (cita.price || Number(selectedMember.services?.price ?? props.servicios?.find(s => s.id === cita.serviceId)?.price ?? 0))
         }
         const selectedMemberId = selectedMember?.id
+        const serviciosMap = props.servicios ?? []
         groupMembers = members
           .filter(m => m.id !== selectedMemberId)
-          .map(m => ({ serviceId: m.service_id, employeeId: m.employee_id, assistantEmployeeId: m.assistant_employee_id ?? '', assistantPercentage: Number(m.assistant_percentage ?? 0), employeePercentageOverride: m.employee_percentage_override != null ? Number(m.employee_percentage_override) : undefined, duration: Math.round((new Date(m.end_time).getTime() - new Date(m.start_time).getTime()) / 60000) || (m.services?.duration_minutes ?? 30), price: Number(m.price_override ?? m.services?.price ?? 0) }))
+          .map(m => {
+            const svcFromProps = serviciosMap.find(s => s.id === m.service_id)
+            return {
+              serviceId: m.service_id,
+              employeeId: m.employee_id,
+              assistantEmployeeId: m.assistant_employee_id ?? '',
+              assistantPercentage: Number(m.assistant_percentage ?? 0),
+              employeePercentageOverride: m.employee_percentage_override != null ? Number(m.employee_percentage_override) : undefined,
+              duration: Math.round((new Date(m.end_time).getTime() - new Date(m.start_time).getTime()) / 60000) || (m.services?.duration_minutes ?? svcFromProps?.duration ?? 30),
+              price: Number(m.price_override ?? m.services?.price ?? svcFromProps?.price ?? 0),
+            }
+          })
         formData.value.extraServices = groupMembers
         formData.value.duration = primaryDuration
         formData.value.price = primaryPrice
