@@ -125,10 +125,12 @@ export const getEmployeeDebt = async (
 export const getEmployeeBalance = async (
   businessId: string,
   employeeId: string,
+  branchId?: string | null,
   startDate?: string,
   endDate?: string,
 ): Promise<EmployeeBalance> => {
   const params = new URLSearchParams()
+  if (branchId) params.set('branch_id', branchId)
   if (startDate) params.set('start_date', startDate)
   if (endDate) params.set('end_date', endDate)
   return await apiRequest<EmployeeBalance>('GET', `/employee-balance/${employeeId}?${params.toString()}`)

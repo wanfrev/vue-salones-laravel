@@ -56,6 +56,7 @@ class EmployeeCommissionController
             $this->commissionService->getEmployeeBalance(
                 $businessId,
                 $employeeId,
+                $request->get('branch_id'),
                 $request->get('start_date'),
                 $request->get('end_date'),
             )

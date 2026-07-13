@@ -31,7 +31,7 @@ const fetchBalance = async () => {
   if (!empId || !props.businessId) { balance.value = null; return }
   loadingBalance.value = true
   try {
-    balance.value = await getEmployeeBalance(props.businessId, empId, periodStart.value || undefined, periodEnd.value || undefined)
+    balance.value = await getEmployeeBalance(props.businessId, empId, props.branchId, periodStart.value || undefined, periodEnd.value || undefined)
   } catch {
     balance.value = null
   } finally {

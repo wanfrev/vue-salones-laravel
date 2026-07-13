@@ -444,6 +444,7 @@ import { computed, ref } from 'vue'
 import { formatMethod } from '../../lib/formatters'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useEmployeePayments } from '../../composables/empleados/useEmployeePayments'
+import { useBusinessStore } from '../../store/business'
 import { getEmployeeBalance, type EmployeeBalance, type EmployeePaymentRecord } from '../../services/employeePaymentsService'
 import type { EmployeeEarningSummary } from '../../composables/finanzas/useFinancialSummary'
 
@@ -469,6 +470,8 @@ const emit = defineEmits<{
 }>()
 
 const { formatUSD, formatVESEs, formatEmployeeVESInline } = useCurrency()
+const businessStore = useBusinessStore()
+const branchId = computed(() => businessStore.currentBranchId)
 
 const paymentsCtx = useEmployeePayments(computed(() => props.businessId))
 
@@ -541,7 +544,7 @@ const onEmployeeChange = async () => {
     return
   }
   try {
-    selectedBalance.value = await getEmployeeBalance(props.businessId, employeeId, earningsStartDate.value || undefined, earningsEndDate.value || undefined)
+    selectedBalance.value = await getEmployeeBalance(props.businessId, employeeId, branchId.value, earningsStartDate.value || undefined, earningsEndDate.value || undefined)
   } catch {
     selectedBalance.value = null
   }

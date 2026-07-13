@@ -165,11 +165,13 @@ export function useEmployeePayments(
   const { data: selectedBalance, refetch: refetchBalance } = useQuery({
     queryKey: computed(() => [
       'employee-balance', paymentForm.value.employeeId,
+      branchId.value,
       paymentForm.value.startDate, paymentForm.value.endDate,
     ]),
     queryFn: () => getEmployeeBalance(
       businessId.value!,
       paymentForm.value.employeeId,
+      branchId.value,
       paymentForm.value.startDate || undefined,
       paymentForm.value.endDate || undefined,
     ),

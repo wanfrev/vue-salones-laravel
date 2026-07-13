@@ -174,24 +174,54 @@ class EmployeeCommissionService
     public function getEmployeeBalance(
         string $businessId,
         string $employeeId,
+        ?string $branchId = null,
         ?string $startDate = null,
         ?string $endDate = null,
     ): array {
-        // Earned
-        $earned = DB::table('transactions')
+        $dateFilter = function ($q) use ($startDate, $endDate) {
+            if ($startDate && $endDate) {
+                $q->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)]);
+            }
+        };
+        $branchFilter = function ($q) use ($branchId) {
+            if ($branchId) {
+                $q->where(function ($sq) use ($branchId) {
+                    $sq->whereNull('appointments.branch_id')
+                       ->orWhere('appointments.branch_id', $branchId);
+                });
+            }
+        };
+
+        // Earned as main employee
+        $mainEarned = DB::table('transactions')
             ->join('appointments', 'transactions.appointment_id', '=', 'appointments.id')
             ->where('transactions.business_id', $businessId)
             ->where('appointments.employee_id', $employeeId)
             ->whereIn('appointments.status', ['confirmed', 'completed', 'pending'])
-            ->when($startDate && $endDate, fn($q) => $q->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)]))
+            ->where($dateFilter)
+            ->where($branchFilter)
             ->select(
                 DB::raw('COALESCE(SUM(transactions.employee_amount), 0) as commission'),
                 DB::raw('COALESCE(SUM(transactions.tip_amount), 0) as tips'),
             )
             ->first();
 
-        $commission = (float) ($earned->commission ?? 0);
-        $tips = (float) ($earned->tips ?? 0);
+        // Earned as assistant
+        $assistantEarned = DB::table('transactions')
+            ->join('appointments', 'transactions.appointment_id', '=', 'appointments.id')
+            ->where('transactions.business_id', $businessId)
+            ->where('appointments.assistant_employee_id', $employeeId)
+            ->whereIn('appointments.status', ['confirmed', 'completed', 'pending'])
+            ->where($dateFilter)
+            ->where($branchFilter)
+            ->select(
+                DB::raw('COALESCE(SUM(transactions.assistant_amount), 0) as commission'),
+                DB::raw('COALESCE(SUM(transactions.tip_amount), 0) as tips'),
+            )
+            ->first();
+
+        $commission = (float) ($mainEarned->commission ?? 0) + (float) ($assistantEarned->commission ?? 0);
+        $tips = (float) ($mainEarned->tips ?? 0) + (float) ($assistantEarned->tips ?? 0);
 
         $profile = Profile::find($employeeId);
         $baseSalary = $profile ? (float) ($profile->base_salary ?? 0) : 0;
@@ -265,6 +295,7 @@ class EmployeeCommissionService
                 'services.price as service_price',
                 'transactions.total_amount',
                 'transactions.employee_amount',
+                'transactions.assistant_amount',
                 'transactions.employee_percentage',
                 'transactions.assistant_percentage',
                 'transactions.tip_amount',
@@ -283,12 +314,15 @@ class EmployeeCommissionService
             $query->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)]);
         }
 
-        return $query->get()->map(function ($row) {
-            $pct = (float) ($row->employee_percentage_override
-                ?? $row->employee_percentage
-                ?? 0);
+        return $query->get()->map(function ($row) use ($employeeId) {
+            $isAssistant = $row->assistant_employee_id === $employeeId;
+            $pct = (float) ($isAssistant
+                ? ($row->assistant_percentage ?? 0)
+                : ($row->employee_percentage_override ?? $row->employee_percentage ?? 0));
             $tip = (float) ($row->tip_amount ?? 0);
-            $empAmount = (float) ($row->employee_amount ?? 0);
+            $empAmount = (float) ($isAssistant
+                ? ($row->assistant_amount ?? 0)
+                : ($row->employee_amount ?? 0));
             $earnings = $empAmount + $tip;
             $serviceAmount = $pct > 0 && $empAmount > 0
                 ? round($empAmount / $pct * 100, 2)
