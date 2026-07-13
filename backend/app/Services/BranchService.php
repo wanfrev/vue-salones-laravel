@@ -56,6 +56,7 @@ class BranchService
             'is_default' => $data['is_default'] ?? $branch->is_default,
             'active' => $data['active'] ?? $branch->active,
             'ves_exchange_rate' => array_key_exists('ves_exchange_rate', $data) ? $data['ves_exchange_rate'] : $branch->ves_exchange_rate,
+            'service_categories' => array_key_exists('service_categories', $data) ? $this->normalizeCategories($data['service_categories'], $branch->service_categories) : $branch->service_categories,
             'updated_at' => now(),
         ]);
 
@@ -83,5 +84,24 @@ class BranchService
             ->where('is_default', true)
             ->where('active', true)
             ->first();
+    }
+
+    private function normalizeCategories(array $names, mixed $existing): array
+    {
+        $existingMap = [];
+        if (is_array($existing)) {
+            foreach ($existing as $item) {
+                if (is_array($item) && isset($item['name'])) {
+                    $existingMap[$item['name']] = $item['id'] ?? null;
+                }
+            }
+        }
+
+        $result = [];
+        foreach ($names as $name) {
+            $id = $existingMap[$name] ?? Str::uuid()->toString();
+            $result[] = ['id' => $id, 'name' => $name];
+        }
+        return $result;
     }
 }

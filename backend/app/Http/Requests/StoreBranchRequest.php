@@ -17,6 +17,8 @@ class StoreBranchRequest extends FormRequest
             'is_default' => ['nullable', 'boolean'],
             'active' => ['nullable', 'boolean'],
             'ves_exchange_rate' => ['nullable', 'numeric', 'min:0'],
+            'service_categories' => ['nullable', 'array'],
+            'service_categories.*' => ['string', 'max:255'],
         ];
     }
 }
