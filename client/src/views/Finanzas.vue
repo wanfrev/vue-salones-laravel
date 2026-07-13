@@ -87,6 +87,7 @@ import { api as supabase } from '../lib/api'
 import { listServicios } from '../services/serviciosService'
 import { listEquipo } from '../services/equipoService'
 import { APPOINTMENT_SELECT } from '../services/agendaService'
+import { useBusinessStore } from '../store/business'
 import type { Cita, PaymentEditContext } from '../types/cita'
 import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import type { PaymentMethod } from '../types/database'
@@ -94,6 +95,7 @@ import { formatMethod } from '../lib/formatters'
 
 const { authStore } = useAuth()
 const { formatUSD, formatVESInline } = useCurrency()
+const businessStore = useBusinessStore()
 const router = useRouter()
 
 const { selectedPeriod, selectedMonth, resetToCurrent, goPrev, goNext, displayLabel, periods } = usePeriodSelection()
