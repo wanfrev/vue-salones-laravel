@@ -323,7 +323,8 @@ const handleGroupPayment = async (appt: any) => {
       const fullTip = employeeId ? (tipAllocations.value[employeeId] ?? 0) : 0
       const memberServices = members.filter(m => m.employeeId === employeeId).length
       const memberTip = Number(((memberServices > 0 ? fullTip / memberServices : 0)).toFixed(2))
-      const memberBreakdown = methodBreakdowns.map(b => ({ ...b, inputAmount: Math.round(b.inputAmount * proportion * 100) / 100, amount: Math.round(b.amount * proportion * 100) / 100 }))
+      // Store the full payment breakdown (not proportional) so the edit card shows real amounts
+      const memberBreakdown = methodBreakdowns.map(b => ({ ...b }))
 
       const saleParams = {
         appointmentId: groupIds[i],
