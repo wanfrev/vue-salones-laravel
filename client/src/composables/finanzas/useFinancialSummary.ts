@@ -178,7 +178,8 @@ function useFinancialSummary(
       const breakdownLabel = formatBreakdownLabel(breakdown)
       const sumVES = sumVESBreakdown(breakdown)
       const tip = Number(tx.tip_amount ?? 0)
-      const serviceAmt = Number(tx.total_amount ?? 0)
+      const breakdownUSD = breakdown ? breakdown.reduce((s, b) => s + Number(b.amount ?? 0), 0) : 0
+      const serviceAmt = breakdownUSD > 0 ? breakdownUSD : Number(tx.total_amount ?? 0)
 
       const clientFromNotes = extractClientFromNotes(tx.notes)
       const client = tx.client_name ?? clientFromNotes ?? 'Venta directa'
