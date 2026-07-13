@@ -103,7 +103,7 @@ import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
 import { useNotification } from '../composables/common/useNotification'
 import { useBusinessStore } from '../store/business'
-import { listPendingAppointments, listSaleableProducts, posKeys, groupPendingAppointments, recordSale, recordPaymentOnly } from '../services/posService'
+import { listPendingAppointments, listSaleableProducts, posKeys, groupPendingAppointments, recordSale } from '../services/posService'
 import { searchClients } from '../services/clientesService'
 import { usePOSCart } from '../composables/pos/usePOSCart'
 import { usePOSPayment } from '../composables/pos/usePOSPayment'
@@ -114,6 +114,7 @@ import RetailProductSearch from '../components/pos/RetailProductSearch.vue'
 import AppointmentList from '../components/pos/AppointmentList.vue'
 import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
 import { useExchangeRate } from '../composables/finanzas/useExchangeRate'
+import type { PaymentMethod } from '../types/database'
 
 interface TipParticipant { employeeId: string; employeeName: string }
 
@@ -324,11 +325,21 @@ const handleGroupPayment = async (appt: any) => {
       const memberTip = Number(((memberServices > 0 ? fullTip / memberServices : 0)).toFixed(2))
       const memberBreakdown = methodBreakdowns.map(b => ({ ...b, inputAmount: Math.round(b.inputAmount * proportion * 100) / 100, amount: Math.round(b.amount * proportion * 100) / 100 }))
 
-      if (i === 0) {
-        await recordSale({ appointmentId: groupIds[i], serviceAmount: amountWithoutProducts, amount, productsAmount: productsForThis, method: method as any, products, notes, exchangeRate: exchangeRt, paymentsBreakdown: memberBreakdown as any, businessId: businessId.value!, branchId: branchId.value, tipAmount: memberTip })
-      } else {
-        await recordPaymentOnly({ appointmentId: groupIds[i], amount, method: method as any, notes, exchangeRate: exchangeRt, paymentsBreakdown: memberBreakdown as any, tipAmount: memberTip })
+      const saleParams = {
+        appointmentId: groupIds[i],
+        serviceAmount: i === 0 ? amountWithoutProducts : amount,
+        amount: i === 0 ? amount : amount,
+        productsAmount: i === 0 ? productsForThis : 0,
+        method: method as PaymentMethod,
+        products: i === 0 ? products : [],
+        notes,
+        exchangeRate: exchangeRt,
+        paymentsBreakdown: memberBreakdown as any,
+        businessId: businessId.value!,
+        branchId: branchId.value,
+        tipAmount: memberTip,
       }
+      await recordSale(saleParams)
     }
     showSuccess(`Cobro registrado correctamente`); selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset()
     await Promise.allSettled([
