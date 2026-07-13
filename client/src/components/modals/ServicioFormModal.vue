@@ -167,7 +167,7 @@ watch(isOpen, async (open) => {
   if (open) {
     categoriesVersion.value++
     const bizId = businessStore.business?.id
-    const branchId = (modalData.value as any)?.branchId as string | undefined
+    const branchId = businessStore.currentBranchId
     if (bizId) {
       try {
         dbCategories.value = await getEntityServiceCategories(bizId, branchId ?? null)
