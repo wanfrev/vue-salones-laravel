@@ -30,16 +30,22 @@ if (typeof document !== 'undefined') {
   }, 30 * 60 * 1000)
 }
 
-let _swUpdateInterval: ReturnType<typeof setInterval> | undefined
 try {
   registerSW({
-    onRegistered(r: { update: () => unknown } | undefined) {
+    onNeedRefresh() {
+      if (window.confirm('Nueva versión disponible. ¿Actualizar?')) {
+        window.location.reload()
+      }
+    },
+    onOfflineReady() {
+      // App lista para uso sin conexión - silencioso
+    },
+    onRegistered(r) {
       if (r) {
-        if (_swUpdateInterval) clearInterval(_swUpdateInterval)
-        _swUpdateInterval = setInterval(() => r.update(), 60 * 60 * 1000)
+        setInterval(() => r.update(), 60 * 60 * 1000)
       }
     },
   })
 } catch {
-  // En entornos sin el plugin PWA virtual, ignorar silenciosamente.
+  // PWA no disponible en este entorno
 }
