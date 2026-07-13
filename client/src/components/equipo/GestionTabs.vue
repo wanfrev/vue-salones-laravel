@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useCurrency } from '../../composables/common/useCurrency'
 import KpiBanner from '../finanzas/KpiBanner.vue'
 import RecordSection from '../finanzas/RecordSection.vue'
+
+const { formatEmployeeVESInline } = useCurrency()
 
 const fmtDate = (d: string) => {
   try { const dt = new Date(d); return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}` } catch { return d }
@@ -255,7 +258,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
                 <div :class="['font-medium', ep.type === 'consumption' ? 'text-danger' : 'text-danger']">{{ ep.currency
                   === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</div>
                 <div class="text-[10px] text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) :
-                  props.formatVESInline(ep.amount) + ' Bs' }}</div>
+                  formatEmployeeVESInline(ep.amount, ep.employeeVesRate) + ' Bs' }}</div>
               </td>
               <td class="px-3 py-3 text-center">
                 <div class="flex items-center justify-center gap-1">
@@ -284,7 +287,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
                   }}</span><span class="text-xs text-text-muted">{{ fmtDate(ep.paymentDate) }}</span></div>
               <div class="flex items-center justify-between text-xs"><span class="text-text-muted">{{ ep.type ===
                 'consumption' ? (ep.concept || 'Consumo') : formatMethod(ep.paymentMethod) }}</span><span
-                  class="text-right"><span class="font-semibold text-danger">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</span><span class="text-text-muted ml-1">{{ ep.currency === 'VES' ? formatUSD(ep.amount) : props.formatVESInline(ep.amount) + ' Bs' }}</span></span></div>
+                  class="text-right"><span class="font-semibold text-danger">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</span><span class="text-text-muted ml-1">{{ ep.currency === 'VES' ? formatUSD(ep.amount) : formatEmployeeVESInline(ep.amount, ep.employeeVesRate) + ' Bs' }}</span></span></div>
               <div class="flex items-center justify-end gap-1 pt-1 border-t border-border-subtle"><button
                   @click="$emit('openEditPayment', ep)"
                   class="rounded-md bg-primary/10 px-2 py-1 text-xs text-primary">Editar</button><button
@@ -332,7 +335,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
               <td class="px-3 py-3 text-right font-semibold text-text">{{ formatUSD(row.totalEarned) }}</td>
               <td class="px-3 py-3 text-right hidden sm:table-cell">
                 <div class="font-medium text-danger">{{ formatUSD(row.totalPaid) }}</div>
-                <div class="text-[10px] text-text-muted">{{ props.formatVESInline(row.totalPaid) }} Bs</div>
+                <div class="text-[10px] text-text-muted">{{ formatEmployeeVESInline(row.totalPaid) }} Bs</div>
               </td>
               <td class="px-3 py-3 text-right"><span class="font-bold"
                   :class="row.pendingBalance > 0 ? 'text-primary' : 'text-text-muted'">{{ formatUSD(row.pendingBalance)
@@ -350,10 +353,10 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
               <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                 <span class="text-text-muted">Total Ganado</span><span class="text-right"><span class="text-text">{{
                   formatUSD(row.totalEarned) }}</span><span class="text-text-muted ml-1">{{
-                      props.formatVESInline(row.totalEarned) }} Bs</span></span>
+                      formatEmployeeVESInline(row.totalEarned) }} Bs</span></span>
                 <span class="text-text-muted">Pagado</span><span class="text-right"><span class="text-danger">{{
                   formatUSD(row.totalPaid) }}</span><span class="text-text-muted ml-1">{{
-                      props.formatVESInline(row.totalPaid) }} Bs</span></span>
+                      formatEmployeeVESInline(row.totalPaid) }} Bs</span></span>
                 <span class="text-text-muted">Pendiente</span><span class="text-right font-bold"
                   :class="row.pendingBalance > 0 ? 'text-primary' : 'text-text-muted'">{{ formatUSD(row.pendingBalance)
                   }}</span>

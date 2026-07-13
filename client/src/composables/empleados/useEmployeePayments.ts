@@ -48,6 +48,10 @@ export function useEmployeePayments(
 
   const payments = computed(() => (paymentsData.value ?? []).map((p: any) => {
     const currency = p.currency === 'VES' ? 'VES' : 'USD'
+    const profileRate = p.employee_profile?.employee_ves_rate
+    const empRate = profileRate != null && Number(profileRate) > 0 ? Number(profileRate) : null
+    const businessEmpRate = businessStore.employeeExchangeRate
+    const fallbackRate = empRate ?? (businessEmpRate != null ? businessEmpRate : exchangeRate.value)
     return {
       id: p.id,
       employeeId: p.employee_id,
@@ -56,6 +60,7 @@ export function useEmployeePayments(
       currency,
       originalAmount: Number(p.original_amount ?? 0),
       exchangeRateUsed: p.exchange_rate_used ?? 1,
+      employeeVesRate: fallbackRate,
       paymentMethod: p.payment_method,
       type: p.type,
       concept: p.concept,
