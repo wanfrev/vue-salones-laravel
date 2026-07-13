@@ -87,13 +87,10 @@ class EmployeeCommissionService
         ?string $startDate = null,
         ?string $endDate = null,
     ): Collection {
-        // Total commission earned per employee (both main + assistant roles)
+        // Total commission earned per employee
         $earningsQuery = DB::table('transactions')
             ->join('appointments', 'transactions.appointment_id', '=', 'appointments.id')
-            ->leftJoin('profiles', function ($join) {
-                $join->on('profiles.id', '=', 'appointments.employee_id')
-                    ->orOn('profiles.id', '=', 'appointments.assistant_employee_id');
-            })
+            ->join('profiles', 'appointments.employee_id', '=', 'profiles.id')
             ->where('transactions.business_id', $businessId)
             ->whereIn('appointments.status', ['confirmed', 'completed', 'pending'])
             ->select(
@@ -103,11 +100,10 @@ class EmployeeCommissionService
                 'profiles.pay_percentage',
                 'profiles.base_salary',
                 'profiles.employee_ves_rate',
-                DB::raw("COALESCE(SUM(CASE WHEN appointments.employee_id = profiles.id THEN transactions.employee_amount ELSE transactions.assistant_amount END), 0) as commission"),
+                DB::raw('COALESCE(SUM(transactions.employee_amount), 0) as commission'),
                 DB::raw('COALESCE(SUM(transactions.tip_amount), 0) as tips'),
             )
-            ->groupBy('profiles.id', 'profiles.full_name', 'profiles.pay_type', 'profiles.pay_percentage', 'profiles.base_salary', 'profiles.employee_ves_rate')
-            ->where('profiles.role', 'empleado');
+            ->groupBy('profiles.id', 'profiles.full_name', 'profiles.pay_type', 'profiles.pay_percentage', 'profiles.base_salary', 'profiles.employee_ves_rate');
 
         if ($startDate && $endDate) {
             $earningsQuery->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)]);
