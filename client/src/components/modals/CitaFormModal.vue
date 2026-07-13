@@ -313,7 +313,17 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
     let groupMembers: CitaFormServiceItem[] = []
     let primaryDuration = cita.duration || 30
     let primaryPrice = cita.price || 0
-    if (cita.clientId && businessId.value) { try { const { searchClients } = await import('../../services/clientesService'); const r = await searchClients(businessId.value, cita.clientName, branchId.value); const m = r.find(c => c.id === cita.clientId); if (m) phone = m.phone } catch {} }
+
+    isInitialSetup.value = true
+
+    if (primaryPrice === 0 && cita.serviceId) {
+      const svc = props.servicios?.find(s => s.id === cita.serviceId)
+      if (svc) primaryPrice = svc.price
+    }
+
+    formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: phone, service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '' }
+
+    if (cita.clientId && businessId.value) { try { const { searchClients } = await import('../../services/clientesService'); const r = await searchClients(businessId.value, cita.clientName, branchId.value); const m = r.find(c => c.id === cita.clientId); if (m) formData.value.clientPhone = m.phone } catch {} }
     if (cita.groupId) {
       try {
         const members = await listCitaGroupMembers(cita.groupId)
@@ -337,17 +347,11 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
         groupMembers = members
           .filter(m => m.id !== selectedMemberId)
           .map(m => ({ serviceId: m.service_id, employeeId: m.employee_id, assistantEmployeeId: m.assistant_employee_id ?? '', assistantPercentage: Number(m.assistant_percentage ?? 0), employeePercentageOverride: m.employee_percentage_override != null ? Number(m.employee_percentage_override) : undefined, duration: Math.round((new Date(m.end_time).getTime() - new Date(m.start_time).getTime()) / 60000) || (m.services?.duration_minutes ?? 30), price: Number(m.price_override ?? m.services?.price ?? 0) }))
+        formData.value.extraServices = groupMembers
+        formData.value.duration = primaryDuration
+        formData.value.price = primaryPrice
       } catch {}
     }
-
-    isInitialSetup.value = true
-
-    if (primaryPrice === 0 && cita.serviceId) {
-      const svc = props.servicios?.find(s => s.id === cita.serviceId)
-      if (svc) primaryPrice = svc.price
-    }
-
-    formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: phone, service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '' }
   } else {
     isInitialSetup.value = true
     formData.value = defaultFormData()
