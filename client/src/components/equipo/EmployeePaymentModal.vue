@@ -13,7 +13,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['close', 'payment-saved'])
-const { formatUSD, formatVESInline, exchangeRate } = useCurrency()
+const { formatUSD, formatVESInline, employeeRate } = useCurrency()
 const businessStore = useBusinessStore()
 
 const ctx = reactive(props.paymentsCtx)
@@ -49,14 +49,14 @@ const effectiveRate = computed(() => {
   if (balance.value?.employee_ves_rate && balance.value.employee_ves_rate > 0) {
     return balance.value.employee_ves_rate
   }
-  return exchangeRate.value
+  return employeeRate.value
 })
 
 const rateLabel = computed(() => {
   if (balance.value?.employee_ves_rate && balance.value.employee_ves_rate > 0) {
     return `tasa del empleado: ${balance.value.employee_ves_rate}`
   }
-  return `tasa global: ${exchangeRate.value}`
+  return `tasa empleados: ${employeeRate.value}`
 })
 
 const convertedAmount = computed(() => {

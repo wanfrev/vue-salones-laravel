@@ -258,7 +258,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
                 <div :class="['font-medium', ep.type === 'consumption' ? 'text-danger' : 'text-danger']">{{ ep.currency
                   === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</div>
                 <div class="text-[10px] text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) :
-                  formatVESInline(ep.amount, ep.exchangeRateUsed) + ' Bs' }}</div>
+                  formatEmployeeVESInline(ep.amount) + ' Bs' }}</div>
               </td>
               <td class="px-3 py-3 text-center">
                 <div class="flex items-center justify-center gap-1">
@@ -287,7 +287,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
                   }}</span><span class="text-xs text-text-muted">{{ fmtDate(ep.paymentDate) }}</span></div>
               <div class="flex items-center justify-between text-xs"><span class="text-text-muted">{{ ep.type ===
                 'consumption' ? (ep.concept || 'Consumo') : formatMethod(ep.paymentMethod) }}</span><span
-                  class="text-right"><span class="font-semibold text-danger">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</span><span class="text-text-muted ml-1">{{ ep.currency === 'VES' ? formatUSD(ep.amount) : formatVESInline(ep.amount, ep.exchangeRateUsed) + ' Bs' }}</span></span></div>
+                  class="text-right"><span class="font-semibold text-danger">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</span><span class="text-text-muted ml-1">{{ ep.currency === 'VES' ? formatUSD(ep.amount) : formatEmployeeVESInline(ep.amount) + ' Bs' }}</span></span></div>
               <div class="flex items-center justify-end gap-1 pt-1 border-t border-border-subtle"><button
                   @click="$emit('openEditPayment', ep)"
                   class="rounded-md bg-primary/10 px-2 py-1 text-xs text-primary">Editar</button><button
