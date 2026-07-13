@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Business;
 use App\Models\Profile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -98,10 +99,11 @@ class EmployeeCommissionService
                 'profiles.pay_type',
                 'profiles.pay_percentage',
                 'profiles.base_salary',
+                'profiles.employee_ves_rate',
                 DB::raw('COALESCE(SUM(transactions.employee_amount), 0) as commission'),
                 DB::raw('COALESCE(SUM(transactions.tip_amount), 0) as tips'),
             )
-            ->groupBy('profiles.id', 'profiles.full_name', 'profiles.pay_type', 'profiles.pay_percentage', 'profiles.base_salary');
+            ->groupBy('profiles.id', 'profiles.full_name', 'profiles.pay_type', 'profiles.pay_percentage', 'profiles.base_salary', 'profiles.employee_ves_rate');
 
         if ($startDate && $endDate) {
             $earningsQuery->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)]);
@@ -135,7 +137,7 @@ class EmployeeCommissionService
 
         $paid = $paidQuery->get()->keyBy('employee_id');
 
-        return $earnings->map(function ($row) use ($paid) {
+        return $earnings->map(function ($row) use ($paid, $businessId) {
             $p = $paid->get($row->employee_id);
             $totalPaid = (float) ($p->paid ?? 0);
             $totalConsumed = (float) ($p->consumed ?? 0);
@@ -144,6 +146,10 @@ class EmployeeCommissionService
             $base = (float) ($row->base_salary ?? 0);
             $totalEarned = $commission + $tips + $base;
             $pending = $totalEarned - $totalPaid + $totalConsumed;
+
+            $profileRate = (float) ($row->employee_ves_rate ?? 0);
+            $businessRate = (float) (Business::where('id', $businessId)->value('employee_ves_rate') ?? 0);
+            $employeeVesRate = $profileRate > 0 ? $profileRate : $businessRate;
 
             return [
                 'employee_id' => $row->employee_id,
@@ -157,6 +163,7 @@ class EmployeeCommissionService
                 'paid' => round($totalPaid, 2),
                 'consumed' => round($totalConsumed, 2),
                 'pending' => round($pending, 2),
+                'employee_ves_rate' => round($employeeVesRate, 2),
             ];
         })->values();
     }
@@ -190,7 +197,9 @@ class EmployeeCommissionService
         $baseSalary = $profile ? (float) ($profile->base_salary ?? 0) : 0;
         $payType = $profile ? ($profile->pay_type ?? null) : null;
         $payPercentage = $profile ? (float) ($profile->pay_percentage ?? 0) : 0;
-        $employeeVesRate = $profile ? (float) ($profile->employee_ves_rate ?? 0) : 0;
+        $profileRate = $profile ? (float) ($profile->employee_ves_rate ?? 0) : 0;
+        $businessRate = (float) (Business::where('id', $businessId)->value('employee_ves_rate') ?? 0);
+        $employeeVesRate = $profileRate > 0 ? $profileRate : $businessRate;
 
         // Paid
         $paid = DB::table('employee_payments')
