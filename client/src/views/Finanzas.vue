@@ -217,7 +217,7 @@ const { data: empleadosData } = useQuery({
   enabled: computed(() => !!businessId.value),
 })
 const empleadosList = computed(() => (empleadosData.value ?? []).map((e: any) => ({
-  id: e.id, name: e.name, payType: e.payType, payPercentage: e.payPercentage,
+  id: e.id, name: e.name, payType: e.payType, payPercentage: e.payPercentage, disableAgenda: e.disableAgenda,
 })))
 
 const handleCitaSaveFromFinanzas = async (data: any) => {

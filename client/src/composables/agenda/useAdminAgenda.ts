@@ -185,6 +185,7 @@ export function useAdminAgenda(businessId: () => string | null) {
     name: employee.name,
     payType: employee.payType,
     payPercentage: employee.payPercentage,
+    disableAgenda: employee.disableAgenda,
   })))
 
   return {

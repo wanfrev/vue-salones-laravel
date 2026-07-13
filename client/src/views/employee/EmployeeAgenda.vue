@@ -121,7 +121,7 @@ const serviciosList = computed(() => (serviciosData.value ?? []).map(s => ({
 })))
 
 const empleadosList = computed(() => (empleadosData.value ?? []).map(e => ({
-  id: e.id, name: e.name, payType: e.payType, payPercentage: e.payPercentage,
+  id: e.id, name: e.name, payType: e.payType, payPercentage: e.payPercentage, disableAgenda: e.disableAgenda,
 })))
 
 const {
