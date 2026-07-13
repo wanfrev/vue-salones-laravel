@@ -107,6 +107,8 @@ class EmployeeCommissionService
 
         if ($startDate && $endDate) {
             $earningsQuery->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)]);
+        } else {
+            $earningsQuery->whereRaw('1 = 0');
         }
         if ($branchId) {
             $earningsQuery->where(function ($q) use ($branchId) {
@@ -128,6 +130,8 @@ class EmployeeCommissionService
 
         if ($startDate && $endDate) {
             $paidQuery->whereBetween('payment_date', [$startDate, $endDate]);
+        } else {
+            $paidQuery->whereRaw('1 = 0');
         }
         if ($branchId) {
             $paidQuery->where(function ($q) use ($branchId) {
@@ -236,6 +240,7 @@ class EmployeeCommissionService
             ->where('business_id', $businessId)
             ->where('employee_id', $employeeId)
             ->when($startDate && $endDate, fn($q) => $q->whereBetween('payment_date', [$startDate, $endDate]))
+            ->when(!($startDate && $endDate), fn($q) => $q->whereRaw('1 = 0'))
             ->select(
                 DB::raw("COALESCE(SUM(CASE WHEN type = 'payment' THEN amount ELSE 0 END), 0) as paid"),
                 DB::raw("COALESCE(SUM(CASE WHEN type = 'consumption' THEN amount ELSE 0 END), 0) as consumed"),
