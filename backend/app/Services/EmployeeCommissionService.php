@@ -129,7 +129,7 @@ class EmployeeCommissionService
             ->groupBy('employee_id');
 
         if ($startDate && $endDate) {
-            $paidQuery->whereBetween('payment_date', [$startDate, $endDate]);
+            $paidQuery->whereBetween('payment_date', [$startDate, $this->normalizeEndDate($endDate)]);
         } else {
             $paidQuery->whereRaw('1 = 0');
         }
@@ -239,7 +239,7 @@ class EmployeeCommissionService
         $paid = DB::table('employee_payments')
             ->where('business_id', $businessId)
             ->where('employee_id', $employeeId)
-            ->when($startDate && $endDate, fn($q) => $q->whereBetween('payment_date', [$startDate, $endDate]))
+            ->when($startDate && $endDate, fn($q) => $q->whereBetween('payment_date', [$startDate, $this->normalizeEndDate($endDate)]))
             ->when(!($startDate && $endDate), fn($q) => $q->whereRaw('1 = 0'))
             ->select(
                 DB::raw("COALESCE(SUM(CASE WHEN type = 'payment' THEN amount ELSE 0 END), 0) as paid"),
