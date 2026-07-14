@@ -29,10 +29,10 @@ class EmployeePaymentService
             $query->where('employee_id', $employeeId);
         }
         if ($startDate) {
-            $query->where('payment_date', '>=', $startDate);
+            $query->whereDate('payment_date', '>=', $startDate);
         }
         if ($endDate) {
-            $query->where('payment_date', '<=', $endDate);
+            $query->whereDate('payment_date', '<=', $endDate);
         }
 
         return $query->get();
