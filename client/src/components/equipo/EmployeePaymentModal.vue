@@ -179,6 +179,10 @@ const consumptionConvertedAmount = computed(() => {
                 <span class="text-text-muted">Devengado</span>
                 <span class="font-semibold text-text">{{ formatUSD(balance.total_earned) }}</span>
               </div>
+              <div v-if="balance.tips > 0" class="flex items-center justify-between text-xs">
+                <span class="text-text-muted/70 pl-2">Propina</span>
+                <span class="font-medium text-primary">{{ formatUSD(balance.tips) }}</span>
+              </div>
               <div class="flex items-center justify-between text-sm">
                 <span class="text-text-muted">Pagado</span>
                 <span class="font-medium text-success">{{ formatUSD(balance.total_paid) }}</span>

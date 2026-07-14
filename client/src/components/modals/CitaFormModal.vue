@@ -416,6 +416,16 @@ const validateForm = (): boolean => {
     } else if (formData.value.assistantEmployee && isConflictFor(formData.value.assistantEmployee)) {
       rowErrors[0] = { ...rowErrors[0], assistantEmployeeId: 'El asistente ya tiene una cita en ese horario' }
     }
+    for (let i = 0; i < formData.value.extraServices.length; i++) {
+      const e = formData.value.extraServices[i]
+      const idx = i + 1
+      if (e.employeeId && isConflictFor(e.employeeId)) {
+        rowErrors[idx] = { ...rowErrors[idx], employeeId: 'El empleado ya tiene una cita en ese horario' }
+      }
+      if (e.assistantEmployeeId && isConflictFor(e.assistantEmployeeId)) {
+        rowErrors[idx] = { ...rowErrors[idx], assistantEmployeeId: 'El asistente ya tiene una cita en ese horario' }
+      }
+    }
   }
 
   if (Object.keys(rowErrors).length > 0) (errors.value as any).rowErrors = rowErrors

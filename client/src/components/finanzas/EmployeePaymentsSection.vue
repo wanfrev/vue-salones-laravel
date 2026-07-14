@@ -289,7 +289,7 @@
             </div>
           </div>
 
-          <div v-if="selectedBalance" class="rounded-lg bg-bg-secondary p-3 space-y-2">
+            <div v-if="selectedBalance" class="rounded-lg bg-bg-secondary p-3 space-y-2">
             <div class="flex items-center justify-between text-sm">
               <span class="text-text-muted">Tipo de pago</span>
               <span class="font-medium text-text">{{ payTypeLabel() }}</span>
@@ -297,6 +297,10 @@
             <div class="flex items-center justify-between text-sm">
               <span class="text-text-muted">Generado en servicios</span>
               <span class="font-medium text-success">{{ formatUSD(selectedBalance.total_earned) }}</span>
+            </div>
+            <div v-if="selectedBalance.tips > 0" class="flex items-center justify-between text-xs">
+              <span class="text-text-muted/70 pl-2">Propina</span>
+              <span class="font-medium text-primary">{{ formatUSD(selectedBalance.tips) }}</span>
             </div>
             <div class="flex items-center justify-between text-sm">
               <span class="text-text-muted">Pagado hasta ahora</span>
