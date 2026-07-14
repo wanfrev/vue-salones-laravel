@@ -2,6 +2,7 @@ export interface Cita {
   id: string
   clientName: string
   clientId?: string
+  clientPhone?: string
   service: string
   serviceId?: string
   employee: string
@@ -59,4 +60,13 @@ export interface PaymentEditContext {
   tipAmount?: number
   notes?: string
   breakdown?: import('./pos').PaymentBreakdownItem[]
+  appointmentId?: string
+}
+
+export interface AppointmentProduct {
+  movementId: string
+  productId: string
+  productName: string
+  quantity: number
+  unitCost: number
 }

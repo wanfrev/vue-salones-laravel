@@ -28,6 +28,7 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
     id: appointment.id,
     clientId: appointment.client_id,
     clientName: client?.full_name ?? 'Cliente',
+    clientPhone: client?.phone ?? '',
     serviceId: appointment.service_id,
     service: service?.name ?? 'Servicio',
     employeeId: appointment.employee_id,

@@ -62,7 +62,7 @@
 
   <ExpenseFormModal :is-open="expensesCtx.showExpenseModal.value" :is-editing="!!expensesCtx.editingExpenseId.value" :form="expensesCtx.expenseForm.value" :save-error="expensesCtx.saveError.value" :is-saving="expensesCtx.saveMutation.isPending.value" @close="expensesCtx.closeModal" @save="handleExpenseSave" />
   <EditCobroModal :show="summaryCtx.showEditModal.value" :summary-ctx="summaryCtx" @close="summaryCtx.cancelEdit()" />
-  <CitaFormModal ref="citaModalRef" :servicios="serviciosList" :empleados="empleadosList" @save="handleSaveCita" @delete="handleDeleteCita" />
+  <CitaFormModal ref="citaModalRef" :servicios="serviciosList" :empleados="empleadosList" @save="handlePaymentSave" @delete="handleDeleteCita" />
 </template>
 
 <script setup lang="ts">
@@ -93,6 +93,10 @@ import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import type { PaymentMethod } from '../types/database'
 import { formatMethod } from '../lib/formatters'
 import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
+import { updateTransaction } from '../services/posService'
+import { useQueryClient } from '@tanstack/vue-query'
+import { translateError } from '../lib/errors'
+import { useNotification } from '../composables/common/useNotification'
 
 const { authStore } = useAuth()
 const { formatUSD, formatVESInline } = useCurrency()
@@ -205,11 +209,41 @@ summaryCtx.startEdit = (tx: any) => {
 
 const citaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
 
-const { handleSaveCita, handleDeleteCita } = useAppointmentMutations({
+const queryClientFin = useQueryClient()
+const { success: successFin, error: showErrorFin } = useNotification()
+
+const { handleDeleteCita } = useAppointmentMutations({
   businessId,
   createdBy: computed(() => authStore.profile?.id),
   modalRef: citaModalRef,
 })
+
+const handlePaymentSave = async (data: any) => {
+  const paymentData = data.paymentData
+  if (!paymentData) return
+  try {
+    await updateTransaction({
+      transactionId: paymentData.transactionId,
+      amount: paymentData.amount,
+      method: paymentData.method,
+      notes: paymentData.notes,
+      exchangeRate: paymentData.exchangeRate,
+      paymentsBreakdown: paymentData.breakdown,
+      tipAmount: paymentData.tipAmount ?? 0,
+    })
+    citaModalRef.value?.close?.()
+    citaModalRef.value?.onSaveComplete?.()
+    successFin('Cobro actualizado')
+    await Promise.allSettled([
+      queryClientFin.invalidateQueries({ queryKey: ['finanzas-transactions'], exact: false }),
+      queryClientFin.invalidateQueries({ queryKey: ['finanzas-summary'], exact: false }),
+      queryClientFin.invalidateQueries({ queryKey: ['appointments'], exact: false }),
+    ])
+  } catch (err) {
+    citaModalRef.value?.onSaveComplete?.()
+    showErrorFin(translateError(err, 'Error al actualizar cobro'))
+  }
+}
 
 const { data: serviciosData } = useQuery({
   queryKey: computed(() => ['finanzas-servicios', businessId.value, businessStore.currentBranchId]),
@@ -230,11 +264,12 @@ const empleadosList = computed(() => (empleadosData.value ?? []).map((e: any) =>
 })))
 
 const openCitaEditFromCobro = async (tx: any) => {
-  if (!tx.appointmentId) return
+  if (!tx.appointmentId && !tx.appointment_id) return
+  const appointmentId = tx.appointmentId || tx.appointment_id
   const { data: cita } = await supabase
     .from('appointments')
     .select(APPOINTMENT_SELECT)
-    .eq('id', tx.appointmentId)
+    .eq('id', appointmentId)
     .maybeSingle()
   if (!cita) return
 
@@ -247,6 +282,7 @@ const openCitaEditFromCobro = async (tx: any) => {
     tipAmount: tx.tipAmount || 0,
     notes: tx.notes || undefined,
     breakdown: tx.breakdown || undefined,
+    appointmentId,
   }
   citaModalRef.value?.open(mapAppointmentToCita(cita), paymentData)
 }

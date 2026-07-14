@@ -112,6 +112,8 @@ class InventoryService
         ?string $productId = null,
         ?string $startDate = null,
         ?string $endDate = null,
+        ?string $referenceType = null,
+        ?string $referenceId = null,
     ): Collection {
         $query = InventoryMovement::with(['product', 'client'])
             ->where('business_id', $businessId)
@@ -125,6 +127,8 @@ class InventoryService
         if ($productId) $query->where('product_id', $productId);
         if ($startDate) $query->where('created_at', '>=', $startDate);
         if ($endDate) $query->where('created_at', '<=', $endDate);
+        if ($referenceType) $query->where('reference_type', $referenceType);
+        if ($referenceId) $query->where('reference_id', $referenceId);
 
         return $query->get()->map(function ($movement) {
             $data = $movement->toArray();

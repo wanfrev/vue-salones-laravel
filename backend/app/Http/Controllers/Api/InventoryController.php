@@ -165,6 +165,7 @@ class InventoryController
             $this->inventoryService->movements(
                 $businessId, $request->branch_id,
                 $request->product_id, $request->start_date, $request->end_date,
+                $request->reference_type, $request->reference_id,
             )
         );
     }

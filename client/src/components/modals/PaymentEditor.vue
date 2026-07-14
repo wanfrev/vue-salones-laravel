@@ -1,5 +1,19 @@
 <template>
   <div v-if="paymentContext" class="border-t border-border pt-4">
+    <div v-if="appointmentProducts.length > 0" class="mb-4 rounded-lg border border-border bg-bg-secondary p-3">
+      <h4 class="text-sm font-semibold text-text mb-2">Productos vendidos en esta cita</h4>
+      <div class="space-y-1.5">
+        <div v-for="product in appointmentProducts" :key="product.movementId" class="flex items-center justify-between text-xs">
+          <span class="text-text">{{ product.productName }}</span>
+          <span class="text-text-muted">{{ product.quantity }} &times; {{ formatUSD(product.unitCost) }}</span>
+        </div>
+      </div>
+      <div class="mt-2 flex items-center justify-between border-t border-border pt-1.5 text-xs">
+        <span class="font-medium text-text-muted">Total productos</span>
+        <span class="font-semibold text-text">{{ formatUSD(appointmentProductsTotal) }}</span>
+      </div>
+    </div>
+
     <h4 class="text-sm font-semibold text-text mb-3">Editar cobro</h4>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
@@ -103,8 +117,12 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { PaymentEditContext } from '../../types/cita'
+import type { PaymentEditContext, AppointmentProduct } from '../../types/cita'
 import type { PaymentMethod } from '../../types/database'
+import { api as supabase } from '../../lib/api'
+import { useCurrency } from '../../composables/common/useCurrency'
+
+const { formatUSD } = useCurrency()
 
 const paymentContext = ref<PaymentEditContext | null>(null)
 const paymentMethod = ref<PaymentMethod>('cash')
@@ -114,6 +132,11 @@ const paymentTipAmount = ref(0)
 const paymentExchangeRate = ref(1)
 const paymentNotes = ref('')
 const paymentBreakdown = ref<{ method: PaymentMethod; inputAmount: number; currency: 'USD' | 'VES'; amount: number }[]>([])
+
+const appointmentProducts = ref<AppointmentProduct[]>([])
+const appointmentProductsTotal = computed(() =>
+  appointmentProducts.value.reduce((s, p) => s + p.quantity * p.unitCost, 0)
+)
 
 const isMixedPayment = computed(() => paymentMethod.value === 'mixed')
 
@@ -208,6 +231,24 @@ function setPaymentContext(data: PaymentEditContext | null) {
     paymentExchangeRate.value = data.exchangeRate
     paymentNotes.value = data.notes || ''
     paymentBreakdown.value = data.breakdown ? data.breakdown.map(b => ({ ...b })) : []
+    appointmentProducts.value = []
+    if (data.appointmentId) {
+      supabase
+        .from('inventory_movements')
+        .select('id, product_id, products(name), quantity, unit_cost')
+        .eq('reference_type', 'appointment')
+        .eq('reference_id', data.appointmentId)
+        .then(({ data: items }: any) => {
+          appointmentProducts.value = (items ?? []).map((m: any) => ({
+            movementId: m.id,
+            productId: m.product_id,
+            productName: m.products?.name ?? m.product_id,
+            quantity: Math.abs(m.quantity),
+            unitCost: Number(m.unit_cost ?? 0),
+          }))
+        })
+        .catch(() => { appointmentProducts.value = [] })
+    }
   } else {
     paymentContext.value = null
     paymentMethod.value = 'cash'
