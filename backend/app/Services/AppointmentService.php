@@ -52,6 +52,8 @@ class AppointmentService
             $data['start_time'],
             $data['end_time'],
             $data['assistant_employee_id'] ?? null,
+            null,
+            $data['group_id'] ?? null,
         );
 
         return Appointment::create([
@@ -100,7 +102,7 @@ class AppointmentService
             ? $filtered['assistant_employee_id']
             : $appointment->assistant_employee_id;
 
-        $this->checkOverlap($businessId, $employeeId, $startTime, $endTime, $assistantId, $id);
+        $this->checkOverlap($businessId, $employeeId, $startTime, $endTime, $assistantId, $id, $appointment->group_id);
 
         $appointment->update($filtered + [
             'updated_at' => now(),
@@ -119,7 +121,7 @@ class AppointmentService
     public function updateTime(string $id, string $startTime, string $endTime, string $businessId): Appointment
     {
         $appointment = $this->findForBusiness($id, $businessId);
-        $this->checkOverlap($businessId, $appointment->employee_id, $startTime, $endTime, $appointment->assistant_employee_id, $id);
+        $this->checkOverlap($businessId, $appointment->employee_id, $startTime, $endTime, $appointment->assistant_employee_id, $id, $appointment->group_id);
         $appointment->update([
             'start_time' => $startTime,
             'end_time' => $endTime,
@@ -185,6 +187,7 @@ class AppointmentService
         string $endTime,
         ?string $assistantId = null,
         ?string $excludeId = null,
+        ?string $groupId = null,
     ): void {
         $query = Appointment::where('business_id', $businessId)
             ->whereNotIn('status', ['cancelled', 'no_show'])
@@ -199,6 +202,12 @@ class AppointmentService
 
         if ($excludeId) {
             $query->where('id', '!=', $excludeId);
+        }
+
+        if ($groupId) {
+            $query->where(function ($q) use ($groupId) {
+                $q->whereNull('group_id')->orWhere('group_id', '!=', $groupId);
+            });
         }
 
         $conflict = $query->first();
