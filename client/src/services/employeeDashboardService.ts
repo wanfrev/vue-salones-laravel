@@ -73,6 +73,7 @@ export const listEmployeeTransactions = async (businessId: string, employeeId: s
     id: r.id,
     date: r.date,
     paidAt: r.date,
+    appointmentDate: r.date,
     clientName: r.client_name ?? '—',
     serviceName: r.service_name ?? '—',
     totalAmount: Number(r.amount ?? 0),

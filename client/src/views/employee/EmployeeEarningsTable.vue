@@ -18,7 +18,7 @@
         </thead>
         <tbody class="divide-y divide-border">
           <tr v-for="row in visibleEarnings" :key="row.id">
-            <td class="py-2 pr-2 text-text-secondary whitespace-nowrap">{{ formatDate(row.paidAt) }}</td>
+            <td class="py-2 pr-2 text-text-secondary whitespace-nowrap">{{ formatDate(row.appointmentDate) }}</td>
             <td class="py-2 pr-2 text-text-secondary">{{ (row as any).clientName || '—' }}</td>
             <td class="py-2 pr-2 text-text">{{ row.serviceName }}</td>
             <td class="py-2 px-2 text-right text-text-secondary">${{ row.totalAmount.toFixed(2) }}</td>

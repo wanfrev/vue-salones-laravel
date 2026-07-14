@@ -78,7 +78,7 @@
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
             <div class="rounded-lg bg-bg-secondary p-3">
               <p class="text-xs text-text-muted uppercase tracking-wider">Servicios</p>
-              <p class="text-xl font-bold text-text mt-0.5">{{ filteredEarnings.length }}</p>
+              <p class="text-xl font-bold text-text mt-0.5">{{ earnings.length }}</p>
             </div>
             <div class="rounded-lg bg-bg-secondary p-3">
               <p class="text-xs text-text-muted uppercase tracking-wider">Total facturado</p>
@@ -99,7 +99,7 @@
 
           <!-- Earnings Breakdown Table -->
           <EmployeeEarningsTable
-            :earnings="filteredEarningsWithVES"
+            :earnings="earningsWithVESComputed"
             :show-all="showAllServices"
             :has-more="hasMoreServices"
             :visible-limit="VISIBLE_SERVICES"
@@ -126,7 +126,7 @@
               <span class="text-text-muted">Comisión del empleado</span>
               <span class="font-medium text-text">{{ payInfo.percentage }}%</span>
             </div>
-            <div v-if="payInfo && payInfo.type === 'percentage' && filteredEarningsWithVES.length > 0" class="flex justify-between py-2 text-sm">
+            <div v-if="payInfo && payInfo.type === 'percentage' && earningsWithVESComputed.length > 0" class="flex justify-between py-2 text-sm">
               <span class="text-text-muted">Ganancia por comisión</span>
               <div class="text-right">
                 <span class="font-medium text-text">${{ totalVariableEarned }}</span>
@@ -414,24 +414,23 @@ const payInfo = computed(() => {
 
 const initials = computed(() => getInitials(authStore.profile?.full_name))
 
+const toYmdString = (d: Date) => {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
+
 const { data: earningsData, isLoading: loadingEarnings, refetch: refetchEarnings } = useQuery({
-  queryKey: dashboardKeys.earnings(businessId.value, employeeId.value, branchId.value),
-  queryFn: () => listEmployeeTransactions(businessId.value!, employeeId.value!, branchId.value),
+  queryKey: dashboardKeys.earnings(businessId.value, employeeId.value, branchId.value, selectedPeriod.value !== 'all' ? toYmdString(periodStart.value) : undefined, selectedPeriod.value !== 'all' ? toYmdString(periodEnd.value) : undefined),
+  queryFn: () => listEmployeeTransactions(businessId.value!, employeeId.value!, branchId.value, selectedPeriod.value !== 'all' ? toYmdString(periodStart.value) : undefined, selectedPeriod.value !== 'all' ? toYmdString(periodEnd.value) : undefined),
   enabled: computed(() => !!businessId.value && !!employeeId.value),
   staleTime: 0,
 })
 const earnings = computed(() => earningsData.value ?? [])
 
-const filteredEarnings = computed(() => {
-  if (selectedPeriod.value === 'all') return earnings.value
-  return earnings.value.filter(r => {
-    const d = new Date(r.paidAt)
-    return d >= periodStart.value && d <= periodEnd.value
-  })
-})
-
 const earningsWithVES = computed(() =>
-  filteredEarnings.value.map(row => {
+  earnings.value.map(row => {
     const rate = row.exchangeRateUsed || employeeRate.value
     const isVES = row.currency === 'VES'
     const vesTotal = isVES ? row.totalAmount * row.exchangeRateUsed : row.totalAmount * rate
@@ -440,12 +439,12 @@ const earningsWithVES = computed(() =>
   })
 )
 
-const filteredEarningsWithVES = computed(() => earningsWithVES.value)
+const earningsWithVESComputed = computed(() => earningsWithVES.value)
 
-const hasMoreServices = computed(() => filteredEarningsWithVES.value.length > VISIBLE_SERVICES)
+const hasMoreServices = computed(() => earningsWithVESComputed.value.length > VISIBLE_SERVICES)
 
 const totalBilled = computed(() =>
-  filteredEarnings.value.reduce((sum, r) => sum + r.totalAmount, 0).toFixed(2)
+  earnings.value.reduce((sum, r) => sum + r.totalAmount, 0).toFixed(2)
 )
 
 const totalBilledVES = computed(() =>
@@ -453,17 +452,17 @@ const totalBilledVES = computed(() =>
 )
 
 const totalVariableEarned = computed(() =>
-  filteredEarnings.value.reduce((sum, r) => sum + r.employeeEarnings, 0).toFixed(2)
+  earnings.value.reduce((sum, r) => sum + r.employeeEarnings, 0).toFixed(2)
 )
 
 const totalTip = computed(() =>
-  filteredEarnings.value.reduce((sum, r) => sum + (r.tipAmount ?? 0), 0)
+  earnings.value.reduce((sum, r) => sum + (r.tipAmount ?? 0), 0)
 )
 
 const totalEarned = computed(() => {
   const info = payInfo.value
   let total = 0
-  for (const r of filteredEarnings.value) {
+  for (const r of earnings.value) {
     total += r.employeeEarnings
   }
   if (info && (info.type === 'salary' || info.type === 'mixed')) {
@@ -585,7 +584,7 @@ const historyMonths = computed(() => {
   const byMonth = new Map<string, { billed: number; earned: number; paid: number; serviceCount: number }>()
 
   for (const r of earnings.value) {
-    const d = new Date(r.paidAt)
+    const d = new Date(r.appointmentDate)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     if (key === currentMonthKey) continue
     const entry = byMonth.get(key) || { billed: 0, earned: 0, paid: 0, serviceCount: 0 }
