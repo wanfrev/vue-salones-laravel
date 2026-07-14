@@ -323,28 +323,27 @@ async function updateExistingGroup(
 
     if (orderedIds.length > desiredPayloads.length) {
       const idsToDelete = orderedIds.slice(desiredPayloads.length)
-      const { data: txsToDelete } = await supabase
-        .from('transactions')
-        .select('id')
-        .in('appointment_id', idsToDelete)
 
-      for (const tx of (txsToDelete ?? []) as Array<{ id: string }>) {
-        const { error: txDeleteError } = await mutate
+      for (const memberId of idsToDelete) {
+        const { data: memberTxs } = await supabase
           .from('transactions')
+          .select('id')
+          .eq('appointment_id', memberId)
+
+        for (const tx of (memberTxs ?? []) as Array<{ id: string }>) {
+          const { error: txDeleteError } = await mutate
+            .from('transactions')
+            .delete()
+            .eq('id', tx.id)
+          if (txDeleteError) throw txDeleteError
+        }
+
+        const { error: delError } = await mutate
+          .from('appointments')
           .delete()
-          .eq('id', tx.id)
-        if (txDeleteError) throw txDeleteError
-      }
+          .eq('id', memberId)
 
-      const { data: deletedRows, error: deleteError } = await mutate
-        .from('appointments')
-        .delete()
-        .in('id', idsToDelete)
-        .select('id')
-
-      if (deleteError) throw mapAgendaWriteError(deleteError, 'guardar')
-      if ((deletedRows ?? []).length !== idsToDelete.length) {
-        throw new Error('No se pudieron eliminar algunos servicios del grupo. Revisa permisos e intenta nuevamente.')
+        if (delError) throw mapAgendaWriteError(delError, 'guardar')
       }
     }
   }
