@@ -125,6 +125,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, nextTick } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
 import { useModal } from '../../composables/common/useModal'
 import { useNotification } from '../../composables/common/useNotification'
 import { useAuthStore } from '../../store/auth'
@@ -155,6 +156,7 @@ const { isOpen, modalData, close } = useModal(MODAL_ID)
 const { error: showError } = useNotification()
 const authStore = useAuthStore()
 const businessStore = useBusinessStore()
+const queryClient = useQueryClient()
 const isEmployee = computed(() => authStore.role === 'empleado')
 const canCreateClients = computed(() => !isEmployee.value || businessStore.hasFeature('employees_create_clients'))
 const t = computed(() => businessStore.terminology)
@@ -393,6 +395,29 @@ const validateForm = (): boolean => {
   for (let i = 0; i < formData.value.extraServices.length; i++) { const e = formData.value.extraServices[i]; const idx = i + 1; if (!e.serviceId) rowErrors[idx] = { ...rowErrors[idx], serviceId: 'Selecciona un servicio' }; if (!e.employeeId) rowErrors[idx] = { ...rowErrors[idx], employeeId: 'Selecciona un empleado' }; if (e.assistantEmployeeId && e.assistantEmployeeId === e.employeeId) rowErrors[idx] = { ...rowErrors[idx], assistantEmployeeId: 'El asistente no puede ser el mismo empleado' }; if (e.assistantEmployeeId && !e.assistantPercentage) rowErrors[idx] = { ...rowErrors[idx], assistantPercentage: 'Define el porcentaje del asistente' } }
   if (!formData.value.date) errors.value.date = 'Selecciona una fecha'
   if (!formData.value.time) errors.value.time = 'Selecciona una hora'
+
+  // ── Overlap check ──
+  if (formData.value.date && formData.value.time && formData.value.employee && !errors.value.time) {
+    const durationMin = formData.value.duration || 30
+    const startTime = new Date(`${formData.value.date}T${formData.value.time}:00`)
+    const endTime = new Date(startTime.getTime() + durationMin * 60 * 1000)
+    const editingId = modalData.value?.cita?.id
+    const cachedAppts = queryClient.getQueryData<any[]>(['appointments']) ?? []
+    const isConflictFor = (empId: string) => cachedAppts.some((a: any) => {
+      if (a.id === editingId) return false
+      if (a.status === 'cancelled' || (a as any).paymentStatus === 'cancelled') return false
+      if (a.employeeId !== empId && a.assistantId !== empId) return false
+      const aStart = new Date(`${a.date}T${a.time}:00`)
+      const aEnd = new Date(aStart.getTime() + ((a.duration || 30)) * 60 * 1000)
+      return aStart < endTime && aEnd > startTime
+    })
+    if (isConflictFor(formData.value.employee)) {
+      errors.value.time = 'El empleado ya tiene una cita en ese horario'
+    } else if (formData.value.assistantEmployee && isConflictFor(formData.value.assistantEmployee)) {
+      rowErrors[0] = { ...rowErrors[0], assistantEmployeeId: 'El asistente ya tiene una cita en ese horario' }
+    }
+  }
+
   if (Object.keys(rowErrors).length > 0) (errors.value as any).rowErrors = rowErrors
   return Object.keys(errors.value).length === 0
 }
