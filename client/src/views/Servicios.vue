@@ -329,16 +329,25 @@ const addCategory = async () => {
   if (exists) { showError('Esa categoría ya existe'); return }
   try {
     if (branchId.value) {
-      await addBranchCategory(branchId.value, name)
-      queryClient.invalidateQueries({ exact: false, queryKey: ['branches', businessId.value] }).catch(() => {})
+      const updated = await addBranchCategory(branchId.value, name)
+      businessStore.updateBranch({ service_categories: updated } as any)
     } else {
-      await addBusinessCategory(businessId.value, name)
-      queryClient.invalidateQueries({ exact: false, queryKey: ['business', businessId.value] }).catch(() => {})
+      const updated = await addBusinessCategory(businessId.value, name)
+      businessStore.updateBusiness({ service_categories: updated })
     }
     newCatName.value = ''
     addingCategory.value = false
     success('Categoría agregada')
-    queryClient.invalidateQueries({ exact: false, queryKey: ['servicios', businessId.value] }).catch(() => {})
+    await Promise.allSettled([
+      queryClient.invalidateQueries({ exact: false, queryKey: ['business', businessId.value] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['branches', businessId.value] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['servicios', businessId.value] }),
+    ])
+    await Promise.allSettled([
+      queryClient.refetchQueries({ exact: false, queryKey: ['servicios', businessId.value] }),
+      queryClient.refetchQueries({ exact: false, queryKey: ['business', businessId.value] }),
+      ...(branchId.value ? [queryClient.refetchQueries({ exact: false, queryKey: ['branches', businessId.value] })] : []),
+    ])
   } catch (err) {
     showError('Error al agregar categoría')
   }
