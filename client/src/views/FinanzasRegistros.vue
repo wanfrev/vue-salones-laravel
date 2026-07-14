@@ -123,15 +123,31 @@
   </section>
 
   <EditCobroModal :show="summaryCtx.showEditModal.value" :summary-ctx="summaryCtx" @close="summaryCtx.cancelEdit()" />
+
+  <CitaFormModal
+    ref="citaModalRef"
+    :servicios="serviciosList"
+    :empleados="empleadosList"
+    @save="handleCitaSaveFromFinanzas"
+    @delete="handleDeleteCita"
+  />
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useQuery } from '@tanstack/vue-query'
 import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
 import { useBusinessStore } from '../store/business'
 import { useFinancialSummary } from '../composables/finanzas/useFinancialSummary'
+import { api as supabase } from '../lib/api'
+import { listServicios } from '../services/serviciosService'
+import { listEquipo } from '../services/equipoService'
+import { APPOINTMENT_SELECT } from '../services/agendaService'
+import { mapAppointmentToCita } from '../mappers/agendaMapper'
+import { CitaFormModal } from '../components/modals'
+import type { Cita, PaymentEditContext } from '../types/cita'
 
 const fmtDate = (d: string) => {
   try { const dt = new Date(d); return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}` } catch { return d }
@@ -171,6 +187,74 @@ const periodDates = computed(() => {
 
 const expensesCtx = useExpenses(businessId, selectedPeriod, selectedMonth)
 const summaryCtx = useFinancialSummary(businessId, selectedPeriod, expensesCtx.expenses, selectedMonth)
+
+const originalStartEdit = summaryCtx.startEdit
+summaryCtx.startEdit = (tx: any) => {
+  if (tx.appointmentId || tx.appointment_id) {
+    openCitaEditFromCobro(tx)
+  } else {
+    originalStartEdit(tx)
+  }
+}
+
+const citaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
+
+const { data: serviciosData } = useQuery({
+  queryKey: computed(() => ['finanzas-registros-servicios', businessId.value, businessStore.currentBranchId]),
+  queryFn: () => listServicios(businessId.value!, businessStore.currentBranchId),
+  enabled: computed(() => !!businessId.value),
+})
+const serviciosList = computed(() => (serviciosData.value ?? []).map((s: any) => ({
+  id: s.id, name: s.name, price: s.price, duration: s.duration,
+})))
+
+const { data: empleadosData } = useQuery({
+  queryKey: computed(() => ['finanzas-registros-empleados', businessId.value, businessStore.currentBranchId]),
+  queryFn: () => listEquipo(businessId.value!, businessStore.currentBranchId),
+  enabled: computed(() => !!businessId.value),
+})
+const empleadosList = computed(() => (empleadosData.value ?? []).map((e: any) => ({
+  id: e.id, name: e.name, payType: e.payType, payPercentage: e.payPercentage, disableAgenda: e.disableAgenda,
+})))
+
+const openCitaEditFromCobro = async (tx: any) => {
+  if (!tx.appointmentId && !tx.appointment_id) return
+  const appointmentId = tx.appointmentId || tx.appointment_id
+  const { data: cita } = await supabase
+    .from('appointments')
+    .select(APPOINTMENT_SELECT)
+    .eq('id', appointmentId)
+    .maybeSingle()
+  if (!cita) return
+
+  const paymentData: PaymentEditContext = {
+    transactionId: tx.id,
+    method: tx.rawMethod || tx.method,
+    amount: tx.amount,
+    currency: tx.primaryCurrency || 'USD',
+    exchangeRate: tx.exchangeRateUsed || 1,
+    tipAmount: tx.tipAmount || 0,
+    notes: tx.notes || undefined,
+    breakdown: tx.breakdown || undefined,
+  }
+  citaModalRef.value?.open(mapAppointmentToCita(cita), paymentData)
+}
+
+const handleCitaSaveFromFinanzas = async () => {
+  try {
+    await supabase.auth.getSession()
+  } catch {}
+  citaModalRef.value?.onSaveComplete?.()
+}
+
+const handleDeleteCita = (id: string) => {
+  if (window.confirm('¿Eliminar esta cita?')) {
+    supabase.from('appointments').delete().eq('id', id).then(() => {
+      summaryCtx.invalidateAll()
+    })
+  }
+}
+
 const paymentsCtx = useEmployeePayments(businessId, periodDates)
 
 const title = computed(() => {
@@ -198,5 +282,5 @@ const ventasPages = computed(() => paginateProps(summaryCtx.productSalesDetails.
 
 const handleDeletePayment = (_id: string) => {}
 const openEditPayment = (_p: any) => {}
-const editCobroFromTx = (_tx: any) => { if (summaryCtx.startEdit) summaryCtx.startEdit(_tx) }
+const editCobroFromTx = (_tx: any) => { summaryCtx.startEdit(_tx) }
 </script>
