@@ -62,7 +62,7 @@
 
   <ExpenseFormModal :is-open="expensesCtx.showExpenseModal.value" :is-editing="!!expensesCtx.editingExpenseId.value" :form="expensesCtx.expenseForm.value" :save-error="expensesCtx.saveError.value" :is-saving="expensesCtx.saveMutation.isPending.value" @close="expensesCtx.closeModal" @save="handleExpenseSave" />
   <EditCobroModal :show="summaryCtx.showEditModal.value" :summary-ctx="summaryCtx" @close="summaryCtx.cancelEdit()" />
-  <CitaFormModal ref="citaModalRef" :servicios="serviciosList" :empleados="empleadosList" @save="handleCitaSaveFromFinanzas" @delete="handleDeleteCita" />
+  <CitaFormModal ref="citaModalRef" :servicios="serviciosList" :empleados="empleadosList" @save="handleSaveCita" @delete="handleDeleteCita" />
 </template>
 
 <script setup lang="ts">
@@ -88,10 +88,11 @@ import { listServicios } from '../services/serviciosService'
 import { listEquipo } from '../services/equipoService'
 import { APPOINTMENT_SELECT } from '../services/agendaService'
 import { useBusinessStore } from '../store/business'
-import type { Cita, PaymentEditContext } from '../types/cita'
+import { type Cita, type PaymentEditContext } from '../types/cita'
 import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import type { PaymentMethod } from '../types/database'
 import { formatMethod } from '../lib/formatters'
+import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
 
 const { authStore } = useAuth()
 const { formatUSD, formatVESInline } = useCurrency()
@@ -204,6 +205,12 @@ summaryCtx.startEdit = (tx: any) => {
 
 const citaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
 
+const { handleSaveCita, handleDeleteCita } = useAppointmentMutations({
+  businessId,
+  createdBy: computed(() => authStore.profile?.id),
+  modalRef: citaModalRef,
+})
+
 const { data: serviciosData } = useQuery({
   queryKey: computed(() => ['finanzas-servicios', businessId.value, businessStore.currentBranchId]),
   queryFn: () => listServicios(businessId.value!, businessStore.currentBranchId),
@@ -221,26 +228,6 @@ const { data: empleadosData } = useQuery({
 const empleadosList = computed(() => (empleadosData.value ?? []).map((e: any) => ({
   id: e.id, name: e.name, payType: e.payType, payPercentage: e.payPercentage, disableAgenda: e.disableAgenda,
 })))
-
-const handleCitaSaveFromFinanzas = async (data: any) => {
-  try {
-    await supabase.auth.getSession()
-  } catch {}
-  try {
-    await citaModalRef.value?.close?.()
-    summaryCtx.invalidateAll()
-  } catch (err) {
-    console.error(err)
-  }
-}
-
-const handleDeleteCita = (id: string) => {
-  if (window.confirm('¿Eliminar esta cita?')) {
-    supabase.from('appointments').delete().eq('id', id).then(() => {
-      summaryCtx.invalidateAll()
-    })
-  }
-}
 
 const openCitaEditFromCobro = async (tx: any) => {
   if (!tx.appointmentId) return

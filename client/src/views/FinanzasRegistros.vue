@@ -128,7 +128,7 @@
     ref="citaModalRef"
     :servicios="serviciosList"
     :empleados="empleadosList"
-    @save="handleCitaSaveFromFinanzas"
+    @save="handleSaveCita"
     @delete="handleDeleteCita"
   />
 </template>
@@ -147,7 +147,8 @@ import { listEquipo } from '../services/equipoService'
 import { APPOINTMENT_SELECT } from '../services/agendaService'
 import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import { CitaFormModal } from '../components/modals'
-import type { Cita, PaymentEditContext } from '../types/cita'
+import { type Cita, type PaymentEditContext } from '../types/cita'
+import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
 
 const fmtDate = (d: string) => {
   try { const dt = new Date(d); return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}` } catch { return d }
@@ -217,6 +218,12 @@ const empleadosList = computed(() => (empleadosData.value ?? []).map((e: any) =>
   id: e.id, name: e.name, payType: e.payType, payPercentage: e.payPercentage, disableAgenda: e.disableAgenda,
 })))
 
+const { handleSaveCita, handleDeleteCita } = useAppointmentMutations({
+  businessId,
+  createdBy: computed(() => authStore.profile?.id),
+  modalRef: citaModalRef,
+})
+
 const openCitaEditFromCobro = async (tx: any) => {
   if (!tx.appointmentId && !tx.appointment_id) return
   const appointmentId = tx.appointmentId || tx.appointment_id
@@ -238,21 +245,6 @@ const openCitaEditFromCobro = async (tx: any) => {
     breakdown: tx.breakdown || undefined,
   }
   citaModalRef.value?.open(mapAppointmentToCita(cita), paymentData)
-}
-
-const handleCitaSaveFromFinanzas = async () => {
-  try {
-    await supabase.auth.getSession()
-  } catch {}
-  citaModalRef.value?.onSaveComplete?.()
-}
-
-const handleDeleteCita = (id: string) => {
-  if (window.confirm('¿Eliminar esta cita?')) {
-    supabase.from('appointments').delete().eq('id', id).then(() => {
-      summaryCtx.invalidateAll()
-    })
-  }
 }
 
 const paymentsCtx = useEmployeePayments(businessId, periodDates)
