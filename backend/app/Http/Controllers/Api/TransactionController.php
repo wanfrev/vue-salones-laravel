@@ -53,6 +53,18 @@ class TransactionController
             return response()->json(['message' => 'Transacción no encontrada.'], 404);
         }
 
+        $newTotal = $data['total_amount'];
+        $oldTotal = (float) $tx->total_amount;
+        if ($oldTotal > 0 && abs($newTotal - $oldTotal) > 0.001) {
+            $ratio = $newTotal / $oldTotal;
+            $data['local_amount'] = round((float) $tx->local_amount * $ratio, 2);
+            $data['employee_amount'] = round((float) $tx->employee_amount * $ratio, 2);
+            $data['assistant_amount'] = round((float) $tx->assistant_amount * $ratio, 2);
+            $sum = $data['local_amount'] + $data['employee_amount'] + $data['assistant_amount'];
+            $diff = round($newTotal - $sum, 2);
+            $data['local_amount'] = round($data['local_amount'] + $diff, 2);
+        }
+
         $tx->update($data);
 
         EntityChanged::safe($businessId, 'transaction', 'updated', $id);
