@@ -131,6 +131,7 @@ class AppointmentService
     public function destroy(string $id, string $businessId): void
     {
         $appointment = $this->findForBusiness($id, $businessId);
+        \App\Models\Transaction::where('appointment_id', $id)->delete();
         $appointment->delete();
     }
 

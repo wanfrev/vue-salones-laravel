@@ -267,6 +267,29 @@ export function useAppointmentMutations(options: {
   }
 
   const handleEventChange = async ({ id, start, end, employeeId }: { id: string; start: string; end: string; employeeId?: string }) => {
+    // Check for overlap before updating
+    const cachedAppts = queryClient.getQueryData<any[]>(['appointments']) ?? []
+    const newStart = new Date(start)
+    const newEnd = new Date(end)
+    const appt = cachedAppts.find((a: any) => a.id === id)
+    const empId = employeeId ?? appt?.employeeId
+    if (empId) {
+      const conflict = cachedAppts.some((a: any) => {
+        if (a.id === id) return false
+        if (a.status === 'cancelled' || (a as any).paymentStatus === 'cancelled') return false
+        if (a.employeeId !== empId && a.assistantId !== empId) return false
+        const aStart = new Date(`${a.date}T${a.time}:00`)
+        const aEnd = new Date(aStart.getTime() + ((a.duration || 30)) * 60 * 1000)
+        return aStart < newEnd && aEnd > newStart
+      })
+      if (conflict) {
+        showError('El empleado ya tiene una cita en ese horario')
+        await invalidate()
+        await queryClient.refetchQueries({ exact: false, queryKey: ['appointments'], type: 'all' })
+        return
+      }
+    }
+
     await updateTimeMutation.mutateAsync({ id, start, end })
     if (employeeId && options.businessId.value) {
       await mutate
