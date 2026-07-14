@@ -136,7 +136,6 @@ const selectedAppointment = ref<any>(null)
 const queryError = ref<string | null>(null)
 const appointmentSearch = ref('')
 const retailProcessing = ref(false)
-const retailProductSearch = ref('')
 const inlineProductSearch = ref('')
 const showInlineDropdown = ref(false)
 const showTipAdjust = ref(false)
@@ -181,14 +180,11 @@ const now = computed(() => new Date())
 const overdueAppointments = computed(() => filteredAppointments.value.filter(a => new Date(a.start_time) <= now.value))
 const upcomingAppointments = computed(() => filteredAppointments.value.filter(a => new Date(a.start_time) > now.value))
 
-const filterProducts = (query: string): any[] => {
-  if (!query) return (products.value as any[]).filter((p: any) => Number(p.available_qty ?? 0) > 0).slice(0, 6)
-  const q = query.toLowerCase()
-  return (products.value as any[]).filter((p: any) => p.name.toLowerCase().startsWith(q)).slice(0, 8)
-}
-const retailFilteredProducts = computed(() => filterProducts(retailProductSearch.value))
+const retailFilteredProducts = computed(() =>
+  (products.value as any[]).filter((p: any) => Number(p.available_qty ?? 0) > 0)
+)
 
-const addRetailProduct = (product: any) => { cartCtx.addProduct(product); retailProductSearch.value = '' }
+const addRetailProduct = (product: any) => { cartCtx.addProduct(product); retailSearchRef.value?.reset() }
 const addInlineProduct = (product: any) => { cartCtx.addProduct(product); inlineProductSearch.value = ''; showInlineDropdown.value = false }
 const onInlineBlur = () => setTimeout(() => { showInlineDropdown.value = false }, 150)
 

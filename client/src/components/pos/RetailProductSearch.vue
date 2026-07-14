@@ -7,8 +7,8 @@
       <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
       </div>
-      <div v-if="showProductDropdown && products.length > 0" class="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface shadow-lg overflow-hidden max-h-52 overflow-y-auto">
-        <button v-for="product in products" :key="product.id"
+      <div v-if="showProductDropdown && filteredProducts.length > 0" class="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface shadow-lg overflow-hidden max-h-52 overflow-y-auto">
+        <button v-for="product in filteredProducts" :key="product.id"
           @mousedown.prevent="$emit('add-product', product)"
           :disabled="Number(product.available_qty ?? 0) <= 0"
           class="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-50 border-b border-border last:border-b-0">
@@ -34,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 
 const props = defineProps<{
@@ -54,6 +54,13 @@ const { formatDual } = useCurrency()
 
 const productSearch = ref('')
 const showProductDropdown = ref(false)
+
+const filteredProducts = computed(() => {
+  const all = (props.products as any[])
+  if (!productSearch.value) return all
+  const q = productSearch.value.toLowerCase()
+  return all.filter((p: any) => p.name.toLowerCase().includes(q)).slice(0, 8)
+})
 
 const clientSearch = ref('')
 const showClientDropdown = ref(false)
