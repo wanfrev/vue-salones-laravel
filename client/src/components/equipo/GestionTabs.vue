@@ -3,12 +3,97 @@ import { ref, computed, watch } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import KpiBanner from '../finanzas/KpiBanner.vue'
 import RecordSection from '../finanzas/RecordSection.vue'
+import SegmentedTabs from '../common/SegmentedTabs.vue'
 
 const { formatEmployeeVESInline } = useCurrency()
 
 const fmtDate = (d: string) => {
   try { const dt = new Date(d); return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}` } catch { return d }
 }
+
+const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
+
+function dayStart(d: Date): Date { const c = new Date(d); c.setHours(0,0,0,0); return c }
+function dayEnd(d: Date): Date { const c = new Date(d); c.setHours(23,59,59,999); return c }
+function weekStart(d: Date): Date { const c = dayStart(d); const day = (c.getDay() + 6) % 7; c.setDate(c.getDate() - day); return c }
+function monthStart(y: number, m: number): Date { return new Date(y, m, 1) }
+function monthEnd(y: number, m: number): Date { return new Date(y, m + 1, 0, 23, 59, 59, 999) }
+
+// ── Nómina period state ──
+type Periodo = 'day' | 'week' | 'month'
+const nominaPeriod = ref<Periodo>('month')
+const nominaDate = ref(new Date())
+
+const nominaPeriodTabs = [
+  { key: 'day', label: 'Día' },
+  { key: 'week', label: 'Semana' },
+  { key: 'month', label: 'Mes' },
+]
+
+function onNominaPeriodChange(v: string) {
+  nominaPeriod.value = v as Periodo
+  if (v !== 'month') nominaDate.value = new Date()
+}
+
+const nominaPeriodLabel = computed(() => {
+  const d = nominaDate.value
+  if (nominaPeriod.value === 'day') return `${d.getDate()} ${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`
+  if (nominaPeriod.value === 'week') {
+    const ws = weekStart(d)
+    const we = new Date(ws); we.setDate(we.getDate() + 6)
+    if (ws.getMonth() === we.getMonth()) return `${ws.getDate()}-${we.getDate()} ${MONTHS_ES[ws.getMonth()]} ${ws.getFullYear()}`
+    return `${ws.getDate()} ${MONTHS_ES[ws.getMonth()]} - ${we.getDate()} ${MONTHS_ES[we.getMonth()]} ${we.getFullYear()}`
+  }
+  const [y, m] = (props.selectedMonth || '').split('-').map(Number) || [d.getFullYear(), d.getMonth()]
+  return `${MONTHS_ES[m] ?? ''} ${y ?? ''}`
+})
+
+const isCurrentNominaPeriod = computed(() => {
+  const now = new Date()
+  if (nominaPeriod.value === 'day') return dayStart(nominaDate.value).getTime() >= dayStart(now).getTime()
+  if (nominaPeriod.value === 'week') return weekStart(nominaDate.value).getTime() >= weekStart(now).getTime()
+  return true
+})
+
+function nominaPrev() {
+  const d = new Date(nominaDate.value)
+  if (nominaPeriod.value === 'day') d.setDate(d.getDate() - 1)
+  else d.setDate(d.getDate() - 7)
+  nominaDate.value = d
+}
+function nominaNext() {
+  if (isCurrentNominaPeriod.value) return
+  const d = new Date(nominaDate.value)
+  if (nominaPeriod.value === 'day') d.setDate(d.getDate() + 1)
+  else d.setDate(d.getDate() + 7)
+  nominaDate.value = d
+}
+function nominaGoToday() { nominaDate.value = new Date() }
+
+const nominaStart = computed<Date>(() => {
+  const d = nominaDate.value
+  if (nominaPeriod.value === 'day') return dayStart(d)
+  if (nominaPeriod.value === 'week') return weekStart(d)
+  const [y, m] = (props.selectedMonth || '').split('-').map(Number) || [d.getFullYear(), d.getMonth()]
+  return monthStart(y, m)
+})
+const nominaEnd = computed<Date>(() => {
+  const d = nominaDate.value
+  if (nominaPeriod.value === 'day') return dayEnd(d)
+  if (nominaPeriod.value === 'week') { const e = new Date(weekStart(d)); e.setDate(e.getDate() + 6); return dayEnd(e) }
+  const [y, m] = (props.selectedMonth || '').split('-').map(Number) || [d.getFullYear(), d.getMonth()]
+  const now = new Date()
+  const isCurrent = y === now.getFullYear() && m === now.getMonth()
+  return isCurrent ? dayEnd(now) : monthEnd(y, m)
+})
+
+const filteredNomina = computed(() => {
+  const all = props.paymentsCtx.allPayments.value ?? []
+  return all.filter((p: any) => {
+    const d = new Date(p.paymentDate)
+    return d >= nominaStart.value && d <= nominaEnd.value
+  })
+})
 
 const props = defineProps<{
   summaryCtx: any
@@ -58,11 +143,11 @@ const pageProps = <T>(data: T[]) => {
 }
 
 const paginatedServicios = computed(() => paginate(props.summaryCtx.employeePayments.value))
-const paginatedNomina = computed(() => paginate(props.paymentsCtx.allPayments.value))
+const paginatedNomina = computed(() => paginate(filteredNomina.value))
 const paginatedDeuda = computed(() => paginate(props.deudaConSaldo))
 const paginatedHorarios = computed(() => paginate(props.teamSchedule))
 const serviciosP = computed(() => pageProps(props.summaryCtx.employeePayments.value))
-const nominaP = computed(() => pageProps(props.paymentsCtx.allPayments.value))
+const nominaP = computed(() => pageProps(filteredNomina.value))
 const deudaP = computed(() => pageProps(props.deudaConSaldo))
 const horariosP = computed(() => pageProps(props.teamSchedule))
 </script>
@@ -86,7 +171,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
       <!-- Month Selector -->
       <div
         class="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-border bg-surface px-2.5 py-1.5 shadow-sm self-start sm:self-auto"
-        v-show="activeTab !== 'horarios'">
+        v-show="activeTab !== 'horarios' && activeTab !== 'nomina'">
         <label for="equipo-month-picker" class="text-xs font-medium text-text-muted hidden sm:inline">Mes</label>
         <input id="equipo-month-picker" :value="selectedMonth" type="month"
           class="rounded-md border border-border bg-surface px-2 py-1 text-xs text-text outline-none transition-theme focus:border-primary w-full sm:w-auto"
@@ -126,6 +211,28 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
           <span class="hidden sm:inline">{{ tab.label }}</span><span class="sm:hidden">{{ tab.shortLabel }}</span>
         </button>
       </div>
+
+      <!-- Nómina period selector -->
+      <div v-if="activeTab === 'nomina'" class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+        <SegmentedTabs :tabs="nominaPeriodTabs" :model-value="nominaPeriod" @update:model-value="onNominaPeriodChange" />
+        <div class="flex items-center gap-1.5">
+          <template v-if="nominaPeriod === 'month'">
+            <input id="equipo-month-picker" :value="selectedMonth" type="month"
+              class="rounded-md border border-border bg-surface px-2 py-1 text-xs text-text outline-none transition-theme focus:border-primary"
+              @change="$emit('update:selectedMonth', ($event.target as HTMLInputElement).value); $emit('update:selectedPeriod', 'month')" />
+          </template>
+          <template v-else>
+            <button @click="nominaPrev" class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <span class="text-xs font-semibold text-text min-w-[130px] text-center">{{ nominaPeriodLabel }}</span>
+            <button @click="nominaNext" :disabled="isCurrentNominaPeriod" class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </button>
+            <button v-if="!isCurrentNominaPeriod" @click="nominaGoToday" class="rounded-md border border-border px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors">Hoy</button>
+          </template>
+        </div>
+      </div>
     </div>
 
     <!-- KPI Banners -->
@@ -136,7 +243,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
     <KpiBanner v-if="activeTab === 'nomina'" variant="danger"
       icon="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
       label="Total Pagado + Consumido" :value="formatUSD(totalNominaPagada + totalConsumido)"
-      :sublabel="`${paymentsCtx.payments.value.length} registro(s)`">
+      :sublabel="`${filteredNomina.length} registro(s)`">
       <template #actions>
         <button @click="$emit('openPayment')"
           class="ml-auto flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shrink-0"><svg
@@ -228,7 +335,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
 
       <!-- Nómina -->
       <div v-if="activeTab === 'nomina'">
-        <RecordSection title="" :items="paginatedNomina" :total-count="paymentsCtx.allPayments.value.length"
+        <RecordSection title="" :items="paginatedNomina" :total-count="filteredNomina.length"
           empty-message="No hay pagos de nómina registrados" :pages="nominaP" :page-size="pageSize" @prev="tabPage--"
           @next="tabPage++">
           <template #desktop-thead>
