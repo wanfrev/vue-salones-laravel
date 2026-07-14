@@ -35,6 +35,16 @@ function onNominaPeriodChange(v: string) {
   if (v !== 'month') nominaDate.value = new Date()
 }
 
+function parseSelectedMonth(fallback: Date): { y: number; m: number } {
+  const parts = (props.selectedMonth || '').split('-')
+  if (parts.length === 2) {
+    const y = Number(parts[0])
+    const m = Number(parts[1]) - 1 // HTML month input is 1-indexed, JS months are 0-indexed
+    return { y, m }
+  }
+  return { y: fallback.getFullYear(), m: fallback.getMonth() }
+}
+
 const nominaPeriodLabel = computed(() => {
   const d = nominaDate.value
   if (nominaPeriod.value === 'day') return `${d.getDate()} ${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`
@@ -44,8 +54,8 @@ const nominaPeriodLabel = computed(() => {
     if (ws.getMonth() === we.getMonth()) return `${ws.getDate()}-${we.getDate()} ${MONTHS_ES[ws.getMonth()]} ${ws.getFullYear()}`
     return `${ws.getDate()} ${MONTHS_ES[ws.getMonth()]} - ${we.getDate()} ${MONTHS_ES[we.getMonth()]} ${we.getFullYear()}`
   }
-  const [y, m] = (props.selectedMonth || '').split('-').map(Number) || [d.getFullYear(), d.getMonth()]
-  return `${MONTHS_ES[m] ?? ''} ${y ?? ''}`
+  const { y, m } = parseSelectedMonth(d)
+  return `${MONTHS_ES[m]} ${y}`
 })
 
 const isCurrentNominaPeriod = computed(() => {
@@ -74,14 +84,14 @@ const nominaStart = computed<Date>(() => {
   const d = nominaDate.value
   if (nominaPeriod.value === 'day') return dayStart(d)
   if (nominaPeriod.value === 'week') return weekStart(d)
-  const [y, m] = (props.selectedMonth || '').split('-').map(Number) || [d.getFullYear(), d.getMonth()]
+  const { y, m } = parseSelectedMonth(d)
   return monthStart(y, m)
 })
 const nominaEnd = computed<Date>(() => {
   const d = nominaDate.value
   if (nominaPeriod.value === 'day') return dayEnd(d)
   if (nominaPeriod.value === 'week') { const e = new Date(weekStart(d)); e.setDate(e.getDate() + 6); return dayEnd(e) }
-  const [y, m] = (props.selectedMonth || '').split('-').map(Number) || [d.getFullYear(), d.getMonth()]
+  const { y, m } = parseSelectedMonth(d)
   const now = new Date()
   const isCurrent = y === now.getFullYear() && m === now.getMonth()
   return isCurrent ? dayEnd(now) : monthEnd(y, m)
