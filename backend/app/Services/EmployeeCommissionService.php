@@ -54,7 +54,7 @@ class EmployeeCommissionService
             ->orderByDesc('transactions.paid_at');
 
         if ($startDate && $endDate) {
-            $query->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)]);
+            $query->whereBetween('appointments.start_time', [$startDate, $this->normalizeEndDate($endDate)]);
         }
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
@@ -106,7 +106,7 @@ class EmployeeCommissionService
             ->groupBy('profiles.id', 'profiles.full_name', 'profiles.pay_type', 'profiles.pay_percentage', 'profiles.base_salary', 'profiles.employee_ves_rate');
 
         if ($startDate && $endDate) {
-            $earningsQuery->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)]);
+            $earningsQuery->whereBetween('appointments.start_time', [$startDate, $this->normalizeEndDate($endDate)]);
         } else {
             $earningsQuery->whereRaw('1 = 0');
         }
@@ -184,7 +184,7 @@ class EmployeeCommissionService
     ): array {
         $dateFilter = function ($q) use ($startDate, $endDate) {
             if ($startDate && $endDate) {
-                $q->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)]);
+                $q->whereBetween('appointments.start_time', [$startDate, $this->normalizeEndDate($endDate)]);
             }
         };
         $branchFilter = function ($q) use ($branchId) {
