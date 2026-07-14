@@ -241,8 +241,15 @@ class FinancialSummaryService
             ->leftJoin('products', 'inventory_movements.product_id', '=', 'products.id')
             ->leftJoin('clients', 'inventory_movements.client_id', '=', 'clients.id')
             ->leftJoin('transactions', function ($join) {
-                $join->on('inventory_movements.reference_id', '=', 'transactions.id')
-                    ->where('inventory_movements.reference_type', '=', 'direct');
+                $join->where(function ($q) {
+                    $q->where(function ($sq) {
+                        $sq->on('inventory_movements.reference_id', '=', 'transactions.id')
+                           ->where('inventory_movements.reference_type', '=', 'direct');
+                    })->orWhere(function ($sq) {
+                        $sq->on('inventory_movements.reference_id', '=', 'transactions.appointment_id')
+                           ->where('inventory_movements.reference_type', '=', 'appointment');
+                    });
+                });
             })
             ->where('inventory_movements.business_id', $businessId)
             ->where('inventory_movements.movement_type', 'sale')

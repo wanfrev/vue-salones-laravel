@@ -351,13 +351,13 @@ function useFinancialSummary(
       })
     }
 
-    // Product sales (con nombre real del producto, solo ventas directas)
+    // Product sales (con nombre real del producto, incluye ventas en citas)
     for (const ps of (productSalesData.value ?? [])) {
-      if ((ps as any).is_appointment_sale) continue
       const clientLabel = (ps as any).client_name as string | undefined
       const productName = (ps as any).product ?? 'Producto'
       const method = (ps as any).payment_method ?? 'cash'
       const breakdown = (ps as any).payments_breakdown ?? null
+      const isAppointmentSale = (ps as any).is_appointment_sale ?? false
       result.push({
         id: 'ps-' + (ps as any).id,
         date: formatDate((ps as any).date ?? (ps as any).created_at),
@@ -370,7 +370,7 @@ function useFinancialSummary(
         exchangeRateUsed: Number((ps as any).exchange_rate_used ?? 1),
         notes: (ps as any).notes ?? null,
         source: 'product_sale',
-        sourceLabel: 'Venta producto',
+        sourceLabel: isAppointmentSale ? 'Producto en cita' : 'Venta producto',
       })
     }
 
