@@ -235,17 +235,20 @@ function setPaymentContext(data: PaymentEditContext | null) {
     if (data.appointmentId) {
       supabase
         .from('inventory_movements')
-        .select('id, product_id, products(name), quantity, unit_cost')
+        .select('id, product_id, products(name, unit_price), quantity, unit_cost')
         .eq('reference_type', 'appointment')
         .eq('reference_id', data.appointmentId)
         .then(({ data: items }: any) => {
-          appointmentProducts.value = (items ?? []).map((m: any) => ({
-            movementId: m.id,
-            productId: m.product_id,
-            productName: m.products?.name ?? m.product_id,
-            quantity: Math.abs(m.quantity),
-            unitCost: Number(m.unit_cost ?? 0),
-          }))
+          appointmentProducts.value = (items ?? []).map((m: any) => {
+            const price = Number(m.products?.unit_price ?? 0)
+            return {
+              movementId: m.id,
+              productId: m.product_id,
+              productName: m.products?.name ?? m.product_id,
+              quantity: Math.abs(m.quantity),
+              unitCost: price > 0 ? price : Number(m.unit_cost ?? 0),
+            }
+          })
         })
         .catch(() => { appointmentProducts.value = [] })
     }

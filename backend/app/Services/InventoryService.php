@@ -132,7 +132,7 @@ class InventoryService
 
         return $query->get()->map(function ($movement) {
             $data = $movement->toArray();
-            $data['products'] = $movement->product ? ['id' => $movement->product->id, 'name' => $movement->product->name] : null;
+            $data['products'] = $movement->product ? ['id' => $movement->product->id, 'name' => $movement->product->name, 'unit_price' => (float) ($movement->product->unit_price ?? 0)] : null;
             $data['clients'] = $movement->client ? ['full_name' => $movement->client->full_name] : null;
             return $data;
         });
