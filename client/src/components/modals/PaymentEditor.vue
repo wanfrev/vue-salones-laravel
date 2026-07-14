@@ -79,11 +79,14 @@
       </div>
     </div>
 
-    <div v-if="paymentTipAmount > 0" class="mt-2 rounded-lg border border-border bg-bg-secondary px-3 py-2">
-      <div class="flex items-center justify-between text-xs">
-        <span class="font-medium text-text-muted">Propina</span>
-        <span class="font-semibold text-primary">${{ paymentTipAmount.toFixed(2) }}</span>
-      </div>
+    <div class="mt-3">
+      <label class="mb-1 block text-xs font-medium text-text-muted">Propina</label>
+      <input
+        v-model.number="paymentTipAmount"
+        type="number" min="0" step="0.01"
+        class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+        placeholder="0.00"
+      />
     </div>
 
     <div class="mt-3">

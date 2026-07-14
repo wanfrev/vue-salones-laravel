@@ -248,11 +248,12 @@ export function useAppointmentMutations(options: {
 
         await updateTransaction({
           transactionId: paymentData.transactionId,
-          amount: Number((paymentData.amount + Number(paymentData.tipAmount ?? 0)).toFixed(2)),
+          amount: paymentData.amount,
           method: paymentData.method,
           notes: paymentData.notes,
           exchangeRate: paymentData.exchangeRate,
           paymentsBreakdown: paymentData.breakdown,
+          tipAmount: paymentData.tipAmount ?? 0,
         })
         invalidate()
       }

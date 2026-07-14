@@ -45,6 +45,7 @@ class TransactionController
             'notes' => 'nullable|string|max:500',
             'exchange_rate_used' => 'nullable|numeric|min:0',
             'payments_breakdown' => 'nullable|array',
+            'tip_amount' => 'nullable|numeric|min:0',
         ]);
 
         $tx = \App\Models\Transaction::where('business_id', $businessId)->find($id);

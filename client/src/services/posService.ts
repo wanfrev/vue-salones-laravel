@@ -183,6 +183,7 @@ export const updateTransaction = async (params: {
   notes?: string | null
   exchangeRate?: number
   paymentsBreakdown?: any[]
+  tipAmount?: number
 }): Promise<void> => {
   await apiRequest('PUT', `/transactions/${params.transactionId}`, {
     total_amount: params.amount,
@@ -190,6 +191,7 @@ export const updateTransaction = async (params: {
     notes: params.notes ?? null,
     exchange_rate_used: params.exchangeRate ?? null,
     payments_breakdown: params.paymentsBreakdown ?? undefined,
+    tip_amount: params.tipAmount ?? 0,
   })
 }
 
