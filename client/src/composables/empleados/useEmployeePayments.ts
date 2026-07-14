@@ -73,6 +73,44 @@ export function useEmployeePayments(
     payments.value.filter(p => p.type === 'payment'),
   )
 
+  // ── All payments (unfiltered, for Nómina table) ──
+  const { data: allPaymentsData } = useQuery({
+    queryKey: computed(() => [
+      ...employeePaymentKeys.all(businessId.value),
+      'all', branchId.value,
+    ]),
+    queryFn: () => listEmployeePayments(
+      businessId.value!,
+      undefined,
+      undefined,
+      branchId.value,
+    ),
+    enabled: computed(() => !!businessId.value),
+  })
+
+  const allPayments = computed(() => (allPaymentsData.value ?? []).map((p: any) => {
+    const currency = p.currency === 'VES' ? 'VES' : 'USD'
+    const profileRate = p.employee_profile?.employee_ves_rate
+    const empRate = profileRate != null && Number(profileRate) > 0 ? Number(profileRate) : null
+    const businessEmpRate = businessStore.employeeExchangeRate
+    const fallbackRate = empRate ?? (businessEmpRate != null ? businessEmpRate : exchangeRate.value)
+    return {
+      id: p.id,
+      employeeId: p.employee_id,
+      employeeName: p.employee_profile?.full_name ?? '—',
+      amount: p.amount,
+      currency,
+      originalAmount: Number(p.original_amount ?? 0),
+      exchangeRateUsed: p.exchange_rate_used ?? 1,
+      employeeVesRate: fallbackRate,
+      paymentMethod: p.payment_method,
+      type: p.type,
+      concept: p.concept,
+      notes: p.notes,
+      paymentDate: p.payment_date,
+    }
+  }))
+
   // ── Commissions (Servicios Realizados) ──
   const { data: commissionsData } = useQuery({
     queryKey: computed(() => [
@@ -389,6 +427,7 @@ export function useEmployeePayments(
 
   return {
     payments,
+    allPayments,
     paymentsMade,
     commissions,
     commissionsTotal,

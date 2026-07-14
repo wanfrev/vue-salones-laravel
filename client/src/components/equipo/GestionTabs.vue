@@ -58,11 +58,11 @@ const pageProps = <T>(data: T[]) => {
 }
 
 const paginatedServicios = computed(() => paginate(props.summaryCtx.employeePayments.value))
-const paginatedNomina = computed(() => paginate(props.paymentsCtx.payments.value))
+const paginatedNomina = computed(() => paginate(props.paymentsCtx.allPayments.value))
 const paginatedDeuda = computed(() => paginate(props.deudaConSaldo))
 const paginatedHorarios = computed(() => paginate(props.teamSchedule))
 const serviciosP = computed(() => pageProps(props.summaryCtx.employeePayments.value))
-const nominaP = computed(() => pageProps(props.paymentsCtx.payments.value))
+const nominaP = computed(() => pageProps(props.paymentsCtx.allPayments.value))
 const deudaP = computed(() => pageProps(props.deudaConSaldo))
 const horariosP = computed(() => pageProps(props.teamSchedule))
 </script>
@@ -228,7 +228,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
 
       <!-- Nómina -->
       <div v-if="activeTab === 'nomina'">
-        <RecordSection title="" :items="paginatedNomina" :total-count="paymentsCtx.payments.value.length"
+        <RecordSection title="" :items="paginatedNomina" :total-count="paymentsCtx.allPayments.value.length"
           empty-message="No hay pagos de nómina registrados" :pages="nominaP" :page-size="pageSize" @prev="tabPage--"
           @next="tabPage++">
           <template #desktop-thead>
