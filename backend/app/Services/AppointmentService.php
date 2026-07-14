@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Appointment;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class AppointmentService
@@ -45,6 +46,14 @@ class AppointmentService
 
     public function store(array $data, string $businessId, string $createdBy): Appointment
     {
+        $this->checkOverlap(
+            $businessId,
+            $data['employee_id'],
+            $data['start_time'],
+            $data['end_time'],
+            $data['assistant_employee_id'] ?? null,
+        );
+
         return Appointment::create([
             'id' => Str::uuid()->toString(),
             'business_id' => $businessId,
@@ -82,7 +91,18 @@ class AppointmentService
             'duration_override', 'group_id', 'branch_id',
         ];
 
-        $appointment->update(array_filter($data, fn($k) => in_array($k, $fillable), ARRAY_FILTER_USE_KEY) + [
+        $filtered = array_filter($data, fn($k) => in_array($k, $fillable), ARRAY_FILTER_USE_KEY);
+
+        $employeeId = $filtered['employee_id'] ?? $appointment->employee_id;
+        $startTime = $filtered['start_time'] ?? $appointment->start_time;
+        $endTime = $filtered['end_time'] ?? $appointment->end_time;
+        $assistantId = array_key_exists('assistant_employee_id', $filtered)
+            ? $filtered['assistant_employee_id']
+            : $appointment->assistant_employee_id;
+
+        $this->checkOverlap($businessId, $employeeId, $startTime, $endTime, $assistantId, $id);
+
+        $appointment->update($filtered + [
             'updated_at' => now(),
         ]);
 
@@ -99,6 +119,7 @@ class AppointmentService
     public function updateTime(string $id, string $startTime, string $endTime, string $businessId): Appointment
     {
         $appointment = $this->findForBusiness($id, $businessId);
+        $this->checkOverlap($businessId, $appointment->employee_id, $startTime, $endTime, $appointment->assistant_employee_id, $id);
         $appointment->update([
             'start_time' => $startTime,
             'end_time' => $endTime,
@@ -154,5 +175,38 @@ class AppointmentService
     public function find(string $id): ?Appointment
     {
         return Appointment::find($id);
+    }
+
+    private function checkOverlap(
+        string $businessId,
+        string $employeeId,
+        string $startTime,
+        string $endTime,
+        ?string $assistantId = null,
+        ?string $excludeId = null,
+    ): void {
+        $query = Appointment::where('business_id', $businessId)
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->where('start_time', '<', $endTime)
+            ->where('end_time', '>', $startTime)
+            ->where(function ($q) use ($employeeId, $assistantId) {
+                $q->where('employee_id', $employeeId);
+                if ($assistantId) {
+                    $q->orWhere('assistant_employee_id', $assistantId);
+                }
+            });
+
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        $conflict = $query->first();
+
+        if ($conflict) {
+            $conflictEmployee = $conflict->employee_id === $employeeId ? 'empleado' : 'asistente';
+            throw ValidationException::withMessages([
+                'start_time' => "El {$conflictEmployee} ya tiene una cita en ese horario.",
+            ]);
+        }
     }
 }
