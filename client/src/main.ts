@@ -73,9 +73,14 @@ try {
         #pwa-dismiss-btn:hover { color: #fff; }
       `
       document.head.appendChild(style)
-      el.querySelector('#pwa-update-btn')!.addEventListener('click', () => {
+      el.querySelector('#pwa-update-btn')!.addEventListener('click', async () => {
         el.remove()
         style.remove()
+        const reg = await navigator.serviceWorker.getRegistration()
+        if (reg?.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' })
+          await new Promise(r => setTimeout(r, 300))
+        }
         window.location.reload()
       })
       el.querySelector('#pwa-dismiss-btn')!.addEventListener('click', () => {
