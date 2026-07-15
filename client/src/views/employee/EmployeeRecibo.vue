@@ -421,9 +421,14 @@ const toYmdString = (d: Date) => {
   return `${y}-${m}-${dd}`
 }
 
+const dateParams = computed(() => selectedPeriod.value !== 'all'
+  ? { start: toYmdString(periodStart.value), end: toYmdString(periodEnd.value) }
+  : { start: undefined, end: undefined }
+)
+
 const { data: earningsData, isLoading: loadingEarnings, refetch: refetchEarnings } = useQuery({
-  queryKey: dashboardKeys.earnings(businessId.value, employeeId.value, branchId.value, selectedPeriod.value !== 'all' ? toYmdString(periodStart.value) : undefined, selectedPeriod.value !== 'all' ? toYmdString(periodEnd.value) : undefined),
-  queryFn: () => listEmployeeTransactions(businessId.value!, employeeId.value!, branchId.value, selectedPeriod.value !== 'all' ? toYmdString(periodStart.value) : undefined, selectedPeriod.value !== 'all' ? toYmdString(periodEnd.value) : undefined),
+  queryKey: computed(() => dashboardKeys.earnings(businessId.value, employeeId.value, branchId.value, dateParams.value.start, dateParams.value.end)),
+  queryFn: () => listEmployeeTransactions(businessId.value!, employeeId.value!, branchId.value, dateParams.value.start, dateParams.value.end),
   enabled: computed(() => !!businessId.value && !!employeeId.value),
   staleTime: 0,
 })
@@ -476,8 +481,8 @@ const totalEarnedVES = computed(() =>
 )
 
 const { data: paymentsData, refetch: refetchPayments } = useQuery({
-  queryKey: dashboardKeys.payments(businessId.value, employeeId.value, branchId.value),
-  queryFn: () => listEmployeePayments(businessId.value!, employeeId.value!, branchId.value),
+  queryKey: computed(() => dashboardKeys.payments(businessId.value, employeeId.value, branchId.value, dateParams.value.start, dateParams.value.end)),
+  queryFn: () => listEmployeePayments(businessId.value!, employeeId.value!, branchId.value, dateParams.value.start, dateParams.value.end),
   enabled: computed(() => !!businessId.value && !!employeeId.value),
   staleTime: 0,
 })
