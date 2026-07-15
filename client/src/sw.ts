@@ -1,4 +1,4 @@
-import { precacheAndRoute } from 'workbox-precaching'
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
 
 declare const self: ServiceWorkerGlobalScope
 
@@ -9,8 +9,21 @@ self.addEventListener('install', () => {
 })
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim())
+  event.waitUntil(
+    (async () => {
+      await self.clients.claim()
+      const keys = await caches.keys()
+      const validPrefixes = ['workbox-precache', 'google-fonts-cache', 'image-assets-cache']
+      await Promise.all(
+        keys
+          .filter(k => !validPrefixes.some(p => k.startsWith(p)))
+          .map(k => caches.delete(k))
+      )
+    })()
+  )
 })
+
+cleanupOutdatedCaches()
 
 self.addEventListener('push', (event) => {
   const payload = event.data?.json() ?? {}
