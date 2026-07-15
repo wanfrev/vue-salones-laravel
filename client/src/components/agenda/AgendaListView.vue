@@ -161,13 +161,13 @@
 </template>
 
 <script setup lang="ts">
-import { getInitials, getStatusColor, formatTime24to12 } from '../../lib/formatters'
+import { getInitials, getStatusColor, formatTime24to12, parseLocalDate } from '../../lib/formatters'
 import type { Cita } from '../../types/cita'
 
 const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 function formatDateLabel(dateStr: string): string {
-  const d = new Date(dateStr + 'T12:00:00')
+  const d = parseLocalDate(dateStr, 12, 0, 0)
   if (isNaN(d.getTime())) return dateStr
   const dd = String(d.getDate()).padStart(2, '0')
   const mm = String(d.getMonth() + 1).padStart(2, '0')

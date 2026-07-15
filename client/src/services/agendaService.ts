@@ -3,6 +3,7 @@ import { handleDbError } from '../lib/errors'
 import { citaFormSchema } from '../lib/validation'
 import { mapAppointmentToCita, mapCitaFormToAppointmentInsert, mapServiceItemToAppointmentInsert } from '../mappers/agendaMapper'
 import { findOrCreateClientByPhone } from './clientesService'
+import { toLocalISO } from '../lib/formatters'
 import type { AppointmentWithRelations, Service } from '../types/database'
 import type { Cita, CitaFormData } from '../types/cita'
 
@@ -56,8 +57,8 @@ export const listCitas = async (
 
   if (dateRange) {
     query = query
-      .gte('start_time', dateRange.start.toISOString())
-      .lte('start_time', dateRange.end.toISOString())
+      .gte('start_date', toLocalISO(dateRange.start))
+      .lte('end_date', toLocalISO(dateRange.end))
   }
 
   if (employeeId && employeeId !== 'all') {

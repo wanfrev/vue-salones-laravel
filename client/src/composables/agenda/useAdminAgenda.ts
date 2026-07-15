@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { toISODate } from '../../lib/formatters'
+import { toISODate, parseLocalDate } from '../../lib/formatters'
 import { listCitas, agendaKeys } from '../../services/agendaService'
 import { listServicios, serviciosKeys } from '../../services/serviciosService'
 import { listEquipo, equipoKeys } from '../../services/equipoService'
@@ -105,7 +105,7 @@ export function useAdminAgenda(businessId: () => string | null) {
       dateFilterMode.value = 'all'
       return
     }
-    const d = typeof date === 'string' ? new Date(date + 'T12:00:00') : date
+    const d = typeof date === 'string' ? parseLocalDate(date, 12, 0, 0) : date
     filterDate.value = toISODate(d)
     selectedDate.value = d
     dateFilterMode.value = 'day'
@@ -122,7 +122,7 @@ export function useAdminAgenda(businessId: () => string | null) {
       }
       return `Semana ${fmt(start)} — ${fmt(end)}`
     }
-    const d = new Date((filterDate.value || todayIso.value) + 'T12:00:00')
+    const d = parseLocalDate((filterDate.value || todayIso.value), 12, 0, 0)
     const dd = String(d.getDate()).padStart(2, '0')
     const mm = String(d.getMonth() + 1).padStart(2, '0')
     const yy = String(d.getFullYear()).slice(-2)

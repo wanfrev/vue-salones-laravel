@@ -4,6 +4,7 @@ import { api as supabase } from '../../lib/api'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { APPOINTMENT_SELECT } from '../../services/agendaService'
+import { toLocalISO } from '../../lib/formatters'
 import type { Profile, Service } from '../../types/database'
 
 function defaultWeekRange() {
@@ -105,8 +106,8 @@ export const useAgenda = () => {
       if (branchId) {
         query = query.eq('branch_id', branchId)
       }
-      query = query.gte('start_date', start.toISOString())
-        .lte('end_date', end.toISOString())
+      query = query.gte('start_date', toLocalISO(start))
+        .lte('end_date', toLocalISO(end))
       if (empId !== 'all') {
         query = query.eq('employee_id', empId)
       }

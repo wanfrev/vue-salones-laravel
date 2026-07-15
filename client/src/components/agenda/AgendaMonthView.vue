@@ -49,7 +49,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { toISODate, dateToHHmm, dateToHHmm12, getStatusLabel, normalizeAppointmentStatus } from '../../lib/formatters'
+import { toISODate, dateToHHmm, dateToHHmm12, getStatusLabel, normalizeAppointmentStatus, parseLocalDate } from '../../lib/formatters'
 
 const props = defineProps<{
   appointments: any[]
@@ -134,7 +134,7 @@ function getApptsForDate(iso: string) {
 }
 
 const cells = computed(() => {
-  const d = new Date(props.selectedDate + 'T12:00:00')
+  const d = parseLocalDate(props.selectedDate, 12, 0, 0)
   const year = d.getFullYear()
   const month = d.getMonth()
 

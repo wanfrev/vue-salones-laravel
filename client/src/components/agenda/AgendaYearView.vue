@@ -32,7 +32,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { toISODate } from '../../lib/formatters'
+import { toISODate, parseLocalDate } from '../../lib/formatters'
 
 const props = defineProps<{
   appointments: any[]
@@ -49,7 +49,7 @@ const miniDayNames = ['D', 'L', 'M', 'X', 'J', 'V', 'S']
 const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
 const months = computed(() => {
-  const d = new Date(props.selectedDate + 'T12:00:00')
+  const d = parseLocalDate(props.selectedDate, 12, 0, 0)
   const year = d.getFullYear()
   const today = new Date()
 

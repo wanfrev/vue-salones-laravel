@@ -297,7 +297,7 @@ import { useRoute } from 'vue-router'
 import { useAgenda } from '../../composables/agenda/useAgenda'
 import { useAuthStore } from '../../store/auth'
 import { isAdminPanelRole } from '../../constants/roles'
-import { normalizeAppointmentStatus, getStatusLabel, dateToHHmm, dateToHHmm12, toISODate, getInitials } from '../../lib/formatters'
+import { normalizeAppointmentStatus, getStatusLabel, dateToHHmm, dateToHHmm12, toISODate, getInitials, parseLocalDate } from '../../lib/formatters'
 import AgendaMonthView from './AgendaMonthView.vue'
 import AgendaYearView from './AgendaYearView.vue'
 import type { Cita } from '../../types/cita'
@@ -370,7 +370,7 @@ const isToday = computed(() => selectedDate.value === todayIso.value)
 const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 const titleText = computed(() => {
-  const d = new Date(selectedDate.value + 'T12:00:00')
+  const d = parseLocalDate(selectedDate.value, 12, 0, 0)
   const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
   const dayNamesFull = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
   if (viewMode.value === 'year') return `${d.getFullYear()}`
@@ -400,7 +400,7 @@ const hourSlots = computed(() => Array.from({ length: totalHours }, (_, h) => {
 
 // ---- Navigation ----
 function navigate(dir: number) {
-  const d = new Date(selectedDate.value + 'T12:00:00')
+  const d = parseLocalDate(selectedDate.value, 12, 0, 0)
   if (viewMode.value === 'year') d.setFullYear(d.getFullYear() + dir)
   else if (viewMode.value === 'month') d.setMonth(d.getMonth() + dir)
   else if (viewMode.value === 'week') d.setDate(d.getDate() + dir * 7)
@@ -414,12 +414,12 @@ function goToMonth(m: number, y: number) { selectedDate.value = toISODate(new Da
 
 // ---- Date range sync ----
 watch([selectedDate, viewMode], ([d, mode]) => {
-  const base = new Date(d + 'T12:00:00')
+  const base = parseLocalDate(d, 12, 0, 0)
   let start: Date, end: Date
   if (mode === 'year') { start = new Date(base.getFullYear(), 0, 1); end = new Date(base.getFullYear() + 1, 0, 1) }
   else if (mode === 'month') { start = new Date(base.getFullYear(), base.getMonth(), 1); end = new Date(base.getFullYear(), base.getMonth() + 1, 1) }
   else if (mode === 'week') { start = new Date(base); start.setDate(base.getDate() - base.getDay()); start.setHours(0, 0, 0, 0); end = new Date(start); end.setDate(start.getDate() + 7) }
-  else { start = new Date(d + 'T00:00:00'); end = new Date(start); end.setDate(end.getDate() + 1) }
+  else { start = parseLocalDate(d, 0, 0, 0); end = new Date(start); end.setDate(end.getDate() + 1) }
   setDateRange(start, end)
 }, { immediate: true })
 
