@@ -125,6 +125,7 @@ import RetailProductSearch from '../components/pos/RetailProductSearch.vue'
 import AppointmentList from '../components/pos/AppointmentList.vue'
 import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
 import { useExchangeRate } from '../composables/finanzas/useExchangeRate'
+import { posPrefill } from '../composables/pos/usePOSPrefillState'
 import { toISODate, minutesToHHmm } from '../lib/formatters'
 import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
 import type { PaymentMethod } from '../types/database'
@@ -445,6 +446,41 @@ const tryAutoSelect = () => {
   if (found) {
     selectAppointment(found)
     router.replace({ query: {} })
+    applyPrefill()
+  }
+}
+
+const applyPrefill = () => {
+  const prefill = posPrefill.value
+  if (!prefill) return
+  posPrefill.value = null
+
+  paymentCtx.paymentMethod.value = prefill.paymentMethod as PaymentMethod
+  if (prefill.breakdown && prefill.breakdown.length > 1) {
+    paymentCtx.paymentsBreakdown.value = [...prefill.breakdown]
+    paymentCtx.paymentMethod.value = 'mixed'
+  } else {
+    paymentCtx.paymentsBreakdown.value = []
+  }
+  paymentCtx.otherCurrency.value = prefill.paymentCurrency
+  paymentCtx.tipAmount.value = prefill.tipAmount ?? 0
+  paymentCtx.paymentNotes.value = prefill.notes ?? ''
+
+  if (prefill.products && prefill.products.length > 0) {
+    cartCtx.clearCart()
+    for (const p of prefill.products) {
+      cartCtx.cart.value.push({
+        productId: p.productId,
+        productName: p.productName,
+        variantId: null,
+        variantName: null,
+        quantity: p.quantity,
+        unitPrice: p.unitCost,
+        unitCost: p.unitCost,
+        subtotal: p.unitCost * p.quantity,
+        availableQty: 999,
+      })
+    }
   }
 }
 

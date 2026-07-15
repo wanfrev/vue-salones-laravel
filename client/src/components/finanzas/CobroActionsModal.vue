@@ -6,7 +6,9 @@ import { api as supabase } from '../../lib/api'
 import { formatMethod } from '../../lib/formatters'
 import SectionCard from '../common/SectionCard.vue'
 import { DualAmount } from '../common'
+import { listCitaGroupMembers } from '../../services/agendaService'
 import type { Cita, PaymentEditContext, AppointmentProduct } from '../../types/cita'
+import type { PaymentBreakdownItem } from '../../types/pos'
 
 const props = defineProps<{
   show: boolean
@@ -17,7 +19,20 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   close: []
-  rollback: [payload: { transactionIds: string[]; appointmentId: string }]
+  rollback: [payload: {
+    transactionIds: string[]
+    appointmentId: string
+    prefill: {
+      paymentMethod: string
+      paymentAmount: number
+      paymentCurrency: 'USD' | 'VES'
+      exchangeRate: number
+      tipAmount: number
+      notes: string | null
+      breakdown: PaymentBreakdownItem[] | null
+      products: { productId: string; productName: string; quantity: number; unitCost: number }[] | null
+    } | null
+  }]
   delete: [transactionIds: string[]]
 }>()
 
@@ -27,12 +42,14 @@ const t = computed(() => businessStore.terminology)
 
 const mode = ref<'actions' | 'factura'>('actions')
 const appointmentProducts = ref<AppointmentProduct[]>([])
+const groupMembers = ref<Cita[]>([])
+const grupoLoading = ref(false)
 
 const appointmentProductsTotal = computed(() =>
   appointmentProducts.value.reduce((s, p) => s + p.quantity * p.unitCost, 0),
 )
 
-watch(() => props.show, (visible) => { if (visible) mode.value = 'actions' })
+watch(() => props.show, (visible) => { if (visible) { mode.value = 'actions'; groupMembers.value = [] } })
 
 watch(() => props.paymentData, (data) => {
   appointmentProducts.value = []
@@ -58,10 +75,57 @@ watch(() => props.paymentData, (data) => {
   }
 }, { immediate: true, deep: true })
 
+const loadGroupMembers = async () => {
+  if (!props.cita?.groupId) return
+  grupoLoading.value = true
+  try {
+    const members = await listCitaGroupMembers(props.cita.groupId)
+    groupMembers.value = members.map((m: any) => ({
+      id: m.id,
+      clientName: props.cita?.clientName ?? '',
+      service: m.service?.name ?? m.services?.name ?? 'Servicio',
+      serviceId: m.service_id,
+      employee: m.employee_profile?.full_name ?? m.profiles?.full_name ?? 'Empleado',
+      employeeId: m.employee_id,
+      assistantName: m.assistant_profile?.full_name ?? null,
+      assistantId: m.assistant_employee_id ?? undefined,
+      assistantPercentage: Number(m.assistant_percentage ?? 0),
+      employeePercentageOverride: m.employee_percentage_override != null ? Number(m.employee_percentage_override) : undefined,
+      date: '',
+      time: '',
+      duration: m.duration_override != null ? Number(m.duration_override) : Number(m.service?.duration_minutes ?? m.services?.duration_minutes ?? 30),
+      price: m.price_override != null ? Number(m.price_override) : Number(m.service?.price ?? m.services?.price ?? 0),
+      status: 'confirmed' as const,
+    }))
+  } catch {
+    groupMembers.value = []
+  } finally {
+    grupoLoading.value = false
+  }
+}
+
+watch(() => mode.value, (m) => { if (m === 'factura') loadGroupMembers() })
+
 const onRollback = () => {
   const apptId = props.cita?.id
   if (!apptId) return
-  emit('rollback', { transactionIds: props.transactionIds, appointmentId: apptId })
+  const pd = props.paymentData
+  const prefill = pd ? {
+    paymentMethod: pd.method,
+    paymentAmount: pd.amount,
+    paymentCurrency: pd.currency,
+    exchangeRate: pd.exchangeRate,
+    tipAmount: pd.tipAmount ?? 0,
+    notes: pd.notes ?? null,
+    breakdown: pd.breakdown ?? null,
+    products: appointmentProducts.value.map(p => ({
+      productId: p.productId,
+      productName: p.productName,
+      quantity: p.quantity,
+      unitCost: p.unitCost,
+    })),
+  } : null
+  emit('rollback', { transactionIds: props.transactionIds, appointmentId: apptId, prefill })
 }
 
 const onDelete = () => {
@@ -98,11 +162,34 @@ const displayMethodLabel = computed(() => {
   return paymentMethodOptions.find(o => o.value === pd.method)?.label ?? formatMethod(pd.method)
 })
 
-const serviceName = computed(() => props.cita?.service ?? '')
-const employeeName = computed(() => props.cita?.employee ?? '')
-const assistantName = computed(() => props.cita?.assistantName ?? '')
-const employeePercentage = computed(() => props.cita?.employeePercentageOverride ?? null)
-const assistantPercentage = computed(() => props.cita?.assistantPercentage ?? 0)
+const allServices = computed(() => {
+  const primary = props.cita ? [{
+    id: props.cita.id,
+    service: props.cita.service,
+    employee: props.cita.employee,
+    employeePercentage: props.cita.employeePercentageOverride ?? null,
+    assistantName: props.cita.assistantName ?? null,
+    assistantPercentage: props.cita.assistantPercentage ?? 0,
+    price: props.cita.price,
+    duration: props.cita.duration,
+  }] : []
+  if (groupMembers.value.length === 0) return primary
+  const memberEntries = groupMembers.value
+    .filter(m => m.id !== props.cita?.id)
+    .map(m => ({
+      id: m.id,
+      service: m.service,
+      employee: m.employee,
+      employeePercentage: m.employeePercentageOverride ?? null,
+      assistantName: m.assistantName ?? null,
+      assistantPercentage: m.assistantPercentage ?? 0,
+      price: m.price,
+      duration: m.duration,
+    }))
+  return [...primary, ...memberEntries]
+})
+
+const totalServicios = computed(() => allServices.value.reduce((s, svc) => s + svc.price, 0))
 </script>
 
 <template>
@@ -220,7 +307,7 @@ const assistantPercentage = computed(() => props.cita?.assistantPercentage ?? 0)
 
         <div class="p-6 space-y-5">
           <!-- Client -->
-          <SectionCard title="Cliente" icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" noPadding>
+          <SectionCard title="Cliente" icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" :no-padding="true">
             <div class="p-3 space-y-1">
               <p class="font-medium text-text">{{ cita?.clientName || '—' }}</p>
               <p v-if="cita?.clientPhone" class="text-sm text-text-secondary">{{ cita?.clientPhone }}</p>
@@ -228,28 +315,33 @@ const assistantPercentage = computed(() => props.cita?.assistantPercentage ?? 0)
           </SectionCard>
 
           <!-- Services -->
-          <SectionCard title="Servicios" icon="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" noPadding>
-            <div class="p-3 space-y-3">
-              <div class="space-y-1">
-                <p class="font-medium text-text">{{ serviceName }}</p>
+          <SectionCard title="Servicios" icon="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" :no-padding="true">
+            <div class="divide-y divide-border-subtle">
+              <div v-if="grupoLoading" class="p-3 text-sm text-text-muted">Cargando servicios...</div>
+              <div v-else v-for="svc in allServices" :key="svc.id" class="p-3 space-y-1">
+                <p class="font-medium text-text">{{ svc.service }}</p>
                 <p class="text-sm text-text-secondary">
-                  {{ t.employee }}: {{ employeeName }}
-                  <span v-if="employeePercentage != null" class="text-primary font-medium">({{ employeePercentage }}%)</span>
+                  {{ t.employee }}: {{ svc.employee }}
+                  <span v-if="svc.employeePercentage != null" class="text-primary font-medium">({{ svc.employeePercentage }}%)</span>
                 </p>
-                <p v-if="assistantName" class="text-sm text-text-secondary">
-                  Asistente: {{ assistantName }}
-                  <span v-if="assistantPercentage > 0">({{ assistantPercentage }}%)</span>
+                <p v-if="svc.assistantName" class="text-sm text-text-secondary">
+                  Asistente: {{ svc.assistantName }}
+                  <span v-if="svc.assistantPercentage > 0">({{ svc.assistantPercentage }}%)</span>
                 </p>
+                <div class="flex items-center gap-4 text-sm text-text-secondary pt-0.5">
+                  <span>{{ formatUSD(svc.price) }}</span>
+                  <span v-if="svc.duration" class="text-text-muted">· {{ svc.duration }} min</span>
+                </div>
               </div>
-              <div class="flex items-center gap-4 text-sm text-text-secondary">
-                <span>{{ formatUSD(cita?.price ?? 0) }}</span>
-                <span v-if="cita?.duration" class="text-text-muted">· {{ cita?.duration }} min</span>
+              <div v-if="allServices.length > 1" class="flex items-center justify-between px-3 py-2 text-sm font-semibold">
+                <span class="text-text-muted">Total servicios</span>
+                <span class="text-text">{{ formatUSD(totalServicios) }}</span>
               </div>
             </div>
           </SectionCard>
 
           <!-- Products -->
-          <SectionCard v-if="appointmentProducts.length > 0" title="Productos vendidos" icon="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" noPadding>
+          <SectionCard v-if="appointmentProducts.length > 0" title="Productos vendidos" icon="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" :no-padding="true">
             <div class="divide-y divide-border-subtle">
               <div v-for="p in appointmentProducts" :key="p.movementId" class="flex items-center justify-between px-3 py-2 text-sm">
                 <span class="text-text">{{ p.productName }}</span>
@@ -263,11 +355,11 @@ const assistantPercentage = computed(() => props.cita?.assistantPercentage ?? 0)
           </SectionCard>
 
           <!-- Payment -->
-          <SectionCard title="Cobro" icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" noPadding>
+          <SectionCard title="Cobro" icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" :no-padding="true">
             <div class="p-3 space-y-2">
               <div class="flex items-center justify-between text-sm">
                 <span class="text-text-muted">Método</span>
-                <span class="font-medium text-text">{{ displayMethodLabel }}</span>
+                <span class="font-medium text-text text-right max-w-[60%]">{{ displayMethodLabel }}</span>
               </div>
               <div class="flex items-center justify-between text-sm">
                 <span class="text-text-muted">Moneda</span>

@@ -98,6 +98,7 @@ import { type Cita, type PaymentEditContext } from '../types/cita'
 import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import { translateError } from '../lib/errors'
 import { useNotification } from '../composables/common/useNotification'
+import { posPrefill } from '../composables/pos/usePOSPrefillState'
 
 const { authStore } = useAuth()
 const { formatUSD, formatVESInline } = useCurrency()
@@ -244,7 +245,7 @@ const openCobroActions = async (tx: any) => {
   cobroActionsShow.value = true
 }
 
-const handleRollbackCobro = async (payload: { transactionIds: string[]; appointmentId: string }) => {
+const handleRollbackCobro = async (payload: { transactionIds: string[]; appointmentId: string; prefill: any }) => {
   cobroActionsShow.value = false
   try {
     await Promise.all(payload.transactionIds.map(id =>
@@ -253,6 +254,7 @@ const handleRollbackCobro = async (payload: { transactionIds: string[]; appointm
     await Promise.allSettled([
       queryClientFin.invalidateQueries({ queryKey: ['pos-pending'], exact: false }),
     ])
+    posPrefill.value = payload.prefill
     router.push({ name: 'admin-pos', query: { appointmentId: payload.appointmentId } })
   } catch (err) {
     showErrorFin(translateError(err, 'Error al eliminar cobro'))
