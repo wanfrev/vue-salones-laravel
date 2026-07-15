@@ -43,6 +43,7 @@ export const useAgenda = () => {
       if (error) throw error
       if (currentBranchId.value) {
         return (data as Profile[]).filter(p =>
+          (p as any).branch_id === currentBranchId.value ||
           (p as any).employee_schedules?.some((s: any) => s.branch_id === currentBranchId.value)
         )
       }

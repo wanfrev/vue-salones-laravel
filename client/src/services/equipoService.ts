@@ -23,6 +23,7 @@ export const listEquipo = async (businessId: string, branchId?: string | null): 
 
   if (branchId) {
     profiles = profiles.filter(p =>
+      p.branch_id === branchId ||
       p.employee_schedules?.some(s => s.branch_id === branchId)
     )
   }
@@ -55,6 +56,7 @@ export const saveEmpleado = async (
       base_salary: profileUpdate.base_salary,
       salary_frequency: profileUpdate.salary_frequency || undefined,
       disable_agenda: data.disableAgenda,
+      branch_id: branchId ?? null,
       schedules: scheduleBlocks,
     })
     return
@@ -67,6 +69,7 @@ export const saveEmpleado = async (
     ...(data.email ? { email: data.email } : {}),
     ...(data.password ? { password: data.password } : {}),
     ...profileUpdate,
+    branch_id: branchId ?? null,
     schedules: scheduleBlocks,
   })
 }

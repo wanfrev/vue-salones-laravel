@@ -3,6 +3,7 @@ import type { Role } from '../constants/roles'
 export interface AuthProfile {
   id: string
   business_id: string | null
+  branch_id: string | null
   full_name: string
   role: Role
   phone: string | null

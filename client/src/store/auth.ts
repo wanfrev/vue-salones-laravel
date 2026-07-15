@@ -31,7 +31,7 @@ export const useAuthStore = defineStore('auth', () => {
   const loadProfile = async (userId: string, userRole?: string | null) => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, business_id, full_name, role, phone, avatar_url, active, pay_type, pay_percentage, base_salary, disable_agenda, employee_ves_rate, can_create_appointments, can_create_clients')
+      .select('id, business_id, branch_id, full_name, role, phone, avatar_url, active, pay_type, pay_percentage, base_salary, disable_agenda, employee_ves_rate, can_create_appointments, can_create_clients')
       .eq('id', userId)
       .maybeSingle()
 
@@ -42,6 +42,7 @@ export const useAuthStore = defineStore('auth', () => {
         profile.value = {
           id: userId,
           business_id: null,
+          branch_id: null,
           full_name: 'Superadmin',
           role: 'superadmin',
           phone: null,
@@ -73,6 +74,7 @@ export const useAuthStore = defineStore('auth', () => {
     profile.value = {
       id: authProfile.id,
       business_id: authProfile.business_id,
+      branch_id: authProfile.branch_id,
       full_name: authProfile.full_name,
       role: authProfile.role,
       phone: authProfile.phone,

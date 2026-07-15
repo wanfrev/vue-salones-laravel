@@ -31,9 +31,12 @@ class ProfileService
             ->orderBy('full_name');
 
         if ($branchId) {
-            $query->whereHas('schedules', fn($q) =>
+            $query->where(function ($q) use ($branchId) {
                 $q->where('branch_id', $branchId)
-            );
+                  ->orWhereHas('schedules', fn($sq) =>
+                      $sq->where('branch_id', $branchId)
+                  );
+            });
         }
 
         if ($disableAgenda !== null) {

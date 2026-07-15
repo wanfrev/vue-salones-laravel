@@ -128,6 +128,19 @@ export const useBusinessStore = defineStore('business', () => {
         localStorage.setItem(branchStorageKey(bizId), schedule.branch_id)
         return
       }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('branch_id')
+        .eq('id', employeeId)
+        .limit(1)
+        .maybeSingle()
+
+      if (profile?.branch_id && branches.value.some(b => b.id === profile.branch_id)) {
+        selectedBranchId.value = profile.branch_id
+        localStorage.setItem(branchStorageKey(bizId), profile.branch_id)
+        return
+      }
     }
 
     const saved = localStorage.getItem(branchStorageKey(bizId))

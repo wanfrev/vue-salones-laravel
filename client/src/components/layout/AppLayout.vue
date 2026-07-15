@@ -122,6 +122,8 @@ onMounted(async () => {
     .maybeSingle()
   if (data?.branch_id) {
     businessStore.setBranch(data.branch_id)
+  } else if (authStore.profile.branch_id) {
+    businessStore.setBranch(authStore.profile.branch_id)
   }
 })
 </script>
