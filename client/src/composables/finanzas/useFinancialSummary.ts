@@ -311,14 +311,22 @@ function useFinancialSummary(
 
     // Build product name lookup from product sales data
     const productNamesByTxId = new Map<string, string>()
+    // Track direct sale transaction IDs that have product sales entries
+    const directSaleTxIds = new Set<string>()
     for (const ps of (productSalesData.value ?? [])) {
       const refId = (ps as any).reference_id as string | undefined
       const product = (ps as any).product as string | undefined
       if (refId && product) productNamesByTxId.set(refId, product)
+      if ((ps as any).reference_type === 'direct' && refId) {
+        directSaleTxIds.add(refId)
+      }
     }
 
-    // Appointment payments
+    // Appointment payments (skip direct sales that have product sales entries)
     for (const tx of (transactionsData.value ?? [])) {
+      const isDirectSale = !tx.appointment_id
+      if (isDirectSale && directSaleTxIds.has(tx.id)) continue
+
       const tip = Number(tx.tip_amount ?? 0)
       const amt = Number(tx.total_amount ?? 0)
       const clientLabel = tx.client_name ?? extractClientFromNotes(tx.notes) ?? 'Venta directa'
@@ -492,6 +500,7 @@ function useFinancialSummary(
     onSuccess: async () => {
       await Promise.allSettled([
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
+        queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['appointments'] }),
       ])
@@ -507,6 +516,7 @@ function useFinancialSummary(
       await Promise.allSettled([
         queryClient.invalidateQueries({ exact: false, queryKey: ['inventario'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
+        queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
       ])
       notify('Venta de producto eliminada')

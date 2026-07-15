@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
+use App\Models\InventoryMovement;
 use App\Services\FinancialSummaryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,7 @@ class TransactionController
 {
     public function __construct(
         private FinancialSummaryService $financialService,
+        private \App\Services\InventoryService $inventoryService,
     ) {}
 
     private function resolveBusinessId(Request $request): ?string
@@ -81,13 +83,38 @@ class TransactionController
             return response()->json(['message' => 'Transacción no encontrada.'], 404);
         }
 
-        DB::transaction(function () use ($tx) {
+        DB::transaction(function () use ($tx, $businessId) {
             if ($tx->appointment_id) {
                 $appointment = \App\Models\Appointment::find($tx->appointment_id);
                 if ($appointment) {
                     $appointment->update(['payment_status' => 'unpaid', 'updated_at' => now()]);
                 }
             }
+
+            // Revert inventory movements for direct sales
+            if (!$tx->appointment_id) {
+                $movements = InventoryMovement::where('business_id', $businessId)
+                    ->where('reference_type', 'direct')
+                    ->where('reference_id', $tx->id)
+                    ->get();
+
+                foreach ($movements as $movement) {
+                    $this->inventoryService->adjust([
+                        'product_id' => $movement->product_id,
+                        'variant_id' => $movement->variant_id,
+                        'quantity' => abs($movement->quantity),
+                        'location_id' => $movement->location_id,
+                        'branch_id' => $movement->branch_id,
+                        'unit_cost' => $movement->unit_cost,
+                        'reference_type' => 'correction',
+                        'reference_id' => $movement->id,
+                        'notes' => 'Corrección de venta eliminada',
+                    ], $businessId, request()->user()->id);
+
+                    $movement->delete();
+                }
+            }
+
             $tx->delete();
         });
 

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\InventoryLocation;
 use App\Models\InventoryMovement;
 use App\Models\InventoryStock;
+use App\Models\Transaction;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -337,6 +338,13 @@ class InventoryService
         ], $businessId, $createdBy);
 
         $movement->delete();
+
+        // If this was a direct sale, also delete the orphaned transaction
+        if ($movement->reference_type === 'direct' && $movement->reference_id) {
+            Transaction::where('id', $movement->reference_id)
+                ->where('business_id', $businessId)
+                ->delete();
+        }
     }
 
     public function getLowStockProducts(): Collection
