@@ -5,6 +5,13 @@ import { useNotification } from '../common/useNotification'
 import { useCurrency } from '../common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { translateError } from '../../lib/errors'
+
+const toYmdLocal = (d: Date) => {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
 import {
   employeePaymentKeys,
   listEmployeePayments,
@@ -189,7 +196,7 @@ export function useEmployeePayments(
     currency: 'USD' as 'USD' | 'VES',
     originalAmount: 0,
     paymentMethod: 'transfer',
-    paymentDate: new Date().toISOString().slice(0, 10),
+    paymentDate: toYmdLocal(new Date()),
     notes: '',
     startDate: '',
     endDate: '',
@@ -200,7 +207,7 @@ export function useEmployeePayments(
     concept: '',
     amount: 0,
     currency: 'USD' as 'USD' | 'VES',
-    paymentDate: new Date().toISOString().slice(0, 10),
+    paymentDate: toYmdLocal(new Date()),
     notes: '',
   })
 
@@ -370,7 +377,7 @@ export function useEmployeePayments(
       currency: 'USD',
       originalAmount: 0,
       paymentMethod: 'transfer',
-      paymentDate: new Date().toISOString().slice(0, 10),
+      paymentDate: toYmdLocal(new Date()),
       notes: '',
       startDate: '',
       endDate: '',
@@ -385,7 +392,7 @@ export function useEmployeePayments(
       concept: '',
       amount: 0,
       currency: 'USD',
-      paymentDate: new Date().toISOString().slice(0, 10),
+      paymentDate: toYmdLocal(new Date()),
       notes: '',
     }
     saveError.value = ''

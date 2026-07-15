@@ -29,7 +29,6 @@ class EmployeePayment extends Model
             'amount' => 'float',
             'original_amount' => 'float',
             'exchange_rate_used' => 'float',
-            'payment_date' => 'date',
         ];
     }
 

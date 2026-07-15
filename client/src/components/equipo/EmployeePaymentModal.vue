@@ -18,7 +18,12 @@ const businessStore = useBusinessStore()
 
 const ctx = reactive(props.paymentsCtx)
 
-const toYmd = (d: Date) => d.toISOString().slice(0, 10)
+const toYmd = (d: Date) => {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dd}`
+}
 const now = new Date()
 const periodStart = ref(toYmd(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7)))
 const periodEnd = ref(toYmd(now))
