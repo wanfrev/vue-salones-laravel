@@ -154,19 +154,6 @@ const incomeBreakdown = computed(() => {
     }
   }
 
-  for (const sale of summaryCtx.productSalesDetails.value) {
-    if (sale.breakdown && sale.breakdown.length > 0) {
-      for (const item of sale.breakdown) {
-        if (item.currency === 'VES') addIncome(item.method, 0, item.inputAmount)
-        else addIncome(item.method, item.amount, 0)
-      }
-    } else if (sale.exchangeRateUsed > 1) {
-      addIncome(sale.paymentMethod, 0, sale.total * sale.exchangeRateUsed)
-    } else {
-      addIncome(sale.paymentMethod, sale.total, 0)
-    }
-  }
-
   return {
     title: 'Desglose de Ingresos', usdTotal: totalUSD, vesTotal: totalVES,
     usdItems: Object.entries(usdByMethod).map(([method, amount]) => ({ label: formatMethod(method), amount })).sort((a, b) => b.amount - a.amount),
@@ -178,15 +165,21 @@ const incomeBreakdown = computed(() => {
 const expenseBreakdown = computed(() => {
   let totalUSD = 0
   let totalVES = 0
+  const usdItems: { label: string; amount: number }[] = []
+  const vesItems: { label: string; amount: number }[] = []
+
   for (const exp of expenses.value) {
     if (exp.currency === 'VES') totalVES += exp.originalAmount
     else totalUSD += exp.amount
   }
 
-  const usdItems: { label: string; amount: number }[] = []
-  const vesItems: { label: string; amount: number }[] = []
-  if (totalUSD > 0) usdItems.push({ label: 'Total gastos en USD', amount: totalUSD })
-  if (totalVES > 0) vesItems.push({ label: 'Total gastos en Bs', amount: totalVES })
+  for (const pay of supplierPaymentsCtx.payments.value) {
+    if (pay.currency === 'VES') totalVES += pay.originalAmount
+    else totalUSD += pay.amount
+  }
+
+  if (totalUSD > 0) usdItems.push({ label: 'Gastos + Abonos (USD)', amount: totalUSD })
+  if (totalVES > 0) vesItems.push({ label: 'Gastos + Abonos (Bs)', amount: totalVES })
 
   return {
     title: 'Desglose de Gastos', usdTotal: totalUSD, vesTotal: totalVES,

@@ -168,10 +168,8 @@ function useFinancialSummary(
     staleTime: 0,
   })
 
-  const appointmentIncomeDetails = computed<TransactionRow[]>(() => {
-    const raw = (transactionsData.value ?? [])
-      .filter((tx: any) => tx.appointment_id)
-      .map((tx: any) => {
+  const allTransactionsRaw = computed<TransactionRow[]>(() => {
+    const raw = (transactionsData.value ?? []).map((tx: any) => {
       const breakdown = tx.payments_breakdown as PaymentBreakdownItem[] | null
       const firstBreakdown = breakdown?.[0]
       const isVES = firstBreakdown?.currency === 'VES'
@@ -245,6 +243,10 @@ function useFinancialSummary(
       }
     })
   })
+
+  const appointmentIncomeDetails = computed<TransactionRow[]>(() =>
+    (allTransactionsRaw.value ?? []).filter((tx) => !!tx.appointmentId),
+  )
 
   // ── Product Sales ──
   const { data: productSalesData } = useQuery({
@@ -608,7 +610,7 @@ function useFinancialSummary(
     summaryBuckets,
     transactions,
     allTransactions,
-    transactionsAll: appointmentIncomeDetails,
+    transactionsAll: allTransactionsRaw,
     incomeTotal,
     localIncomeTotal,
     tipsTotal,
