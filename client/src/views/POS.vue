@@ -104,7 +104,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../composables/common/useAuth'
@@ -162,7 +162,7 @@ const retailClientId = ref<string | null>(null)
 const retailClientSuggestions = ref<{ id: string; full_name: string; phone: string }[]>([])
 const retailSearchRef = ref<InstanceType<typeof RetailProductSearch> | null>(null)
 
-const { data: appointmentsData } = useQuery({
+const { data: appointmentsData, refetch: refetchAppointments } = useQuery({
   queryKey: computed(() => posKeys.pending(businessId.value, branchId.value)),
   queryFn: async () => {
     try { queryError.value = null; return await listPendingAppointments(businessId.value!, branchId.value) }
@@ -501,11 +501,13 @@ const applyPrefill = () => {
 watch(appointments, () => { tryAutoSelect() }, { immediate: true })
 watch(() => route.query.appointmentId, async (newId) => {
   if (!newId) return
+  await nextTick()
   let found = appointments.value.find((a: any) =>
     a.id === newId || (a.groupIds && a.groupIds.includes(newId)),
   )
-  if (!found && appointments.value.length > 0) {
-    await queryClient.refetchQueries({ queryKey: ['pos-pending'], exact: false })
+  if (!found) {
+    await refetchAppointments()
+    await nextTick()
     found = appointments.value.find((a: any) =>
       a.id === newId || (a.groupIds && a.groupIds.includes(newId)),
     )

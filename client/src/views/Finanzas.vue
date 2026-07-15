@@ -97,6 +97,7 @@ import { useBusinessStore } from '../store/business'
 import { type Cita, type PaymentEditContext } from '../types/cita'
 import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import { translateError } from '../lib/errors'
+import { formatMethod } from '../lib/formatters'
 import { useNotification } from '../composables/common/useNotification'
 
 const { authStore } = useAuth()
