@@ -60,8 +60,8 @@ const echoInstance = new Echo({
             callback(null, data)
           })
           .catch((err) => {
-            console.warn('[Echo] Broadcasting auth error:', err.message)
-            callback(null, { auth: '' })
+            console.warn('[Echo] Broadcasting auth error, skipping realtime:', err.message)
+            callback(new Error('Broadcasting auth failed'), null)
           })
       },
     }
