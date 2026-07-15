@@ -116,19 +116,6 @@ export const useBusinessStore = defineStore('business', () => {
     if (!bizId || !isMultiBranch.value || branches.value.length === 0) return
 
     if (employeeId) {
-      const { data: schedule } = await supabase
-        .from('employee_schedules')
-        .select('branch_id')
-        .eq('employee_id', employeeId)
-        .limit(1)
-        .maybeSingle()
-
-      if (schedule?.branch_id && branches.value.some(b => b.id === schedule.branch_id)) {
-        selectedBranchId.value = schedule.branch_id
-        localStorage.setItem(branchStorageKey(bizId), schedule.branch_id)
-        return
-      }
-
       const { data: profile } = await supabase
         .from('profiles')
         .select('branch_id')
@@ -139,6 +126,19 @@ export const useBusinessStore = defineStore('business', () => {
       if (profile?.branch_id && branches.value.some(b => b.id === profile.branch_id)) {
         selectedBranchId.value = profile.branch_id
         localStorage.setItem(branchStorageKey(bizId), profile.branch_id)
+        return
+      }
+
+      const { data: schedule } = await supabase
+        .from('employee_schedules')
+        .select('branch_id')
+        .eq('employee_id', employeeId)
+        .limit(1)
+        .maybeSingle()
+
+      if (schedule?.branch_id && branches.value.some(b => b.id === schedule.branch_id)) {
+        selectedBranchId.value = schedule.branch_id
+        localStorage.setItem(branchStorageKey(bizId), schedule.branch_id)
         return
       }
     }

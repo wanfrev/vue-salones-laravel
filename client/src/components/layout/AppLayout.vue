@@ -114,6 +114,10 @@ async function refresh() {
 
 onMounted(async () => {
   if (!isEmployee.value || !businessStore.isMultiBranch || !authStore.profile?.id) return
+  if (authStore.profile.branch_id) {
+    businessStore.setBranch(authStore.profile.branch_id)
+    return
+  }
   const { data } = await supabase
     .from('employee_schedules')
     .select('branch_id')
@@ -122,8 +126,6 @@ onMounted(async () => {
     .maybeSingle()
   if (data?.branch_id) {
     businessStore.setBranch(data.branch_id)
-  } else if (authStore.profile.branch_id) {
-    businessStore.setBranch(authStore.profile.branch_id)
   }
 })
 </script>
