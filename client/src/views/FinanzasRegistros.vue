@@ -150,12 +150,10 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { translateError } from '../lib/errors'
 import { useNotification } from '../composables/common/useNotification'
 
-const fmtDate = (d: string) => {
-  try { const dt = new Date(d); return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}` } catch { return d }
-}
+const fmtDate = (d: string) => formatDate(d)
 import { useExpenses } from '../composables/finanzas/useExpenses'
 import { useEmployeePayments } from '../composables/empleados/useEmployeePayments'
-import { formatMethod } from '../lib/formatters'
+import { formatMethod, formatDate } from '../lib/formatters'
 import RecordSection from '../components/finanzas/RecordSection.vue'
 import EditCobroModal from '../components/finanzas/EditCobroModal.vue'
 import CobroActionsModal from '../components/finanzas/CobroActionsModal.vue'

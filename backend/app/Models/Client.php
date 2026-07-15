@@ -24,7 +24,6 @@ class Client extends Model
     protected function casts(): array
     {
         return [
-            'birthday' => 'date',
             'metadata' => 'json',
         ];
     }

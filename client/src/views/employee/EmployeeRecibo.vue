@@ -259,7 +259,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
-import { getInitials } from '../../lib/formatters'
+import { getInitials, parseLocalDate } from '../../lib/formatters'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { dashboardKeys, listEmployeeTransactions, listEmployeePayments } from '../../services/employeeDashboardService'
 import AppLayout from '../../components/layout/AppLayout.vue'
@@ -503,7 +503,7 @@ const formatEmployeeVES = (usdValue: number): string => {
 const filteredPayments = computed(() => {
   if (selectedPeriod.value === 'all') return payments.value
   return payments.value.filter(p => {
-    const d = new Date(p.payment_date)
+    const d = parseLocalDate(p.payment_date)
     return d >= periodStart.value && d <= periodEnd.value
   })
 })
@@ -600,7 +600,7 @@ const historyMonths = computed(() => {
   }
 
   for (const p of payments.value) {
-    const d = new Date(p.payment_date)
+    const d = parseLocalDate(p.payment_date)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
     if (key === currentMonthKey) continue
     const entry = byMonth.get(key)

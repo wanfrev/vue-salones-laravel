@@ -26,7 +26,6 @@ class SupplierPayment extends Model
     {
         return [
             'amount' => 'float',
-            'payment_date' => 'date',
         ];
     }
 

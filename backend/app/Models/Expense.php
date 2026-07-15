@@ -28,7 +28,6 @@ class Expense extends Model
             'amount' => 'float',
             'original_amount' => 'float',
             'exchange_rate_used' => 'float',
-            'expense_date' => 'date',
         ];
     }
 }

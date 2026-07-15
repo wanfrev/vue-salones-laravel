@@ -1,15 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
+import { formatDate, parseLocalDate } from '../../lib/formatters'
 import KpiBanner from '../finanzas/KpiBanner.vue'
 import RecordSection from '../finanzas/RecordSection.vue'
 import SegmentedTabs from '../common/SegmentedTabs.vue'
 
 const { formatEmployeeVESInline } = useCurrency()
 
-const fmtDate = (d: string) => {
-  try { const dt = new Date(d); return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}` } catch { return d }
-}
+const fmtDate = (d: string) => formatDate(d)
 
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 
@@ -100,7 +99,7 @@ const nominaEnd = computed<Date>(() => {
 const filteredNomina = computed(() => {
   const all = props.paymentsCtx.allPayments.value ?? []
   return all.filter((p: any) => {
-    const d = new Date(p.paymentDate)
+    const d = parseLocalDate(p.paymentDate)
     return d >= nominaStart.value && d <= nominaEnd.value
   })
 })

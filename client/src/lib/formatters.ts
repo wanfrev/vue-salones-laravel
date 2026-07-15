@@ -73,7 +73,7 @@ export function toLocalISO(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
 }
 
-function toLocalDate(value: string | Date): Date {
+export function toLocalDate(value: string | Date): Date {
   if (value instanceof Date) return value
   const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/
   const match = value.match(dateOnly)
