@@ -18,7 +18,7 @@ import { subscribeToPush, isPushSupported } from '../../services/pushService'
 
 let permissionRequested = false
 
-async function requestNotificationPermission() {
+export async function requestNotificationPermission() {
   if (permissionRequested) return
   permissionRequested = true
   if (!('Notification' in window)) return
@@ -109,8 +109,6 @@ export function useNotifications() {
     onSuccess: async () => { await invalidate() },
     onError: (err) => { showError(translateError(err, 'Error al eliminar notificación')) },
   })
-
-  requestNotificationPermission()
 
   watch(notifications, (current, previous) => {
     if (!previous || previous.length === 0) return

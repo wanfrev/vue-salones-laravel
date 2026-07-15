@@ -34,6 +34,67 @@
     </div>
   </SectionCard>
 
+  <!-- Notificaciones Push -->
+  <SectionCard
+    v-if="pushSupported"
+    class="mb-6"
+    title="Notificaciones Push"
+    subtitle="Recibe alertas en tu teléfono incluso con la app cerrada"
+    icon="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+  >
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <p class="text-sm text-text-secondary">
+          <template v-if="pushPermission === 'granted'">
+            Las notificaciones push están <span class="font-semibold text-green-600">activadas</span>. Recibirás alertas de nuevas citas y recordatorios en tu teléfono.
+          </template>
+          <template v-else-if="pushPermission === 'denied'">
+            Las notificaciones están <span class="font-semibold text-red-500">bloqueadas</span>. Para activarlas, ve a Ajustes &gt; Safari &gt; Notificaciones en tu iPhone y permite las notificaciones para este sitio.
+          </template>
+          <template v-else>
+            Activa las alertas para recibir notificaciones de nuevas citas y recordatorios directamente en tu teléfono, incluso con la pantalla bloqueada.
+          </template>
+        </p>
+      </div>
+      <div class="shrink-0">
+        <button
+          v-if="pushPermission === 'granted'"
+          @click="handleDisablePush"
+          :disabled="pushLoading"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-theme hover:bg-danger/10 hover:text-danger hover:border-danger/30 disabled:opacity-50"
+        >
+          <svg v-if="pushLoading" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <span v-else>Desactivar</span>
+        </button>
+        <button
+          v-else-if="pushPermission === 'denied'"
+          disabled
+          class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-muted cursor-not-allowed opacity-50"
+        >
+          Bloqueado
+        </button>
+        <button
+          v-else
+          @click="handleEnablePush"
+          :disabled="pushLoading"
+          class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shadow-sm shadow-primary/20 disabled:opacity-50"
+        >
+          <svg v-if="pushLoading" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <svg v-else class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          Activar notificaciones
+        </button>
+      </div>
+    </div>
+  </SectionCard>
+
   <!-- Not enabled gate -->
   <div v-if="!businessStore.isMultiBranch" class="flex flex-col items-center justify-center py-16 text-center">
     <div class="flex h-16 w-16 items-center justify-center rounded-full bg-bg-secondary mb-4">
@@ -139,13 +200,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { useAuth } from '../composables/common/useAuth'
 import { useBusinessStore } from '../store/business'
 import { useBranches } from '../composables/common/useBranches'
 import { useThemeStore, type ThemeMode } from '../store/theme'
 import { SectionCard, EmptyState } from '../components/common'
 import { BranchFormModal } from '../components/modals'
+import { requestNotificationPermission } from '../composables/common/useNotifications'
+import { subscribeToPush, unsubscribeFromPush, isPushSupported } from '../services/pushService'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
@@ -173,4 +236,34 @@ const themeOptions = [
   { value: 'dark' as ThemeMode, label: 'Oscuro', icon: MoonIcon },
   { value: 'system' as ThemeMode, label: 'Sistema', icon: MonitorIcon },
 ]
+
+const pushSupported = isPushSupported()
+const pushPermission = ref<NotificationPermission>('default')
+const pushLoading = ref(false)
+
+onMounted(() => {
+  if (pushSupported) {
+    pushPermission.value = Notification.permission
+  }
+})
+
+async function handleEnablePush() {
+  pushLoading.value = true
+  try {
+    await requestNotificationPermission()
+    pushPermission.value = Notification.permission
+  } finally {
+    pushLoading.value = false
+  }
+}
+
+async function handleDisablePush() {
+  pushLoading.value = true
+  try {
+    await unsubscribeFromPush()
+    pushPermission.value = Notification.permission
+  } finally {
+    pushLoading.value = false
+  }
+}
 </script>
