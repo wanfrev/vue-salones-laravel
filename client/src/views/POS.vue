@@ -93,11 +93,19 @@
     :client-name="confirmClientName" :is-processing="paymentCtx.isProcessing.value"
     @cancel="cancelPayment" @confirm="confirmPayment"
   />
+
+  <CitaFormModal
+    ref="posCitaModalRef"
+    :servicios="posServiciosList"
+    :empleados="posEmpleadosList"
+    @save="handleSaveCita"
+    @delete="handleDeleteCita"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
@@ -105,20 +113,27 @@ import { useNotification } from '../composables/common/useNotification'
 import { useBusinessStore } from '../store/business'
 import { listPendingAppointments, listSaleableProducts, posKeys, groupPendingAppointments, recordSale } from '../services/posService'
 import { searchClients } from '../services/clientesService'
+import { listServicios } from '../services/serviciosService'
+import { listEquipo } from '../services/equipoService'
 import { usePOSCart } from '../composables/pos/usePOSCart'
 import { usePOSPayment } from '../composables/pos/usePOSPayment'
 import { FeatureGate } from '../components/common'
+import { CitaFormModal } from '../components/modals'
 import POSPaymentPanel from '../components/pos/POSPaymentPanel.vue'
 import POSConfirmModal from '../components/pos/POSConfirmModal.vue'
 import RetailProductSearch from '../components/pos/RetailProductSearch.vue'
 import AppointmentList from '../components/pos/AppointmentList.vue'
 import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
 import { useExchangeRate } from '../composables/finanzas/useExchangeRate'
+import { toISODate, minutesToHHmm } from '../lib/formatters'
+import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
 import type { PaymentMethod } from '../types/database'
+import type { Cita } from '../types/cita'
 
 interface TipParticipant { employeeId: string; employeeName: string }
 
 const { authStore } = useAuth()
+const route = useRoute()
 const router = useRouter()
 const { exchangeRate, formatDual } = useCurrency()
 const { error: showError, success: showSuccess } = useNotification()
@@ -160,6 +175,28 @@ const { data: productsData } = useQuery({
   queryFn: () => listSaleableProducts(businessId.value!, branchId.value),
   enabled: computed(() => !!businessId.value), staleTime: 0,
 })
+
+const posCitaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
+
+const { data: posServiciosData } = useQuery({
+  queryKey: computed(() => ['pos-servicios', businessId.value, branchId.value]),
+  queryFn: () => listServicios(businessId.value!, branchId.value),
+  enabled: computed(() => !!businessId.value),
+  staleTime: 5 * 60 * 1000,
+})
+const posServiciosList = computed(() => (posServiciosData.value ?? []).map((s: any) => ({
+  id: s.id, name: s.name, price: s.price, duration: s.duration,
+})))
+
+const { data: posEmpleadosData } = useQuery({
+  queryKey: computed(() => ['pos-empleados', businessId.value, branchId.value]),
+  queryFn: () => listEquipo(businessId.value!, branchId.value),
+  enabled: computed(() => !!businessId.value),
+  staleTime: 5 * 60 * 1000,
+})
+const posEmpleadosList = computed(() => (posEmpleadosData.value ?? []).map((e: any) => ({
+  id: e.id, name: e.name, payType: e.payType, payPercentage: e.payPercentage, disableAgenda: e.disableAgenda,
+})))
 
 const appointments = computed(() => groupPendingAppointments(appointmentsData.value ?? []))
 const products = computed(() => productsData.value ?? [])
@@ -264,7 +301,27 @@ const selectAppointment = (appt: any) => {
   cartCtx.clearCart()
   setEqualTipAllocation()
 }
-const goToAppointmentInCalendar = (appt: any) => router.push({ name: 'admin-calendario', query: { fecha: new Date(appt.start_time).toISOString().slice(0, 10) } })
+const goToAppointmentInCalendar = (appt: any) => {
+  const startDate = new Date(appt.start_time)
+  const minutes = startDate.getHours() * 60 + startDate.getMinutes()
+  const cita: Cita = {
+    id: appt.id,
+    clientName: appt.client?.full_name ?? appt.clients?.full_name ?? 'Cliente',
+    clientId: appt.client_id,
+    clientPhone: appt.client?.phone ?? appt.clients?.phone ?? '',
+    service: appt.service?.name ?? appt.services?.name ?? '',
+    serviceId: appt.service_id,
+    employee: appt.employee_profile?.full_name ?? appt.profiles?.full_name ?? '',
+    employeeId: appt.employee_id,
+    date: toISODate(startDate),
+    time: minutesToHHmm(minutes),
+    duration: appt.duration_override ?? appt.service?.duration_minutes ?? appt.services?.duration_minutes ?? 30,
+    price: appt.price_override != null ? Number(appt.price_override) : Number(appt.service?.price ?? appt.services?.price ?? 0),
+    status: appt.status || 'pending',
+    notes: appt.notes || undefined,
+  }
+  posCitaModalRef.value?.open(cita)
+}
 const startRetailOnly = () => { selectedAppointment.value = null; activeSaleType.value = 'retail_only'; cartCtx.clearCart(); paymentCtx.reset(); retailProductSearch.value = ''; retailClientSearch.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailSearchRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false }
 const setTipAllocation = (employeeId: string, value: number) => { tipManual.value = true; tipAllocations.value = { ...tipAllocations.value, [employeeId]: Math.max(0, Number(value || 0)) } }
 
@@ -372,4 +429,24 @@ const confirmPayment = async () => {
   const ok = await paymentCtx.processPayment(appt.id, servicePrice.value, cartCtx.cart.value, exchangeRate.value, formatDual, normalizedTipAllocations.value, cartCtx.productsTotal.value)
   if (ok) { selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset() }
 }
+
+const { handleSaveCita, handleDeleteCita } = useAppointmentMutations({
+  businessId,
+  createdBy: computed(() => authStore.profile?.id),
+  modalRef: posCitaModalRef,
+})
+
+const tryAutoSelect = () => {
+  const id = route.query.appointmentId as string | undefined
+  if (!id) return
+  const found = appointments.value.find((a: any) =>
+    a.id === id || (a.groupIds && a.groupIds.includes(id)),
+  )
+  if (found) {
+    selectAppointment(found)
+    router.replace({ query: {} })
+  }
+}
+
+watch(appointments, () => { tryAutoSelect() }, { immediate: true })
 </script>

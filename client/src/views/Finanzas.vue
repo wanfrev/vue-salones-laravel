@@ -62,7 +62,15 @@
 
   <ExpenseFormModal :is-open="expensesCtx.showExpenseModal.value" :is-editing="!!expensesCtx.editingExpenseId.value" :form="expensesCtx.expenseForm.value" :save-error="expensesCtx.saveError.value" :is-saving="expensesCtx.saveMutation.isPending.value" @close="expensesCtx.closeModal" @save="handleExpenseSave" />
   <EditCobroModal :show="summaryCtx.showEditModal.value" :summary-ctx="summaryCtx" @close="summaryCtx.cancelEdit()" />
-  <CitaFormModal ref="citaModalRef" :servicios="serviciosList" :empleados="empleadosList" @save="handlePaymentSave" @delete="handleDeleteCita" />
+  <CobroActionsModal
+    :show="cobroActionsShow"
+    :cita="cobroActionsCita"
+    :payment-data="cobroActionsPayment"
+    :transaction-ids="cobroActionsTxIds"
+    @close="cobroActionsShow = false"
+    @rollback="handleRollbackCobro"
+    @delete="handleDeleteCobroAction"
+  />
 </template>
 
 <script setup lang="ts">
@@ -81,20 +89,13 @@ import CurrencyBreakdown from '../components/finanzas/CurrencyBreakdown.vue'
 import RecentTransactionsCard from '../components/finanzas/RecentTransactionsCard.vue'
 import DetailMovimientos from '../components/finanzas/DetailMovimientos.vue'
 import EditCobroModal from '../components/finanzas/EditCobroModal.vue'
-import { CitaFormModal } from '../components/modals'
-import { useQuery } from '@tanstack/vue-query'
+import CobroActionsModal from '../components/finanzas/CobroActionsModal.vue'
+import { useQueryClient } from '@tanstack/vue-query'
 import { api as supabase } from '../lib/api'
-import { listServicios } from '../services/serviciosService'
-import { listEquipo } from '../services/equipoService'
 import { APPOINTMENT_SELECT } from '../services/agendaService'
 import { useBusinessStore } from '../store/business'
 import { type Cita, type PaymentEditContext } from '../types/cita'
 import { mapAppointmentToCita } from '../mappers/agendaMapper'
-import type { PaymentMethod } from '../types/database'
-import { formatMethod } from '../lib/formatters'
-import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
-import { updateTransaction } from '../services/posService'
-import { useQueryClient } from '@tanstack/vue-query'
 import { translateError } from '../lib/errors'
 import { useNotification } from '../composables/common/useNotification'
 
@@ -201,78 +202,30 @@ const handleExpenseSave = async () => {
 const originalStartEdit = summaryCtx.startEdit
 summaryCtx.startEdit = (tx: any) => {
   if (tx.appointmentId || tx.appointment_id) {
-    openCitaEditFromCobro(tx)
+    openCobroActions(tx)
   } else {
     originalStartEdit(tx)
   }
 }
 
-const citaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
+const cobroActionsShow = ref(false)
+const cobroActionsCita = ref<Cita | null>(null)
+const cobroActionsPayment = ref<PaymentEditContext | null>(null)
+const cobroActionsTxIds = ref<string[]>([])
 
 const queryClientFin = useQueryClient()
 const { success: successFin, error: showErrorFin } = useNotification()
 
-const { handleDeleteCita } = useAppointmentMutations({
-  businessId,
-  createdBy: computed(() => authStore.profile?.id),
-  modalRef: citaModalRef,
-})
-
-const handlePaymentSave = async (data: any) => {
-  const paymentData = data.paymentData
-  if (!paymentData) return
-  try {
-    await updateTransaction({
-      transactionId: paymentData.transactionId,
-      amount: paymentData.amount,
-      method: paymentData.method,
-      notes: paymentData.notes,
-      exchangeRate: paymentData.exchangeRate,
-      paymentsBreakdown: paymentData.breakdown,
-      tipAmount: paymentData.tipAmount ?? 0,
-    })
-    citaModalRef.value?.close?.()
-    citaModalRef.value?.onSaveComplete?.()
-    successFin('Cobro actualizado')
-    await Promise.allSettled([
-      queryClientFin.invalidateQueries({ queryKey: ['finanzas-transactions'], exact: false }),
-      queryClientFin.invalidateQueries({ queryKey: ['finanzas-summary'], exact: false }),
-      queryClientFin.invalidateQueries({ queryKey: ['appointments'], exact: false }),
-    ])
-  } catch (err) {
-    citaModalRef.value?.onSaveComplete?.()
-    showErrorFin(translateError(err, 'Error al actualizar cobro'))
-  }
-}
-
-const { data: serviciosData } = useQuery({
-  queryKey: computed(() => ['finanzas-servicios', businessId.value, businessStore.currentBranchId]),
-  queryFn: () => listServicios(businessId.value!, businessStore.currentBranchId),
-  enabled: computed(() => !!businessId.value),
-})
-const serviciosList = computed(() => (serviciosData.value ?? []).map((s: any) => ({
-  id: s.id, name: s.name, price: s.price, duration: s.duration,
-})))
-
-const { data: empleadosData } = useQuery({
-  queryKey: computed(() => ['finanzas-empleados', businessId.value, businessStore.currentBranchId]),
-  queryFn: () => listEquipo(businessId.value!, businessStore.currentBranchId),
-  enabled: computed(() => !!businessId.value),
-})
-const empleadosList = computed(() => (empleadosData.value ?? []).map((e: any) => ({
-  id: e.id, name: e.name, payType: e.payType, payPercentage: e.payPercentage, disableAgenda: e.disableAgenda,
-})))
-
-const openCitaEditFromCobro = async (tx: any) => {
-  if (!tx.appointmentId && !tx.appointment_id) return
+const openCobroActions = async (tx: any) => {
   const appointmentId = tx.appointmentId || tx.appointment_id
-  const { data: cita } = await supabase
+  const { data: citaRaw } = await supabase
     .from('appointments')
     .select(APPOINTMENT_SELECT)
     .eq('id', appointmentId)
     .maybeSingle()
-  if (!cita) return
+  if (!citaRaw) return
 
+  const cita = mapAppointmentToCita(citaRaw)
   const paymentData: PaymentEditContext = {
     transactionId: tx.id,
     method: tx.rawMethod || tx.method,
@@ -284,7 +237,37 @@ const openCitaEditFromCobro = async (tx: any) => {
     breakdown: tx.breakdown || undefined,
     appointmentId,
   }
-  citaModalRef.value?.open(mapAppointmentToCita(cita), paymentData)
+
+  cobroActionsCita.value = cita
+  cobroActionsPayment.value = paymentData
+  cobroActionsTxIds.value = tx.transactionIds && tx.transactionIds.length > 0 ? tx.transactionIds : [tx.id]
+  cobroActionsShow.value = true
+}
+
+const handleRollbackCobro = async (payload: { transactionIds: string[]; appointmentId: string }) => {
+  cobroActionsShow.value = false
+  try {
+    await Promise.all(payload.transactionIds.map(id =>
+      summaryCtx.deleteTransactionMutation.mutateAsync({ transactionId: id }),
+    ))
+    await Promise.allSettled([
+      queryClientFin.invalidateQueries({ queryKey: ['pos-pending'], exact: false }),
+    ])
+    router.push({ name: 'admin-pos', query: { appointmentId: payload.appointmentId } })
+  } catch (err) {
+    showErrorFin(translateError(err, 'Error al eliminar cobro'))
+  }
+}
+
+const handleDeleteCobroAction = async (transactionIds: string[]) => {
+  cobroActionsShow.value = false
+  try {
+    await Promise.all(transactionIds.map(id =>
+      summaryCtx.deleteTransactionMutation.mutateAsync({ transactionId: id }),
+    ))
+  } catch (err) {
+    showErrorFin(translateError(err, 'Error al eliminar cobro'))
+  }
 }
 </script>
 
