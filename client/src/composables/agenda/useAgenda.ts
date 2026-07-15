@@ -110,7 +110,7 @@ export const useAgenda = () => {
       query = query.gte('start_date', toLocalISO(start))
         .lte('end_date', toLocalISO(end))
       if (empId !== 'all') {
-        query = query.eq('employee_id', empId)
+        query = query.or(`employee_id.eq.${empId},assistant_employee_id.eq.${empId}`)
       }
       const { data, error } = await query
       if (error) throw error
