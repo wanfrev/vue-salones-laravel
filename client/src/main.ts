@@ -89,7 +89,9 @@ try {
       })
     },
     onOfflineReady() {},
-    onRegistered() {},
+    onRegistered(r) {
+      if (r) setInterval(() => r.update(), 2 * 60 * 1000)
+    },
   })
 } catch {
   // PWA no disponible en este entorno
