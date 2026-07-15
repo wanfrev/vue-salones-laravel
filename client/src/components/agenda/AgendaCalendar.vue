@@ -78,6 +78,19 @@
       </div>
     </div>
 
+    <!-- Error state -->
+    <div v-if="appointmentsError" class="rounded-xl border border-danger/30 bg-danger/5 p-4">
+      <div class="flex items-start gap-3">
+        <svg class="h-5 w-5 text-danger shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+        </svg>
+        <div>
+          <p class="text-sm font-semibold text-danger">Error al cargar citas del calendario</p>
+          <p class="text-xs text-danger/70 mt-0.5">{{ typeof appointmentsError === 'object' && appointmentsError !== null ? ((appointmentsError as any).message || String(appointmentsError)) : String(appointmentsError) }}</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Date Navigator -->
     <div
       class="flex flex-col gap-2 rounded-lg border border-border bg-surface p-2 sm:rounded-xl sm:p-2.5 lg:flex-row lg:items-center lg:justify-between lg:gap-0">
@@ -319,7 +332,7 @@ const emit = defineEmits<{
   delete: [id: string]
 }>()
 
-const { selectedEmployeeId, setDateRange, employees, loadingEmployees, services, appointments } = useAgenda()
+const { selectedEmployeeId, setDateRange, employees, loadingEmployees, services, appointments, appointmentsError } = useAgenda()
 
 // ---- Constants ----
 const START_HOUR = 7

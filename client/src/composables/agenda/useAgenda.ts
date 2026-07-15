@@ -94,7 +94,7 @@ export const useAgenda = () => {
     enabled: computed(() => !!businessId.value),
   })
 
-  const { data: appointments, isLoading: loadingAppointments, refetch: refetchAppointments } = useQuery({
+  const { data: appointments, isLoading: loadingAppointments, error: appointmentsError, refetch: refetchAppointments } = useQuery({
     queryKey: computed(() => ['appointments', businessId.value, selectedEmployeeId.value, currentBranchId.value, dateRange.value] as const),
     queryFn: async ({ queryKey }): Promise<any[]> => {
       const [, bizId, empId, branchId, range] = queryKey
@@ -131,6 +131,7 @@ export const useAgenda = () => {
     schedules,
     appointments,
     loadingAppointments,
+    appointmentsError,
     refetchAppointments,
   }
 }

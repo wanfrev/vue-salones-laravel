@@ -39,6 +39,7 @@
       <AgendaListView
         :citas="citas"
         :loading="isLoading"
+        :error="citasError"
         :t="(t.appointment || 'cita').toLowerCase()"
         @edit="handleEditCita"
         @delete="handleDeleteCita"
@@ -96,7 +97,7 @@ const goToToday = () => {
 
 const currentBranchId = computed(() => businessStore.currentBranchId)
 
-const { data: citasData, isLoading } = useQuery({
+const { data: citasData, isLoading, error: citasError } = useQuery({
   queryKey: computed(() => [...agendaKeys.appointments(businessId.value, currentBranchId.value), 'employee', authStore.profile?.id, toISODate(selectedDate.value)]),
   queryFn: () => listCitas(businessId.value!, dateRange.value, authStore.profile?.id, currentBranchId.value),
   enabled: computed(() => !!businessId.value && !!authStore.profile?.id),
