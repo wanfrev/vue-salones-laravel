@@ -14,7 +14,7 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       injectManifest: {
       },
       includeAssets: ['lumalogo.jpg', 'icon-192.png', 'icon-512.png', 'icon-180.png'],
