@@ -14,14 +14,25 @@ import {
 } from '../../services/notificationService'
 import type { NotificationRecord } from '../../services/notificationService'
 import { sanitizePhone } from '../../lib/formatters'
+import { subscribeToPush, isPushSupported } from '../../services/pushService'
 
 let permissionRequested = false
 
-function requestNotificationPermission() {
+async function requestNotificationPermission() {
   if (permissionRequested) return
   permissionRequested = true
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission()
+  if (!('Notification' in window)) return
+  if (Notification.permission === 'granted') {
+    if (isPushSupported()) {
+      subscribeToPush()
+    }
+    return
+  }
+  if (Notification.permission === 'default') {
+    const result = await Notification.requestPermission()
+    if (result === 'granted' && isPushSupported()) {
+      subscribeToPush()
+    }
   }
 }
 
@@ -30,7 +41,7 @@ function showBrowserNotification(notification: NotificationRecord) {
   try {
     const n = new Notification(notification.title, {
       body: notification.message,
-      icon: '/favicon.ico',
+      icon: '/icon-192.png',
       tag: notification.id,
       data: { id: notification.id, appointment_id: notification.appointment_id, type: notification.type },
     })
@@ -65,7 +76,6 @@ export function useNotifications() {
     queryClient.invalidateQueries({ exact: false, queryKey: ['notifications'] }).catch(() => {})
   }
 
-  // Real-time via Laravel Echo / Reverb
   watchEffect((onCleanup) => {
     if (!businessId.value) return
 
@@ -100,10 +110,8 @@ export function useNotifications() {
     onError: (err) => { showError(translateError(err, 'Error al eliminar notificación')) },
   })
 
-  // Request browser notification permission on mount
   requestNotificationPermission()
 
-  // Show browser notification when new notifications arrive
   watch(notifications, (current, previous) => {
     if (!previous || previous.length === 0) return
     const newNotifs = current.filter(n => !previous.find(p => p.id === n.id))

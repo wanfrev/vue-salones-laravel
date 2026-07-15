@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\GiftCardController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PosController;
+use App\Http\Controllers\Api\PushSubscriptionController;
 
 use App\Http\Controllers\Api\ProductCategoryController;
 use App\Http\Controllers\Api\ProductController;
@@ -172,6 +173,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/gift-cards', [GiftCardController::class, 'store']);
     Route::put('/gift-cards/{id}', [GiftCardController::class, 'update']);
     Route::delete('/gift-cards/{id}', [GiftCardController::class, 'destroy']);
+
+    // Push subscriptions
+    Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store']);
+    Route::delete('/push-subscriptions', [PushSubscriptionController::class, 'destroy']);
 
     // Notifications
     Route::get('/notifications', [NotificationController::class, 'index']);

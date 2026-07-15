@@ -2,10 +2,15 @@
 
 namespace App\Console\Commands;
 
+use App\Events\EntityChanged;
 use App\Models\Appointment;
 use App\Models\InventoryStock;
+use App\Models\Profile;
+use App\Models\PushSubscription;
 use App\Services\NotificationService;
 use Illuminate\Console\Command;
+use Minishlink\WebPush\WebPush;
+use Minishlink\WebPush\Subscription;
 
 class GenerateReminders extends Command
 {
@@ -24,6 +29,7 @@ class GenerateReminders extends Command
         $totalGenerated = 0;
         $unpaidGenerated = 0;
         $lowStockGenerated = 0;
+        $affectedBusinesses = [];
 
         // 1. Generate reminders: appointments starting in ~24h
         $this->info('[reminders:generate] Checking appointments in ~24h window...');
@@ -64,7 +70,7 @@ class GenerateReminders extends Command
                     'profile_id' => $appt->employee_id,
                 ]);
 
-                $admins = \App\Models\Profile::where('business_id', $appt->business_id)
+                $admins = Profile::where('business_id', $appt->business_id)
                     ->where('role', 'admin')
                     ->where('active', true)
                     ->where('id', '!=', $appt->employee_id)
@@ -82,6 +88,7 @@ class GenerateReminders extends Command
                 }
 
                 $appointmentIds[] = $appt->id;
+                $affectedBusinesses[$appt->business_id] = true;
             }
 
             if (!empty($appointmentIds)) {
@@ -116,7 +123,7 @@ class GenerateReminders extends Command
 
                 if ($existingAlert) continue;
 
-                $admins = \App\Models\Profile::where('business_id', $appt->business_id)
+                $admins = Profile::where('business_id', $appt->business_id)
                     ->where('role', 'admin')
                     ->where('active', true)
                     ->get();
@@ -137,6 +144,8 @@ class GenerateReminders extends Command
                     ]);
                     $unpaidGenerated++;
                 }
+
+                $affectedBusinesses[$appt->business_id] = true;
             }
         }
 
@@ -166,7 +175,7 @@ class GenerateReminders extends Command
                     ->where('type', 'low_stock')
                     ->delete();
 
-                $admins = \App\Models\Profile::where('business_id', $bizId)
+                $admins = Profile::where('business_id', $bizId)
                     ->where('role', 'admin')
                     ->where('active', true)
                     ->get();
@@ -182,12 +191,78 @@ class GenerateReminders extends Command
                     ]);
                     $lowStockGenerated++;
                 }
+
+                $affectedBusinesses[$bizId] = true;
             }
         }
 
         $this->info("[reminders:generate] {$lowStockGenerated} low stock notifications generated.");
-        $this->info("[reminders:generate] Done. Total: " . ($totalGenerated + $unpaidGenerated + $lowStockGenerated));
+
+        $grandTotal = $totalGenerated + $unpaidGenerated + $lowStockGenerated;
+        $this->info("[reminders:generate] Done. Total: {$grandTotal}");
+
+        // Broadcast real-time event so frontend picks up new notifications
+        foreach (array_keys($affectedBusinesses) as $bizId) {
+            EntityChanged::safe($bizId, 'notification', 'created');
+        }
+
+        // Send web push notifications to all subscribed devices
+        if ($grandTotal > 0) {
+            $this->sendPushNotifications(array_keys($affectedBusinesses));
+        }
 
         return self::SUCCESS;
+    }
+
+    private function sendPushNotifications(array $businessIds): void
+    {
+        try {
+            $auth = [
+                'VAPID' => [
+                    'subject' => config('services.vapid.subject', env('VAPID_SUBJECT', 'mailto:admin@luma.app')),
+                    'publicKey' => env('VAPID_PUBLIC_KEY'),
+                    'privateKey' => env('VAPID_PRIVATE_KEY'),
+                ],
+            ];
+
+            $webPush = new WebPush($auth);
+
+            $subscriptions = PushSubscription::whereIn('business_id', $businessIds)->get();
+
+            if ($subscriptions->isEmpty()) return;
+
+            foreach ($subscriptions as $sub) {
+                $pushSub = Subscription::create([
+                    'endpoint' => $sub->endpoint,
+                    'publicKey' => $sub->p256dh,
+                    'authToken' => $sub->auth,
+                ]);
+
+                $webPush->queueNotification(
+                    $pushSub,
+                    json_encode([
+                        'title' => 'Nuevas notificaciones',
+                        'body' => 'Tienes recordatorios o alertas pendientes.',
+                        'icon' => '/icon-192.png',
+                        'badge' => '/icon-192.png',
+                        'data' => ['url' => '/admin'],
+                    ])
+                );
+            }
+
+            foreach ($webPush->flush() as $report) {
+                if (!$report->isSuccess()) {
+                    \Illuminate\Support\Facades\Log::warning(
+                        "WebPush failed for {$report->getEndpoint()}: {$report->getReason()}"
+                    );
+
+                    if ($report->isSubscriptionExpired()) {
+                        PushSubscription::where('endpoint', $report->getEndpoint())->delete();
+                    }
+                }
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("WebPush send failed: {$e->getMessage()}");
+        }
     }
 }

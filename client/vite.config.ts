@@ -11,7 +11,13 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'prompt',
+      injectManifest: {
+        injectionPoint: undefined,
+      },
       includeAssets: ['lumalogo.jpg', 'icon-192.png', 'icon-512.png', 'icon-180.png'],
       manifest: {
         name: 'Salones',
@@ -51,7 +57,6 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            // API calls: never serve from cache (data integrity)
             urlPattern: /\/api\//i,
             handler: 'NetworkOnly',
           },
