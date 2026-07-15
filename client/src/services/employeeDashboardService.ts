@@ -24,6 +24,7 @@ export type EmployeeAppointmentRecord = {
 
 export type EmployeeEarningRecord = {
   id: string
+  groupId: string | null
   date: string
   clientName: string
   serviceName: string
@@ -32,6 +33,7 @@ export type EmployeeEarningRecord = {
   exchangeRateUsed: number
   employeePercentage: number
   employeeEarnings: number
+  tipAmount: number
 }
 
 export type EmployeePaymentHistoryRecord = {
@@ -71,6 +73,7 @@ export const listEmployeeTransactions = async (businessId: string, employeeId: s
   const raw = await apiRequest<any[]>('GET', `/employee-history/${employeeId}${qs ? `?${qs}` : ''}`)
   return (raw ?? []).map((r: any) => ({
     id: r.id,
+    groupId: r.group_id ?? null,
     date: r.date,
     paidAt: r.date,
     appointmentDate: r.date,

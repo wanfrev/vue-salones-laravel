@@ -77,8 +77,8 @@
           <!-- Summary Cards -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
             <div class="rounded-lg bg-bg-secondary p-3">
-              <p class="text-xs text-text-muted uppercase tracking-wider">Servicios</p>
-              <p class="text-xl font-bold text-text mt-0.5">{{ earnings.length }}</p>
+              <p class="text-xs text-text-muted uppercase tracking-wider">Citas</p>
+              <p class="text-xl font-bold text-text mt-0.5">{{ appointmentCount }}</p>
             </div>
             <div class="rounded-lg bg-bg-secondary p-3">
               <p class="text-xs text-text-muted uppercase tracking-wider">Total facturado</p>
@@ -98,10 +98,9 @@
           </div>
 
           <!-- Earnings Breakdown Table -->
-          <EmployeeEarningsTable
+          <EmployeeEarningsCards
             :earnings="earningsWithVESComputed"
             :show-all="showAllServices"
-            :has-more="hasMoreServices"
             :visible-limit="VISIBLE_SERVICES"
             @toggle="showAllServices = !showAllServices"
           />
@@ -264,7 +263,7 @@ import { useCurrency } from '../../composables/common/useCurrency'
 import { dashboardKeys, listEmployeeTransactions, listEmployeePayments } from '../../services/employeeDashboardService'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import SegmentedTabs from '../../components/common/SegmentedTabs.vue'
-import EmployeeEarningsTable from './EmployeeEarningsTable.vue'
+import EmployeeEarningsCards from './EmployeeEarningsCards.vue'
 import EmployeePaymentsList from './EmployeePaymentsList.vue'
 
 const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
@@ -446,7 +445,11 @@ const earningsWithVES = computed(() =>
 
 const earningsWithVESComputed = computed(() => earningsWithVES.value)
 
-const hasMoreServices = computed(() => earningsWithVESComputed.value.length > VISIBLE_SERVICES)
+const appointmentCount = computed(() => {
+  const keys = new Set(earnings.value.map(r => r.groupId || r.id))
+  return keys.size
+})
+
 
 const totalBilled = computed(() =>
   earnings.value.reduce((sum, r) => sum + r.totalAmount, 0).toFixed(2)

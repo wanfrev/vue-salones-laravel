@@ -293,6 +293,7 @@ class EmployeeCommissionService
             ->whereIn('appointments.status', ['completed', 'confirmed', 'pending'])
             ->select(
                 'appointments.id as appointment_id',
+                'appointments.group_id',
                 'appointments.start_time',
                 'appointments.status',
                 'appointments.payment_status',
@@ -339,6 +340,7 @@ class EmployeeCommissionService
 
             return [
                 'id' => $row->appointment_id,
+                'group_id' => $row->group_id ?? null,
                 'date' => $row->start_time,
                 'time' => $row->start_time,
                 'client_name' => $row->client_name ?? '—',
