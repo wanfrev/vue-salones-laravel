@@ -135,18 +135,40 @@ const incomeBreakdown = computed(() => {
   const vesByMethod: Record<string, number> = {}
   let totalUSD = 0
   let totalVES = 0
+
+  const addIncome = (method: string, usdAmt: number, vesAmt: number) => {
+    if (usdAmt > 0) { totalUSD += usdAmt; usdByMethod[method] = (usdByMethod[method] ?? 0) + usdAmt }
+    if (vesAmt > 0) { totalVES += vesAmt; vesByMethod[method] = (vesByMethod[method] ?? 0) + vesAmt }
+  }
+
   for (const tx of summaryCtx.transactionsAll.value) {
     if (tx.breakdown && tx.breakdown.length > 0) {
       for (const item of tx.breakdown) {
-        if (item.currency === 'VES') { totalVES += item.inputAmount; vesByMethod[item.method] = (vesByMethod[item.method] ?? 0) + item.inputAmount }
-        else { totalUSD += item.amount; usdByMethod[item.method] = (usdByMethod[item.method] ?? 0) + item.amount }
+        if (item.currency === 'VES') addIncome(item.method, 0, item.inputAmount)
+        else addIncome(item.method, item.amount, 0)
       }
     } else if (tx.exchangeRateUsed > 1) {
-      const vAmt = tx.amount * tx.exchangeRateUsed; totalVES += vAmt; vesByMethod[tx.rawMethod] = (vesByMethod[tx.rawMethod] ?? 0) + vAmt
-    } else { totalUSD += tx.amount; usdByMethod[tx.rawMethod] = (usdByMethod[tx.rawMethod] ?? 0) + tx.amount }
+      addIncome(tx.rawMethod, 0, tx.amount * tx.exchangeRateUsed)
+    } else {
+      addIncome(tx.rawMethod, tx.amount, 0)
+    }
   }
+
+  for (const sale of summaryCtx.productSalesDetails.value) {
+    if (sale.breakdown && sale.breakdown.length > 0) {
+      for (const item of sale.breakdown) {
+        if (item.currency === 'VES') addIncome(item.method, 0, item.inputAmount)
+        else addIncome(item.method, item.amount, 0)
+      }
+    } else if (sale.exchangeRateUsed > 1) {
+      addIncome(sale.paymentMethod, 0, sale.total * sale.exchangeRateUsed)
+    } else {
+      addIncome(sale.paymentMethod, sale.total, 0)
+    }
+  }
+
   return {
-    title: 'Desglose de Ingresos por moneda', usdTotal: totalUSD, vesTotal: totalVES,
+    title: 'Desglose de Ingresos', usdTotal: totalUSD, vesTotal: totalVES,
     usdItems: Object.entries(usdByMethod).map(([method, amount]) => ({ label: formatMethod(method), amount })).sort((a, b) => b.amount - a.amount),
     vesItems: Object.entries(vesByMethod).map(([method, amount]) => ({ label: formatMethod(method), amount })).sort((a, b) => b.amount - a.amount),
     usdLabel: 'Método de pago', vesLabel: 'Método de pago',
@@ -154,30 +176,58 @@ const incomeBreakdown = computed(() => {
 })
 
 const expenseBreakdown = computed(() => {
-  const usdByCat: Record<string, number> = {}
-  const vesByCat: Record<string, number> = {}
   let totalUSD = 0
   let totalVES = 0
   for (const exp of expenses.value) {
-    if (exp.currency === 'VES') { totalVES += exp.originalAmount; vesByCat[exp.category] = (vesByCat[exp.category] ?? 0) + exp.originalAmount }
-    else { totalUSD += exp.amount; usdByCat[exp.category] = (usdByCat[exp.category] ?? 0) + exp.amount }
+    if (exp.currency === 'VES') totalVES += exp.originalAmount
+    else totalUSD += exp.amount
   }
+
+  const usdItems: { label: string; amount: number }[] = []
+  const vesItems: { label: string; amount: number }[] = []
+  if (totalUSD > 0) usdItems.push({ label: 'Total gastos en USD', amount: totalUSD })
+  if (totalVES > 0) vesItems.push({ label: 'Total gastos en Bs', amount: totalVES })
+
   return {
-    title: 'Desglose de Gastos por moneda', usdTotal: totalUSD, vesTotal: totalVES,
-    usdItems: Object.entries(usdByCat).map(([cat, amount]) => ({ label: cat, amount })).sort((a, b) => b.amount - a.amount),
-    vesItems: Object.entries(vesByCat).map(([cat, amount]) => ({ label: cat, amount })).sort((a, b) => b.amount - a.amount),
-    usdLabel: 'Categoría', vesLabel: 'Categoría',
+    title: 'Desglose de Gastos', usdTotal: totalUSD, vesTotal: totalVES,
+    usdItems, vesItems,
+    usdLabel: 'Moneda', vesLabel: 'Moneda',
   }
 })
 
 const netBreakdown = computed(() => {
+  const usdNetByMethod: Record<string, number> = {}
+  const vesNetByMethod: Record<string, number> = {}
+
+  for (const item of incomeBreakdown.value.usdItems) {
+    usdNetByMethod[item.label] = (usdNetByMethod[item.label] ?? 0) + item.amount
+  }
+  for (const item of incomeBreakdown.value.vesItems) {
+    vesNetByMethod[item.label] = (vesNetByMethod[item.label] ?? 0) + item.amount
+  }
+
+  const usdExpense = expenseBreakdown.value.usdTotal
+  const vesExpense = expenseBreakdown.value.vesTotal
+  if (usdExpense > 0) usdNetByMethod['Gastos'] = (usdNetByMethod['Gastos'] ?? 0) - usdExpense
+  if (vesExpense > 0) vesNetByMethod['Gastos'] = (vesNetByMethod['Gastos'] ?? 0) - vesExpense
+
+  const usdTotal = Object.values(usdNetByMethod).reduce((s, v) => s + v, 0)
+  const vesTotal = Object.values(vesNetByMethod).reduce((s, v) => s + v, 0)
+
   return {
-    title: 'Desglose de Ganancia por moneda',
-    usdTotal: Math.max(0, incomeBreakdown.value.usdTotal - expenseBreakdown.value.usdTotal),
-    vesTotal: Math.max(0, incomeBreakdown.value.vesTotal - expenseBreakdown.value.vesTotal),
-    usdItems: [] as { label: string; amount: number }[],
-    vesItems: [] as { label: string; amount: number }[],
-    usdLabel: '', vesLabel: '',
+    title: 'Desglose de Ganancia Neta',
+    usdTotal: Math.max(0, usdTotal),
+    vesTotal: Math.max(0, vesTotal),
+    usdItems: Object.entries(usdNetByMethod)
+      .filter(([, a]) => a !== 0)
+      .map(([label, amount]) => ({ label, amount }))
+      .sort((a, b) => b.amount - a.amount),
+    vesItems: Object.entries(vesNetByMethod)
+      .filter(([, a]) => a !== 0)
+      .map(([label, amount]) => ({ label, amount }))
+      .sort((a, b) => b.amount - a.amount),
+    usdLabel: 'Concepto',
+    vesLabel: 'Concepto',
   }
 })
 
