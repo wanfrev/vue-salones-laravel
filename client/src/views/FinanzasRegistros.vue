@@ -149,7 +149,6 @@ import { type Cita, type PaymentEditContext } from '../types/cita'
 import { useQueryClient } from '@tanstack/vue-query'
 import { translateError } from '../lib/errors'
 import { useNotification } from '../composables/common/useNotification'
-import { posPrefill } from '../composables/pos/usePOSPrefillState'
 
 const fmtDate = (d: string) => {
   try { const dt = new Date(d); return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}` } catch { return d }
@@ -246,7 +245,9 @@ const handleRollbackCobro = async (payload: { transactionIds: string[]; appointm
     await Promise.allSettled([
       queryClient.invalidateQueries({ queryKey: ['pos-pending'], exact: false }),
     ])
-    posPrefill.value = payload.prefill
+    if (payload.prefill) {
+      sessionStorage.setItem('posPrefill', JSON.stringify(payload.prefill))
+    }
     router.push({ name: 'admin-pos', query: { appointmentId: payload.appointmentId } })
   } catch (err) {
     showError(translateError(err, 'Error al eliminar cobro'))

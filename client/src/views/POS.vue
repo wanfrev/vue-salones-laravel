@@ -125,7 +125,6 @@ import RetailProductSearch from '../components/pos/RetailProductSearch.vue'
 import AppointmentList from '../components/pos/AppointmentList.vue'
 import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
 import { useExchangeRate } from '../composables/finanzas/useExchangeRate'
-import { posPrefill } from '../composables/pos/usePOSPrefillState'
 import { toISODate, minutesToHHmm } from '../lib/formatters'
 import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
 import type { PaymentMethod } from '../types/database'
@@ -448,15 +447,19 @@ const tryAutoSelect = () => {
   )
   if (found) {
     selectAppointment(found)
-    router.replace({ query: {} })
     applyPrefill()
+    router.replace({ query: {} })
   }
 }
 
 const applyPrefill = () => {
-  const prefill = posPrefill.value
+  const raw = sessionStorage.getItem('posPrefill')
+  if (!raw) return
+  sessionStorage.removeItem('posPrefill')
+
+  let prefill: any
+  try { prefill = JSON.parse(raw) } catch { return }
   if (!prefill) return
-  posPrefill.value = null
 
   const method = prefill.paymentMethod as PaymentMethod
   const isMixed = method === 'mixed' || (prefill.breakdown && prefill.breakdown.length > 1)
