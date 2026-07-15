@@ -305,12 +305,13 @@ const selectAppointment = (appt: any) => {
 const goToAppointmentInCalendar = (appt: any) => {
   const startDate = new Date(appt.start_time)
   const minutes = startDate.getHours() * 60 + startDate.getMinutes()
+  const isGroup = !!(appt.isGroup || appt.group_id)
   const cita: Cita = {
     id: appt.id,
     clientName: appt.client?.full_name ?? appt.clients?.full_name ?? 'Cliente',
     clientId: appt.client_id,
     clientPhone: appt.client?.phone ?? appt.clients?.phone ?? '',
-    service: appt.service?.name ?? appt.services?.name ?? '',
+    service: appt.services?.name ?? (appt.service?.name ?? appt.services?.name) ?? '',
     serviceId: appt.service_id,
     employee: appt.employee_profile?.full_name ?? appt.profiles?.full_name ?? '',
     employeeId: appt.employee_id,
@@ -320,6 +321,7 @@ const goToAppointmentInCalendar = (appt: any) => {
     price: appt.price_override != null ? Number(appt.price_override) : Number(appt.service?.price ?? appt.services?.price ?? 0),
     status: appt.status || 'pending',
     notes: appt.notes || undefined,
+    groupId: appt.group_id || undefined,
   }
   posCitaModalRef.value?.open(cita)
 }
@@ -440,6 +442,7 @@ const { handleSaveCita, handleDeleteCita } = useAppointmentMutations({
 const tryAutoSelect = () => {
   const id = route.query.appointmentId as string | undefined
   if (!id) return
+  if (appointments.value.length === 0) return
   const found = appointments.value.find((a: any) =>
     a.id === id || (a.groupIds && a.groupIds.includes(id)),
   )
@@ -493,4 +496,5 @@ const applyPrefill = () => {
 }
 
 watch(appointments, () => { tryAutoSelect() }, { immediate: true })
+watch(() => route.query.appointmentId, () => { tryAutoSelect() })
 </script>
