@@ -9,12 +9,15 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class NotificationService
 {
-    public function list(string $businessId, string $profileId, ?bool $unreadOnly = false): Collection
+    public function list(string $businessId, string $profileId, ?bool $unreadOnly = false, bool $isAdmin = false): Collection
     {
         $query = Notification::where('business_id', $businessId)
-            ->where('profile_id', $profileId)
             ->orderByDesc('created_at')
             ->limit(100);
+
+        if (!$isAdmin) {
+            $query->where('profile_id', $profileId);
+        }
 
         if ($unreadOnly) {
             $query->where('is_read', false);
@@ -23,12 +26,16 @@ class NotificationService
         return $query->get();
     }
 
-    public function markRead(string $id, string $businessId, string $profileId): Notification
+    public function markRead(string $id, string $businessId, string $profileId, bool $isAdmin = false): Notification
     {
-        $notification = Notification::where('id', $id)
-            ->where('business_id', $businessId)
-            ->where('profile_id', $profileId)
-            ->first();
+        $query = Notification::where('id', $id)
+            ->where('business_id', $businessId);
+
+        if (!$isAdmin) {
+            $query->where('profile_id', $profileId);
+        }
+
+        $notification = $query->first();
 
         if (!$notification) {
             throw new NotFoundHttpException('Notificación no encontrada.');
@@ -38,20 +45,28 @@ class NotificationService
         return $notification->fresh();
     }
 
-    public function markAllRead(string $businessId, string $profileId): void
+    public function markAllRead(string $businessId, string $profileId, bool $isAdmin = false): void
     {
-        Notification::where('business_id', $businessId)
-            ->where('profile_id', $profileId)
-            ->where('is_read', false)
-            ->update(['is_read' => true, 'read_at' => now()]);
+        $query = Notification::where('business_id', $businessId)
+            ->where('is_read', false);
+
+        if (!$isAdmin) {
+            $query->where('profile_id', $profileId);
+        }
+
+        $query->update(['is_read' => true, 'read_at' => now()]);
     }
 
-    public function dismiss(string $id, string $businessId, string $profileId): void
+    public function dismiss(string $id, string $businessId, string $profileId, bool $isAdmin = false): void
     {
-        $notification = Notification::where('id', $id)
-            ->where('business_id', $businessId)
-            ->where('profile_id', $profileId)
-            ->first();
+        $query = Notification::where('id', $id)
+            ->where('business_id', $businessId);
+
+        if (!$isAdmin) {
+            $query->where('profile_id', $profileId);
+        }
+
+        $notification = $query->first();
 
         if ($notification) {
             $notification->delete();

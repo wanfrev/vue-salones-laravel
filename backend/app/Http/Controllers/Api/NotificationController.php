@@ -19,13 +19,19 @@ class NotificationController
         return $user?->profile;
     }
 
+    private function isAdmin(?object $profile): bool
+    {
+        if (!$profile) return false;
+        return in_array($profile->role, ['admin', 'superadmin']);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $p = $this->resolve($request);
         if (!$p || !$p->business_id || !$p->id) return response()->json([]);
 
         return response()->json(
-            $this->notificationService->list($p->business_id, $p->id, $request->get('unread_only'))
+            $this->notificationService->list($p->business_id, $p->id, $request->get('unread_only'), $this->isAdmin($p))
         );
     }
 
@@ -34,7 +40,7 @@ class NotificationController
         $p = $this->resolve($request);
         if (!$p || !$p->business_id || !$p->id) return response()->json(['error' => ['message' => 'Sin acceso.']], 403);
 
-        $notification = $this->notificationService->markRead($id, $p->business_id, $p->id);
+        $notification = $this->notificationService->markRead($id, $p->business_id, $p->id, $this->isAdmin($p));
         EntityChanged::safe($p->business_id, 'notification', 'updated', $id);
 
         return response()->json($notification);
@@ -45,7 +51,7 @@ class NotificationController
         $p = $this->resolve($request);
         if (!$p || !$p->business_id || !$p->id) return response()->json(['error' => ['message' => 'Sin acceso.']], 403);
 
-        $this->notificationService->markAllRead($p->business_id, $p->id);
+        $this->notificationService->markAllRead($p->business_id, $p->id, $this->isAdmin($p));
         EntityChanged::safe($p->business_id, 'notification', 'updated', 'all');
 
         return response()->json(['success' => true]);
@@ -56,7 +62,7 @@ class NotificationController
         $p = $this->resolve($request);
         if (!$p || !$p->business_id || !$p->id) return response()->json(['error' => ['message' => 'Sin acceso.']], 403);
 
-        $this->notificationService->dismiss($id, $p->business_id, $p->id);
+        $this->notificationService->dismiss($id, $p->business_id, $p->id, $this->isAdmin($p));
         EntityChanged::safe($p->business_id, 'notification', 'deleted', $id);
 
         return response()->json(null, 204);
