@@ -499,5 +499,21 @@ const applyPrefill = () => {
 }
 
 watch(appointments, () => { tryAutoSelect() }, { immediate: true })
-watch(() => route.query.appointmentId, () => { tryAutoSelect() })
+watch(() => route.query.appointmentId, async (newId) => {
+  if (!newId) return
+  let found = appointments.value.find((a: any) =>
+    a.id === newId || (a.groupIds && a.groupIds.includes(newId)),
+  )
+  if (!found && appointments.value.length > 0) {
+    await queryClient.refetchQueries({ queryKey: ['pos-pending'], exact: false })
+    found = appointments.value.find((a: any) =>
+      a.id === newId || (a.groupIds && a.groupIds.includes(newId)),
+    )
+  }
+  if (found) {
+    selectAppointment(found)
+    applyPrefill()
+    router.replace({ query: {} })
+  }
+})
 </script>
