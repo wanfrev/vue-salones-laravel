@@ -30,7 +30,15 @@ use Illuminate\Support\Facades\Route;
 
 // Broadcasting auth (rate limited)
 Route::post('/broadcasting/auth', function (\Illuminate\Http\Request $request) {
-    return \Illuminate\Support\Facades\Broadcast::auth($request);
+    try {
+        return \Illuminate\Support\Facades\Broadcast::auth($request);
+    } catch (\Exception $e) {
+        \Illuminate\Support\Facades\Log::error('Broadcasting auth failed: ' . $e->getMessage(), [
+            'channel' => $request->input('channel_name'),
+            'socket_id' => $request->input('socket_id'),
+        ]);
+        return response()->json(['message' => 'Broadcasting auth temporarily unavailable'], 503);
+    }
 })->middleware('auth:sanctum', 'throttle:broadcasting');
 
 // Auth (public — stricter rate limit)

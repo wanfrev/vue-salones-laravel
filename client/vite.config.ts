@@ -16,7 +16,6 @@ export default defineConfig({
       filename: 'sw.ts',
       registerType: 'prompt',
       injectManifest: {
-        injectionPoint: undefined,
       },
       includeAssets: ['lumalogo.jpg', 'icon-192.png', 'icon-512.png', 'icon-180.png'],
       manifest: {

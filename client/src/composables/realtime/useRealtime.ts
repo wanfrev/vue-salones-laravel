@@ -68,11 +68,15 @@ export function useRealtime() {
     const bizId = authStore.businessId
     if (!bizId) return
 
-    channel = echoClient
-      .private(`business.${bizId}`)
-      .listen('.entity.changed', (payload: EntityChangedPayload) => {
-        handleEntityChange(payload)
-      })
+    try {
+      channel = echoClient
+        .private(`business.${bizId}`)
+        .listen('.entity.changed', (payload: EntityChangedPayload) => {
+          handleEntityChange(payload)
+        })
+    } catch (e) {
+      console.warn('[Realtime] Failed to subscribe to channel:', e)
+    }
   })
 
   onUnmounted(() => {

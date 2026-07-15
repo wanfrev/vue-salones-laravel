@@ -2,7 +2,7 @@ import { precacheAndRoute } from 'workbox-precaching'
 
 declare const self: ServiceWorkerGlobalScope
 
-precacheAndRoute(self.__WB_MANIFEST)
+precacheAndRoute(self.__WB_MANIFEST || [])
 
 self.addEventListener('push', (event) => {
   const payload = event.data?.json() ?? {}
