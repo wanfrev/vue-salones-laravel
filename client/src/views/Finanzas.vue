@@ -227,11 +227,12 @@ const openCobroActions = async (tx: any) => {
   if (!citaRaw) return
 
   const cita = mapAppointmentToCita(citaRaw)
+  const hasMixed = tx.breakdown && tx.breakdown.length > 1
   const paymentData: PaymentEditContext = {
     transactionId: tx.id,
-    method: tx.rawMethod || tx.method,
+    method: hasMixed ? 'mixed' : (tx.rawMethod || tx.method),
     amount: tx.amount,
-    currency: tx.primaryCurrency || 'USD',
+    currency: hasMixed ? 'USD' : (tx.primaryCurrency || 'USD'),
     exchangeRate: tx.exchangeRateUsed || 1,
     tipAmount: tx.tipAmount || 0,
     notes: tx.notes || undefined,

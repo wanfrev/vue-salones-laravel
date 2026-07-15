@@ -455,14 +455,22 @@ const applyPrefill = () => {
   if (!prefill) return
   posPrefill.value = null
 
-  paymentCtx.paymentMethod.value = prefill.paymentMethod as PaymentMethod
-  if (prefill.breakdown && prefill.breakdown.length > 1) {
+  const method = prefill.paymentMethod as PaymentMethod
+  const isMixed = method === 'mixed' || (prefill.breakdown && prefill.breakdown.length > 1)
+
+  paymentCtx.paymentMethod.value = isMixed ? 'mixed' : method
+  paymentCtx.otherCurrency.value = prefill.paymentCurrency
+
+  if (isMixed && prefill.breakdown && prefill.breakdown.length > 0) {
     paymentCtx.paymentsBreakdown.value = [...prefill.breakdown]
-    paymentCtx.paymentMethod.value = 'mixed'
+  } else if (!isMixed && prefill.breakdown && prefill.breakdown.length === 1) {
+    const b = prefill.breakdown[0]
+    paymentCtx.paymentMethod.value = b.method as PaymentMethod
+    paymentCtx.otherCurrency.value = b.currency
   } else {
     paymentCtx.paymentsBreakdown.value = []
   }
-  paymentCtx.otherCurrency.value = prefill.paymentCurrency
+
   paymentCtx.tipAmount.value = prefill.tipAmount ?? 0
   paymentCtx.paymentNotes.value = prefill.notes ?? ''
 
