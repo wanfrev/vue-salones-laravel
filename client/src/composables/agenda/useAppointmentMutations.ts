@@ -62,7 +62,7 @@ export function useAppointmentMutations(options: {
       saveCita(options.businessId.value!, data, options.createdBy?.value, businessStore.currentBranchId, allowCreateClient.value),
     onMutate: async (data) => {
       if (data.id) return null
-      await queryClient.cancelQueries({ queryKey: ['appointments'] })
+      await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
       const tempId = `temp-${Date.now()}`
       const optimistic: any = { id: tempId, status: 'pending', paymentStatus: 'unpaid', ...data }
       queryClient.setQueryData(['appointments'], (old: any) =>
@@ -76,8 +76,7 @@ export function useAppointmentMutations(options: {
           Array.isArray(old) ? old.filter((c: any) => c.id !== context.tempId) : old
         )
       }
-      invalidate()
-      queryClient.refetchQueries({ exact: false, queryKey: ['appointments'], type: 'all' }).catch(() => {})
+      void invalidate()
       options.modalRef?.value?.close()
       options.modalRef?.value?.onSaveComplete?.()
       success('Cita guardada correctamente')
@@ -91,14 +90,17 @@ export function useAppointmentMutations(options: {
       options.modalRef?.value?.onSaveComplete?.()
       showError(translateError(err))
     },
+    onSettled: () => {
+      void invalidate()
+    },
   })
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: 'pending' | 'confirmed' | 'cancelled' | 'paid' }) =>
       updateCitaStatus(id, status),
     onMutate: async ({ id, status }) => {
-      await queryClient.cancelQueries({ queryKey: ['appointments'] })
-      const previousQueries = queryClient.getQueriesData({ queryKey: ['appointments'] })
+      await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
+      const previousQueries = queryClient.getQueriesData({ queryKey: ['appointments'], exact: false })
       for (const [key, data] of previousQueries) {
         if (Array.isArray(data)) {
           queryClient.setQueryData(key, data.map((cita: any) =>
@@ -117,7 +119,7 @@ export function useAppointmentMutations(options: {
       showError(translateError(err))
     },
     onSettled: () => {
-      invalidate()
+      void invalidate()
     },
   })
 
@@ -125,7 +127,7 @@ export function useAppointmentMutations(options: {
     mutationFn: ({ id, start, end }: { id: string; start: string; end: string }) =>
       updateAppointmentTime(id, start, end),
     onMutate: async ({ id }) => {
-      await queryClient.cancelQueries({ queryKey: ['appointments'] })
+      await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
       const previousData = queryClient.getQueryData(['appointments'])
       return { previousData, id }
     },
@@ -136,14 +138,14 @@ export function useAppointmentMutations(options: {
       showError(translateError(err))
     },
     onSettled: () => {
-      invalidate()
+      void invalidate()
     },
   })
 
   const deleteCitaMutation = useMutation({
     mutationFn: (id: string) => deleteCita(id),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['appointments'] })
+      await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
       const previous = queryClient.getQueryData(['appointments'])
       queryClient.setQueryData(['appointments'], (old: any) =>
         Array.isArray(old) ? old.filter((c: any) => c.id !== id) : old
@@ -151,8 +153,6 @@ export function useAppointmentMutations(options: {
       return { previous }
     },
     onSuccess: () => {
-      invalidate()
-      queryClient.refetchQueries({ exact: false, queryKey: ['appointments'], type: 'all' }).catch(() => {})
       options.modalRef?.value?.close()
       options.modalRef?.value?.onSaveComplete?.()
       success('Cita eliminada correctamente')
@@ -163,6 +163,9 @@ export function useAppointmentMutations(options: {
       }
       options.modalRef?.value?.onSaveComplete?.()
       showError(translateError(err))
+    },
+    onSettled: () => {
+      void invalidate()
     },
   })
 
