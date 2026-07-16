@@ -143,18 +143,20 @@ function useFinancialSummary(
   const employeePaymentsTotal = computed(() => kpis.value.total_employee_payments ?? 0)
   const vesIncomeTotal = computed(() => {
     let total = 0
-    for (const tx of allTransactionsRaw.value) {
-      const breakdown = tx.breakdown
+    for (const tx of (transactionsData.value ?? [])) {
+      const breakdown = tx.payments_breakdown as PaymentBreakdownItem[] | null
+      const exchangeRateUsed = Number(tx.exchange_rate_used ?? 1)
+      const amount = Number(tx.total_amount ?? 0)
       if (breakdown && breakdown.length > 0) {
         for (const item of breakdown) {
           if (item.currency === 'VES') {
             total += item.inputAmount
           } else {
-            total += item.amount * (tx.exchangeRateUsed || 1)
+            total += item.amount * exchangeRateUsed
           }
         }
       } else {
-        total += tx.amount * (tx.exchangeRateUsed || 1)
+        total += amount * exchangeRateUsed
       }
     }
     return total

@@ -356,14 +356,8 @@ const handleGroupPayment = async (appt: any) => {
   try {
     const exchangeRt = exchangeRate.value; const notes = paymentCtx.paymentNotes.value
     const breakdownSource = paymentCtx.paymentsBreakdown.value
-    let methodBreakdowns: any[]
-    if (method !== 'mixed') {
-      const pMethodObj = paymentCtx.paymentMethods.find((m: any) => m.value === method)
-      const currency = (pMethodObj?.currency as string) ?? paymentCtx.otherCurrency.value
-      methodBreakdowns = [{ method, inputAmount: currency === 'VES' ? grandTotal.value * exchangeRt : grandTotal.value, currency, amount: grandTotal.value }]
-    } else {
-      methodBreakdowns = breakdownSource.map((item: any) => ({ ...item, amount: item.currency === 'VES' ? item.inputAmount / exchangeRt : item.inputAmount }))
-    }
+    const pMethodObj = paymentCtx.paymentMethods.find((m: any) => m.value === method)
+    const paymentCurrency = (pMethodObj?.currency as string) ?? paymentCtx.otherCurrency.value
 
     let remainingService = serviceTotal
     const employeeTotalPrice = new Map<string, number>()
@@ -374,20 +368,35 @@ const handleGroupPayment = async (appt: any) => {
       const serviceShare = isLast ? Math.max(0, Math.round(remainingService * 100) / 100) : Math.round(serviceTotal * proportion * 100) / 100
       if (!isLast) remainingService -= serviceShare
 
-      const amount = i === 0 ? serviceShare + productsTotal : serviceShare
+      const memberAmount = i === 0 ? serviceShare + productsTotal : serviceShare
       const amountWithoutProducts = serviceShare
       const productsForThis = i === 0 ? productsTotal : 0
       const employeeId = members[i]?.employeeId
       const fullTip = employeeId ? (tipAllocations.value[employeeId] ?? 0) : 0
       const memberServices = members.filter(m => m.employeeId === employeeId).length
       const memberTip = Number(((memberServices > 0 ? fullTip / memberServices : 0)).toFixed(2))
-      // Store the full payment breakdown (not proportional) so the edit card shows real amounts
-      const memberBreakdown = methodBreakdowns.map(b => ({ ...b }))
+
+      let memberBreakdown: any[]
+      if (method !== 'mixed') {
+        memberBreakdown = [{
+          method,
+          inputAmount: paymentCurrency === 'VES' ? memberAmount * exchangeRt : memberAmount,
+          currency: paymentCurrency,
+          amount: memberAmount,
+        }]
+      } else {
+        const grand = grandTotal.value || 1
+        memberBreakdown = breakdownSource.map((item: any) => ({
+          ...item,
+          inputAmount: (memberAmount / grand) * item.inputAmount,
+          amount: (memberAmount / grand) * item.amount,
+        }))
+      }
 
       const saleParams = {
         appointmentId: groupIds[i],
-        serviceAmount: i === 0 ? amountWithoutProducts : amount,
-        amount: i === 0 ? amount : amount,
+        serviceAmount: i === 0 ? amountWithoutProducts : memberAmount,
+        amount: memberAmount,
         productsAmount: i === 0 ? productsForThis : 0,
         method: method as PaymentMethod,
         products: i === 0 ? products : [],
