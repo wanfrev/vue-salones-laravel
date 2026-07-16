@@ -32,7 +32,7 @@
               class="w-full rounded-lg border border-border bg-bg px-3 py-1.5 text-sm text-text outline-none placeholder:text-text-muted focus:border-primary focus:ring-1 focus:ring-primary/20"
               @click.stop ref="searchInputRef" />
           </div>
-          <div class="overflow-y-auto flex-1 touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
+          <div class="overflow-y-auto flex-1 min-h-0 touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
             <button v-if="!required && !placeholder" type="button" @click="selectOption('')"
               class="flex items-center gap-2.5 w-full rounded-lg px-2.5 py-2 text-sm transition-colors"
               :class="modelValue === '' ? 'bg-primary/10 text-primary font-medium' : 'text-text hover:bg-bg-secondary'">
@@ -124,7 +124,10 @@ const toggleDropdown = () => {
   if (props.disabled) return
   isOpen.value = !isOpen.value
   if (isOpen.value && props.searchable && props.options.length > 3) {
-    nextTick(() => searchInputRef.value?.focus())
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+    if (!isTouchDevice) {
+      nextTick(() => searchInputRef.value?.focus())
+    }
   }
 }
 

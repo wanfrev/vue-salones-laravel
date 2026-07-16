@@ -129,7 +129,10 @@ const toggleOpen = () => {
   open.value = !open.value
   if (open.value) {
     search.value = ''
-    nextTick(() => searchInputRef.value?.focus())
+    const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0
+    if (!isTouchDevice) {
+      nextTick(() => searchInputRef.value?.focus())
+    }
   }
 }
 
