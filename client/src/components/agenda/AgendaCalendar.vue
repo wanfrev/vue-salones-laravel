@@ -358,6 +358,12 @@ const STATUS_OPTIONS = [
 
 // ---- State ----
 const searchQuery = ref('')
+const debouncedSearch = ref('')
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+watch(searchQuery, (val) => {
+  if (searchTimer) clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => { debouncedSearch.value = val }, 250)
+})
 const viewMode = ref<'day' | 'week' | 'month' | 'year'>('day')
 const selectedDate = ref(toISODate(new Date()))
 const gridContainer = ref<HTMLElement | null>(null)
@@ -502,11 +508,14 @@ function mapAppt(a: any, svcList: any[], empName: string, groupMemberMap: Map<st
 }
 
 const gridColumns = computed<GridColumn[]>(() => {
+  if (viewMode.value === 'month' || viewMode.value === 'year') return []
+
   const emps = employees.value ?? []
   const empId = selectedEmployeeId.value
   const appts = buildDisplayAppointments(appointments.value ?? [])
   const svcs = services.value ?? []
   const groupMemberMap = buildGroupMemberMap(appointments.value ?? [])
+  const q = debouncedSearch.value.toLowerCase()
 
   if (viewMode.value === 'week') {
     const sel = new Date(selectedDate.value + 'T12:00:00')
@@ -515,7 +524,7 @@ const gridColumns = computed<GridColumn[]>(() => {
       const d = new Date(sow); d.setDate(sow.getDate() + i)
       const iso = toISODate(d)
       const dayAppts = appts
-        .filter(a => toISODate(new Date(a.start_time)) === iso && (empId === 'all' || a.employee_id === empId) && (!searchQuery.value || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(searchQuery.value.toLowerCase())))
+        .filter(a => toISODate(new Date(a.start_time)) === iso && (empId === 'all' || a.employee_id === empId) && (!q || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(q)))
         .map(a => mapAppt(a, svcs, emps.find(e => e.id === a.employee_id)?.full_name || '', groupMemberMap))
         .sort((a, b) => a.top - b.top)
       const isT = iso === todayIso.value
@@ -528,7 +537,7 @@ const gridColumns = computed<GridColumn[]>(() => {
 
   return cols.map(c => {
     const cAppts = appts
-      .filter(a => (c.id === '__default__' || (toISODate(new Date(a.start_time)) === selectedDate.value && a.employee_id === c.id)) && (!searchQuery.value || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(searchQuery.value.toLowerCase())))
+      .filter(a => (c.id === '__default__' || (toISODate(new Date(a.start_time)) === selectedDate.value && a.employee_id === c.id)) && (!q || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(q)))
       .map(a => mapAppt(a, svcs, c.name, groupMemberMap))
       .sort((a, b) => a.top - b.top)
     return { key: c.id, label: c.id === '__default__' ? 'Citas' : c.name.split(' ')[0], avatar: c.id === '__default__' ? undefined : getInitials(c.name), widthPercent: 100 / cols.length, appointments: cAppts }

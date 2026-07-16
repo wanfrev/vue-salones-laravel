@@ -59,7 +59,7 @@ export function useRealtime() {
     prefixes.forEach(p => pendingPrefixes.add(p + '|' + businessId))
 
     if (debounceTimer) clearTimeout(debounceTimer)
-    debounceTimer = setTimeout(flushInvalidations, 500)
+    debounceTimer = setTimeout(flushInvalidations, 150)
   }
 
   let channel: any = null
