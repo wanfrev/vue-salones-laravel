@@ -58,135 +58,12 @@ export function useAppointmentMutations(options: {
   }
 
   const saveCitaMutation = useMutation({
-    mutationFn: (data: CitaFormData & { id?: string; clientPhone?: string }) =>
-      saveCita(options.businessId.value!, data, options.createdBy?.value, businessStore.currentBranchId, allowCreateClient.value),
-    onMutate: async (data) => {
-      if (data.id) return null
-      await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
-      const tempId = `temp-${Date.now()}`
-      const optimistic: any = { id: tempId, status: 'pending', paymentStatus: 'unpaid', ...data }
-      queryClient.setQueryData(['appointments'], (old: any) =>
-        Array.isArray(old) ? [optimistic, ...old] : old
-      )
-      return { tempId }
-    },
-    onSuccess: (_result, data, context) => {
-      if (context?.tempId) {
-        queryClient.setQueryData(['appointments'], (old: any) =>
-          Array.isArray(old) ? old.filter((c: any) => c.id !== context.tempId) : old
-        )
-      }
-      void invalidate()
-      options.modalRef?.value?.close()
-      options.modalRef?.value?.onSaveComplete?.()
-      success('Cita guardada correctamente')
-    },
-    onError: (err, _data, context) => {
-      if (context?.tempId) {
-        queryClient.setQueryData(['appointments'], (old: any) =>
-          Array.isArray(old) ? old.filter((c: any) => c.id !== context.tempId) : old
-        )
-      }
-      options.modalRef?.value?.onSaveComplete?.()
-      showError(translateError(err))
-    },
-    onSettled: () => {
-      void invalidate()
-    },
-  })
+    mutationFn: async (input: CitaFormData & { id?: string; clientPhone?: string; _paymentData?: PaymentEditContext }) => {
+      const { _paymentData: paymentData, ...data } = input
+      const savedCita = await saveCita(options.businessId.value!, data, options.createdBy?.value, businessStore.currentBranchId, allowCreateClient.value)
 
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'pending' | 'confirmed' | 'cancelled' | 'paid' }) =>
-      updateCitaStatus(id, status),
-    onMutate: async ({ id, status }) => {
-      await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
-      const previousQueries = queryClient.getQueriesData({ queryKey: ['appointments'], exact: false })
-      for (const [key, data] of previousQueries) {
-        if (Array.isArray(data)) {
-          queryClient.setQueryData(key, data.map((cita: any) =>
-            cita.id === id ? { ...cita, status, paymentStatus: status === 'paid' ? 'paid' : cita.paymentStatus } : cita
-          ))
-        }
-      }
-      return { previousQueries }
-    },
-    onError: (err, _vars, context) => {
-      if (context?.previousQueries) {
-        for (const [key, data] of context.previousQueries) {
-          queryClient.setQueryData(key, data)
-        }
-      }
-      showError(translateError(err))
-    },
-    onSettled: () => {
-      void invalidate()
-    },
-  })
-
-  const updateTimeMutation = useMutation({
-    mutationFn: ({ id, start, end }: { id: string; start: string; end: string }) =>
-      updateAppointmentTime(id, start, end),
-    onMutate: async ({ id }) => {
-      await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
-      const previousData = queryClient.getQueryData(['appointments'])
-      return { previousData, id }
-    },
-    onError: (err, _vars, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(['appointments'], context.previousData)
-      }
-      showError(translateError(err))
-    },
-    onSettled: () => {
-      void invalidate()
-    },
-  })
-
-  const deleteCitaMutation = useMutation({
-    mutationFn: (id: string) => deleteCita(id),
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
-      const previous = queryClient.getQueryData(['appointments'])
-      queryClient.setQueryData(['appointments'], (old: any) =>
-        Array.isArray(old) ? old.filter((c: any) => c.id !== id) : old
-      )
-      return { previous }
-    },
-    onSuccess: () => {
-      options.modalRef?.value?.close()
-      options.modalRef?.value?.onSaveComplete?.()
-      success('Cita eliminada correctamente')
-    },
-    onError: (err, _id, context) => {
-      if (context?.previous) {
-        queryClient.setQueryData(['appointments'], context.previous)
-      }
-      options.modalRef?.value?.onSaveComplete?.()
-      showError(translateError(err))
-    },
-    onSettled: () => {
-      void invalidate()
-    },
-  })
-
-  const handleDeleteCita = (id: string) => {
-    const msg = '¿Eliminar esta cita?\n\nEsta acción no se puede deshacer.'
-    if (window.confirm(msg)) {
-      deleteCitaMutation.mutate(id)
-    }
-  }
-
-  const handleSaveCita = async (data: CitaFormData & { id?: string; clientPhone?: string; paymentData?: PaymentEditContext }) => {
-    try {
-      await supabase.auth.getSession()
-    } catch {
-    }
-    try {
-      const paymentData = data.paymentData
-      delete (data as any).paymentData
-      const savedCita = await saveCitaMutation.mutateAsync(data)
       if (paymentData) {
-        const normalizedGroupId = savedCita?.groupId
+        const normalizedGroupId = (savedCita as any).groupId
 
         if (normalizedGroupId) {
           const { data: groupAppointments, error: groupError } = await supabase
@@ -243,8 +120,7 @@ export function useAppointmentMutations(options: {
                 }
               }
 
-              invalidate()
-              return
+              return savedCita
             }
           }
         }
@@ -258,8 +134,149 @@ export function useAppointmentMutations(options: {
           paymentsBreakdown: paymentData.breakdown,
           tipAmount: paymentData.tipAmount ?? 0,
         })
-        invalidate()
       }
+
+      return savedCita
+    },
+    onMutate: async (input) => {
+      if (input.id) return null
+      await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
+      const { _paymentData, ...data } = input
+      const tempId = `temp-${Date.now()}`
+      const optimistic: any = { id: tempId, status: 'pending', paymentStatus: 'unpaid', ...data }
+      const previousQueries = queryClient.getQueriesData({ queryKey: ['appointments'], exact: false })
+      for (const [key, old] of previousQueries) {
+        if (Array.isArray(old)) {
+          queryClient.setQueryData(key, [optimistic, ...old])
+        }
+      }
+      return { tempId, previousQueries }
+    },
+    onSuccess: (_result, _input, context) => {
+      if (context?.tempId && context?.previousQueries) {
+        for (const [key] of context.previousQueries) {
+          queryClient.setQueryData(key, (old: any) =>
+            Array.isArray(old) ? old.filter((c: any) => c.id !== context.tempId) : old
+          )
+        }
+      }
+      void invalidate()
+      options.modalRef?.value?.close()
+      options.modalRef?.value?.onSaveComplete?.()
+      success('Cita guardada correctamente')
+    },
+    onError: (err, _input, context) => {
+      if (context?.previousQueries) {
+        for (const [key, data] of context.previousQueries) {
+          queryClient.setQueryData(key, data)
+        }
+      }
+      options.modalRef?.value?.onSaveComplete?.()
+      showError(translateError(err))
+    },
+    onSettled: () => {
+      void invalidate()
+    },
+  })
+
+  const updateStatusMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'pending' | 'confirmed' | 'cancelled' | 'paid' }) =>
+      updateCitaStatus(id, status),
+    onMutate: async ({ id, status }) => {
+      await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
+      const previousQueries = queryClient.getQueriesData({ queryKey: ['appointments'], exact: false })
+      for (const [key, data] of previousQueries) {
+        if (Array.isArray(data)) {
+          queryClient.setQueryData(key, data.map((cita: any) =>
+            cita.id === id ? { ...cita, status, paymentStatus: status === 'paid' ? 'paid' : cita.paymentStatus } : cita
+          ))
+        }
+      }
+      return { previousQueries }
+    },
+    onError: (err, _vars, context) => {
+      if (context?.previousQueries) {
+        for (const [key, data] of context.previousQueries) {
+          queryClient.setQueryData(key, data)
+        }
+      }
+      showError(translateError(err))
+    },
+    onSettled: () => {
+      void invalidate()
+    },
+  })
+
+  const updateTimeMutation = useMutation({
+    mutationFn: ({ id, start, end, employeeId }: { id: string; start: string; end: string; employeeId?: string }) =>
+      updateAppointmentTime(id, start, end, employeeId),
+    onMutate: async ({ id }) => {
+      await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
+      const previousQueries = queryClient.getQueriesData({ queryKey: ['appointments'], exact: false })
+      return { previousQueries, id }
+    },
+    onError: (err, _vars, context) => {
+      if (context?.previousQueries) {
+        for (const [key, data] of context.previousQueries) {
+          queryClient.setQueryData(key, data)
+        }
+      }
+      showError(translateError(err))
+    },
+    onSettled: () => {
+      void invalidate()
+    },
+  })
+
+  const deleteCitaMutation = useMutation({
+    mutationFn: (id: string) => deleteCita(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
+      const previousQueries = queryClient.getQueriesData({ queryKey: ['appointments'], exact: false })
+      for (const [key, old] of previousQueries) {
+        if (Array.isArray(old)) {
+          queryClient.setQueryData(key, old.filter((c: any) => c.id !== id))
+        }
+      }
+      return { previousQueries }
+    },
+    onSuccess: () => {
+      options.modalRef?.value?.close()
+      options.modalRef?.value?.onSaveComplete?.()
+      success('Cita eliminada correctamente')
+    },
+    onError: (err, _id, context) => {
+      if (context?.previousQueries) {
+        for (const [key, data] of context.previousQueries) {
+          queryClient.setQueryData(key, data)
+        }
+      }
+      options.modalRef?.value?.onSaveComplete?.()
+      showError(translateError(err))
+    },
+    onSettled: () => {
+      void invalidate()
+    },
+  })
+
+  const handleDeleteCita = (id: string) => {
+    const msg = '¿Eliminar esta cita?\n\nEsta acción no se puede deshacer.'
+    if (window.confirm(msg)) {
+      deleteCitaMutation.mutate(id)
+    }
+  }
+
+  const handleSaveCita = async (data: CitaFormData & { id?: string; clientPhone?: string; paymentData?: PaymentEditContext }) => {
+    try {
+      await supabase.auth.getSession()
+    } catch {
+    }
+    try {
+      const { paymentData, ...formData } = data
+      await saveCitaMutation.mutateAsync({
+        ...formData,
+        ...(paymentData ? { _paymentData: paymentData } : {}),
+      })
     } catch (err) {
       showError(translateError(err))
     }
@@ -271,19 +288,27 @@ export function useAppointmentMutations(options: {
   }
 
   const handleEventChange = async ({ id, start, end, employeeId }: { id: string; start: string; end: string; employeeId?: string }) => {
-    // Check for overlap before updating
-    const cachedAppts = queryClient.getQueryData<any[]>(['appointments']) ?? []
     const newStart = new Date(start)
     const newEnd = new Date(end)
+
+    const allQueries = queryClient.getQueriesData<any[]>({ queryKey: ['appointments'], exact: false })
+    const cachedAppts = allQueries.flatMap(([, data]) => (Array.isArray(data) ? data : []))
+
     const appt = cachedAppts.find((a: any) => a.id === id)
-    const empId = employeeId ?? appt?.employeeId
+    const empId = employeeId ?? appt?.employeeId ?? appt?.employee_id
     if (empId) {
       const conflict = cachedAppts.some((a: any) => {
         if (a.id === id) return false
-        if (a.status === 'cancelled' || (a as any).paymentStatus === 'cancelled') return false
-        if (a.employeeId !== empId && a.assistantId !== empId) return false
-        const aStart = new Date(`${a.date}T${a.time}:00`)
-        const aEnd = new Date(aStart.getTime() + ((a.duration || 30)) * 60 * 1000)
+        const aStatus = a.status ?? (a as any).paymentStatus
+        if (aStatus === 'cancelled') return false
+        const aEmpId = a.employeeId ?? a.employee_id
+        const aAsstId = a.assistantId ?? a.assistant_employee_id
+        if (aEmpId !== empId && aAsstId !== empId) return false
+        const aStart = a.start_time
+          ? new Date(a.start_time)
+          : new Date(`${a.date}T${a.time}:00`)
+        const aDuration = (a.duration ?? 30) * 60 * 1000
+        const aEnd = new Date(aStart.getTime() + aDuration)
         return aStart < newEnd && aEnd > newStart
       })
       if (conflict) {
@@ -294,15 +319,7 @@ export function useAppointmentMutations(options: {
       }
     }
 
-    await updateTimeMutation.mutateAsync({ id, start, end })
-    if (employeeId && options.businessId.value) {
-      await mutate
-        .from('appointments')
-        .update({ employee_id: employeeId })
-        .eq('id', id)
-      await invalidate()
-      await queryClient.refetchQueries({ exact: false, queryKey: ['appointments'], type: 'all' })
-    }
+    await updateTimeMutation.mutateAsync({ id, start, end, employeeId })
     success('Cita reagendada correctamente')
   }
 

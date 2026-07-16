@@ -53,6 +53,22 @@ const months = computed(() => {
   const year = d.getFullYear()
   const today = new Date()
 
+  // ── Pre-index: O(n) single pass ──────────────────────────────────
+  const datesWithAppts = new Set<string>()
+  const countsByMonth = new Map<number, number>()
+
+  for (const a of props.appointments) {
+    const ad = new Date(a.start_time)
+    const am = ad.getMonth()
+    const ay = ad.getFullYear()
+
+    if (ay !== year) continue
+    if (props.employeeId !== 'all' && a.employee_id !== props.employeeId) continue
+
+    datesWithAppts.add(toISODate(ad))
+    countsByMonth.set(am, (countsByMonth.get(am) ?? 0) + 1)
+  }
+
   return Array.from({ length: 12 }, (_, m) => {
     const firstDay = new Date(year, m, 1)
     const lastDay = new Date(year, m + 1, 0)
@@ -68,27 +84,16 @@ const months = computed(() => {
         number: d2,
         isCurrentMonth: true,
         isToday: d2 === today.getDate() && m === today.getMonth() && year === today.getFullYear(),
-        hasAppointments: props.appointments.some(a => {
-          if (toISODate(new Date(a.start_time)) !== iso) return false
-          if (props.employeeId !== 'all' && a.employee_id !== props.employeeId) return false
-          return true
-        }),
+        hasAppointments: datesWithAppts.has(iso),
       })
     }
-
-    const count = props.appointments.filter(a => {
-      const am = new Date(a.start_time).getMonth()
-      const ay = new Date(a.start_time).getFullYear()
-      if (am !== m || ay !== year) return false
-      if (props.employeeId !== 'all' && a.employee_id !== props.employeeId) return false
-      return true
-    }).length
 
     return {
       month: m, year,
       label: monthNames[m],
       isCurrent: m === today.getMonth() && year === today.getFullYear(),
-      count, days,
+      count: countsByMonth.get(m) ?? 0,
+      days,
     }
   })
 })

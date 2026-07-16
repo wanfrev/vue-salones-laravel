@@ -442,7 +442,7 @@ interface DisplayAppointment { id: string; clientName: string; service: string; 
 
 function buildDisplayAppointments(appts: any[]): any[] {
   const result: any[] = []
-  const groupEmployeeMap = new Map<string, any>()
+  const groupEmployeeMap = new Map<string, any[]>()
 
   for (const a of appts) {
     if (!a.group_id) {
@@ -452,24 +452,35 @@ function buildDisplayAppointments(appts: any[]): any[] {
     const key = `${a.group_id}:${a.employee_id}`
     const existing = groupEmployeeMap.get(key)
     if (!existing) {
-      const wrapper = { ...a, _groupId: a.group_id, _groupEmployeeMembers: [a] }
-      groupEmployeeMap.set(key, wrapper)
-      result.push(wrapper)
+      groupEmployeeMap.set(key, [a])
+      result.push(a)
     } else {
-      existing._groupEmployeeMembers.push(a)
+      existing.push(a)
     }
   }
 
   return result
 }
 
-function mapAppt(a: any, svcList: any[], empName: string) {
+function buildGroupMemberMap(appts: any[]): Map<string, any[]> {
+  const map = new Map<string, any[]>()
+  for (const a of appts) {
+    if (!a.group_id) continue
+    const existing = map.get(a.group_id)
+    if (existing) {
+      existing.push(a)
+    } else {
+      map.set(a.group_id, [a])
+    }
+  }
+  return map
+}
+
+function mapAppt(a: any, svcList: any[], empName: string, groupMemberMap: Map<string, any[]>) {
   const start = new Date(a.start_time); const end = new Date(a.end_time)
   const svc = svcList.find(s => s.id === a.service_id)
   const topMin = (start.getHours() * 60 + start.getMinutes()) - (START_HOUR * 60)
-  const groupAllMembers = a._groupId
-    ? (appointments.value ?? []).filter((x: any) => x.group_id === a._groupId)
-    : []
+  const groupAllMembers = a.group_id ? (groupMemberMap.get(a.group_id) ?? []) : []
   const isGroup = groupAllMembers.length > 1
   const groupServices = isGroup
     ? groupAllMembers.map((m: any) => svcList.find(s => s.id === m.service_id)?.name || 'Servicio')
@@ -495,6 +506,7 @@ const gridColumns = computed<GridColumn[]>(() => {
   const empId = selectedEmployeeId.value
   const appts = buildDisplayAppointments(appointments.value ?? [])
   const svcs = services.value ?? []
+  const groupMemberMap = buildGroupMemberMap(appointments.value ?? [])
 
   if (viewMode.value === 'week') {
     const sel = new Date(selectedDate.value + 'T12:00:00')
@@ -504,7 +516,7 @@ const gridColumns = computed<GridColumn[]>(() => {
       const iso = toISODate(d)
       const dayAppts = appts
         .filter(a => toISODate(new Date(a.start_time)) === iso && (empId === 'all' || a.employee_id === empId) && (!searchQuery.value || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(searchQuery.value.toLowerCase())))
-        .map(a => mapAppt(a, svcs, emps.find(e => e.id === a.employee_id)?.full_name || ''))
+        .map(a => mapAppt(a, svcs, emps.find(e => e.id === a.employee_id)?.full_name || '', groupMemberMap))
         .sort((a, b) => a.top - b.top)
       const isT = iso === todayIso.value
       return { key: iso, label: dayNames[d.getDay()], number: d.getDate(), isToday: isT, widthPercent: 100 / 7, appointments: dayAppts }
@@ -517,7 +529,7 @@ const gridColumns = computed<GridColumn[]>(() => {
   return cols.map(c => {
     const cAppts = appts
       .filter(a => (c.id === '__default__' || (toISODate(new Date(a.start_time)) === selectedDate.value && a.employee_id === c.id)) && (!searchQuery.value || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(searchQuery.value.toLowerCase())))
-      .map(a => mapAppt(a, svcs, c.name))
+      .map(a => mapAppt(a, svcs, c.name, groupMemberMap))
       .sort((a, b) => a.top - b.top)
     return { key: c.id, label: c.id === '__default__' ? 'Citas' : c.name.split(' ')[0], avatar: c.id === '__default__' ? undefined : getInitials(c.name), widthPercent: 100 / cols.length, appointments: cAppts }
   })
