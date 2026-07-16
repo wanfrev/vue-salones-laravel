@@ -16,7 +16,7 @@ const emit = defineEmits<{
   goToCalendar: [appt: any]
   'update:inlineProductSearch': [value: string]
   addProduct: [product: any]
-  blur: []
+  blur: [event: FocusEvent]
   focus: []
 }>()
 
@@ -70,8 +70,7 @@ const inlineFilteredProducts = computed(() => {
           :value="inlineProductSearch"
           @input="$emit('update:inlineProductSearch', ($event.target as HTMLInputElement).value)"
           @focus="$emit('focus')"
-          @blur="$emit('blur')"
-          type="text"
+          @blur="$emit('blur', $event)"
           placeholder="Agregar producto..."
           class="w-full rounded-lg border border-border bg-surface pl-8 pr-3 py-1.5 text-xs text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
         />

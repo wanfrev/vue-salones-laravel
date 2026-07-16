@@ -1,14 +1,13 @@
 <template>
   <div class="rounded-xl border border-border bg-surface p-4">
     <h3 class="text-sm font-semibold text-text mb-2">Agregar productos</h3>
-    <div class="relative">
+    <div class="relative" ref="containerRef">
       <input
         v-model="search"
         type="text"
         placeholder="Buscar producto para añadir..."
         class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
         @focus="showDropdown = true"
-        @blur="onBlur"
       />
       <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -45,7 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 
 const props = defineProps<{
@@ -59,6 +58,7 @@ const emit = defineEmits<{
 const { formatDual } = useCurrency()
 const search = ref('')
 const showDropdown = ref(false)
+const containerRef = ref<HTMLElement | null>(null)
 
 const displayedProducts = computed(() => {
   if (!search.value) {
@@ -76,7 +76,19 @@ const addProduct = (product: any) => {
   showDropdown.value = false
 }
 
-const onBlur = () => {
-  setTimeout(() => { showDropdown.value = false }, 150)
+const handleClickOutside = (e: Event) => {
+  if (containerRef.value && !containerRef.value.contains(e.target as Node)) {
+    showDropdown.value = false
+  }
 }
+
+onMounted(() => {
+  document.addEventListener('mousedown', handleClickOutside)
+  document.addEventListener('touchstart', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('mousedown', handleClickOutside)
+  document.removeEventListener('touchstart', handleClickOutside)
+})
 </script>

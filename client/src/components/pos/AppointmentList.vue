@@ -22,7 +22,7 @@
           :show-inline-dropdown="showInlineDropdown" variant="overdue"
           @select="$emit('select', appt)" @go-to-calendar="$emit('go-to-calendar', appt)"
           @update:inline-product-search="$emit('update:inline-product-search', $event)"
-          @add-product="$emit('add-product', $event)" @blur="$emit('blur')" @focus="$emit('focus')"
+          @add-product="$emit('add-product', $event)" @blur="$emit('blur', $event)" @focus="$emit('focus')"
         />
       </div>
     </div>
@@ -41,7 +41,7 @@
           :show-inline-dropdown="showInlineDropdown" variant="upcoming"
           @select="$emit('select', appt)" @go-to-calendar="$emit('go-to-calendar', appt)"
           @update:inline-product-search="$emit('update:inline-product-search', $event)"
-          @add-product="$emit('add-product', $event)" @blur="$emit('blur')" @focus="$emit('focus')"
+          @add-product="$emit('add-product', $event)" @blur="$emit('blur', $event)" @focus="$emit('focus')"
         />
       </div>
     </div>
@@ -71,7 +71,7 @@ const emit = defineEmits<{
   'go-to-calendar': [appt: any]
   'update:inline-product-search': [value: string]
   'add-product': [product: any]
-  blur: []
+  blur: [event: FocusEvent]
   focus: []
   'update:search': [value: string]
 }>()

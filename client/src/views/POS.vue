@@ -223,7 +223,10 @@ const retailFilteredProducts = computed(() =>
 
 const addRetailProduct = (product: any) => { cartCtx.addProduct(product); retailSearchRef.value?.reset() }
 const addInlineProduct = (product: any) => { cartCtx.addProduct(product); inlineProductSearch.value = ''; showInlineDropdown.value = false }
-const onInlineBlur = () => setTimeout(() => { showInlineDropdown.value = false }, 150)
+const onInlineBlur = (e: FocusEvent) => {
+  if (!e.relatedTarget) return
+  setTimeout(() => { showInlineDropdown.value = false }, 150)
+}
 
 const selectRetailClient = (client: { id: string; full_name: string; phone: string }) => {
   retailClientId.value = client.id
