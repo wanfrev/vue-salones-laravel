@@ -101,6 +101,7 @@ const { data: citasData, isLoading, error: citasError } = useQuery({
   queryKey: computed(() => [...agendaKeys.appointments(businessId.value, currentBranchId.value), 'employee', authStore.profile?.id, toISODate(selectedDate.value)]),
   queryFn: () => listCitas(businessId.value!, dateRange.value, authStore.profile?.id, currentBranchId.value),
   enabled: computed(() => !!businessId.value && !!authStore.profile?.id),
+  staleTime: 0,
 })
 
 const citas = computed<Cita[]>(() => citasData.value ?? [])
