@@ -6,7 +6,6 @@ import { useBusinessStore } from '../../store/business'
 import { translateError } from '../../lib/errors'
 import { toYmd, resolvePeriod } from '../../lib/periodUtils'
 import { formatMethod, formatDate } from '../../lib/formatters'
-import { useCurrency } from '../common/useCurrency'
 import type { PaymentBreakdownItem } from '../../types/pos'
 import type { PaymentMethod } from '../../types/database'
 
@@ -113,8 +112,6 @@ function useFinancialSummary(
   const businessStore = useBusinessStore()
   const branchId = computed(() => businessStore.currentBranchId)
   const periodConfig = computed(() => resolvePeriod(selectedPeriod.value, selectedMonth?.value))
-  const { exchangeRate } = useCurrency()
-
   // ── Summary + KPIs ──
   const summaryQueryKey = computed(() => [
     'finanzas-summary', businessId.value, selectedPeriod.value,
@@ -144,7 +141,24 @@ function useFinancialSummary(
   const localIncomeTotal = computed(() => kpis.value.local_income ?? 0)
   const tipsTotal = computed(() => kpis.value.tips ?? 0)
   const employeePaymentsTotal = computed(() => kpis.value.total_employee_payments ?? 0)
-  const vesIncomeTotal = computed(() => incomeTotal.value * exchangeRate.value)
+  const vesIncomeTotal = computed(() => {
+    let total = 0
+    for (const tx of allTransactionsRaw.value) {
+      const breakdown = tx.breakdown
+      if (breakdown && breakdown.length > 0) {
+        for (const item of breakdown) {
+          if (item.currency === 'VES') {
+            total += item.inputAmount
+          } else {
+            total += item.amount * (tx.exchangeRateUsed || 1)
+          }
+        }
+      } else {
+        total += tx.amount * (tx.exchangeRateUsed || 1)
+      }
+    }
+    return total
+  })
 
   // ── Transactions (Cobros) ──
   const transactionsQueryKey = computed(() => [
@@ -197,7 +211,7 @@ function useFinancialSummary(
         exchangeRateUsed: Number(tx.exchange_rate_used ?? 1),
         breakdownLabel,
         breakdown,
-        primaryCurrency: isVES ? 'VES' : 'USD',
+        primaryCurrency: (isVES ? 'VES' : 'USD') as 'USD' | 'VES',
         primaryAmount: isVES && sumVES > 0 ? sumVES : serviceAmt,
         notes: tx.notes ?? null,
         tipAmount: tip,
@@ -214,7 +228,7 @@ function useFinancialSummary(
       if (groupMap.has(key)) {
         const existing = groupMap.get(key)!
         existing.amount += row.amount
-        existing.tipAmount += row.tipAmount
+        existing.tipAmount = (existing.tipAmount ?? 0) + (row.tipAmount ?? 0)
         existing.primaryAmount += row.primaryAmount
         if (!existing.employees.includes(row.employee)) existing.employees.push(row.employee)
         if (!existing.services.includes(row.service)) existing.services.push(row.service)
@@ -232,12 +246,37 @@ function useFinancialSummary(
     return Array.from(groupMap.values()).map(r => {
       const isGrouped = raw.filter(x => groupKey(x) === groupKey(r)).length > 1
       const isMixed = r.breakdown && r.breakdown.length > 1
+      const allMethods = new Set<string>()
+      let anyVES = false
+      let anyUSD = false
+      if (isGrouped) {
+        for (const x of raw) {
+          if (groupKey(x) === groupKey(r)) {
+            if (x.breakdown && x.breakdown.length > 0) {
+              for (const item of x.breakdown) {
+                allMethods.add(item.method)
+                if (item.currency === 'VES') anyVES = true
+                else anyUSD = true
+              }
+            } else {
+              allMethods.add(x.rawMethod)
+              if (['cash_ves', 'transfer', 'pago_movil', 'punto_venta'].includes(x.rawMethod)) anyVES = true
+              else anyUSD = true
+            }
+          }
+        }
+      }
+      const methodsDifferAcrossGroup = allMethods.size > 1
+      const currenciesMixed = anyVES && anyUSD
       return {
         ...r,
         employee: r.employees.filter(e => e && e !== '—').join(', ') || '—',
         service: r.services.filter(s => s).join(' + '),
-        method: isGrouped && isMixed ? 'Mixto' : r.method,
+        method: isGrouped && (isMixed || methodsDifferAcrossGroup || currenciesMixed)
+          ? 'Mixto'
+          : r.method,
         breakdownLabel: isGrouped ? '' : r.breakdownLabel,
+        breakdown: isGrouped && (methodsDifferAcrossGroup || currenciesMixed) ? null : r.breakdown,
         employees: undefined as any,
         services: undefined as any,
       }
@@ -288,21 +327,30 @@ function useFinancialSummary(
   })
 
   const productSalesDetails = computed<ProductSaleDetail[]>(() => {
-    return (productSalesData.value ?? []).map((r: any) => ({
-      id: r.id,
-      date: formatDate(r.date),
-      product: r.product ?? 'Sin producto',
-      clientName: r.client_name || undefined,
-      quantity: Number(r.quantity ?? 0),
-      unitPrice: Number(r.unit_price ?? 0),
-      total: Number(r.total ?? 0),
-      currency: 'USD' as const,
-      exchangeRateUsed: Number(r.exchange_rate_used ?? 1),
-      originalAmount: Number(r.total ?? 0) * Number(r.exchange_rate_used ?? 1),
-      isAppointmentSale: r.is_appointment_sale ?? false,
-      paymentMethod: r.payment_method ?? 'cash',
-      breakdown: r.payments_breakdown ?? null,
-    }))
+    return (productSalesData.value ?? []).map((r: any) => {
+      const breakdown = r.payments_breakdown as PaymentBreakdownItem[] | null
+      const firstBreakdown = breakdown?.[0]
+      const isVES = firstBreakdown?.currency === 'VES'
+      const rate = Number(r.exchange_rate_used ?? 1)
+      const total = Number(r.total ?? 0)
+      return {
+        id: r.id,
+        date: formatDate(r.date),
+        product: r.product ?? 'Sin producto',
+        clientName: r.client_name || undefined,
+        quantity: Number(r.quantity ?? 0),
+        unitPrice: Number(r.unit_price ?? 0),
+        total,
+        currency: isVES ? 'VES' as const : 'USD' as const,
+        exchangeRateUsed: rate,
+        originalAmount: isVES
+          ? (breakdown ? breakdown.filter(b => b.currency === 'VES').reduce((s, b) => s + Number(b.inputAmount ?? 0), 0) : total * rate)
+          : total * rate,
+        isAppointmentSale: r.is_appointment_sale ?? false,
+        paymentMethod: r.payment_method ?? 'cash',
+        breakdown: breakdown,
+      }
+    })
   })
 
   // ── Unified transactions ──
@@ -329,8 +377,18 @@ function useFinancialSummary(
 
       const tip = Number(tx.tip_amount ?? 0)
       const amt = Number(tx.total_amount ?? 0)
+      const exchangeRateUsed = Number(tx.exchange_rate_used ?? 1)
+      const breakdown = tx.payments_breakdown as PaymentBreakdownItem[] | null
       const clientLabel = tx.client_name ?? extractClientFromNotes(tx.notes) ?? 'Venta directa'
       const serviceLabel = tx.service_name ?? productNamesByTxId.get(tx.id) ?? '—'
+
+      const isVES = breakdown && breakdown.length > 0
+        ? breakdown[0].currency === 'VES'
+        : false
+      const originalAmount = isVES
+        ? (breakdown ? breakdown.filter(b => b.currency === 'VES').reduce((s, b) => s + Number(b.inputAmount ?? 0), 0) : amt * exchangeRateUsed)
+        : amt * exchangeRateUsed
+
       result.push({
         id: tx.id,
         date: formatDate(tx.paid_at),
@@ -339,11 +397,13 @@ function useFinancialSummary(
         method: formatMethod(tx.method),
         amount: amt,
         type: 'ingreso',
-        exchangeRateUsed: Number(tx.exchange_rate_used ?? 1),
+        exchangeRateUsed,
         notes: tx.notes,
         tipAmount: tip,
         source: tx.appointment_id ? 'appointment_payment' : 'direct_sale',
         sourceLabel: tx.appointment_id ? 'Cobro cita' : 'Venta directa',
+        _currency: isVES ? 'VES' : 'USD',
+        _originalAmount: isVES ? originalAmount : undefined,
       })
     }
 
@@ -368,19 +428,30 @@ function useFinancialSummary(
       const method = (ps as any).payment_method ?? 'cash'
       const breakdown = (ps as any).payments_breakdown ?? null
       const isAppointmentSale = (ps as any).is_appointment_sale ?? false
+      const exchangeRateUsed = Number((ps as any).exchange_rate_used ?? 1)
+      const total = Number((ps as any).total ?? 0)
+
+      const isVES = breakdown && breakdown.length > 0
+        ? breakdown[0].currency === 'VES'
+        : false
+      const originalAmount = isVES
+        ? (breakdown ? breakdown.filter((b: any) => b.currency === 'VES').reduce((s: number, b: any) => s + Number(b.inputAmount ?? 0), 0) : total * exchangeRateUsed)
+        : total * exchangeRateUsed
+
       result.push({
         id: 'ps-' + (ps as any).id,
         date: formatDate((ps as any).date ?? (ps as any).created_at),
         description: clientLabel ? `${clientLabel} · ${productName}` : productName,
         method: formatMethod(method),
         breakdownLabel: formatBreakdownLabel(breakdown),
-        breakdown: breakdown,
-        amount: Number((ps as any).total ?? 0),
+        amount: total,
         type: 'ingreso',
-        exchangeRateUsed: Number((ps as any).exchange_rate_used ?? 1),
+        exchangeRateUsed,
         notes: (ps as any).notes ?? null,
         source: 'product_sale',
         sourceLabel: isAppointmentSale ? 'Producto en cita' : 'Venta producto',
+        _currency: isVES ? 'VES' : 'USD',
+        _originalAmount: isVES ? originalAmount : undefined,
       })
     }
 

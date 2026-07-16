@@ -147,10 +147,14 @@ const incomeBreakdown = computed(() => {
         if (item.currency === 'VES') addIncome(item.method, 0, item.inputAmount)
         else addIncome(item.method, item.amount, 0)
       }
-    } else if (tx.exchangeRateUsed > 1) {
-      addIncome(tx.rawMethod, 0, tx.amount * tx.exchangeRateUsed)
     } else {
-      addIncome(tx.rawMethod, tx.amount, 0)
+      const method = tx.rawMethod as string
+      const isVesMethod = ['cash_ves', 'transfer', 'pago_movil', 'punto_venta'].includes(method)
+      if (isVesMethod) {
+        addIncome(tx.rawMethod, 0, tx.amount * (tx.exchangeRateUsed || 1))
+      } else {
+        addIncome(tx.rawMethod, tx.amount, 0)
+      }
     }
   }
 
