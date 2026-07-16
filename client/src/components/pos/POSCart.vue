@@ -18,7 +18,7 @@
 
       <div
         v-if="showDropdown && displayedProducts.length > 0"
-        class="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface shadow-lg overflow-hidden max-h-52 overflow-y-auto"
+        class="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface shadow-lg max-h-52 overflow-y-auto touch-pan-y overscroll-contain" style="overflow-x: clip; -webkit-overflow-scrolling: touch;"
       >
         <button
           v-for="product in displayedProducts"

@@ -25,7 +25,7 @@
 
       <Teleport to="body">
         <div v-if="open" ref="dropdownRef" :style="dropdownStyle"
-          class="absolute z-[9999] mt-1 w-full min-w-[200px] rounded-xl border border-border bg-surface shadow-lg overflow-hidden">
+          class="absolute z-[9999] mt-1 w-full min-w-[200px] rounded-xl border border-border bg-surface shadow-lg overflow-hidden" style="overflow: clip;">
           <div class="relative border-b border-border">
             <input ref="searchInputRef" v-model="search" type="text" :placeholder="searchPlaceholder"
               class="w-full border-0 bg-surface px-3 py-2 text-sm text-text outline-none placeholder:text-text-muted"
@@ -36,7 +36,7 @@
               </svg>
             </div>
           </div>
-          <div class="max-h-48 overflow-y-auto">
+          <div class="max-h-48 overflow-y-auto touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
             <button v-if="filteredOptions.length === 0" type="button" disabled
               class="w-full px-3 py-2 text-sm text-text-muted text-left">
               Sin resultados

@@ -11,7 +11,7 @@
         <Transition :enter-active-class="enterActiveClass" :enter-from-class="enterFromClass"
           :enter-to-class="enterToClass" :leave-active-class="leaveActiveClass" :leave-from-class="leaveFromClass"
           :leave-to-class="leaveToClass">
-          <div v-if="isOpen" class="fixed top-0 h-full w-full overflow-hidden bg-surface shadow-2xl sm:w-96"
+          <div v-if="isOpen" class="fixed top-0 h-full w-full overflow-hidden bg-surface shadow-2xl sm:w-96" style="overflow: clip;"
             :class="positionClasses[position]">
             <!-- Header -->
             <div class="flex items-center justify-between border-b border-border px-6 py-4">
@@ -28,7 +28,7 @@
             </div>
 
             <!-- Body -->
-            <div class="h-[calc(100%-140px)] overflow-y-auto px-6 py-4">
+            <div class="h-[calc(100%-140px)] overflow-y-auto px-6 py-4 touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
               <slot />
             </div>
 

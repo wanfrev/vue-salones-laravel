@@ -15,11 +15,11 @@
     </button>
 
     <div v-if="isOpen"
-      class="absolute left-0 top-full mt-1 w-56 rounded-xl border border-border bg-surface shadow-lg z-50 overflow-hidden">
+      class="absolute left-0 top-full mt-1 w-56 rounded-xl border border-border bg-surface shadow-lg z-50 overflow-hidden" style="overflow: clip;">
       <div class="px-3 py-2 border-b border-border">
         <p class="text-[10px] font-bold uppercase tracking-wider text-text-muted">Sucursales</p>
       </div>
-      <div class="max-h-60 overflow-y-auto py-1">
+      <div class="max-h-60 overflow-y-auto py-1 touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
         <button v-for="branch in store.branches" :key="branch.id" @click="select(branch.id)"
           class="flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors hover:bg-bg-secondary"
           :class="branch.id === store.selectedBranchId ? 'bg-primary/5 text-primary font-semibold' : 'text-text'">

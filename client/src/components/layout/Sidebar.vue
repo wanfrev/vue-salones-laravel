@@ -5,7 +5,7 @@
       isOpen ? 'z-40 translate-x-0' : 'z-40 -translate-x-full lg:z-40'
     ]"
   >
-    <nav class="flex-1 overflow-y-auto px-3 pt-4 pb-2">
+    <nav class="flex-1 overflow-y-auto px-3 pt-4 pb-2 touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
       <template v-for="section in visibleSections" :key="section.title ?? 'main'">
         <p v-if="section.title" class="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-text-muted/70">
           {{ section.title }}

@@ -30,7 +30,7 @@
                   Todos los empleados
                 </button>
                 <div class="my-1 h-px bg-border"></div>
-                <div class="max-h-64 overflow-y-auto">
+                <div class="max-h-64 overflow-y-auto touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
                   <button v-for="emp in employees" :key="emp.id"
                     @click="selectedEmployeeId = emp.id; empDropdownOpen = false"
                     class="flex items-center gap-2.5 w-full rounded-lg px-2.5 py-2 text-sm transition-colors"

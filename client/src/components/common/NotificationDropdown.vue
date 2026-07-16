@@ -13,7 +13,7 @@
       </div>
     </div>
 
-    <div class="max-h-80 overflow-y-auto">
+    <div class="max-h-80 overflow-y-auto touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
       <div v-if="notifications.length === 0" class="px-4 py-8 text-center text-sm text-text-muted">
         No hay notificaciones
       </div>

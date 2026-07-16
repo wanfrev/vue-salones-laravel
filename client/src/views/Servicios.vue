@@ -21,11 +21,11 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
           </button>
-          <div v-if="showCatMenu" class="absolute left-0 top-full mt-1 w-56 rounded-xl border border-border bg-surface shadow-lg z-50 overflow-hidden">
+          <div v-if="showCatMenu" class="absolute left-0 top-full mt-1 w-56 rounded-xl border border-border bg-surface shadow-lg z-50 overflow-hidden" style="overflow: clip;">
             <div class="px-3 py-2 border-b border-border-subtle">
               <p class="text-[10px] font-bold uppercase tracking-wider text-text-muted">Gestionar categorías</p>
             </div>
-            <div class="max-h-60 overflow-y-auto py-1">
+            <div class="max-h-60 overflow-y-auto py-1 touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
               <button
                 v-for="cat in categories.filter(c => c.id !== 'all')"
                 :key="cat.id"

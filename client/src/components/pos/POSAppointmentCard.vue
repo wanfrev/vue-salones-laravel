@@ -82,7 +82,7 @@ const inlineFilteredProducts = computed(() => {
         </div>
         <div
           v-if="showInlineDropdown && inlineFilteredProducts.length > 0"
-          class="absolute z-50 mt-1 left-0 right-0 rounded-xl border border-border bg-surface shadow-lg overflow-hidden max-h-40 overflow-y-auto"
+          class="absolute z-50 mt-1 left-0 right-0 rounded-xl border border-border bg-surface shadow-lg max-h-40 overflow-y-auto touch-pan-y overscroll-contain" style="overflow-x: clip; -webkit-overflow-scrolling: touch;"
         >
           <button
             v-for="product in inlineFilteredProducts" :key="product.id"

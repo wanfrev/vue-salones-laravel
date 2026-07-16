@@ -65,7 +65,7 @@ const onFocus = () => { if (suggestions.value.length > 0) showSuggestions.value 
       required prefix-icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" :error="error"
       @update:model-value="$emit('update:modelValue', String($event))" @blur="onBlur" @focus="onFocus" @input="onInput" />
     <div v-if="showSuggestions && suggestions.length > 0"
-      class="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface shadow-lg overflow-hidden">
+      class="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface shadow-lg overflow-hidden max-h-60 overflow-y-auto touch-pan-y overscroll-contain" style="overflow-x: clip; -webkit-overflow-scrolling: touch;">
       <button v-for="client in suggestions" :key="client.id" type="button" @mousedown.prevent="selectClient(client)"
         class="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm transition-colors hover:bg-bg-secondary border-b border-border last:border-b-0">
         <div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">

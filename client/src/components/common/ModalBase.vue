@@ -14,7 +14,7 @@
           leave-active-class="transition-all duration-200 ease-in"
           leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 translate-y-4">
           <div v-if="isOpen"
-            class="relative w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl"
+            class="relative w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl" style="overflow: clip;"
             :class="sizeClasses[size]">
             <!-- Header -->
             <div class="flex items-center justify-between border-b border-border px-6 py-4">
@@ -38,7 +38,7 @@
             </div>
 
             <!-- Body -->
-            <div class="px-6 py-4" :class="{ 'max-h-[60vh] overflow-y-auto': scrollable }">
+            <div class="px-6 py-4 touch-pan-y overscroll-contain" :class="{ 'max-h-[60vh] overflow-y-auto': scrollable }" style="-webkit-overflow-scrolling: touch;">
               <slot />
             </div>
 
