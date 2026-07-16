@@ -468,7 +468,8 @@ export const updateCitaStatus = async (
 export const updateAppointmentTime = async (
   id: string,
   startTime: string,
-  endTime: string
+  endTime: string,
+  employeeId?: string
 ): Promise<void> => {
   const { data: appt, error: findError } = await supabase
     .from('appointments')
@@ -488,18 +489,23 @@ export const updateAppointmentTime = async (
 
     const ids = (members ?? []).map((m: any) => m.id)
     for (const memberId of ids) {
+      const payload: Record<string, string> = { start_time: startTime, end_time: endTime }
+      if (employeeId && memberId === id) payload.employee_id = employeeId
       const { error } = await mutate
         .from('appointments')
-        .update({ start_time: startTime, end_time: endTime })
+        .update(payload)
         .eq('id', memberId)
       if (error) throw mapAgendaWriteError(error, 'reagendar')
     }
     return
   }
 
+  const payload: Record<string, string> = { start_time: startTime, end_time: endTime }
+  if (employeeId) payload.employee_id = employeeId
+
   const { error } = await mutate
     .from('appointments')
-    .update({ start_time: startTime, end_time: endTime })
+    .update(payload)
     .eq('id', id)
 
   if (error) throw mapAgendaWriteError(error, 'reagendar')
