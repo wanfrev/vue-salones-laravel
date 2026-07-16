@@ -201,7 +201,7 @@
                 <div v-for="appt in col.appointments" :key="appt.id"
                   class="absolute left-0.5 right-0.5 sm:left-1 sm:right-1 rounded-lg cursor-pointer overflow-hidden transition-all duration-150 hover:scale-[1.02] hover:z-10 group"
                   :class="cardBgClass(appt.status)"
-                  :style="{ top: `${appt.top}px`, height: `${Math.max(appt.height, 80)}px` }"
+                  :style="{ top: `${appt.top}px`, height: `${Math.max(appt.height, 64)}px` }"
                   :title="`${appt.clientName} · ${appt.service} · ${appt.employeeName}\n${appt.time} · ${getStatusLabel(appt.status)}`"
                   @click.stop="showDetailPopup(appt, $event)">
                   <div class="absolute left-0 top-0 bottom-0 w-[3px] sm:w-[4px]"
@@ -337,7 +337,7 @@ const { selectedEmployeeId, setDateRange, employees, loadingEmployees, services,
 // ---- Constants ----
 const START_HOUR = 7
 const END_HOUR = 21
-const HOUR_HEIGHT = 96
+const HOUR_HEIGHT = 128
 const TIME_COL_WIDTH = 40
 const totalGridHeight = (END_HOUR - START_HOUR) * HOUR_HEIGHT
 const totalHours = END_HOUR - START_HOUR
