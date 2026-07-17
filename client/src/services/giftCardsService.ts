@@ -31,7 +31,7 @@ export const saveGiftCard = async (businessId: string, form: GiftCardFormData, b
   }
 
   if (form.id) {
-    const { data, error } = await mutate
+    const { data, error } = await db
       .from('gift_cards')
       .update(payload)
       .eq('id', form.id)
@@ -41,7 +41,7 @@ export const saveGiftCard = async (businessId: string, form: GiftCardFormData, b
     return mapRowToGiftCard(data)
   }
 
-  const { data, error } = await mutate
+  const { data, error } = await db
     .from('gift_cards')
     .insert(payload)
     .select('*')
@@ -51,7 +51,7 @@ export const saveGiftCard = async (businessId: string, form: GiftCardFormData, b
 }
 
 export const deleteGiftCard = async (id: string): Promise<void> => {
-  const { error } = await mutate
+  const { error } = await db
     .from('gift_cards')
     .delete()
     .eq('id', id)

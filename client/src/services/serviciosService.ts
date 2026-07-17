@@ -107,7 +107,7 @@ export const saveServicio = async (
 }
 
 export const deleteServicio = async (id: string): Promise<void> => {
-  const { error } = await mutate
+  const { error } = await db
     .from('services')
     .delete()
     .eq('id', id)
@@ -140,7 +140,7 @@ export async function getEntityServiceCategories(businessId: string, branchId?: 
 }
 
 async function updateBusinessServiceCategories(businessId: string, categories: string[]): Promise<string[]> {
-  const { error } = await mutate
+  const { error } = await db
     .from('businesses')
     .update({ service_categories: categories } satisfies Partial<UpdateFor<'businesses'>>)
     .eq('id', businessId)
@@ -150,7 +150,7 @@ async function updateBusinessServiceCategories(businessId: string, categories: s
 }
 
 async function updateBranchServiceCategories(branchId: string, categories: string[]): Promise<string[]> {
-  const { error } = await mutate
+  const { error } = await db
     .from('branches')
     .update({ service_categories: categories } satisfies Partial<UpdateFor<'branches'>>)
     .eq('id', branchId)

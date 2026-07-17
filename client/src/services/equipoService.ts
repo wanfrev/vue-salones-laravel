@@ -88,7 +88,7 @@ export async function addBusinessArrayField(businessId: string, column: string, 
 
   const updated = [...current, value]
 
-  const { error } = await mutate
+  const { error } = await db
     .from('businesses')
     .update({ [column]: updated } satisfies Partial<UpdateFor<'businesses'>>)
     .eq('id', businessId)
@@ -114,7 +114,7 @@ export async function addBranchArrayField(branchId: string, column: string, valu
 
   const updated = [...current, value]
 
-  const { error } = await mutate
+  const { error } = await db
     .from('branches')
     .update({ [column]: updated } satisfies Partial<UpdateFor<'branches'>>)
     .eq('id', branchId)

@@ -31,7 +31,7 @@ export async function getDefaultLocation(businessId: string, branchId?: string |
   }
 
   if (!loc) {
-    const { data: newLoc, error: insertErr } = await mutate
+    const { data: newLoc, error: insertErr } = await db
       .from('inventory_locations')
       .insert({ business_id: businessId, branch_id: branchId ?? null, name: 'Principal', is_default: true })
       .select('id')
@@ -91,7 +91,7 @@ export async function getStockRecord(
 }
 
 export async function updateStockQuantity(stockId: string, newQuantity: number): Promise<void> {
-  const { error } = await mutate
+  const { error } = await db
     .from('inventory_stock')
     .update({ quantity: newQuantity })
     .eq('id', stockId)
@@ -106,7 +106,7 @@ export async function insertStockRecord(
   variantId?: string | null,
   branchId?: string | null,
 ): Promise<void> {
-  const { error } = await mutate
+  const { error } = await db
     .from('inventory_stock')
     .insert({
       business_id: businessId,
@@ -135,7 +135,7 @@ export async function recordMovement(
   },
 ): Promise<void> {
   const currentUser = db.auth?.currentUser
-  const { error } = await mutate
+  const { error } = await db
     .from('inventory_movements')
     .insert({
       business_id: businessId,

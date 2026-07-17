@@ -112,7 +112,7 @@ export function useAppointmentMutations(options: {
               if (paymentData.breakdown) {
                 const targetTxId = txRows.find(t => t.id === paymentData.transactionId)?.id ?? txRows[0]?.id
                 if (targetTxId) {
-                  const { error: breakdownError } = await mutate
+                  const { error: breakdownError } = await db
                     .from('transactions')
                     .update({ payments_breakdown: paymentData.breakdown })
                     .eq('id', targetTxId)

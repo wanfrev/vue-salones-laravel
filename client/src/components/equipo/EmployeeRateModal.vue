@@ -3,7 +3,7 @@ import { ref, watch } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { useNotification } from '../../composables/common/useNotification'
-import { api as mutate } from '../../lib/api'
+import { db } from '../../lib/api'
 
 const props = defineProps<{ show: boolean }>()
 const emit = defineEmits<{ close: [] }>()
@@ -32,7 +32,7 @@ const handleSave = async () => {
   isSaving.value = true
   try {
     const value = employeeRateInput.value == null ? null : employeeRateInput.value
-    const { error: err } = await mutate.from('businesses').update({ employee_ves_rate: value }).eq('id', bid)
+    const { error: err } = await db.from('businesses').update({ employee_ves_rate: value }).eq('id', bid)
     if (err) throw err
     businessStore.updateBusiness({ employee_ves_rate: value } as any)
     emit('close')
@@ -48,7 +48,7 @@ const handleClear = async () => {
   if (!window.confirm('¿Restablecer la tasa de empleados? Se usará la tasa global.')) return
   isSaving.value = true
   try {
-    const { error: err } = await mutate.from('businesses').update({ employee_ves_rate: null }).eq('id', bid)
+    const { error: err } = await db.from('businesses').update({ employee_ves_rate: null }).eq('id', bid)
     if (err) throw err
     businessStore.updateBusiness({ employee_ves_rate: null } as any)
     employeeRateInput.value = null

@@ -123,7 +123,7 @@ export const saveSupplier = async (
   }
 
   if (data.id) {
-    const { data: updated, error } = await mutate
+    const { data: updated, error } = await db
       .from('suppliers')
       .update(basePayload)
       .eq('id', data.id)
@@ -150,7 +150,7 @@ export const saveSupplier = async (
     }
   }
 
-  const { data: created, error } = await mutate
+  const { data: created, error } = await db
     .from('suppliers')
     .insert({
       business_id: businessId,
@@ -181,7 +181,7 @@ export const saveSupplier = async (
 }
 
 export const deleteSupplier = async (id: string): Promise<void> => {
-  const { error } = await mutate
+  const { error } = await db
     .from('suppliers')
     .update({ active: false })
     .eq('id', id)
@@ -283,7 +283,7 @@ export const createSupplierPayment = async (
     notesContent = `[VES:${parsed.data.amount}:${rate}]` + (notesContent ? ' ' + notesContent : '')
   }
 
-  const { error } = await mutate
+  const { error } = await db
     .from('supplier_payments')
     .insert({
       business_id: businessId,
@@ -300,7 +300,7 @@ export const createSupplierPayment = async (
 }
 
 export const deleteSupplierPayment = async (id: string): Promise<void> => {
-  const { error } = await mutate
+  const { error } = await db
     .from('supplier_payments')
     .delete()
     .eq('id', id)

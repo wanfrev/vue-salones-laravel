@@ -55,14 +55,14 @@ export const saveBranch = async (
 
   if (data.id) {
     if (data.isDefault) {
-      await mutate
+      await db
         .from('branches')
         .update({ is_default: false })
         .eq('business_id', businessId)
         .neq('id', data.id)
     }
 
-    const { data: updated, error } = await mutate
+    const { data: updated, error } = await db
       .from('branches')
       .update(payload)
       .eq('id', data.id)
@@ -73,13 +73,13 @@ export const saveBranch = async (
     return updated as Branch
   } else {
     if (data.isDefault) {
-      await mutate
+      await db
         .from('branches')
         .update({ is_default: false })
         .eq('business_id', businessId)
     }
 
-    const { data: created, error } = await mutate
+    const { data: created, error } = await db
       .from('branches')
       .insert(payload)
       .select('*')
@@ -91,7 +91,7 @@ export const saveBranch = async (
 }
 
 export const deleteBranch = async (id: string): Promise<void> => {
-  const { error } = await mutate
+  const { error } = await db
     .from('branches')
     .delete()
     .eq('id', id)
@@ -100,7 +100,7 @@ export const deleteBranch = async (id: string): Promise<void> => {
 }
 
 async function updateBranchCategories(branchId: string, categories: string[]): Promise<string[]> {
-  const { error } = await mutate
+  const { error } = await db
     .from('branches')
     .update({ service_categories: categories } satisfies Partial<UpdateFor<'branches'>>)
     .eq('id', branchId)

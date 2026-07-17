@@ -100,7 +100,7 @@ export const getClienteById = async (id: string): Promise<Cliente> => {
 }
 
 export const deleteCliente = async (clientId: string): Promise<void> => {
-  const { error } = await mutate
+  const { error } = await db
     .from('clients')
     .delete()
     .eq('id', clientId)

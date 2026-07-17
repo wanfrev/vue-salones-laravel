@@ -31,7 +31,7 @@ export async function ensureDefaultLocation(
   }
 
   if (!loc) {
-    const { data: newLoc, error: insertErr } = await mutate
+    const { data: newLoc, error: insertErr } = await db
       .from("inventory_locations")
       .insert({
         business_id: businessId,

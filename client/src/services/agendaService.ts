@@ -150,14 +150,14 @@ async function deleteOrphanGroupMembers(
       .eq('appointment_id', orphanId)
 
     for (const tx of (orphanTxs ?? []) as Array<{ id: string }>) {
-      const { error: txDeleteError } = await mutate
+      const { error: txDeleteError } = await db
         .from('transactions')
         .delete()
         .eq('id', tx.id)
       if (txDeleteError) throw txDeleteError
     }
 
-    const { error: delError } = await mutate
+    const { error: delError } = await db
       .from('appointments')
       .delete()
       .eq('id', orphanId)
@@ -242,7 +242,7 @@ async function saveNewGroup(
 
   for (let i = 0; i < desiredPayloads.length; i++) {
     const payload = desiredPayloads[i]
-    const { data: saved, error } = await mutate
+    const { data: saved, error } = await db
       .from('appointments')
       .insert(payload)
       .select(APPOINTMENT_SELECT)
@@ -275,7 +275,7 @@ async function updateExistingGroup(
   // Single → multi (no prior group)
   if (!targetGroupId) {
     const [primaryPayload, ...extraPayloads] = desiredPayloads
-    const { error: updatePrimaryError } = await mutate
+    const { error: updatePrimaryError } = await db
       .from('appointments')
       .update(primaryPayload)
       .eq('id', data.id)
@@ -283,7 +283,7 @@ async function updateExistingGroup(
 
     if (extraPayloads.length > 0) {
       for (const payload of extraPayloads) {
-        const { error: insertExtraError } = await mutate
+        const { error: insertExtraError } = await db
           .from('appointments')
           .insert(payload)
         if (insertExtraError) throw mapAgendaWriteError(insertExtraError, 'guardar')
@@ -306,7 +306,7 @@ async function updateExistingGroup(
     const overlap = Math.min(orderedIds.length, desiredPayloads.length)
 
     for (let i = 0; i < overlap; i++) {
-      const { error: updateError } = await mutate
+      const { error: updateError } = await db
         .from('appointments')
         .update(desiredPayloads[i])
         .eq('id', orderedIds[i])
@@ -315,7 +315,7 @@ async function updateExistingGroup(
 
     if (desiredPayloads.length > orderedIds.length) {
       for (const payload of desiredPayloads.slice(orderedIds.length)) {
-        const { error: insertError } = await mutate
+        const { error: insertError } = await db
           .from('appointments')
           .insert(payload)
         if (insertError) throw mapAgendaWriteError(insertError, 'guardar')
@@ -332,14 +332,14 @@ async function updateExistingGroup(
           .eq('appointment_id', memberId)
 
         for (const tx of (memberTxs ?? []) as Array<{ id: string }>) {
-          const { error: txDeleteError } = await mutate
+          const { error: txDeleteError } = await db
             .from('transactions')
             .delete()
             .eq('id', tx.id)
           if (txDeleteError) throw txDeleteError
         }
 
-        const { error: delError } = await mutate
+        const { error: delError } = await db
           .from('appointments')
           .delete()
           .eq('id', memberId)
@@ -447,7 +447,7 @@ export const updateCitaStatus = async (
     if (membersError) throw membersError
 
     for (const member of (members ?? []) as Array<{ id: string }>) {
-      const { error } = await mutate
+      const { error } = await db
         .from('appointments')
         .update(statusPayload)
         .eq('id', member.id)
@@ -457,7 +457,7 @@ export const updateCitaStatus = async (
     return
   }
 
-  const { error } = await mutate
+  const { error } = await db
     .from('appointments')
     .update(statusPayload)
     .eq('id', id)
@@ -491,7 +491,7 @@ export const updateAppointmentTime = async (
     for (const memberId of ids) {
       const payload: Record<string, string> = { start_time: startTime, end_time: endTime }
       if (employeeId && memberId === id) payload.employee_id = employeeId
-      const { error } = await mutate
+      const { error } = await db
         .from('appointments')
         .update(payload)
         .eq('id', memberId)
@@ -503,7 +503,7 @@ export const updateAppointmentTime = async (
   const payload: Record<string, string> = { start_time: startTime, end_time: endTime }
   if (employeeId) payload.employee_id = employeeId
 
-  const { error } = await mutate
+  const { error } = await db
     .from('appointments')
     .update(payload)
     .eq('id', id)
@@ -537,7 +537,7 @@ export const deleteCita = async (id: string): Promise<void> => {
         .eq('appointment_id', member.id)
 
       for (const tx of (transactions ?? []) as Array<{ id: string }>) {
-        const { error: txError } = await mutate
+        const { error: txError } = await db
           .from('transactions')
           .delete()
           .eq('id', tx.id)
@@ -546,7 +546,7 @@ export const deleteCita = async (id: string): Promise<void> => {
         }
       }
 
-      const { error } = await mutate
+      const { error } = await db
         .from('appointments')
         .delete()
         .eq('id', member.id)
@@ -564,7 +564,7 @@ export const deleteCita = async (id: string): Promise<void> => {
     .eq('appointment_id', id)
 
   for (const tx of (transactions ?? []) as Array<{ id: string }>) {
-    const { error: txError } = await mutate
+    const { error: txError } = await db
       .from('transactions')
       .delete()
       .eq('id', tx.id)
@@ -573,7 +573,7 @@ export const deleteCita = async (id: string): Promise<void> => {
     }
   }
 
-  const { error } = await mutate
+  const { error } = await db
     .from('appointments')
     .delete()
     .eq('id', id)

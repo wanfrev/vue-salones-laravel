@@ -108,7 +108,7 @@ export const saveProducto = async (
 }
 
 export const createProductCategory = async (businessId: string, name: string, branchId?: string | null): Promise<ProductCategory> => {
-  const { data, error } = await mutate
+  const { data, error } = await db
     .from('product_categories')
     .insert({ business_id: businessId, branch_id: branchId ?? null, name: name.trim() })
     .select('*')
@@ -119,7 +119,7 @@ export const createProductCategory = async (businessId: string, name: string, br
 }
 
 export const deleteProducto = async (id: string): Promise<void> => {
-  const { error } = await mutate
+  const { error } = await db
     .from('products')
     .update({ active: false })
     .eq('id', id)
@@ -128,7 +128,7 @@ export const deleteProducto = async (id: string): Promise<void> => {
 }
 
 export const deleteProductoPermanently = async (id: string): Promise<void> => {
-  const { error } = await mutate
+  const { error } = await db
     .from('products')
     .delete()
     .eq('id', id)
