@@ -6,7 +6,6 @@ use App\Models\InventoryLocation;
 use App\Models\InventoryMovement;
 use App\Models\InventoryStock;
 use App\Models\Transaction;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -76,7 +75,7 @@ class InventoryService
         $stock->delete();
     }
 
-    public function index(string $businessId, ?string $branchId = null, ?string $productId = null, ?string $locationId = null, int $perPage = 50): LengthAwarePaginator
+    public function index(string $businessId, ?string $branchId = null, ?string $productId = null, ?string $locationId = null): Collection
     {
         $query = InventoryStock::with(['product', 'location'])
             ->where('business_id', $businessId);
@@ -95,7 +94,7 @@ class InventoryService
             $query->where('location_id', $locationId);
         }
 
-        return $query->paginate($perPage)->through(function ($stock) {
+        return $query->limit(200)->get()->map(function ($stock) {
             $data = $stock->toArray();
             $data['products'] = $stock->product ? [
                 'name' => $stock->product->name,
@@ -116,11 +115,11 @@ class InventoryService
         ?string $endDate = null,
         ?string $referenceType = null,
         ?string $referenceId = null,
-        int $perPage = 50,
-    ): LengthAwarePaginator {
+    ): Collection {
         $query = InventoryMovement::with(['product', 'client'])
             ->where('business_id', $businessId)
-            ->orderByDesc('created_at');
+            ->orderByDesc('created_at')
+            ->limit(200);
 
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
@@ -133,7 +132,7 @@ class InventoryService
         if ($referenceType) $query->where('reference_type', $referenceType);
         if ($referenceId) $query->where('reference_id', $referenceId);
 
-        return $query->paginate($perPage)->through(function ($movement) {
+        return $query->get()->map(function ($movement) {
             $data = $movement->toArray();
             $data['products'] = $movement->product ? ['id' => $movement->product->id, 'name' => $movement->product->name, 'unit_price' => (float) ($movement->product->unit_price ?? 0)] : null;
             $data['clients'] = $movement->client ? ['full_name' => $movement->client->full_name] : null;
