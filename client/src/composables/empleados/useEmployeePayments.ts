@@ -58,7 +58,7 @@ export function useEmployeePayments(
     const profileRate = p.employee_profile?.employee_ves_rate
     const empRate = profileRate != null && Number(profileRate) > 0 ? Number(profileRate) : null
     const businessEmpRate = businessStore.employeeExchangeRate
-    const fallbackRate = empRate ?? (businessEmpRate != null ? businessEmpRate : exchangeRate.value)
+    const fallbackRate = empRate ?? (businessEmpRate != null ? businessEmpRate : null)
     return {
       id: p.id,
       employeeId: p.employee_id,
@@ -80,16 +80,19 @@ export function useEmployeePayments(
     payments.value.filter(p => p.type === 'payment'),
   )
 
-  // ── All payments (unfiltered, for Nómina table) ──
+  // ── All payments (current year, for Nómina table) ──
+  const defaultYearStart = computed(() => `${new Date().getFullYear()}-01-01`)
+  const defaultYearEnd = computed(() => `${new Date().getFullYear()}-12-31`)
   const { data: allPaymentsData } = useQuery({
     queryKey: computed(() => [
       ...employeePaymentKeys.all(businessId.value),
       'all', branchId.value,
+      defaultYearStart.value,
     ]),
     queryFn: () => listEmployeePayments(
       businessId.value!,
-      undefined,
-      undefined,
+      defaultYearStart.value,
+      defaultYearEnd.value,
       branchId.value,
     ),
     enabled: computed(() => !!businessId.value),
@@ -100,7 +103,7 @@ export function useEmployeePayments(
     const profileRate = p.employee_profile?.employee_ves_rate
     const empRate = profileRate != null && Number(profileRate) > 0 ? Number(profileRate) : null
     const businessEmpRate = businessStore.employeeExchangeRate
-    const fallbackRate = empRate ?? (businessEmpRate != null ? businessEmpRate : exchangeRate.value)
+    const fallbackRate = empRate ?? (businessEmpRate != null ? businessEmpRate : null)
     return {
       id: p.id,
       employeeId: p.employee_id,
@@ -281,11 +284,14 @@ export function useEmployeePayments(
         : createEmployeePayment(businessId.value!, payload)
     },
     onSuccess: async () => {
+      const empId = paymentForm.value.employeeId
       await Promise.allSettled([
         queryClient.invalidateQueries({ queryKey: employeePaymentKeys.all(businessId.value), exact: false }),
         queryClient.invalidateQueries({ queryKey: ['employee-debt'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['employee-balance'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['finanzas-summary'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['employee-payment-history', businessId.value, empId], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['employee-earnings', businessId.value, empId], exact: false }),
       ])
       success('Pago registrado')
       closePaymentModal()
@@ -314,11 +320,14 @@ export function useEmployeePayments(
       return createEmployeeConsumption(businessId.value!, payload)
     },
     onSuccess: async () => {
+      const empId = consumptionForm.value.employeeId
       await Promise.allSettled([
         queryClient.invalidateQueries({ queryKey: employeePaymentKeys.all(businessId.value), exact: false }),
         queryClient.invalidateQueries({ queryKey: ['employee-debt'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['employee-balance'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['finanzas-summary'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['employee-payment-history', businessId.value, empId], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['employee-earnings', businessId.value, empId], exact: false }),
       ])
       success('Consumo registrado')
       closeConsumptionModal()

@@ -254,7 +254,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
@@ -408,7 +408,26 @@ const payInfo = computed(() => {
   const freq = (profile as any).salary_frequency ?? 'monthly'
   const freqMap: Record<string, string> = { weekly: 'semanal', biweekly: 'quincenal', monthly: 'mensual' }
   const frequencyLabel = freqMap[freq] ?? 'mensual'
-  return { type, percentage, baseSalary, typeLabel, frequencyLabel }
+  return { type, percentage, baseSalary, typeLabel, frequencyLabel, frequencyRaw: freq }
+})
+
+const baseSalaryForPeriod = computed(() => {
+  const info = payInfo.value
+  if (!info || (info.type !== 'salary' && info.type !== 'mixed')) return 0
+  if (selectedPeriod.value === 'all') return 0
+
+  let daysInFrequency = 30
+  if (info.frequencyRaw === 'weekly') daysInFrequency = 7
+  else if (info.frequencyRaw === 'biweekly') daysInFrequency = 15
+
+  const dailyRate = info.baseSalary / daysInFrequency
+  const start = periodStart.value
+  const end = periodEnd.value
+  const diffTime = Math.abs(end.getTime() - start.getTime())
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  const proportionalDays = selectedPeriod.value === 'month' ? daysInFrequency : diffDays
+
+  return Number((dailyRate * proportionalDays).toFixed(2))
 })
 
 const initials = computed(() => getInitials(authStore.profile?.full_name))
@@ -425,7 +444,7 @@ const dateParams = computed(() => selectedPeriod.value !== 'all'
   : { start: undefined, end: undefined }
 )
 
-const { data: earningsData, isLoading: loadingEarnings, refetch: refetchEarnings } = useQuery({
+const { data: earningsData, isLoading: loadingEarnings } = useQuery({
   queryKey: computed(() => dashboardKeys.earnings(businessId.value, employeeId.value, branchId.value, dateParams.value.start, dateParams.value.end)),
   queryFn: () => listEmployeeTransactions(businessId.value!, employeeId.value!, branchId.value, dateParams.value.start, dateParams.value.end),
   enabled: computed(() => !!businessId.value && !!employeeId.value),
@@ -435,7 +454,7 @@ const earnings = computed(() => earningsData.value ?? [])
 
 const earningsWithVES = computed(() =>
   earnings.value.map(row => {
-    const rate = row.exchangeRateUsed || employeeRate.value
+    const rate = row.exchangeRateUsed || activeRate.value
     const isVES = row.currency === 'VES'
     const vesTotal = isVES ? row.totalAmount * row.exchangeRateUsed : row.totalAmount * rate
     const vesEarnings = isVES ? row.employeeEarnings * row.exchangeRateUsed : row.employeeEarnings * rate
@@ -468,14 +487,11 @@ const totalTip = computed(() =>
 )
 
 const totalEarned = computed(() => {
-  const info = payInfo.value
   let total = 0
   for (const r of earnings.value) {
     total += r.employeeEarnings
   }
-  if (info && (info.type === 'salary' || info.type === 'mixed')) {
-    total += info.baseSalary
-  }
+  total += baseSalaryForPeriod.value
   return total.toFixed(2)
 })
 
@@ -483,7 +499,7 @@ const totalEarnedVES = computed(() =>
   formatEmployeeVES(Number(totalEarned.value))
 )
 
-const { data: paymentsData, refetch: refetchPayments } = useQuery({
+const { data: paymentsData } = useQuery({
   queryKey: computed(() => dashboardKeys.payments(businessId.value, employeeId.value, branchId.value, dateParams.value.start, dateParams.value.end)),
   queryFn: () => listEmployeePayments(businessId.value!, employeeId.value!, branchId.value, dateParams.value.start, dateParams.value.end),
   enabled: computed(() => !!businessId.value && !!employeeId.value),
@@ -491,6 +507,12 @@ const { data: paymentsData, refetch: refetchPayments } = useQuery({
 })
 const payments = computed(() => paymentsData.value ?? [])
 const { formatUSD, formatVESEs, employeeRate } = useCurrency()
+
+const activeRate = computed(() => {
+  return businessStore.employeeExchangeRate != null && businessStore.employeeExchangeRate > 0
+    ? businessStore.employeeExchangeRate
+    : employeeRate.value
+})
 
 const rateLabel = computed(() => {
   if (businessStore.employeeExchangeRate != null) {
@@ -500,7 +522,7 @@ const rateLabel = computed(() => {
 })
 
 const formatEmployeeVES = (usdValue: number): string => {
-  return formatVESEs(usdValue * employeeRate.value)
+  return formatVESEs(usdValue * activeRate.value)
 }
 
 const filteredPayments = computed(() => {
@@ -528,9 +550,7 @@ const paymentsWithCurrency = computed(() => {
       }
     }
     const usdAmount = Number(p.amount)
-    // Use historical exchange rate if available, otherwise use current employee rate or global rate
-    const historicalRate = p.exchange_rate_used
-    const rateToUse = historicalRate || employeeRate.value
+    const rateToUse = p.exchange_rate_used || activeRate.value
     const displayVES = currency === 'VES' ? formatVESEs(originalAmount) : `${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(usdAmount * rateToUse)} Bs`
     const displayAmount = currency === 'VES' ? formatVESEs(originalAmount) : formatUSD(usdAmount)
     return {
@@ -629,13 +649,6 @@ const historyMonths = computed(() => {
 const windowPrint = () => {
   window.print()
 }
-
-onMounted(async () => {
-  await Promise.all([
-    refetchEarnings(),
-    refetchPayments(),
-  ])
-})
 </script>
 
 <style scoped>
