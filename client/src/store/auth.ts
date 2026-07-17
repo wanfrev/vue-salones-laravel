@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import type { Session, User, AuthChangeEvent } from '@supabase/supabase-js'
 import { db, getAuthToken } from '../lib/api'
+import type { ApiSession as Session, ApiUser as User } from '../lib/api'
 import { queryClient } from '../queryClient'
 import { useBusinessStore } from './business'
 import type { Role } from '../constants/roles'
@@ -159,7 +159,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       if (authUnsubscribe) authUnsubscribe()
-      const { data: subData } = db.auth.onAuthStateChange(async (_event: AuthChangeEvent, nextSession: Session | null) => {
+      const { data: subData } = db.auth.onAuthStateChange(async (_event: string, nextSession: Session | null) => {
         session.value = nextSession
         user.value = nextSession?.user ?? null
 

@@ -148,7 +148,7 @@ export async function recordMovement(
       unit_cost: params.unitCost ?? 0,
       exchange_rate_used: params.exchangeRate ?? 1,
       notes: params.notes,
-      created_by: supabaseUser?.id ?? null,
+      created_by: currentUser?.id ?? null,
       client_id: params.clientId ?? null,
     })
   if (error) throw error
