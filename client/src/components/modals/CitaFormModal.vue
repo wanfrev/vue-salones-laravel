@@ -220,7 +220,28 @@ const serviceRows = computed<CitaFormServiceItem[]>(() => {
 })
 
 const addServiceRow = () => formData.value.extraServices.push(emptyServiceRow())
-const removeServiceRow = (index: number) => { const ei = index - 1; if (ei >= 0 && ei < formData.value.extraServices.length) { formData.value.extraServices.splice(ei, 1); activeEmployeeOverrides.delete(index); commissionDetailOpen.delete(index) } }
+const removeServiceRow = (index: number) => {
+  if (index === 0) {
+    if (formData.value.extraServices.length === 0) return
+    const next = formData.value.extraServices.shift()!
+    formData.value.service = next.serviceId
+    formData.value.employee = next.employeeId
+    formData.value.assistantEmployee = next.assistantEmployeeId
+    formData.value.assistantPercentage = next.assistantPercentage
+    formData.value.employeePercentageOverride = next.employeePercentageOverride
+    formData.value.duration = next.duration
+    formData.value.price = next.price
+    activeEmployeeOverrides.clear()
+    commissionDetailOpen.clear()
+  } else {
+    const ei = index - 1
+    if (ei >= 0 && ei < formData.value.extraServices.length) {
+      formData.value.extraServices.splice(ei, 1)
+      activeEmployeeOverrides.delete(index)
+      commissionDetailOpen.delete(index)
+    }
+  }
+}
 
 const updateServiceRow = (index: number, field: keyof CitaFormServiceItem, value: string) => {
   const set = (target: any, f: string, v: any) => {
