@@ -26,13 +26,13 @@
       </button>
 
       <Transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
-        <div v-if="isOpen" class="absolute left-0 top-full z-50 mt-1.5 w-auto min-w-[260px] max-w-[400px] rounded-xl border border-border bg-surface p-1.5 shadow-xl max-h-64 overflow-hidden flex flex-col" style="overflow: clip;">
+         <div v-if="isOpen" class="absolute left-0 top-full z-50 mt-1.5 w-auto min-w-[260px] max-w-[400px] rounded-xl border border-border bg-surface p-1.5 shadow-xl max-h-56 overflow-y-auto flex flex-col">
           <div v-if="searchable && options.length > 3" class="px-2 py-1.5 mb-1">
             <input v-model="searchQuery" type="text" placeholder="Buscar..."
               class="w-full rounded-lg border border-border bg-bg px-3 py-1.5 text-sm text-text outline-none placeholder:text-text-muted focus:border-primary focus:ring-1 focus:ring-primary/20"
               @click.stop ref="searchInputRef" />
           </div>
-          <div class="overflow-y-auto flex-1 min-h-0 touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
+          <div class="flex-1 min-h-0">
             <button v-if="!required && !placeholder" type="button" @click="selectOption('')"
               class="flex items-center gap-2.5 w-full rounded-lg px-2.5 py-2 text-sm transition-colors"
               :class="modelValue === '' ? 'bg-primary/10 text-primary font-medium' : 'text-text hover:bg-bg-secondary'">
