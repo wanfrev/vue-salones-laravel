@@ -18,7 +18,7 @@ class BusinessContext
 
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
+        return $this->role === 'admin' || $this->role === 'encargado';
     }
 
     public function isEmployee(): bool
