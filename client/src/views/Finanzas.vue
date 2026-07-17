@@ -28,6 +28,14 @@
           </button>
           <button type="button" class="rounded-md border border-border px-2 py-1 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text whitespace-nowrap ml-0.5" @click="resetToCurrent">Ahora</button>
         </div>
+        <ExchangeRateCard
+          :is-editable="rateCtx.isEditable.value"
+          :edit-rate-value="rateCtx.editRateValue.value"
+          :updating-rate="rateCtx.updatingRate.value"
+          :display-rate="rateCtx.displayRate.value"
+          @update:edit-rate-value="rateCtx.editRateValue.value = $event"
+          @update-rate="rateCtx.handleUpdate"
+        />
       </div>
     </div>
     <!-- Main tabs -->
@@ -90,6 +98,8 @@ import RecentTransactionsCard from '../components/finanzas/RecentTransactionsCar
 import DetailMovimientos from '../components/finanzas/DetailMovimientos.vue'
 import EditCobroModal from '../components/finanzas/EditCobroModal.vue'
 import CobroActionsModal from '../components/finanzas/CobroActionsModal.vue'
+import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
+import { useExchangeRate } from '../composables/finanzas/useExchangeRate'
 import { useQueryClient } from '@tanstack/vue-query'
 import { db } from '../lib/api'
 import { APPOINTMENT_SELECT } from '../services/agendaService'
@@ -104,6 +114,7 @@ const { authStore } = useAuth()
 const { formatUSD, formatVESInline } = useCurrency()
 const businessStore = useBusinessStore()
 const router = useRouter()
+const rateCtx = useExchangeRate()
 
 const { selectedPeriod, selectedMonth, resetToCurrent, goPrev, goNext, displayLabel, periods } = usePeriodSelection()
 const businessId = computed(() => authStore.businessId)
