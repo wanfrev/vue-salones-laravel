@@ -46,7 +46,7 @@
 
   <!-- TAB 1: Resumen -->
   <template v-if="activeTab === 'resumen'">
-    <div class="mb-4">
+    <div v-if="!isEncargadoRole" class="mb-4">
       <KpiCards :income-total="incomeTotal" :ves-income-total="vesIncomeTotal" :tips-total="summaryCtx.tipsTotal" :expense-total="expenseTotal" :net-total="netTotal" :margin="marginTotal" :active-card="activeCard" :is-loading="summaryCtx.isLoading.value" @click-income="toggleCard('income')" @click-expense="toggleCard('expense')" @click-net="toggleCard('net')" />
     </div>
     <Transition name="accordion">
@@ -109,12 +109,14 @@ import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import { translateError } from '../lib/errors'
 import { formatMethod } from '../lib/formatters'
 import { useNotification } from '../composables/common/useNotification'
+import { isEncargado } from '../constants/roles'
 
 const { authStore } = useAuth()
 const { formatUSD, formatVESInline } = useCurrency()
 const businessStore = useBusinessStore()
 const router = useRouter()
 const rateCtx = useExchangeRate()
+const isEncargadoRole = computed(() => isEncargado(authStore.role ?? undefined))
 
 const { selectedPeriod, selectedMonth, resetToCurrent, goPrev, goNext, displayLabel, periods } = usePeriodSelection()
 const businessId = computed(() => authStore.businessId)
