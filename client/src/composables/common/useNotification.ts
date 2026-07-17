@@ -7,16 +7,22 @@ export interface Notification {
   type: NotificationType
   message: string
   duration?: number
+  progress: number
 }
 
 const notifications = ref<Notification[]>([])
 let idCounter = 0
 
 export function useNotification() {
-  const show = (message: string, type: NotificationType = 'info', duration: number = 3000) => {
+  const show = (message: string, type: NotificationType = 'info', duration: number = 4000) => {
     const id = `notification-${++idCounter}`
-    const notification: Notification = { id, type, message, duration }
+    const notification: Notification = { id, type, message, duration, progress: 100 }
     notifications.value.push(notification)
+
+    requestAnimationFrame(() => {
+      const n = notifications.value.find(x => x.id === id)
+      if (n) n.progress = 0
+    })
 
     if (duration > 0) {
       setTimeout(() => {

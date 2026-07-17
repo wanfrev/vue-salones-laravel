@@ -1,37 +1,57 @@
 <template>
   <Teleport to="body">
-    <div class="fixed bottom-4 right-4 z-[100] flex flex-col gap-2">
-      <TransitionGroup name="toast">
-        <div v-for="n in notifications" :key="n.id" :class="[
-          'pointer-events-auto flex items-center gap-3 rounded-xl border px-4 py-3 shadow-lg transition-all duration-300',
-          bgClass(n.type),
-        ]">
-          <svg v-if="n.type === 'success'" class="h-5 w-5 shrink-0 text-success" fill="none" viewBox="0 0 24 24"
-            stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <svg v-else-if="n.type === 'error'" class="h-5 w-5 shrink-0 text-danger" fill="none" viewBox="0 0 24 24"
-            stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <svg v-else-if="n.type === 'warning'" class="h-5 w-5 shrink-0 text-warning" fill="none" viewBox="0 0 24 24"
-            stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <svg v-else class="h-5 w-5 shrink-0 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <p class="text-sm font-medium text-text">{{ n.message }}</p>
-          <button @click="remove(n.id)"
-            class="ml-2 shrink-0 rounded-lg p-1 text-text-muted transition-theme hover:bg-bg-secondary">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+    <div class="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 max-w-sm w-full pointer-events-none">
+      <TransitionGroup name="toast-slide">
+        <div
+          v-for="n in notifications"
+          :key="n.id"
+          class="pointer-events-auto relative overflow-hidden rounded-xl border bg-zinc-950/85 backdrop-blur-md px-4 py-3.5 shadow-2xl shadow-black/80 flex items-center gap-3 transition-all duration-300"
+          :class="n.type === 'error' || n.type === 'warning'
+            ? 'border-[#f38ba8]/20 shadow-[#f38ba8]/5'
+            : 'border-[var(--color-primary)]/20 shadow-[var(--color-primary)]/5'"
+        >
+          <div
+            class="absolute left-0 top-0 bottom-0 w-[3px]"
+            :class="n.type === 'error' || n.type === 'warning'
+              ? 'bg-[#f38ba8]'
+              : 'bg-[var(--color-primary)]'"
+          />
+
+          <div
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+            :class="n.type === 'error' || n.type === 'warning'
+              ? 'bg-[#f38ba8]/10 text-[#f38ba8]'
+              : 'bg-[var(--color-primary)]/10 text-[var(--color-primary)]'"
+          >
+            <svg v-if="n.type === 'success' || n.type === 'info'" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+
+          <div class="flex-1 min-w-0 pr-2">
+            <p class="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+              {{ n.type === 'error' ? 'Error' : n.type === 'warning' ? 'Advertencia' : n.type === 'success' ? 'Completado' : 'Información' }}
+            </p>
+            <p class="text-sm font-medium text-white truncate mt-0.5">{{ n.message }}</p>
+          </div>
+
+          <button
+            @click="remove(n.id)"
+            class="h-6 w-6 rounded-md flex items-center justify-center text-zinc-500 hover:text-white hover:bg-white/5 transition-all duration-200"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
+
+          <div
+            class="absolute bottom-0 left-0 h-[1.5px] transition-all ease-linear"
+            :class="n.type === 'error' || n.type === 'warning' ? 'bg-[#f38ba8]/40' : 'bg-[var(--color-primary)]/40'"
+            :style="{ width: n.progress + '%', transitionDuration: n.duration + 'ms' }"
+          />
         </div>
       </TransitionGroup>
     </div>
@@ -42,29 +62,18 @@
 import { useNotification } from '../../composables/common/useNotification'
 
 const { notifications, remove } = useNotification()
-
-const bgClass = (type: string) => {
-  switch (type) {
-    case 'success': return 'border-success/20 bg-success/5'
-    case 'error': return 'border-danger/20 bg-danger/5'
-    case 'warning': return 'border-warning/20 bg-warning/5'
-    default: return 'border-info/20 bg-info/5'
-  }
-}
 </script>
 
 <style scoped>
-.toast-enter-from {
+.toast-slide-enter-from {
   opacity: 0;
-  transform: translateX(100%);
+  transform: translateY(20px) scale(0.95);
 }
-
-.toast-leave-to {
+.toast-slide-leave-to {
   opacity: 0;
-  transform: translateX(100%);
+  transform: translateY(-10px) scale(0.95);
 }
-
-.toast-leave-active {
+.toast-slide-leave-active {
   position: absolute;
 }
 </style>
