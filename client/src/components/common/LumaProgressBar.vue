@@ -1,6 +1,6 @@
 <template>
   <div class="absolute top-0 left-0 right-0 h-[2px] w-full bg-transparent overflow-hidden z-50">
-    <div class="h-full bg-[#8da47e] rounded-full animate-infinite-loading" />
+    <div class="h-full rounded-full animate-infinite-loading" style="background: var(--color-primary)" />
   </div>
 </template>
 
