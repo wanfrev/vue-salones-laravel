@@ -89,7 +89,10 @@ async function apiFetch<T>(
     }
 
     const data = (await res.json()) as T
-    return { data, error: null }
+    const unwrapped = (data && typeof data === 'object' && 'current_page' in data && Array.isArray((data as any).data))
+      ? (data as any).data
+      : data
+    return { data: unwrapped, error: null }
   } catch (err) {
     return {
       data: null,
