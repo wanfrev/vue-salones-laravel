@@ -111,7 +111,7 @@ import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
 import { useNotification } from '../composables/common/useNotification'
 import { useBusinessStore } from '../store/business'
-import { listPendingAppointments, listSaleableProducts, posKeys, groupPendingAppointments, recordSale } from '../services/posService'
+import { listPendingAppointments, listSaleableProducts, posKeys, groupPendingAppointments } from '../services/posService'
 import { searchClients } from '../services/clientesService'
 import { listServicios } from '../services/serviciosService'
 import { listEquipo } from '../services/equipoService'
@@ -150,7 +150,6 @@ const activeSaleType = ref<'appointment' | 'retail_only'>('appointment')
 const selectedAppointment = ref<any>(null)
 const queryError = ref<string | null>(null)
 const appointmentSearch = ref('')
-const retailProcessing = ref(false)
 const inlineProductSearch = ref('')
 const showInlineDropdown = ref(false)
 const showTipAdjust = ref(false)
@@ -287,7 +286,7 @@ const splitRemaining = computed(() =>
     ? Math.max(0, grandTotal.value - paymentCtx.paymentsBreakdown.value.reduce((sum: number, s: any) => sum + (s.currency === 'VES' ? (s.inputAmount || 0) / exchangeRate.value : (s.inputAmount || 0)), 0))
     : 0
 )
-const isProcessing = computed(() => paymentCtx.isProcessing.value || retailProcessing.value)
+const isProcessing = computed(() => paymentCtx.isProcessing.value)
 const canPay = computed(() => {
   if (grandTotal.value <= 0) return false
   if (activeSaleType.value !== 'retail_only' && paymentCtx.tipAmount.value > 0 && tipParticipants.value.length > 0 && Math.abs(tipRemaining.value) >= 0.01) return false
@@ -331,102 +330,22 @@ const startRetailOnly = () => { selectedAppointment.value = null; activeSaleType
 const setTipAllocation = (employeeId: string, value: number) => { tipManual.value = true; tipAllocations.value = { ...tipAllocations.value, [employeeId]: Math.max(0, Number(value || 0)) } }
 
 const handleRetailPayment = async () => {
-  if (retailProcessing.value || cartCtx.cart.value.length === 0) return
-  retailProcessing.value = true
-  try {
-    const ok = await paymentCtx.processDirectSale(
-      cartCtx.productsTotal.value,
-      cartCtx.cart.value,
-      exchangeRate.value,
-      formatDual,
-      retailClientId.value,
-    )
-    if (ok) { cartCtx.clearCart(); paymentCtx.reset() }
-  } finally { retailProcessing.value = false }
-}
-
-const handleGroupPayment = async (appt: any) => {
-  const groupIds: string[] = appt.groupIds
-  const members: any[] = appt.members ?? []; const groupPrice: number = appt.groupPrice
-  const products = cartCtx.cart.value; const method = paymentCtx.paymentMethod.value
-  const serviceTotal = servicePrice.value; const productsTotal = cartCtx.productsTotal.value
-  if (groupPrice <= 0 || !members.length) { showError('Precio inválido'); return }
-
-  paymentCtx.isProcessing.value = true
-  try {
-    const exchangeRt = exchangeRate.value; const notes = paymentCtx.paymentNotes.value
-    const breakdownSource = paymentCtx.paymentsBreakdown.value
-    const pMethodObj = paymentCtx.paymentMethods.find((m: any) => m.value === method)
-    const paymentCurrency = (pMethodObj?.currency as string) ?? paymentCtx.otherCurrency.value
-
-    let remainingService = serviceTotal
-    const employeeTotalPrice = new Map<string, number>()
-    for (const m of members) { if (m.employeeId) employeeTotalPrice.set(m.employeeId, (employeeTotalPrice.get(m.employeeId) ?? 0) + m.price) }
-
-    for (let i = 0; i < groupIds.length; i++) {
-      const isLast = i === groupIds.length - 1; const proportion = members[i].price / groupPrice
-      const serviceShare = isLast ? Math.max(0, Math.round(remainingService * 100) / 100) : Math.round(serviceTotal * proportion * 100) / 100
-      if (!isLast) remainingService -= serviceShare
-
-      const memberAmount = i === 0 ? serviceShare + productsTotal : serviceShare
-      const amountWithoutProducts = serviceShare
-      const productsForThis = i === 0 ? productsTotal : 0
-      const employeeId = members[i]?.employeeId
-      const fullTip = employeeId ? (tipAllocations.value[employeeId] ?? 0) : 0
-      const memberServices = members.filter(m => m.employeeId === employeeId).length
-      const memberTip = Number(((memberServices > 0 ? fullTip / memberServices : 0)).toFixed(2))
-
-      let memberBreakdown: any[]
-      if (method !== 'mixed') {
-        memberBreakdown = [{
-          method,
-          inputAmount: paymentCurrency === 'VES' ? memberAmount * exchangeRt : memberAmount,
-          currency: paymentCurrency,
-          amount: memberAmount,
-        }]
-      } else {
-        const grand = grandTotal.value || 1
-        memberBreakdown = breakdownSource.map((item: any) => ({
-          ...item,
-          inputAmount: (memberAmount / grand) * item.inputAmount,
-          amount: (memberAmount / grand) * item.amount,
-        }))
-      }
-
-      const saleParams = {
-        appointmentId: groupIds[i],
-        serviceAmount: i === 0 ? amountWithoutProducts : memberAmount,
-        amount: memberAmount,
-        productsAmount: i === 0 ? productsForThis : 0,
-        method: method as PaymentMethod,
-        products: i === 0 ? products : [],
-        notes,
-        exchangeRate: exchangeRt,
-        paymentsBreakdown: memberBreakdown as any,
-        businessId: businessId.value!,
-        branchId: branchId.value,
-        tipAmount: memberTip,
-      }
-      await recordSale(saleParams)
-    }
-    showSuccess(`Cobro registrado correctamente`); selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset()
-    await Promise.allSettled([
-      queryClient.invalidateQueries({ exact: false, queryKey: ['pos-pending'] }),
-      queryClient.invalidateQueries({ exact: false, queryKey: ['inventario'] }),
-      queryClient.invalidateQueries({ exact: false, queryKey: ['appointments'] }),
-      queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
-      queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
-      queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
-      queryClient.invalidateQueries({ exact: false, queryKey: ['expenses'] }),
-      queryClient.invalidateQueries({ exact: false, queryKey: ['supplier-payments'] }),
-    ])
-    await Promise.allSettled([
-      queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
-      queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-summary'] }),
-      queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
-    ])
-  } catch (err: any) { showError(err?.message ?? 'Error al procesar pago') }
-  finally { paymentCtx.isProcessing.value = false }
+  if (isProcessing.value || cartCtx.cart.value.length === 0) return
+  const ok = await paymentCtx.processDirectSale({
+    totalAmount: cartCtx.productsTotal.value,
+    products: cartCtx.cart.value,
+    exchangeRate: exchangeRate.value,
+    clientId: retailClientId.value,
+  })
+  if (ok) {
+    cartCtx.clearCart()
+    paymentCtx.reset()
+    retailProductSearch.value = ''
+    retailClientSearch.value = ''
+    retailClientId.value = null
+    retailClientSuggestions.value = []
+    retailSearchRef.value?.reset()
+  }
 }
 
 const showConfirmModal = ref(false)
@@ -439,8 +358,19 @@ const confirmPayment = async () => {
   if (activeSaleType.value === 'retail_only') { await handleRetailPayment(); return }
   if (!selectedAppointment.value) return
   const appt = selectedAppointment.value
-  if (appt.isGroup && appt.groupIds?.length > 1) { await handleGroupPayment(appt); return }
-  const ok = await paymentCtx.processPayment(appt.id, servicePrice.value, cartCtx.cart.value, exchangeRate.value, formatDual, normalizedTipAllocations.value, cartCtx.productsTotal.value)
+  const ok = await paymentCtx.processPayment({
+    appointmentId: appt.id,
+    serviceAmount: servicePrice.value,
+    products: cartCtx.cart.value,
+    exchangeRate: exchangeRate.value,
+    tipAmount: paymentCtx.tipAmount.value,
+    productsAmount: cartCtx.productsTotal.value,
+    isGroup: !!(appt.isGroup && appt.groupIds?.length > 1),
+    groupIds: appt.groupIds,
+    members: appt.members,
+    groupPrice: appt.groupPrice,
+    tipAllocations: tipAllocations.value,
+  })
   if (ok) { selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset() }
 }
 

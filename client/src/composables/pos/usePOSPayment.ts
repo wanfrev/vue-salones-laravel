@@ -5,7 +5,7 @@ import { useNotification } from '../common/useNotification'
 import { useBusinessStore } from '../../store/business'
 import { recordSale, recordDirectSale, posKeys } from '../../services/posService'
 import type { PaymentMethod } from '../../types/database'
-import type { POSProductItem, PaymentBreakdownItem, TipAllocationItem } from '../../types/pos'
+import type { POSProductItem, PaymentBreakdownItem } from '../../types/pos'
 
 export function usePOSPayment() {
   const { authStore } = useAuth()
@@ -19,7 +19,6 @@ export function usePOSPayment() {
   const otherCurrency = ref<'USD' | 'VES'>('USD')
   const paymentNotes = ref('')
   const tipAmount = ref(0)
-  const isProcessing = ref(false)
   const paymentsBreakdown = ref<PaymentBreakdownItem[]>([])
 
   const paymentMethods = [
@@ -57,71 +56,94 @@ export function usePOSPayment() {
     paymentsBreakdown.value.splice(idx, 1)
   }
 
-  const recordMutation = useMutation({
-    mutationFn: (params: {
+  const reset = () => {
+    paymentMethod.value = 'cash'
+    otherCurrency.value = 'USD'
+    paymentNotes.value = ''
+    tipAmount.value = 0
+    paymentsBreakdown.value = []
+  }
+
+  const invalidateQueries = async () => {
+    const bid = businessId.value
+    const brId = branchId.value
+    await Promise.allSettled([
+      queryClient.invalidateQueries({ exact: false, queryKey: ['pos-pending'] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: posKeys.products(bid, brId) }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['inventario'] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['appointments'] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['expenses'] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['supplier-payments'] }),
+    ])
+    await Promise.allSettled([
+      queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
+      queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-summary'] }),
+      queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
+    ])
+  }
+
+  const recordSaleMutation = useMutation({
+    mutationFn: async (payloads: Array<{
       appointmentId: string
       serviceAmount: number
+      productsAmount: number
       method: PaymentMethod
       products: POSProductItem[]
       notes: string
       exchangeRate: number
       paymentsBreakdown: PaymentBreakdownItem[]
       tipAmount?: number
-      productsAmount?: number
-    }) => recordSale({
-      appointmentId: params.appointmentId,
-      serviceAmount: params.serviceAmount,
-      productsAmount: params.productsAmount,
-      method: params.method,
-      products: params.products,
-      notes: params.notes,
-      exchangeRate: params.exchangeRate,
-      paymentsBreakdown: params.paymentsBreakdown,
-      tipAmount: params.tipAmount,
-      businessId: businessId.value!,
-      branchId: branchId.value,
-    }),
-    onMutate: async ({ appointmentId }) => {
-      await queryClient.cancelQueries({ queryKey: ['pos-pending'] })
-      const previousQueries = queryClient.getQueriesData({ queryKey: ['pos-pending'] })
-      for (const [key, data] of previousQueries) {
-        if (Array.isArray(data)) {
-          queryClient.setQueryData(key, data.filter((appt: any) => {
+    }>) => {
+      const results = []
+      for (const p of payloads) {
+        const res = await recordSale({
+          appointmentId: p.appointmentId,
+          serviceAmount: p.serviceAmount,
+          productsAmount: p.productsAmount,
+          method: p.method,
+          products: p.products,
+          notes: p.notes,
+          exchangeRate: p.exchangeRate,
+          paymentsBreakdown: p.paymentsBreakdown,
+          tipAmount: p.tipAmount,
+          businessId: businessId.value!,
+          branchId: branchId.value,
+        })
+        results.push(res)
+      }
+      return results
+    },
+    onMutate: async (payloads) => {
+      await queryClient.cancelQueries({ queryKey: ['pos-pending'], exact: false })
+      const previousQueries = queryClient.getQueriesData({ queryKey: ['pos-pending'], exact: false })
+      const targetIds = new Set(payloads.map(p => p.appointmentId))
+
+      for (const [key, oldData] of previousQueries) {
+        if (Array.isArray(oldData)) {
+          queryClient.setQueryData(key, oldData.filter((appt: any) => {
             if (appt.isGroup && Array.isArray(appt.groupIds)) {
-              return !appt.groupIds.includes(appointmentId)
+              return !appt.groupIds.some((gid: string) => targetIds.has(gid))
             }
-            return appt.id !== appointmentId
+            return !targetIds.has(appt.id)
           }))
         }
       }
       return { previousQueries }
     },
-    onError: (_err, _vars, context) => {
+    onSuccess: () => {
+      success('Cobro registrado correctamente')
+      invalidateQueries()
+    },
+    onError: (err, _vars, context) => {
       if (context?.previousQueries) {
         for (const [key, data] of context.previousQueries) {
           queryClient.setQueryData(key, data)
         }
       }
-    },
-    onSettled: async () => {
-      const bid = businessId.value
-      const brId = branchId.value
-      await Promise.allSettled([
-        queryClient.invalidateQueries({ exact: false, queryKey: ['pos-pending'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: posKeys.products(bid, brId) }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['inventario'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['appointments'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['expenses'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['supplier-payments'] }),
-      ])
-      await Promise.allSettled([
-        queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
-        queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-summary'] }),
-        queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
-      ])
+      showError((err as any)?.message ?? 'Error al procesar el pago')
     },
   })
 
@@ -145,134 +167,176 @@ export function usePOSPayment() {
       businessId: businessId.value!,
       branchId: branchId.value,
     }),
-    onSettled: async () => {
-      await Promise.allSettled([
-        queryClient.invalidateQueries({ exact: false, queryKey: ['inventario'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: posKeys.products(businessId.value, branchId.value) }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['expenses'] }),
-        queryClient.invalidateQueries({ exact: false, queryKey: ['supplier-payments'] }),
-      ])
-      await Promise.allSettled([
-        queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
-        queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-summary'] }),
-        queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
-      ])
+    onSuccess: () => {
+      success('Venta directa registrada correctamente')
+      invalidateQueries()
+    },
+    onError: (err) => {
+      showError((err as any)?.message ?? 'Error al registrar venta directa')
     },
   })
 
-  const processPayment = async (
-    appointmentId: string,
-    serviceAmount: number,
-    cartProducts: POSProductItem[],
-    exchangeRate: number,
-    formatDual: (n: number) => string,
-    _tipAllocations?: TipAllocationItem[],
-    productsAmount = 0,
-  ): Promise<boolean> => {
-    if (serviceAmount <= 0) {
-      showError('El total debe ser mayor a 0')
-      return false
-    }
+  const isProcessing = computed(() =>
+    recordSaleMutation.isPending.value || directSaleMutation.isPending.value
+  )
 
-    isProcessing.value = true
-    try {
-      const method = paymentMethod.value
+  const processPayment = async (params: {
+    appointmentId: string
+    serviceAmount: number
+    products: POSProductItem[]
+    exchangeRate: number
+    tipAmount: number
+    productsAmount: number
+    isGroup?: boolean
+    groupIds?: string[]
+    members?: any[]
+    groupPrice?: number
+    tipAllocations?: Record<string, number>
+  }): Promise<boolean> => {
+    const { isGroup, groupIds, members, groupPrice, tipAllocations } = params
+    const method = paymentMethod.value
+    const notes = paymentNotes.value
+    const exchangeRt = params.exchangeRate
+    const breakdownSource = paymentsBreakdown.value
+    const pMethodObj = paymentMethods.find(m => m.value === method)
+    const paymentCurrency = pMethodObj?.currency ?? otherCurrency.value
+
+    let payloads: Array<{
+      appointmentId: string
+      serviceAmount: number
+      productsAmount: number
+      method: PaymentMethod
+      products: POSProductItem[]
+      notes: string
+      exchangeRate: number
+      paymentsBreakdown: PaymentBreakdownItem[]
+      tipAmount?: number
+    }> = []
+
+    if (isGroup && groupIds && groupIds.length > 1 && members && groupPrice) {
+      let remainingService = params.serviceAmount
+      const productsTotal = params.productsAmount
+
+      for (let i = 0; i < groupIds.length; i++) {
+        const isLast = i === groupIds.length - 1
+        const proportion = members[i].price / groupPrice
+        const serviceShare = isLast
+          ? Math.max(0, Math.round(remainingService * 100) / 100)
+          : Math.round(params.serviceAmount * proportion * 100) / 100
+
+        if (!isLast) remainingService -= serviceShare
+
+        const memberAmount = i === 0 ? serviceShare + productsTotal : serviceShare
+        const productsForThis = i === 0 ? productsTotal : 0
+        const employeeId = members[i]?.employeeId
+        const fullTip = employeeId ? (tipAllocations?.[employeeId] ?? 0) : 0
+        const memberServices = members.filter((m: any) => m.employeeId === employeeId).length
+        const memberTip = Number((memberServices > 0 ? fullTip / memberServices : 0).toFixed(2))
+
+        let memberBreakdown: PaymentBreakdownItem[]
+        if (method !== 'mixed') {
+          memberBreakdown = [{
+            method,
+            inputAmount: paymentCurrency === 'VES' ? memberAmount * exchangeRt : memberAmount,
+            currency: paymentCurrency as 'USD' | 'VES',
+            amount: memberAmount,
+          }]
+        } else {
+          const grand = params.serviceAmount + productsTotal + tipAmount.value || 1
+          memberBreakdown = breakdownSource.map((item) => ({
+            ...item,
+            inputAmount: Number(((memberAmount / grand) * item.inputAmount).toFixed(2)),
+            amount: Number(((memberAmount / grand) * item.amount).toFixed(2)),
+          }))
+        }
+
+        payloads.push({
+          appointmentId: groupIds[i],
+          serviceAmount: i === 0 ? serviceShare : memberAmount,
+          productsAmount: productsForThis,
+          method: method as PaymentMethod,
+          products: i === 0 ? params.products : [],
+          notes,
+          exchangeRate: exchangeRt,
+          paymentsBreakdown: memberBreakdown,
+          tipAmount: memberTip,
+        })
+      }
+    } else {
+      const totalAmount = params.serviceAmount + params.productsAmount
       let breakdown: PaymentBreakdownItem[]
 
       if (method !== 'mixed') {
-        const currency = methodCurrency(method) ?? otherCurrency.value
-        const inputAmount = currency === 'VES' ? serviceAmount * exchangeRate : serviceAmount
-        breakdown = [{ method, inputAmount, currency, amount: serviceAmount }]
+        breakdown = [{
+          method,
+          inputAmount: paymentCurrency === 'VES' ? totalAmount * exchangeRt : totalAmount,
+          currency: paymentCurrency as 'USD' | 'VES',
+          amount: totalAmount,
+        }]
       } else {
-        breakdown = paymentsBreakdown.value.map(item => ({
-          ...item,
-          amount: item.currency === 'VES' ? item.inputAmount / exchangeRate : item.inputAmount,
-        }))
+        breakdown = [...breakdownSource]
       }
 
-      await recordMutation.mutateAsync({
-        appointmentId,
-        serviceAmount,
-        productsAmount,
-        method,
-        products: cartProducts,
-        notes: paymentNotes.value,
-        exchangeRate,
+      payloads.push({
+        appointmentId: params.appointmentId,
+        serviceAmount: params.serviceAmount,
+        productsAmount: params.productsAmount,
+        method: method as PaymentMethod,
+        products: params.products,
+        notes,
+        exchangeRate: exchangeRt,
         paymentsBreakdown: breakdown,
-        tipAmount: tipAmount.value,
+        tipAmount: params.tipAmount,
       })
+    }
 
-      success(`Cobro de ${formatDual(serviceAmount)} registrado`)
+    try {
+      await recordSaleMutation.mutateAsync(payloads)
+      reset()
       return true
-    } catch (err) {
-      const message = (err as any)?.message ?? 'Error al procesar el pago'
-      showError(message)
-      console.error('[processPayment]', err)
+    } catch {
       return false
-    } finally {
-      isProcessing.value = false
     }
   }
 
-  const processDirectSale = async (
-    totalAmount: number,
-    cartProducts: POSProductItem[],
-    exchangeRate: number,
-    formatDual: (n: number) => string,
-    clientId?: string | null,
-  ): Promise<boolean> => {
-    if (totalAmount <= 0) {
-      showError('El total debe ser mayor a 0')
-      return false
+  const processDirectSale = async (params: {
+    totalAmount: number
+    products: POSProductItem[]
+    exchangeRate: number
+    clientId?: string | null
+  }): Promise<boolean> => {
+    const method = paymentMethod.value
+    const notes = paymentNotes.value
+    const pMethodObj = paymentMethods.find(m => m.value === method)
+    const paymentCurrency = pMethodObj?.currency ?? otherCurrency.value
+
+    let breakdown: PaymentBreakdownItem[]
+    if (method !== 'mixed') {
+      breakdown = [{
+        method,
+        inputAmount: paymentCurrency === 'VES' ? params.totalAmount * params.exchangeRate : params.totalAmount,
+        currency: paymentCurrency as 'USD' | 'VES',
+        amount: params.totalAmount,
+      }]
+    } else {
+      breakdown = [...paymentsBreakdown.value]
     }
 
-    isProcessing.value = true
     try {
-      const method = paymentMethod.value
-      let breakdown: PaymentBreakdownItem[]
-
-      if (method !== 'mixed') {
-        const currency = methodCurrency(method) ?? otherCurrency.value
-        const inputAmount = currency === 'VES' ? totalAmount * exchangeRate : totalAmount
-        breakdown = [{ method, inputAmount, currency, amount: totalAmount }]
-      } else {
-        breakdown = paymentsBreakdown.value.map(item => ({
-          ...item,
-          amount: item.currency === 'VES' ? item.inputAmount / exchangeRate : item.inputAmount,
-        }))
-      }
-
       await directSaleMutation.mutateAsync({
-        totalAmount,
-        method,
-        products: cartProducts,
-        notes: paymentNotes.value,
-        exchangeRate,
+        totalAmount: params.totalAmount,
+        method: method as PaymentMethod,
+        products: params.products,
+        notes,
+        exchangeRate: params.exchangeRate,
         paymentsBreakdown: breakdown,
-        clientId: clientId ?? null,
+        clientId: params.clientId ?? null,
       })
-
-      success(`Venta directa de ${formatDual(totalAmount)} registrada`)
+      reset()
       return true
-    } catch (err) {
-      const message = (err as any)?.message ?? 'Error al procesar la venta directa'
-      showError(message)
-      console.error('[processDirectSale]', err)
+    } catch {
       return false
-    } finally {
-      isProcessing.value = false
     }
-  }
-
-  const reset = () => {
-    paymentMethod.value = 'cash'
-    otherCurrency.value = 'USD'
-    paymentNotes.value = ''
-    tipAmount.value = 0
-    paymentsBreakdown.value = []
   }
 
   return {
