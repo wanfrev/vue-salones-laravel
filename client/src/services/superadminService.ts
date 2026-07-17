@@ -22,7 +22,7 @@ export const superadminKeys = {
 // ── READ ──
 
 export const listBusinesses = async (): Promise<Business[]> => {
-  const { data, error } = await apiClient
+  const { data, error } = await db
     .from('admin/businesses')
     .select('*')
     .order('created_at', { ascending: false })
@@ -40,7 +40,7 @@ export const listBusinessAdmins = async (businessId: string): Promise<AuthProfil
 export const createBusinessWithOwner = async (input: CreateBusinessInput): Promise<CreateBusinessResult> => {
   const email = input.ownerEmail.trim().toLowerCase()
 
-  const { data: existingProfile } = await apiClient
+  const { data: existingProfile } = await db
     .from('profiles')
     .select('id')
     .eq('email', email)

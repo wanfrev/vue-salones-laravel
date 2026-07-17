@@ -25,7 +25,7 @@ export interface EmployeeInput {
 export const adminCreateEmployee = async (input: EmployeeInput): Promise<{ id: string }> => {
   const email = input.email.trim().toLowerCase()
 
-  const { data, error } = await apiClient
+  const { data, error } = await db
     .from('profiles')
     .insert({
       full_name: input.full_name,
@@ -51,7 +51,7 @@ export const adminCreateEmployee = async (input: EmployeeInput): Promise<{ id: s
 
 /** Update employee + schedules */
 export const adminUpdateEmployee = async (userId: string, input: Partial<EmployeeInput>): Promise<void> => {
-  const { error } = await apiClient
+  const { error } = await db
     .from('profiles')
     .update(input)
     .eq('id', userId)
@@ -61,7 +61,7 @@ export const adminUpdateEmployee = async (userId: string, input: Partial<Employe
 
 /** Soft-delete employee */
 export const adminDeleteEmployee = async (userId: string): Promise<void> => {
-  const { error } = await apiClient
+  const { error } = await db
     .from('profiles')
     .delete()
     .eq('id', userId)
