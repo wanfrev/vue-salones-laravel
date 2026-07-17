@@ -26,7 +26,19 @@
             :error="errors.name"
           />
 
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label class="block text-sm font-medium text-text-secondary mb-2">Nivel de acceso</label>
+            <div class="flex gap-2">
+              <button v-for="opt in systemRoleOptions" :key="opt.value" type="button"
+                @click="formData.systemRole = opt.value"
+                class="flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all"
+                :class="formData.systemRole === opt.value ? 'border-primary bg-primary/10 text-primary' : 'border-border text-text-muted hover:border-border-strong'">
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
+
+          <div v-if="formData.systemRole === 'empleado'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <FormDropdown
               v-if="!showingCustomRole"
               v-model="formData.role"
@@ -89,18 +101,6 @@
             show-password-toggle
             autocomplete="new-password"
           />
-
-          <div>
-            <label class="block text-sm font-medium text-text-secondary mb-2">Nivel de acceso</label>
-            <div class="flex gap-2">
-              <button v-for="opt in systemRoleOptions" :key="opt.value" type="button"
-                @click="formData.systemRole = opt.value"
-                class="flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all"
-                :class="formData.systemRole === opt.value ? 'border-primary bg-primary/10 text-primary' : 'border-border text-text-muted hover:border-border-strong'">
-                {{ opt.label }}
-              </button>
-            </div>
-          </div>
 
           <label class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
@@ -265,7 +265,7 @@ const errors = ref<Partial<Record<keyof EmpleadoFormData, string>>>({})
 
 const isFormValid = computed(() => {
   const nameValid = formData.value.name.trim().length >= 2
-  const roleValid = formData.value.role !== ''
+  const roleValid = formData.value.systemRole === 'encargado' ? true : formData.value.role !== ''
   const emailValid = formData.value.email.trim().length >= 5
   const pwd = formData.value.password
   const passwordValid = pwd.length === 0 ? isEditing.value : pwd.length >= 6
@@ -283,7 +283,7 @@ watch(
       formData.value = {
         name: empleado.name || '',
         role: empleado.role || '',
-        systemRole: (empleado as any).systemRole === 'encargado' ? 'encargado' : 'empleado',
+        systemRole: (empleado.systemRole === 'encargado' ? 'encargado' : 'empleado'),
         phone: empleado.phone || '',
         email: empleado.email || '',
         password: '',

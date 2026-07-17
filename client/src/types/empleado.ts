@@ -2,6 +2,7 @@ export interface Empleado {
   id: string
   name: string
   role: string
+  systemRole?: string
   citasHoy: number
   producido: string
   schedule?: { start: string; end: string; break: string }
