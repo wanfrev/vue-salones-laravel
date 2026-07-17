@@ -63,6 +63,7 @@ export const mapEmpleadoFormToProfileUpdate = (data: EmpleadoFormData) => ({
   base_salary: data.payType === 'percentage' ? 0 : Number(data.baseSalary),
   salary_frequency: data.salaryFrequency,
   disable_agenda: data.disableAgenda,
+  role: data.systemRole,
 })
 
 export const mapEmpleadoFormToScheduleBlocks = (employeeId: string, data: EmpleadoFormData & { branchId?: string | null }) => {

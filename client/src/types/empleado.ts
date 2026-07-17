@@ -21,6 +21,7 @@ export interface Empleado {
 export interface EmpleadoFormData {
   name: string
   role: string
+  systemRole: 'empleado' | 'encargado'
   phone: string
   email: string
   password: string

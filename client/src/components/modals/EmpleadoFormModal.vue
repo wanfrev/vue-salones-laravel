@@ -90,6 +90,18 @@
             autocomplete="new-password"
           />
 
+          <div>
+            <label class="block text-sm font-medium text-text-secondary mb-2">Nivel de acceso</label>
+            <div class="flex gap-2">
+              <button v-for="opt in systemRoleOptions" :key="opt.value" type="button"
+                @click="formData.systemRole = opt.value"
+                class="flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all"
+                :class="formData.systemRole === opt.value ? 'border-primary bg-primary/10 text-primary' : 'border-border text-text-muted hover:border-border-strong'">
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
+
           <label class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
               <p class="text-sm font-medium text-text">Desactivar agenda</p>
@@ -208,6 +220,11 @@ const isSubmitting = ref(false)
 const isLoading = computed(() => isSubmitting.value || props.isSaving)
 const isEditing = computed(() => !!modalData.value?.empleado)
 
+const systemRoleOptions = [
+  { value: 'empleado' as const, label: 'Empleado' },
+  { value: 'encargado' as const, label: 'Encargado' },
+]
+
 const showingCustomRole = ref(false)
 
 const roleOptions = computed(() => {
@@ -225,6 +242,7 @@ const cancelCustomRole = () => {
 const defaultFormData: EmpleadoFormData = {
   name: '',
   role: '',
+  systemRole: 'empleado',
   phone: '',
   email: '',
   password: '',
@@ -265,6 +283,7 @@ watch(
       formData.value = {
         name: empleado.name || '',
         role: empleado.role || '',
+        systemRole: (empleado as any).systemRole === 'encargado' ? 'encargado' : 'empleado',
         phone: empleado.phone || '',
         email: empleado.email || '',
         password: '',
