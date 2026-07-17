@@ -1,7 +1,7 @@
 <template>
   <Transition name="loading-fade">
     <div v-if="isFetching" class="h-[2px] w-full bg-transparent overflow-hidden">
-      <div class="h-full animate-loading-bar" style="background: var(--color-success)" />
+      <div class="h-full animate-loading-bar" style="background: var(--color-primary)" />
     </div>
   </Transition>
 </template>
