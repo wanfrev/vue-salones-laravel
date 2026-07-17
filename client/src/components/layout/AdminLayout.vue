@@ -48,11 +48,11 @@
     <div v-if="isSidebarOpen" @click="isSidebarOpen = false" class="fixed inset-0 top-16 z-30 bg-black/50 lg:hidden"></div>
 
     <main class="ml-0 min-h-screen pt-16 lg:ml-64">
+      <GlobalLoading />
       <div class="p-4 lg:p-6">
         <router-view />
       </div>
     </main>
-    <GlobalLoading />
   </div>
 </template>
 
