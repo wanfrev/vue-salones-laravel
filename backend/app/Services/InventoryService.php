@@ -6,6 +6,7 @@ use App\Models\InventoryLocation;
 use App\Models\InventoryMovement;
 use App\Models\InventoryStock;
 use App\Models\Transaction;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -75,7 +76,7 @@ class InventoryService
         $stock->delete();
     }
 
-    public function index(string $businessId, ?string $branchId = null, ?string $productId = null, ?string $locationId = null): Collection
+    public function index(string $businessId, ?string $branchId = null, ?string $productId = null, ?string $locationId = null, int $perPage = 50): LengthAwarePaginator
     {
         $query = InventoryStock::with(['product', 'location'])
             ->where('business_id', $businessId);
@@ -94,7 +95,7 @@ class InventoryService
             $query->where('location_id', $locationId);
         }
 
-        return $query->get()->map(function ($stock) {
+        return $query->paginate($perPage)->through(function ($stock) {
             $data = $stock->toArray();
             $data['products'] = $stock->product ? [
                 'name' => $stock->product->name,
@@ -115,7 +116,8 @@ class InventoryService
         ?string $endDate = null,
         ?string $referenceType = null,
         ?string $referenceId = null,
-    ): Collection {
+        int $perPage = 50,
+    ): LengthAwarePaginator {
         $query = InventoryMovement::with(['product', 'client'])
             ->where('business_id', $businessId)
             ->orderByDesc('created_at');
@@ -131,7 +133,7 @@ class InventoryService
         if ($referenceType) $query->where('reference_type', $referenceType);
         if ($referenceId) $query->where('reference_id', $referenceId);
 
-        return $query->get()->map(function ($movement) {
+        return $query->paginate($perPage)->through(function ($movement) {
             $data = $movement->toArray();
             $data['products'] = $movement->product ? ['id' => $movement->product->id, 'name' => $movement->product->name, 'unit_price' => (float) ($movement->product->unit_price ?? 0)] : null;
             $data['clients'] = $movement->client ? ['full_name' => $movement->client->full_name] : null;
@@ -347,9 +349,10 @@ class InventoryService
         }
     }
 
-    public function getLowStockProducts(): Collection
+    public function getLowStockProducts(string $businessId): Collection
     {
-        return \App\Models\Product::where('active', true)
+        return \App\Models\Product::where('business_id', $businessId)
+            ->where('active', true)
             ->where('is_sellable', true)
             ->where('reorder_point', '>', 0)
             ->whereHas('stocks')

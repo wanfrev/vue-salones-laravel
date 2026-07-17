@@ -90,7 +90,8 @@ class ClientService
 
     public function findOrCreateByPhone(string $businessId, string $phone, array $extra = []): Client
     {
-        $client = Client::where('phone', $phone)
+        $client = Client::where('business_id', $businessId)
+            ->where('phone', $phone)
             ->first();
 
         if ($client) {
