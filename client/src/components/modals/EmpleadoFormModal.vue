@@ -318,6 +318,15 @@ watch(
   }
 )
 
+watch(
+  () => formData.value.systemRole,
+  (newRole) => {
+    if (newRole === 'encargado') {
+      formData.value.role = 'Encargado'
+    }
+  }
+)
+
 const validateForm = (): boolean => {
   errors.value = {}
 
@@ -325,7 +334,7 @@ const validateForm = (): boolean => {
     errors.value.name = 'El nombre debe tener al menos 2 caracteres'
   }
 
-  if (!formData.value.role.trim()) {
+  if (formData.value.systemRole !== 'encargado' && !formData.value.role.trim()) {
     errors.value.role = 'El rol / puesto es obligatorio'
   }
 
