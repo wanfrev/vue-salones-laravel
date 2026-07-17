@@ -2,7 +2,6 @@
 import { ref, computed, watch } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useAuthStore } from '../../store/auth'
-import { useBusinessStore } from '../../store/business'
 import { isEncargado } from '../../constants/roles'
 import { formatDate, parseLocalDate } from '../../lib/formatters'
 import KpiBanner from '../finanzas/KpiBanner.vue'
@@ -11,7 +10,6 @@ import SegmentedTabs from '../common/SegmentedTabs.vue'
 
 const { formatEmployeeVESInline } = useCurrency()
 const authStore = useAuthStore()
-const businessStore = useBusinessStore()
 const isEncargadoRole = computed(() => isEncargado(authStore.role ?? undefined))
 
 const fmtDate = (d: string) => formatDate(d)
@@ -145,9 +143,7 @@ const tabs = [
   { key: 'deuda' as const, label: 'Deuda por Empleado', shortLabel: 'Deuda' },
   { key: 'horarios' as const, label: 'Horarios del Equipo', shortLabel: 'Horarios' },
 ].filter(t => {
-  if (!isEncargadoRole.value) return true
-  if (t.key === 'nomina') return businessStore.hasFeature('encargado_nomina')
-  if (t.key === 'horarios') return businessStore.hasFeature('encargado_horarios')
+  if (t.key === 'nomina' && isEncargadoRole.value) return false
   return true
 })
 const activeTab = ref<'pagos' | 'nomina' | 'deuda' | 'horarios'>('pagos')

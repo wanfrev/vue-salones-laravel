@@ -48,8 +48,5 @@ const toggles = [
   { key: 'multi_branch', label: 'Múltiples sucursales', description: 'Gestionar varias ubicaciones físicas' },
   { key: 'employees_create_clients', label: 'Empleados crean clientes', description: 'Permitir que empleados agreguen nuevos clientes desde la agenda' },
   { key: 'gift_cards', label: 'Gift Cards', description: 'Sistema de tarjetas de regalo' },
-  { key: 'encargado_finanzas_kpis', label: 'Encargado ve KPIs financieros', description: 'El encargado puede ver ingresos, gastos, ganancia y margen' },
-  { key: 'encargado_nomina', label: 'Encargado gestiona nómina', description: 'El encargado puede ver y registrar pagos de nómina' },
-  { key: 'encargado_horarios', label: 'Encargado gestiona horarios', description: 'El encargado puede ver y editar horarios del equipo' },
 ]
 </script>

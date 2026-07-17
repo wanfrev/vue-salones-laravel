@@ -96,6 +96,7 @@ const isEmployee = computed(() => authStore.role === 'empleado')
 const roleLabel = computed(() => {
   const role = authStore.role
   if (role === 'admin') return 'Admin'
+  if (role === 'encargado') return 'Encargado'
   if (role === 'empleado') return 'Empleado'
   if (role === 'superadmin') return 'Superadmin'
   return ''
