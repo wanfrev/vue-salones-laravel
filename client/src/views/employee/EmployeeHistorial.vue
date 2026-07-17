@@ -120,6 +120,7 @@ const { data: historyData, isLoading: loadingHistory } = useQuery({
   queryKey: dashboardKeys.history(businessId.value, employeeId.value, branchId.value),
   queryFn: () => listEmployeeAppointments(businessId.value!, employeeId.value!, branchId.value),
   enabled: computed(() => !!businessId.value && !!employeeId.value),
+  staleTime: 0,
 })
 
 const historyAppointments = computed<EmployeeAppointmentRecord[]>(() => historyData.value ?? [])
