@@ -95,6 +95,26 @@
     </div>
   </SectionCard>
 
+  <SectionCard
+    class="mb-6"
+    title="Permisos del Encargado"
+    subtitle="Controla qué puede ver y hacer el rol de encargado"
+    icon="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+  >
+    <div class="space-y-4">
+      <label v-for="ft in encargadoToggles" :key="ft.key" class="flex items-center justify-between gap-4 py-2 cursor-pointer">
+        <div>
+          <p class="text-sm font-medium text-text">{{ ft.label }}</p>
+          <p class="text-xs text-text-muted mt-0.5">{{ ft.description }}</p>
+        </div>
+        <button type="button" @click="toggleEncargadoFeature(ft.key)" class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0" :class="encargadoFeatures[ft.key] ? 'bg-primary' : 'bg-border'">
+          <span class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform" :class="encargadoFeatures[ft.key] ? 'translate-x-6' : 'translate-x-1'" />
+        </button>
+      </label>
+      <p class="text-xs text-text-muted pt-2 border-t border-border">Los cambios se aplican de inmediato. Solo afectan a usuarios con rol <strong>encargado</strong>.</p>
+    </div>
+  </SectionCard>
+
   <!-- Not enabled gate -->
   <div v-if="!businessStore.isMultiBranch" class="flex flex-col items-center justify-center py-16 text-center">
     <div class="flex h-16 w-16 items-center justify-center rounded-full bg-bg-secondary mb-4">
@@ -264,6 +284,36 @@ async function handleDisablePush() {
     pushPermission.value = Notification.permission
   } finally {
     pushLoading.value = false
+  }
+}
+
+const encargadoToggles = [
+  { key: 'encargado_finanzas_kpis', label: 'Ver KPIs financieros', description: 'Permite al encargado ver ingresos, gastos, ganancia y margen en Finanzas' },
+  { key: 'encargado_nomina', label: 'Gestionar nómina', description: 'Permite al encargado ver y registrar pagos de nómina' },
+  { key: 'encargado_horarios', label: 'Gestionar horarios', description: 'Permite al encargado ver y editar horarios del equipo' },
+]
+
+const encargadoFeatures = computed(() => {
+  const feats = (businessStore.business as any)?.features ?? {}
+  return {
+    encargado_finanzas_kpis: feats.encargado_finanzas_kpis ?? false,
+    encargado_nomina: feats.encargado_nomina ?? false,
+    encargado_horarios: feats.encargado_horarios ?? false,
+  }
+})
+
+async function toggleEncargadoFeature(key: string) {
+  const current = (businessStore.business as any)?.features ?? {}
+  const enabled = !encargadoFeatures.value[key]
+  try {
+    const { updateBusiness } = await import('../services/superadminService')
+    await updateBusiness({
+      business_id: businessStore.business!.id,
+      features: { ...current, [key]: enabled },
+    })
+    businessStore.business = { ...businessStore.business!, features: { ...current, [key]: enabled } } as any
+  } catch {
+    // Silently fail - superadmin can toggle from their panel
   }
 }
 </script>
