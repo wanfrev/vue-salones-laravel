@@ -223,7 +223,7 @@ function useFinancialSummary(
 
     // Group by group_id (appointments with same group_id are merged into one row)
     const groupKey = (row: TransactionRow) => (row as any).groupId ?? row.appointmentId ?? row.id
-    const groupMap = new Map<string, TransactionRow & { employees: string[]; services: string[]; transactionIds: string[] }>()
+    const groupMap = new Map<string, TransactionRow & { employees: string[]; services: string[]; transactionIds: string[]; rawRows: TransactionRow[] }>()
 
     for (const row of raw) {
       const key = groupKey(row)
@@ -235,25 +235,27 @@ function useFinancialSummary(
         if (!existing.employees.includes(row.employee)) existing.employees.push(row.employee)
         if (!existing.services.includes(row.service)) existing.services.push(row.service)
         if (row.transactionIds) existing.transactionIds.push(...row.transactionIds)
+        existing.rawRows.push(row)
       } else {
         groupMap.set(key, {
           ...row,
           employees: [row.employee],
           services: [row.service],
           transactionIds: [...(row.transactionIds ?? [row.id])],
+          rawRows: [row],
         })
       }
     }
 
     return Array.from(groupMap.values()).map(r => {
-      const isGrouped = raw.filter(x => groupKey(x) === groupKey(r)).length > 1
+      const groupedRows = r.rawRows
+      const isGrouped = groupedRows.length > 1
       const isMixed = r.breakdown && r.breakdown.length > 1
       const allMethods = new Set<string>()
       let anyVES = false
       let anyUSD = false
       if (isGrouped) {
-        for (const x of raw) {
-          if (groupKey(x) === groupKey(r)) {
+        for (const x of groupedRows) {
             if (x.breakdown && x.breakdown.length > 0) {
               for (const item of x.breakdown) {
                 allMethods.add(item.method)
@@ -265,7 +267,6 @@ function useFinancialSummary(
               if (['cash_ves', 'transfer', 'pago_movil', 'punto_venta'].includes(x.rawMethod)) anyVES = true
               else anyUSD = true
             }
-          }
         }
       }
       const methodsDifferAcrossGroup = allMethods.size > 1
@@ -281,6 +282,7 @@ function useFinancialSummary(
         breakdown: isGrouped && (methodsDifferAcrossGroup || currenciesMixed) ? null : r.breakdown,
         employees: undefined as any,
         services: undefined as any,
+        rawRows: undefined as any,
       }
     })
   })
@@ -406,7 +408,8 @@ function useFinancialSummary(
         sourceLabel: tx.appointment_id ? 'Cobro cita' : 'Venta directa',
         _currency: isVES ? 'VES' : 'USD',
         _originalAmount: isVES ? originalAmount : undefined,
-      })
+        _rawSortDate: tx.paid_at || '',
+      } as any)
     }
 
     // Expenses
@@ -420,7 +423,8 @@ function useFinancialSummary(
         type: 'gasto',
         source: 'expense',
         sourceLabel: 'Gasto',
-      })
+        _rawSortDate: (ex as any).date ?? (ex as any).expense_date ?? '',
+      } as any)
     }
 
     // Product sales (con nombre real del producto, incluye ventas en citas)
@@ -454,10 +458,15 @@ function useFinancialSummary(
         sourceLabel: isAppointmentSale ? 'Producto en cita' : 'Venta producto',
         _currency: isVES ? 'VES' : 'USD',
         _originalAmount: isVES ? originalAmount : undefined,
-      })
+        _rawSortDate: (ps as any).date ?? (ps as any).created_at ?? '',
+      } as any)
     }
 
-    result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    result.sort((a, b) => {
+      const dateA = (a as any)._rawSortDate ?? ''
+      const dateB = (b as any)._rawSortDate ?? ''
+      return dateB.localeCompare(dateA)
+    })
     return result
   })
 
