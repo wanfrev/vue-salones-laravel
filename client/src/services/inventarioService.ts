@@ -162,7 +162,7 @@ export const inventarioKeys = {
 export const listInventario = async (businessId: string, branchId?: string | null): Promise<InventarioItem[]> => {
   let stockQuery = supabase
     .from('inventory_stock')
-    .select('*, products(name, sku, unit_cost, unit_price, reorder_point)')
+    .select('*, products(name, sku, unit_cost, unit_price, reorder_point), product_variants(name)')
     .eq('business_id', businessId)
 
   if (branchId) {
@@ -173,11 +173,7 @@ export const listInventario = async (businessId: string, branchId?: string | nul
 
   if (error) throw error
 
-  const raw = (stock ?? []) as Array<
-    InventoryStock & {
-      products?: { name: string; sku: string | null; unit_cost: number; unit_price: number; reorder_point: number } | null
-    }
-  >
+  const raw = (stock ?? []) as any[]
 
   if (raw.length === 0) {
     let productsQuery = supabase
@@ -209,71 +205,60 @@ export const listInventario = async (businessId: string, branchId?: string | nul
     }))
   }
 
-  const productIds = [...new Set(raw.map(r => r.product_id))]
-  const { data: variants } = await supabase
-    .from('product_variants')
-    .select('id, product_id, name')
-    .eq('active', true)
-    .in('product_id', productIds.length ? productIds : [null])
-
-  const variantMap = new Map<string, { product_id: string; name: string }>()
-  for (const v of (variants ?? []) as Array<{ id: string; product_id: string; name: string }>) {
-    variantMap.set(v.id, v)
-  }
-
   const grouped = new Map<string, {
     stockIds: string[]
     productId: string
     productName: string
     productSku: string
+    variantId: string | null
+    variantName: string | null
     totalQty: number
     totalReserved: number
     reorderPoint: number
     unitCost: number
     unitPrice: number
-    variants: Set<string>
   }>()
 
   for (const row of raw) {
     const pid = row.product_id
-    if (!grouped.has(pid)) {
-      grouped.set(pid, {
+    const vid = row.variant_id ?? null
+    const key = vid ? `${pid}-${vid}` : pid
+
+    if (!grouped.has(key)) {
+      grouped.set(key, {
         stockIds: [],
         productId: pid,
         productName: row.products?.name ?? '',
         productSku: row.products?.sku ?? '',
+        variantId: vid,
+        variantName: row.product_variants?.name ?? null,
         totalQty: 0,
         totalReserved: 0,
         reorderPoint: Number(row.products?.reorder_point ?? 0),
         unitCost: Number(row.products?.unit_cost ?? 0),
         unitPrice: Number(row.products?.unit_price ?? 0),
-        variants: new Set(),
       })
     }
-    const g = grouped.get(pid)!
+    const g = grouped.get(key)!
     g.stockIds.push(row.id)
     g.totalQty += Number(row.quantity)
     g.totalReserved += Number(row.reserved_qty)
-    if (row.variant_id) g.variants.add(row.variant_id)
   }
 
-  return [...grouped.values()].map(g => {
-    const firstVariantId = g.variants.values().next().value ?? null
-    return {
-      id: g.stockIds[0],
-      productId: g.productId,
-      productName: g.productName,
-      productSku: g.productSku,
-      variantId: firstVariantId,
-      variantName: firstVariantId ? variantMap.get(firstVariantId)?.name ?? null : null,
-      quantity: g.totalQty,
-      reservedQty: g.totalReserved,
-      availableQty: g.totalQty - g.totalReserved,
-      reorderPoint: g.reorderPoint,
-      unitCost: g.unitCost,
-      unitPrice: g.unitPrice,
-    }
-  })
+  return [...grouped.values()].map(g => ({
+    id: g.stockIds[0],
+    productId: g.productId,
+    productName: g.productName,
+    productSku: g.productSku,
+    variantId: g.variantId,
+    variantName: g.variantName,
+    quantity: g.totalQty,
+    reservedQty: g.totalReserved,
+    availableQty: g.totalQty - g.totalReserved,
+    reorderPoint: g.reorderPoint,
+    unitCost: g.unitCost,
+    unitPrice: g.unitPrice,
+  }))
 }
 
 export const listInventoryMovements = async (
@@ -283,7 +268,7 @@ export const listInventoryMovements = async (
 ): Promise<InventarioMovimiento[]> => {
   let query = supabase
     .from('inventory_movements')
-    .select('*, products!inner(name)')
+    .select('*, products!inner(name), product_variants(name)')
     .eq('business_id', businessId)
     .order('created_at', { ascending: false })
     .limit(50)
@@ -300,29 +285,12 @@ export const listInventoryMovements = async (
 
   if (error) throw error
 
-  const raw = (data ?? []) as Array<
-    InventoryMovement & {
-      products?: { name: string } | null
-    }
-  >
-
-  const productIds = [...new Set(raw.map(r => r.product_id))]
-  const { data: variants } = await supabase
-    .from('product_variants')
-    .select('id, name')
-    .in('product_id', productIds.length ? productIds : [null])
-
-  const variantMap = new Map<string, string>()
-  for (const v of (variants ?? []) as Array<{ id: string; name: string }>) {
-    variantMap.set(v.id, v.name)
-  }
-
-  return raw.map(row => ({
+  return (data ?? []).map((row: any) => ({
     id: row.id,
     productId: row.product_id,
     productName: row.products?.name ?? '',
     variantId: row.variant_id,
-    variantName: row.variant_id ? variantMap.get(row.variant_id) ?? null : null,
+    variantName: row.product_variants?.name ?? null,
     movementType: row.movement_type,
     quantity: Number(row.quantity),
     unitCost: Number(row.unit_cost),

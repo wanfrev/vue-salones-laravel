@@ -47,14 +47,14 @@ export function useProductCRUD() {
   const activeTab = ref('todos')
 
   const filteredProductos = computed(() => {
-    let result = crud.items.value
-    if (searchQuery.value) {
-      const q = searchQuery.value.toLowerCase()
-      result = result.filter(p => p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q))
-    }
-    if (activeTab.value === 'activos') result = result.filter(p => p.status === 'Activo')
-    if (activeTab.value === 'inactivos') result = result.filter(p => p.status === 'Inactivo')
-    return result
+    const q = searchQuery.value.trim().toLowerCase()
+    const tab = activeTab.value
+    return crud.items.value.filter(p => {
+      if (tab === 'activos' && p.status !== 'Activo') return false
+      if (tab === 'inactivos' && p.status !== 'Inactivo') return false
+      if (q && !p.name.toLowerCase().includes(q) && !(p.sku && p.sku.toLowerCase().includes(q))) return false
+      return true
+    })
   })
 
   const isDeleteModalOpen = ref(false)
