@@ -62,8 +62,8 @@ export function useCrud<TData, TForm, TId = string>(options: UseCrudOptions<TDat
     },
     onMutate: async (formData) => {
       const qKey = queryKey(businessId.value ?? '', currentBranchId.value)
-      await queryClient.cancelQueries({ queryKey: qKey })
-      const previousQueries = queryClient.getQueriesData({ queryKey: qKey })
+      await queryClient.cancelQueries({ queryKey: qKey, exact: false })
+      const previousQueries = queryClient.getQueriesData({ queryKey: qKey, exact: false })
 
       const { id, ...rest } = formData as any
       const optimistic = { ...rest, id: id ?? `temp-${Date.now()}` } as TData

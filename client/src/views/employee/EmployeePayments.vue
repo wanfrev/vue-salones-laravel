@@ -101,6 +101,7 @@ const { data: paymentsData, isLoading } = useQuery({
   queryKey: dashboardKeys.payments(businessId.value, employeeId.value, branchId.value),
   queryFn: () => listEmployeePayments(businessId.value!, employeeId.value!, branchId.value),
   enabled: computed(() => !!businessId.value && !!employeeId.value),
+  staleTime: 0,
 })
 
 const { formatUSD, formatVESEs } = useCurrency()
