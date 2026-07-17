@@ -1,4 +1,4 @@
-import { api as supabase, api as mutate } from '../lib/api'
+import { db } from '../lib/api'
 import { apiRequest } from '../lib/api'
 import type { UpdateFor } from '../types/helpers'
 
@@ -28,7 +28,7 @@ export const branchesKeys = {
 }
 
 export const listBranches = async (businessId: string): Promise<Branch[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('branches')
     .select('*')
     .eq('business_id', businessId)
@@ -110,7 +110,7 @@ async function updateBranchCategories(branchId: string, categories: string[]): P
 }
 
 export async function getBranchServiceCategories(branchId: string): Promise<string[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('branches')
     .select('service_categories')
     .eq('id', branchId)

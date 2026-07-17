@@ -1,4 +1,4 @@
-import { api as apiClient } from '../lib/api'
+import { db } from '../lib/api'
 
 export interface EmployeeInput {
   full_name: string

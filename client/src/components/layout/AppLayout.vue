@@ -66,7 +66,7 @@ import { useAuth } from '../../composables/common/useAuth'
 import { useAuthStore } from '../../store/auth'
 import { useThemeStore } from '../../store/theme'
 import { useBusinessStore } from '../../store/business'
-import { api as supabase } from '../../lib/api'
+import { db } from '../../lib/api'
 import { useRealtime } from '../../composables/realtime/useRealtime'
 import lumaLogoLight from '../../assets/Luma.svg'
 import lumaLogoDark from '../../assets/Luma blanco.svg'
@@ -118,7 +118,7 @@ onMounted(async () => {
     businessStore.setBranch(authStore.profile.branch_id)
     return
   }
-  const { data } = await supabase
+  const { data } = await db
     .from('employee_schedules')
     .select('branch_id')
     .eq('employee_id', authStore.profile.id)

@@ -1,4 +1,4 @@
-import { api as supabase, api as mutate } from '../lib/api'
+import { db } from '../lib/api'
 import { handleDbError } from '../lib/errors'
 import type { GiftCard, GiftCardFormData } from '../types/giftCard'
 
@@ -7,7 +7,7 @@ export const giftCardsKeys = {
 }
 
 export const listGiftCards = async (businessId: string, branchId?: string | null): Promise<GiftCard[]> => {
-  let query = supabase
+  let query = db
     .from('gift_cards')
     .select('*')
     .eq('business_id', businessId)

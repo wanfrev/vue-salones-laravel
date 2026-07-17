@@ -171,7 +171,7 @@ import { useAdminAgenda } from '../composables/agenda/useAdminAgenda'
 import { useBusinessStore } from '../store/business'
 import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
 import { CitaFormModal } from '../components/modals'
-import { api as supabase } from '../lib/api'
+import { db } from '../lib/api'
 import AgendaListView from '../components/agenda/AgendaListView.vue'
 import type { Cita, PaymentEditContext } from '../types/cita'
 import type { PaymentMethod } from '../types/database'
@@ -224,7 +224,7 @@ const handleNewCita = () => {
 const handleEditCita = async (cita: Cita) => {
   editingCita.value = cita
   if (cita.paymentStatus === 'paid' || cita.status === 'paid') {
-    const { data: tx } = await supabase
+    const { data: tx } = await db
       .from('transactions')
       .select('id, total_amount, method, exchange_rate_used, payments_breakdown, notes, tip_amount')
       .eq('appointment_id', cita.id)

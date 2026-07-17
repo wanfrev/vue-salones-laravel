@@ -1,4 +1,4 @@
-import { api as supabase, api as mutate } from '../lib/api'
+import { db } from '../lib/api'
 import { apiRequest } from '../lib/api'
 import { mapServiceToServicio, mapServicioFormToServiceInsert } from '../mappers/serviciosMapper'
 import type { Service } from '../types/database'
@@ -10,7 +10,7 @@ export const serviciosKeys = {
 }
 
 export const listServicios = async (businessId: string, branchId?: string | null): Promise<Servicio[]> => {
-  let query = supabase
+  let query = db
     .from('services')
     .select('*')
     .eq('business_id', businessId)
@@ -30,7 +30,7 @@ export const listServicios = async (businessId: string, branchId?: string | null
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
 
-  let apptsQuery = supabase
+  let apptsQuery = db
     .from('appointments')
     .select('service_id, transactions(total_amount)')
     .eq('business_id', businessId)
@@ -63,7 +63,7 @@ export const listServicios = async (businessId: string, branchId?: string | null
 }
 
 export const listActiveDbServices = async (businessId: string, branchId?: string | null): Promise<Service[]> => {
-  let query = supabase
+  let query = db
     .from('services')
     .select('*')
     .eq('business_id', businessId)
@@ -88,8 +88,8 @@ export const saveServicio = async (
   const payload = { ...mapServicioFormToServiceInsert(businessId, data), branch_id: branchId || null }
 
   const query = data.id
-    ? mutate.from('services').update(payload).eq('id', data.id).select('*').single()
-    : mutate.from('services').insert(payload).select('*').single()
+    ? db.from('services').update(payload).eq('id', data.id).select('*').single()
+    : db.from('services').insert(payload).select('*').single()
 
   const { data: saved, error } = await query
   if (error) {
@@ -121,7 +121,7 @@ export const deleteServicio = async (id: string): Promise<void> => {
 }
 
 export async function getBusinessServiceCategories(businessId: string): Promise<string[]> {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('businesses')
     .select('service_categories')
     .eq('id', businessId)

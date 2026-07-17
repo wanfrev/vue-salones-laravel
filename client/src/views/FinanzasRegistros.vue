@@ -142,7 +142,7 @@ import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
 import { useBusinessStore } from '../store/business'
 import { useFinancialSummary } from '../composables/finanzas/useFinancialSummary'
-import { api as supabase } from '../lib/api'
+import { db } from '../lib/api'
 import { APPOINTMENT_SELECT } from '../services/agendaService'
 import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import { type Cita, type PaymentEditContext } from '../types/cita'
@@ -207,7 +207,7 @@ const { success, error: showError } = useNotification()
 
 const openCobroActions = async (tx: any) => {
   const appointmentId = tx.appointmentId || tx.appointment_id
-  const { data: citaRaw } = await supabase
+  const { data: citaRaw } = await db
     .from('appointments')
     .select(APPOINTMENT_SELECT)
     .eq('id', appointmentId)

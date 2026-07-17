@@ -1,4 +1,4 @@
-import { api as apiClient, apiRequest } from '../lib/api'
+import { db, apiRequest } from '../lib/api'
 import type { Business } from '../types/database'
 import type { AuthProfile } from '../types/auth'
 

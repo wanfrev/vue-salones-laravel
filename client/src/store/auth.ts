@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { Session, User, AuthChangeEvent } from '@supabase/supabase-js'
-import { api as supabase, getAuthToken } from '../lib/api'
+import { db, getAuthToken } from '../lib/api'
 import { queryClient } from '../queryClient'
 import { useBusinessStore } from './business'
 import type { Role } from '../constants/roles'
@@ -29,7 +29,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const loadProfile = async (userId: string, userRole?: string | null) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('profiles')
       .select('id, business_id, branch_id, full_name, role, phone, avatar_url, active, pay_type, pay_percentage, base_salary, disable_agenda, employee_ves_rate, can_create_appointments, can_create_clients')
       .eq('id', userId)
@@ -108,11 +108,11 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const hadToken = !!getAuthToken()
-      const { data, error } = await supabase.auth.getSession()
+      const { data, error } = await db.auth.getSession()
       if (error) {
         console.warn('[auth.initialize] getSession error (non-fatal):', error)
         if (hadToken && error.code === '401') {
-          await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+          await db.auth.signOut({ scope: 'local' }).catch(() => {})
         }
       }
 
@@ -147,7 +147,7 @@ export const useAuthStore = defineStore('auth', () => {
           } catch (err) {
             if (isProfileHardFailure(err)) {
               clearAuthState()
-              await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+              await db.auth.signOut({ scope: 'local' }).catch(() => {})
             } else {
               console.warn('[auth.initialize] transient hydration error; keeping session', err)
             }
@@ -159,7 +159,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       if (authUnsubscribe) authUnsubscribe()
-      const { data: subData } = supabase.auth.onAuthStateChange(async (_event: AuthChangeEvent, nextSession: Session | null) => {
+      const { data: subData } = db.auth.onAuthStateChange(async (_event: AuthChangeEvent, nextSession: Session | null) => {
         session.value = nextSession
         user.value = nextSession?.user ?? null
 
@@ -182,7 +182,7 @@ export const useAuthStore = defineStore('auth', () => {
             } catch (err) {
               if (isProfileHardFailure(err)) {
                 clearAuthState()
-                await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+                await db.auth.signOut({ scope: 'local' }).catch(() => {})
               } else {
                 console.warn('[auth.onAuthStateChange] transient hydration error; preserving local context', err)
               }
@@ -206,7 +206,7 @@ export const useAuthStore = defineStore('auth', () => {
   const signIn = async (email: string, password: string) => {
     loading.value = true
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      const { data, error } = await db.auth.signInWithPassword({ email, password })
       if (error) throw error
 
       session.value = data.session
@@ -252,11 +252,11 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       await Promise.race([
-        supabase.auth.signOut({ scope: 'local' }),
+        db.auth.signOut({ scope: 'local' }),
         new Promise((_, reject) => setTimeout(() => reject(new Error('TIMEOUT')), 5000)),
       ])
     } catch {
-      await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+      await db.auth.signOut({ scope: 'local' }).catch(() => {})
     } finally {
       loading.value = false
       initialized.value = false
@@ -266,7 +266,7 @@ export const useAuthStore = defineStore('auth', () => {
   const refreshSession = async (): Promise<boolean> => {
     if (!session.value) return false
     try {
-      const { data, error } = await supabase.auth.refreshSession()
+      const { data, error } = await db.auth.refreshSession()
       if (error) throw error
       if (data.session) {
         session.value = data.session

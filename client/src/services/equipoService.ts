@@ -1,4 +1,4 @@
-import { api as supabase, api as mutate } from '../lib/api'
+import { db } from '../lib/api'
 import type { UpdateFor } from '../types/helpers'
 import { adminCreateEmployee, adminUpdateEmployee, adminDeleteEmployee } from './adminService'
 import { mapEmpleadoFormToProfileUpdate, mapEmpleadoFormToScheduleBlocks, mapProfileToEmpleado } from '../mappers/equipoMapper'
@@ -10,7 +10,7 @@ export const equipoKeys = {
 }
 
 export const listEquipo = async (businessId: string, branchId?: string | null): Promise<Empleado[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('profiles')
     .select('*, employee_schedules(*)')
     .eq('business_id', businessId)
@@ -75,7 +75,7 @@ export const saveEmpleado = async (
 }
 
 export async function addBusinessArrayField(businessId: string, column: string, value: string): Promise<string[]> {
-  const { data: biz, error: fetchError } = await supabase
+  const { data: biz, error: fetchError } = await db
     .from('businesses')
     .select(column)
     .eq('id', businessId)
@@ -101,7 +101,7 @@ export const addBusinessCategory = (businessId: string, category: string): Promi
   addBusinessArrayField(businessId, 'service_categories', category)
 
 export async function addBranchArrayField(branchId: string, column: string, value: string): Promise<string[]> {
-  const { data: branch, error: fetchError } = await supabase
+  const { data: branch, error: fetchError } = await db
     .from('branches')
     .select(column)
     .eq('id', branchId)

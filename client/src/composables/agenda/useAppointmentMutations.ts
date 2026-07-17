@@ -7,7 +7,7 @@ import { clientesKeys } from '../../services/clientesService'
 import { dashboardKeys } from '../../services/employeeDashboardService'
 import { useBusinessStore } from '../../store/business'
 import { useAuthStore } from '../../store/auth'
-import { api as supabase, api as mutate } from '../../lib/api'
+import { db } from '../../lib/api'
 import { translateError } from '../../lib/errors'
 import { distributeGroupPayment } from '../../business/paymentDistribution'
 import type { CitaFormData, PaymentEditContext } from '../../types/cita'
@@ -66,7 +66,7 @@ export function useAppointmentMutations(options: {
         const normalizedGroupId = (savedCita as any).groupId
 
         if (normalizedGroupId) {
-          const { data: groupAppointments, error: groupError } = await supabase
+          const { data: groupAppointments, error: groupError } = await db
             .from('appointments')
             .select('id, service_id, price_override, services(price)')
             .eq('group_id', normalizedGroupId)
@@ -75,7 +75,7 @@ export function useAppointmentMutations(options: {
 
           const appointmentIds = (groupAppointments ?? []).map((a: any) => a.id)
           if (appointmentIds.length > 0) {
-            const { data: groupTransactions, error: txError } = await supabase
+            const { data: groupTransactions, error: txError } = await db
               .from('transactions')
               .select('id, appointment_id, total_amount, tip_amount')
               .in('appointment_id', appointmentIds)
@@ -268,7 +268,7 @@ export function useAppointmentMutations(options: {
 
   const handleSaveCita = async (data: CitaFormData & { id?: string; clientPhone?: string; paymentData?: PaymentEditContext }) => {
     try {
-      await supabase.auth.getSession()
+      await db.auth.getSession()
     } catch {
     }
     try {

@@ -1,7 +1,7 @@
 import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { api as supabase } from '../lib/api'
+import { db } from '../lib/api'
 import { listBranches, branchesKeys } from '../services/branchesService'
 import type { Business, Terminology, Branch } from '../types/database'
 
@@ -82,7 +82,7 @@ export const useBusinessStore = defineStore('business', () => {
 
     loading.value = true
     try {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('businesses')
         .select('id, name, slug, phone, address, timezone, currency, ves_exchange_rate, employee_ves_rate, niche_type, theme_config, terminology, job_titles, service_categories, features, multi_branch_enabled, active')
         .eq('id', nextBusinessId)
@@ -116,7 +116,7 @@ export const useBusinessStore = defineStore('business', () => {
     if (!bizId || !isMultiBranch.value || branches.value.length === 0) return
 
     if (employeeId) {
-      const { data: profile } = await supabase
+      const { data: profile } = await db
         .from('profiles')
         .select('branch_id')
         .eq('id', employeeId)
@@ -129,7 +129,7 @@ export const useBusinessStore = defineStore('business', () => {
         return
       }
 
-      const { data: schedule } = await supabase
+      const { data: schedule } = await db
         .from('employee_schedules')
         .select('branch_id')
         .eq('employee_id', employeeId)

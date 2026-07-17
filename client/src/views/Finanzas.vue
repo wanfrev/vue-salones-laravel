@@ -91,7 +91,7 @@ import DetailMovimientos from '../components/finanzas/DetailMovimientos.vue'
 import EditCobroModal from '../components/finanzas/EditCobroModal.vue'
 import CobroActionsModal from '../components/finanzas/CobroActionsModal.vue'
 import { useQueryClient } from '@tanstack/vue-query'
-import { api as supabase } from '../lib/api'
+import { db } from '../lib/api'
 import { APPOINTMENT_SELECT } from '../services/agendaService'
 import { useBusinessStore } from '../store/business'
 import { type Cita, type PaymentEditContext } from '../types/cita'
@@ -266,7 +266,7 @@ const { success: successFin, error: showErrorFin } = useNotification()
 
 const openCobroActions = async (tx: any) => {
   const appointmentId = tx.appointmentId || tx.appointment_id
-  const { data: citaRaw } = await supabase
+  const { data: citaRaw } = await db
     .from('appointments')
     .select(APPOINTMENT_SELECT)
     .eq('id', appointmentId)

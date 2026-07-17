@@ -1,4 +1,4 @@
-import { api as supabase, api as mutate } from '../lib/api'
+import { db } from '../lib/api'
 import { handleDbError } from '../lib/errors'
 import { citaFormSchema } from '../lib/validation'
 import { mapAppointmentToCita, mapCitaFormToAppointmentInsert, mapServiceItemToAppointmentInsert } from '../mappers/agendaMapper'
@@ -44,7 +44,7 @@ export const listCitas = async (
   employeeId?: string | 'all',
   branchId?: string | null
 ): Promise<Cita[]> => {
-  let query = supabase
+  let query = db
     .from('appointments')
     .select(APPOINTMENT_SELECT)
     .eq('business_id', businessId)
@@ -72,7 +72,7 @@ export const listCitas = async (
 }
 
 export const listCitaGroupMembers = async (groupId: string): Promise<AppointmentWithRelations[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('appointments')
     .select(APPOINTMENT_SELECT)
     .eq('group_id', groupId)
@@ -95,7 +95,7 @@ async function resolveSaveDeps(
   branchId: string | null | undefined,
   allowCreateClient: boolean,
 ): Promise<SaveDeps> {
-  let svcQuery = supabase
+  let svcQuery = db
     .from('services')
     .select('*')
     .eq('id', data.service)
@@ -127,7 +127,7 @@ async function resolveSaveDeps(
 async function deleteOrphanGroupMembers(
   appointmentId: string,
 ): Promise<void> {
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from('appointments')
     .select('group_id')
     .eq('id', appointmentId)
@@ -135,7 +135,7 @@ async function deleteOrphanGroupMembers(
   const oldGroupId = (existing as any)?.group_id
   if (!oldGroupId) return
 
-  const { data: orphans } = await supabase
+  const { data: orphans } = await db
     .from('appointments')
     .select('id')
     .eq('group_id', oldGroupId)
@@ -144,7 +144,7 @@ async function deleteOrphanGroupMembers(
   if (orphanIds.length === 0) return
 
   for (const orphanId of orphanIds) {
-    const { data: orphanTxs } = await supabase
+    const { data: orphanTxs } = await db
       .from('transactions')
       .select('id')
       .eq('appointment_id', orphanId)
@@ -184,8 +184,8 @@ async function saveSingleServiceAppointment(
   ;(payload as any).group_id = null
 
   const query = data.id
-    ? mutate.from('appointments').update(payload).eq('id', data.id).select(APPOINTMENT_SELECT).single()
-    : mutate.from('appointments').insert(payload).select(APPOINTMENT_SELECT).single()
+    ? db.from('appointments').update(payload).eq('id', data.id).select(APPOINTMENT_SELECT).single()
+    : db.from('appointments').insert(payload).select(APPOINTMENT_SELECT).single()
 
   const { data: saved, error } = await query
   if (error) throw mapAgendaWriteError(error, 'guardar')
@@ -264,7 +264,7 @@ async function updateExistingGroup(
   data: CitaFormData & { id: string },
   desiredPayloads: Record<string, any>[],
 ): Promise<Cita> {
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from('appointments')
     .select('group_id')
     .eq('id', data.id)
@@ -292,7 +292,7 @@ async function updateExistingGroup(
   } else {
     // Multi → multi (update group)
     const orderedIds = [data.id]
-    const { data: members, error: membersError } = await supabase
+    const { data: members, error: membersError } = await db
       .from('appointments')
       .select('id')
       .eq('group_id', targetGroupId)
@@ -326,7 +326,7 @@ async function updateExistingGroup(
       const idsToDelete = orderedIds.slice(desiredPayloads.length)
 
       for (const memberId of idsToDelete) {
-        const { data: memberTxs } = await supabase
+        const { data: memberTxs } = await db
           .from('transactions')
           .select('id')
           .eq('appointment_id', memberId)
@@ -349,7 +349,7 @@ async function updateExistingGroup(
     }
   }
 
-  const { data: refreshed, error: refreshError } = await supabase
+  const { data: refreshed, error: refreshError } = await db
     .from('appointments')
     .select(APPOINTMENT_SELECT)
     .eq('id', data.id)
@@ -363,7 +363,7 @@ async function fetchServicesMap(
   serviceIds: string[],
   branchId: string | null | undefined,
 ): Promise<Map<string, Service>> {
-  let query = supabase.from('services').select('*').in('id', serviceIds)
+  let query = db.from('services').select('*').in('id', serviceIds)
   if (branchId) query = query.eq('branch_id', branchId)
   const { data, error } = await query
   if (error) throw error
@@ -373,7 +373,7 @@ async function fetchServicesMap(
 async function resolveGroupId(appointmentId?: string): Promise<string> {
   if (!appointmentId) return generateId()
 
-  const { data: existing } = await supabase
+  const { data: existing } = await db
     .from('appointments')
     .select('group_id')
     .eq('id', appointmentId)
@@ -430,7 +430,7 @@ export const updateCitaStatus = async (
     ? { status: 'completed' as const, payment_status: 'paid' as const }
     : { status, payment_status: 'unpaid' as const }
 
-  const { data: appt } = await supabase
+  const { data: appt } = await db
     .from('appointments')
     .select('group_id')
     .eq('id', id)
@@ -439,7 +439,7 @@ export const updateCitaStatus = async (
   const groupId = (appt as any)?.group_id
 
   if (groupId) {
-    const { data: members, error: membersError } = await supabase
+    const { data: members, error: membersError } = await db
       .from('appointments')
       .select('id')
       .eq('group_id', groupId)
@@ -471,7 +471,7 @@ export const updateAppointmentTime = async (
   endTime: string,
   employeeId?: string
 ): Promise<void> => {
-  const { data: appt, error: findError } = await supabase
+  const { data: appt, error: findError } = await db
     .from('appointments')
     .select('group_id')
     .eq('id', id)
@@ -482,7 +482,7 @@ export const updateAppointmentTime = async (
   const groupId = (appt as any)?.group_id
 
   if (groupId) {
-    const { data: members } = await supabase
+    const { data: members } = await db
       .from('appointments')
       .select('id')
       .eq('group_id', groupId)
@@ -512,7 +512,7 @@ export const updateAppointmentTime = async (
 }
 
 export const deleteCita = async (id: string): Promise<void> => {
-  const { data: appt, error: findError } = await supabase
+  const { data: appt, error: findError } = await db
     .from('appointments')
     .select('group_id')
     .eq('id', id)
@@ -525,13 +525,13 @@ export const deleteCita = async (id: string): Promise<void> => {
   const groupId = (appt as any)?.group_id
 
   if (groupId) {
-    const { data: groupMembers } = await supabase
+    const { data: groupMembers } = await db
       .from('appointments')
       .select('id')
       .eq('group_id', groupId)
 
     for (const member of (groupMembers ?? []) as Array<{ id: string }>) {
-      const { data: transactions } = await supabase
+      const { data: transactions } = await db
         .from('transactions')
         .select('id')
         .eq('appointment_id', member.id)
@@ -558,7 +558,7 @@ export const deleteCita = async (id: string): Promise<void> => {
     return
   }
 
-  const { data: transactions } = await supabase
+  const { data: transactions } = await db
     .from('transactions')
     .select('id')
     .eq('appointment_id', id)

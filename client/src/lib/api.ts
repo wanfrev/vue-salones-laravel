@@ -1,8 +1,5 @@
 /**
  * API Client — HTTP wrapper for Laravel backend.
- *
- * Provides a supabase-js compatible query builder API so services need minimal changes.
- * Ready to connect to Laravel endpoints.
  */
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
@@ -525,3 +522,5 @@ export const api = {
 }
 
 export default api
+
+export const db = api

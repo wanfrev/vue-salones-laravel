@@ -1,10 +1,10 @@
-import { api as supabase, api as mutate } from '../lib/api'
+import { db } from '../lib/api'
 import { validateSaleQuantity, movementTypeForAdjust } from '../business/stockRules'
 import type { InventoryStock, InventoryMovement } from '../types/database'
 import type { InventarioItem, InventarioMovimiento } from '../types/inventario'
 
 export async function getDefaultLocation(businessId: string, branchId?: string | null): Promise<string> {
-  let query = supabase
+  let query = db
     .from('inventory_locations')
     .select('id')
     .eq('business_id', businessId)
@@ -17,7 +17,7 @@ export async function getDefaultLocation(businessId: string, branchId?: string |
   let { data: loc } = await query.maybeSingle()
 
   if (!loc) {
-    let firstQuery = supabase
+    let firstQuery = db
       .from('inventory_locations')
       .select('id')
       .eq('business_id', businessId)
@@ -39,7 +39,7 @@ export async function getDefaultLocation(businessId: string, branchId?: string |
     if (insertErr) {
       const isDuplicate = insertErr.message.includes('inventory_locations_business_id_name_key')
       if (isDuplicate && branchId) {
-        const { data: existingLoc } = await supabase
+        const { data: existingLoc } = await db
           .from('inventory_locations')
           .select('id')
           .eq('business_id', businessId)
@@ -70,7 +70,7 @@ export async function getStockRecord(
   variantId?: string | null,
   branchId?: string | null,
 ) {
-  let query = supabase
+  let query = db
     .from('inventory_stock')
     .select('id, quantity, reserved_qty')
     .eq('business_id', businessId)
@@ -134,7 +134,7 @@ export async function recordMovement(
     clientId?: string | null
   },
 ): Promise<void> {
-  const supabaseUser = mutate.auth?.currentUser
+  const currentUser = db.auth?.currentUser
   const { error } = await mutate
     .from('inventory_movements')
     .insert({
@@ -160,7 +160,7 @@ export const inventarioKeys = {
 }
 
 export const listInventario = async (businessId: string, branchId?: string | null): Promise<InventarioItem[]> => {
-  let stockQuery = supabase
+  let stockQuery = db
     .from('inventory_stock')
     .select('*, products(name, sku, unit_cost, unit_price, reorder_point), product_variants(name)')
     .eq('business_id', businessId)
@@ -176,7 +176,7 @@ export const listInventario = async (businessId: string, branchId?: string | nul
   const raw = (stock ?? []) as any[]
 
   if (raw.length === 0) {
-    let productsQuery = supabase
+    let productsQuery = db
       .from('products')
       .select('id, name, sku, unit_cost, unit_price, reorder_point')
       .eq('business_id', businessId)
@@ -266,7 +266,7 @@ export const listInventoryMovements = async (
   branchId?: string | null,
   productId?: string
 ): Promise<InventarioMovimiento[]> => {
-  let query = supabase
+  let query = db
     .from('inventory_movements')
     .select('*, products!inner(name), product_variants(name)')
     .eq('business_id', businessId)
