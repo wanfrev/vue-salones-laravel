@@ -1,16 +1,7 @@
 <template>
   <Transition name="loading-fade">
-    <div v-if="isFetching" class="fixed inset-0 z-[70] flex items-center justify-center bg-bg/60 backdrop-blur-sm">
-      <div class="flex flex-col items-center gap-4 rounded-2xl bg-surface border border-border shadow-2xl px-8 py-6">
-        <div class="relative h-10 w-10">
-          <div class="absolute inset-0 rounded-full border-2 border-primary/20" />
-          <div class="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" />
-        </div>
-        <p class="text-sm font-medium text-text-secondary">Cargando...</p>
-        <div class="h-1 w-full max-w-[200px] rounded-full bg-bg-secondary overflow-hidden">
-          <div class="h-full rounded-full animate-loading-bar" style="background: var(--color-success)" />
-        </div>
-      </div>
+    <div v-if="isFetching" class="fixed top-0 left-0 right-0 z-[70] h-[2px] w-full bg-transparent overflow-hidden">
+      <div class="h-full animate-loading-bar" style="background: var(--color-success)" />
     </div>
   </Transition>
 </template>
