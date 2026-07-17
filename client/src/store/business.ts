@@ -26,6 +26,9 @@ const DEFAULT_TERMINOLOGY: Terminology = {
     multi_branch: false,
     employees_create_clients: true,
     gift_cards: true,
+    encargado_finanzas_kpis: false,
+    encargado_nomina: false,
+    encargado_horarios: false,
   }
 
 export type FeatureKey = keyof typeof DEFAULT_FEATURES
