@@ -303,6 +303,12 @@ const selectAppointment = (appt: any) => {
   cartCtx.clearCart()
   setEqualTipAllocation()
 }
+
+watch(() => appointments.value, (list) => {
+  if (!selectedAppointment.value) return
+  const updated = list.find((a: any) => a.id === selectedAppointment.value.id)
+  if (updated) selectedAppointment.value = updated
+})
 const goToAppointmentInCalendar = (appt: any) => {
   const startDate = new Date(appt.start_time)
   const minutes = startDate.getHours() * 60 + startDate.getMinutes()
