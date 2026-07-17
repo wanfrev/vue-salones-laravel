@@ -30,10 +30,32 @@ export function useAdminAgenda(businessId: () => string | null) {
 
   const currentBranchId = computed(() => businessStore.currentBranchId)
 
+  const dateRange = computed(() => {
+    if (dateFilterMode.value === 'day') {
+      const d = filterDate.value ? parseLocalDate(filterDate.value, 12, 0, 0) : new Date()
+      const start = new Date(d); start.setHours(0, 0, 0, 0)
+      const end = new Date(d); end.setHours(23, 59, 59, 999)
+      return { start, end }
+    }
+    if (dateFilterMode.value === 'week') {
+      return getWeekRange(selectedDate.value)
+    }
+    const today = new Date()
+    const start = new Date(today.getFullYear(), today.getMonth() - 3, 1)
+    const end = new Date(today.getFullYear(), today.getMonth() + 3, 1)
+    return { start, end }
+  })
+
   const { data: citasData, isLoading } = useQuery({
-    queryKey: computed(() => agendaKeys.appointments(businessId(), currentBranchId.value)),
-    queryFn: () => listCitas(businessId()!, undefined, undefined, currentBranchId.value),
+    queryKey: computed(() => [
+      ...agendaKeys.appointments(businessId(), currentBranchId.value),
+      dateFilterMode.value,
+      dateFilterMode.value === 'day' ? filterDate.value : null,
+      dateFilterMode.value === 'week' ? toISODate(getWeekRange(selectedDate.value).start) : null,
+    ]),
+    queryFn: () => listCitas(businessId()!, dateRange.value, undefined, currentBranchId.value),
     enabled: computed(() => !!businessId()),
+    staleTime: 0,
   })
 
   const { data: serviciosData } = useQuery({
@@ -52,20 +74,8 @@ export function useAdminAgenda(businessId: () => string | null) {
 
   const citas = computed<Cita[]>(() => {
     const all = citasData.value ?? []
-    let filtered: Cita[]
-    if (dateFilterMode.value === 'all') {
-      filtered = all
-    } else if (dateFilterMode.value === 'week') {
-      const { start, end } = getWeekRange(selectedDate.value)
-      filtered = all.filter(c => {
-        if (!c.date) return false
-        return c.date >= toISODate(start) && c.date <= toISODate(end)
-      })
-    } else {
-      filtered = filterDate.value ? all.filter(c => c.date === filterDate.value) : all
-    }
     const seen = new Set<string>()
-    return filtered.filter(c => {
+    return all.filter(c => {
       if (c.groupId) {
         if (seen.has(c.groupId)) return false
         seen.add(c.groupId)
@@ -112,7 +122,7 @@ export function useAdminAgenda(businessId: () => string | null) {
   }
 
   const todayLabel = computed(() => {
-    if (dateFilterMode.value === 'all') return 'Todas'
+    if (dateFilterMode.value === 'all') return 'Todas (6 meses)'
     if (dateFilterMode.value === 'week') {
       const { start, end } = getWeekRange(selectedDate.value)
       const fmt = (d: Date) => {
@@ -143,24 +153,13 @@ export function useAdminAgenda(businessId: () => string | null) {
   })
 
   const periodLabel = computed(() => {
-    if (dateFilterMode.value === 'all') return 'total'
+    if (dateFilterMode.value === 'all') return 'del período'
     if (dateFilterMode.value === 'week') return 'esta semana'
     return 'hoy'
   })
 
   const stats = computed(() => {
-    let citasDelPeriodo: Cita[]
-    if (dateFilterMode.value === 'all') {
-      citasDelPeriodo = citasData.value ?? []
-    } else if (dateFilterMode.value === 'week') {
-      const { start, end } = getWeekRange(selectedDate.value)
-      citasDelPeriodo = (citasData.value ?? []).filter(c =>
-        c.date >= toISODate(start) && c.date <= toISODate(end)
-      )
-    } else {
-      const filterIso = filterDate.value ?? todayIso.value
-      citasDelPeriodo = (citasData.value ?? []).filter(c => c.date === filterIso)
-    }
+    const citasDelPeriodo = citasData.value ?? []
 
     return {
       citasHoy: citasDelPeriodo.length,
