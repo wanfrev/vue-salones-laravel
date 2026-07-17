@@ -6,6 +6,7 @@ export interface EmployeeInput {
   password?: string
   phone?: string | null
   job_title?: string | null
+  role?: string
   pay_type?: string
   pay_percentage?: number
   base_salary?: number
@@ -33,6 +34,7 @@ export const adminCreateEmployee = async (input: EmployeeInput): Promise<{ id: s
       password: input.password,
       phone: input.phone || null,
       job_title: input.job_title || null,
+      role: input.role ?? 'empleado',
       pay_type: input.pay_type || 'percentage',
       pay_percentage: input.pay_percentage ?? 50,
       base_salary: input.base_salary ?? 0,

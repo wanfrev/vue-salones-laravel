@@ -51,6 +51,7 @@ export const saveEmpleado = async (
       password: data.password,
       phone: profileUpdate.phone || undefined,
       job_title: profileUpdate.job_title || undefined,
+      role: profileUpdate.role,
       pay_type: profileUpdate.pay_type,
       pay_percentage: profileUpdate.pay_percentage,
       base_salary: profileUpdate.base_salary,
