@@ -25,6 +25,7 @@ const props = defineProps<{
   businessId: import('vue').Ref<string | null>
   hideTabs?: string[]
   showOnly?: string
+  hideTotal?: boolean
 }>()
 
 const { formatUSD, formatVESInline, formatVESEs } = useCurrency()
@@ -270,7 +271,7 @@ const confirmDeleteServicio = async () => {
             <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
           </svg>
         </div>
-        <div>
+        <div v-if="!hideTotal">
           <span class="text-[10px] sm:text-[11px] text-text-muted uppercase tracking-wider font-semibold">Total {{
             activeDetailTab === 'cobros' ? 'Cobrado' : activeDetailTab === 'ventas' ? 'Vendido' : activeDetailTab ===
               'servicios' ? 'Activos' : 'Gastado' }}</span>

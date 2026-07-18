@@ -57,7 +57,7 @@
 
   <!-- TAB 2: Ingresos Detallados -->
   <template v-if="activeTab === 'ingresos'">
-    <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :hide-tabs="['gastos', 'servicios']" />
+    <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :hide-tabs="['gastos', 'servicios']" :hide-total="isEncargadoRole" />
   </template>
 
   <!-- TAB 3: Egresos y Proveedores -->

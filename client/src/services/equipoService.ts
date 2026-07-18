@@ -14,7 +14,7 @@ export const listEquipo = async (businessId: string, branchId?: string | null): 
     .from('profiles')
     .select('*, employee_schedules(*)')
     .eq('business_id', businessId)
-    .eq('role', 'empleado')
+    .in('role', ['empleado', 'encargado'])
     .order('full_name')
 
   if (error) throw error

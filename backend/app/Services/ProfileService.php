@@ -26,7 +26,7 @@ class ProfileService
     {
         $query = Profile::with('schedules')
             ->where('business_id', $businessId)
-            ->where('role', 'empleado')
+            ->whereIn('role', ['empleado', 'encargado'])
             ->where('active', true)
             ->orderBy('full_name');
 
