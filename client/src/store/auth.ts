@@ -91,7 +91,7 @@ export const useAuthStore = defineStore('auth', () => {
     const businessStore = useBusinessStore()
     await businessStore.loadBusiness(
       profile.value?.business_id ?? null,
-      profile.value?.role === 'empleado' ? profile.value?.id : undefined,
+      profile.value?.role === 'empleado' || profile.value?.role === 'encargado' ? profile.value?.id : undefined,
     )
   }
 

@@ -246,7 +246,7 @@ const confirmDeleteServicio = async () => {
             activeDetailTab === 'servicios' ? 'bg-gradient-to-r from-primary/[0.04] to-transparent' :
               'bg-gradient-to-r from-danger/[0.04] to-transparent'
       ]">
-      <div class="flex items-center gap-3">
+      <div v-if="!hideTotal" class="flex items-center gap-3">
         <div class="p-2.5 rounded-lg border shrink-0" :class="[
           activeDetailTab === 'cobros' ? 'bg-success/10 border-success/10 text-success' :
             activeDetailTab === 'ventas' ? 'bg-info/10 border-info/10 text-info' :

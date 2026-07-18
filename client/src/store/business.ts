@@ -38,6 +38,7 @@ export const useBusinessStore = defineStore('business', () => {
   const business = ref<Business | null>(null)
   const loading = ref(false)
   const selectedBranchId = ref<string | null>(null)
+  const _restoreProfileId = ref<string | null>(null)
 
   const nicheType = computed(() => business.value?.niche_type ?? 'salon')
   const terminology = computed(() => ({ ...DEFAULT_TERMINOLOGY, ...(business.value?.terminology ?? {}) }))
@@ -97,6 +98,7 @@ export const useBusinessStore = defineStore('business', () => {
 
       business.value = data as Business
 
+      _restoreProfileId.value = employeeId ?? null
       restoreBranchSelection(employeeId)
     } finally {
       loading.value = false
@@ -169,7 +171,7 @@ export const useBusinessStore = defineStore('business', () => {
   // Select default branch when branches load and none is selected
   watch(branches, (list) => {
     if (list.length > 0 && !selectedBranchId.value) {
-      restoreBranchSelection()
+      restoreBranchSelection(_restoreProfileId.value ?? undefined)
     }
   })
 
