@@ -1,16 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
-import { useAuthStore } from '../../store/auth'
-import { isEncargado } from '../../constants/roles'
 import { formatDate, parseLocalDate } from '../../lib/formatters'
 import KpiBanner from '../finanzas/KpiBanner.vue'
 import RecordSection from '../finanzas/RecordSection.vue'
 import SegmentedTabs from '../common/SegmentedTabs.vue'
 
 const { formatEmployeeVESInline } = useCurrency()
-const authStore = useAuthStore()
-const isEncargadoRole = computed(() => isEncargado(authStore.role ?? undefined))
 
 const fmtDate = (d: string) => formatDate(d)
 
@@ -142,10 +138,7 @@ const tabs = [
   { key: 'nomina' as const, label: 'Pago de Nómina', shortLabel: 'Nómina' },
   { key: 'deuda' as const, label: 'Deuda por Empleado', shortLabel: 'Deuda' },
   { key: 'horarios' as const, label: 'Horarios del Equipo', shortLabel: 'Horarios' },
-].filter(t => {
-  if (t.key === 'nomina' && isEncargadoRole.value) return false
-  return true
-})
+]
 const activeTab = ref<'pagos' | 'nomina' | 'deuda' | 'horarios'>('pagos')
 
 // Pagination
