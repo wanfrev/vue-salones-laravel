@@ -1,5 +1,5 @@
 <template>
-  <div class="relative">
+  <div v-if="!isEncargado" class="relative">
     <button @click="isOpen = !isOpen"
       class="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors hover:bg-bg-secondary"
       :class="currentBranch ? 'text-text' : 'text-text-muted'">
@@ -36,11 +36,14 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useBusinessStore } from '../../store/business'
+import { useAuthStore } from '../../store/auth'
 
 const store = useBusinessStore()
+const authStore = useAuthStore()
 const isOpen = ref(false)
 
 const currentBranch = computed(() => store.currentBranch)
+const isEncargado = computed(() => authStore.role === 'encargado')
 
 function select(id: string) {
   store.setBranch(id)
