@@ -28,6 +28,14 @@
           </button>
           <button type="button" class="rounded-md border border-border px-2 py-1 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text whitespace-nowrap ml-0.5" @click="resetToCurrent">Ahora</button>
         </div>
+        <ExchangeRateCard
+          :is-editable="rateCtx.isEditable.value"
+          :edit-rate-value="rateCtx.editRateValue.value"
+          :updating-rate="rateCtx.updatingRate.value"
+          :display-rate="rateCtx.displayRate.value"
+          @update:edit-rate-value="rateCtx.editRateValue.value = $event"
+          @update-rate="rateCtx.handleUpdate"
+        />
       </div>
     </div>
     <!-- Main tabs -->
@@ -38,7 +46,7 @@
 
   <!-- TAB 1: Resumen -->
   <template v-if="activeTab === 'resumen'">
-    <div class="mb-4">
+    <div v-if="!isEncargadoRole" class="mb-4">
       <KpiCards :income-total="incomeTotal" :ves-income-total="vesIncomeTotal" :tips-total="summaryCtx.tipsTotal" :expense-total="expenseTotal" :net-total="netTotal" :margin="marginTotal" :active-card="activeCard" :is-loading="summaryCtx.isLoading.value" @click-income="toggleCard('income')" @click-expense="toggleCard('expense')" @click-net="toggleCard('net')" />
     </div>
     <Transition name="accordion">
@@ -49,7 +57,7 @@
 
   <!-- TAB 2: Ingresos Detallados -->
   <template v-if="activeTab === 'ingresos'">
-    <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :hide-tabs="['gastos', 'servicios']" />
+    <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :hide-tabs="['gastos', 'servicios']" :hide-total="isEncargadoRole" />
   </template>
 
   <!-- TAB 3: Egresos y Proveedores -->
@@ -90,20 +98,23 @@ import RecentTransactionsCard from '../components/finanzas/RecentTransactionsCar
 import DetailMovimientos from '../components/finanzas/DetailMovimientos.vue'
 import EditCobroModal from '../components/finanzas/EditCobroModal.vue'
 import CobroActionsModal from '../components/finanzas/CobroActionsModal.vue'
+import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
+import { useExchangeRate } from '../composables/finanzas/useExchangeRate'
 import { useQueryClient } from '@tanstack/vue-query'
-import { api as supabase } from '../lib/api'
+import { db } from '../lib/api'
 import { APPOINTMENT_SELECT } from '../services/agendaService'
-import { useBusinessStore } from '../store/business'
 import { type Cita, type PaymentEditContext } from '../types/cita'
 import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import { translateError } from '../lib/errors'
 import { formatMethod } from '../lib/formatters'
 import { useNotification } from '../composables/common/useNotification'
+import { isEncargado } from '../constants/roles'
 
 const { authStore } = useAuth()
 const { formatUSD, formatVESInline } = useCurrency()
-const businessStore = useBusinessStore()
 const router = useRouter()
+const rateCtx = useExchangeRate()
+const isEncargadoRole = computed(() => isEncargado(authStore.role ?? undefined))
 
 const { selectedPeriod, selectedMonth, resetToCurrent, goPrev, goNext, displayLabel, periods } = usePeriodSelection()
 const businessId = computed(() => authStore.businessId)
@@ -266,7 +277,7 @@ const { success: successFin, error: showErrorFin } = useNotification()
 
 const openCobroActions = async (tx: any) => {
   const appointmentId = tx.appointmentId || tx.appointment_id
-  const { data: citaRaw } = await supabase
+  const { data: citaRaw } = await db
     .from('appointments')
     .select(APPOINTMENT_SELECT)
     .eq('id', appointmentId)

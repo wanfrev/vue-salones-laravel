@@ -94,7 +94,7 @@ class InventoryService
             $query->where('location_id', $locationId);
         }
 
-        return $query->get()->map(function ($stock) {
+        return $query->limit(200)->get()->map(function ($stock) {
             $data = $stock->toArray();
             $data['products'] = $stock->product ? [
                 'name' => $stock->product->name,
@@ -118,7 +118,8 @@ class InventoryService
     ): Collection {
         $query = InventoryMovement::with(['product', 'client'])
             ->where('business_id', $businessId)
-            ->orderByDesc('created_at');
+            ->orderByDesc('created_at')
+            ->limit(200);
 
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
@@ -347,9 +348,10 @@ class InventoryService
         }
     }
 
-    public function getLowStockProducts(): Collection
+    public function getLowStockProducts(string $businessId): Collection
     {
-        return \App\Models\Product::where('active', true)
+        return \App\Models\Product::where('business_id', $businessId)
+            ->where('active', true)
             ->where('is_sellable', true)
             ->where('reorder_point', '>', 0)
             ->whereHas('stocks')

@@ -31,6 +31,7 @@ export const mapProfileToEmpleado = (
     id: profile.id,
     name: profile.full_name,
     role: profile.job_title || (profile.role === 'admin' ? 'Administrador' : 'Empleado'),
+    systemRole: profile.role,
     citasHoy: stats?.citasHoy ?? 0,
     producido: (stats?.producido ?? 0).toLocaleString(),
     schedule: firstSchedule
@@ -63,6 +64,7 @@ export const mapEmpleadoFormToProfileUpdate = (data: EmpleadoFormData) => ({
   base_salary: data.payType === 'percentage' ? 0 : Number(data.baseSalary),
   salary_frequency: data.salaryFrequency,
   disable_agenda: data.disableAgenda,
+  role: data.systemRole,
 })
 
 export const mapEmpleadoFormToScheduleBlocks = (employeeId: string, data: EmpleadoFormData & { branchId?: string | null }) => {

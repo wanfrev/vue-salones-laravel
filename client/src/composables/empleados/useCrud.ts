@@ -1,7 +1,7 @@
 import { computed, ref, type Ref } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useNotification } from '../common/useNotification'
-import { api as supabase } from '../../lib/api'
+import { db } from '../../lib/api'
 import { translateError } from '../../lib/errors'
 
 export interface UseCrudOptions<TData, TForm, TId = string> {
@@ -117,7 +117,7 @@ export function useCrud<TData, TForm, TId = string>(options: UseCrudOptions<TDat
   const handleSave = async (formData: TForm & { id?: TId }) => {
     saveError.value = ''
     try {
-      await supabase.auth.getSession()
+      await db.auth.getSession()
     } catch {
       // Proceed anyway — the mutation will trigger its own token check
     }

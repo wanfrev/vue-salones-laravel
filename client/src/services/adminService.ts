@@ -1,4 +1,4 @@
-import { api as apiClient } from '../lib/api'
+import { db } from '../lib/api'
 
 export interface EmployeeInput {
   full_name: string
@@ -6,6 +6,7 @@ export interface EmployeeInput {
   password?: string
   phone?: string | null
   job_title?: string | null
+  role?: string
   pay_type?: string
   pay_percentage?: number
   base_salary?: number
@@ -25,7 +26,7 @@ export interface EmployeeInput {
 export const adminCreateEmployee = async (input: EmployeeInput): Promise<{ id: string }> => {
   const email = input.email.trim().toLowerCase()
 
-  const { data, error } = await apiClient
+  const { data, error } = await db
     .from('profiles')
     .insert({
       full_name: input.full_name,
@@ -33,6 +34,7 @@ export const adminCreateEmployee = async (input: EmployeeInput): Promise<{ id: s
       password: input.password,
       phone: input.phone || null,
       job_title: input.job_title || null,
+      role: input.role ?? 'empleado',
       pay_type: input.pay_type || 'percentage',
       pay_percentage: input.pay_percentage ?? 50,
       base_salary: input.base_salary ?? 0,
@@ -51,7 +53,7 @@ export const adminCreateEmployee = async (input: EmployeeInput): Promise<{ id: s
 
 /** Update employee + schedules */
 export const adminUpdateEmployee = async (userId: string, input: Partial<EmployeeInput>): Promise<void> => {
-  const { error } = await apiClient
+  const { error } = await db
     .from('profiles')
     .update(input)
     .eq('id', userId)
@@ -61,7 +63,7 @@ export const adminUpdateEmployee = async (userId: string, input: Partial<Employe
 
 /** Soft-delete employee */
 export const adminDeleteEmployee = async (userId: string): Promise<void> => {
-  const { error } = await apiClient
+  const { error } = await db
     .from('profiles')
     .delete()
     .eq('id', userId)

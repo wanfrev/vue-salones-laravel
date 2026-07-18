@@ -119,7 +119,7 @@
 import { ref, computed } from 'vue'
 import type { PaymentEditContext, AppointmentProduct } from '../../types/cita'
 import type { PaymentMethod } from '../../types/database'
-import { api as supabase } from '../../lib/api'
+import { db } from '../../lib/api'
 import { useCurrency } from '../../composables/common/useCurrency'
 
 const { formatUSD } = useCurrency()
@@ -233,7 +233,7 @@ function setPaymentContext(data: PaymentEditContext | null) {
     paymentBreakdown.value = data.breakdown ? data.breakdown.map(b => ({ ...b })) : []
     appointmentProducts.value = []
     if (data.appointmentId) {
-      supabase
+      db
         .from('inventory_movements')
         .select('id, product_id, products(name, unit_price), quantity, unit_cost')
         .eq('reference_type', 'appointment')

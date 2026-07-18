@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { useQuery, keepPreviousData } from '@tanstack/vue-query'
-import { api as supabase } from '../../lib/api'
+import { db } from '../../lib/api'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { APPOINTMENT_SELECT } from '../../services/agendaService'
@@ -33,7 +33,7 @@ export const useAgenda = () => {
     queryKey: computed(() => ['employees', businessId.value, currentBranchId.value]),
     queryFn: async (): Promise<Profile[]> => {
       if (!businessId.value) return []
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('profiles')
         .select('*, employee_schedules(*)')
         .eq('business_id', businessId.value)
@@ -56,7 +56,7 @@ export const useAgenda = () => {
     queryKey: computed(() => ['services', businessId.value, currentBranchId.value]),
     queryFn: async (): Promise<Service[]> => {
       if (!businessId.value) return []
-      let query = supabase
+      let query = db
         .from('services')
         .select('*')
         .eq('business_id', businessId.value)
@@ -77,7 +77,7 @@ export const useAgenda = () => {
     queryKey: computed(() => ['schedules', businessId.value, selectedEmployeeId.value, currentBranchId.value]),
     queryFn: async (): Promise<any[]> => {
       if (!businessId.value) return []
-      let query = supabase
+      let query = db
         .from('employee_schedules')
         .select('*, profiles!inner(business_id)')
         .eq('profiles.business_id', businessId.value)
@@ -100,7 +100,7 @@ export const useAgenda = () => {
       const [, bizId, empId, branchId, range] = queryKey
       if (!bizId) return []
       const { start, end } = range as { start: Date; end: Date }
-      let query = supabase
+      let query = db
         .from('appointments')
         .select(APPOINTMENT_SELECT)
         .eq('business_id', bizId)

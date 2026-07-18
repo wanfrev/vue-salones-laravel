@@ -26,7 +26,19 @@
             :error="errors.name"
           />
 
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label class="block text-sm font-medium text-text-secondary mb-2">Nivel de acceso</label>
+            <div class="flex gap-2">
+              <button v-for="opt in systemRoleOptions" :key="opt.value" type="button"
+                @click="formData.systemRole = opt.value"
+                class="flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-all"
+                :class="formData.systemRole === opt.value ? 'border-primary bg-primary/10 text-primary' : 'border-border text-text-muted hover:border-border-strong'">
+                {{ opt.label }}
+              </button>
+            </div>
+          </div>
+
+          <div v-if="formData.systemRole === 'empleado'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <FormDropdown
               v-if="!showingCustomRole"
               v-model="formData.role"
@@ -208,6 +220,11 @@ const isSubmitting = ref(false)
 const isLoading = computed(() => isSubmitting.value || props.isSaving)
 const isEditing = computed(() => !!modalData.value?.empleado)
 
+const systemRoleOptions = [
+  { value: 'empleado' as const, label: 'Empleado' },
+  { value: 'encargado' as const, label: 'Encargado' },
+]
+
 const showingCustomRole = ref(false)
 
 const roleOptions = computed(() => {
@@ -225,6 +242,7 @@ const cancelCustomRole = () => {
 const defaultFormData: EmpleadoFormData = {
   name: '',
   role: '',
+  systemRole: 'empleado',
   phone: '',
   email: '',
   password: '',
@@ -247,7 +265,7 @@ const errors = ref<Partial<Record<keyof EmpleadoFormData, string>>>({})
 
 const isFormValid = computed(() => {
   const nameValid = formData.value.name.trim().length >= 2
-  const roleValid = formData.value.role !== ''
+  const roleValid = formData.value.systemRole === 'encargado' ? true : formData.value.role !== ''
   const emailValid = formData.value.email.trim().length >= 5
   const pwd = formData.value.password
   const passwordValid = pwd.length === 0 ? isEditing.value : pwd.length >= 6
@@ -265,6 +283,7 @@ watch(
       formData.value = {
         name: empleado.name || '',
         role: empleado.role || '',
+        systemRole: (empleado.systemRole === 'encargado' ? 'encargado' : 'empleado'),
         phone: empleado.phone || '',
         email: empleado.email || '',
         password: '',
@@ -299,6 +318,15 @@ watch(
   }
 )
 
+watch(
+  () => formData.value.systemRole,
+  (newRole) => {
+    if (newRole === 'encargado') {
+      formData.value.role = 'Encargado'
+    }
+  }
+)
+
 const validateForm = (): boolean => {
   errors.value = {}
 
@@ -306,7 +334,7 @@ const validateForm = (): boolean => {
     errors.value.name = 'El nombre debe tener al menos 2 caracteres'
   }
 
-  if (!formData.value.role.trim()) {
+  if (formData.value.systemRole !== 'encargado' && !formData.value.role.trim()) {
     errors.value.role = 'El rol / puesto es obligatorio'
   }
 

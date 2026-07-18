@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
-import { api as supabase } from '../../lib/api'
+import { db } from '../../lib/api'
 import { formatMethod } from '../../lib/formatters'
 import SectionCard from '../common/SectionCard.vue'
 import { DualAmount } from '../common'
@@ -54,7 +54,7 @@ watch(() => props.show, (visible) => { if (visible) { mode.value = 'actions'; gr
 watch(() => props.paymentData, (data) => {
   appointmentProducts.value = []
   if (data?.appointmentId) {
-    supabase
+    db
       .from('inventory_movements')
       .select('id, product_id, products(name, unit_price), quantity, unit_cost')
       .eq('reference_type', 'appointment')

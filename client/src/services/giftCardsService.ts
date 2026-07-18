@@ -1,4 +1,4 @@
-import { api as supabase, api as mutate } from '../lib/api'
+import { db } from '../lib/api'
 import { handleDbError } from '../lib/errors'
 import type { GiftCard, GiftCardFormData } from '../types/giftCard'
 
@@ -7,7 +7,7 @@ export const giftCardsKeys = {
 }
 
 export const listGiftCards = async (businessId: string, branchId?: string | null): Promise<GiftCard[]> => {
-  let query = supabase
+  let query = db
     .from('gift_cards')
     .select('*')
     .eq('business_id', businessId)
@@ -31,7 +31,7 @@ export const saveGiftCard = async (businessId: string, form: GiftCardFormData, b
   }
 
   if (form.id) {
-    const { data, error } = await mutate
+    const { data, error } = await db
       .from('gift_cards')
       .update(payload)
       .eq('id', form.id)
@@ -41,7 +41,7 @@ export const saveGiftCard = async (businessId: string, form: GiftCardFormData, b
     return mapRowToGiftCard(data)
   }
 
-  const { data, error } = await mutate
+  const { data, error } = await db
     .from('gift_cards')
     .insert(payload)
     .select('*')
@@ -51,7 +51,7 @@ export const saveGiftCard = async (businessId: string, form: GiftCardFormData, b
 }
 
 export const deleteGiftCard = async (id: string): Promise<void> => {
-  const { error } = await mutate
+  const { error } = await db
     .from('gift_cards')
     .delete()
     .eq('id', id)

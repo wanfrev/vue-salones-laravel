@@ -22,7 +22,7 @@ class NotificationController
     private function isAdmin(?object $profile): bool
     {
         if (!$profile) return false;
-        return in_array($profile->role, ['admin', 'superadmin']);
+        return in_array($profile->role, ['admin', 'superadmin', 'encargado']);
     }
 
     public function index(Request $request): JsonResponse

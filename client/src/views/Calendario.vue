@@ -27,7 +27,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { useAuth } from '../composables/common/useAuth'
 import { useNotification } from '../composables/common/useNotification'
 import { useBusinessStore } from '../store/business'
-import { api as supabase } from '../lib/api'
+import { db } from '../lib/api'
 import { equipoKeys, listEquipo } from '../services/equipoService'
 import { listServicios, serviciosKeys } from '../services/serviciosService'
 import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
@@ -98,7 +98,7 @@ const handleEventClick = async (event: { id: string; title: string; start: Date;
   if (event.citaData) {
     const cita = event.citaData
     if (cita.paymentStatus === 'paid' || cita.status === 'paid') {
-      const { data: tx } = await supabase
+      const { data: tx } = await db
         .from('transactions')
         .select('id, total_amount, method, exchange_rate_used, payments_breakdown, notes, tip_amount')
         .eq('appointment_id', cita.id)

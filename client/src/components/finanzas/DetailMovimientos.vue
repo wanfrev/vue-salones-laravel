@@ -25,6 +25,7 @@ const props = defineProps<{
   businessId: import('vue').Ref<string | null>
   hideTabs?: string[]
   showOnly?: string
+  hideTotal?: boolean
 }>()
 
 const { formatUSD, formatVESInline, formatVESEs } = useCurrency()
@@ -245,7 +246,7 @@ const confirmDeleteServicio = async () => {
             activeDetailTab === 'servicios' ? 'bg-gradient-to-r from-primary/[0.04] to-transparent' :
               'bg-gradient-to-r from-danger/[0.04] to-transparent'
       ]">
-      <div class="flex items-center gap-3">
+      <div v-if="!hideTotal" class="flex items-center gap-3">
         <div class="p-2.5 rounded-lg border shrink-0" :class="[
           activeDetailTab === 'cobros' ? 'bg-success/10 border-success/10 text-success' :
             activeDetailTab === 'ventas' ? 'bg-info/10 border-info/10 text-info' :
@@ -270,7 +271,7 @@ const confirmDeleteServicio = async () => {
             <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
           </svg>
         </div>
-        <div>
+        <div v-if="!hideTotal">
           <span class="text-[10px] sm:text-[11px] text-text-muted uppercase tracking-wider font-semibold">Total {{
             activeDetailTab === 'cobros' ? 'Cobrado' : activeDetailTab === 'ventas' ? 'Vendido' : activeDetailTab ===
               'servicios' ? 'Activos' : 'Gastado' }}</span>

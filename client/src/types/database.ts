@@ -3,7 +3,7 @@
 //   supabase gen types typescript --project-id <ref> > src/types/database.ts
 // (o `--local` si trabajas con la CLI de Supabase localmente).
 
-export type AppRole = 'superadmin' | 'admin' | 'empleado'
+export type AppRole = 'superadmin' | 'admin' | 'empleado' | 'encargado'
 export type AppointmentStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid'
 export type PaymentMethod = 'cash' | 'cash_ves' | 'card' | 'transfer' | 'other' | 'zelle' | 'pago_movil' | 'punto_venta' | 'mixed'

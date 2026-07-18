@@ -47,5 +47,6 @@ const toggles = [
   { key: 'proveedores', label: 'Proveedores', description: 'Gestión de proveedores, deudas y pagos' },
   { key: 'multi_branch', label: 'Múltiples sucursales', description: 'Gestionar varias ubicaciones físicas' },
   { key: 'employees_create_clients', label: 'Empleados crean clientes', description: 'Permitir que empleados agreguen nuevos clientes desde la agenda' },
+  { key: 'gift_cards', label: 'Gift Cards', description: 'Sistema de tarjetas de regalo' },
 ]
 </script>

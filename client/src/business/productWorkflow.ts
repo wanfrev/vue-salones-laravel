@@ -1,10 +1,10 @@
-import { api as supabase, api as mutate } from "../lib/api";
+import { db } from "../lib/api";
 
 export async function ensureDefaultLocation(
   businessId: string,
   branchId?: string | null,
 ): Promise<{ id: string }> {
-  let query = supabase
+  let query = db
     .from("inventory_locations")
     .select("id")
     .eq("business_id", businessId)
@@ -17,7 +17,7 @@ export async function ensureDefaultLocation(
   let { data: loc } = await query.maybeSingle();
 
   if (!loc) {
-    let firstQuery = supabase
+    let firstQuery = db
       .from("inventory_locations")
       .select("id")
       .eq("business_id", businessId);
@@ -31,7 +31,7 @@ export async function ensureDefaultLocation(
   }
 
   if (!loc) {
-    const { data: newLoc, error: insertErr } = await mutate
+    const { data: newLoc, error: insertErr } = await db
       .from("inventory_locations")
       .insert({
         business_id: businessId,
@@ -44,7 +44,7 @@ export async function ensureDefaultLocation(
     if (insertErr) {
       const isDuplicate = insertErr.message.includes('inventory_locations_business_id_name_key')
       if (isDuplicate && branchId) {
-        const { data: existingLoc } = await supabase
+        const { data: existingLoc } = await db
           .from("inventory_locations")
           .select("id")
           .eq("business_id", businessId)
@@ -82,7 +82,7 @@ export async function createInitialStock(
   quantity: number,
   branchId?: string | null,
 ): Promise<void> {
-  const { error } = await mutate.from("inventory_stock").insert({
+  const { error } = await db.from("inventory_stock").insert({
     business_id: businessId,
     branch_id: branchId ?? null,
     location_id: locationId,

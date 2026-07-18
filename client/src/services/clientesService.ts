@@ -1,4 +1,4 @@
-import { api as supabase, api as mutate, apiRequest } from '../lib/api'
+import { db, apiRequest } from '../lib/api'
 import { clienteFormSchema } from '../lib/validation'
 import { computeClientStats } from '../business/clientStats'
 import { mapClienteFormToClientInsert, mapClientToCliente } from '../mappers/clientesMapper'
@@ -10,7 +10,7 @@ export const clientesKeys = {
 }
 
 export const listClientes = async (businessId: string, branchId?: string | null): Promise<Cliente[]> => {
-  let query = supabase
+  let query = db
     .from('clients')
     .select('*')
     .eq('business_id', businessId)
@@ -26,7 +26,7 @@ export const listClientes = async (businessId: string, branchId?: string | null)
 
   const clients = data as Client[]
 
-  let apptsQuery = supabase
+  let apptsQuery = db
     .from('appointments')
     .select('client_id, start_time, service_id')
     .eq('business_id', businessId)
@@ -39,7 +39,7 @@ export const listClientes = async (businessId: string, branchId?: string | null)
 
   if (apptError) throw apptError
 
-  let svcsQuery = supabase
+  let svcsQuery = db
     .from('services')
     .select('id, price')
     .eq('business_id', businessId)
@@ -73,8 +73,8 @@ export const saveCliente = async (
   const payload = { ...mapClienteFormToClientInsert(businessId, parsed.data), branch_id: branchId ?? null }
 
   const query = data.id
-    ? mutate.from('clients').update(payload).eq('id', data.id).select('*').single()
-    : mutate.from('clients').insert(payload).select('*').single()
+    ? db.from('clients').update(payload).eq('id', data.id).select('*').single()
+    : db.from('clients').insert(payload).select('*').single()
 
   const { data: saved, error } = await query
   if (error) {
@@ -88,7 +88,7 @@ export const saveCliente = async (
 }
 
 export const getClienteById = async (id: string): Promise<Cliente> => {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('clients')
     .select('*')
     .eq('id', id)
@@ -100,7 +100,7 @@ export const getClienteById = async (id: string): Promise<Cliente> => {
 }
 
 export const deleteCliente = async (clientId: string): Promise<void> => {
-  const { error } = await mutate
+  const { error } = await db
     .from('clients')
     .delete()
     .eq('id', clientId)
@@ -121,7 +121,7 @@ export const searchClients = async (
   const q = query.trim()
   if (!q) return []
 
-  let qb = supabase
+  let qb = db
     .from('clients')
     .select('id, full_name, phone')
     .eq('business_id', businessId)

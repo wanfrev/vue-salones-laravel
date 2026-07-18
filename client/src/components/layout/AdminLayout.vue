@@ -11,7 +11,7 @@
         <div class="flex flex-col">
           <img :src="lumaLogo" alt="Luma" class="h-7 w-auto object-contain" />
         </div>
-        <BranchSwitcher v-if="businessStore.isMultiBranch" />
+        <BranchSwitcher v-if="businessStore.isMultiBranch && !isEncargado" />
         <button @click="refresh" :disabled="isRefreshing" title="Recargar datos" class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed">
           <svg class="h-4 w-4" :class="{ 'animate-spin': isRefreshing }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -57,9 +57,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../../composables/common/useAuth'
+import { useAuthStore } from '../../store/auth'
 import { useThemeStore } from '../../store/theme'
 import lumaLogoLight from '../../assets/Luma.svg'
 import lumaLogoDark from '../../assets/Luma blanco.svg'
@@ -79,6 +80,7 @@ const isSidebarOpen = ref(false)
 const profileOpen = ref(false)
 const isRefreshing = ref(false)
 const lumaLogo = computed(() => (themeStore.isDark ? lumaLogoDark : lumaLogoLight))
+const isEncargado = computed(() => authStore.role === 'encargado')
 
 async function refresh() {
   isRefreshing.value = true
@@ -88,4 +90,10 @@ async function refresh() {
     isRefreshing.value = false
   }
 }
+
+onMounted(() => {
+  if (isEncargado.value && authStore.profile?.branch_id) {
+    businessStore.setBranch(authStore.profile.branch_id)
+  }
+})
 </script>

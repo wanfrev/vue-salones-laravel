@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Appointment;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -132,9 +133,11 @@ class AppointmentService
 
     public function destroy(string $id, string $businessId): void
     {
-        $appointment = $this->findForBusiness($id, $businessId);
-        \App\Models\Transaction::where('appointment_id', $id)->delete();
-        $appointment->delete();
+        DB::transaction(function () use ($id, $businessId) {
+            $appointment = $this->findForBusiness($id, $businessId);
+            \App\Models\Transaction::where('appointment_id', $id)->delete();
+            $appointment->delete();
+        });
     }
 
     public function getPendingPayments(string $businessId, ?string $branchId = null): Collection

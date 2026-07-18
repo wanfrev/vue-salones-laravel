@@ -54,7 +54,7 @@
         <div v-for="(row, index) in serviceRows" :key="index" class="rounded-lg border border-border bg-bg-secondary/30">
           <div class="grid grid-cols-1 sm:grid-cols-[2fr_1.5fr_1fr_80px_60px_36px_36px] gap-2 p-2.5 items-start">
             <FormDropdown :model-value="row.serviceId" :placeholder="`Seleccionar ${t.service.toLowerCase()}`" :options="serviceOptions" :error="getRowError(index, 'serviceId')" size="sm" searchable @update:model-value="updateServiceRow(index, 'serviceId', $event)" />
-            <FormDropdown :model-value="row.employeeId" :placeholder="t.employee" :options="employeeOptions" :disabled="isSingleEmployee" :error="getRowError(index, 'employeeId')" size="sm" @update:model-value="updateServiceRow(index, 'employeeId', $event)" />
+            <FormDropdown :model-value="row.employeeId" :placeholder="t.employee" :options="employeeOptions" :disabled="isSingleEmployee" :error="getRowError(index, 'employeeId')" size="sm" searchable @update:model-value="updateServiceRow(index, 'employeeId', $event)" />
             <FormDropdown :model-value="row.assistantEmployeeId" placeholder="Sin asist." :options="assistantOptions" :error="getRowError(index, 'assistantEmployeeId')" size="sm" @update:model-value="updateServiceRow(index, 'assistantEmployeeId', $event)" />
             <div>
               <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm font-medium">$</span>
@@ -220,7 +220,28 @@ const serviceRows = computed<CitaFormServiceItem[]>(() => {
 })
 
 const addServiceRow = () => formData.value.extraServices.push(emptyServiceRow())
-const removeServiceRow = (index: number) => { const ei = index - 1; if (ei >= 0 && ei < formData.value.extraServices.length) { formData.value.extraServices.splice(ei, 1); activeEmployeeOverrides.delete(index); commissionDetailOpen.delete(index) } }
+const removeServiceRow = (index: number) => {
+  if (index === 0) {
+    if (formData.value.extraServices.length === 0) return
+    const next = formData.value.extraServices.shift()!
+    formData.value.service = next.serviceId
+    formData.value.employee = next.employeeId
+    formData.value.assistantEmployee = next.assistantEmployeeId
+    formData.value.assistantPercentage = next.assistantPercentage
+    formData.value.employeePercentageOverride = next.employeePercentageOverride
+    formData.value.duration = next.duration
+    formData.value.price = next.price
+    activeEmployeeOverrides.clear()
+    commissionDetailOpen.clear()
+  } else {
+    const ei = index - 1
+    if (ei >= 0 && ei < formData.value.extraServices.length) {
+      formData.value.extraServices.splice(ei, 1)
+      activeEmployeeOverrides.delete(index)
+      commissionDetailOpen.delete(index)
+    }
+  }
+}
 
 const updateServiceRow = (index: number, field: keyof CitaFormServiceItem, value: string) => {
   const set = (target: any, f: string, v: any) => {

@@ -13,7 +13,7 @@
           <span class="text-sm font-semibold text-text leading-tight">{{ businessName }}</span>
           <span class="text-[10px] text-text-muted uppercase tracking-wide">{{ roleLabel }}</span>
         </div>
-          <BranchSwitcher v-if="businessStore.isMultiBranch && !isEmployee" />
+          <BranchSwitcher v-if="businessStore.isMultiBranch && !isEmployee && !isEncargado" />
       </div>
       <div class="flex items-center gap-2">
         <slot name="header-actions" />
@@ -66,7 +66,7 @@ import { useAuth } from '../../composables/common/useAuth'
 import { useAuthStore } from '../../store/auth'
 import { useThemeStore } from '../../store/theme'
 import { useBusinessStore } from '../../store/business'
-import { api as supabase } from '../../lib/api'
+import { db } from '../../lib/api'
 import { useRealtime } from '../../composables/realtime/useRealtime'
 import lumaLogoLight from '../../assets/Luma.svg'
 import lumaLogoDark from '../../assets/Luma blanco.svg'
@@ -92,10 +92,12 @@ const profileOpen = ref(false)
 const businessName = computed(() => businessStore.business?.name ?? '')
 
 const isEmployee = computed(() => authStore.role === 'empleado')
+const isEncargado = computed(() => authStore.role === 'encargado')
 
 const roleLabel = computed(() => {
   const role = authStore.role
   if (role === 'admin') return 'Admin'
+  if (role === 'encargado') return 'Encargado'
   if (role === 'empleado') return 'Empleado'
   if (role === 'superadmin') return 'Superadmin'
   return ''
@@ -113,12 +115,17 @@ async function refresh() {
 }
 
 onMounted(async () => {
+  if (isEncargado.value && authStore.profile?.branch_id) {
+    businessStore.setBranch(authStore.profile.branch_id)
+    return
+  }
+
   if (!isEmployee.value || !businessStore.isMultiBranch || !authStore.profile?.id) return
   if (authStore.profile.branch_id) {
     businessStore.setBranch(authStore.profile.branch_id)
     return
   }
-  const { data } = await supabase
+  const { data } = await db
     .from('employee_schedules')
     .select('branch_id')
     .eq('employee_id', authStore.profile.id)

@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { api as supabase } from '../../lib/api'
+import { db } from '../../lib/api'
 import { useAuth } from '../common/useAuth'
 import { useBusinessStore } from '../../store/business'
 
@@ -72,7 +72,7 @@ export function useCurrency() {
 
     if (branchId) {
       businessStore.updateBranch({ ves_exchange_rate: rate })
-      const { error } = await supabase
+      const { error } = await db
         .from('branches')
         .update({ ves_exchange_rate: rate })
         .eq('id', branchId)
@@ -80,7 +80,7 @@ export function useCurrency() {
       if (error) throw error
     } else {
       businessStore.updateBusiness({ ves_exchange_rate: rate })
-      const { error } = await supabase
+      const { error } = await db
         .from('businesses')
         .update({ ves_exchange_rate: rate })
         .eq('id', businessId)

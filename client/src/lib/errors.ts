@@ -78,7 +78,7 @@ export async function resolveFunctionErrorMessage(error: unknown, fallback: stri
     // ignore
   }
 
-  // The Supabase client may set error.message to the raw JSON body string.
+  // The API client may set error.message to the raw JSON body string.
   // Try to extract meaningful message from it.
   if (maybeError.message && maybeError.message.trim()) {
     const msg = maybeError.message.trim()

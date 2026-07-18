@@ -26,7 +26,7 @@ class ProfileService
     {
         $query = Profile::with('schedules')
             ->where('business_id', $businessId)
-            ->where('role', 'empleado')
+            ->whereIn('role', ['empleado', 'encargado'])
             ->where('active', true)
             ->orderBy('full_name');
 
@@ -67,7 +67,7 @@ class ProfileService
                 'business_id' => $businessId,
                 'branch_id' => $data['branch_id'] ?? null,
                 'full_name' => $data['full_name'],
-                'role' => 'empleado',
+                'role' => $data['role'] ?? 'empleado',
                 'phone' => $data['phone'] ?? null,
                 'email' => $email,
                 'job_title' => $data['job_title'] ?? null,
@@ -94,54 +94,57 @@ class ProfileService
 
     public function update(string $id, array $data, string $businessId): Profile
     {
-        $profile = $this->findForBusiness($id, $businessId);
+        return DB::transaction(function () use ($id, $data, $businessId) {
+            $profile = $this->findForBusiness($id, $businessId);
 
-        $userUpdates = array_filter([
-            'name' => $data['full_name'] ?? null,
-            'email' => isset($data['email']) ? strtolower($data['email']) : null,
-        ]);
-        if (!empty($userUpdates)) {
-            User::where('id', $id)->update($userUpdates);
-        }
-        if (!empty($data['password'])) {
-            User::where('id', $id)->update(['password' => bcrypt($data['password'])]);
-        }
+            $userUpdates = array_filter([
+                'name' => $data['full_name'] ?? null,
+                'email' => isset($data['email']) ? strtolower($data['email']) : null,
+            ]);
+            if (!empty($userUpdates)) {
+                User::where('id', $id)->update($userUpdates);
+            }
+            if (!empty($data['password'])) {
+                User::where('id', $id)->update(['password' => bcrypt($data['password'])]);
+            }
 
-        $profileFields = array_filter([
-            'full_name' => $data['full_name'] ?? null,
-            'phone' => $data['phone'] ?? null,
-            'email' => isset($data['email']) ? strtolower($data['email']) : null,
-            'job_title' => $data['job_title'] ?? null,
-            'pay_type' => $data['pay_type'] ?? null,
-            'pay_percentage' => $data['pay_percentage'] ?? null,
-            'base_salary' => $data['base_salary'] ?? null,
-            'branch_id' => $data['branch_id'] ?? null,
-        ], fn($v) => $v !== null) + ['updated_at' => now()];
+            $profileFields = array_filter([
+                'full_name' => $data['full_name'] ?? null,
+                'phone' => $data['phone'] ?? null,
+                'email' => isset($data['email']) ? strtolower($data['email']) : null,
+                'job_title' => $data['job_title'] ?? null,
+                'role' => $data['role'] ?? null,
+                'pay_type' => $data['pay_type'] ?? null,
+                'pay_percentage' => $data['pay_percentage'] ?? null,
+                'base_salary' => $data['base_salary'] ?? null,
+                'branch_id' => $data['branch_id'] ?? null,
+            ], fn($v) => $v !== null) + ['updated_at' => now()];
 
-        if (array_key_exists('salary_frequency', $data)) {
-            $profileFields['salary_frequency'] = $data['salary_frequency'];
-        }
-        if (array_key_exists('disable_agenda', $data)) {
-            $profileFields['disable_agenda'] = $data['disable_agenda'];
-        }
-        if (array_key_exists('can_create_appointments', $data)) {
-            $profileFields['can_create_appointments'] = $data['can_create_appointments'];
-        }
-        if (array_key_exists('can_create_clients', $data)) {
-            $profileFields['can_create_clients'] = $data['can_create_clients'];
-        }
-        if (array_key_exists('active', $data)) {
-            $profileFields['active'] = $data['active'];
-        }
+            if (array_key_exists('salary_frequency', $data)) {
+                $profileFields['salary_frequency'] = $data['salary_frequency'];
+            }
+            if (array_key_exists('disable_agenda', $data)) {
+                $profileFields['disable_agenda'] = $data['disable_agenda'];
+            }
+            if (array_key_exists('can_create_appointments', $data)) {
+                $profileFields['can_create_appointments'] = $data['can_create_appointments'];
+            }
+            if (array_key_exists('can_create_clients', $data)) {
+                $profileFields['can_create_clients'] = $data['can_create_clients'];
+            }
+            if (array_key_exists('active', $data)) {
+                $profileFields['active'] = $data['active'];
+            }
 
-        $profile->update($profileFields);
+            $profile->update($profileFields);
 
-        if (array_key_exists('schedules', $data)) {
-            EmployeeSchedule::where('employee_id', $id)->delete();
-            $this->syncSchedules($id, $data['schedules'] ?? []);
-        }
+            if (array_key_exists('schedules', $data)) {
+                EmployeeSchedule::where('employee_id', $id)->delete();
+                $this->syncSchedules($id, $data['schedules'] ?? []);
+            }
 
-        return Profile::with('schedules')->find($id);
+            return Profile::with('schedules')->find($id);
+        });
     }
 
     public function destroy(string $id, string $businessId): void

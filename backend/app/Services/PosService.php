@@ -326,21 +326,19 @@ class PosService
         ?string $branchId,
         string $defaultLocation,
     ): void {
-        $stock = $this->inventoryService->getStockRecord(
-            businessId: $businessId,
-            productId: $productId,
-            locationId: $defaultLocation,
-            variantId: $variantId,
-            branchId: $branchId,
-        );
+        $stock = \App\Models\InventoryStock::where('business_id', $businessId)
+            ->where('product_id', $productId)
+            ->where('location_id', $defaultLocation)
+            ->when($variantId, fn($q) => $q->where('variant_id', $variantId), fn($q) => $q->whereNull('variant_id'))
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->lockForUpdate()
+            ->first();
 
         if (!$stock || $stock->quantity < $quantity) {
             throw new RuntimeException("Stock insuficiente para {$productName}. Disponible: " . ($stock->quantity ?? 0));
         }
 
-        $this->inventoryService->updateStockQuantity(
-            $stock->id,
-            $stock->quantity - $quantity,
-        );
+        $stock->quantity -= $quantity;
+        $stock->save();
     }
 }

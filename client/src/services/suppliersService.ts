@@ -1,4 +1,4 @@
-import { api as supabase, api as mutate } from '../lib/api'
+import { db } from '../lib/api'
 import { handleDbError } from '../lib/errors'
 import { supplierFormSchema, supplierPaymentFormSchema } from '../lib/validation'
 import type { Supplier, SupplierPayment } from '../types/database'
@@ -62,7 +62,7 @@ export interface SupplierPaymentFormData {
 }
 
 export const listSuppliers = async (businessId: string, branchId?: string | null): Promise<SupplierRow[]> => {
-  let query = supabase
+  let query = db
     .from('suppliers')
     .select('*')
     .eq('business_id', businessId)
@@ -123,7 +123,7 @@ export const saveSupplier = async (
   }
 
   if (data.id) {
-    const { data: updated, error } = await mutate
+    const { data: updated, error } = await db
       .from('suppliers')
       .update(basePayload)
       .eq('id', data.id)
@@ -150,7 +150,7 @@ export const saveSupplier = async (
     }
   }
 
-  const { data: created, error } = await mutate
+  const { data: created, error } = await db
     .from('suppliers')
     .insert({
       business_id: businessId,
@@ -181,7 +181,7 @@ export const saveSupplier = async (
 }
 
 export const deleteSupplier = async (id: string): Promise<void> => {
-  const { error } = await mutate
+  const { error } = await db
     .from('suppliers')
     .update({ active: false })
     .eq('id', id)
@@ -195,7 +195,7 @@ export const listSupplierPayments = async (
   startDate?: string,
   endDate?: string,
 ): Promise<SupplierPaymentRow[]> => {
-  let query = supabase
+  let query = db
     .from('supplier_payments')
     .select('id, supplier_id, amount, payment_method, payment_date, notes, suppliers!inner(first_name, last_name)')
     .eq('business_id', businessId)
@@ -270,7 +270,7 @@ export const createSupplierPayment = async (
 
   let userId: string | null = null
   try {
-    const { data: { session } } = await supabase.auth.getSession()
+    const { data: { session } } = await db.auth.getSession()
     userId = session?.user?.id ?? null
   } catch { /* no session */ }
 
@@ -283,7 +283,7 @@ export const createSupplierPayment = async (
     notesContent = `[VES:${parsed.data.amount}:${rate}]` + (notesContent ? ' ' + notesContent : '')
   }
 
-  const { error } = await mutate
+  const { error } = await db
     .from('supplier_payments')
     .insert({
       business_id: businessId,
@@ -300,7 +300,7 @@ export const createSupplierPayment = async (
 }
 
 export const deleteSupplierPayment = async (id: string): Promise<void> => {
-  const { error } = await mutate
+  const { error } = await db
     .from('supplier_payments')
     .delete()
     .eq('id', id)
@@ -323,7 +323,7 @@ export const getSupplierBalance = async (
   supplierId: string,
   branchId?: string | null,
 ): Promise<SupplierBalance> => {
-  const { data: supplier, error: supplierError } = await supabase
+  const { data: supplier, error: supplierError } = await db
     .from('suppliers')
     .select('id, first_name, last_name, total_debt, debt_currency, debt_original_amount')
     .eq('id', supplierId)
@@ -333,7 +333,7 @@ export const getSupplierBalance = async (
 
   const s = supplier as any
 
-  let paymentsQuery = supabase
+  let paymentsQuery = db
     .from('supplier_payments')
     .select('amount')
     .eq('business_id', businessId)
@@ -363,7 +363,7 @@ export const getSupplierBalance = async (
 }
 
 async function getCurrentExchangeRate(businessId: string): Promise<number> {
-  const { data } = await supabase
+  const { data } = await db
     .from('businesses')
     .select('ves_exchange_rate')
     .eq('id', businessId)

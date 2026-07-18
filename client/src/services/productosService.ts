@@ -1,4 +1,4 @@
-import { api as supabase, api as mutate } from '../lib/api'
+import { db } from '../lib/api'
 import { ensureDefaultLocation, createInitialStock } from '../business/productWorkflow'
 import { mapProductToProducto, mapProductoFormToProductInsert } from '../mappers/productosMapper'
 import type { Product, ProductCategory } from '../types/database'
@@ -10,7 +10,7 @@ export const productosKeys = {
 }
 
 export const listProductCategories = async (businessId: string, branchId?: string | null): Promise<ProductCategory[]> => {
-  let query = supabase
+  let query = db
     .from('product_categories')
     .select('*')
     .eq('business_id', businessId)
@@ -27,7 +27,7 @@ export const listProductCategories = async (businessId: string, branchId?: strin
 }
 
 export const listProductos = async (businessId: string, branchId?: string | null): Promise<Producto[]> => {
-  let productsQuery = supabase
+  let productsQuery = db
     .from('products')
     .select('*')
     .eq('business_id', businessId)
@@ -41,7 +41,7 @@ export const listProductos = async (businessId: string, branchId?: string | null
 
   if (error) throw error
 
-  let catQuery = supabase
+  let catQuery = db
     .from('product_categories')
     .select('id, name')
     .eq('business_id', businessId)
@@ -57,7 +57,7 @@ export const listProductos = async (businessId: string, branchId?: string | null
     catMap.set(cat.id, cat.name)
   }
 
-  let stockQuery = supabase
+  let stockQuery = db
     .from('inventory_stock')
     .select('product_id, quantity')
     .eq('business_id', businessId)
@@ -88,8 +88,8 @@ export const saveProducto = async (
 
   const isNew = !data.id
   const query = isNew
-    ? mutate.from('products').insert(payload).select('*').single()
-    : mutate.from('products').update(payload).eq('id', data.id).select('*').single()
+    ? db.from('products').insert(payload).select('*').single()
+    : db.from('products').update(payload).eq('id', data.id).select('*').single()
 
   const { data: saved, error } = await query
   if (error) throw error
@@ -108,7 +108,7 @@ export const saveProducto = async (
 }
 
 export const createProductCategory = async (businessId: string, name: string, branchId?: string | null): Promise<ProductCategory> => {
-  const { data, error } = await mutate
+  const { data, error } = await db
     .from('product_categories')
     .insert({ business_id: businessId, branch_id: branchId ?? null, name: name.trim() })
     .select('*')
@@ -119,7 +119,7 @@ export const createProductCategory = async (businessId: string, name: string, br
 }
 
 export const deleteProducto = async (id: string): Promise<void> => {
-  const { error } = await mutate
+  const { error } = await db
     .from('products')
     .update({ active: false })
     .eq('id', id)
@@ -128,7 +128,7 @@ export const deleteProducto = async (id: string): Promise<void> => {
 }
 
 export const deleteProductoPermanently = async (id: string): Promise<void> => {
-  const { error } = await mutate
+  const { error } = await db
     .from('products')
     .delete()
     .eq('id', id)

@@ -196,6 +196,10 @@ router.beforeEach(async (to) => {
     return resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda)
   }
 
+  if (to.path.startsWith('/dashboard/') && isAdminPanelRole(authStore.role ?? undefined)) {
+    return resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda)
+  }
+
   if (authStore.role === 'empleado' && authStore.profile?.disable_agenda && (to.path === '/dashboard/agenda' || to.path === '/dashboard/calendario')) {
     return resolveHomeByRole(authStore.role, true)
   }

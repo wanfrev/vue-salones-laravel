@@ -1,4 +1,4 @@
-import { api as supabase, api as mutate } from '../lib/api'
+import { db } from '../lib/api'
 import type { UpdateFor } from '../types/helpers'
 import { adminCreateEmployee, adminUpdateEmployee, adminDeleteEmployee } from './adminService'
 import { mapEmpleadoFormToProfileUpdate, mapEmpleadoFormToScheduleBlocks, mapProfileToEmpleado } from '../mappers/equipoMapper'
@@ -10,11 +10,11 @@ export const equipoKeys = {
 }
 
 export const listEquipo = async (businessId: string, branchId?: string | null): Promise<Empleado[]> => {
-  const { data, error } = await supabase
+  const { data, error } = await db
     .from('profiles')
     .select('*, employee_schedules(*)')
     .eq('business_id', businessId)
-    .eq('role', 'empleado')
+    .in('role', ['empleado', 'encargado'])
     .order('full_name')
 
   if (error) throw error
@@ -51,6 +51,7 @@ export const saveEmpleado = async (
       password: data.password,
       phone: profileUpdate.phone || undefined,
       job_title: profileUpdate.job_title || undefined,
+      role: profileUpdate.role,
       pay_type: profileUpdate.pay_type,
       pay_percentage: profileUpdate.pay_percentage,
       base_salary: profileUpdate.base_salary,
@@ -75,7 +76,7 @@ export const saveEmpleado = async (
 }
 
 export async function addBusinessArrayField(businessId: string, column: string, value: string): Promise<string[]> {
-  const { data: biz, error: fetchError } = await supabase
+  const { data: biz, error: fetchError } = await db
     .from('businesses')
     .select(column)
     .eq('id', businessId)
@@ -88,7 +89,7 @@ export async function addBusinessArrayField(businessId: string, column: string, 
 
   const updated = [...current, value]
 
-  const { error } = await mutate
+  const { error } = await db
     .from('businesses')
     .update({ [column]: updated } satisfies Partial<UpdateFor<'businesses'>>)
     .eq('id', businessId)
@@ -101,7 +102,7 @@ export const addBusinessCategory = (businessId: string, category: string): Promi
   addBusinessArrayField(businessId, 'service_categories', category)
 
 export async function addBranchArrayField(branchId: string, column: string, value: string): Promise<string[]> {
-  const { data: branch, error: fetchError } = await supabase
+  const { data: branch, error: fetchError } = await db
     .from('branches')
     .select(column)
     .eq('id', branchId)
@@ -114,7 +115,7 @@ export async function addBranchArrayField(branchId: string, column: string, valu
 
   const updated = [...current, value]
 
-  const { error } = await mutate
+  const { error } = await db
     .from('branches')
     .update({ [column]: updated } satisfies Partial<UpdateFor<'branches'>>)
     .eq('id', branchId)
