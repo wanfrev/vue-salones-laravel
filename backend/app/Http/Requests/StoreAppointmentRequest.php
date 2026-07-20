@@ -15,6 +15,7 @@ class StoreAppointmentRequest extends FormRequest
     {
         return [
             'client_id' => 'required|uuid',
+            'pet_id' => 'nullable|uuid|exists:pets,id',
             'employee_id' => 'required|uuid',
             'service_id' => 'required|uuid',
             'assistant_employee_id' => 'nullable|uuid',

@@ -27,4 +27,5 @@ export const mapClienteFormToClientInsert = (businessId: string, data: ClienteFo
   notes: data.notes.trim() || null,
   birthday: data.birthday || null,
   metadata: data.metadata ?? {},
+  pets: data.pets ?? [],
 })

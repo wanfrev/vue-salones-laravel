@@ -29,6 +29,7 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
     clientId: appointment.client_id,
     clientName: client?.full_name ?? 'Cliente',
     clientPhone: client?.phone ?? '',
+    petId: appointment.pet_id ?? undefined,
     serviceId: appointment.service_id,
     service: service?.name ?? 'Servicio',
     employeeId: appointment.employee_id,
@@ -75,6 +76,7 @@ export const mapCitaFormToAppointmentInsert = (
     business_id: businessId,
     branch_id: branchId || null,
     client_id: clientId,
+    pet_id: data.petId || null,
     employee_id: data.employee,
     assistant_employee_id: data.assistantEmployee || null,
     assistant_percentage: data.assistantPercentage || 0,
@@ -103,7 +105,8 @@ export const mapServiceItemToAppointmentInsert = (
   groupId: string,
   createdBy?: string | null,
   service?: Service,
-  branchId?: string | null
+  branchId?: string | null,
+  petId?: string,
 ) => {
   const startTime = new Date(`${date}T${time}:00`)
   const effectiveDuration = item.duration || service?.duration_minutes || 30
@@ -120,6 +123,7 @@ export const mapServiceItemToAppointmentInsert = (
     business_id: businessId,
     branch_id: branchId || null,
     client_id: clientId,
+    pet_id: petId || null,
     employee_id: item.employeeId,
     assistant_employee_id: item.assistantEmployeeId || null,
     assistant_percentage: item.assistantPercentage || 0,

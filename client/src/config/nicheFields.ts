@@ -14,6 +14,7 @@ export interface NicheFieldConfig {
 export interface NicheConfig {
   sectionTitle: string
   fields: NicheFieldConfig[]
+  listType?: 'petList'
 }
 
 const HAIR_TYPE_OPTIONS = [
@@ -112,16 +113,19 @@ export const NICHE_FIELDS: Record<string, NicheConfig> = {
     ],
   },
   spa_perros: {
-    sectionTitle: 'Datos',
+    sectionTitle: 'Mascotas',
     fields: [...PET_FIELDS],
+    listType: 'petList',
   },
   dog_spa: {
-    sectionTitle: 'Datos',
+    sectionTitle: 'Mascotas',
     fields: [...PET_FIELDS],
+    listType: 'petList',
   },
   vet: {
-    sectionTitle: 'Datos',
+    sectionTitle: 'Mascotas',
     fields: [...PET_FIELDS, ...VET_EXTRA_FIELDS],
+    listType: 'petList',
   },
   mixto: {
     sectionTitle: 'Perfil del Cliente',
@@ -153,4 +157,8 @@ export function getNicheConfig(nicheType: string): NicheConfig | null {
 export const PET_NICHE_TYPES = ['spa_perros', 'dog_spa', 'vet']
 export function isPetNiche(nicheType: string): boolean {
   return PET_NICHE_TYPES.includes(nicheType)
+}
+
+export function isVetNiche(nicheType: string): boolean {
+  return nicheType === 'vet'
 }

@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Client;
+use App\Models\Pet;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -26,28 +28,42 @@ class ClientService
 
     public function store(array $data, string $businessId): Client
     {
-        return Client::create([
-            'id' => Str::uuid()->toString(),
-            'business_id' => $businessId,
-            'branch_id' => $data['branch_id'] ?? null,
-            'full_name' => $data['full_name'],
-            'phone' => $data['phone'],
-            'email' => $data['email'] ?? null,
-            'notes' => $data['notes'] ?? null,
-            'birthday' => $data['birthday'] ?? null,
-            'metadata' => $data['metadata'] ?? [],
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        return DB::transaction(function () use ($data, $businessId) {
+            $client = Client::create([
+                'id' => Str::uuid()->toString(),
+                'business_id' => $businessId,
+                'branch_id' => $data['branch_id'] ?? null,
+                'full_name' => $data['full_name'],
+                'phone' => $data['phone'],
+                'email' => $data['email'] ?? null,
+                'notes' => $data['notes'] ?? null,
+                'birthday' => $data['birthday'] ?? null,
+                'metadata' => $data['metadata'] ?? [],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            if (!empty($data['pets'])) {
+                $this->syncPets($client, $data['pets'], $businessId);
+            }
+
+            return $client;
+        });
     }
 
     public function update(string $id, array $data, string $businessId): Client
     {
         $client = $this->findForBusiness($id, $businessId);
 
-        $client->update(array_filter($data, fn($k) => in_array($k, [
-            'full_name', 'phone', 'email', 'branch_id', 'notes', 'birthday', 'metadata',
-        ]), ARRAY_FILTER_USE_KEY) + ['updated_at' => now()]);
+        DB::transaction(function () use ($client, $data, $businessId) {
+            $client->update(array_filter($data, fn($k) => in_array($k, [
+                'full_name', 'phone', 'email', 'branch_id', 'notes', 'birthday', 'metadata',
+            ]), ARRAY_FILTER_USE_KEY) + ['updated_at' => now()]);
+
+            if (array_key_exists('pets', $data)) {
+                $this->syncPets($client, $data['pets'], $businessId);
+            }
+        });
 
         return $client->fresh();
     }
@@ -57,7 +73,10 @@ class ClientService
         $client = $this->findForBusiness($id, $businessId);
 
         try {
-            $client->delete();
+            DB::transaction(function () use ($client) {
+                $client->pets()->delete();
+                $client->delete();
+            });
         } catch (\Illuminate\Database\QueryException $e) {
             if ((string) $e->getCode() === '23503') {
                 throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'No se puede eliminar el cliente porque tiene citas registradas. Para eliminarlo, primero elimina sus citas.');
@@ -135,5 +154,50 @@ class ClientService
     public function find(string $id): ?Client
     {
         return Client::find($id);
+    }
+
+    private function syncPets(Client $client, array $petsData, string $businessId): void
+    {
+        $existingIds = $client->pets()->pluck('id')->toArray();
+        $updatedIds = [];
+
+        foreach ($petsData as $petData) {
+            if (!empty($petData['_delete'])) {
+                continue;
+            }
+
+            $petPayload = [
+                'business_id' => $businessId,
+                'name' => $petData['name'],
+                'breed' => $petData['breed'] ?? null,
+                'weight' => $petData['weight'] ?? null,
+                'notes' => $petData['notes'] ?? null,
+                'metadata' => $petData['metadata'] ?? null,
+            ];
+
+            if (!empty($petData['id'])) {
+                $pet = Pet::find($petData['id']);
+                if ($pet && $pet->client_id === $client->id) {
+                    $pet->update($petPayload + ['updated_at' => now()]);
+                    $updatedIds[] = $pet->id;
+                }
+            } else {
+                $pet = $client->pets()->create([
+                    'id' => Str::uuid()->toString(),
+                    'client_id' => $client->id,
+                    ...$petPayload,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $updatedIds[] = $pet->id;
+            }
+        }
+
+        // Delete pets explicitly marked for deletion
+        foreach ($petsData as $petData) {
+            if (!empty($petData['_delete']) && !empty($petData['id'])) {
+                Pet::where('id', $petData['id'])->where('client_id', $client->id)->delete();
+            }
+        }
     }
 }

@@ -15,6 +15,7 @@ class UpdateAppointmentRequest extends FormRequest
     {
         return [
             'client_id' => 'sometimes|uuid',
+            'pet_id' => 'nullable|uuid|exists:pets,id',
             'employee_id' => 'sometimes|uuid',
             'service_id' => 'sometimes|uuid',
             'assistant_employee_id' => 'nullable|uuid',

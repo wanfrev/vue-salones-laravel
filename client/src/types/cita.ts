@@ -3,6 +3,8 @@ export interface Cita {
   clientName: string
   clientId?: string
   clientPhone?: string
+  petId?: string
+  petName?: string
   service: string
   serviceId?: string
   employee: string
@@ -37,6 +39,7 @@ export interface CitaFormData {
   clientId?: string
   clientName: string
   clientPhone: string
+  petId?: string
   service: string
   employee: string
   assistantEmployee: string

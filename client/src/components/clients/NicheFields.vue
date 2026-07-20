@@ -1,8 +1,20 @@
 <template>
   <div v-if="config" :class="embedded ? '' : 'border-t border-border pt-4'">
-    <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-text-muted">
-      {{ config.sectionTitle }}
-    </p>
+    <!-- Pet list editor for pet niches -->
+    <template v-if="config.listType === 'petList'">
+      <PetListEditor
+        :model-value="petListValue"
+        :terminology="terminology"
+        :show-vet-fields="showVetFields"
+        @update:model-value="$emit('update:petList', $event)"
+      />
+    </template>
+
+    <!-- Standard niche fields -->
+    <template v-else>
+      <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-text-muted">
+        {{ config.sectionTitle }}
+      </p>
 
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <template v-for="field in config.fields" :key="field.key">
@@ -61,26 +73,34 @@
         </template>
       </template>
     </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { FormInput, FormDropdown, FormTextarea } from '../forms'
+import PetListEditor from './PetListEditor.vue'
 import type { NicheConfig, NicheFieldConfig } from '../../config/nicheFields'
+import type { PetFormData } from '../../types/cliente'
 
 interface Props {
   config: NicheConfig | null
   values: Record<string, string>
   terminology?: Record<string, string>
   embedded?: boolean
+  petList?: PetFormData[]
+  showVetFields?: boolean
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'update': [key: string, value: string]
+  'update:petList': [pets: PetFormData[]]
 }>()
+
+const petListValue = computed(() => props.petList ?? [])
 
 const expandedGroups = ref<Record<string, boolean>>({})
 

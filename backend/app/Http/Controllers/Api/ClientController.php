@@ -92,4 +92,13 @@ class ClientController
 
         return response()->json($this->clientService->getHistory($id, $businessId));
     }
+
+    public function pets(Request $request, string $clientId): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
+
+        $client = $this->clientService->findForBusiness($clientId, $businessId);
+        return response()->json($client->pets()->orderBy('name')->get());
+    }
 }

@@ -17,7 +17,7 @@ class Appointment extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id', 'business_id', 'branch_id', 'client_id', 'employee_id',
+        'id', 'business_id', 'branch_id', 'client_id', 'pet_id', 'employee_id',
         'service_id', 'assistant_employee_id', 'start_time', 'end_time',
         'status', 'payment_status', 'service_notes', 'internal_notes',
         'source', 'created_by', 'group_id', 'price_override',
@@ -33,6 +33,11 @@ class Appointment extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class);
+    }
+
+    public function pet(): BelongsTo
+    {
+        return $this->belongsTo(Pet::class);
     }
 
     public function employeeProfile(): BelongsTo

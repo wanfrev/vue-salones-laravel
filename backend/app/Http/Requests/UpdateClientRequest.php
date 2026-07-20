@@ -21,6 +21,14 @@ class UpdateClientRequest extends FormRequest
             'birthday' => 'nullable|date',
             'branch_id' => 'nullable|uuid',
             'metadata' => 'nullable|array',
+            'pets' => 'nullable|array',
+            'pets.*.id' => 'nullable|uuid',
+            'pets.*.name' => 'required_with:pets|string|max:255',
+            'pets.*.breed' => 'nullable|string|max:255',
+            'pets.*.weight' => 'nullable|string|max:50',
+            'pets.*.notes' => 'nullable|string',
+            'pets.*.metadata' => 'nullable|array',
+            'pets.*._delete' => 'nullable|boolean',
         ];
     }
 }

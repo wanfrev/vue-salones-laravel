@@ -27,6 +27,15 @@
         <FormInput v-model="formData.clientPhone" label="Teléfono" type="tel" placeholder="+58 412 1234567" required
           prefix-icon="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
           :error="errors.clientPhone" />
+        <FormDropdown
+          v-if="showPetSelector"
+          :model-value="formData.petId ?? ''"
+          :label="t.pet"
+          :placeholder="`Seleccionar ${(t.pet || 'mascota').toLowerCase()}`"
+          :options="petOptions"
+          size="sm"
+          @update:model-value="formData.petId = String($event)"
+        />
         <FormInput v-model="formData.date" label="Fecha" type="date" required
           prefix-icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" :error="errors.date" />
         <FormTime v-model="formData.time" label="Hora" required :error="errors.time" />
@@ -133,11 +142,14 @@ import { useBusinessStore } from '../../store/business'
 import { toISODate, minutesToHHmm, getInitials } from '../../lib/formatters'
 import { listCitaGroupMembers } from '../../services/agendaService'
 import type { Cita, CitaFormData, CitaFormServiceItem, PaymentEditContext } from '../../types/cita'
+import type { Pet } from '../../types/database'
 import ModalBase from '../common/ModalBase.vue'
 import { DualAmount } from '../common'
 import { FormInput, FormSelect, FormDropdown, FormTextarea, FormTime } from '../forms'
 import CitaClientSearch from '../forms/CitaClientSearch.vue'
 import PaymentEditor from './PaymentEditor.vue'
+import { isPetNiche as checkPetNiche } from '../../config/nicheFields'
+import { listPetsByClient } from '../../services/petService'
 
 const MODAL_ID = 'cita-form-modal'
 
@@ -160,13 +172,33 @@ const queryClient = useQueryClient()
 const isEmployee = computed(() => authStore.role === 'empleado')
 const canCreateClients = computed(() => !isEmployee.value || businessStore.hasFeature('employees_create_clients'))
 const t = computed(() => businessStore.terminology)
+const nicheType = computed(() => businessStore.nicheType)
+const showPetSelector = computed(() => checkPetNiche(nicheType.value))
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 
 const commissionDetailOpen = reactive(new Set<number>())
+const clientPets = ref<Pet[]>([])
+
+const petOptions = computed(() => {
+  const opts = [{ value: '', label: `Sin ${(t.value.pet || 'mascota').toLowerCase()}` }]
+  return [...opts, ...clientPets.value.map(p => ({ value: p.id, label: p.name }))]
+})
 
 const onClientSelected = (client: { id: string }) => {
   formData.value.clientId = client.id
+  if (showPetSelector.value) {
+    loadClientPets(client.id)
+  }
+}
+
+const loadClientPets = async (clientId: string) => {
+  try {
+    clientPets.value = await listPetsByClient(clientId)
+    formData.value.petId = undefined
+  } catch {
+    clientPets.value = []
+  }
 }
 
 const isLoading = computed(() => saveInProgress.value)
@@ -201,7 +233,7 @@ const defaultFormData = (): CitaFormData & { extraServices: CitaFormServiceItem[
   const minutes = now.getHours() * 60 + now.getMinutes()
   const nextSlot = Math.ceil(minutes / 30) * 30
   const myId = isEmployee.value ? (authStore.profile?.id ?? '') : ''
-  return { clientId: undefined, clientName: '', clientPhone: '', service: '', employee: myId, assistantEmployee: '', assistantPercentage: 0, duration: 30, price: 0, extraServices: [], date: today, time: minutesToHHmm(nextSlot), status: 'pending', notes: '' }
+  return { clientId: undefined, clientName: '', clientPhone: '', petId: '', service: '', employee: myId, assistantEmployee: '', assistantPercentage: 0, duration: 30, price: 0, extraServices: [], date: today, time: minutesToHHmm(nextSlot), status: 'pending', notes: '' }
 }
 
 const formData = ref<CitaFormData & { extraServices: CitaFormServiceItem[] }>(defaultFormData())
@@ -344,7 +376,7 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
       if (svc) primaryPrice = svc.price
     }
 
-    formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: cita.clientPhone || '', service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '' }
+    formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: cita.clientPhone || '', petId: (cita as any).petId || (cita as any).pet_id || undefined, service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '' }
 
     if (cita.clientId && businessId.value) { try { const { searchClients } = await import('../../services/clientesService'); const r = await searchClients(businessId.value, cita.clientName, branchId.value); const m = r.find(c => c.id === cita.clientId); if (m) formData.value.clientPhone = m.phone } catch {} }
     if (cita.groupId) {
@@ -386,6 +418,9 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
         formData.value.duration = primaryDuration
         formData.value.price = primaryPrice
       } catch {}
+    }
+    if (formData.value.clientId && showPetSelector.value) {
+      loadClientPets(formData.value.clientId)
     }
   } else {
     isInitialSetup.value = true

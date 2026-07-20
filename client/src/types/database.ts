@@ -126,6 +126,7 @@ export interface Appointment {
   id: string
   business_id: string
   client_id: string
+  pet_id: string | null
   employee_id: string
   assistant_employee_id: string | null
   assistant_percentage: number | null
@@ -381,6 +382,19 @@ type TableShape<Row> = {
   Insert: Partial<Row>
   Update: Partial<Row>
   Relationships: []
+}
+
+export interface Pet {
+  id: string
+  business_id: string
+  client_id: string
+  name: string
+  breed: string | null
+  weight: string | null
+  notes: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
 }
 
 export interface Database {

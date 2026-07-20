@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Concerns\BelongsToBranch;
 use App\Models\Concerns\BelongsToBusiness;
 
@@ -26,5 +27,10 @@ class Client extends Model
         return [
             'metadata' => 'json',
         ];
+    }
+
+    public function pets(): HasMany
+    {
+        return $this->hasMany(Pet::class);
     }
 }
