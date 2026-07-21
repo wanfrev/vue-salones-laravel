@@ -108,7 +108,7 @@ import { useAuth } from '../composables/common/useAuth'
 import { useBusinessStore } from '../store/business'
 import { listCitas } from '../services/agendaService'
 import { getClienteById } from '../services/clientesService'
-import { isPetNiche } from '../config/nicheFields'
+import { isPetNiche as checkPetNiche } from '../config/nicheFields'
 import PetHistoryModal from '../components/modals/PetHistoryModal.vue'
 import type { Cliente } from '../types/cliente'
 
@@ -120,7 +120,7 @@ const router = useRouter()
 const clienteId = computed(() => route.params.id as string)
 const businessId = computed(() => authStore.businessId)
 const showPetHistory = ref(false)
-const isPetNiche = computed(() => isPetNiche(businessStore.nicheType))
+const isPetNiche = computed(() => checkPetNiche(businessStore.nicheType))
 
 const { data: clienteData } = useQuery({
   queryKey: computed(() => ['cliente', clienteId.value]),
