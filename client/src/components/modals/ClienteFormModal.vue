@@ -287,7 +287,7 @@ const handleSubmit = () => {
       ...formData.value.metadata,
       ...nicheMeta,
     },
-    pets: isPet.value ? pets.value.filter(p => !p._delete) : undefined,
+    pets: isPet.value ? [...pets.value] : undefined,
   }
 
   if (modalData.value?.cliente?.id) {
