@@ -76,6 +76,7 @@ class ProfileService
                 'base_salary' => $data['base_salary'] ?? 0,
                 'salary_frequency' => $data['salary_frequency'] ?? null,
                 'disable_agenda' => $data['disable_agenda'] ?? false,
+                'disable_inventory_edit' => $data['disable_inventory_edit'] ?? false,
                 'can_create_appointments' => $data['can_create_appointments'] ?? true,
                 'can_create_clients' => $data['can_create_clients'] ?? true,
                 'active' => true,
@@ -125,6 +126,9 @@ class ProfileService
             }
             if (array_key_exists('disable_agenda', $data)) {
                 $profileFields['disable_agenda'] = $data['disable_agenda'];
+            }
+            if (array_key_exists('disable_inventory_edit', $data)) {
+                $profileFields['disable_inventory_edit'] = $data['disable_inventory_edit'];
             }
             if (array_key_exists('can_create_appointments', $data)) {
                 $profileFields['can_create_appointments'] = $data['can_create_appointments'];

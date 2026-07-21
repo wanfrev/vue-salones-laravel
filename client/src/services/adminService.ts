@@ -12,6 +12,7 @@ export interface EmployeeInput {
   base_salary?: number
   salary_frequency?: string
   disable_agenda?: boolean
+  disable_inventory_edit?: boolean
   can_create_appointments?: boolean
   can_create_clients?: boolean
   schedules?: Array<{
@@ -40,6 +41,7 @@ export const adminCreateEmployee = async (input: EmployeeInput): Promise<{ id: s
       base_salary: input.base_salary ?? 0,
       salary_frequency: input.salary_frequency || null,
       disable_agenda: input.disable_agenda ?? false,
+      disable_inventory_edit: input.disable_inventory_edit ?? false,
       can_create_appointments: input.can_create_appointments ?? true,
       can_create_clients: input.can_create_clients ?? true,
       schedules: input.schedules || [],

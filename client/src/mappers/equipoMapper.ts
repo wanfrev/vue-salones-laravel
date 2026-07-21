@@ -52,6 +52,7 @@ export const mapProfileToEmpleado = (
     payTypeLabel,
     payValueLabel,
     disableAgenda: profile.disable_agenda ?? false,
+    disableInventoryEdit: profile.disable_inventory_edit ?? false,
   }
 }
 
@@ -64,6 +65,7 @@ export const mapEmpleadoFormToProfileUpdate = (data: EmpleadoFormData) => ({
   base_salary: data.payType === 'percentage' ? 0 : Number(data.baseSalary),
   salary_frequency: data.salaryFrequency,
   disable_agenda: data.disableAgenda,
+  disable_inventory_edit: data.disableInventoryEdit,
   role: data.systemRole,
 })
 
