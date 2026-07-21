@@ -97,7 +97,6 @@ export const mapCitaFormToAppointmentInsert = (
     created_by: createdBy ?? null,
   }
 }
-}
 
 export const mapServiceItemToAppointmentInsert = (
   businessId: string,
