@@ -22,7 +22,7 @@ class Appointment extends Model
         'status', 'payment_status', 'service_notes', 'internal_notes',
         'source', 'created_by', 'group_id', 'price_override',
         'employee_percentage_override', 'assistant_percentage',
-        'duration_override',
+        'duration_override', 'diagnosis', 'treatment',
     ];
 
     public function service(): BelongsTo

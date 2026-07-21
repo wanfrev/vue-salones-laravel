@@ -29,6 +29,8 @@ export const citaFormSchema = z.object({
   time: z.string().min(1, 'Selecciona una hora'),
   status: z.enum(['confirmed', 'pending', 'cancelled', 'paid']).default('pending'),
   notes: z.string().default(''),
+  diagnosis: z.string().optional(),
+  treatment: z.string().optional(),
 })
 
 const posProductItemSchema = z.object({

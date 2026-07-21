@@ -144,4 +144,19 @@ class AppointmentController
         EntityChanged::safe($businessId, 'appointment', 'updated', $id);
         return response()->json($appointment);
     }
+
+    public function petHistory(Request $request, string $clientId, string $petId): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
+
+        $appointments = \App\Models\Appointment::with(['service', 'employeeProfile', 'assistantProfile', 'pet'])
+            ->where('business_id', $businessId)
+            ->where('client_id', $clientId)
+            ->where('pet_id', $petId)
+            ->orderByDesc('start_time')
+            ->get();
+
+        return response()->json($appointments);
+    }
 }

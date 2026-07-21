@@ -30,6 +30,8 @@ class StoreAppointmentRequest extends FormRequest
             'employee_percentage_override' => 'nullable|numeric|min:0|max:100',
             'assistant_percentage' => 'nullable|numeric|min:0|max:100',
             'duration_override' => 'nullable|integer|min:1',
+            'diagnosis' => 'nullable|string',
+            'treatment' => 'nullable|string',
             'branch_id' => 'nullable|uuid',
         ];
     }

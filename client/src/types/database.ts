@@ -143,6 +143,8 @@ export interface Appointment {
   duration_override: number | null
   service_notes: string | null
   internal_notes: string | null
+  diagnosis: string | null
+  treatment: string | null
   reminder_sent_at: string | null
   source: AppointmentSource
   created_by: string | null

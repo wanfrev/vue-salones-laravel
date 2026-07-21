@@ -50,6 +50,8 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
     statusLabel: getStatusLabel(normalizedStatus),
     statusColor: getStatusColor(normalizedStatus),
     notes: appointment.internal_notes ?? '',
+    diagnosis: appointment.diagnosis ?? undefined,
+    treatment: appointment.treatment ?? undefined,
   }
 }
 
@@ -89,9 +91,12 @@ export const mapCitaFormToAppointmentInsert = (
     price_override: hasOverride ? data.price : null,
     duration_override: hasDurationOverride ? data.duration : null,
     internal_notes: data.notes.trim() || null,
+    diagnosis: data.diagnosis?.trim() || null,
+    treatment: data.treatment?.trim() || null,
     source: 'internal' as const,
     created_by: createdBy ?? null,
   }
+}
 }
 
 export const mapServiceItemToAppointmentInsert = (
@@ -107,6 +112,8 @@ export const mapServiceItemToAppointmentInsert = (
   service?: Service,
   branchId?: string | null,
   petId?: string,
+  diagnosis?: string,
+  treatment?: string,
 ) => {
   const startTime = new Date(`${date}T${time}:00`)
   const effectiveDuration = item.duration || service?.duration_minutes || 30
@@ -137,6 +144,8 @@ export const mapServiceItemToAppointmentInsert = (
     price_override: hasOverride ? item.price : null,
     duration_override: hasDurationOverride ? item.duration : null,
     internal_notes: notes.trim() || null,
+    diagnosis: diagnosis?.trim() || null,
+    treatment: treatment?.trim() || null,
     source: 'internal' as const,
     created_by: createdBy ?? null,
   }

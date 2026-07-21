@@ -23,6 +23,8 @@ export interface Cita {
   statusLabel?: string
   statusColor?: string
   notes?: string
+  diagnosis?: string
+  treatment?: string
 }
 
 export interface CitaFormServiceItem {
@@ -52,6 +54,8 @@ export interface CitaFormData {
   time: string
   status: 'confirmed' | 'pending' | 'cancelled' | 'paid'
   notes: string
+  diagnosis?: string
+  treatment?: string
 }
 
 export interface PaymentEditContext {

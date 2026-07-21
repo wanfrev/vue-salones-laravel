@@ -105,6 +105,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/clients/find-or-create-by-phone', [ClientController::class, 'findOrCreateByPhone']);
         Route::get('/clients/{id}/history', [ClientController::class, 'history']);
         Route::get('/clients/{clientId}/pets', [ClientController::class, 'pets']);
+        Route::get('/clients/{clientId}/pets/{petId}/history', [AppointmentController::class, 'petHistory']);
 
         // Appointments
     Route::get('/appointments', [AppointmentController::class, 'index']);
