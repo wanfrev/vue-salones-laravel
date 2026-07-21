@@ -13,7 +13,7 @@
       </div>
       <button
         v-if="!disableInventoryEdit"
-        @click="productoModalRef?.open()"
+        @click="safeOpenProductModal()"
         class="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover"
       >
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -81,10 +81,10 @@
     <ProductGrid
       :products="filteredProductos"
       :readonly="disableInventoryEdit"
-      @edit="producto => productoModalRef?.open(producto)"
-      @adjust="openAdjustModal"
-      @deactivate="openDeleteModal"
-      @delete="openPermanentDeleteModal"
+      @edit="safeOpenProductModal"
+      @adjust="safeOpenAdjustModal"
+      @deactivate="safeOpenDeleteModal"
+      @delete="safeOpenPermanentDeleteModal"
     />
   </template>
 
@@ -257,7 +257,27 @@ const { authStore } = useAuth()
 const businessStore = useBusinessStore()
 const branchId = computed(() => businessStore.currentBranchId)
 const businessId = computed(() => authStore.businessId)
-const disableInventoryEdit = computed(() => authStore.profile?.disable_inventory_edit ?? false)
+const disableInventoryEdit = computed(() => !!(authStore.profile as any)?.disable_inventory_edit)
+
+const safeOpenProductModal = (producto?: any) => {
+  if (disableInventoryEdit.value) return
+  productoModalRef.value?.open(producto)
+}
+
+const safeOpenAdjustModal = (producto: any) => {
+  if (disableInventoryEdit.value) return
+  openAdjustModal(producto)
+}
+
+const safeOpenDeleteModal = (producto: any) => {
+  if (disableInventoryEdit.value) return
+  openDeleteModal(producto)
+}
+
+const safeOpenPermanentDeleteModal = (producto: any) => {
+  if (disableInventoryEdit.value) return
+  openPermanentDeleteModal(producto)
+}
 
 const {
   productoModalRef,
