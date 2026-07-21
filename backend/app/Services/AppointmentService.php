@@ -62,6 +62,7 @@ class AppointmentService
             'business_id' => $businessId,
             'branch_id' => $data['branch_id'] ?? null,
             'client_id' => $data['client_id'],
+            'pet_id' => $data['pet_id'] ?? null,
             'employee_id' => $data['employee_id'],
             'service_id' => $data['service_id'],
             'assistant_employee_id' => $data['assistant_employee_id'] ?? null,
@@ -78,6 +79,8 @@ class AppointmentService
             'employee_percentage_override' => $data['employee_percentage_override'] ?? null,
             'assistant_percentage' => $data['assistant_percentage'] ?? null,
             'duration_override' => $data['duration_override'] ?? null,
+            'diagnosis' => $data['diagnosis'] ?? null,
+            'treatment' => $data['treatment'] ?? null,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -88,10 +91,10 @@ class AppointmentService
         $appointment = $this->findForBusiness($id, $businessId);
 
         $fillable = [
-            'client_id', 'employee_id', 'service_id', 'assistant_employee_id',
+            'client_id', 'pet_id', 'employee_id', 'service_id', 'assistant_employee_id',
             'start_time', 'end_time', 'service_notes', 'internal_notes',
             'price_override', 'employee_percentage_override', 'assistant_percentage',
-            'duration_override', 'group_id', 'branch_id',
+            'duration_override', 'diagnosis', 'treatment', 'group_id', 'branch_id',
         ];
 
         $filtered = array_filter($data, fn($k) => in_array($k, $fillable), ARRAY_FILTER_USE_KEY);

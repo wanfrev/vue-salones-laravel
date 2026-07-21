@@ -27,8 +27,8 @@
           <div class="text-xs font-medium uppercase tracking-wider text-text-muted mb-0.5">Stock</div>
           <div class="flex items-center justify-end gap-1.5">
             <span :class="['font-medium tabular-nums', producto.stockTotal <= producto.reorderPoint ? 'text-danger' : 'text-text']">{{ producto.stockTotal }}</span>
-            <span class="text-xs text-slate-400"> {{ producto.unit }}</span>
-            <button type="button" class="rounded p-0.5 text-text-muted transition-all hover:bg-bg-secondary hover:text-primary" title="Ajustar stock" @click.stop="$emit('adjust', producto)">
+             <span class="text-xs text-slate-400"> {{ producto.unit }}</span>
+            <button v-if="!readonly" type="button" class="rounded p-0.5 text-text-muted transition-all hover:bg-bg-secondary hover:text-primary" title="Ajustar stock" @click.stop="$emit('adjust', producto)">
               <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
             </button>
           </div>
@@ -45,7 +45,7 @@
         </div>
       </div>
 
-      <div class="flex items-center justify-end gap-1 pt-1 border-t border-border-subtle">
+      <div v-if="!readonly" class="flex items-center justify-end gap-1 pt-1 border-t border-border-subtle">
         <button @click.stop="$emit('edit', producto)" class="rounded-lg p-1.5 text-text-muted transition-all duration-200 hover:bg-bg-secondary hover:text-primary" title="Editar producto">
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
         </button>
@@ -98,7 +98,7 @@
               <div class="flex items-center justify-end gap-1.5">
                 <span :class="['font-medium', producto.stockTotal <= producto.reorderPoint ? 'text-danger' : 'text-text']">{{ producto.stockTotal }}</span>
                 <span class="text-xs text-slate-400"> {{ producto.unit }}</span>
-                <button type="button" class="rounded p-0.5 text-text-muted transition-all hover:bg-bg-secondary hover:text-primary" title="Ajustar stock" @click.stop="$emit('adjust', producto)">
+            <button v-if="!readonly" type="button" class="rounded p-0.5 text-text-muted transition-all hover:bg-bg-secondary hover:text-primary" title="Ajustar stock" @click.stop="$emit('adjust', producto)">
                   <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
                 </button>
               </div>
@@ -109,7 +109,7 @@
                 {{ producto.status }}
               </span>
             </td>
-            <td class="px-4 py-3 text-center">
+            <td v-if="!readonly" class="px-4 py-3 text-center">
               <div class="flex items-center justify-center gap-1">
                 <button @click="$emit('edit', producto)" class="rounded-lg p-1.5 text-text-muted transition-all duration-200 hover:bg-bg-secondary hover:text-primary" title="Editar producto">
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
@@ -139,7 +139,7 @@
 <script setup lang="ts">
 import { useCurrency } from '../../composables/common/useCurrency'
 
-defineProps<{ products: any[] }>()
+defineProps<{ products: any[]; readonly?: boolean }>()
 defineEmits<{ edit: [p: any]; adjust: [p: any]; deactivate: [p: any]; delete: [p: any] }>()
 
 const { formatVESInline } = useCurrency()

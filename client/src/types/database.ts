@@ -65,6 +65,7 @@ export interface Profile {
   base_salary?: number | null
   salary_frequency?: 'weekly' | 'biweekly' | 'monthly' | null
   disable_agenda?: boolean
+  disable_inventory_edit?: boolean
   created_at: string
   updated_at: string
 }
@@ -126,6 +127,7 @@ export interface Appointment {
   id: string
   business_id: string
   client_id: string
+  pet_id: string | null
   employee_id: string
   assistant_employee_id: string | null
   assistant_percentage: number | null
@@ -141,6 +143,8 @@ export interface Appointment {
   duration_override: number | null
   service_notes: string | null
   internal_notes: string | null
+  diagnosis: string | null
+  treatment: string | null
   reminder_sent_at: string | null
   source: AppointmentSource
   created_by: string | null
@@ -381,6 +385,19 @@ type TableShape<Row> = {
   Insert: Partial<Row>
   Update: Partial<Row>
   Relationships: []
+}
+
+export interface Pet {
+  id: string
+  business_id: string
+  client_id: string
+  name: string
+  breed: string | null
+  weight: string | null
+  notes: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
 }
 
 export interface Database {

@@ -30,6 +30,15 @@ class ClientController
         );
     }
 
+    public function show(Request $request, string $id): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+
+        $client = $this->clientService->findForBusiness($id, $businessId);
+        return response()->json($client);
+    }
+
     public function store(StoreClientRequest $request): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
@@ -91,5 +100,14 @@ class ClientController
         if (!$businessId) return response()->json([]);
 
         return response()->json($this->clientService->getHistory($id, $businessId));
+    }
+
+    public function pets(Request $request, string $clientId): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
+
+        $client = $this->clientService->findForBusiness($clientId, $businessId);
+        return response()->json($client->pets()->orderBy('name')->get());
     }
 }

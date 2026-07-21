@@ -29,6 +29,7 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
     clientId: appointment.client_id,
     clientName: client?.full_name ?? 'Cliente',
     clientPhone: client?.phone ?? '',
+    petId: appointment.pet_id ?? undefined,
     serviceId: appointment.service_id,
     service: service?.name ?? 'Servicio',
     employeeId: appointment.employee_id,
@@ -49,6 +50,8 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
     statusLabel: getStatusLabel(normalizedStatus),
     statusColor: getStatusColor(normalizedStatus),
     notes: appointment.internal_notes ?? '',
+    diagnosis: appointment.diagnosis ?? undefined,
+    treatment: appointment.treatment ?? undefined,
   }
 }
 
@@ -75,6 +78,7 @@ export const mapCitaFormToAppointmentInsert = (
     business_id: businessId,
     branch_id: branchId || null,
     client_id: clientId,
+    pet_id: data.petId || null,
     employee_id: data.employee,
     assistant_employee_id: data.assistantEmployee || null,
     assistant_percentage: data.assistantPercentage || 0,
@@ -87,6 +91,8 @@ export const mapCitaFormToAppointmentInsert = (
     price_override: hasOverride ? data.price : null,
     duration_override: hasDurationOverride ? data.duration : null,
     internal_notes: data.notes.trim() || null,
+    diagnosis: data.diagnosis?.trim() || null,
+    treatment: data.treatment?.trim() || null,
     source: 'internal' as const,
     created_by: createdBy ?? null,
   }
@@ -103,7 +109,10 @@ export const mapServiceItemToAppointmentInsert = (
   groupId: string,
   createdBy?: string | null,
   service?: Service,
-  branchId?: string | null
+  branchId?: string | null,
+  petId?: string,
+  diagnosis?: string,
+  treatment?: string,
 ) => {
   const startTime = new Date(`${date}T${time}:00`)
   const effectiveDuration = item.duration || service?.duration_minutes || 30
@@ -120,6 +129,7 @@ export const mapServiceItemToAppointmentInsert = (
     business_id: businessId,
     branch_id: branchId || null,
     client_id: clientId,
+    pet_id: petId || null,
     employee_id: item.employeeId,
     assistant_employee_id: item.assistantEmployeeId || null,
     assistant_percentage: item.assistantPercentage || 0,
@@ -133,6 +143,8 @@ export const mapServiceItemToAppointmentInsert = (
     price_override: hasOverride ? item.price : null,
     duration_override: hasDurationOverride ? item.duration : null,
     internal_notes: notes.trim() || null,
+    diagnosis: diagnosis?.trim() || null,
+    treatment: treatment?.trim() || null,
     source: 'internal' as const,
     created_by: createdBy ?? null,
   }

@@ -12,14 +12,14 @@
     @confirm="handleSubmit"
   >
     <form @submit.prevent="handleSubmit">
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 min-w-0 overflow-hidden">
         <!-- COLUMNA IZQUIERDA: Contacto / Información básica -->
-        <div class="space-y-4">
+        <div class="space-y-4 min-w-0">
           <p class="text-xs font-semibold uppercase tracking-wider text-primary">Contacto</p>
 
           <FormInput
             v-model="formData.name"
-            label="Nombre completo"
+            :label="isPet ? `Nombre del ${terminology.owner || 'Dueño'}` : 'Nombre completo'"
             placeholder="Ej: María González"
             required
             prefix-icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
@@ -65,15 +65,18 @@
         </div>
 
         <!-- COLUMNA DERECHA: Ficha técnica -->
-        <div class="lg:border-l lg:border-border lg:pl-6">
+        <div class="lg:border-l lg:border-border lg:pl-6 min-w-0">
           <template v-if="nicheConfig">
             <p class="text-xs font-semibold uppercase tracking-wider text-primary mb-4">Ficha técnica</p>
             <NicheFields
               :config="nicheConfig"
               :values="nicheValues"
               :terminology="terminology"
+              :pet-list="pets"
+              :show-vet-fields="isVet"
               embedded
               @update="onNicheFieldUpdate"
+              @update:petList="onPetListUpdate"
             />
           </template>
           <div v-else class="flex items-center justify-center h-full py-12 text-sm text-text-muted">
@@ -105,11 +108,12 @@ import { reactive, ref, computed, watch } from 'vue'
 import { useModal } from '../../composables/common/useModal'
 import { useNotification } from '../../composables/common/useNotification'
 import { useBusinessStore } from '../../store/business'
-import type { Cliente, ClienteFormData } from '../../types/cliente'
+import type { Cliente, ClienteFormData, PetFormData } from '../../types/cliente'
 import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormTextarea } from '../forms'
 import NicheFields from '../clients/NicheFields.vue'
-import { getNicheConfig, isPetNiche } from '../../config/nicheFields'
+import { getNicheConfig, isPetNiche, isVetNiche } from '../../config/nicheFields'
+import { listPetsByClient } from '../../services/petService'
 
 const MODAL_ID = 'cliente-form-modal'
 
@@ -145,22 +149,41 @@ const defaultFormData: ClienteFormData = {
 
 const formData = ref<ClienteFormData>({ ...defaultFormData })
 const nicheValues = reactive<Record<string, string>>({})
+const pets = ref<PetFormData[]>([])
 
 const nicheConfig = computed(() => getNicheConfig(nicheType.value))
 
 const isPet = computed(() => isPetNiche(nicheType.value))
-
-watch(
-  () => formData.value.name,
-  (name) => {
-    if (isPet.value && !nicheValues.pet_owner && !isEditing.value) {
-      nicheValues.pet_owner = name
-    }
-  }
-)
+const isVet = computed(() => isVetNiche(nicheType.value))
 
 const onNicheFieldUpdate = (key: string, value: string) => {
   nicheValues[key] = value
+}
+
+const onPetListUpdate = (newPets: PetFormData[]) => {
+  pets.value = newPets
+}
+
+const loadPets = async (clientId: string) => {
+  try {
+    const serverPets = await listPetsByClient(clientId)
+    pets.value = serverPets.map(p => {
+      const petObj: PetFormData = {
+        id: p.id,
+        name: p.name,
+        breed: p.breed ?? '',
+        weight: p.weight ?? '',
+        notes: p.notes ?? '',
+      }
+      const meta = p.metadata
+      if (meta !== null && meta !== undefined && !(Array.isArray(meta) && meta.length === 0)) {
+        petObj.metadata = meta as Record<string, unknown>
+      }
+      return petObj
+    })
+  } catch {
+    pets.value = []
+  }
 }
 
 const errors = ref<Partial<Record<keyof ClienteFormData, string>>>({})
@@ -185,11 +208,17 @@ watch(
         metadata: { ...meta },
       }
       Object.assign(nicheValues, meta)
+      if (isPet.value && cliente.id) {
+        loadPets(cliente.id)
+      } else {
+        pets.value = cliente.pets ?? []
+      }
     } else {
       formData.value = { ...defaultFormData, metadata: {} }
       for (const key of Object.keys(nicheValues)) {
         delete nicheValues[key]
       }
+      pets.value = []
     }
     errors.value = {}
   },
@@ -214,15 +243,16 @@ const validateForm = (): boolean => {
   }
 
   if (isPet.value) {
-    const petErrors: Record<string, string> = {}
-    if (!nicheValues.pet_name?.trim()) {
-      petErrors.petName = `El nombre ${terminology.value.pet?.toLowerCase() || 'de la mascota'} es obligatorio`
+    const activePets = pets.value.filter(p => !p._delete)
+    if (activePets.length === 0) {
+      showError(`Debes agregar al menos una ${terminology.value.pet?.toLowerCase() || 'mascota'}`)
+      return false
     }
-    if (!nicheValues.pet_owner?.trim()) {
-      petErrors.petOwner = 'El nombre del dueño es obligatorio'
-    }
-    if (Object.keys(petErrors).length > 0) {
-      ;(errors.value as any).petFields = petErrors
+    for (const pet of activePets) {
+      if (!pet.name?.trim()) {
+        showError(`Todas las ${terminology.value.pet?.toLowerCase() || 'mascotas'} deben tener nombre`)
+        return false
+      }
     }
   }
 
@@ -263,6 +293,7 @@ const handleSubmit = () => {
       ...formData.value.metadata,
       ...nicheMeta,
     },
+    pets: isPet.value ? [...pets.value] : undefined,
   }
 
   if (modalData.value?.cliente?.id) {

@@ -1,3 +1,13 @@
+export interface PetFormData {
+  id?: string
+  name: string
+  breed?: string
+  weight?: string
+  notes?: string
+  metadata?: Record<string, unknown>
+  _delete?: boolean
+}
+
 export interface Cliente {
   id: string
   name: string
@@ -11,6 +21,7 @@ export interface Cliente {
   birthday?: string
   preferredServices?: string[]
   metadata?: Record<string, unknown>
+  pets?: PetFormData[]
 }
 
 export interface ClienteFormData {
@@ -21,4 +32,5 @@ export interface ClienteFormData {
   birthday: string
   preferredServices: string[]
   metadata?: Record<string, unknown>
+  pets?: PetFormData[]
 }

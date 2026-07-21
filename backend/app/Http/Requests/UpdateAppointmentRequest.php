@@ -15,6 +15,7 @@ class UpdateAppointmentRequest extends FormRequest
     {
         return [
             'client_id' => 'sometimes|uuid',
+            'pet_id' => 'nullable|uuid|exists:pets,id',
             'employee_id' => 'sometimes|uuid',
             'service_id' => 'sometimes|uuid',
             'assistant_employee_id' => 'nullable|uuid',
@@ -26,6 +27,8 @@ class UpdateAppointmentRequest extends FormRequest
             'employee_percentage_override' => 'nullable|numeric|min:0|max:100',
             'assistant_percentage' => 'nullable|numeric|min:0|max:100',
             'duration_override' => 'nullable|integer|min:1',
+            'diagnosis' => 'nullable|string',
+            'treatment' => 'nullable|string',
             'group_id' => 'nullable|uuid',
             'branch_id' => 'nullable|uuid',
         ];

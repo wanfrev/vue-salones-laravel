@@ -57,6 +57,7 @@ export const saveEmpleado = async (
       base_salary: profileUpdate.base_salary,
       salary_frequency: profileUpdate.salary_frequency || undefined,
       disable_agenda: data.disableAgenda,
+      disable_inventory_edit: data.disableInventoryEdit,
       branch_id: branchId ?? null,
       schedules: scheduleBlocks,
     })

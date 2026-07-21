@@ -3,6 +3,8 @@ export interface Cita {
   clientName: string
   clientId?: string
   clientPhone?: string
+  petId?: string
+  petName?: string
   service: string
   serviceId?: string
   employee: string
@@ -21,6 +23,8 @@ export interface Cita {
   statusLabel?: string
   statusColor?: string
   notes?: string
+  diagnosis?: string
+  treatment?: string
 }
 
 export interface CitaFormServiceItem {
@@ -37,6 +41,7 @@ export interface CitaFormData {
   clientId?: string
   clientName: string
   clientPhone: string
+  petId?: string
   service: string
   employee: string
   assistantEmployee: string
@@ -49,6 +54,8 @@ export interface CitaFormData {
   time: string
   status: 'confirmed' | 'pending' | 'cancelled' | 'paid'
   notes: string
+  diagnosis?: string
+  treatment?: string
 }
 
 export interface PaymentEditContext {

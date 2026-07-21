@@ -15,6 +15,7 @@ class StoreAppointmentRequest extends FormRequest
     {
         return [
             'client_id' => 'required|uuid',
+            'pet_id' => 'nullable|uuid|exists:pets,id',
             'employee_id' => 'required|uuid',
             'service_id' => 'required|uuid',
             'assistant_employee_id' => 'nullable|uuid',
@@ -29,6 +30,8 @@ class StoreAppointmentRequest extends FormRequest
             'employee_percentage_override' => 'nullable|numeric|min:0|max:100',
             'assistant_percentage' => 'nullable|numeric|min:0|max:100',
             'duration_override' => 'nullable|integer|min:1',
+            'diagnosis' => 'nullable|string',
+            'treatment' => 'nullable|string',
             'branch_id' => 'nullable|uuid',
         ];
     }

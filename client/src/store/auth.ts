@@ -20,6 +20,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!session.value && !!user.value)
   const role = computed<Role | null>(() => profile.value?.role ?? null)
   const businessId = computed(() => profile.value?.business_id ?? null)
+  const disableInventoryEdit = computed(() => !!(profile.value as any)?.disable_inventory_edit)
 
   const isProfileHardFailure = (err: unknown): boolean => {
     const msg = err instanceof Error ? err.message : String(err ?? '')
@@ -31,7 +32,7 @@ export const useAuthStore = defineStore('auth', () => {
   const loadProfile = async (userId: string, userRole?: string | null) => {
     const { data, error } = await db
       .from('profiles')
-      .select('id, business_id, branch_id, full_name, role, phone, avatar_url, active, pay_type, pay_percentage, base_salary, disable_agenda, employee_ves_rate, can_create_appointments, can_create_clients')
+      .select('id, business_id, branch_id, full_name, role, phone, avatar_url, active, pay_type, pay_percentage, base_salary, disable_agenda, disable_inventory_edit, employee_ves_rate, can_create_appointments, can_create_clients')
       .eq('id', userId)
       .maybeSingle()
 
@@ -51,6 +52,7 @@ export const useAuthStore = defineStore('auth', () => {
           pay_percentage: null,
           base_salary: null,
           disable_agenda: false,
+          disable_inventory_edit: false,
         }
         return
       }
@@ -83,6 +85,7 @@ export const useAuthStore = defineStore('auth', () => {
       pay_percentage: (authProfile as any).pay_percentage ?? null,
       base_salary: (authProfile as any).base_salary ?? null,
       disable_agenda: (authProfile as any).disable_agenda ?? false,
+      disable_inventory_edit: (authProfile as any).disable_inventory_edit ?? false,
     }
   }
 
@@ -289,6 +292,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     role,
     businessId,
+    disableInventoryEdit,
     initialize,
     signIn,
     signOut,

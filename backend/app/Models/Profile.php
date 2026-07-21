@@ -18,7 +18,7 @@ class Profile extends Model
         'active', 'email', 'job_title',
         'pay_type', 'pay_percentage', 'base_salary', 'salary_frequency',
         'employee_ves_rate',
-        'disable_agenda',
+        'disable_agenda', 'disable_inventory_edit',
         'can_create_appointments', 'can_create_clients',
     ];
 
@@ -27,6 +27,7 @@ class Profile extends Model
         return [
             'active' => 'boolean',
             'disable_agenda' => 'boolean',
+            'disable_inventory_edit' => 'boolean',
             'can_create_appointments' => 'boolean',
             'can_create_clients' => 'boolean',
             'pay_percentage' => 'float',

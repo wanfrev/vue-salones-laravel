@@ -215,7 +215,7 @@ async function buildServicePayloads(
       price: data.price,
     },
     clientId, data.date, data.time, data.status, data.notes,
-    groupId, createdBy, primaryService, branchId,
+    groupId, createdBy, primaryService, branchId, data.petId, data.diagnosis, data.treatment,
   )]
 
   for (const extra of data.extraServices) {
@@ -226,6 +226,9 @@ async function buildServicePayloads(
       groupId, createdBy,
       servicesMap.get(extra.serviceId) as Service,
       branchId,
+      data.petId,
+      data.diagnosis,
+      data.treatment,
     ))
   }
 

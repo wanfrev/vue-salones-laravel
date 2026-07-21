@@ -13,6 +13,7 @@ export interface AuthProfile {
   pay_percentage?: number | null
   base_salary?: number | null
   disable_agenda?: boolean
+  disable_inventory_edit?: boolean
 }
 
 export interface LoginCredentials {

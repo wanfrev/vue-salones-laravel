@@ -16,6 +16,7 @@ export const citaFormSchema = z.object({
   clientId: z.string().optional(),
   clientName: z.string().min(1, 'El nombre del cliente es requerido'),
   clientPhone: z.string().min(1, 'El teléfono del cliente es requerido'),
+  petId: z.string().optional(),
   service: z.string().min(1, 'Selecciona un servicio'),
   employee: z.string().min(1, 'Selecciona un empleado'),
   assistantEmployee: z.string().default(''),
@@ -28,6 +29,8 @@ export const citaFormSchema = z.object({
   time: z.string().min(1, 'Selecciona una hora'),
   status: z.enum(['confirmed', 'pending', 'cancelled', 'paid']).default('pending'),
   notes: z.string().default(''),
+  diagnosis: z.string().optional(),
+  treatment: z.string().optional(),
 })
 
 const posProductItemSchema = z.object({
@@ -75,6 +78,15 @@ export const clienteFormSchema = z.object({
   birthday: z.string().default(''),
   preferredServices: z.array(z.string()).default([]),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  pets: z.array(z.object({
+    id: z.string().optional(),
+    name: z.string().min(1),
+    breed: z.string().optional(),
+    weight: z.string().optional(),
+    notes: z.string().optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
+    _delete: z.boolean().optional(),
+  })).optional(),
 })
 
 export const supplierFormSchema = z.object({

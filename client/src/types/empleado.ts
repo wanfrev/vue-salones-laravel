@@ -17,6 +17,7 @@ export interface Empleado {
   payTypeLabel: string
   payValueLabel: string
   disableAgenda?: boolean
+  disableInventoryEdit?: boolean
 }
 
 export interface EmpleadoFormData {
@@ -36,6 +37,7 @@ export interface EmpleadoFormData {
   salaryFrequency: 'weekly' | 'biweekly' | 'monthly'
   activeDays: number[]
   disableAgenda: boolean
+  disableInventoryEdit: boolean
   canCreateAppointments: boolean
   canCreateClients: boolean
 }
