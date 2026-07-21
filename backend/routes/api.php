@@ -103,7 +103,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/clients/{id}', [ClientController::class, 'destroy']);
     Route::get('/clients/search', [ClientController::class, 'search']);
     Route::post('/clients/find-or-create-by-phone', [ClientController::class, 'findOrCreateByPhone']);
-        Route::get('/clients/{id}/history', [ClientController::class, 'history']);
+    Route::get('/clients/{id}', [ClientController::class, 'show']);
+    Route::get('/clients/{id}/history', [ClientController::class, 'history']);
         Route::get('/clients/{clientId}/pets', [ClientController::class, 'pets']);
         Route::get('/clients/{clientId}/pets/{petId}/history', [AppointmentController::class, 'petHistory']);
 
