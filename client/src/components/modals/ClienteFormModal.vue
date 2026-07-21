@@ -12,9 +12,9 @@
     @confirm="handleSubmit"
   >
     <form @submit.prevent="handleSubmit">
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 min-w-0 overflow-hidden">
         <!-- COLUMNA IZQUIERDA: Contacto / Información básica -->
-        <div class="space-y-4">
+        <div class="space-y-4 min-w-0">
           <p class="text-xs font-semibold uppercase tracking-wider text-primary">Contacto</p>
 
           <FormInput
@@ -65,7 +65,7 @@
         </div>
 
         <!-- COLUMNA DERECHA: Ficha técnica -->
-        <div class="lg:border-l lg:border-border lg:pl-6">
+        <div class="lg:border-l lg:border-border lg:pl-6 min-w-0">
           <template v-if="nicheConfig">
             <p class="text-xs font-semibold uppercase tracking-wider text-primary mb-4">Ficha técnica</p>
             <NicheFields

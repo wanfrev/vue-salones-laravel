@@ -13,20 +13,22 @@
   >
     <form @submit.prevent="handleSubmit" class="space-y-5">
       <!-- BLOQUE 1: DATOS GENERALES -->
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <CitaClientSearch
-          v-model="formData.clientName"
-          v-model:client-phone="formData.clientPhone"
-          :business-id="businessId"
-          :branch-id="branchId"
-          :t="t"
-          :can-create-clients="canCreateClients"
-          :error="errors.clientName"
-          @select-client="onClientSelected"
-        />
-        <FormInput v-model="formData.clientPhone" label="Teléfono" type="tel" placeholder="+58 412 1234567" required
-          prefix-icon="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-          :error="errors.clientPhone" />
+      <div class="space-y-3">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <CitaClientSearch
+            v-model="formData.clientName"
+            v-model:client-phone="formData.clientPhone"
+            :business-id="businessId"
+            :branch-id="branchId"
+            :t="t"
+            :can-create-clients="canCreateClients"
+            :error="errors.clientName"
+            @select-client="onClientSelected"
+          />
+          <FormInput v-model="formData.clientPhone" label="Teléfono" type="tel" placeholder="+58 412 1234567" required
+            prefix-icon="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+            :error="errors.clientPhone" />
+        </div>
         <FormDropdown
           v-if="showPetSelector"
           :model-value="formData.petId ?? ''"
@@ -36,10 +38,12 @@
           size="sm"
           @update:model-value="formData.petId = String($event)"
         />
-        <FormInput v-model="formData.date" label="Fecha" type="date" required
-          prefix-icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" :error="errors.date" />
-        <FormTime v-model="formData.time" label="Hora" required :error="errors.time" />
-        <FormDropdown v-model="formData.status" label="Estado" :options="statusOptions" required :error="errors.status" />
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <FormInput v-model="formData.date" label="Fecha" type="date" required
+            prefix-icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" :error="errors.date" />
+          <FormTime v-model="formData.time" label="Hora" required :error="errors.time" />
+          <FormDropdown v-model="formData.status" label="Estado" :options="statusOptions" required :error="errors.status" />
+        </div>
       </div>
 
       <!-- BLOQUE 2: TABLA DE SERVICIOS -->
