@@ -166,13 +166,17 @@ class ClientService
                 continue;
             }
 
+            $metadata = $petData['metadata'] ?? null;
+            if (is_array($metadata) && empty($metadata)) {
+                $metadata = null;
+            }
             $petPayload = [
                 'business_id' => $businessId,
                 'name' => $petData['name'],
                 'breed' => $petData['breed'] ?? null,
                 'weight' => $petData['weight'] ?? null,
                 'notes' => $petData['notes'] ?? null,
-                'metadata' => $petData['metadata'] ?? null,
+                'metadata' => $metadata,
             ];
 
             if (!empty($petData['id'])) {
