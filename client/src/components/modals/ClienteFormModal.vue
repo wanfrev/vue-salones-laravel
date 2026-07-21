@@ -48,6 +48,7 @@
           </div>
 
           <FormInput
+            class="min-w-0"
             v-model="formData.birthday"
             label="Cumpleaños"
             type="date"
