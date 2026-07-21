@@ -257,7 +257,7 @@ const { authStore } = useAuth()
 const businessStore = useBusinessStore()
 const branchId = computed(() => businessStore.currentBranchId)
 const businessId = computed(() => authStore.businessId)
-const disableInventoryEdit = computed(() => !!(authStore.profile as any)?.disable_inventory_edit)
+const disableInventoryEdit = computed(() => authStore.disableInventoryEdit)
 
 const safeOpenProductModal = (producto?: any) => {
   if (disableInventoryEdit.value) return
