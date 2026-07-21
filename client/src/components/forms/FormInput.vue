@@ -20,6 +20,7 @@
           prefixIcon ? 'pl-10' : 'pl-4',
           suffixIcon || showPasswordToggle ? 'pr-10' : 'pr-4',
           sizeClasses[size],
+          (inputType === 'date' || inputType === 'time') ? 'min-w-0' : '',
         ]" />
       <button v-if="showPasswordToggle && type === 'password'" type="button"
         class="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium transition-colors text-primary hover:opacity-80"
