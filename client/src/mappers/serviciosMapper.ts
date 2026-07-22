@@ -73,6 +73,8 @@ export const mapServiceToServicio = (service: Service, citasMes = 0, ingresos = 
     iconBg: visuals.iconBg,
     iconColor: visuals.iconColor,
     color: visuals.color,
+    linked_product_id: service.linked_product_id,
+    linked_variant_id: service.linked_variant_id,
   }
 }
 
@@ -85,5 +87,7 @@ export const mapServicioFormToServiceInsert = (businessId: string, data: Servici
     price: Number(data.price),
     category: data.category,
     active: data.status === 'Activo',
+    linked_product_id: data.linked_product_id ?? null,
+    linked_variant_id: data.linked_variant_id ?? null,
   }
 }
