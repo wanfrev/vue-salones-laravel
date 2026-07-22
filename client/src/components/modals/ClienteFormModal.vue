@@ -48,6 +48,7 @@
           </div>
 
           <FormInput
+            v-if="!isPet"
             v-model="formData.birthday"
             label="Cumpleaños"
             type="date"
