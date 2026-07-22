@@ -238,8 +238,10 @@ import { computed, h, onMounted, ref } from 'vue'
 import { useAuth } from '../composables/common/useAuth'
 import { useBusinessStore } from '../store/business'
 import { useBranches } from '../composables/common/useBranches'
+import { useNotification } from '../composables/common/useNotification'
 import { useThemeStore, type ThemeMode } from '../store/theme'
 import { SectionCard, EmptyState } from '../components/common'
+import { FormToggle } from '../components/forms'
 import { BranchFormModal } from '../components/modals'
 import { requestNotificationPermission } from '../composables/common/useNotifications'
 import { subscribeToPush, unsubscribeFromPush, isPushSupported } from '../services/pushService'
@@ -248,8 +250,45 @@ import { db } from '../lib/api'
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
 const themeStore = useThemeStore()
+const { success, error: showError } = useNotification()
 const businessId = computed(() => authStore.businessId)
+const isAdmin = computed(() => authStore.role === 'admin' || authStore.role === 'superadmin')
 const branchesCtx = useBranches(businessId)
+const updatingFeatures = ref(false)
+
+async function handleToggleEncargadoExchangeRate(val: boolean) {
+  if (!businessId.value) return
+  updatingFeatures.value = true
+  try {
+    const updatedFeatures = { ...businessStore.features, encargados_change_exchange_rate: val }
+    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    success(val ? 'Permiso activado: Los encargados ya pueden modificar la tasa del día' : 'Permiso desactivado')
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar el permiso')
+  } finally {
+    updatingFeatures.value = false
+  }
+}
+
+async function handleToggleEncargadoEmployeeRate(val: boolean) {
+  if (!businessId.value) return
+  updatingFeatures.value = true
+  try {
+    const updatedFeatures = { ...businessStore.features, encargados_change_employee_rate: val }
+    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    success(val ? 'Permiso activado: Los encargados ya pueden modificar la tasa de empleados' : 'Permiso desactivado')
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar el permiso')
+  } finally {
+    updatingFeatures.value = false
+  }
+}
 
 const SunIcon = () =>
   h('svg', { class: 'h-6 w-6', fill: 'none', viewBox: '0 0 24 24', stroke: 'currentColor', 'stroke-width': '2' }, [

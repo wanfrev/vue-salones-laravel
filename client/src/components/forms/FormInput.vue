@@ -1,11 +1,11 @@
 <template>
-  <div class="space-y-1.5">
+  <div class="space-y-1.5 min-w-0 w-full">
     <label v-if="label" :for="inputId" class="block text-sm font-medium text-text-secondary">
       {{ label }}
       <span v-if="required" class="text-danger">*</span>
     </label>
-    <div class="relative">
-      <div v-if="prefixIcon" class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
+    <div class="relative min-w-0 w-full">
+      <div v-if="prefixIcon" class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="prefixIcon" />
         </svg>
@@ -13,14 +13,13 @@
       <input :id="inputId" :type="inputType" :value="modelValue" @input="handleInput" @blur="$emit('blur', $event)"
         @focus="$emit('focus', $event)" :placeholder="placeholder" :required="required" :disabled="disabled"
         :readonly="readonly" :autocomplete="autocomplete" :class="[
-          'w-full rounded-xl border bg-surface text-text outline-none transition-theme',
+          'w-full min-w-0 max-w-full rounded-xl border bg-surface text-text outline-none transition-theme',
           'focus:border-primary focus:ring-2 focus:ring-primary/20',
           'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary',
           error ? 'border-danger focus:border-danger focus:ring-danger/20' : 'border-border hover:border-border-strong',
-          prefixIcon ? 'pl-10' : 'pl-4',
-          suffixIcon || showPasswordToggle ? 'pr-10' : 'pr-4',
+          prefixIcon ? (inputType === 'date' ? 'pl-8 sm:pl-8.5' : 'pl-10') : 'pl-4',
+          suffixIcon || showPasswordToggle ? 'pr-10' : (inputType === 'date' ? 'pr-1' : 'pr-4'),
           sizeClasses[size],
-          (inputType === 'date' || inputType === 'time') ? 'min-w-0' : '',
         ]" />
       <button v-if="showPasswordToggle && type === 'password'" type="button"
         class="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium transition-colors text-primary hover:opacity-80"
@@ -28,7 +27,7 @@
         @click="passwordVisible = !passwordVisible">
         {{ passwordVisible ? 'Ocultar' : 'Ver' }}
       </button>
-      <div v-else-if="suffixIcon" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted">
+      <div v-else-if="suffixIcon" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="suffixIcon" />
         </svg>

@@ -167,14 +167,20 @@ const onPetListUpdate = (newPets: PetFormData[]) => {
 const loadPets = async (clientId: string) => {
   try {
     const serverPets = await listPetsByClient(clientId)
-    pets.value = serverPets.map(p => ({
-      id: p.id,
-      name: p.name,
-      breed: p.breed ?? '',
-      weight: p.weight ?? '',
-      notes: p.notes ?? '',
-      metadata: p.metadata ?? {},
-    }))
+    pets.value = serverPets.map(p => {
+      const petObj: PetFormData = {
+        id: p.id,
+        name: p.name,
+        breed: p.breed ?? '',
+        weight: p.weight ?? '',
+        notes: p.notes ?? '',
+      }
+      const meta = p.metadata
+      if (meta !== null && meta !== undefined && !(Array.isArray(meta) && meta.length === 0)) {
+        petObj.metadata = meta as Record<string, unknown>
+      }
+      return petObj
+    })
   } catch {
     pets.value = []
   }
@@ -287,7 +293,7 @@ const handleSubmit = () => {
       ...formData.value.metadata,
       ...nicheMeta,
     },
-    pets: isPet.value ? pets.value.filter(p => !p._delete) : undefined,
+    pets: isPet.value ? [...pets.value] : undefined,
   }
 
   if (modalData.value?.cliente?.id) {

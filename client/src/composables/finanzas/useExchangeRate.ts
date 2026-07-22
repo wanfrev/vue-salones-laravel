@@ -15,7 +15,9 @@ export function useExchangeRate() {
 
   const isEditable = computed(() => {
     const role = authStore.role
-    return role === 'admin' || role === 'superadmin'
+    if (role === 'admin' || role === 'superadmin') return true
+    if (role === 'encargado' && businessStore.hasFeature('encargados_change_exchange_rate')) return true
+    return false
   })
   const editRateValue = ref(exchangeRate.value)
   const updatingRate = ref(false)
