@@ -144,9 +144,27 @@ class PosService
         ) {
             $totalAmount = $serviceAmount + $productsAmount;
 
-            $assistantAmount = round($serviceAmount * $assistantPct / 100, 2);
-            $employeeAmount = round($serviceAmount * $employeePct / 100, 2);
-            $localAmount = round($totalAmount - $employeeAmount - $assistantAmount, 2);
+            if ($service->is_fixed_commission && $appointment->employee_percentage_override === null) {
+                $employeeAmount = (float) $service->fixed_commission_amount;
+                $assistantAmount = (float) $service->fixed_commission_assistant_amount;
+                
+                // If there's an explicit assistant percentage override in the appointment, use that instead of the fixed assistant amount
+                if ($appointment->assistant_percentage !== null) {
+                    $assistantAmount = round($serviceAmount * $assistantPct / 100, 2);
+                }
+
+                $localAmount = round($totalAmount - $employeeAmount - $assistantAmount, 2);
+                
+                // Calculate back the percentages for statistics/reporting
+                $employeePct = $serviceAmount > 0 ? round(($employeeAmount / $serviceAmount) * 100, 2) : 0;
+                $assistantPct = $serviceAmount > 0 ? round(($assistantAmount / $serviceAmount) * 100, 2) : 0;
+                $localPct = 100 - $employeePct - $assistantPct;
+                if ($localPct < 0) $localPct = 0;
+            } else {
+                $assistantAmount = round($serviceAmount * $assistantPct / 100, 2);
+                $employeeAmount = round($serviceAmount * $employeePct / 100, 2);
+                $localAmount = round($totalAmount - $employeeAmount - $assistantAmount, 2);
+            }
 
             $tx = Transaction::create([
                 'id' => Str::uuid()->toString(),

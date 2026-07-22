@@ -21,14 +21,18 @@ class Service extends Model
         'name', 'description', 'duration_minutes', 'price',
         'local_percentage', 'color', 'category', 'icon', 'active',
         'linked_product_id', 'linked_variant_id',
+        'is_fixed_commission', 'fixed_commission_amount', 'fixed_commission_assistant_amount',
     ];
 
     protected function casts(): array
     {
         return [
             'active' => 'boolean',
+            'is_fixed_commission' => 'boolean',
             'price' => 'float',
             'local_percentage' => 'float',
+            'fixed_commission_amount' => 'float',
+            'fixed_commission_assistant_amount' => 'float',
             'duration_minutes' => 'integer',
         ];
     }
