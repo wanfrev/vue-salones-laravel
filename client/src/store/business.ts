@@ -27,6 +27,8 @@ const DEFAULT_TERMINOLOGY: Terminology = {
     employees_create_clients: true,
     gift_cards: true,
     disable_manager_inventory_edit: false,
+    encargados_change_exchange_rate: false,
+    encargados_change_employee_rate: false,
   }
 
 export type FeatureKey = keyof typeof DEFAULT_FEATURES
