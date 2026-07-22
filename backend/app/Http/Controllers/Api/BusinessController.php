@@ -42,6 +42,7 @@ class BusinessController
             'service_categories' => ['nullable', 'array'],
             'terminology' => ['nullable', 'array'],
             'theme_config' => ['nullable', 'array'],
+            'features' => ['nullable', 'array'],
         ]);
 
         $business = $this->businessService->update($id, $data, $profileBusinessId);
