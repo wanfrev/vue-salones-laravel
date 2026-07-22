@@ -97,6 +97,7 @@
 
   <!-- Permisos del Negocio -->
   <SectionCard
+    v-if="isAdmin"
     class="mb-6"
     title="Permisos de Encargados"
     subtitle="Configura qué acciones pueden realizar los empleados con rol de Encargado"
@@ -243,6 +244,7 @@ const businessStore = useBusinessStore()
 const themeStore = useThemeStore()
 const { success, error: showError } = useNotification()
 const businessId = computed(() => authStore.businessId)
+const isAdmin = computed(() => authStore.role === 'admin' || authStore.role === 'superadmin')
 const branchesCtx = useBranches(businessId)
 const updatingFeatures = ref(false)
 
