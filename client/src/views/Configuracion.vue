@@ -102,13 +102,22 @@
     subtitle="Configura qué acciones pueden realizar los empleados con rol de Encargado"
     icon="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
   >
-    <FormToggle
-      :model-value="businessStore.hasFeature('encargados_change_exchange_rate')"
-      label="Permitir a Encargados cambiar la Tasa del Día"
-      hint="Los empleados con nivel de acceso de Encargado podrán modificar la tasa de cambio USD/VES en el POS y Finanzas"
-      :disabled="updatingFeatures"
-      @update:model-value="handleToggleEncargadoExchangeRate"
-    />
+    <div class="space-y-4">
+      <FormToggle
+        :model-value="businessStore.hasFeature('encargados_change_exchange_rate')"
+        label="Permitir a Encargados cambiar la Tasa del Día"
+        hint="Los empleados con nivel de acceso de Encargado podrán modificar la tasa de cambio USD/VES en el POS y Finanzas"
+        :disabled="updatingFeatures"
+        @update:model-value="handleToggleEncargadoExchangeRate"
+      />
+      <FormToggle
+        :model-value="businessStore.hasFeature('encargados_change_employee_rate')"
+        label="Permitir a Encargados cambiar la Tasa de Empleados"
+        hint="Los empleados con nivel de acceso de Encargado podrán modificar la tasa exclusiva para empleados en la sección de Equipo"
+        :disabled="updatingFeatures"
+        @update:model-value="handleToggleEncargadoEmployeeRate"
+      />
+    </div>
   </SectionCard>
 
   <!-- Not enabled gate -->
@@ -247,6 +256,23 @@ async function handleToggleEncargadoExchangeRate(val: boolean) {
     })
     businessStore.updateBusiness({ features: updatedFeatures } as any)
     success(val ? 'Permiso activado: Los encargados ya pueden modificar la tasa del día' : 'Permiso desactivado')
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar el permiso')
+  } finally {
+    updatingFeatures.value = false
+  }
+}
+
+async function handleToggleEncargadoEmployeeRate(val: boolean) {
+  if (!businessId.value) return
+  updatingFeatures.value = true
+  try {
+    const updatedFeatures = { ...businessStore.features, encargados_change_employee_rate: val }
+    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    success(val ? 'Permiso activado: Los encargados ya pueden modificar la tasa de empleados' : 'Permiso desactivado')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
   } finally {
