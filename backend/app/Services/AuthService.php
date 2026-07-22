@@ -46,4 +46,18 @@ class AuthService
             'user' => $user,
         ];
     }
+
+    public function changePassword(User $user, string $currentPassword, string $newPassword): void
+    {
+        if (!Hash::check($currentPassword, $user->password)) {
+            throw new HttpException(400, 'La contraseña actual es incorrecta.');
+        }
+
+        if (strlen($newPassword) < 6) {
+            throw new HttpException(400, 'La nueva contraseña debe tener al menos 6 caracteres.');
+        }
+
+        $user->password = bcrypt($newPassword);
+        $user->save();
+    }
 }

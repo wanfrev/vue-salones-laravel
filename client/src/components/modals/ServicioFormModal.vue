@@ -94,6 +94,27 @@
         :rows="3"
         :error="errors.description"
       />
+
+      <!-- Insumo Consumible -->
+      <div class="rounded-lg border border-border p-4">
+        <label class="flex items-center space-x-2 text-sm font-medium text-text-primary">
+          <input type="checkbox" v-model="hasLinkedProduct" class="rounded border-border text-primary focus:ring-primary" />
+          <span>Vincular a producto de inventario (Insumo consumible)</span>
+        </label>
+        <p class="mt-1 text-xs text-text-muted ml-6">
+          Al cobrar este servicio en el punto de venta, se descontará automáticamente 1 unidad del producto seleccionado.
+        </p>
+        
+        <div v-if="hasLinkedProduct" class="mt-4 ml-6">
+          <FormDropdown
+            v-model="formData.linked_product_id"
+            label="Producto a descontar"
+            placeholder="Seleccionar producto..."
+            :options="productOptions"
+            searchable
+          />
+        </div>
+      </div>
     </form>
   </ModalBase>
 </template>
@@ -104,6 +125,7 @@ import { useModal } from '../../composables/common/useModal'
 import { useNotification } from '../../composables/common/useNotification'
 import { useBusinessStore } from '../../store/business'
 import { getEntityServiceCategories } from '../../services/serviciosService'
+import { listProductos } from '../../services/productosService'
 import type { Servicio, ServicioFormData } from '../../types/servicio'
 import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormDropdown, FormTextarea } from '../forms'
@@ -163,6 +185,16 @@ const showingCustomCategory = ref(false)
 const categoriesVersion = ref(0)
 const dbCategories = ref<string[]>([])
 
+const hasLinkedProduct = ref(false)
+const availableProducts = ref<any[]>([])
+
+const productOptions = computed(() => {
+  return availableProducts.value.map(p => ({
+    value: p.id,
+    label: p.name
+  }))
+})
+
 watch(isOpen, async (open) => {
   if (open) {
     categoriesVersion.value++
@@ -170,9 +202,15 @@ watch(isOpen, async (open) => {
     const branchId = businessStore.currentBranchId
     if (bizId) {
       try {
-        dbCategories.value = await getEntityServiceCategories(bizId, branchId ?? null)
+        const [cats, prods] = await Promise.all([
+          getEntityServiceCategories(bizId, branchId ?? null),
+          listProductos(bizId, branchId ?? null)
+        ])
+        dbCategories.value = cats
+        availableProducts.value = prods.filter(p => p.status === 'Activo')
       } catch {
         dbCategories.value = []
+        availableProducts.value = []
       }
     }
   }
@@ -213,6 +251,8 @@ const defaultFormData: ServicioFormData = {
   duration: 30,
   status: 'Activo',
   category: '',
+  linked_product_id: null,
+  linked_variant_id: null,
 }
 
 const formData = ref<ServicioFormData>({ ...defaultFormData })
@@ -269,6 +309,8 @@ const handleSubmit = async () => {
   const servicioData: ServicioFormData & { id?: string } = {
     ...formData.value,
     category,
+    linked_product_id: hasLinkedProduct.value ? formData.value.linked_product_id : null,
+    linked_variant_id: hasLinkedProduct.value ? formData.value.linked_variant_id : null,
   }
 
   if (modalData.value?.servicio?.id) {
@@ -288,10 +330,14 @@ const open = (servicio?: Servicio, branchId?: string) => {
       duration: servicio.duration || 30,
       status: servicio.status || 'Activo',
       category: servicio.category || '',
+      linked_product_id: servicio.linked_product_id || null,
+      linked_variant_id: servicio.linked_variant_id || null,
     }
+    hasLinkedProduct.value = !!servicio.linked_product_id
   } else {
     const firstRealCategory = categoryOptions.value.find(c => c.value !== '__new__')?.value ?? ''
     formData.value = { ...defaultFormData, category: firstRealCategory }
+    hasLinkedProduct.value = false
     showingCustomCategory.value = false
   }
   errors.value = {}

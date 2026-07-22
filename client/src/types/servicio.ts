@@ -12,6 +12,8 @@ export interface Servicio {
   iconBg: string
   iconColor: string
   color?: string
+  linked_product_id?: string | null
+  linked_variant_id?: string | null
 }
 
 export interface ServicioFormData {
@@ -21,4 +23,6 @@ export interface ServicioFormData {
   duration: number
   status: 'Activo' | 'Inactivo'
   category: string
+  linked_product_id?: string | null
+  linked_variant_id?: string | null
 }

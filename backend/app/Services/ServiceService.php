@@ -46,6 +46,8 @@ class ServiceService
             'category' => $data['category'] ?? 'otros',
             'icon' => $data['icon'] ?? null,
             'active' => $data['active'] ?? true,
+            'linked_product_id' => $data['linked_product_id'] ?? null,
+            'linked_variant_id' => $data['linked_variant_id'] ?? null,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -84,7 +86,7 @@ class ServiceService
 
         $service->update(array_filter($data, fn($k) => in_array($k, [
             'name', 'description', 'duration_minutes', 'price', 'local_percentage',
-            'color', 'category', 'icon', 'active', 'branch_id',
+            'color', 'category', 'icon', 'active', 'branch_id', 'linked_product_id', 'linked_variant_id',
         ]), ARRAY_FILTER_USE_KEY) + ['updated_at' => now()]);
 
         return $service->fresh();

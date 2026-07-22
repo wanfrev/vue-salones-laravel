@@ -38,13 +38,13 @@
           size="sm"
           @update:model-value="formData.petId = String($event)"
         />
-        <div class="grid grid-cols-1 gap-3 w-full sm:max-w-[460px]">
-          <FormInput v-model="formData.date" label="Fecha" type="date" required
-            prefix-icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" :error="errors.date" />
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_160px]">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_160px]">
+          <div class="space-y-3">
+            <FormInput v-model="formData.date" label="Fecha" type="date" required
+              prefix-icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" :error="errors.date" />
             <FormTime v-model="formData.time" label="Hora" required :error="errors.time" />
-            <FormDropdown v-model="formData.status" label="Estado" :options="statusOptions" required :error="errors.status" />
           </div>
+          <FormDropdown v-model="formData.status" label="Estado" :options="statusOptions" required :error="errors.status" />
         </div>
       </div>
 

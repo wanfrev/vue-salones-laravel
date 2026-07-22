@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\Concerns\BelongsToBranch;
 use App\Models\Concerns\BelongsToBusiness;
 
@@ -19,6 +20,7 @@ class Service extends Model
         'id', 'business_id', 'branch_id',
         'name', 'description', 'duration_minutes', 'price',
         'local_percentage', 'color', 'category', 'icon', 'active',
+        'linked_product_id', 'linked_variant_id',
     ];
 
     protected function casts(): array
@@ -29,5 +31,15 @@ class Service extends Model
             'local_percentage' => 'float',
             'duration_minutes' => 'integer',
         ];
+    }
+
+    public function linkedProduct(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'linked_product_id');
+    }
+
+    public function linkedVariant(): BelongsTo
+    {
+        return $this->belongsTo(ProductVariant::class, 'linked_variant_id');
     }
 }

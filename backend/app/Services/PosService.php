@@ -25,7 +25,7 @@ class PosService
     {
         $query = Appointment::with([
             'client',
-            'service',
+            'service.linkedProduct',
             'employeeProfile',
             'assistantProfile',
             'transactions',
@@ -140,7 +140,7 @@ class PosService
         return DB::transaction(function () use (
             $appointment, $appointmentId, $serviceAmount, $method, $products,
             $notes, $rate, $paymentsBreakdown, $tip, $businessId, $createdBy,
-            $employeePct, $localPct, $assistantPct, $effectivePrice, $productsAmount
+            $employeePct, $localPct, $assistantPct, $effectivePrice, $productsAmount, $service
         ) {
             $totalAmount = $serviceAmount + $productsAmount;
 
@@ -205,6 +205,43 @@ class PosService
                         clientId: $appointment->client_id,
                     );
                 }
+            }
+
+            if ($service->linked_product_id) {
+                $defaultLocation = $defaultLocation ?? $this->inventoryService->getDefaultLocation(
+                    $businessId,
+                    $appointment->branch_id,
+                );
+
+                $linkedProduct = \App\Models\Product::find($service->linked_product_id);
+                $linkedProductName = $linkedProduct ? $linkedProduct->name : 'Producto Insumo';
+
+                $this->validateAndDeductStock(
+                    $businessId,
+                    $service->linked_product_id,
+                    $service->linked_variant_id,
+                    1,
+                    $linkedProductName,
+                    $appointment->branch_id,
+                    $defaultLocation,
+                );
+
+                $this->inventoryService->recordMovement(
+                    businessId: $businessId,
+                    locationId: $defaultLocation,
+                    productId: $service->linked_product_id,
+                    variantId: $service->linked_variant_id,
+                    movementType: 'consumption',
+                    quantity: -1,
+                    unitCost: $linkedProduct ? (float) $linkedProduct->unit_cost : 0,
+                    referenceType: 'appointment',
+                    referenceId: $appointmentId,
+                    notes: "Consumo automático por servicio: {$service->name}",
+                    createdBy: $createdBy,
+                    branchId: $appointment->branch_id,
+                    exchangeRateUsed: $rate,
+                    clientId: $appointment->client_id,
+                );
             }
 
             $paidSoFar = Transaction::where('appointment_id', $appointmentId)

@@ -81,4 +81,26 @@ class AuthController
             'user' => new AuthResource($result['user']),
         ]);
     }
+
+    public function changePassword(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json(['message' => 'No autenticado.'], 401);
+        }
+
+        $validated = $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:6',
+        ]);
+
+        $this->authService->changePassword(
+            $user,
+            $validated['current_password'],
+            $validated['new_password'],
+        );
+
+        return response()->json(['message' => 'Contraseña actualizada correctamente.']);
+    }
 }

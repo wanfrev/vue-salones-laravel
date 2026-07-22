@@ -93,6 +93,8 @@ export interface Service {
   category: string
   icon: string | null
   active: boolean
+  linked_product_id: string | null
+  linked_variant_id: string | null
   created_at: string
   updated_at: string
 }
