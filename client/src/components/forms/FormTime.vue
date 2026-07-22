@@ -1,23 +1,23 @@
 <template>
-  <div class="space-y-1.5">
+  <div class="space-y-1.5 min-w-0 w-full">
     <label v-if="label" :for="inputId" class="block text-sm font-medium text-text-secondary">
       {{ label }}
       <span v-if="required" class="text-danger">*</span>
     </label>
-    <div class="flex items-center gap-1">
+    <div class="flex items-center gap-1 min-w-0 w-full">
       <select :id="inputId" :value="hour12" @change="onHourChange" :disabled="disabled"
-        class="rounded-xl border bg-surface text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary pl-2 pr-5 py-2 text-sm"
+        class="flex-1 min-w-0 w-0 rounded-xl border bg-surface text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary pl-2 pr-4 sm:pr-5 py-2 text-sm"
         :class="error ? 'border-danger' : 'border-border hover:border-border-strong'">
         <option v-for="h in 12" :key="h" :value="h">{{ h }}</option>
       </select>
-      <span class="text-text-muted font-medium">:</span>
+      <span class="text-text-muted font-medium shrink-0">:</span>
       <select :value="minute" @change="onMinuteChange" :disabled="disabled"
-        class="rounded-xl border bg-surface text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary pl-2 pr-5 py-2 text-sm"
+        class="flex-1 min-w-0 w-0 rounded-xl border bg-surface text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary pl-2 pr-4 sm:pr-5 py-2 text-sm"
         :class="error ? 'border-danger' : 'border-border hover:border-border-strong'">
         <option v-for="m in minuteOptions" :key="m.value" :value="m.value">{{ m.label }}</option>
       </select>
       <button type="button" :disabled="disabled" @click="toggleAmPm"
-        class="rounded-xl border bg-surface text-xs font-semibold px-2 py-2 outline-none transition-theme hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary min-w-[40px] text-center"
+        class="shrink-0 rounded-xl border bg-surface text-xs font-semibold px-1.5 sm:px-2 py-2 outline-none transition-theme hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary min-w-[36px] sm:min-w-[40px] text-center"
         :class="[
           error ? 'border-danger' : 'border-border hover:border-border-strong',
           isPM ? 'text-warning' : 'text-primary'
