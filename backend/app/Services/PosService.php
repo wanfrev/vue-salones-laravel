@@ -25,7 +25,7 @@ class PosService
     {
         $query = Appointment::with([
             'client',
-            'service',
+            'service.linkedProduct',
             'employeeProfile',
             'assistantProfile',
             'transactions',
@@ -140,7 +140,7 @@ class PosService
         return DB::transaction(function () use (
             $appointment, $appointmentId, $serviceAmount, $method, $products,
             $notes, $rate, $paymentsBreakdown, $tip, $businessId, $createdBy,
-            $employeePct, $localPct, $assistantPct, $effectivePrice, $productsAmount
+            $employeePct, $localPct, $assistantPct, $effectivePrice, $productsAmount, $service
         ) {
             $totalAmount = $serviceAmount + $productsAmount;
 
