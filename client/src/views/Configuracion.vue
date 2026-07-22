@@ -95,28 +95,37 @@
     </div>
   </SectionCard>
 
-  <!-- Permisos del Negocio -->
+  <!-- Permisos de Encargados (solo admin) -->
   <SectionCard
     v-if="isAdmin"
     class="mb-6"
-    title="Permisos de Encargados"
-    subtitle="Configura qué acciones pueden realizar los empleados con rol de Encargado"
+    title="Permisos de encargados"
+    subtitle="Configura los permisos globales para todos los encargados del negocio"
     icon="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
   >
     <div class="space-y-4">
       <FormToggle
-        :model-value="businessStore.hasFeature('encargados_change_exchange_rate')"
-        label="Permitir a Encargados cambiar la Tasa del Día"
-        hint="Los empleados con nivel de acceso de Encargado podrán modificar la tasa de cambio USD/VES en el POS y Finanzas"
+        :model-value="!!businessStore.features.disable_manager_inventory_edit"
+        @update:model-value="toggleManagerInventoryEdit"
+        label="Desactivar edición de inventario"
+        hint="Si está activo, los encargados solo podrán ver el inventario y vender en el POS, sin poder ajustar cantidades ni costos."
         :disabled="updatingFeatures"
-        @update:model-value="handleToggleEncargadoExchangeRate"
       />
+
       <FormToggle
-        :model-value="businessStore.hasFeature('encargados_change_employee_rate')"
-        label="Permitir a Encargados cambiar la Tasa de Empleados"
-        hint="Los empleados con nivel de acceso de Encargado podrán modificar la tasa exclusiva para empleados en la sección de Equipo"
+        :model-value="!!businessStore.features.encargados_change_exchange_rate"
+        @update:model-value="handleToggleEncargadoExchangeRate"
+        label="Permitir cambiar la tasa del día"
+        hint="Los encargados podrán modificar la tasa de cambio principal"
         :disabled="updatingFeatures"
+      />
+
+      <FormToggle
+        :model-value="!!businessStore.features.encargados_change_employee_rate"
         @update:model-value="handleToggleEncargadoEmployeeRate"
+        label="Permitir cambiar la tasa de empleados"
+        hint="Los encargados podrán modificar la tasa asignada a los empleados"
+        :disabled="updatingFeatures"
       />
     </div>
   </SectionCard>
@@ -236,7 +245,7 @@ import { SectionCard, EmptyState } from '../components/common'
 import { FormToggle } from '../components/forms'
 import { BranchFormModal } from '../components/modals'
 import { requestNotificationPermission } from '../composables/common/useNotifications'
-import { subscribeToPush, unsubscribeFromPush, isPushSupported } from '../services/pushService'
+import { unsubscribeFromPush, isPushSupported } from '../services/pushService'
 import { apiRequest } from '../lib/api'
 
 const { authStore } = useAuth()
@@ -330,6 +339,23 @@ async function handleDisablePush() {
     pushPermission.value = Notification.permission
   } finally {
     pushLoading.value = false
+  }
+}
+
+async function toggleManagerInventoryEdit(val: boolean) {
+  if (!businessId.value) return
+  updatingFeatures.value = true
+  try {
+    const updatedFeatures = { ...businessStore.features, disable_manager_inventory_edit: val }
+    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    success(val ? 'Permiso activado: Desactivada edición de inventario para encargados' : 'Permiso desactivado: Permitida edición de inventario')
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar el permiso')
+  } finally {
+    updatingFeatures.value = false
   }
 }
 
