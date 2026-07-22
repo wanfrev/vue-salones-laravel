@@ -97,36 +97,37 @@
 
   <!-- Permisos de Encargados (solo admin) -->
   <SectionCard
-    v-if="authStore.role === 'admin' || authStore.role === 'superadmin'"
+    v-if="isAdmin"
     class="mb-6"
     title="Permisos de encargados"
     subtitle="Configura los permisos globales para todos los encargados del negocio"
     icon="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
   >
-    <label class="flex items-center gap-3 rounded-xl border border-border bg-bg-secondary/50 px-4 py-3 cursor-pointer transition-theme hover:border-border-strong">
-      <div class="flex-1">
-        <p class="text-sm font-semibold text-text">Desactivar edición de inventario</p>
-        <p class="text-xs text-text-muted">Si está activo, los encargados solo podrán ver el inventario y vender en el POS, sin poder ajustar cantidades ni costos.</p>
-      </div>
-      <button
-        type="button"
-        role="switch"
-        :aria-checked="businessStore.features.disable_manager_inventory_edit"
-        @click="toggleManagerInventoryEdit"
-        :disabled="isUpdatingFeature"
-        :class="[
-          'relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2 disabled:opacity-50',
-          businessStore.features.disable_manager_inventory_edit ? 'bg-primary border-primary' : 'bg-border border-border'
-        ]"
-      >
-        <span
-          :class="[
-            'inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform',
-            businessStore.features.disable_manager_inventory_edit ? 'translate-x-4' : 'translate-x-0'
-          ]"
-        />
-      </button>
-    </label>
+    <div class="space-y-4">
+      <FormToggle
+        :model-value="!!businessStore.features.disable_manager_inventory_edit"
+        @update:model-value="toggleManagerInventoryEdit"
+        label="Desactivar edición de inventario"
+        hint="Si está activo, los encargados solo podrán ver el inventario y vender en el POS, sin poder ajustar cantidades ni costos."
+        :disabled="updatingFeatures"
+      />
+
+      <FormToggle
+        :model-value="!!businessStore.features.encargados_change_exchange_rate"
+        @update:model-value="handleToggleEncargadoExchangeRate"
+        label="Permitir cambiar la tasa del día"
+        hint="Los encargados podrán modificar la tasa de cambio principal"
+        :disabled="updatingFeatures"
+      />
+
+      <FormToggle
+        :model-value="!!businessStore.features.encargados_change_employee_rate"
+        @update:model-value="handleToggleEncargadoEmployeeRate"
+        label="Permitir cambiar la tasa de empleados"
+        hint="Los encargados podrán modificar la tasa asignada a los empleados"
+        :disabled="updatingFeatures"
+      />
+    </div>
   </SectionCard>
 
   <!-- Not enabled gate -->
@@ -244,8 +245,8 @@ import { SectionCard, EmptyState } from '../components/common'
 import { FormToggle } from '../components/forms'
 import { BranchFormModal } from '../components/modals'
 import { requestNotificationPermission } from '../composables/common/useNotifications'
-import { subscribeToPush, unsubscribeFromPush, isPushSupported } from '../services/pushService'
-import { db } from '../lib/api'
+import { unsubscribeFromPush, isPushSupported } from '../services/pushService'
+import { apiRequest } from '../lib/api'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
@@ -341,27 +342,20 @@ async function handleDisablePush() {
   }
 }
 
-const isUpdatingFeature = ref(false)
-
-async function toggleManagerInventoryEdit() {
+async function toggleManagerInventoryEdit(val: boolean) {
   if (!businessId.value) return
-  isUpdatingFeature.value = true
+  updatingFeatures.value = true
   try {
-    const currentValue = businessStore.features.disable_manager_inventory_edit
-    const newFeatures = { ...businessStore.features, disable_manager_inventory_edit: !currentValue }
-    
-    const { error } = await db
-      .from('businesses')
-      .update({ features: newFeatures })
-      .eq('id', businessId.value)
-
-    if (error) throw error
-
-    businessStore.updateBusiness({ features: newFeatures as any })
-  } catch (err) {
-    console.error('Error actualizando permisos:', err)
+    const updatedFeatures = { ...businessStore.features, disable_manager_inventory_edit: val }
+    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    success(val ? 'Permiso activado: Desactivada edición de inventario para encargados' : 'Permiso desactivado: Permitida edición de inventario')
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar el permiso')
   } finally {
-    isUpdatingFeature.value = false
+    updatingFeatures.value = false
   }
 }
 
