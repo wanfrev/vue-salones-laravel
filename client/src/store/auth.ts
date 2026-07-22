@@ -20,7 +20,12 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = computed(() => !!session.value && !!user.value)
   const role = computed<Role | null>(() => profile.value?.role ?? null)
   const businessId = computed(() => profile.value?.business_id ?? null)
-  const disableInventoryEdit = computed(() => !!(profile.value as any)?.disable_inventory_edit)
+  const disableInventoryEdit = computed(() => {
+    if (profile.value?.role === 'encargado') {
+      return useBusinessStore().features.disable_manager_inventory_edit
+    }
+    return !!(profile.value as any)?.disable_inventory_edit
+  })
 
   const isProfileHardFailure = (err: unknown): boolean => {
     const msg = err instanceof Error ? err.message : String(err ?? '')
