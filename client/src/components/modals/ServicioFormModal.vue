@@ -337,6 +337,7 @@ const open = (servicio?: Servicio, branchId?: string) => {
   } else {
     const firstRealCategory = categoryOptions.value.find(c => c.value !== '__new__')?.value ?? ''
     formData.value = { ...defaultFormData, category: firstRealCategory }
+    hasLinkedProduct.value = false
     showingCustomCategory.value = false
   }
   errors.value = {}
