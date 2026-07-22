@@ -60,7 +60,7 @@ export const sidebarSections: SidebarSection[] = [
     title: 'Ajustes',
     adminOnly: true,
     links: [
-      { to: '/admin/configuracion', label: 'Configuración', icon: Settings, adminOnly: true, requiresFeature: 'multi_branch' },
+      { to: '/admin/configuracion', label: 'Configuración', icon: Settings, adminOnly: true },
     ],
   },
 ]
