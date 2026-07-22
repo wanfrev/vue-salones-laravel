@@ -17,8 +17,8 @@
           'focus:border-primary focus:ring-2 focus:ring-primary/20',
           'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary',
           error ? 'border-danger focus:border-danger focus:ring-danger/20' : 'border-border hover:border-border-strong',
-          prefixIcon ? (inputType === 'date' ? 'pl-8 sm:pl-8.5' : 'pl-10') : 'pl-4',
-          suffixIcon || showPasswordToggle ? 'pr-10' : (inputType === 'date' ? 'pr-1' : 'pr-4'),
+          prefixIcon ? (inputType === 'date' ? 'pl-8' : 'pl-10') : 'pl-4',
+          suffixIcon || showPasswordToggle ? 'pr-10' : 'pr-4',
           sizeClasses[size],
         ]" />
       <button v-if="showPasswordToggle && type === 'password'" type="button"
