@@ -70,11 +70,7 @@ class GenerateReminders extends Command
                     'profile_id' => $appt->employee_id,
                 ]);
 
-                $admins = Profile::where('business_id', $appt->business_id)
-                    ->where('role', 'admin')
-                    ->where('active', true)
-                    ->where('id', '!=', $appt->employee_id)
-                    ->get();
+                $admins = $this->getAdminsToNotify($appt->business_id, $appt->branch_id, $appt->employee_id);
 
                 foreach ($admins as $admin) {
                     $notifications[] = array_merge($baseData, [
@@ -123,10 +119,7 @@ class GenerateReminders extends Command
 
                 if ($existingAlert) continue;
 
-                $admins = Profile::where('business_id', $appt->business_id)
-                    ->where('role', 'admin')
-                    ->where('active', true)
-                    ->get();
+                $admins = $this->getAdminsToNotify($appt->business_id, $appt->branch_id);
 
                 foreach ($admins as $admin) {
                     $this->notificationService->create([
@@ -175,10 +168,7 @@ class GenerateReminders extends Command
                     ->where('type', 'low_stock')
                     ->delete();
 
-                $admins = Profile::where('business_id', $bizId)
-                    ->where('role', 'admin')
-                    ->where('active', true)
-                    ->get();
+                $admins = $this->getAdminsToNotify($bizId, null);
 
                 foreach ($admins as $admin) {
                     $this->notificationService->create([
@@ -212,6 +202,25 @@ class GenerateReminders extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    private function getAdminsToNotify(string $businessId, ?string $branchId, ?string $excludeProfileId = null)
+    {
+        return Profile::where('business_id', $businessId)
+            ->where('active', true)
+            ->where(function ($query) use ($branchId) {
+                $query->whereIn('role', ['admin', 'superadmin']);
+                if ($branchId) {
+                    $query->orWhere(function ($q) use ($branchId) {
+                        $q->where('role', 'encargado')
+                          ->where('branch_id', $branchId);
+                    });
+                }
+            })
+            ->when($excludeProfileId, function ($query) use ($excludeProfileId) {
+                $query->where('id', '!=', $excludeProfileId);
+            })
+            ->get();
     }
 
     private function sendPushNotifications(array $businessIds): void
