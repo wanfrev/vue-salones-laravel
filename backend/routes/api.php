@@ -50,6 +50,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/session', [AuthController::class, 'session']);
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
+    Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
 
     // Businesses
     Route::get('/businesses/{id}', [BusinessController::class, 'show']);
