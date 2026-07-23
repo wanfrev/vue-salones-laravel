@@ -78,7 +78,7 @@
               <p v-if="getRowError(index, 'price')" class="text-xs text-danger mt-0.5">{{ getRowError(index, 'price') }}</p>
             </div>
             <div><input :value="String(row.duration)" @input="setRowDuration(index, ($event.target as HTMLInputElement).value)" type="number" class="w-full rounded-lg border bg-surface text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 py-1.5 px-2 text-sm border-border hover:border-border-strong text-right" /></div>
-            <button v-if="getEmployeeDefaultPercentage(row.employeeId) != null" type="button" @click="toggleCommissionDetail(index)" class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors" :class="commissionDetailOpen.has(index) ? 'bg-primary/10 text-primary' : 'text-text-muted hover:bg-bg-secondary hover:text-text'" :title="commissionDetailOpen.has(index) ? 'Ocultar comisión' : 'Personalizar comisión'">
+            <button v-if="getEmployeeDefaultPercentage(row.employeeId) != null && !isServiceFixedCommission(row.serviceId)" type="button" @click="toggleCommissionDetail(index)" class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors" :class="commissionDetailOpen.has(index) ? 'bg-primary/10 text-primary' : 'text-text-muted hover:bg-bg-secondary hover:text-text'" :title="commissionDetailOpen.has(index) ? 'Ocultar comisión' : 'Personalizar comisión'">
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </button>
             <span v-else class="w-8"></span>
@@ -89,7 +89,7 @@
           </div>
 
           <!-- Commission panel -->
-          <div v-if="commissionDetailOpen.has(index) && getEmployeeDefaultPercentage(row.employeeId) != null" class="border-t border-border px-3 py-2">
+          <div v-if="commissionDetailOpen.has(index) && getEmployeeDefaultPercentage(row.employeeId) != null && !isServiceFixedCommission(row.serviceId)" class="border-t border-border px-3 py-2">
             <div class="flex items-center gap-3 text-xs flex-wrap">
               <span class="text-text-muted">Comisión: {{ getEmployeeDefaultPercentage(row.employeeId) }}%</span>
               <label class="flex items-center gap-1.5 text-primary cursor-pointer select-none">
@@ -113,9 +113,21 @@
               </template>
             </div>
           </div>
+          <div v-else-if="isServiceFixedCommission(row.serviceId) && row.employeeId" class="border-t border-border px-3 py-2 bg-primary/5">
+            <div class="flex items-center gap-3 text-xs flex-wrap">
+              <span class="text-text-muted font-medium">Servicio de monto fijo</span>
+              <div class="flex items-center gap-2 border-l border-border pl-3">
+                <label class="text-text-muted">Ganancia del empleado:</label>
+                <div class="relative">
+                  <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-text-muted">$</span>
+                  <input :value="getEmployeeAmountOverrideValue(index)" @input="setEmployeeAmountOverride(index, ($event.target as HTMLInputElement).value)" type="number" min="0" step="0.01" placeholder="0.00" class="w-20 rounded border border-primary/30 bg-bg pl-4 pr-1.5 py-0.5 text-xs text-text focus:border-primary focus:ring-1 focus:ring-primary" />
+                </div>
+              </div>
+            </div>
+          </div>
 
           <!-- Assistant percentage -->
-          <div v-if="row.assistantEmployeeId" class="border-t border-border px-3 py-2">
+          <div v-if="row.assistantEmployeeId && !isServiceFixedCommission(row.serviceId)" class="border-t border-border px-3 py-2">
             <div class="flex items-center gap-2">
               <label class="text-xs font-medium text-text-muted shrink-0">Comisión asistente:</label>
               <div class="flex items-center gap-2">
@@ -133,6 +145,15 @@
               </div>
               <span v-if="getRowError(index, 'assistantPercentage')" class="text-xs text-danger">{{ getRowError(index, 'assistantPercentage') }}</span>
               <span v-if="getRowError(index, 'assistantAmountOverride')" class="text-xs text-danger">{{ getRowError(index, 'assistantAmountOverride') }}</span>
+            </div>
+          </div>
+          <div v-else-if="row.assistantEmployeeId && isServiceFixedCommission(row.serviceId)" class="border-t border-border px-3 py-2 bg-primary/5">
+            <div class="flex items-center gap-2">
+              <label class="text-xs font-medium text-text-muted shrink-0">Ganancia asistente:</label>
+              <div class="relative">
+                <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-text-muted text-xs">$</span>
+                <input :value="String(getAssistantAmountOverrideValue(index))" @input="setAssistantAmountOverride(index, ($event.target as HTMLInputElement).value)" type="number" min="0" step="0.01" placeholder="0.00" class="w-20 rounded border border-primary/30 bg-bg pl-4 pr-2 py-1 text-xs text-text focus:border-primary focus:ring-1 focus:ring-primary" />
+              </div>
             </div>
           </div>
         </div>
@@ -319,7 +340,24 @@ const removeServiceRow = (index: number) => {
 
 const updateServiceRow = (index: number, field: keyof CitaFormServiceItem, value: string) => {
   const set = (target: any, f: string, v: any) => {
-    if (f === 'serviceId') { target[f] = v; const svc = props.servicios?.find(s => s.id === v); if (svc) { target.price = svc.price; target.duration = svc.duration } }
+    if (f === 'serviceId') { 
+      target[f] = v; 
+      const svc = props.servicios?.find(s => s.id === v); 
+      if (svc) { 
+        target.price = svc.price; 
+        target.duration = svc.duration;
+        if (svc.is_fixed_commission) {
+          target.isFixedCommissionOverride = true;
+          target.employeeAmountOverride = svc.fixed_commission_amount ?? 0;
+          target.assistantAmountOverride = svc.fixed_commission_assistant_amount ?? 0;
+          target.employeePercentageOverride = undefined;
+        } else {
+          target.isFixedCommissionOverride = false;
+          target.employeeAmountOverride = undefined;
+          target.assistantAmountOverride = undefined;
+        }
+      } 
+    }
     else if (f === 'assistantPercentage') target[f] = Number(v) || 0
     else if (f === 'price') target[f] = Number(v) || 0
     else if (f === 'duration') target[f] = Math.max(1, Number(v) || 1)
@@ -341,6 +379,7 @@ const getRowError = (index: number, field: string): string | undefined => (error
 
 const toggleCommissionDetail = (index: number) => { commissionDetailOpen.has(index) ? commissionDetailOpen.delete(index) : commissionDetailOpen.add(index) }
 const getEmployeeDefaultPercentage = (eid: string): number | undefined => { if (!eid) return undefined; const emp = props.empleados?.find(e => e.id === eid); if (!emp || emp.payType === 'salary') return undefined; return emp.payPercentage ?? 0 }
+const isServiceFixedCommission = (serviceId: string): boolean => { return props.servicios?.find(s => s.id === serviceId)?.is_fixed_commission || false }
 
 const hasEmployeeOverride = (index: number): boolean => {
   if (activeEmployeeOverrides.has(index)) return true
@@ -399,7 +438,20 @@ const toggleEmployeeOverride = (index: number) => {
 watch(() => formData.value.service, (serviceId) => {
   if (isInitialSetup.value || !serviceId) return
   const svc = props.servicios?.find(s => s.id === serviceId)
-  if (svc) { formData.value.price = svc.price; formData.value.duration = svc.duration }
+  if (svc) { 
+    formData.value.price = svc.price; 
+    formData.value.duration = svc.duration;
+    if (svc.is_fixed_commission) {
+      formData.value.isFixedCommissionOverride = true;
+      formData.value.employeeAmountOverride = svc.fixed_commission_amount ?? 0;
+      formData.value.assistantAmountOverride = svc.fixed_commission_assistant_amount ?? 0;
+      formData.value.employeePercentageOverride = undefined;
+    } else {
+      formData.value.isFixedCommissionOverride = false;
+      formData.value.employeeAmountOverride = undefined;
+      formData.value.assistantAmountOverride = undefined;
+    }
+  }
 })
 
 const totalPrice = computed(() => formData.value.price + formData.value.extraServices.reduce((s, e) => s + e.price, 0))
