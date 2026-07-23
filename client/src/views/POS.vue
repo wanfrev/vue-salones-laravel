@@ -184,7 +184,7 @@ const { data: posServiciosData } = useQuery({
   staleTime: 5 * 60 * 1000,
 })
 const posServiciosList = computed(() => (posServiciosData.value ?? []).map((s: any) => ({
-  id: s.id, name: s.name, price: s.price, duration: s.duration,
+  id: s.id, name: s.name, price: s.price, duration: s.duration, is_fixed_commission: s.is_fixed_commission, fixed_commission_amount: s.fixed_commission_amount, fixed_commission_assistant_amount: s.fixed_commission_assistant_amount,
 })))
 
 const { data: posEmpleadosData } = useQuery({

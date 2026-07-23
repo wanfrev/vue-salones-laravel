@@ -14,6 +14,9 @@ export interface Servicio {
   color?: string
   linked_product_id?: string | null
   linked_variant_id?: string | null
+  is_fixed_commission?: boolean
+  fixed_commission_amount?: number
+  fixed_commission_assistant_amount?: number
 }
 
 export interface ServicioFormData {
@@ -25,4 +28,7 @@ export interface ServicioFormData {
   category: string
   linked_product_id?: string | null
   linked_variant_id?: string | null
+  is_fixed_commission?: boolean
+  fixed_commission_amount?: number
+  fixed_commission_assistant_amount?: number
 }

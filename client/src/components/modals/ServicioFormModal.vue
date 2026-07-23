@@ -98,6 +98,34 @@
       <!-- Insumo Consumible -->
       <div class="rounded-lg border border-border p-4">
         <label class="flex items-center space-x-2 text-sm font-medium text-text-primary">
+          <input type="checkbox" v-model="formData.is_fixed_commission" class="rounded border-border text-primary focus:ring-primary" />
+          <span>Comisión fija por servicio (Monto en vez de porcentaje)</span>
+        </label>
+        <p class="mt-1 text-xs text-text-muted ml-6">
+          Al activar esta opción, los empleados y asistentes que realicen este servicio ganarán un monto de dinero exacto, ignorando su porcentaje de comisión habitual.
+        </p>
+        
+        <div v-if="formData.is_fixed_commission" class="mt-4 ml-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <FormInput
+            v-model.number="formData.fixed_commission_amount"
+            label="Monto para el empleado ($)"
+            type="number"
+            placeholder="0.00"
+            prefix-icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+          <FormInput
+            v-model.number="formData.fixed_commission_assistant_amount"
+            label="Monto para el asistente ($)"
+            type="number"
+            placeholder="0.00"
+            prefix-icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </div>
+      </div>
+
+      <!-- Insumo Consumible -->
+      <div class="rounded-lg border border-border p-4">
+        <label class="flex items-center space-x-2 text-sm font-medium text-text-primary">
           <input type="checkbox" v-model="hasLinkedProduct" class="rounded border-border text-primary focus:ring-primary" />
           <span>Vincular a producto de inventario (Insumo consumible)</span>
         </label>
@@ -251,6 +279,9 @@ const defaultFormData: ServicioFormData = {
   duration: 30,
   status: 'Activo',
   category: '',
+  is_fixed_commission: false,
+  fixed_commission_amount: 0,
+  fixed_commission_assistant_amount: 0,
   linked_product_id: null,
   linked_variant_id: null,
 }
@@ -323,17 +354,21 @@ const handleSubmit = async () => {
 const open = (servicio?: Servicio, branchId?: string) => {
   useModal(MODAL_ID).open({ servicio, branchId })
   if (servicio) {
+    const s = servicio as any
     formData.value = {
-      name: servicio.name || '',
-      description: servicio.description || '',
-      price: servicio.price || 0,
-      duration: servicio.duration || 30,
-      status: servicio.status || 'Activo',
-      category: servicio.category || '',
-      linked_product_id: servicio.linked_product_id || null,
-      linked_variant_id: servicio.linked_variant_id || null,
+      name: s.name || '',
+      description: s.description || '',
+      price: s.price || 0,
+      duration: s.duration || 30,
+      status: s.status || 'Activo',
+      category: s.category || '',
+      linked_product_id: s.linked_product_id ?? null,
+      linked_variant_id: s.linked_variant_id ?? null,
+      is_fixed_commission: s.is_fixed_commission ?? false,
+      fixed_commission_amount: s.fixed_commission_amount ?? 0,
+      fixed_commission_assistant_amount: s.fixed_commission_assistant_amount ?? 0,
     }
-    hasLinkedProduct.value = !!servicio.linked_product_id
+    hasLinkedProduct.value = !!s.linked_product_id
   } else {
     const firstRealCategory = categoryOptions.value.find(c => c.value !== '__new__')?.value ?? ''
     formData.value = { ...defaultFormData, category: firstRealCategory }

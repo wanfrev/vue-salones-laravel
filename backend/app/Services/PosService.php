@@ -144,9 +144,37 @@ class PosService
         ) {
             $totalAmount = $serviceAmount + $productsAmount;
 
-            $assistantAmount = round($serviceAmount * $assistantPct / 100, 2);
-            $employeeAmount = round($serviceAmount * $employeePct / 100, 2);
+            $totalAmount = $serviceAmount + $productsAmount;
+
+            // 1. Employee Amount Calculation
+            if ($appointment->employee_amount_override !== null) {
+                $employeeAmount = (float) $appointment->employee_amount_override;
+            } elseif ($appointment->employee_percentage_override !== null) {
+                $employeeAmount = round($serviceAmount * $employeePct / 100, 2);
+            } elseif ($service->is_fixed_commission) {
+                $employeeAmount = (float) $service->fixed_commission_amount;
+            } else {
+                $employeeAmount = round($serviceAmount * $employeePct / 100, 2);
+            }
+
+            // 2. Assistant Amount Calculation
+            if ($appointment->assistant_amount_override !== null) {
+                $assistantAmount = (float) $appointment->assistant_amount_override;
+            } elseif ($appointment->assistant_percentage !== null && $appointment->assistant_percentage > 0) {
+                $assistantAmount = round($serviceAmount * $assistantPct / 100, 2);
+            } elseif ($service->is_fixed_commission) {
+                $assistantAmount = (float) $service->fixed_commission_assistant_amount;
+            } else {
+                $assistantAmount = round($serviceAmount * $assistantPct / 100, 2);
+            }
+
             $localAmount = round($totalAmount - $employeeAmount - $assistantAmount, 2);
+
+            // Re-calculate percentages for reporting consistency
+            $employeePct = $serviceAmount > 0 ? round(($employeeAmount / $serviceAmount) * 100, 2) : 0;
+            $assistantPct = $serviceAmount > 0 ? round(($assistantAmount / $serviceAmount) * 100, 2) : 0;
+            $localPct = 100 - $employeePct - $assistantPct;
+            if ($localPct < 0) $localPct = 0;
 
             $tx = Transaction::create([
                 'id' => Str::uuid()->toString(),

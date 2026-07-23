@@ -78,7 +78,7 @@
               <p v-if="getRowError(index, 'price')" class="text-xs text-danger mt-0.5">{{ getRowError(index, 'price') }}</p>
             </div>
             <div><input :value="String(row.duration)" @input="setRowDuration(index, ($event.target as HTMLInputElement).value)" type="number" class="w-full rounded-lg border bg-surface text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 py-1.5 px-2 text-sm border-border hover:border-border-strong text-right" /></div>
-            <button v-if="getEmployeeDefaultPercentage(row.employeeId) != null" type="button" @click="toggleCommissionDetail(index)" class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors" :class="commissionDetailOpen.has(index) ? 'bg-primary/10 text-primary' : 'text-text-muted hover:bg-bg-secondary hover:text-text'" :title="commissionDetailOpen.has(index) ? 'Ocultar comisión' : 'Personalizar comisión'">
+            <button v-if="getEmployeeDefaultPercentage(row.employeeId) != null || isServiceFixedCommission(row.serviceId) || row.assistantEmployeeId" type="button" @click="toggleCommissionDetail(index)" class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors" :class="commissionDetailOpen.has(index) ? 'bg-primary/10 text-primary' : 'text-text-muted hover:bg-bg-secondary hover:text-text'" :title="commissionDetailOpen.has(index) ? 'Ocultar comisión' : 'Personalizar comisión'">
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </button>
             <span v-else class="w-8"></span>
@@ -89,22 +89,43 @@
           </div>
 
           <!-- Commission panel -->
-          <div v-if="commissionDetailOpen.has(index) && getEmployeeDefaultPercentage(row.employeeId) != null" class="border-t border-border px-3 py-2">
-            <div class="flex items-center gap-3 text-xs">
-              <span class="text-text-muted">Comisión: {{ getEmployeeDefaultPercentage(row.employeeId) }}%</span>
-              <label class="flex items-center gap-1.5 text-primary cursor-pointer select-none">
-                <input type="checkbox" :checked="hasEmployeeOverride(index)" @change="toggleEmployeeOverride(index)" class="rounded border-border h-3.5 w-3.5" /> Personalizar
-              </label>
-              <input v-if="hasEmployeeOverride(index)" :value="getEmployeeOverrideValue(index)" @input="setEmployeeOverride(index, ($event.target as HTMLInputElement).value)" type="number" min="0" max="100" placeholder="%" class="w-16 rounded border border-border bg-bg px-1.5 py-0.5 text-xs text-text" />
+          <div v-if="commissionDetailOpen.has(index) && (getEmployeeDefaultPercentage(row.employeeId) != null || isServiceFixedCommission(row.serviceId) || row.assistantEmployeeId)" class="border-t border-border px-3 py-2 space-y-3 bg-primary/5">
+            <!-- Employee Commission -->
+            <div class="flex items-center gap-3 text-xs flex-wrap">
+              <span class="text-text-muted font-medium w-20">Empleado:</span>
+              <div class="flex items-center gap-2 border-l border-border pl-3">
+                <label class="flex items-center gap-1 cursor-pointer">
+                  <input type="radio" :name="'emp_comm_type_' + index" :value="false" :checked="!getIsEmployeeFixedOverride(index)" @change="setEmployeeCommType(index, 'percent')" class="text-primary focus:ring-primary h-3.5 w-3.5" /> %
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer">
+                  <input type="radio" :name="'emp_comm_type_' + index" :value="true" :checked="getIsEmployeeFixedOverride(index)" @change="setEmployeeCommType(index, 'fixed')" class="text-primary focus:ring-primary h-3.5 w-3.5" /> Monto fijo
+                </label>
+              </div>
+              
+              <input v-if="!getIsEmployeeFixedOverride(index)" :value="getEmployeePercentageOverrideValue(index)" @input="setEmployeePercentageOverride(index, ($event.target as HTMLInputElement).value)" type="number" min="0" max="100" placeholder="%" class="w-16 rounded border border-primary/30 bg-bg px-1.5 py-0.5 text-xs text-text focus:border-primary focus:ring-1 focus:ring-primary" />
+              <div v-else class="relative">
+                <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-text-muted">$</span>
+                <input :value="getEmployeeAmountOverrideValue(index)" @input="setEmployeeAmountOverride(index, ($event.target as HTMLInputElement).value)" type="number" min="0" step="0.01" placeholder="0.00" class="w-20 rounded border border-primary/30 bg-bg pl-4 pr-1.5 py-0.5 text-xs text-text focus:border-primary focus:ring-1 focus:ring-primary" />
+              </div>
             </div>
-          </div>
 
-          <!-- Assistant percentage -->
-          <div v-if="row.assistantEmployeeId" class="border-t border-border px-3 py-2">
-            <div class="flex items-center gap-2">
-              <label class="text-xs font-medium text-text-muted shrink-0">% asistente:</label>
-              <input :value="String(row.assistantPercentage)" @input="updateServiceRow(index, 'assistantPercentage', ($event.target as HTMLInputElement).value)" type="number" min="0" max="100" placeholder="10" class="w-20 rounded border border-border bg-bg px-2 py-1 text-xs text-text" />
-              <span v-if="getRowError(index, 'assistantPercentage')" class="text-xs text-danger">{{ getRowError(index, 'assistantPercentage') }}</span>
+            <!-- Assistant Commission -->
+            <div v-if="row.assistantEmployeeId" class="flex items-center gap-3 text-xs flex-wrap">
+              <span class="text-text-muted font-medium w-20">Asistente:</span>
+              <div class="flex items-center gap-2 border-l border-border pl-3">
+                <label class="flex items-center gap-1 cursor-pointer">
+                  <input type="radio" :name="'asst_comm_type_' + index" :value="false" :checked="!getIsAssistantFixedOverride(index)" @change="setAssistantCommType(index, 'percent')" class="text-primary focus:ring-primary h-3.5 w-3.5" /> %
+                </label>
+                <label class="flex items-center gap-1 cursor-pointer">
+                  <input type="radio" :name="'asst_comm_type_' + index" :value="true" :checked="getIsAssistantFixedOverride(index)" @change="setAssistantCommType(index, 'fixed')" class="text-primary focus:ring-primary h-3.5 w-3.5" /> Monto fijo
+                </label>
+              </div>
+              
+              <input v-if="!getIsAssistantFixedOverride(index)" :value="getAssistantPercentageValue(index)" @input="setAssistantPercentage(index, ($event.target as HTMLInputElement).value)" type="number" min="0" max="100" placeholder="%" class="w-16 rounded border border-primary/30 bg-bg px-1.5 py-0.5 text-xs text-text focus:border-primary focus:ring-1 focus:ring-primary" />
+              <div v-else class="relative">
+                <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-text-muted">$</span>
+                <input :value="getAssistantAmountOverrideValue(index)" @input="setAssistantAmountOverride(index, ($event.target as HTMLInputElement).value)" type="number" min="0" step="0.01" placeholder="0.00" class="w-20 rounded border border-primary/30 bg-bg pl-4 pr-1.5 py-0.5 text-xs text-text focus:border-primary focus:ring-1 focus:ring-primary" />
+              </div>
             </div>
           </div>
         </div>
@@ -165,7 +186,7 @@ import { listPetsByClient } from '../../services/petService'
 const MODAL_ID = 'cita-form-modal'
 
 const props = defineProps<{
-  servicios?: { id: string; name: string; price: number; duration: number }[]
+  servicios?: { id: string; name: string; price: number; duration: number; is_fixed_commission?: boolean; fixed_commission_amount?: number; fixed_commission_assistant_amount?: number }[]
   empleados?: { id: string; name: string; payType?: string; payPercentage?: number; disableAgenda?: boolean }[]
 }>()
 
@@ -235,7 +256,7 @@ const statusOptions = [
 ]
 
 const emptyServiceRow = (): CitaFormServiceItem => ({
-  serviceId: '', employeeId: isEmployee.value ? (authStore.profile?.id ?? '') : '', assistantEmployeeId: '', assistantPercentage: 0, duration: 30, price: 0,
+  serviceId: '', employeeId: isEmployee.value ? (authStore.profile?.id ?? '') : '', assistantEmployeeId: '', assistantPercentage: 0, duration: 30, price: 0, isFixedCommissionOverride: false, employeePercentageOverride: undefined, employeeAmountOverride: undefined, assistantAmountOverride: undefined,
 })
 
 const defaultFormData = (): CitaFormData & { extraServices: CitaFormServiceItem[] } => {
@@ -244,7 +265,7 @@ const defaultFormData = (): CitaFormData & { extraServices: CitaFormServiceItem[
   const minutes = now.getHours() * 60 + now.getMinutes()
   const nextSlot = Math.ceil(minutes / 30) * 30
   const myId = isEmployee.value ? (authStore.profile?.id ?? '') : ''
-  return { clientId: undefined, clientName: '', clientPhone: '', petId: '', service: '', employee: myId, assistantEmployee: '', assistantPercentage: 0, duration: 30, price: 0, extraServices: [], date: today, time: minutesToHHmm(nextSlot), status: 'pending', notes: '', diagnosis: '', treatment: '' }
+  return { clientId: undefined, clientName: '', clientPhone: '', petId: '', service: '', employee: myId, assistantEmployee: '', assistantPercentage: 0, duration: 30, price: 0, isFixedCommissionOverride: false, employeePercentageOverride: undefined, employeeAmountOverride: undefined, assistantAmountOverride: undefined, extraServices: [], date: today, time: minutesToHHmm(nextSlot), status: 'pending', notes: '', diagnosis: '', treatment: '' }
 }
 
 const formData = ref<CitaFormData & { extraServices: CitaFormServiceItem[] }>(defaultFormData())
@@ -259,7 +280,7 @@ const servicesLoaded = computed(() => (props.servicios?.length ?? 0) > 0)
 const employeesLoaded = computed(() => (props.empleados?.length ?? 0) > 0)
 
 const serviceRows = computed<CitaFormServiceItem[]>(() => {
-  return [{ serviceId: formData.value.service, employeeId: formData.value.employee, assistantEmployeeId: formData.value.assistantEmployee, assistantPercentage: formData.value.assistantPercentage, duration: formData.value.duration, price: formData.value.price }, ...formData.value.extraServices]
+  return [{ serviceId: formData.value.service, employeeId: formData.value.employee, assistantEmployeeId: formData.value.assistantEmployee, assistantPercentage: formData.value.assistantPercentage, duration: formData.value.duration, price: formData.value.price, isFixedCommissionOverride: formData.value.isFixedCommissionOverride, employeePercentageOverride: formData.value.employeePercentageOverride, employeeAmountOverride: formData.value.employeeAmountOverride, assistantAmountOverride: formData.value.assistantAmountOverride }, ...formData.value.extraServices]
 })
 
 const addServiceRow = () => formData.value.extraServices.push(emptyServiceRow())
@@ -271,7 +292,10 @@ const removeServiceRow = (index: number) => {
     formData.value.employee = next.employeeId
     formData.value.assistantEmployee = next.assistantEmployeeId
     formData.value.assistantPercentage = next.assistantPercentage
+    formData.value.isFixedCommissionOverride = next.isFixedCommissionOverride
     formData.value.employeePercentageOverride = next.employeePercentageOverride
+    formData.value.employeeAmountOverride = next.employeeAmountOverride
+    formData.value.assistantAmountOverride = next.assistantAmountOverride
     formData.value.duration = next.duration
     formData.value.price = next.price
     activeEmployeeOverrides.clear()
@@ -288,7 +312,38 @@ const removeServiceRow = (index: number) => {
 
 const updateServiceRow = (index: number, field: keyof CitaFormServiceItem, value: string) => {
   const set = (target: any, f: string, v: any) => {
-    if (f === 'serviceId') { target[f] = v; const svc = props.servicios?.find(s => s.id === v); if (svc) { target.price = svc.price; target.duration = svc.duration } }
+    if (f === 'serviceId') { 
+      target[f] = v; 
+      const svc = props.servicios?.find(s => s.id === v); 
+      if (svc) { 
+        target.price = svc.price; 
+        target.duration = svc.duration;
+        if (svc.is_fixed_commission) {
+          target.isFixedCommissionOverride = true;
+          target.employeeAmountOverride = svc.fixed_commission_amount ?? 0;
+          target.assistantAmountOverride = svc.fixed_commission_assistant_amount ?? 0;
+          target.employeePercentageOverride = undefined;
+        } else {
+          target.isFixedCommissionOverride = false;
+          target.employeeAmountOverride = undefined;
+          target.assistantAmountOverride = undefined;
+        }
+      } 
+    }
+    else if (f === 'assistantEmployeeId') {
+      target[f] = v
+      if (!v) {
+        target.assistantPercentage = 0
+        target.assistantAmountOverride = undefined
+      } else {
+        const sid = target.serviceId || target.service
+        const svc = props.servicios?.find(s => s.id === sid)
+        if (svc?.is_fixed_commission) {
+          target.isFixedCommissionOverride = true
+          target.assistantAmountOverride = svc.fixed_commission_assistant_amount ?? 0
+        }
+      }
+    }
     else if (f === 'assistantPercentage') target[f] = Number(v) || 0
     else if (f === 'price') target[f] = Number(v) || 0
     else if (f === 'duration') target[f] = Math.max(1, Number(v) || 1)
@@ -297,10 +352,9 @@ const updateServiceRow = (index: number, field: keyof CitaFormServiceItem, value
   if (index === 0) {
     const fd = formData.value; const map: Record<string, keyof typeof fd> = { serviceId: 'service', employeeId: 'employee', assistantEmployeeId: 'assistantEmployee', assistantPercentage: 'assistantPercentage', price: 'price', duration: 'duration' }
     const k = map[field]; if (k) set(fd, k, value)
-    if (field === 'assistantEmployeeId' && !value) fd.assistantPercentage = 0
   } else {
     const extra = formData.value.extraServices[index - 1]
-    if (extra) { set(extra, field, value); if (field === 'assistantEmployeeId' && !value) extra.assistantPercentage = 0 }
+    if (extra) set(extra, field, value)
   }
 }
 
@@ -310,30 +364,125 @@ const getRowError = (index: number, field: string): string | undefined => (error
 
 const toggleCommissionDetail = (index: number) => { commissionDetailOpen.has(index) ? commissionDetailOpen.delete(index) : commissionDetailOpen.add(index) }
 const getEmployeeDefaultPercentage = (eid: string): number | undefined => { if (!eid) return undefined; const emp = props.empleados?.find(e => e.id === eid); if (!emp || emp.payType === 'salary') return undefined; return emp.payPercentage ?? 0 }
+const isServiceFixedCommission = (serviceId: string): boolean => { return props.servicios?.find(s => s.id === serviceId)?.is_fixed_commission || false }
 
-const hasEmployeeOverride = (index: number): boolean => {
-  if (activeEmployeeOverrides.has(index)) return true
-  if (index === 0) return formData.value.employeePercentageOverride != null
-  return formData.value.extraServices[index - 1]?.employeePercentageOverride != null
+const getIsEmployeeFixedOverride = (index: number): boolean => {
+  const row = index === 0 ? formData.value : formData.value.extraServices[index - 1]
+  if (row.employeeAmountOverride != null) return true;
+  if (row.employeePercentageOverride != null) return false;
+  const sid = index === 0 ? formData.value.service : formData.value.extraServices[index - 1]?.serviceId;
+  return isServiceFixedCommission(sid);
 }
-const getEmployeeOverrideValue = (index: number): string => {
-  if (index === 0) return formData.value.employeePercentageOverride != null ? String(formData.value.employeePercentageOverride) : ''
-  return formData.value.extraServices[index - 1]?.employeePercentageOverride != null ? String(formData.value.extraServices[index - 1].employeePercentageOverride) : ''
+
+const getIsAssistantFixedOverride = (index: number): boolean => {
+  const row = index === 0 ? formData.value : formData.value.extraServices[index - 1]
+  if (row.assistantAmountOverride != null) return true;
+  if (row.assistantPercentage != null && row.assistantPercentage > 0) return false;
+  const sid = index === 0 ? formData.value.service : formData.value.extraServices[index - 1]?.serviceId;
+  if (isServiceFixedCommission(sid) && row.assistantPercentage === 0) return true;
+  return false;
 }
-const setEmployeeOverride = (index: number, value: string) => {
+
+const setEmployeeCommType = (index: number, type: 'percent' | 'fixed') => {
+  const row = index === 0 ? formData.value : formData.value.extraServices[index - 1];
+  const sid = index === 0 ? formData.value.service : formData.value.extraServices[index - 1]?.serviceId;
+  const svc = props.servicios?.find(s => s.id === sid);
+
+  if (type === 'percent') {
+    row.employeeAmountOverride = undefined;
+    if (svc?.is_fixed_commission) row.employeePercentageOverride = getEmployeeDefaultPercentage(row.employeeId) ?? 0;
+    else row.employeePercentageOverride = undefined;
+  } else {
+    row.employeePercentageOverride = undefined;
+    if (svc?.is_fixed_commission) row.employeeAmountOverride = undefined;
+    else row.employeeAmountOverride = 0;
+  }
+}
+
+const setAssistantCommType = (index: number, type: 'percent' | 'fixed') => {
+  const row = index === 0 ? formData.value : formData.value.extraServices[index - 1];
+  const sid = index === 0 ? formData.value.service : formData.value.extraServices[index - 1]?.serviceId;
+  const svc = props.servicios?.find(s => s.id === sid);
+
+  if (type === 'percent') {
+    row.assistantAmountOverride = undefined;
+    row.assistantPercentage = 0;
+  } else {
+    row.assistantPercentage = 0;
+    if (svc?.is_fixed_commission) row.assistantAmountOverride = undefined;
+    else row.assistantAmountOverride = 0;
+  }
+}
+
+const getEmployeePercentageOverrideValue = (index: number): string => {
+  const row = index === 0 ? formData.value : formData.value.extraServices[index - 1]
+  if (row.employeePercentageOverride != null) return String(row.employeePercentageOverride)
+  const defaultPct = getEmployeeDefaultPercentage(row.employeeId)
+  return defaultPct != null ? String(defaultPct) : '0'
+}
+
+const setEmployeePercentageOverride = (index: number, value: string) => {
   const num = value === '' ? undefined : Math.max(0, Math.min(100, Number(value) || 0))
   if (index === 0) formData.value.employeePercentageOverride = num
   else { const extra = formData.value.extraServices[index - 1]; if (extra) extra.employeePercentageOverride = num }
 }
-const toggleEmployeeOverride = (index: number) => {
-  if (hasEmployeeOverride(index)) { activeEmployeeOverrides.delete(index); setEmployeeOverride(index, '') }
-  else { activeEmployeeOverrides.add(index); const row = index === 0 ? { employeeId: formData.value.employee } : formData.value.extraServices[index - 1]; setEmployeeOverride(index, String(getEmployeeDefaultPercentage(row?.employeeId ?? '') ?? 0)) }
+
+const getEmployeeAmountOverrideValue = (index: number): string => {
+  const row = index === 0 ? formData.value : formData.value.extraServices[index - 1]
+  if (row.employeeAmountOverride != null) return String(row.employeeAmountOverride)
+  const sid = index === 0 ? formData.value.service : formData.value.extraServices[index - 1]?.serviceId;
+  const svc = props.servicios?.find(s => s.id === sid)
+  return String(svc?.fixed_commission_amount ?? 0)
+}
+
+const setEmployeeAmountOverride = (index: number, value: string) => {
+  const num = value === '' ? undefined : Math.max(0, Number(value) || 0)
+  if (index === 0) formData.value.employeeAmountOverride = num
+  else { const extra = formData.value.extraServices[index - 1]; if (extra) extra.employeeAmountOverride = num }
+}
+
+const getAssistantPercentageValue = (index: number): string => {
+  const row = index === 0 ? formData.value : formData.value.extraServices[index - 1]
+  return row.assistantPercentage != null ? String(row.assistantPercentage) : '0'
+}
+
+const setAssistantPercentage = (index: number, value: string) => {
+  const num = value === '' ? 0 : Math.max(0, Math.min(100, Number(value) || 0))
+  if (index === 0) formData.value.assistantPercentage = num
+  else { const extra = formData.value.extraServices[index - 1]; if (extra) extra.assistantPercentage = num }
+}
+
+const getAssistantAmountOverrideValue = (index: number): string => {
+  const row = index === 0 ? formData.value : formData.value.extraServices[index - 1]
+  if (row.assistantAmountOverride != null) return String(row.assistantAmountOverride)
+  const sid = index === 0 ? formData.value.service : formData.value.extraServices[index - 1]?.serviceId;
+  const svc = props.servicios?.find(s => s.id === sid)
+  return String(svc?.fixed_commission_assistant_amount ?? 0)
+}
+
+const setAssistantAmountOverride = (index: number, value: string) => {
+  const num = value === '' ? undefined : Math.max(0, Number(value) || 0)
+  if (index === 0) formData.value.assistantAmountOverride = num
+  else { const extra = formData.value.extraServices[index - 1]; if (extra) extra.assistantAmountOverride = num }
 }
 
 watch(() => formData.value.service, (serviceId) => {
   if (isInitialSetup.value || !serviceId) return
   const svc = props.servicios?.find(s => s.id === serviceId)
-  if (svc) { formData.value.price = svc.price; formData.value.duration = svc.duration }
+  if (svc) { 
+    formData.value.price = svc.price; 
+    formData.value.duration = svc.duration;
+    if (svc.is_fixed_commission) {
+      formData.value.isFixedCommissionOverride = true;
+      formData.value.employeeAmountOverride = svc.fixed_commission_amount ?? 0;
+      formData.value.assistantAmountOverride = svc.fixed_commission_assistant_amount ?? 0;
+      formData.value.employeePercentageOverride = undefined;
+    } else {
+      formData.value.isFixedCommissionOverride = false;
+      formData.value.employeeAmountOverride = undefined;
+      formData.value.assistantAmountOverride = undefined;
+    }
+  }
 })
 
 const totalPrice = computed(() => formData.value.price + formData.value.extraServices.reduce((s, e) => s + e.price, 0))
@@ -387,7 +536,7 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
       if (svc) primaryPrice = svc.price
     }
 
-    formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: cita.clientPhone || '', petId: (cita as any).petId || (cita as any).pet_id || undefined, service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '', diagnosis: (cita as any).diagnosis || '', treatment: (cita as any).treatment || '' }
+    formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: cita.clientPhone || '', petId: (cita as any).petId || (cita as any).pet_id || undefined, service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), isFixedCommissionOverride: cita.isFixedCommissionOverride ?? false, employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, employeeAmountOverride: cita.employeeAmountOverride != null ? Number(cita.employeeAmountOverride) : undefined, assistantAmountOverride: cita.assistantAmountOverride != null ? Number(cita.assistantAmountOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '', diagnosis: (cita as any).diagnosis || '', treatment: (cita as any).treatment || '' }
 
     if (cita.clientId && businessId.value) { try { const { searchClients } = await import('../../services/clientesService'); const r = await searchClients(businessId.value, cita.clientName, branchId.value); const m = r.find(c => c.id === cita.clientId); if (m) formData.value.clientPhone = m.phone } catch {} }
     if (cita.groupId) {
@@ -420,7 +569,10 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
               employeeId: m.employee_id,
               assistantEmployeeId: m.assistant_employee_id ?? '',
               assistantPercentage: Number(m.assistant_percentage ?? 0),
+              isFixedCommissionOverride: m.is_fixed_commission_override ?? false,
               employeePercentageOverride: m.employee_percentage_override != null ? Number(m.employee_percentage_override) : undefined,
+              employeeAmountOverride: m.employee_amount_override != null ? Number(m.employee_amount_override) : undefined,
+              assistantAmountOverride: m.assistant_amount_override != null ? Number(m.assistant_amount_override) : undefined,
               duration: Math.round((new Date(m.end_time).getTime() - new Date(m.start_time).getTime()) / 60000) || (m.services?.duration_minutes ?? svcFromProps?.duration ?? 30),
               price: Number(m.price_override ?? m.services?.price ?? svcFromProps?.price ?? 0),
             }
@@ -441,8 +593,8 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
   paymentEditorRef.value?.setPaymentContext(paymentData as PaymentEditContext | null)
   activeEmployeeOverrides.clear()
   commissionDetailOpen.clear()
-  if (formData.value.employeePercentageOverride != null) { activeEmployeeOverrides.add(0); commissionDetailOpen.add(0) }
-  formData.value.extraServices.forEach((_, i) => { if (formData.value.extraServices[i]?.employeePercentageOverride != null) { activeEmployeeOverrides.add(i + 1); commissionDetailOpen.add(i + 1) } })
+  if (formData.value.employeePercentageOverride != null || formData.value.employeeAmountOverride != null || formData.value.isFixedCommissionOverride) { activeEmployeeOverrides.add(0); commissionDetailOpen.add(0) }
+  formData.value.extraServices.forEach((_, i) => { if (formData.value.extraServices[i]?.employeePercentageOverride != null || formData.value.extraServices[i]?.employeeAmountOverride != null || formData.value.extraServices[i]?.isFixedCommissionOverride) { activeEmployeeOverrides.add(i + 1); commissionDetailOpen.add(i + 1) } })
   errors.value = {}
   nextTick(() => { isInitialSetup.value = false })
 }, { immediate: true })
@@ -458,8 +610,7 @@ const validateForm = (): boolean => {
   if (!formData.value.service) rowErrors[0] = { ...rowErrors[0], serviceId: 'Selecciona un servicio' }
   if (!formData.value.employee) rowErrors[0] = { ...rowErrors[0], employeeId: 'Selecciona un empleado' }
   if (formData.value.assistantEmployee && formData.value.assistantEmployee === formData.value.employee) rowErrors[0] = { ...rowErrors[0], assistantEmployeeId: 'El asistente no puede ser el mismo empleado' }
-  if (formData.value.assistantEmployee && !formData.value.assistantPercentage) rowErrors[0] = { ...rowErrors[0], assistantPercentage: 'Define el porcentaje del asistente' }
-  for (let i = 0; i < formData.value.extraServices.length; i++) { const e = formData.value.extraServices[i]; const idx = i + 1; if (!e.serviceId) rowErrors[idx] = { ...rowErrors[idx], serviceId: 'Selecciona un servicio' }; if (!e.employeeId) rowErrors[idx] = { ...rowErrors[idx], employeeId: 'Selecciona un empleado' }; if (e.assistantEmployeeId && e.assistantEmployeeId === e.employeeId) rowErrors[idx] = { ...rowErrors[idx], assistantEmployeeId: 'El asistente no puede ser el mismo empleado' }; if (e.assistantEmployeeId && !e.assistantPercentage) rowErrors[idx] = { ...rowErrors[idx], assistantPercentage: 'Define el porcentaje del asistente' } }
+  for (let i = 0; i < formData.value.extraServices.length; i++) { const e = formData.value.extraServices[i]; const idx = i + 1; if (!e.serviceId) rowErrors[idx] = { ...rowErrors[idx], serviceId: 'Selecciona un servicio' }; if (!e.employeeId) rowErrors[idx] = { ...rowErrors[idx], employeeId: 'Selecciona un empleado' }; if (e.assistantEmployeeId && e.assistantEmployeeId === e.employeeId) rowErrors[idx] = { ...rowErrors[idx], assistantEmployeeId: 'El asistente no puede ser el mismo empleado' }; }
   if (!formData.value.date) errors.value.date = 'Selecciona una fecha'
   if (!formData.value.time) errors.value.time = 'Selecciona una hora'
 

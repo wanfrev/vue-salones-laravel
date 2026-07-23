@@ -75,6 +75,9 @@ export const mapServiceToServicio = (service: Service, citasMes = 0, ingresos = 
     color: visuals.color,
     linked_product_id: service.linked_product_id,
     linked_variant_id: service.linked_variant_id,
+    is_fixed_commission: !!service.is_fixed_commission,
+    fixed_commission_amount: service.fixed_commission_amount ? Number(service.fixed_commission_amount) : 0,
+    fixed_commission_assistant_amount: service.fixed_commission_assistant_amount ? Number(service.fixed_commission_assistant_amount) : 0,
   }
 }
 
@@ -89,5 +92,8 @@ export const mapServicioFormToServiceInsert = (businessId: string, data: Servici
     active: data.status === 'Activo',
     linked_product_id: data.linked_product_id ?? null,
     linked_variant_id: data.linked_variant_id ?? null,
+    is_fixed_commission: data.is_fixed_commission,
+    fixed_commission_amount: data.fixed_commission_amount ?? null,
+    fixed_commission_assistant_amount: data.fixed_commission_assistant_amount ?? null,
   }
 }

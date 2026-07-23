@@ -177,6 +177,9 @@ export function useAdminAgenda(businessId: () => string | null) {
     name: service.name,
     price: service.price,
     duration: service.duration,
+    is_fixed_commission: service.is_fixed_commission,
+    fixed_commission_amount: service.fixed_commission_amount,
+    fixed_commission_assistant_amount: service.fixed_commission_assistant_amount,
   })))
 
   const empleadosList = computed(() => (empleadosData.value ?? []).map(employee => ({

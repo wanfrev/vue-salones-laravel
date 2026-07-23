@@ -78,6 +78,9 @@ class AppointmentService
             'price_override' => $data['price_override'] ?? null,
             'employee_percentage_override' => $data['employee_percentage_override'] ?? null,
             'assistant_percentage' => $data['assistant_percentage'] ?? null,
+            'is_fixed_commission_override' => $data['is_fixed_commission_override'] ?? null,
+            'employee_amount_override' => $data['employee_amount_override'] ?? null,
+            'assistant_amount_override' => $data['assistant_amount_override'] ?? null,
             'duration_override' => $data['duration_override'] ?? null,
             'diagnosis' => $data['diagnosis'] ?? null,
             'treatment' => $data['treatment'] ?? null,
@@ -94,6 +97,7 @@ class AppointmentService
             'client_id', 'pet_id', 'employee_id', 'service_id', 'assistant_employee_id',
             'start_time', 'end_time', 'service_notes', 'internal_notes',
             'price_override', 'employee_percentage_override', 'assistant_percentage',
+            'is_fixed_commission_override', 'employee_amount_override', 'assistant_amount_override',
             'duration_override', 'diagnosis', 'treatment', 'group_id', 'branch_id',
         ];
 

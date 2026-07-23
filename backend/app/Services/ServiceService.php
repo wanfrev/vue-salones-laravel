@@ -48,6 +48,9 @@ class ServiceService
             'active' => $data['active'] ?? true,
             'linked_product_id' => $data['linked_product_id'] ?? null,
             'linked_variant_id' => $data['linked_variant_id'] ?? null,
+            'is_fixed_commission' => $data['is_fixed_commission'] ?? false,
+            'fixed_commission_amount' => $data['fixed_commission_amount'] ?? 0,
+            'fixed_commission_assistant_amount' => $data['fixed_commission_assistant_amount'] ?? 0,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -87,6 +90,7 @@ class ServiceService
         $service->update(array_filter($data, fn($k) => in_array($k, [
             'name', 'description', 'duration_minutes', 'price', 'local_percentage',
             'color', 'category', 'icon', 'active', 'branch_id', 'linked_product_id', 'linked_variant_id',
+            'is_fixed_commission', 'fixed_commission_amount', 'fixed_commission_assistant_amount',
         ]), ARRAY_FILTER_USE_KEY) + ['updated_at' => now()]);
 
         return $service->fresh();
