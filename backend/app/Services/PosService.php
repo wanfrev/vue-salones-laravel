@@ -146,7 +146,7 @@ class PosService
 
             if ($appointment->is_fixed_commission_override) {
                 $employeeAmount = (float) $appointment->employee_amount_override;
-                $assistantAmount = (float) ($appointment->assistant_amount_override ?? 0);
+                $assistantAmount = (float) ($appointment->assistant_amount_override ?? $service->fixed_commission_assistant_amount ?? 0);
                 $localAmount = round($totalAmount - $employeeAmount - $assistantAmount, 2);
                 
                 // Calculate back the percentages for statistics/reporting
