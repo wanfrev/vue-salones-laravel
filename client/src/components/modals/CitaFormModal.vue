@@ -358,6 +358,20 @@ const updateServiceRow = (index: number, field: keyof CitaFormServiceItem, value
         }
       } 
     }
+    else if (f === 'assistantEmployeeId') {
+      target[f] = v
+      if (!v) {
+        target.assistantPercentage = 0
+        target.assistantAmountOverride = undefined
+      } else {
+        const sid = target.serviceId || target.service
+        const svc = props.servicios?.find(s => s.id === sid)
+        if (svc?.is_fixed_commission) {
+          target.isFixedCommissionOverride = true
+          target.assistantAmountOverride = svc.fixed_commission_assistant_amount ?? 0
+        }
+      }
+    }
     else if (f === 'assistantPercentage') target[f] = Number(v) || 0
     else if (f === 'price') target[f] = Number(v) || 0
     else if (f === 'duration') target[f] = Math.max(1, Number(v) || 1)
@@ -366,10 +380,9 @@ const updateServiceRow = (index: number, field: keyof CitaFormServiceItem, value
   if (index === 0) {
     const fd = formData.value; const map: Record<string, keyof typeof fd> = { serviceId: 'service', employeeId: 'employee', assistantEmployeeId: 'assistantEmployee', assistantPercentage: 'assistantPercentage', price: 'price', duration: 'duration' }
     const k = map[field]; if (k) set(fd, k, value)
-    if (field === 'assistantEmployeeId' && !value) fd.assistantPercentage = 0
   } else {
     const extra = formData.value.extraServices[index - 1]
-    if (extra) { set(extra, field, value); if (field === 'assistantEmployeeId' && !value) extra.assistantPercentage = 0 }
+    if (extra) set(extra, field, value)
   }
 }
 
@@ -403,8 +416,13 @@ const setEmployeePercentageOverride = (index: number, value: string) => {
   else { const extra = formData.value.extraServices[index - 1]; if (extra) extra.employeePercentageOverride = num }
 }
 const getEmployeeAmountOverrideValue = (index: number): string => {
-  if (index === 0) return formData.value.employeeAmountOverride != null ? String(formData.value.employeeAmountOverride) : ''
-  return formData.value.extraServices[index - 1]?.employeeAmountOverride != null ? String(formData.value.extraServices[index - 1].employeeAmountOverride) : ''
+  const row = index === 0 ? formData.value : formData.value.extraServices[index - 1]
+  if (!row) return ''
+  if (row.employeeAmountOverride != null) return String(row.employeeAmountOverride)
+  const sid = index === 0 ? formData.value.service : formData.value.extraServices[index - 1]?.serviceId
+  const svc = props.servicios?.find(s => s.id === sid)
+  if (svc?.is_fixed_commission) return String(svc.fixed_commission_amount ?? 0)
+  return ''
 }
 const setEmployeeAmountOverride = (index: number, value: string) => {
   const num = value === '' ? undefined : Math.max(0, Number(value) || 0)
@@ -412,8 +430,13 @@ const setEmployeeAmountOverride = (index: number, value: string) => {
   else { const extra = formData.value.extraServices[index - 1]; if (extra) extra.employeeAmountOverride = num }
 }
 const getAssistantAmountOverrideValue = (index: number): string => {
-  if (index === 0) return formData.value.assistantAmountOverride != null ? String(formData.value.assistantAmountOverride) : ''
-  return formData.value.extraServices[index - 1]?.assistantAmountOverride != null ? String(formData.value.extraServices[index - 1].assistantAmountOverride) : ''
+  const row = index === 0 ? formData.value : formData.value.extraServices[index - 1]
+  if (!row) return ''
+  if (row.assistantAmountOverride != null) return String(row.assistantAmountOverride)
+  const sid = index === 0 ? formData.value.service : formData.value.extraServices[index - 1]?.serviceId
+  const svc = props.servicios?.find(s => s.id === sid)
+  if (svc?.is_fixed_commission) return String(svc.fixed_commission_assistant_amount ?? 0)
+  return ''
 }
 const setAssistantAmountOverride = (index: number, value: string) => {
   const num = value === '' ? undefined : Math.max(0, Number(value) || 0)
