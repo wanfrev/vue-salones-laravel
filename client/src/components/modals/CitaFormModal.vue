@@ -129,22 +129,9 @@
           <!-- Assistant percentage -->
           <div v-if="row.assistantEmployeeId && !isServiceFixedCommission(row.serviceId)" class="border-t border-border px-3 py-2">
             <div class="flex items-center gap-2">
-              <label class="text-xs font-medium text-text-muted shrink-0">Comisión asistente:</label>
-              <div class="flex items-center gap-2">
-                <label class="flex items-center gap-1 cursor-pointer text-xs">
-                  <input type="radio" :name="'asst_comm_type_' + index" :value="false" :checked="!getIsFixedCommissionOverride(index)" @change="setIsFixedCommissionOverride(index, false)" class="text-primary focus:ring-primary h-3.5 w-3.5" /> %
-                </label>
-                <label class="flex items-center gap-1 cursor-pointer text-xs">
-                  <input type="radio" :name="'asst_comm_type_' + index" :value="true" :checked="getIsFixedCommissionOverride(index)" @change="setIsFixedCommissionOverride(index, true)" class="text-primary focus:ring-primary h-3.5 w-3.5" /> Monto fijo
-                </label>
-              </div>
-              <input v-if="!getIsFixedCommissionOverride(index)" :value="String(row.assistantPercentage)" @input="updateServiceRow(index, 'assistantPercentage', ($event.target as HTMLInputElement).value)" type="number" min="0" max="100" placeholder="10" class="w-16 rounded border border-border bg-bg px-2 py-1 text-xs text-text" />
-              <div v-else class="relative">
-                <span class="absolute left-1.5 top-1/2 -translate-y-1/2 text-text-muted text-xs">$</span>
-                <input :value="String(getAssistantAmountOverrideValue(index))" @input="setAssistantAmountOverride(index, ($event.target as HTMLInputElement).value)" type="number" min="0" step="0.01" placeholder="0.00" class="w-20 rounded border border-border bg-bg pl-4 pr-2 py-1 text-xs text-text" />
-              </div>
+              <label class="text-xs font-medium text-text-muted shrink-0">% asistente:</label>
+              <input :value="String(row.assistantPercentage)" @input="updateServiceRow(index, 'assistantPercentage', ($event.target as HTMLInputElement).value)" type="number" min="0" max="100" placeholder="10" class="w-20 rounded border border-border bg-bg px-2 py-1 text-xs text-text" />
               <span v-if="getRowError(index, 'assistantPercentage')" class="text-xs text-danger">{{ getRowError(index, 'assistantPercentage') }}</span>
-              <span v-if="getRowError(index, 'assistantAmountOverride')" class="text-xs text-danger">{{ getRowError(index, 'assistantAmountOverride') }}</span>
             </div>
           </div>
         </div>
