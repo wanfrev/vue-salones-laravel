@@ -22,6 +22,7 @@ class Appointment extends Model
         'status', 'payment_status', 'service_notes', 'internal_notes',
         'source', 'created_by', 'group_id', 'price_override',
         'employee_percentage_override', 'assistant_percentage',
+        'is_fixed_commission_override', 'employee_amount_override', 'assistant_amount_override',
         'duration_override', 'diagnosis', 'treatment',
     ];
 

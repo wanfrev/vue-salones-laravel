@@ -13,6 +13,9 @@ export interface Cita {
   assistantId?: string
   assistantPercentage?: number
   employeePercentageOverride?: number
+  isFixedCommissionOverride?: boolean
+  employeeAmountOverride?: number
+  assistantAmountOverride?: number
   groupId?: string
   date: string
   time: string
@@ -33,6 +36,9 @@ export interface CitaFormServiceItem {
   assistantEmployeeId: string
   assistantPercentage: number
   employeePercentageOverride?: number
+  isFixedCommissionOverride?: boolean
+  employeeAmountOverride?: number
+  assistantAmountOverride?: number
   duration: number
   price: number
 }
@@ -47,6 +53,9 @@ export interface CitaFormData {
   assistantEmployee: string
   assistantPercentage: number
   employeePercentageOverride?: number
+  isFixedCommissionOverride?: boolean
+  employeeAmountOverride?: number
+  assistantAmountOverride?: number
   duration: number
   price: number
   extraServices: CitaFormServiceItem[]
