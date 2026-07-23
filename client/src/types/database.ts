@@ -95,6 +95,9 @@ export interface Service {
   active: boolean
   linked_product_id: string | null
   linked_variant_id: string | null
+  is_fixed_commission?: boolean
+  fixed_commission_amount?: number | null
+  fixed_commission_assistant_amount?: number | null
   created_at: string
   updated_at: string
 }

@@ -36,7 +36,7 @@ export const agendaKeys = {
   appointments: (businessId?: string | null, branchId?: string | null) => ['appointments', businessId, branchId] as const,
 }
 
-export const APPOINTMENT_SELECT = '*, clients(id, full_name, phone, email), services(id, name, duration_minutes, price, color), profiles!appointments_employee_id_fkey(id, full_name, avatar_url), assistant_profile:profiles!appointments_assistant_employee_id_fkey(id, full_name, avatar_url)'
+export const APPOINTMENT_SELECT = '*, clients(id, full_name, phone, email), services(id, name, duration_minutes, price, color, is_fixed_commission, fixed_commission_amount, fixed_commission_assistant_amount), profiles!appointments_employee_id_fkey(id, full_name, avatar_url), assistant_profile:profiles!appointments_assistant_employee_id_fkey(id, full_name, avatar_url)'
 
 export const listCitas = async (
   businessId: string,
