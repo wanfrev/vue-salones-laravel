@@ -119,7 +119,7 @@ const { data: empleadosData } = useQuery({
 })
 
 const serviciosList = computed(() => (serviciosData.value ?? []).map(s => ({
-  id: s.id, name: s.name, price: s.price, duration: s.duration,
+  id: s.id, name: s.name, price: s.price, duration: s.duration, is_fixed_commission: s.is_fixed_commission, fixed_commission_amount: s.fixed_commission_amount, fixed_commission_assistant_amount: s.fixed_commission_assistant_amount,
 })))
 
 const empleadosList = computed(() => (empleadosData.value ?? []).map(e => ({

@@ -192,7 +192,7 @@ import { listPetsByClient } from '../../services/petService'
 const MODAL_ID = 'cita-form-modal'
 
 const props = defineProps<{
-  servicios?: { id: string; name: string; price: number; duration: number }[]
+  servicios?: { id: string; name: string; price: number; duration: number; is_fixed_commission?: boolean; fixed_commission_amount?: number; fixed_commission_assistant_amount?: number }[]
   empleados?: { id: string; name: string; payType?: string; payPercentage?: number; disableAgenda?: boolean }[]
 }>()
 
