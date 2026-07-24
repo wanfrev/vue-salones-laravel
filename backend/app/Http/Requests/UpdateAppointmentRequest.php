@@ -32,6 +32,7 @@ class UpdateAppointmentRequest extends FormRequest
             'duration_override' => 'nullable|integer|min:1',
             'diagnosis' => 'nullable|string',
             'treatment' => 'nullable|string',
+            'associated_products' => 'nullable|array',
             'group_id' => 'nullable|uuid',
             'branch_id' => 'nullable|uuid',
         ];

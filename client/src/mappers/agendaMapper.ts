@@ -56,6 +56,7 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
     notes: appointment.internal_notes ?? '',
     diagnosis: appointment.diagnosis ?? undefined,
     treatment: appointment.treatment ?? undefined,
+    associatedProducts: appointment.associated_products ?? undefined,
   }
 }
 
@@ -100,6 +101,7 @@ export const mapCitaFormToAppointmentInsert = (
     internal_notes: data.notes.trim() || null,
     diagnosis: data.diagnosis?.trim() || null,
     treatment: data.treatment?.trim() || null,
+    associated_products: data.associatedProducts && data.associatedProducts.length > 0 ? data.associatedProducts : null,
     source: 'internal' as const,
     created_by: createdBy ?? null,
   }
@@ -120,6 +122,7 @@ export const mapServiceItemToAppointmentInsert = (
   petId?: string,
   diagnosis?: string,
   treatment?: string,
+  associatedProducts?: any[],
 ) => {
   const startTime = new Date(`${date}T${time}:00`)
   const effectiveDuration = item.duration || service?.duration_minutes || 30
@@ -155,6 +158,7 @@ export const mapServiceItemToAppointmentInsert = (
     internal_notes: notes.trim() || null,
     diagnosis: diagnosis?.trim() || null,
     treatment: treatment?.trim() || null,
+    associated_products: associatedProducts && associatedProducts.length > 0 ? associatedProducts : null,
     source: 'internal' as const,
     created_by: createdBy ?? null,
   }

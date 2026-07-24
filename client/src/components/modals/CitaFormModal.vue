@@ -153,6 +153,44 @@
         <FormTextarea v-model="formData.treatment" label="Tratamiento" placeholder="Procedimiento, medicamentos, indicaciones..." :rows="2" />
       </div>
 
+      <!-- BLOQUE 4: PRODUCTOS / INSUMOS ASOCIADOS (Solo Nicho Canino / Vet) -->
+      <div v-if="showPetSelector" class="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-3.5">
+        <div class="flex items-center justify-between">
+          <div>
+            <label class="text-xs font-bold uppercase tracking-wider text-primary">Productos / Insumos a usar en la cita</label>
+            <p class="text-[11px] text-text-muted">Se cargarán automáticamente al cobrar en el Punto de Venta (el empleado no gana comisión por productos).</p>
+          </div>
+          <button type="button" @click="addAssociatedProductRow" class="flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors">
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+            Agregar producto
+          </button>
+        </div>
+
+        <div v-if="formData.associatedProducts && formData.associatedProducts.length > 0" class="space-y-2">
+          <div v-for="(pRow, pIdx) in formData.associatedProducts" :key="pIdx" class="flex items-center gap-2 rounded-lg border border-border bg-surface p-2 shadow-xs">
+            <div class="flex-1 min-w-0">
+              <select :value="pRow.productId" @change="updateAssociatedProductRow(pIdx, 'productId', ($event.target as HTMLSelectElement).value)" class="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-text outline-none transition-theme focus:border-primary">
+                <option value="">-- Seleccionar producto --</option>
+                <option v-for="prod in availableProducts" :key="prod.id" :value="prod.id">
+                  {{ prod.name }} (Stock: {{ prod.available_qty ?? 0 }}) - ${{ Number(prod.unit_price ?? prod.price ?? 0).toFixed(2) }}
+                </option>
+              </select>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <span class="text-xs text-text-muted font-medium">Cant:</span>
+              <input type="number" min="1" :value="pRow.quantity" @input="updateAssociatedProductRow(pIdx, 'quantity', ($event.target as HTMLInputElement).value)" class="w-14 rounded-lg border border-border bg-surface px-2 py-1 text-xs font-semibold text-text text-center outline-none focus:border-primary" />
+            </div>
+            <div class="w-16 shrink-0 text-right text-xs font-bold text-text tabular-nums">
+              ${{ (Number(pRow.unitPrice || 0) * Number(pRow.quantity || 1)).toFixed(2) }}
+            </div>
+            <button type="button" @click="removeAssociatedProductRow(pIdx)" class="rounded-md p-1 text-text-muted hover:bg-danger/10 hover:text-danger transition-colors">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        </div>
+        <p v-else class="text-xs text-text-muted italic">No hay productos asociados a esta cita.</p>
+      </div>
+
       <PaymentEditor ref="paymentEditorRef" />
 
       <div v-if="isEditing" class="border-t border-border pt-4">
@@ -182,12 +220,14 @@ import CitaClientSearch from '../forms/CitaClientSearch.vue'
 import PaymentEditor from './PaymentEditor.vue'
 import { isPetNiche as checkPetNiche } from '../../config/nicheFields'
 import { listPetsByClient } from '../../services/petService'
+import { listSaleableProducts } from '../../services/posService'
 
 const MODAL_ID = 'cita-form-modal'
 
 const props = defineProps<{
   servicios?: { id: string; name: string; price: number; duration: number; is_fixed_commission?: boolean; fixed_commission_amount?: number; fixed_commission_assistant_amount?: number }[]
   empleados?: { id: string; name: string; payType?: string; payPercentage?: number; disableAgenda?: boolean }[]
+  productos?: { id: string; name: string; price?: number; unit_price?: number; unit_cost?: number; available_qty?: number }[]
 }>()
 
 const emit = defineEmits<{
@@ -211,6 +251,21 @@ const branchId = computed(() => businessStore.currentBranchId)
 
 const commissionDetailOpen = reactive(new Set<number>())
 const clientPets = ref<Pet[]>([])
+const availableProducts = ref<any[]>([])
+
+const loadAvailableProducts = async () => {
+  if (props.productos && props.productos.length > 0) {
+    availableProducts.value = props.productos
+    return
+  }
+  if (!showPetSelector.value || !businessId.value) return
+  try {
+    const list = await listSaleableProducts(businessId.value, branchId.value)
+    availableProducts.value = list ?? []
+  } catch {
+    availableProducts.value = []
+  }
+}
 
 const petOptions = computed(() => {
   const opts = [{ value: '', label: `Sin ${(t.value.pet || 'mascota').toLowerCase()}` }]
@@ -268,7 +323,39 @@ const defaultFormData = (): CitaFormData & { extraServices: CitaFormServiceItem[
   const minutes = now.getHours() * 60 + now.getMinutes()
   const nextSlot = Math.ceil(minutes / 30) * 30
   const myId = isEmployee.value ? (authStore.profile?.id ?? '') : ''
-  return { clientId: undefined, clientName: '', clientPhone: '', petId: '', service: '', employee: myId, assistantEmployee: '', assistantPercentage: 0, duration: 30, price: 0, isFixedCommissionOverride: false, employeePercentageOverride: undefined, employeeAmountOverride: undefined, assistantAmountOverride: undefined, extraServices: [], date: today, time: minutesToHHmm(nextSlot), status: 'pending', notes: '', diagnosis: '', treatment: '' }
+  return { clientId: undefined, clientName: '', clientPhone: '', petId: '', service: '', employee: myId, assistantEmployee: '', assistantPercentage: 0, duration: 30, price: 0, isFixedCommissionOverride: false, employeePercentageOverride: undefined, employeeAmountOverride: undefined, assistantAmountOverride: undefined, extraServices: [], date: today, time: minutesToHHmm(nextSlot), status: 'pending', notes: '', diagnosis: '', treatment: '', associatedProducts: [] }
+}
+
+const addAssociatedProductRow = () => {
+  if (!formData.value.associatedProducts) formData.value.associatedProducts = []
+  formData.value.associatedProducts.push({
+    productId: '',
+    productName: '',
+    quantity: 1,
+    unitPrice: 0,
+    unitCost: 0,
+  })
+}
+
+const removeAssociatedProductRow = (index: number) => {
+  if (!formData.value.associatedProducts) return
+  formData.value.associatedProducts.splice(index, 1)
+}
+
+const updateAssociatedProductRow = (index: number, field: string, value: any) => {
+  if (!formData.value.associatedProducts || !formData.value.associatedProducts[index]) return
+  const item = formData.value.associatedProducts[index]
+  if (field === 'productId') {
+    item.productId = value
+    const prod = availableProducts.value.find(p => p.id === value)
+    if (prod) {
+      item.productName = prod.name
+      item.unitPrice = Number(prod.unit_price ?? prod.price ?? 0)
+      item.unitCost = Number(prod.unit_cost ?? 0)
+    }
+  } else if (field === 'quantity') {
+    item.quantity = Math.max(1, Number(value) || 1)
+  }
 }
 
 const formData = ref<CitaFormData & { extraServices: CitaFormServiceItem[] }>(defaultFormData())
@@ -526,6 +613,9 @@ const confirmButtonLabel = computed(() => {
 
 watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData], async ([open, cita, paymentData]) => {
   if (!open) return; commissionDetailOpen.clear(); activeEmployeeOverrides.clear()
+  if (showPetSelector.value) {
+    loadAvailableProducts()
+  }
   if (cita) {
     let phone = ''
     let groupMembers: CitaFormServiceItem[] = []
@@ -539,7 +629,11 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
       if (svc) primaryPrice = svc.price
     }
 
-    formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: cita.clientPhone || '', petId: (cita as any).petId || (cita as any).pet_id || undefined, service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), isFixedCommissionOverride: cita.isFixedCommissionOverride ?? false, employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, employeeAmountOverride: cita.employeeAmountOverride != null ? Number(cita.employeeAmountOverride) : undefined, assistantAmountOverride: cita.assistantAmountOverride != null ? Number(cita.assistantAmountOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '', diagnosis: (cita as any).diagnosis || '', treatment: (cita as any).treatment || '' }
+    const initialAssociated = (cita as any).associatedProducts
+      ? JSON.parse(JSON.stringify((cita as any).associatedProducts))
+      : ((cita as any).associated_products ? JSON.parse(JSON.stringify((cita as any).associated_products)) : [])
+
+    formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: cita.clientPhone || '', petId: (cita as any).petId || (cita as any).pet_id || undefined, service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), isFixedCommissionOverride: cita.isFixedCommissionOverride ?? false, employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, employeeAmountOverride: cita.employeeAmountOverride != null ? Number(cita.employeeAmountOverride) : undefined, assistantAmountOverride: cita.assistantAmountOverride != null ? Number(cita.assistantAmountOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '', diagnosis: (cita as any).diagnosis || '', treatment: (cita as any).treatment || '', associatedProducts: initialAssociated }
 
     if (cita.clientId && businessId.value) { try { const { searchClients } = await import('../../services/clientesService'); const r = await searchClients(businessId.value, cita.clientName, branchId.value); const m = r.find(c => c.id === cita.clientId); if (m) formData.value.clientPhone = m.phone } catch {} }
     if (cita.groupId) {

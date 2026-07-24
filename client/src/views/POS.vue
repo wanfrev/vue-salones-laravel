@@ -301,6 +301,44 @@ const selectAppointment = (appt: any) => {
   if (selectedAppointment.value?.id === appt.id) { selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset(); return }
   selectedAppointment.value = appt; activeSaleType.value = 'appointment'
   cartCtx.clearCart()
+
+  const rawProducts: any[] = []
+  if (appt.isGroup && Array.isArray(appt.members)) {
+    for (const m of appt.members) {
+      if (m.associated_products && Array.isArray(m.associated_products)) rawProducts.push(...m.associated_products)
+      else if (m.associatedProducts && Array.isArray(m.associatedProducts)) rawProducts.push(...m.associatedProducts)
+    }
+  }
+  if (appt.associated_products && Array.isArray(appt.associated_products)) rawProducts.push(...appt.associated_products)
+  else if (appt.associatedProducts && Array.isArray(appt.associatedProducts)) rawProducts.push(...appt.associatedProducts)
+
+  for (const item of rawProducts) {
+    const pid = item.productId || item.product_id
+    if (!pid) continue
+    const qty = Number(item.quantity || 1)
+    const uPrice = Number(item.unitPrice ?? item.unit_price ?? item.price ?? 0)
+    const uCost = Number(item.unitCost ?? item.unit_cost ?? 0)
+    const pName = item.productName || item.product_name || item.name || 'Producto'
+
+    const existing = cartCtx.cart.value.find(c => c.productId === pid)
+    if (existing) {
+      existing.quantity += qty
+      existing.subtotal = existing.unitPrice * existing.quantity
+    } else {
+      cartCtx.cart.value.push({
+        productId: pid,
+        productName: pName,
+        availableQty: 999,
+        variantId: item.variantId || item.variant_id || null,
+        variantName: item.variantName || item.variant_name || null,
+        quantity: qty,
+        unitPrice: uPrice,
+        unitCost: uCost,
+        subtotal: uPrice * qty,
+      })
+    }
+  }
+
   setEqualTipAllocation()
 }
 

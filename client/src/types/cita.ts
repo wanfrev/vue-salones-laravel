@@ -28,6 +28,15 @@ export interface Cita {
   notes?: string
   diagnosis?: string
   treatment?: string
+  associatedProducts?: CitaAssociatedProduct[]
+}
+
+export interface CitaAssociatedProduct {
+  productId: string
+  productName: string
+  quantity: number
+  unitPrice: number
+  unitCost?: number
 }
 
 export interface CitaFormServiceItem {
@@ -65,6 +74,7 @@ export interface CitaFormData {
   notes: string
   diagnosis?: string
   treatment?: string
+  associatedProducts?: CitaAssociatedProduct[]
 }
 
 export interface PaymentEditContext {

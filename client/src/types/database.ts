@@ -150,6 +150,7 @@ export interface Appointment {
   internal_notes: string | null
   diagnosis: string | null
   treatment: string | null
+  associated_products?: any
   reminder_sent_at: string | null
   source: AppointmentSource
   created_by: string | null
