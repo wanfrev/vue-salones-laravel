@@ -173,8 +173,11 @@ class PosService
             // Re-calculate percentages for reporting consistency
             $employeePct = $serviceAmount > 0 ? round(($employeeAmount / $serviceAmount) * 100, 2) : 0;
             $assistantPct = $serviceAmount > 0 ? round(($assistantAmount / $serviceAmount) * 100, 2) : 0;
+            // Ensure percentages never exceed 100% combined (fixed overrides can push amounts > service price)
+            if ($employeePct + $assistantPct > 100) {
+                $employeePct = 100 - $assistantPct;
+            }
             $localPct = 100 - $employeePct - $assistantPct;
-            if ($localPct < 0) $localPct = 0;
 
             $tx = Transaction::create([
                 'id' => Str::uuid()->toString(),
