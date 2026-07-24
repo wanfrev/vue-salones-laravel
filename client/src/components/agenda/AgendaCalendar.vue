@@ -312,6 +312,7 @@ import { useAgenda } from '../../composables/agenda/useAgenda'
 import { useAuthStore } from '../../store/auth'
 import { isAdminPanelRole } from '../../constants/roles'
 import { normalizeAppointmentStatus, getStatusLabel, dateToHHmm, dateToHHmm12, toISODate, getInitials, parseLocalDate } from '../../lib/formatters'
+import { mapAppointmentToCita } from '../../mappers/agendaMapper'
 import AgendaMonthView from './AgendaMonthView.vue'
 import AgendaYearView from './AgendaYearView.vue'
 import type { Cita } from '../../types/cita'
@@ -578,28 +579,11 @@ function onColumnClick(col: GridColumn, e: MouseEvent) {
 
 function emitEventClick(raw: any) {
   const start = new Date(raw.start_time); const end = new Date(raw.end_time)
-  const svc = serviceMap.value.get(raw.service_id)
   const status = normalizeAppointmentStatus(raw)
-  const effectiveDuration = raw.duration_override != null
-    ? Number(raw.duration_override)
-    : Math.round((end.getTime() - start.getTime()) / 60000) || Number(svc?.duration_minutes ?? 30)
-  const effectivePrice = raw.price_override != null
-    ? Number(raw.price_override)
-    : Number(svc?.price ?? 0)
+  const citaData = mapAppointmentToCita(raw)
   emit('eventClick', {
     id: raw.id, title: raw.client?.full_name || raw.clients?.full_name || 'Cliente', start, end, status,
-    citaData: {
-      id: raw.id, clientId: raw.client_id, clientName: raw.client?.full_name || raw.clients?.full_name || 'Cliente',
-      serviceId: raw.service_id, service: svc?.name || 'Servicio', employeeId: raw.employee_id,
-      employee: employeeMap.value.get(raw.employee_id)?.full_name || 'Empleado',
-      assistantId: raw.assistant_employee_id || undefined,
-      assistantName: raw.assistant_profile?.full_name ?? undefined,
-      assistantPercentage: raw.assistant_percentage ?? undefined,
-      groupId: raw.group_id || undefined,
-      date: toISODate(start), time: dateToHHmm(start),
-      duration: effectiveDuration,
-      price: effectivePrice, status: status as Cita['status'], paymentStatus: raw.payment_status as Cita['paymentStatus'], notes: raw.internal_notes || '',
-    },
+    citaData,
   })
 }
 

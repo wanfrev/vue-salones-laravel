@@ -759,6 +759,21 @@ const handleSubmit = () => {
   if (!validateForm()) { showError('Por favor corrige los errores en el formulario'); return }
   saveInProgress.value = true
 
+  if (formData.value.associatedProducts && formData.value.associatedProducts.length > 0) {
+    formData.value.associatedProducts = formData.value.associatedProducts
+      .filter(p => !!p.productId)
+      .map(p => {
+        const prod = availableProducts.value.find(ap => ap.id === p.productId)
+        return {
+          productId: p.productId,
+          productName: p.productName || prod?.name || 'Producto',
+          quantity: Math.max(1, Number(p.quantity) || 1),
+          unitPrice: Number(p.unitPrice ?? prod?.unit_price ?? prod?.price ?? 0),
+          unitCost: Number(p.unitCost ?? prod?.unit_cost ?? 0),
+        }
+      })
+  }
+
   const citaData: CitaFormData & { id?: string; clientPhone?: string; paymentData?: PaymentEditContext } = {
     ...formData.value,
   }
