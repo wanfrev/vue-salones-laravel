@@ -225,6 +225,7 @@
                       </button>
                     </div>
                     <div class="font-bold text-text truncate text-[12px] sm:text-[13px] leading-tight mt-1">{{ appt.clientName }}</div>
+                    <div v-if="appt.petName" class="text-[10px] text-primary/80 font-medium truncate sm:text-[11px] leading-tight mt-0.5">{{ appt.petName }}</div>
                     <div class="text-[10px] text-text-secondary truncate sm:text-xs leading-tight mt-0.5">{{ appt.service }}</div>
                     <div v-if="appt.employeeName" class="text-[10px] text-text-muted truncate sm:text-xs leading-tight mt-0.5">{{ appt.employeeName }}</div>
                   </div>

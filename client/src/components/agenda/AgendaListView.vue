@@ -68,6 +68,7 @@
                   </div>
                   <div class="min-w-0">
                     <p class="text-sm font-semibold text-text truncate">{{ cita.clientName }}</p>
+                    <p v-if="cita.petName" class="text-xs text-primary/80 font-medium truncate max-w-[160px]">{{ cita.petName }}</p>
                     <p v-if="cita.notes" class="text-xs text-text-muted truncate max-w-[160px]">{{ cita.notes }}</p>
                   </div>
                 </div>
@@ -129,6 +130,7 @@
               </div>
               <div class="min-w-0 flex-1">
                 <p class="font-semibold text-text truncate">{{ cita.clientName }}</p>
+                <p v-if="cita.petName" class="text-xs text-primary/80 font-medium truncate">{{ cita.petName }}</p>
                 <p class="text-xs text-text-muted">{{ cita.service }}</p>
                 <p v-if="cita.employee" class="text-xs text-text-muted">{{ cita.employee }}</p>
                 <p class="text-xs text-text-muted font-medium mt-0.5">{{ formatDateLabel(cita.date) }}</p>

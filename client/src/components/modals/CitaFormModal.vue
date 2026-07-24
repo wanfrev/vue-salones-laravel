@@ -227,7 +227,10 @@ const onClientSelected = (client: { id: string }) => {
 const loadClientPets = async (clientId: string) => {
   try {
     clientPets.value = await listPetsByClient(clientId)
-    formData.value.petId = undefined
+    const currentPetId = formData.value.petId
+    if (currentPetId && !clientPets.value.some(p => p.id === currentPetId)) {
+      formData.value.petId = undefined
+    }
   } catch {
     clientPets.value = []
   }

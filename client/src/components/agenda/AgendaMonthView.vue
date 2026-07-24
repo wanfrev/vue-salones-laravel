@@ -33,6 +33,7 @@
                   :class="statusDotClass(appt.status)" />
               </div>
               <div class="text-[10px] font-bold leading-tight truncate sm:text-xs">{{ appt.clientName }}</div>
+              <div v-if="appt.petName" class="text-[9px] text-primary/80 font-medium truncate sm:text-[10px] leading-tight">{{ appt.petName }}</div>
               <div class="text-[9px] text-text-secondary truncate sm:text-[10px] leading-tight">{{ appt.service }}</div>
               <div v-if="appt.employeeName" class="text-[9px] text-text-muted truncate sm:text-[10px] leading-tight">{{ appt.employeeName }}</div>
             </div>

@@ -165,6 +165,7 @@ export interface AppointmentWithRelations extends Appointment {
   profiles?: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
   employee_profile?: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
   assistant_profile?: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
+  pets?: Pick<Pet, 'name'> | null
 }
 
 export interface Transaction {
