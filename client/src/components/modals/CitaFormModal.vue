@@ -586,7 +586,7 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
       } catch {}
     }
     if (formData.value.clientId && showPetSelector.value) {
-      loadClientPets(formData.value.clientId)
+      await loadClientPets(formData.value.clientId)
     }
   } else {
     isInitialSetup.value = true
