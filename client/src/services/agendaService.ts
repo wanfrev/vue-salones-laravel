@@ -405,7 +405,7 @@ export const saveCita = async (
   )
 
   if (!data.extraServices || data.extraServices.length === 0) {
-    return saveSingleServiceAppointment(businessId, data, service, clientId, createdBy, branchId)
+    return saveSingleServiceAppointment(businessId, { ...parsed.data, id: data.id, associatedProducts: data.associatedProducts }, service, clientId, createdBy, branchId)
   }
 
   // Multi-service (grouped) path

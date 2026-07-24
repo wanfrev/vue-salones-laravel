@@ -17,6 +17,20 @@ const toTimeInput = (iso: string) => {
   return `${hh}:${mm}`
 }
 
+const parseAssociatedProducts = (raw: any) => {
+  if (!raw) return undefined
+  if (Array.isArray(raw)) return raw.filter((p: any) => !!(p.productId || p.product_id))
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw)
+      return Array.isArray(parsed) ? parsed.filter((p: any) => !!(p.productId || p.product_id)) : undefined
+    } catch {
+      return undefined
+    }
+  }
+  return undefined
+}
+
 export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cita => {
   const service = appointment.services ?? (appointment as any).service
   const employee = appointment.profiles ?? (appointment as any).employee_profile
@@ -56,7 +70,7 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
     notes: appointment.internal_notes ?? '',
     diagnosis: appointment.diagnosis ?? undefined,
     treatment: appointment.treatment ?? undefined,
-    associatedProducts: appointment.associated_products ?? undefined,
+    associatedProducts: parseAssociatedProducts(appointment.associated_products ?? (appointment as any).associatedProducts),
   }
 }
 
@@ -101,7 +115,10 @@ export const mapCitaFormToAppointmentInsert = (
     internal_notes: data.notes.trim() || null,
     diagnosis: data.diagnosis?.trim() || null,
     treatment: data.treatment?.trim() || null,
-    associated_products: data.associatedProducts && data.associatedProducts.length > 0 ? data.associatedProducts : null,
+    associated_products: (() => {
+      const valid = (data.associatedProducts || []).filter(p => !!(p && p.productId))
+      return valid.length > 0 ? valid : null
+    })(),
     source: 'internal' as const,
     created_by: createdBy ?? null,
   }
@@ -158,7 +175,10 @@ export const mapServiceItemToAppointmentInsert = (
     internal_notes: notes.trim() || null,
     diagnosis: diagnosis?.trim() || null,
     treatment: treatment?.trim() || null,
-    associated_products: associatedProducts && associatedProducts.length > 0 ? associatedProducts : null,
+    associated_products: (() => {
+      const valid = (associatedProducts || []).filter(p => !!(p && (p.productId || p.product_id)))
+      return valid.length > 0 ? valid : null
+    })(),
     source: 'internal' as const,
     created_by: createdBy ?? null,
   }
