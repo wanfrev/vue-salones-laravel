@@ -144,7 +144,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import ModalBase from '../common/ModalBase.vue'
 import FormInput from '../forms/FormInput.vue'
 import { useBusinessStore } from '../../store/business'
@@ -152,13 +152,16 @@ import { useAuthStore } from '../../store/auth'
 import { useDailyReports } from '../../composables/reportes/useDailyReports'
 import type { DailyReport } from '../../services/dailyReportService'
 import { useNotification } from '../../composables/common/useNotification'
+import { useModal } from '../../composables/common/useModal'
+
+const MODAL_ID = 'reporte-form-modal'
+const { isOpen, modalData, close } = useModal(MODAL_ID)
 
 const businessStore = useBusinessStore()
 const authStore = useAuthStore()
 const { showError } = useNotification()
 const { saveMutation, activeBusinessId } = useDailyReports()
 
-const isOpen = ref(false)
 const isEditing = ref(false)
 const isSaving = computed(() => saveMutation.isPending.value)
 
@@ -185,6 +188,34 @@ const formData = ref(defaultForm())
 const emit = defineEmits<{
   saved: []
 }>()
+
+watch(modalData, (data) => {
+  if (data?.report) {
+    const report = data.report as DailyReport
+    isEditing.value = true
+    const formattedDate = report.date ? String(report.date).split('T')[0].split(' ')[0] : new Date().toISOString().split('T')[0]
+    formData.value = {
+      id: report.id,
+      date: formattedDate,
+      exchange_rate: String(report.exchange_rate ?? ''),
+      z_report_bs: String(report.z_report_bs ?? ''),
+      z_report_usd: String(report.z_report_usd ?? ''),
+      pos_bs: String(report.pos_bs ?? ''),
+      pago_movil_bs: String(report.pago_movil_bs ?? ''),
+      cash_bs: String(report.cash_bs ?? ''),
+      transfer_bs: String(report.transfer_bs ?? ''),
+      cash_usd: String(report.cash_usd ?? ''),
+      zelle_usd: String(report.zelle_usd ?? ''),
+      binance_usd: String(report.binance_usd ?? ''),
+      cashea_usd: String(report.cashea_usd ?? ''),
+    }
+  } else {
+    isEditing.value = false
+    formData.value = defaultForm()
+    formData.value.exchange_rate = String(businessStore.business?.ves_exchange_rate || '')
+  }
+  errors.value = {}
+}, { immediate: true })
 
 const parseNum = (val: string | number) => Number(val) || 0
 
@@ -254,34 +285,7 @@ const hasDiscrepancyUsd = computed(() => {
 const formatCurrency = (val: number) => val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const open = (report?: DailyReport) => {
-  errors.value = {}
-  isEditing.value = !!report
-  if (report) {
-    const formattedDate = report.date ? String(report.date).split('T')[0].split(' ')[0] : new Date().toISOString().split('T')[0]
-    formData.value = {
-      id: report.id,
-      date: formattedDate,
-      exchange_rate: String(report.exchange_rate ?? ''),
-      z_report_bs: String(report.z_report_bs ?? ''),
-      z_report_usd: String(report.z_report_usd ?? ''),
-      pos_bs: String(report.pos_bs ?? ''),
-      pago_movil_bs: String(report.pago_movil_bs ?? ''),
-      cash_bs: String(report.cash_bs ?? ''),
-      transfer_bs: String(report.transfer_bs ?? ''),
-      cash_usd: String(report.cash_usd ?? ''),
-      zelle_usd: String(report.zelle_usd ?? ''),
-      binance_usd: String(report.binance_usd ?? ''),
-      cashea_usd: String(report.cashea_usd ?? ''),
-    }
-  } else {
-    formData.value = defaultForm()
-    formData.value.exchange_rate = String(businessStore.business?.ves_exchange_rate || '')
-  }
-  isOpen.value = true
-}
-
-const close = () => {
-  isOpen.value = false
+  useModal(MODAL_ID).open({ report })
 }
 
 const validate = () => {
@@ -332,5 +336,5 @@ const handleSubmit = async () => {
   }
 }
 
-defineExpose({ open, close })
+defineExpose({ open, close, isOpen })
 </script>
