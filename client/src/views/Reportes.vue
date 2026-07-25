@@ -8,15 +8,43 @@
           Registro manual de ingresos en bolívares y dólares al finalizar el día.
         </p>
       </div>
-      <button
-        @click="openModal()"
-        class="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover shadow-sm hover:shadow active:scale-95"
-      >
-        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
-        Nuevo Reporte
-      </button>
+
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+        <!-- Buscador por fecha, tasa o usuario -->
+        <div class="relative flex-1 sm:w-72">
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Buscar por fecha, tasa o usuario..."
+            class="w-full rounded-xl border border-border bg-surface pl-9 pr-8 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
+          />
+          <div class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <button
+            v-if="searchQuery"
+            @click="searchQuery = ''"
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text p-0.5 rounded-md transition-colors"
+            title="Limpiar búsqueda"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <button
+          @click="openModal()"
+          class="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover shadow-sm hover:shadow active:scale-95 shrink-0"
+        >
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Nuevo Reporte
+        </button>
+      </div>
     </div>
 
     <!-- Data Table -->
@@ -33,6 +61,21 @@
         <h3 class="text-lg font-medium text-text">No hay reportes registrados</h3>
         <p class="text-sm text-text-muted mt-1 max-w-sm">Haz clic en "Nuevo Reporte" para ingresar el cuadre diario de tu negocio.</p>
       </div>
+      <div v-else-if="filteredReports.length === 0" class="flex flex-1 flex-col items-center justify-center p-12 text-center">
+        <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-bg-secondary text-text-muted mb-4">
+          <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-medium text-text">Sin resultados de búsqueda</h3>
+        <p class="text-sm text-text-muted mt-1 max-w-sm">No se encontraron reportes que coincidan con "{{ searchQuery }}".</p>
+        <button
+          @click="searchQuery = ''"
+          class="mt-4 px-4 py-2 text-xs font-semibold text-primary bg-primary-light hover:bg-primary-hover/20 rounded-xl transition-colors"
+        >
+          Limpiar búsqueda
+        </button>
+      </div>
       <div v-else class="flex-1 overflow-auto touch-pan-y" style="-webkit-overflow-scrolling: touch;">
         <table class="w-full text-left text-sm whitespace-nowrap">
           <thead class="sticky top-0 z-10 bg-surface/95 backdrop-blur-sm shadow-sm ring-1 ring-border-subtle">
@@ -47,7 +90,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
-            <tr v-for="report in reports" :key="report.id" class="transition-colors hover:bg-bg-secondary/50">
+            <tr v-for="report in filteredReports" :key="report.id" class="transition-colors hover:bg-bg-secondary/50">
               <td class="px-4 py-3 font-medium text-text">
                 {{ formatDate(report.date) }}
                 <span v-if="report.user?.name" class="block text-[11px] text-text-muted font-normal">Por: {{ report.user.name }}</span>
@@ -109,11 +152,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import type { DailyReport } from '../services/dailyReportService'
 import ReporteFormModal from '../components/reportes/ReporteFormModal.vue'
 import { useDailyReports } from '../composables/reportes/useDailyReports'
 
+const searchQuery = ref('')
 const modalRef = ref<InstanceType<typeof ReporteFormModal> | null>(null)
 const { reports, isLoading, deleteMutation } = useDailyReports()
 
@@ -124,6 +168,28 @@ const formatDate = (dateStr: string) => {
   const d = new Date(cleanDate + 'T12:00:00')
   return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
 }
+
+const filteredReports = computed(() => {
+  if (!reports.value) return []
+  const query = searchQuery.value.trim().toLowerCase()
+  if (!query) return reports.value
+
+  return reports.value.filter((report) => {
+    const rawDate = report.date ? String(report.date).toLowerCase() : ''
+    const formattedDateStr = formatDate(report.date).toLowerCase()
+    const rateStr = report.exchange_rate ? String(report.exchange_rate) : ''
+    const formattedRate = formatCurrency(report.exchange_rate)
+    const userName = report.user?.name ? report.user.name.toLowerCase() : ''
+
+    return (
+      rawDate.includes(query) ||
+      formattedDateStr.includes(query) ||
+      rateStr.includes(query) ||
+      formattedRate.includes(query) ||
+      userName.includes(query)
+    )
+  })
+})
 
 const getBsInUsd = (report: DailyReport) => {
   const rate = Number(report.exchange_rate)
