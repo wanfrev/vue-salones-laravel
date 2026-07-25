@@ -4,26 +4,62 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FormInput v-model="formData.date" label="Fecha" type="date" required :error="errors.date" />
         <FormInput v-model="formData.exchange_rate" label="Tasa del Día (Bs/$)" type="number" step="0.01" min="0" required :error="errors.exchange_rate" />
-        <FormInput v-model="formData.z_report_bs" label="Reporte Z (Bs)" type="number" step="0.01" min="0" />
-        <FormInput v-model="formData.z_report_usd" label="Reporte Z (USD)" type="number" step="0.01" min="0" />
+        <FormInput v-model="formData.z_report_bs" label="Reporte Z (Bs)" type="number" step="0.01" min="0" placeholder="0.00" />
+        <FormInput v-model="formData.z_report_usd" label="Reporte Z (USD)" type="number" step="0.01" min="0" placeholder="0.00" />
+      </div>
+
+      <!-- General Discrepancy Banners -->
+      <div v-if="hasDiscrepancyBs || hasDiscrepancyUsd" class="space-y-2">
+        <div v-if="hasDiscrepancyBs" class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400 flex items-start gap-2.5">
+          <svg class="h-4 w-4 shrink-0 mt-0.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <span class="font-bold">Diferencia en Bolívares:</span> 
+            El desglose por métodos ({{ formatCurrency(totalBs) }} Bs) no coincide con el Reporte Z en Bs ({{ formatCurrency(zReportBs) }} Bs).
+            <div class="font-semibold mt-0.5">
+              Diferencia: <span class="font-mono">{{ diffBs > 0 ? '+' : '' }}{{ formatCurrency(diffBs) }} Bs</span> 
+              ({{ diffBs > 0 ? 'Sobrante en métodos' : 'Faltante en métodos' }})
+            </div>
+          </div>
+        </div>
+
+        <div v-if="hasDiscrepancyUsd" class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400 flex items-start gap-2.5">
+          <svg class="h-4 w-4 shrink-0 mt-0.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          <div>
+            <span class="font-bold">Diferencia en Dólares:</span> 
+            El desglose por métodos (${{ formatCurrency(totalUsd) }}) no coincide con el Reporte Z en USD (${{ formatCurrency(zReportUsd) }}).
+            <div class="font-semibold mt-0.5">
+              Diferencia: <span class="font-mono">{{ diffUsd > 0 ? '+' : '' }}${{ formatCurrency(diffUsd) }} USD</span> 
+              ({{ diffUsd > 0 ? 'Sobrante en métodos' : 'Faltante en métodos' }})
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Columna Bolívares -->
         <div class="space-y-4 rounded-xl border border-border p-4 bg-bg-secondary/30 flex flex-col justify-between">
           <div>
-            <h3 class="text-sm font-bold text-text-secondary uppercase tracking-wider mb-3">Ingresos Bolívares (Bs)</h3>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-bold text-text-secondary uppercase tracking-wider">Ingresos Bolívares (Bs)</h3>
+              <span v-if="hasDiscrepancyBs" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                Descuadre
+              </span>
+            </div>
             <div class="space-y-3">
-              <FormInput v-model="formData.pos_bs" label="Punto de Venta" type="number" step="0.01" min="0" />
-              <FormInput v-model="formData.pago_movil_bs" label="Pago Móvil" type="number" step="0.01" min="0" />
-              <FormInput v-model="formData.cash_bs" label="Efectivo Bs" type="number" step="0.01" min="0" />
-              <FormInput v-model="formData.transfer_bs" label="Transferencia" type="number" step="0.01" min="0" />
+              <FormInput v-model="formData.pos_bs" label="Punto de Venta" type="number" step="0.01" min="0" placeholder="0.00" />
+              <FormInput v-model="formData.pago_movil_bs" label="Pago Móvil" type="number" step="0.01" min="0" placeholder="0.00" />
+              <FormInput v-model="formData.cash_bs" label="Efectivo Bs" type="number" step="0.01" min="0" placeholder="0.00" />
+              <FormInput v-model="formData.transfer_bs" label="Transferencia" type="number" step="0.01" min="0" placeholder="0.00" />
             </div>
           </div>
           <div class="pt-3 mt-3 border-t border-border space-y-1">
             <div class="flex justify-between items-center">
               <span class="text-sm font-semibold text-text-muted">Total Ingresado Bs:</span>
-              <span class="text-base font-bold text-text">{{ formatCurrency(totalBs) }} Bs</span>
+              <span class="text-base font-bold text-text" :class="{ 'text-amber-500': hasDiscrepancyBs }">{{ formatCurrency(totalBs) }} Bs</span>
             </div>
             <div class="flex justify-between items-center text-xs text-text-muted">
               <span>Al cambio en Dólares:</span>
@@ -35,18 +71,23 @@
         <!-- Columna Dólares -->
         <div class="space-y-4 rounded-xl border border-border p-4 bg-bg-secondary/30 flex flex-col justify-between">
           <div>
-            <h3 class="text-sm font-bold text-text-secondary uppercase tracking-wider mb-3">Ingresos Dólares (USD)</h3>
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-sm font-bold text-text-secondary uppercase tracking-wider">Ingresos Dólares (USD)</h3>
+              <span v-if="hasDiscrepancyUsd" class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                Descuadre
+              </span>
+            </div>
             <div class="space-y-3">
-              <FormInput v-model="formData.cash_usd" label="Efectivo USD" type="number" step="0.01" min="0" />
-              <FormInput v-model="formData.zelle_usd" label="Zelle" type="number" step="0.01" min="0" />
-              <FormInput v-model="formData.binance_usd" label="Binance" type="number" step="0.01" min="0" />
-              <FormInput v-model="formData.cashea_usd" label="Cashea" type="number" step="0.01" min="0" />
+              <FormInput v-model="formData.cash_usd" label="Efectivo USD" type="number" step="0.01" min="0" placeholder="0.00" />
+              <FormInput v-model="formData.zelle_usd" label="Zelle" type="number" step="0.01" min="0" placeholder="0.00" />
+              <FormInput v-model="formData.binance_usd" label="Binance" type="number" step="0.01" min="0" placeholder="0.00" />
+              <FormInput v-model="formData.cashea_usd" label="Cashea" type="number" step="0.01" min="0" placeholder="0.00" />
             </div>
           </div>
           <div class="pt-3 mt-3 border-t border-border space-y-1">
             <div class="flex justify-between items-center">
               <span class="text-sm font-semibold text-text-muted">Total Ingresado USD:</span>
-              <span class="text-base font-bold text-text">${{ formatCurrency(totalUsd) }} USD</span>
+              <span class="text-base font-bold text-text" :class="{ 'text-amber-500': hasDiscrepancyUsd }">${{ formatCurrency(totalUsd) }} USD</span>
             </div>
             <div class="flex justify-between items-center text-xs text-text-muted">
               <span>Al cambio en Bolívares:</span>
@@ -56,7 +97,7 @@
         </div>
       </div>
 
-      <!-- Gran Total Card (Total en Ambas Monedas) -->
+      <!-- Gran Total Card -->
       <div class="rounded-xl border border-primary/30 bg-primary-light/10 p-4 space-y-3">
         <div class="flex items-center justify-between border-b border-border/40 pb-2">
           <h4 class="text-sm font-bold text-primary">Gran Total del Día (USD + Bs)</h4>
@@ -104,6 +145,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
 import ModalBase from '../common/ModalBase.vue'
 import FormInput from '../forms/FormInput.vue'
 import { useBusinessStore } from '../../store/business'
@@ -114,6 +156,7 @@ import { useNotification } from '../../composables/common/useNotification'
 
 const businessStore = useBusinessStore()
 const authStore = useAuthStore()
+const queryClient = useQueryClient()
 const { showSuccess, showError } = useNotification()
 
 const isOpen = ref(false)
@@ -187,6 +230,28 @@ const grandTotalUsd = computed(() => {
   return totalUsd.value + totalBsInUsd.value
 })
 
+// Discrepancias con Reporte Z
+const zReportBs = computed(() => parseNum(formData.value.z_report_bs))
+const zReportUsd = computed(() => parseNum(formData.value.z_report_usd))
+
+const diffBs = computed(() => {
+  if (zReportBs.value <= 0) return 0
+  return totalBs.value - zReportBs.value
+})
+
+const diffUsd = computed(() => {
+  if (zReportUsd.value <= 0) return 0
+  return totalUsd.value - zReportUsd.value
+})
+
+const hasDiscrepancyBs = computed(() => {
+  return zReportBs.value > 0 && Math.abs(diffBs.value) > 0.01
+})
+
+const hasDiscrepancyUsd = computed(() => {
+  return zReportUsd.value > 0 && Math.abs(diffUsd.value) > 0.01
+})
+
 const formatCurrency = (val: number) => val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const open = (report?: DailyReport) => {
@@ -196,17 +261,17 @@ const open = (report?: DailyReport) => {
     formData.value = {
       id: report.id,
       date: report.date,
-      exchange_rate: String(report.exchange_rate || ''),
-      z_report_bs: String(report.z_report_bs || ''),
-      z_report_usd: String(report.z_report_usd || ''),
-      pos_bs: String(report.pos_bs || ''),
-      pago_movil_bs: String(report.pago_movil_bs || ''),
-      cash_bs: String(report.cash_bs || ''),
-      transfer_bs: String(report.transfer_bs || ''),
-      cash_usd: String(report.cash_usd || ''),
-      zelle_usd: String(report.zelle_usd || ''),
-      binance_usd: String(report.binance_usd || ''),
-      cashea_usd: String(report.cashea_usd || ''),
+      exchange_rate: String(report.exchange_rate ?? ''),
+      z_report_bs: String(report.z_report_bs ?? ''),
+      z_report_usd: String(report.z_report_usd ?? ''),
+      pos_bs: String(report.pos_bs ?? ''),
+      pago_movil_bs: String(report.pago_movil_bs ?? ''),
+      cash_bs: String(report.cash_bs ?? ''),
+      transfer_bs: String(report.transfer_bs ?? ''),
+      cash_usd: String(report.cash_usd ?? ''),
+      zelle_usd: String(report.zelle_usd ?? ''),
+      binance_usd: String(report.binance_usd ?? ''),
+      cashea_usd: String(report.cashea_usd ?? ''),
     }
   } else {
     formData.value = defaultForm()
@@ -237,8 +302,7 @@ const handleSubmit = async () => {
 
   isSaving.value = true
   try {
-    const payload = {
-      id: isEditing.value ? formData.value.id : undefined,
+    const payload: Partial<DailyReport> = {
       business_id: businessId,
       branch_id: businessStore.selectedBranchId || authStore.profile?.branch_id || null,
       date: formData.value.date,
@@ -256,8 +320,17 @@ const handleSubmit = async () => {
       total_bs: totalBs.value,
       total_usd: totalUsd.value,
     }
+
+    if (isEditing.value && formData.value.id) {
+      payload.id = formData.value.id
+    }
+
     await saveDailyReport(payload)
     showSuccess(isEditing.value ? 'Reporte actualizado exitosamente' : 'Reporte guardado exitosamente')
+    
+    // Invalidate queries with exact: false
+    await queryClient.invalidateQueries({ queryKey: ['daily-reports'], exact: false })
+    
     emit('saved')
     close()
   } catch (error: any) {

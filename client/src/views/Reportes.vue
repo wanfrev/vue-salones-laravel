@@ -56,8 +56,14 @@
                 {{ formatCurrency(report.exchange_rate) }} Bs/$
               </td>
               <td class="px-4 py-3 text-text-muted text-xs">
-                <div>Bs: <span class="font-semibold text-text">{{ formatCurrency(report.z_report_bs) }}</span></div>
-                <div>USD: <span class="font-semibold text-text">${{ formatCurrency(report.z_report_usd) }}</span></div>
+                <div>
+                  Bs: <span class="font-semibold text-text">{{ formatCurrency(report.z_report_bs) }}</span>
+                  <span v-if="hasDiscrepancyBs(report)" class="ml-1 text-amber-500 font-bold text-[10px]" :title="'Descuadre en Bs: ' + getDiffBsText(report)">⚠️</span>
+                </div>
+                <div>
+                  USD: <span class="font-semibold text-text">${{ formatCurrency(report.z_report_usd) }}</span>
+                  <span v-if="hasDiscrepancyUsd(report)" class="ml-1 text-amber-500 font-bold text-[10px]" :title="'Descuadre en USD: ' + getDiffUsdText(report)">⚠️</span>
+                </div>
               </td>
               <td class="px-4 py-3">
                 <div class="font-bold text-text">{{ formatCurrency(report.total_bs) }} Bs</div>
@@ -98,13 +104,13 @@
         </table>
       </div>
     </div>
-    <ReporteFormModal ref="modalRef" @saved="refetch" />
+    <ReporteFormModal ref="modalRef" @saved="onReportSaved" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useBusinessStore } from '../store/business'
 import { useAuthStore } from '../store/auth'
 import { listDailyReports, deleteDailyReport } from '../services/dailyReportService'
@@ -114,13 +120,14 @@ import { useNotification } from '../composables/common/useNotification'
 
 const businessStore = useBusinessStore()
 const authStore = useAuthStore()
+const queryClient = useQueryClient()
 const { showSuccess, showError } = useNotification()
 
 const modalRef = ref<InstanceType<typeof ReporteFormModal> | null>(null)
 
 const activeBusinessId = computed(() => businessStore.business?.id || authStore.profile?.business_id)
 
-const { data: reports, isLoading, refetch } = useQuery({
+const { data: reports, isLoading } = useQuery({
   queryKey: ['daily-reports', activeBusinessId, businessStore.selectedBranchId],
   queryFn: () => listDailyReports(activeBusinessId.value!, businessStore.selectedBranchId),
   enabled: () => !!activeBusinessId.value,
@@ -152,8 +159,34 @@ const getGrandTotalUsd = (report: DailyReport) => {
   return Number(report.total_usd) + getBsInUsd(report)
 }
 
+const hasDiscrepancyBs = (report: DailyReport) => {
+  const z = Number(report.z_report_bs)
+  if (z <= 0) return false
+  return Math.abs(Number(report.total_bs) - z) > 0.01
+}
+
+const hasDiscrepancyUsd = (report: DailyReport) => {
+  const z = Number(report.z_report_usd)
+  if (z <= 0) return false
+  return Math.abs(Number(report.total_usd) - z) > 0.01
+}
+
+const getDiffBsText = (report: DailyReport) => {
+  const diff = Number(report.total_bs) - Number(report.z_report_bs)
+  return `${diff > 0 ? '+' : ''}${formatCurrency(diff)} Bs`
+}
+
+const getDiffUsdText = (report: DailyReport) => {
+  const diff = Number(report.total_usd) - Number(report.z_report_usd)
+  return `${diff > 0 ? '+' : ''}$${formatCurrency(diff)} USD`
+}
+
 const openModal = (report?: DailyReport) => {
   modalRef.value?.open(report)
+}
+
+const onReportSaved = async () => {
+  await queryClient.invalidateQueries({ queryKey: ['daily-reports'], exact: false })
 }
 
 const handleDelete = async (report: DailyReport) => {
@@ -161,7 +194,7 @@ const handleDelete = async (report: DailyReport) => {
   try {
     await deleteDailyReport(report.id)
     showSuccess('Reporte eliminado')
-    refetch()
+    await queryClient.invalidateQueries({ queryKey: ['daily-reports'], exact: false })
   } catch (err: any) {
     showError(err?.message || 'Error al eliminar el reporte')
   }

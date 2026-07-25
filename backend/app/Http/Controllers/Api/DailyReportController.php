@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\DailyReport;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class DailyReportController extends Controller
@@ -21,7 +20,10 @@ class DailyReportController extends Controller
         $query = DailyReport::where('business_id', $request->business_id);
 
         if ($request->filled('branch_id')) {
-            $query->where('branch_id', $request->branch_id);
+            $query->where(function ($q) use ($request) {
+                $q->where('branch_id', $request->branch_id)
+                  ->orWhereNull('branch_id');
+            });
         }
 
         if ($request->filled('month')) {
@@ -56,6 +58,7 @@ class DailyReportController extends Controller
             'total_usd' => 'nullable|numeric|min:0',
         ]);
 
+        unset($validated['id']);
         $validated['branch_id'] = !empty($validated['branch_id']) ? $validated['branch_id'] : null;
         $validated['user_id'] = $request->user()?->id;
 
@@ -88,6 +91,8 @@ class DailyReportController extends Controller
             'total_bs' => 'nullable|numeric|min:0',
             'total_usd' => 'nullable|numeric|min:0',
         ]);
+
+        unset($validated['id']);
 
         // Auto-calculate totals
         $validated['total_bs'] = ($validated['pos_bs'] ?? 0) + ($validated['pago_movil_bs'] ?? 0) + ($validated['cash_bs'] ?? 0) + ($validated['transfer_bs'] ?? 0);
