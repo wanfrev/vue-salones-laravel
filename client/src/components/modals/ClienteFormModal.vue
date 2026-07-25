@@ -198,11 +198,7 @@ const loadPets = async (clientId: string) => {
   }
 }
 
-const isFormValid = computed(() => {
-  return formData.value.name.trim().length >= 2 && formData.value.phone.trim().length >= 8
-})
-
-watch(
+const watch(
   [isOpen, () => modalData.value?.cliente],
   ([open, cliente]) => {
     if (!open) return

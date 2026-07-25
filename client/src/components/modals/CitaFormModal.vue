@@ -709,16 +709,6 @@ const normalizePhone = (phone: string): string => { let d = phone.replace(/\D/g,
 
 const { errors, validate, clearErrors, handleBlur } = useFormValidation(citaFormSchema as any, formData as any) as any as ReturnType<typeof useFormValidation>
 
-const isFormValid = computed(() => {
-  if (formData.value.clientName.trim().length < 2) return false
-  if (formData.value.clientPhone.trim().length < 7) return false
-  if (!formData.value.service) return false
-  if (!formData.value.employee) return false
-  if (formData.value.extraServices.some(e => !e.serviceId || !e.employeeId)) return false
-  if (!canCreateClients.value && !formData.value.clientId) return false
-  return true
-})
-
 const validateForm = (): boolean => {
   const rowErrors: Record<number, Partial<Record<string, string>>> = {}
 
