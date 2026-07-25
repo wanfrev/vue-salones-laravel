@@ -46,4 +46,9 @@ class Service extends Model
     {
         return $this->belongsTo(ProductVariant::class, 'linked_variant_id');
     }
+
+    public function linkedProducts(): HasMany
+    {
+        return $this->hasMany(ServiceLinkedProduct::class, 'service_id');
+    }
 }

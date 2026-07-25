@@ -14,6 +14,7 @@ class ServiceService
     public function list(string $businessId, ?string $branchId = null): Collection
     {
         $query = Service::query()
+            ->with('linkedProducts')
             ->where('business_id', $businessId)
             ->orderBy('name');
 
@@ -55,9 +56,13 @@ class ServiceService
             'updated_at' => now(),
         ]);
 
+        if (array_key_exists('linked_products', $data)) {
+            $this->syncLinkedProducts($service, $data['linked_products']);
+        }
+
         $cat = $data['category'] ?? '';
         if ($cat === '' || $cat === 'otros') {
-            return $service;
+            return $service->fresh(['linkedProducts']);
         }
 
         if (!empty($data['branch_id'])) {
@@ -80,7 +85,7 @@ class ServiceService
             }
         }
 
-        return $service;
+        return $service->fresh(['linkedProducts']);
     }
 
     public function update(string $id, array $data, string $businessId): Service
@@ -93,7 +98,11 @@ class ServiceService
             'is_fixed_commission', 'fixed_commission_amount', 'fixed_commission_assistant_amount',
         ]), ARRAY_FILTER_USE_KEY) + ['updated_at' => now()]);
 
-        return $service->fresh();
+        if (array_key_exists('linked_products', $data)) {
+            $this->syncLinkedProducts($service, $data['linked_products']);
+        }
+
+        return $service->fresh(['linkedProducts']);
     }
 
     public function destroy(string $id, string $businessId): void
@@ -213,7 +222,7 @@ class ServiceService
 
     public function findForBusiness(string $id, string $businessId): Service
     {
-        $service = Service::find($id);
+        $service = Service::with('linkedProducts')->find($id);
         if (!$service || $service->business_id !== $businessId) {
             throw new NotFoundHttpException('Servicio no encontrado.');
         }
@@ -222,6 +231,44 @@ class ServiceService
 
     public function find(string $id): ?Service
     {
-        return Service::find($id);
+        return Service::with('linkedProducts')->find($id);
+    }
+
+    private function syncLinkedProducts(Service $service, ?array $linkedProducts): void
+    {
+        if ($linkedProducts === null) {
+            return;
+        }
+
+        \App\Models\ServiceLinkedProduct::where('service_id', $service->id)->delete();
+
+        $firstProductId = null;
+        $firstVariantId = null;
+
+        foreach ($linkedProducts as $item) {
+            if (empty($item['product_id'])) continue;
+
+            $productId = $item['product_id'];
+            $variantId = !empty($item['variant_id']) ? $item['variant_id'] : null;
+            $quantity = isset($item['quantity']) ? max(0.01, (float) $item['quantity']) : 1.0;
+
+            if (!$firstProductId) {
+                $firstProductId = $productId;
+                $firstVariantId = $variantId;
+            }
+
+            \App\Models\ServiceLinkedProduct::create([
+                'id' => Str::uuid()->toString(),
+                'service_id' => $service->id,
+                'product_id' => $productId,
+                'variant_id' => $variantId,
+                'quantity' => $quantity,
+            ]);
+        }
+
+        $service->update([
+            'linked_product_id' => $firstProductId,
+            'linked_variant_id' => $firstVariantId,
+        ]);
     }
 }

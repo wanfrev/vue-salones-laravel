@@ -4,7 +4,7 @@
     :title="isEditing ? `Editar ${t.service}` : `Nuevo ${t.service}`"
     :subtitle="isEditing ? `Editando ${formData.name}` : `Agrega un nuevo ${t.service.toLowerCase()} al catálogo`"
     :icon="isEditing ? 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z' : 'M12 6v6m0 0v6m0-6h6m-6 0H6'"
-    size="md"
+    size="lg"
     :is-loading="isSaving"
     :is-confirm-disabled="!isFormValid || isSaving"
     :confirm-text="`Guardar ${t.service}`"
@@ -95,9 +95,9 @@
         :error="errors.description"
       />
 
-      <!-- Insumo Consumible -->
+      <!-- Comisión Fija -->
       <div class="rounded-lg border border-border p-4">
-        <label class="flex items-center space-x-2 text-sm font-medium text-text-primary">
+        <label class="flex items-center space-x-2 text-sm font-medium text-text-primary cursor-pointer">
           <input type="checkbox" v-model="formData.is_fixed_commission" class="rounded border-border text-primary focus:ring-primary" />
           <span>Comisión fija por servicio (Monto en vez de porcentaje)</span>
         </label>
@@ -123,24 +123,79 @@
         </div>
       </div>
 
-      <!-- Insumo Consumible -->
-      <div class="rounded-lg border border-border p-4">
-        <label class="flex items-center space-x-2 text-sm font-medium text-text-primary">
-          <input type="checkbox" v-model="hasLinkedProduct" class="rounded border-border text-primary focus:ring-primary" />
-          <span>Vincular a producto de inventario (Insumo consumible)</span>
+      <!-- Insumos Consumibles del Inventario (Múltiples Productos) -->
+      <div class="rounded-lg border border-border p-4 space-y-3">
+        <label class="flex items-center space-x-2 text-sm font-medium text-text-primary cursor-pointer">
+          <input type="checkbox" v-model="hasLinkedProduct" @change="onToggleHasLinkedProduct" class="rounded border-border text-primary focus:ring-primary" />
+          <span>Vincular a productos de inventario (Insumos consumibles)</span>
         </label>
-        <p class="mt-1 text-xs text-text-muted ml-6">
-          Al cobrar este servicio en el punto de venta, se descontará automáticamente 1 unidad del producto seleccionado.
+        <p class="text-xs text-text-muted ml-6">
+          Al cobrar este servicio en el punto de venta, se descontará automáticamente del inventario la cantidad especificada de cada producto.
         </p>
         
-        <div v-if="hasLinkedProduct" class="mt-4 ml-6">
-          <FormDropdown
-            v-model="formData.linked_product_id"
-            label="Producto a descontar"
-            placeholder="Seleccionar producto..."
-            :options="productOptions"
-            searchable
-          />
+        <div v-if="hasLinkedProduct" class="mt-4 space-y-3">
+          <div
+            v-for="(item, index) in linkedProductsList"
+            :key="index"
+            class="p-3 rounded-xl border border-border/70 bg-bg-secondary/30 space-y-3 relative"
+          >
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-text-secondary">Insumo #{{ index + 1 }}</span>
+              <button
+                type="button"
+                @click="removeLinkedProductRow(index)"
+                class="text-text-muted hover:text-danger p-1 rounded transition-colors"
+                title="Eliminar insumo"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+              <div :class="getProductVariants(item.product_id).length > 0 ? 'sm:col-span-5' : 'sm:col-span-8'">
+                <FormDropdown
+                  v-model="item.product_id"
+                  label="Producto"
+                  placeholder="Seleccionar producto..."
+                  :options="productOptions"
+                  searchable
+                />
+              </div>
+
+              <div v-if="getProductVariants(item.product_id).length > 0" class="sm:col-span-4">
+                <FormDropdown
+                  v-model="item.variant_id"
+                  label="Variante"
+                  placeholder="Sin variante"
+                  :options="getVariantOptions(item.product_id)"
+                />
+              </div>
+
+              <div :class="getProductVariants(item.product_id).length > 0 ? 'sm:col-span-3' : 'sm:col-span-4'">
+                <FormInput
+                  v-model.number="item.quantity"
+                  label="Cantidad"
+                  type="number"
+                  step="0.01"
+                  min="0.01"
+                  placeholder="1"
+                />
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            @click="addLinkedProductRow"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-primary bg-primary-light hover:bg-primary-hover/20 rounded-lg transition-colors"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Agregar otro insumo
+          </button>
         </div>
       </div>
     </form>
@@ -154,7 +209,7 @@ import { useNotification } from '../../composables/common/useNotification'
 import { useBusinessStore } from '../../store/business'
 import { getEntityServiceCategories } from '../../services/serviciosService'
 import { listProductos } from '../../services/productosService'
-import type { Servicio, ServicioFormData } from '../../types/servicio'
+import type { Servicio, ServicioFormData, LinkedProductItem } from '../../types/servicio'
 import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormDropdown, FormTextarea } from '../forms'
 
@@ -215,6 +270,7 @@ const dbCategories = ref<string[]>([])
 
 const hasLinkedProduct = ref(false)
 const availableProducts = ref<any[]>([])
+const linkedProductsList = ref<{ product_id: string; variant_id: string | null; quantity: number }[]>([])
 
 const productOptions = computed(() => {
   return availableProducts.value.map(p => ({
@@ -222,6 +278,40 @@ const productOptions = computed(() => {
     label: p.name
   }))
 })
+
+const onToggleHasLinkedProduct = () => {
+  if (hasLinkedProduct.value && linkedProductsList.value.length === 0) {
+    addLinkedProductRow()
+  }
+}
+
+const addLinkedProductRow = () => {
+  linkedProductsList.value.push({ product_id: '', variant_id: null, quantity: 1 })
+}
+
+const removeLinkedProductRow = (index: number) => {
+  linkedProductsList.value.splice(index, 1)
+  if (linkedProductsList.value.length === 0) {
+    hasLinkedProduct.value = false
+  }
+}
+
+const getProductVariants = (productId: string) => {
+  if (!productId) return []
+  const prod = availableProducts.value.find(p => p.id === productId)
+  return prod?.variants || prod?.product_variants || []
+}
+
+const getVariantOptions = (productId: string) => {
+  const variants = getProductVariants(productId)
+  return [
+    { value: '', label: 'Sin variante' },
+    ...variants.map((v: any) => ({
+      value: v.id,
+      label: v.name || v.sku || 'Variante'
+    }))
+  ]
+}
 
 watch(isOpen, async (open) => {
   if (open) {
@@ -267,11 +357,6 @@ const statusOptions = [
   { value: 'Inactivo', label: 'Inactivo' },
 ]
 
-const defaultCategory = computed(() => {
-  const cats = categoryOptions.value.filter(c => c.value !== '__new__')
-  return cats.length > 0 ? cats[0].value : ''
-})
-
 const defaultFormData: ServicioFormData = {
   name: '',
   description: '',
@@ -284,6 +369,7 @@ const defaultFormData: ServicioFormData = {
   fixed_commission_assistant_amount: 0,
   linked_product_id: null,
   linked_variant_id: null,
+  linked_products: [],
 }
 
 const formData = ref<ServicioFormData>({ ...defaultFormData })
@@ -337,11 +423,24 @@ const handleSubmit = async () => {
 
   const category = formData.value.category.trim()
 
+  const validLinkedProducts: LinkedProductItem[] = hasLinkedProduct.value
+    ? linkedProductsList.value
+        .filter(item => !!item.product_id)
+        .map(item => ({
+          product_id: item.product_id,
+          variant_id: item.variant_id || null,
+          quantity: Math.max(0.01, Number(item.quantity) || 1),
+        }))
+    : []
+
+  const firstLinked = validLinkedProducts.length > 0 ? validLinkedProducts[0] : null
+
   const servicioData: ServicioFormData & { id?: string } = {
     ...formData.value,
     category,
-    linked_product_id: hasLinkedProduct.value ? formData.value.linked_product_id : null,
-    linked_variant_id: hasLinkedProduct.value ? formData.value.linked_variant_id : null,
+    linked_products: validLinkedProducts,
+    linked_product_id: firstLinked ? firstLinked.product_id : null,
+    linked_variant_id: firstLinked ? firstLinked.variant_id : null,
   }
 
   if (modalData.value?.servicio?.id) {
@@ -364,14 +463,35 @@ const open = (servicio?: Servicio, branchId?: string) => {
       category: s.category || '',
       linked_product_id: s.linked_product_id ?? null,
       linked_variant_id: s.linked_variant_id ?? null,
+      linked_products: s.linked_products ?? [],
       is_fixed_commission: s.is_fixed_commission ?? false,
       fixed_commission_amount: s.fixed_commission_amount ?? 0,
       fixed_commission_assistant_amount: s.fixed_commission_assistant_amount ?? 0,
     }
-    hasLinkedProduct.value = !!s.linked_product_id
+
+    const rawLinked = s.linked_products ?? []
+    if (Array.isArray(rawLinked) && rawLinked.length > 0) {
+      linkedProductsList.value = rawLinked.map((item: any) => ({
+        product_id: item.product_id,
+        variant_id: item.variant_id ?? null,
+        quantity: Number(item.quantity ?? 1),
+      }))
+      hasLinkedProduct.value = true
+    } else if (s.linked_product_id) {
+      linkedProductsList.value = [{
+        product_id: s.linked_product_id,
+        variant_id: s.linked_variant_id ?? null,
+        quantity: 1,
+      }]
+      hasLinkedProduct.value = true
+    } else {
+      linkedProductsList.value = []
+      hasLinkedProduct.value = false
+    }
   } else {
     const firstRealCategory = categoryOptions.value.find(c => c.value !== '__new__')?.value ?? ''
     formData.value = { ...defaultFormData, category: firstRealCategory }
+    linkedProductsList.value = []
     hasLinkedProduct.value = false
     showingCustomCategory.value = false
   }
