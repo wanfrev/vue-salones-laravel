@@ -59,20 +59,39 @@
 
               <!-- Visits List -->
               <div class="p-4 space-y-4 bg-bg-secondary/10">
-                <div v-for="visit in pet.visits" :key="visit.id" class="border border-border rounded-lg p-4 bg-surface shadow-xs page-break-inside-avoid">
+                <div
+                  v-for="visit in pet.visits"
+                  :key="visit.id"
+                  class="group border border-border hover:border-primary/50 rounded-lg p-4 bg-surface shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer page-break-inside-avoid relative"
+                  @click="openVisitDetail(pet, visit)"
+                >
                   <!-- Visit Header -->
                   <div class="flex justify-between items-start sm:items-center mb-4 pb-3 border-b border-border border-dashed flex-col sm:flex-row gap-2">
                     <div>
                       <div class="flex items-center gap-2">
                         <svg class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                        <h4 class="font-bold text-text text-base">{{ formatDate(visit.start_time) }}</h4>
+                        <h4 class="font-bold text-text text-base group-hover:text-primary transition-colors">{{ formatDate(visit.start_time) }}</h4>
+                        <span
+                          v-if="visit.status"
+                          class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full"
+                          :class="{
+                            'bg-success/15 text-success': visit.status === 'confirmed' || visit.status === 'paid' || visit.status === 'completed',
+                            'bg-warning/15 text-warning': visit.status === 'pending' || visit.status === 'in_progress',
+                            'bg-danger/15 text-danger': visit.status === 'cancelled' || visit.status === 'no_show'
+                          }"
+                        >
+                          {{ getStatusLabel(visit.status) }}
+                        </span>
                       </div>
                       <p class="text-sm text-text-muted mt-0.5 font-medium">{{ visit.services?.name || visit.service?.name || 'Servicio' }}</p>
                     </div>
-                    <div class="text-left sm:text-right">
+                    <div class="text-left sm:text-right flex items-center gap-2">
                       <span class="text-xs font-bold px-2.5 py-1.5 bg-bg text-text-muted rounded-md border border-border inline-flex items-center gap-1.5">
                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                         Atendió: {{ visit.profiles?.full_name || visit.employee_profile?.full_name || '—' }}
+                      </span>
+                      <span class="text-xs font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity hidden sm:inline-block">
+                        Ver ficha →
                       </span>
                     </div>
                   </div>
@@ -106,6 +125,12 @@
                     <h5 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-1.5 border-l-2 border-border pl-2">Notas</h5>
                     <p class="text-sm text-text-muted italic">{{ visit.internal_notes || visit.service_notes }}</p>
                   </div>
+
+                  <!-- Associated Products -->
+                  <div v-if="getVisitProducts(visit).length > 0" class="mt-3 pt-3 border-t border-border/50 text-xs">
+                    <span class="font-bold text-text-muted">Insumos/Productos: </span>
+                    <span class="text-text font-medium">{{ getVisitProducts(visit).map(p => `${p.productName || p.name || 'Producto'} (x${p.quantity})`).join(', ') }}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -113,6 +138,166 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Secundario: Detalle Completo de una Historia Clínica -->
+    <ModalBase
+      :is-open="showDetailModal"
+      :title="`Ficha Clínica — ${selectedPet?.name || 'Mascota'}`"
+      :subtitle="selectedVisit ? `${formatDate(selectedVisit.start_time)} · ${selectedVisit.services?.name || selectedVisit.service?.name || 'Servicio'}` : ''"
+      icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012"
+      size="lg"
+      @close="showDetailModal = false"
+    >
+      <div v-if="selectedVisit" class="space-y-6">
+        <!-- Ficha Resumen de la Visita -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-border bg-bg-secondary/30 p-4">
+          <!-- Col 1: Mascota & Tutor -->
+          <div class="space-y-1.5">
+            <p class="text-xs font-bold uppercase tracking-wider text-primary">Información del Paciente & Tutor</p>
+            <div class="text-sm">
+              <span class="font-bold text-text">Tutor (Dueño):</span>
+              <span class="text-text-muted ml-1">{{ clientName || '—' }}</span>
+            </div>
+            <div class="text-sm">
+              <span class="font-bold text-text">Mascota:</span>
+              <span class="text-text-muted ml-1">{{ selectedPet?.name }} ({{ selectedPet?.breed || 'Sin raza' }}<template v-if="selectedPet?.weight"> · {{ selectedPet?.weight }}</template>)</span>
+            </div>
+            <div v-if="selectedPet?.notes" class="text-xs text-text-muted italic bg-surface p-2 rounded border border-border mt-2">
+              <span class="font-semibold text-text">Notas de la mascota:</span> {{ selectedPet.notes }}
+            </div>
+          </div>
+
+          <!-- Col 2: Detalles de Atención -->
+          <div class="space-y-1.5">
+            <p class="text-xs font-bold uppercase tracking-wider text-primary">Detalles de la Cita</p>
+            <div class="text-sm">
+              <span class="font-bold text-text">Fecha y Hora:</span>
+              <span class="text-text-muted ml-1">{{ formatDate(selectedVisit.start_time) }} {{ formatTime(selectedVisit.start_time) }}</span>
+            </div>
+            <div class="text-sm">
+              <span class="font-bold text-text">Servicio:</span>
+              <span class="text-text-muted ml-1">{{ selectedVisit.services?.name || selectedVisit.service?.name || '—' }}</span>
+            </div>
+            <div class="text-sm">
+              <span class="font-bold text-text">Atendido por:</span>
+              <span class="text-text-muted ml-1">{{ selectedVisit.profiles?.full_name || selectedVisit.employee_profile?.full_name || '—' }}</span>
+            </div>
+            <div v-if="selectedVisit.assistant_profile || selectedVisit.assistantProfile" class="text-sm">
+              <span class="font-bold text-text">Asistente:</span>
+              <span class="text-text-muted ml-1">{{ selectedVisit.assistant_profile?.full_name || selectedVisit.assistantProfile?.full_name }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Diagnóstico por Sistemas -->
+        <div v-if="selectedVisit.clinical_history && Object.keys(selectedVisit.clinical_history).length > 0" class="space-y-3">
+          <div class="flex items-center gap-2 border-b border-border pb-2">
+            <svg class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 00-2-2V5a2 2 0 002-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 002 2z" />
+            </svg>
+            <h3 class="font-bold text-text text-base">Diagnóstico por Sistemas Anatómicos</h3>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div
+              v-for="system in VET_SYSTEMS"
+              :key="system.key"
+              class="rounded-lg border p-3 transition-colors"
+              :class="selectedVisit.clinical_history[system.key] ? 'border-primary/30 bg-primary/5' : 'border-border/60 bg-bg-secondary/10 opacity-60'"
+            >
+              <p class="text-xs font-bold uppercase tracking-wider" :class="selectedVisit.clinical_history[system.key] ? 'text-primary' : 'text-text-muted'">
+                {{ system.label }}
+              </p>
+              <p class="text-sm mt-1 text-text">
+                {{ selectedVisit.clinical_history[system.key] || 'Sin hallazgos / Normal' }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Diagnóstico General Fallback -->
+        <div v-else-if="selectedVisit.diagnosis" class="space-y-2">
+          <h3 class="font-bold text-text text-sm uppercase tracking-wider text-primary">Diagnóstico General</h3>
+          <div class="p-3 rounded-lg border border-border bg-surface text-sm text-text">
+            {{ selectedVisit.diagnosis }}
+          </div>
+        </div>
+
+        <!-- Tratamiento -->
+        <div v-if="selectedVisit.treatment" class="space-y-2">
+          <h3 class="font-bold text-text text-sm uppercase tracking-wider text-primary">Tratamiento Indicado / Realizado</h3>
+          <div class="p-3 rounded-lg border border-primary/20 bg-primary/5 text-sm text-text whitespace-pre-line">
+            {{ selectedVisit.treatment }}
+          </div>
+        </div>
+
+        <!-- Notas de Servicio & Internas -->
+        <div v-if="selectedVisit.service_notes || selectedVisit.internal_notes || selectedVisit.notes" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div v-if="selectedVisit.service_notes || selectedVisit.notes" class="space-y-1">
+            <p class="text-xs font-bold uppercase tracking-wider text-text-muted">Notas del Servicio</p>
+            <div class="p-3 rounded-lg border border-border bg-surface text-xs text-text-muted">
+              {{ selectedVisit.service_notes || selectedVisit.notes }}
+            </div>
+          </div>
+          <div v-if="selectedVisit.internal_notes" class="space-y-1">
+            <p class="text-xs font-bold uppercase tracking-wider text-text-muted">Notas Internas</p>
+            <div class="p-3 rounded-lg border border-border bg-surface text-xs text-text-muted italic">
+              {{ selectedVisit.internal_notes }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Insumos / Productos Asociados -->
+        <div v-if="getVisitProducts(selectedVisit).length > 0" class="space-y-2">
+          <p class="text-xs font-bold uppercase tracking-wider text-primary">Productos / Insumos Utilizados</p>
+          <div class="rounded-lg border border-border overflow-hidden">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-bg-secondary border-b border-border font-semibold text-text-muted">
+                <tr>
+                  <th class="p-2.5">Producto</th>
+                  <th class="p-2.5 text-center">Cantidad</th>
+                  <th class="p-2.5 text-right">Precio Unit.</th>
+                  <th class="p-2.5 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                <tr v-for="(p, pidx) in getVisitProducts(selectedVisit)" :key="pidx">
+                  <td class="p-2.5 font-medium text-text">{{ p.productName || p.name || 'Producto' }}</td>
+                  <td class="p-2.5 text-center font-bold text-text">{{ p.quantity }}</td>
+                  <td class="p-2.5 text-right text-text-muted">${{ Number(p.unitPrice || p.price || 0).toFixed(2) }}</td>
+                  <td class="p-2.5 text-right font-bold text-text">${{ (Number(p.unitPrice || p.price || 0) * Number(p.quantity || 1)).toFixed(2) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Acciones en el footer del Modal Secundario -->
+        <div class="flex items-center justify-between border-t border-border pt-4 mt-6">
+          <button
+            type="button"
+            @click="editVisitAppointment(selectedVisit)"
+            class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-text hover:bg-bg-secondary transition-colors"
+          >
+            <svg class="h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            Editar Cita
+          </button>
+          <div class="flex gap-2">
+            <button
+              type="button"
+              @click="printSingleVisit(selectedPet, selectedVisit)"
+              class="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-text-inverse shadow-sm hover:bg-primary-hover transition-colors"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Imprimir Ficha
+            </button>
+          </div>
+        </div>
+      </div>
+    </ModalBase>
   </ModalBase>
 </template>
 
@@ -122,9 +307,24 @@ import ModalBase from '../common/ModalBase.vue'
 import { listPetsByClient } from '../../services/petService'
 import { apiRequest } from '../../lib/api'
 import { getInitials } from '../../lib/formatters'
+import { useModal } from '../../composables/common/useModal'
 import type { Pet } from '../../types/database'
 
 const MODAL_ID = 'pet-history-modal'
+
+const VET_SYSTEMS = [
+  { key: 'Oftálmico', label: 'Sistema Oftálmico / Ojos' },
+  { key: 'Otológico', label: 'Sistema Otológico / Oídos' },
+  { key: 'Tegumentario', label: 'Sistema Tegumentario / Piel y Anexos' },
+  { key: 'Músculo-Esquelético', label: 'Sistema Músculo-Esquelético' },
+  { key: 'Respiratorio', label: 'Sistema Respiratorio' },
+  { key: 'Cardiovascular', label: 'Sistema Cardiovascular' },
+  { key: 'Gastrointestinal', label: 'Sistema Gastrointestinal / Digestivo' },
+  { key: 'Genitourinario', label: 'Sistema Genitourinario' },
+  { key: 'Nervioso', label: 'Sistema Nervioso / Neurológico' },
+  { key: 'Linfático', label: 'Sistema Linfático / Inmunológico' },
+  { key: 'Otros', label: 'Otros Diagnósticos' },
+]
 
 const props = defineProps<{
   modelValue: boolean
@@ -138,6 +338,49 @@ const isOpen = ref(false)
 const loading = ref(false)
 const printArea = ref<HTMLElement | null>(null)
 const petsWithHistory = ref<Array<Pet & { visits: any[] }>>([])
+
+// Modal Secundario de Detalle
+const showDetailModal = ref(false)
+const selectedPet = ref<Pet | null>(null)
+const selectedVisit = ref<any | null>(null)
+
+const openVisitDetail = (pet: Pet, visit: any) => {
+  selectedPet.value = pet
+  selectedVisit.value = visit
+  showDetailModal.value = true
+}
+
+const getStatusLabel = (status: string) => {
+  const map: Record<string, string> = {
+    confirmed: 'Confirmada',
+    paid: 'Pagada',
+    completed: 'Completada',
+    pending: 'Pendiente',
+    in_progress: 'En Proceso',
+    cancelled: 'Cancelada',
+    no_show: 'No Asistió'
+  }
+  return map[status] || status
+}
+
+const formatTime = (iso: string) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true })
+}
+
+const getVisitProducts = (visit: any): any[] => {
+  if (!visit) return []
+  if (Array.isArray(visit.associated_products)) return visit.associated_products
+  if (Array.isArray(visit.associatedProducts)) return visit.associatedProducts
+  return []
+}
+
+const editVisitAppointment = (visit: any) => {
+  showDetailModal.value = false
+  close()
+  useModal('cita-form-modal').open({ cita: visit })
+}
 
 watch(() => props.modelValue, async (val) => {
   isOpen.value = val
@@ -295,6 +538,117 @@ const printHistory = () => {
     <body>${content}</body>
     </html>
   `)
+  win.document.close()
+  win.focus()
+  win.print()
+  win.close()
+}
+
+const printSingleVisit = (pet: Pet | null, visit: any) => {
+  if (!pet || !visit) return
+  const win = window.open('', '_blank', 'width=850,height=900')
+  if (!win) return
+
+  const systemsHtml = (visit.clinical_history && Object.keys(visit.clinical_history).length > 0)
+    ? VET_SYSTEMS.map(sys => {
+        const val = visit.clinical_history[sys.key]
+        if (!val) return ''
+        return `<div style="margin-bottom: 8px; font-size: 13px;">
+                  <strong style="color: #27272a;">${sys.label}:</strong>
+                  <span style="color: #52525b; margin-left: 4px;">${val}</span>
+                </div>`
+      }).join('')
+    : (visit.diagnosis ? `<p style="font-size: 13px; color: #3f3f46;">${visit.diagnosis}</p>` : '<p style="font-size: 13px; color: #a1a1aa;">Sin diagnóstico registrado</p>')
+
+  const products = getVisitProducts(visit)
+  const productsHtml = products.length > 0
+    ? `<table style="width:100%; border-collapse:collapse; margin-top:8px; font-size:12px;">
+        <thead>
+          <tr style="background:#f4f4f5; text-align:left;">
+            <th style="padding:6px; border:1px solid #e4e4e7;">Producto</th>
+            <th style="padding:6px; border:1px solid #e4e4e7; text-align:center;">Cant.</th>
+            <th style="padding:6px; border:1px solid #e4e4e7; text-align:right;">Precio</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${products.map(p => `
+            <tr>
+              <td style="padding:6px; border:1px solid #e4e4e7;">${p.productName || p.name || 'Producto'}</td>
+              <td style="padding:6px; border:1px solid #e4e4e7; text-align:center;">${p.quantity}</td>
+              <td style="padding:6px; border:1px solid #e4e4e7; text-align:right;">$${Number(p.unitPrice || p.price || 0).toFixed(2)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`
+    : ''
+
+  win.document.write(`
+    <html>
+    <head>
+      <title>Ficha Clínica - ${pet.name} (${formatDate(visit.start_time)})</title>
+      <style>
+        body { font-family: system-ui, -apple-system, sans-serif; padding: 2.5rem; color: #18181b; line-height: 1.5; }
+        .header { border-bottom: 2px solid #869C84; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+        .title { font-size: 20px; font-weight: bold; color: #869C84; margin: 0; }
+        .subtitle { font-size: 14px; color: #71717a; margin-top: 4px; }
+        .section { margin-bottom: 1.5rem; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 8px; padding: 1rem; }
+        .section-title { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; color: #869C84; margin-bottom: 8px; border-left: 3px solid #869C84; padding-left: 6px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        @media print { body { padding: 1rem; } }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1 class="title">INFORME DE HISTORIA CLÍNICA VETERINARIA</h1>
+        <p class="subtitle">Fecha de Visita: ${formatDate(visit.start_time)} ${formatTime(visit.start_time)}</p>
+      </div>
+
+      <div class="section">
+        <div class="grid">
+          <div>
+            <strong>Tutor (Propietario):</strong> ${props.clientName || '—'}<br>
+            <strong>Paciente (Mascota):</strong> ${pet.name}<br>
+            <strong>Raza / Especie:</strong> ${pet.breed || 'Sin raza'}<br>
+            <strong>Peso:</strong> ${pet.weight || '—'}
+          </div>
+          <div>
+            <strong>Servicio:</strong> ${visit.services?.name || visit.service?.name || '—'}<br>
+            <strong>Atendido por:</strong> ${visit.profiles?.full_name || visit.employee_profile?.full_name || '—'}<br>
+            ${visit.assistant_profile ? `<strong>Asistente:</strong> ${visit.assistant_profile.full_name}<br>` : ''}
+            <strong>Estado:</strong> ${getStatusLabel(visit.status)}
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title">DIAGNÓSTICO POR SISTEMAS</div>
+        ${systemsHtml}
+      </div>
+
+      ${visit.treatment ? `
+        <div class="section">
+          <div class="section-title">TRATAMIENTO INDICADO</div>
+          <p style="font-size:13px; color:#27272a; margin:0; whitespace:pre-line;">${visit.treatment}</p>
+        </div>
+      ` : ''}
+
+      ${(visit.service_notes || visit.internal_notes) ? `
+        <div class="section">
+          <div class="section-title">NOTAS Y OBSERVACIONES</div>
+          <p style="font-size:13px; color:#52525b; margin:0; font-style:italic;">${visit.service_notes || visit.internal_notes}</p>
+        </div>
+      ` : ''}
+
+      ${productsHtml ? `
+        <div class="section">
+          <div class="section-title">PRODUCTOS / INSUMOS APLICADOS</div>
+          ${productsHtml}
+        </div>
+      ` : ''}
+    </body>
+    </html>
+  `)
+
   win.document.close()
   win.focus()
   win.print()
