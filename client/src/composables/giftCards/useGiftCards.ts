@@ -2,6 +2,7 @@ import { ref, computed } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useNotification } from '../common/useNotification'
 import { translateError } from '../../lib/errors'
+import { giftCardFormSchema } from '../../lib/validation'
 import { useBusinessStore } from '../../store/business'
 import { giftCardsKeys, listGiftCards, saveGiftCard, deleteGiftCard } from '../../services/giftCardsService'
 import type { GiftCard, GiftCardFormData } from '../../types/giftCard'
@@ -55,6 +56,7 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
   const showModal = ref(false)
   const editingId = ref<string | null>(null)
   const saveError = ref('')
+  const formErrors = ref<Record<string, string>>({})
 
   const form = ref<GiftCardFormData>({
     recipientName: '',
@@ -67,6 +69,7 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
     form.value = { recipientName: '', recipientPhone: '', amount: 0, notes: '' }
     editingId.value = null
     saveError.value = ''
+    formErrors.value = {}
   }
 
   const openNew = () => {
@@ -95,6 +98,19 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
   const handleSave = async () => {
     if (saveMutation.isPending.value) return
     saveError.value = ''
+    formErrors.value = {}
+
+    const parsed = giftCardFormSchema.safeParse(form.value)
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0] as string
+        if (!formErrors.value[field]) {
+          formErrors.value[field] = issue.message
+        }
+      }
+      return
+    }
+
     try {
       await saveMutation.mutateAsync({ ...form.value })
     } catch (err) {
@@ -118,6 +134,7 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
     editingId,
     form,
     saveError,
+    formErrors,
     openNew,
     openEdit,
     closeModal,

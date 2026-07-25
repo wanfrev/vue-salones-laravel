@@ -13,6 +13,7 @@
             <input id="exp-name" v-model="form.name" type="text"
               class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
               placeholder="Ej: Renta del local" required />
+            <p v-if="formErrors?.name" class="text-xs text-danger mt-1">{{ formErrors.name }}</p>
           </div>
           <div class="grid grid-cols-3 gap-3">
             <div>
@@ -29,6 +30,7 @@
               <input id="exp-amount" v-model.number="form.amount" type="number" min="0" step="0.01"
                 class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
                 placeholder="0.00" required />
+              <p v-if="formErrors?.amount" class="text-xs text-danger mt-1">{{ formErrors.amount }}</p>
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-text" for="exp-currency">Moneda</label>
@@ -74,6 +76,7 @@ defineProps<{
   form: Record<string, string | number>
   saveError: string
   isSaving: boolean
+  formErrors?: Record<string, string>
 }>()
 
 defineEmits<{

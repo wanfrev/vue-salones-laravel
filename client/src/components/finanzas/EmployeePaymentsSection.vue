@@ -360,6 +360,10 @@
               placeholder="Ej: Comisión servicios, adelanto..." />
           </div>
           <p v-if="paymentsCtx.paymentError.value" class="hidden">{{ paymentsCtx.paymentError.value }}</p>
+          <p v-if="paymentsCtx.formErrors.value?.employeeId" class="text-xs text-danger mt-1">{{ paymentsCtx.formErrors.value.employeeId }}</p>
+          <p v-if="paymentsCtx.formErrors.value?.amount" class="text-xs text-danger mt-1">{{ paymentsCtx.formErrors.value.amount }}</p>
+          <p v-if="paymentsCtx.formErrors.value?.paymentMethod" class="text-xs text-danger mt-1">{{ paymentsCtx.formErrors.value.paymentMethod }}</p>
+          <p v-if="paymentsCtx.formErrors.value?.paymentDate" class="text-xs text-danger mt-1">{{ paymentsCtx.formErrors.value.paymentDate }}</p>
           <div class="flex items-center justify-end gap-3">
             <button type="button"
               class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"

@@ -19,6 +19,7 @@
           placeholder="Ej: Champú Keratina"
           required
           :error="errors.name"
+          @blur="handleBlur('name')"
         />
         <FormDropdown
           v-if="!showingCustomCategory"
@@ -137,6 +138,8 @@ import { useNotification } from '../../composables/common/useNotification'
 import { listProductCategories, createProductCategory, productosKeys } from '../../services/productosService'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
+import { useFormValidation } from '../../composables/common/useFormValidation'
+import { productoFormSchema } from '../../lib/validation'
 import { mapCategoryToOption } from '../../mappers/productosMapper'
 import type { Producto, ProductoFormData } from '../../types/producto'
 import ModalBase from '../common/ModalBase.vue'
@@ -211,12 +214,9 @@ const defaultFormData: ProductoFormData = {
 }
 
 const formData = ref<ProductoFormData>({ ...defaultFormData })
-const errors = ref<Partial<Record<keyof ProductoFormData, string>>>({})
+const { errors, isValid, validate, clearErrors, handleBlur } = useFormValidation(productoFormSchema as any, formData) as any as ReturnType<typeof useFormValidation>
 
-const isFormValid = computed(() => {
-  return formData.value.name.trim().length >= 2 &&
-         formData.value.unit.trim().length > 0
-})
+const isFormValid = computed(() => isValid.value && formData.value.name.trim().length >= 2 && formData.value.unit.trim().length > 0)
 
 watch(
   [isOpen, () => modalData.value?.producto],
@@ -242,7 +242,7 @@ watch(
       const defaultSellable = ctx?.defaultSellable ?? false
       formData.value = { ...defaultFormData, isSellable: defaultSellable }
     }
-    errors.value = {}
+    clearErrors()
   },
   { immediate: true }
 )
@@ -257,35 +257,13 @@ watch(
   }
 )
 
-const validateForm = (): boolean => {
-  errors.value = {}
-
-  if (!formData.value.name.trim() || formData.value.name.length < 2) {
-    errors.value.name = 'El nombre debe tener al menos 2 caracteres'
-  }
-  if (!formData.value.unit.trim()) {
-    errors.value.unit = 'La unidad de medida es requerida'
-  }
-  if (formData.value.unitPrice < 0) {
-    errors.value.unitPrice = 'El precio no puede ser negativo'
-  }
-  if (formData.value.unitCost < 0) {
-    errors.value.unitCost = 'El costo no puede ser negativo'
-  }
-
-  return Object.keys(errors.value).length === 0
-}
-
 const handleSubmit = async () => {
   if (props.isSaving) {
     console.warn('[ProductoFormModal] handleSubmit bloqueado: isSaving=true')
     return
   }
 
-  if (!validateForm()) {
-    showError('Por favor corrige los errores en el formulario')
-    return
-  }
+  if (!validate()) return
 
   let categoryId = formData.value.categoryId
   if (showingCustomCategory.value && newCategoryName.value.trim()) {
