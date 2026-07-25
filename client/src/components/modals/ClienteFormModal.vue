@@ -94,18 +94,7 @@
         </div>
       </div>
 
-      <div v-if="isEditing" class="border-t border-border mt-6 pt-4 flex items-center justify-between">
-        <button
-          v-if="isPet || isVet"
-          type="button"
-          class="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary transition-theme hover:bg-primary/20"
-          @click="showPetHistoryModal = true"
-        >
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-          </svg>
-          Ver Historia Clínica de Mascotas
-        </button>
+      <div v-if="isEditing" class="border-t border-border mt-6 pt-4 flex items-center justify-end">
         <button
           type="button"
           class="rounded-lg border border-danger/30 px-4 py-2 text-sm font-semibold text-danger transition-theme hover:bg-danger/10"
@@ -116,11 +105,6 @@
       </div>
     </form>
 
-    <PetHistoryModal
-      v-model="showPetHistoryModal"
-      :client-id="modalData?.cliente?.id"
-      :client-name="formData.name"
-    />
   </ModalBase>
 </template>
 
@@ -135,11 +119,8 @@ import type { Cliente, ClienteFormData, PetFormData } from '../../types/cliente'
 import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormTextarea } from '../forms'
 import NicheFields from '../clients/NicheFields.vue'
-import PetHistoryModal from './PetHistoryModal.vue'
 import { getNicheConfig, isPetNiche, isVetNiche } from '../../config/nicheFields'
 import { listPetsByClient } from '../../services/petService'
-
-const showPetHistoryModal = ref(false)
 
 const MODAL_ID = 'cliente-form-modal'
 

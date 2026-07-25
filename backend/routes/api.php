@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\FinancialSummaryController;
 use App\Http\Controllers\Api\GiftCardController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PetController;
 use App\Http\Controllers\Api\PosController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 
@@ -107,9 +108,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/clients/search', [ClientController::class, 'search']);
     Route::post('/clients/find-or-create-by-phone', [ClientController::class, 'findOrCreateByPhone']);
     Route::get('/clients/{id}', [ClientController::class, 'show']);
-    Route::get('/clients/{id}/history', [ClientController::class, 'history']);
+        Route::get('/clients/{id}/history', [ClientController::class, 'history']);
         Route::get('/clients/{clientId}/pets', [ClientController::class, 'pets']);
         Route::get('/clients/{clientId}/pets/{petId}/history', [AppointmentController::class, 'petHistory']);
+
+        // Global Pets (Consultorio)
+        Route::get('/pets', [PetController::class, 'index']);
 
         // Appointments
     Route::get('/appointments', [AppointmentController::class, 'index']);
