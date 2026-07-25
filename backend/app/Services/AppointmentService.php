@@ -21,7 +21,7 @@ class AppointmentService
         ?string $groupId = null,
         ?string $idNot = null,
     ): Collection {
-        $query = Appointment::with(['client', 'service', 'employeeProfile', 'assistantProfile'])
+        $query = Appointment::with($this->getWithRelations())
             ->where('business_id', $businessId)
             ->orderBy('start_time');
 
@@ -229,5 +229,14 @@ class AppointmentService
                 'start_time' => "El {$conflictEmployee} ya tiene una cita en ese horario.",
             ]);
         }
+    }
+
+    private function getWithRelations(): array
+    {
+        $relations = ['client', 'service', 'employeeProfile', 'assistantProfile'];
+        if (\Illuminate\Support\Facades\Schema::hasTable('service_products')) {
+            $relations[] = 'service.linkedProducts.product';
+        }
+        return $relations;
     }
 }
