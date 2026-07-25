@@ -148,9 +148,32 @@
       <!-- BLOQUE 3: NOTAS -->
       <FormTextarea v-model="formData.notes" label="Notas" placeholder="Notas adicionales sobre la cita..." :rows="2" :error="errors.notes" />
 
-      <div v-if="showPetSelector && formData.petId" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <FormTextarea v-model="formData.diagnosis" label="Diagnóstico" placeholder="Observaciones, síntomas, hallazgos..." :rows="2" />
-        <FormTextarea v-model="formData.treatment" label="Tratamiento" placeholder="Procedimiento, medicamentos, indicaciones..." :rows="2" />
+      <!-- BLOQUE HISTORIA CLÍNICA VETERINARIA -->
+      <div v-if="showPetSelector && formData.petId" class="space-y-4 rounded-xl border border-primary/20 bg-primary/5 p-4 mt-4">
+        <div class="flex items-center gap-2 mb-2">
+          <svg class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          </svg>
+          <h3 class="font-bold text-primary">Historia Clínica Específica</h3>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FormInput v-model="formData.clinicalHistory['Oftálmico']" label="Oftálmico / Ojos" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Otológico']" label="Otológico / Oídos" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Tegumentario']" label="Tegumentario / Piel" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Músculo-Esquelético']" label="Músculo-Esquelético" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Respiratorio']" label="Respiratorio" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Cardiovascular']" label="Cardiovascular" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Gastrointestinal']" label="Gastrointestinal" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Genitourinario']" label="Genitourinario" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Nervioso']" label="Nervioso / Neurológico" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Linfático']" label="Linfático / Inmunológico" placeholder="Hallazgos..." />
+        </div>
+        <FormTextarea v-model="formData.clinicalHistory['Otros']" label="Otros diagnósticos" placeholder="Cualquier otro hallazgo relevante..." :rows="2" />
+        
+        <div class="border-t border-primary/20 pt-4 mt-2">
+          <FormTextarea v-model="formData.treatment" label="Tratamiento" placeholder="Procedimiento, medicamentos, indicaciones..." :rows="3" />
+        </div>
       </div>
 
       <!-- BLOQUE 4: PRODUCTOS / INSUMOS ASOCIADOS (Solo Nicho Canino / Vet) -->
@@ -323,7 +346,7 @@ const defaultFormData = (): CitaFormData & { extraServices: CitaFormServiceItem[
   const minutes = now.getHours() * 60 + now.getMinutes()
   const nextSlot = Math.ceil(minutes / 30) * 30
   const myId = isEmployee.value ? (authStore.profile?.id ?? '') : ''
-  return { clientId: undefined, clientName: '', clientPhone: '', petId: '', service: '', employee: myId, assistantEmployee: '', assistantPercentage: 0, duration: 30, price: 0, isFixedCommissionOverride: false, employeePercentageOverride: undefined, employeeAmountOverride: undefined, assistantAmountOverride: undefined, extraServices: [], date: today, time: minutesToHHmm(nextSlot), status: 'pending', notes: '', diagnosis: '', treatment: '', associatedProducts: [] }
+  return { clientId: undefined, clientName: '', clientPhone: '', petId: '', service: '', employee: myId, assistantEmployee: '', assistantPercentage: 0, duration: 30, price: 0, isFixedCommissionOverride: false, employeePercentageOverride: undefined, employeeAmountOverride: undefined, assistantAmountOverride: undefined, extraServices: [], date: today, time: minutesToHHmm(nextSlot), status: 'pending', notes: '', diagnosis: '', treatment: '', associatedProducts: [], clinicalHistory: {} }
 }
 
 const addAssociatedProductRow = () => {
@@ -634,7 +657,8 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
       : ((cita as any).associated_products ? JSON.parse(JSON.stringify((cita as any).associated_products)) : [])
 
     const incomingPetId: string | undefined = (cita as any).petId || (cita as any).pet_id || undefined
-    formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: cita.clientPhone || '', petId: incomingPetId, service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), isFixedCommissionOverride: cita.isFixedCommissionOverride ?? false, employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, employeeAmountOverride: cita.employeeAmountOverride != null ? Number(cita.employeeAmountOverride) : undefined, assistantAmountOverride: cita.assistantAmountOverride != null ? Number(cita.assistantAmountOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '', diagnosis: (cita as any).diagnosis || '', treatment: (cita as any).treatment || '', associatedProducts: initialAssociated }
+    const incomingClinicalHistory = (cita as any).clinicalHistory || (cita as any).clinical_history || {}
+    formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: cita.clientPhone || '', petId: incomingPetId, service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), isFixedCommissionOverride: cita.isFixedCommissionOverride ?? false, employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, employeeAmountOverride: cita.employeeAmountOverride != null ? Number(cita.employeeAmountOverride) : undefined, assistantAmountOverride: cita.assistantAmountOverride != null ? Number(cita.assistantAmountOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '', diagnosis: (cita as any).diagnosis || '', treatment: (cita as any).treatment || '', associatedProducts: initialAssociated, clinicalHistory: JSON.parse(JSON.stringify(incomingClinicalHistory)) }
 
     if (cita.clientId && businessId.value) { try { const { searchClients } = await import('../../services/clientesService'); const r = await searchClients(businessId.value, cita.clientName, branchId.value); const m = r.find(c => c.id === cita.clientId); if (m) formData.value.clientPhone = m.phone } catch {} }
     if (cita.groupId) {
