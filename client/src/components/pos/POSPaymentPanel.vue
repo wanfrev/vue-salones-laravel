@@ -57,7 +57,22 @@
       </div>
 
       <div v-if="cart.length > 0" class="border-t border-border-subtle pt-3">
-        <h4 class="text-xs font-semibold text-text-muted uppercase tracking-wider mb-2">Productos</h4>
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="text-xs font-semibold text-text-muted uppercase tracking-wider">Productos</h4>
+          <label v-if="!isRetailOnly" class="flex items-center gap-2 cursor-pointer">
+            <span class="text-xs font-medium text-text-muted">Incluidos (Exonerar precio)</span>
+            <div
+              class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              :class="areProductsIncluded ? 'bg-primary' : 'bg-bg-secondary border border-border'"
+              @click="$emit('update:are-products-included', !areProductsIncluded)"
+            >
+              <span
+                class="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                :class="areProductsIncluded ? 'translate-x-4.5 bg-white' : 'translate-x-0.5 bg-border-strong'"
+              />
+            </div>
+          </label>
+        </div>
         <div class="space-y-2">
           <div
             v-for="(item, idx) in cart"
@@ -66,7 +81,7 @@
           >
             <div class="flex-1 min-w-0">
               <p class="text-sm font-medium text-text truncate">{{ item.productName }}</p>
-              <p class="text-xs text-text-muted">{{ formatDual(item.unitPrice) }} c/u</p>
+              <p class="text-xs" :class="areProductsIncluded ? 'text-text-muted line-through opacity-70' : 'text-text-muted'">{{ formatDual(item.unitPrice) }} c/u</p>
             </div>
             <div class="flex items-center gap-1">
               <button
@@ -84,7 +99,10 @@
               </button>
             </div>
             <div class="flex items-center gap-2">
-              <span class="text-sm font-semibold text-text w-16 text-right">{{ formatDual(item.subtotal) }}</span>
+              <div class="text-right w-16">
+                <span v-if="areProductsIncluded" class="block text-xs font-bold text-success">Exonerado</span>
+                <span v-else class="text-sm font-semibold text-text">{{ formatDual(item.subtotal) }}</span>
+              </div>
               <button
                 @click="$emit('remove-item', idx)"
                 class="flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
@@ -325,6 +343,7 @@ defineProps<{
   showTipAdjust: boolean
   isRetailOnly?: boolean
   retailClientName?: string | null
+  areProductsIncluded?: boolean
 }>()
 
 defineEmits<{
@@ -341,6 +360,7 @@ defineEmits<{
   'increment-qty': [idx: number]
   'decrement-qty': [idx: number]
   'remove-item': [idx: number]
+  'update:are-products-included': [value: boolean]
 }>()
 
 const { formatDual } = useCurrency()
