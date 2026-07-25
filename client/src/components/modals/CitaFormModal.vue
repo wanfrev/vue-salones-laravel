@@ -23,11 +23,13 @@
             :t="t"
             :can-create-clients="canCreateClients"
             :error="errors.clientName"
+            @blur="handleBlur('clientName')"
             @select-client="onClientSelected"
           />
           <FormInput v-model="formData.clientPhone" label="Teléfono" type="tel" placeholder="+58 412 1234567" required
             prefix-icon="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-            :error="errors.clientPhone" />
+            :error="errors.clientPhone" 
+            @blur="handleBlur('clientPhone')" />
         </div>
         <FormDropdown
           v-if="showPetSelector"
@@ -41,8 +43,10 @@
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_160px]">
           <div class="space-y-3">
             <FormInput v-model="formData.date" label="Fecha" type="date" required
-              prefix-icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" :error="errors.date" />
-            <FormTime v-model="formData.time" label="Hora" required :error="errors.time" />
+              prefix-icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" :error="errors.date" 
+              @blur="handleBlur('date')" />
+            <FormTime v-model="formData.time" label="Hora" required :error="errors.time" 
+              @blur="handleBlur('time')" />
           </div>
           <FormDropdown v-model="formData.status" label="Estado" :options="statusOptions" required :error="errors.status" />
         </div>
@@ -210,6 +214,8 @@ import { useNotification } from '../../composables/common/useNotification'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { toISODate, minutesToHHmm, getInitials } from '../../lib/formatters'
+import { citaFormSchema } from '../../lib/validation'
+import { useFormValidation } from '../../composables/common/useFormValidation'
 import { listCitaGroupMembers } from '../../services/agendaService'
 import type { Cita, CitaFormData, CitaFormServiceItem, PaymentEditContext } from '../../types/cita'
 import type { Pet } from '../../types/database'
@@ -359,7 +365,6 @@ const updateAssociatedProductRow = (index: number, field: string, value: any) =>
 }
 
 const formData = ref<CitaFormData & { extraServices: CitaFormServiceItem[] }>(defaultFormData())
-const errors = ref<Partial<Record<keyof CitaFormData, string>> & { rowErrors?: Record<number, Partial<Record<string, string>>> }>({})
 const activeEmployeeOverrides = reactive(new Set<number>())
 
 const paymentEditorRef = ref<InstanceType<typeof PaymentEditor> | null>(null)
@@ -696,27 +701,43 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
   commissionDetailOpen.clear()
   if (formData.value.employeePercentageOverride != null || formData.value.employeeAmountOverride != null || formData.value.isFixedCommissionOverride) { activeEmployeeOverrides.add(0); commissionDetailOpen.add(0) }
   formData.value.extraServices.forEach((_, i) => { if (formData.value.extraServices[i]?.employeePercentageOverride != null || formData.value.extraServices[i]?.employeeAmountOverride != null || formData.value.extraServices[i]?.isFixedCommissionOverride) { activeEmployeeOverrides.add(i + 1); commissionDetailOpen.add(i + 1) } })
-  errors.value = {}
+  clearErrors()
   nextTick(() => { isInitialSetup.value = false })
 }, { immediate: true })
 
 const normalizePhone = (phone: string): string => { let d = phone.replace(/\D/g, ''); if (!d) return ''; if (d.startsWith('0')) d = d.slice(1); if (!d.startsWith('58')) d = '58' + d; return '+' + d }
 
+const { errors, validate, clearErrors, handleBlur } = useFormValidation(citaFormSchema as any, formData as any) as any as ReturnType<typeof useFormValidation>
+
+const isFormValid = computed(() => {
+  if (formData.value.clientName.trim().length < 2) return false
+  if (formData.value.clientPhone.trim().length < 7) return false
+  if (!formData.value.service) return false
+  if (!formData.value.employee) return false
+  if (formData.value.extraServices.some(e => !e.serviceId || !e.employeeId)) return false
+  if (!canCreateClients.value && !formData.value.clientId) return false
+  return true
+})
+
 const validateForm = (): boolean => {
-  errors.value = {}; const rowErrors: Record<number, Partial<Record<string, string>>> = {}
-  if (!formData.value.clientName.trim() || formData.value.clientName.length < 2) errors.value.clientName = 'El nombre del cliente es requerido'
-  const phone = formData.value.clientPhone.trim()
-  if (!phone) { errors.value.clientPhone = 'El teléfono es requerido' }
-  else { formData.value.clientPhone = normalizePhone(phone); if (formData.value.clientPhone.length < 10) errors.value.clientPhone = 'Al menos 10 dígitos'; else if (!/^\+58\d{9,}$/.test(formData.value.clientPhone)) errors.value.clientPhone = 'Formato inválido' }
+  const rowErrors: Record<number, Partial<Record<string, string>>> = {}
+
+  // Use Zod for top-level field validation
+  const baseValid = validate()
+
+  // Row-level validation (services table)
   if (!formData.value.service) rowErrors[0] = { ...rowErrors[0], serviceId: 'Selecciona un servicio' }
   if (!formData.value.employee) rowErrors[0] = { ...rowErrors[0], employeeId: 'Selecciona un empleado' }
   if (formData.value.assistantEmployee && formData.value.assistantEmployee === formData.value.employee) rowErrors[0] = { ...rowErrors[0], assistantEmployeeId: 'El asistente no puede ser el mismo empleado' }
-  for (let i = 0; i < formData.value.extraServices.length; i++) { const e = formData.value.extraServices[i]; const idx = i + 1; if (!e.serviceId) rowErrors[idx] = { ...rowErrors[idx], serviceId: 'Selecciona un servicio' }; if (!e.employeeId) rowErrors[idx] = { ...rowErrors[idx], employeeId: 'Selecciona un empleado' }; if (e.assistantEmployeeId && e.assistantEmployeeId === e.employeeId) rowErrors[idx] = { ...rowErrors[idx], assistantEmployeeId: 'El asistente no puede ser el mismo empleado' }; }
-  if (!formData.value.date) errors.value.date = 'Selecciona una fecha'
-  if (!formData.value.time) errors.value.time = 'Selecciona una hora'
+  for (let i = 0; i < formData.value.extraServices.length; i++) {
+    const e = formData.value.extraServices[i]; const idx = i + 1
+    if (!e.serviceId) rowErrors[idx] = { ...rowErrors[idx], serviceId: 'Selecciona un servicio' }
+    if (!e.employeeId) rowErrors[idx] = { ...rowErrors[idx], employeeId: 'Selecciona un empleado' }
+    if (e.assistantEmployeeId && e.assistantEmployeeId === e.employeeId) rowErrors[idx] = { ...rowErrors[idx], assistantEmployeeId: 'El asistente no puede ser el mismo empleado' }
+  }
 
-  // ── Overlap check ──
-  if (formData.value.date && formData.value.time && formData.value.employee && !errors.value.time) {
+  // Overlap check
+  if (formData.value.date && formData.value.time && formData.value.employee && !(errors as any).value?.time) {
     const durationMin = formData.value.duration || 30
     const startTime = new Date(`${formData.value.date}T${formData.value.time}:00`)
     const endTime = new Date(startTime.getTime() + durationMin * 60 * 1000)
@@ -738,29 +759,24 @@ const validateForm = (): boolean => {
       return aStart < endTime && aEnd > startTime
     })
     if (isConflictFor(formData.value.employee)) {
-      errors.value.time = 'El empleado ya tiene una cita en ese horario'
+      (errors as any).value.time = 'El empleado ya tiene una cita en ese horario'
     } else if (formData.value.assistantEmployee && isConflictFor(formData.value.assistantEmployee)) {
       rowErrors[0] = { ...rowErrors[0], assistantEmployeeId: 'El asistente ya tiene una cita en ese horario' }
     }
     for (let i = 0; i < formData.value.extraServices.length; i++) {
-      const e = formData.value.extraServices[i]
-      const idx = i + 1
-      if (e.employeeId && isConflictFor(e.employeeId)) {
-        rowErrors[idx] = { ...rowErrors[idx], employeeId: 'El empleado ya tiene una cita en ese horario' }
-      }
-      if (e.assistantEmployeeId && isConflictFor(e.assistantEmployeeId)) {
-        rowErrors[idx] = { ...rowErrors[idx], assistantEmployeeId: 'El asistente ya tiene una cita en ese horario' }
-      }
+      const e = formData.value.extraServices[i]; const idx = i + 1
+      if (e.employeeId && isConflictFor(e.employeeId)) { rowErrors[idx] = { ...rowErrors[idx], employeeId: 'El empleado ya tiene una cita en ese horario' } }
+      if (e.assistantEmployeeId && isConflictFor(e.assistantEmployeeId)) { rowErrors[idx] = { ...rowErrors[idx], assistantEmployeeId: 'El asistente ya tiene una cita en ese horario' } }
     }
   }
 
-  if (Object.keys(rowErrors).length > 0) (errors.value as any).rowErrors = rowErrors
-  return Object.keys(errors.value).length === 0
+  if (Object.keys(rowErrors).length > 0) (errors as any).value.rowErrors = rowErrors
+  return baseValid && Object.keys(rowErrors).length === 0
 }
 
 const handleSubmit = () => {
   if (saveInProgress.value) return
-  if (!validateForm()) { showError('Por favor corrige los errores en el formulario'); return }
+  if (!validateForm()) return
   saveInProgress.value = true
 
   if (formData.value.associatedProducts && formData.value.associatedProducts.length > 0) {

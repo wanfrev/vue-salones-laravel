@@ -19,8 +19,8 @@
         :placeholder="serviceNamePlaceholder"
         required
         prefix-icon="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
-        :error="errors.name"
-      />
+         :error="errors.name"
+          @blur="handleBlur('name')"
 
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <!-- Categoría -->
@@ -72,7 +72,7 @@
           required
           prefix-icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
           :error="errors.price"
-        />
+          @blur="handleBlur('price')"
 
         <!-- Duración -->
         <FormInput
@@ -83,7 +83,7 @@
           required
           prefix-icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
           :error="errors.duration"
-        />
+          @blur="handleBlur('duration')"
       </div>
 
       <!-- Descripción -->
@@ -209,6 +209,8 @@ import { useNotification } from '../../composables/common/useNotification'
 import { useBusinessStore } from '../../store/business'
 import { getEntityServiceCategories } from '../../services/serviciosService'
 import { listProductos } from '../../services/productosService'
+import { useFormValidation } from '../../composables/common/useFormValidation'
+import { servicioFormSchema } from '../../lib/validation'
 import type { Servicio, ServicioFormData, LinkedProductItem } from '../../types/servicio'
 import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormDropdown, FormTextarea } from '../forms'
@@ -373,16 +375,12 @@ const defaultFormData: ServicioFormData = {
 }
 
 const formData = ref<ServicioFormData>({ ...defaultFormData })
-const errors = ref<Partial<Record<keyof ServicioFormData, string>>>({})
+const { errors, isValid, validate, clearErrors, handleBlur } = useFormValidation(servicioFormSchema as any, formData) as any as ReturnType<typeof useFormValidation>
 
-const isFormValid = computed(() => {
-  return formData.value.name.trim().length >= 2 && 
-         formData.value.price > 0 && 
-         formData.value.duration > 0
-})
+const isFormValid = computed(() => isValid.value && formData.value.name.trim().length >= 2 && formData.value.price > 0 && formData.value.duration > 0)
 
 watch(isOpen, (open) => {
-  if (open) errors.value = {}
+  if (open) clearErrors()
 })
 
 watch(
@@ -395,31 +393,10 @@ watch(
   }
 )
 
-const validateForm = (): boolean => {
-  errors.value = {}
-
-  if (!formData.value.name.trim() || formData.value.name.length < 2) {
-    errors.value.name = 'El nombre debe tener al menos 2 caracteres'
-  }
-
-  if (formData.value.price <= 0) {
-    errors.value.price = 'El precio debe ser mayor a 0'
-  }
-
-  if (formData.value.duration <= 0) {
-    errors.value.duration = 'La duración debe ser mayor a 0 minutos'
-  }
-
-  return Object.keys(errors.value).length === 0
-}
-
 const handleSubmit = async () => {
   if (props.isSaving) return
 
-  if (!validateForm()) {
-    showError('Por favor corrige los errores en el formulario')
-    return
-  }
+  if (!validate()) return
 
   const category = formData.value.category.trim()
 

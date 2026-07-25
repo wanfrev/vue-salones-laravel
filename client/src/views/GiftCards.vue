@@ -145,6 +145,8 @@
               placeholder="Opcional" />
           </div>
           <p v-if="ctx.saveError.value" class="text-sm text-danger">{{ ctx.saveError.value }}</p>
+          <p v-if="ctx.formErrors.value?.recipientName" class="text-xs text-danger">{{ ctx.formErrors.value.recipientName }}</p>
+          <p v-if="ctx.formErrors.value?.amount" class="text-xs text-danger">{{ ctx.formErrors.value.amount }}</p>
           <div class="flex items-center justify-end gap-3">
             <button type="button"
               class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"

@@ -5,6 +5,7 @@ import { useCurrency } from '../common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { expensesKeys, listExpenses, saveExpense, deleteExpense, type ExpenseFormData, type ExpenseRow } from '../../services/expensesService'
 import { translateError } from '../../lib/errors'
+import { expenseFormSchema } from '../../lib/validation'
 
 type PeriodValue = 'month' | 'quarter' | 'year'
 
@@ -118,6 +119,7 @@ export function useExpenses(
   })
 
   const saveError = ref('')
+  const formErrors = ref<Record<string, string>>({})
 
   const resetForm = () => {
     expenseForm.value = {
@@ -130,6 +132,7 @@ export function useExpenses(
     }
     editingExpenseId.value = null
     saveError.value = ''
+    formErrors.value = {}
   }
 
   const openNew = () => { resetForm(); showExpenseModal.value = true }
@@ -152,6 +155,19 @@ export function useExpenses(
   const handleSave = async () => {
     if (saveMutation.isPending.value) return
     saveError.value = ''
+    formErrors.value = {}
+
+    const parsed = expenseFormSchema.safeParse(expenseForm.value)
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0] as string
+        if (!formErrors.value[field]) {
+          formErrors.value[field] = issue.message
+        }
+      }
+      return
+    }
+
     try {
       await saveMutation.mutateAsync({ ...expenseForm.value, id: editingExpenseId.value ?? undefined })
     } catch (err) {
@@ -175,6 +191,7 @@ export function useExpenses(
     saveMutation,
     deleteMutation,
     saveError,
+    formErrors,
     showExpenseModal,
     editingExpenseId,
     expenseForm,

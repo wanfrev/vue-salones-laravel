@@ -24,6 +24,7 @@
             required
             prefix-icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
             :error="errors.name"
+            @blur="handleBlur('name')"
           />
 
           <div>
@@ -86,6 +87,7 @@
               required
               prefix-icon="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
               :error="errors.email"
+              @blur="handleBlur('email')"
             />
           </div>
 
@@ -98,6 +100,7 @@
             :hint="isEditing ? 'Dejar vacío para mantener la actual' : 'Mínimo 6 caracteres'"
             prefix-icon="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
             :error="errors.password"
+            @blur="handleBlur('password')"
             show-password-toggle
             autocomplete="new-password"
           />
@@ -194,6 +197,8 @@ import { useNotification } from '../../composables/common/useNotification'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { addBusinessJobTitle } from '../../services/equipoService'
+import { useFormValidation } from '../../composables/common/useFormValidation'
+import { empleadoFormSchema } from '../../lib/validation'
 import type { Empleado, EmpleadoFormData } from '../../types/empleado'
 import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormDropdown } from '../forms'
@@ -264,7 +269,7 @@ const defaultFormData: EmpleadoFormData = {
 }
 
 const formData = ref<EmpleadoFormData>({ ...defaultFormData })
-const errors = ref<Partial<Record<keyof EmpleadoFormData, string>>>({})
+const { errors, isValid, validate, clearErrors, handleBlur } = useFormValidation(empleadoFormSchema as any, formData) as any as ReturnType<typeof useFormValidation>
 
 const isFormValid = computed(() => {
   const nameValid = formData.value.name.trim().length >= 2
@@ -307,7 +312,7 @@ watch(
     } else {
       formData.value = { ...defaultFormData }
     }
-    errors.value = {}
+    clearErrors()
   },
   { immediate: true }
 )
@@ -331,44 +336,6 @@ watch(
   }
 )
 
-const validateForm = (): boolean => {
-  errors.value = {}
-
-  if (!formData.value.name.trim() || formData.value.name.length < 2) {
-    errors.value.name = 'El nombre debe tener al menos 2 caracteres'
-  }
-
-  if (formData.value.systemRole !== 'encargado' && !formData.value.role.trim()) {
-    errors.value.role = 'El rol / puesto es obligatorio'
-  }
-
-  if (formData.value.payType !== 'salary' && (formData.value.payPercentage < 0 || formData.value.payPercentage > 100)) {
-    errors.value.payPercentage = 'El porcentaje debe estar entre 0 y 100'
-  }
-
-  if (formData.value.payType !== 'percentage' && formData.value.baseSalary < 0) {
-    errors.value.baseSalary = 'El sueldo base no puede ser negativo'
-  }
-
-  if (!formData.value.email.trim()) {
-    errors.value.email = 'El email es obligatorio'
-  } else if (!isValidEmail(formData.value.email)) {
-    errors.value.email = 'El email no es válido'
-  }
-
-  const pwdLength = formData.value.password.length
-
-  if (pwdLength === 0) {
-    if (!isEditing.value) {
-      errors.value.password = 'La contraseña debe tener al menos 6 caracteres'
-    }
-  } else if (pwdLength < 6) {
-    errors.value.password = 'La contraseña debe tener al menos 6 caracteres'
-  }
-
-  return Object.keys(errors.value).length === 0
-}
-
 const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   return emailRegex.test(email)
@@ -387,10 +354,7 @@ const confirmDelete = () => {
 const handleSubmit = async () => {
   if (isLoading.value) return
 
-  if (!validateForm()) {
-    showError('Por favor corrige los errores en el formulario')
-    return
-  }
+  if (!validate()) return
 
   isSubmitting.value = true
 
