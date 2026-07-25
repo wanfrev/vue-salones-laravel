@@ -10,46 +10,66 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Columna Bolívares -->
-        <div class="space-y-4 rounded-xl border border-border p-4 bg-bg-secondary/30">
-          <h3 class="text-sm font-bold text-text-secondary uppercase tracking-wider">Ingresos Bolívares (Bs)</h3>
-          <div class="space-y-3">
-            <FormInput v-model="formData.pos_bs" label="Punto de Venta" type="number" step="0.01" min="0" />
-            <FormInput v-model="formData.pago_movil_bs" label="Pago Móvil" type="number" step="0.01" min="0" />
-            <FormInput v-model="formData.cash_bs" label="Efectivo Bs" type="number" step="0.01" min="0" />
-            <FormInput v-model="formData.transfer_bs" label="Transferencia" type="number" step="0.01" min="0" />
+        <div class="space-y-4 rounded-xl border border-border p-4 bg-bg-secondary/30 flex flex-col justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-text-secondary uppercase tracking-wider mb-3">Ingresos Bolívares (Bs)</h3>
+            <div class="space-y-3">
+              <FormInput v-model="formData.pos_bs" label="Punto de Venta" type="number" step="0.01" min="0" />
+              <FormInput v-model="formData.pago_movil_bs" label="Pago Móvil" type="number" step="0.01" min="0" />
+              <FormInput v-model="formData.cash_bs" label="Efectivo Bs" type="number" step="0.01" min="0" />
+              <FormInput v-model="formData.transfer_bs" label="Transferencia" type="number" step="0.01" min="0" />
+            </div>
           </div>
-          <div class="pt-3 border-t border-border flex justify-between items-center">
-            <span class="text-sm font-semibold text-text-muted">Total Ingresado Bs:</span>
-            <span class="text-base font-bold text-text">{{ formatCurrency(totalBs) }} Bs</span>
+          <div class="pt-3 mt-3 border-t border-border space-y-1">
+            <div class="flex justify-between items-center">
+              <span class="text-sm font-semibold text-text-muted">Total Ingresado Bs:</span>
+              <span class="text-base font-bold text-text">{{ formatCurrency(totalBs) }} Bs</span>
+            </div>
+            <div class="flex justify-between items-center text-xs text-text-muted">
+              <span>Al cambio en Dólares:</span>
+              <span class="font-semibold text-primary">≈ ${{ formatCurrency(totalBsInUsd) }} USD</span>
+            </div>
           </div>
         </div>
 
         <!-- Columna Dólares -->
-        <div class="space-y-4 rounded-xl border border-border p-4 bg-bg-secondary/30">
-          <h3 class="text-sm font-bold text-text-secondary uppercase tracking-wider">Ingresos Dólares (USD)</h3>
-          <div class="space-y-3">
-            <FormInput v-model="formData.cash_usd" label="Efectivo USD" type="number" step="0.01" min="0" />
-            <FormInput v-model="formData.zelle_usd" label="Zelle" type="number" step="0.01" min="0" />
-            <FormInput v-model="formData.binance_usd" label="Binance" type="number" step="0.01" min="0" />
-            <FormInput v-model="formData.cashea_usd" label="Cashea" type="number" step="0.01" min="0" />
+        <div class="space-y-4 rounded-xl border border-border p-4 bg-bg-secondary/30 flex flex-col justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-text-secondary uppercase tracking-wider mb-3">Ingresos Dólares (USD)</h3>
+            <div class="space-y-3">
+              <FormInput v-model="formData.cash_usd" label="Efectivo USD" type="number" step="0.01" min="0" />
+              <FormInput v-model="formData.zelle_usd" label="Zelle" type="number" step="0.01" min="0" />
+              <FormInput v-model="formData.binance_usd" label="Binance" type="number" step="0.01" min="0" />
+              <FormInput v-model="formData.cashea_usd" label="Cashea" type="number" step="0.01" min="0" />
+            </div>
           </div>
-          <div class="pt-3 border-t border-border flex justify-between items-center">
-            <span class="text-sm font-semibold text-text-muted">Total Ingresado USD:</span>
-            <span class="text-base font-bold text-text">${{ formatCurrency(totalUsd) }}</span>
+          <div class="pt-3 mt-3 border-t border-border space-y-1">
+            <div class="flex justify-between items-center">
+              <span class="text-sm font-semibold text-text-muted">Total Ingresado USD:</span>
+              <span class="text-base font-bold text-text">${{ formatCurrency(totalUsd) }} USD</span>
+            </div>
+            <div class="flex justify-between items-center text-xs text-text-muted">
+              <span>Al cambio en Bolívares:</span>
+              <span class="font-semibold text-primary">≈ {{ formatCurrency(totalUsdInBs) }} Bs</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Gran Total (Informativo) -->
-      <div class="rounded-xl border border-primary/20 bg-primary-light/10 p-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h4 class="text-sm font-bold text-primary">Gran Total del Día</h4>
-            <p class="text-xs text-text-muted mt-1">Calculado automáticamente cruzando bolívares y dólares con la tasa del día introducida.</p>
+      <!-- Gran Total Card (Total en Ambas Monedas) -->
+      <div class="rounded-xl border border-primary/30 bg-primary-light/10 p-4 space-y-3">
+        <div class="flex items-center justify-between border-b border-border/40 pb-2">
+          <h4 class="text-sm font-bold text-primary">Gran Total del Día (USD + Bs)</h4>
+          <span class="text-xs font-medium text-text-muted">Tasa: {{ formatCurrency(parseNum(formData.exchange_rate)) }} Bs/$</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div class="bg-surface/80 rounded-lg p-3 border border-border/50">
+            <span class="text-xs font-semibold text-text-muted block mb-1">Total General en Bolívares (Bs):</span>
+            <span class="text-lg font-extrabold text-text">{{ formatCurrency(grandTotalBs) }} Bs</span>
           </div>
-          <div class="text-right">
-            <div class="text-xl font-bold text-text">{{ formatCurrency(grandTotalBs) }} Bs</div>
-            <div class="text-sm font-medium text-text-muted">≈ ${{ formatCurrency(grandTotalUsd) }}</div>
+          <div class="bg-surface/80 rounded-lg p-3 border border-border/50">
+            <span class="text-xs font-semibold text-text-muted block mb-1">Total General en Dólares ($):</span>
+            <span class="text-lg font-extrabold text-text">${{ formatCurrency(grandTotalUsd) }} USD</span>
           </div>
         </div>
       </div>
@@ -87,11 +107,13 @@ import { ref, computed } from 'vue'
 import ModalBase from '../common/ModalBase.vue'
 import FormInput from '../forms/FormInput.vue'
 import { useBusinessStore } from '../../store/business'
+import { useAuthStore } from '../../store/auth'
 import { saveDailyReport } from '../../services/dailyReportService'
 import type { DailyReport } from '../../services/dailyReportService'
 import { useNotification } from '../../composables/common/useNotification'
 
 const businessStore = useBusinessStore()
+const authStore = useAuthStore()
 const { showSuccess, showError } = useNotification()
 
 const isOpen = ref(false)
@@ -124,6 +146,7 @@ const emit = defineEmits<{
 
 const parseNum = (val: string | number) => Number(val) || 0
 
+// Total Bolívares
 const totalBs = computed(() => {
   return parseNum(formData.value.pos_bs) +
          parseNum(formData.value.pago_movil_bs) +
@@ -131,6 +154,7 @@ const totalBs = computed(() => {
          parseNum(formData.value.transfer_bs)
 })
 
+// Total Dólares
 const totalUsd = computed(() => {
   return parseNum(formData.value.cash_usd) +
          parseNum(formData.value.zelle_usd) +
@@ -138,15 +162,29 @@ const totalUsd = computed(() => {
          parseNum(formData.value.cashea_usd)
 })
 
-const grandTotalBs = computed(() => {
+// Total Bs al cambio en USD
+const totalBsInUsd = computed(() => {
   const rate = parseNum(formData.value.exchange_rate)
-  return totalBs.value + (totalUsd.value * rate)
+  if (rate <= 0) return 0
+  return totalBs.value / rate
 })
 
+// Total USD al cambio en Bs
+const totalUsdInBs = computed(() => {
+  const rate = parseNum(formData.value.exchange_rate)
+  return totalUsd.value * rate
+})
+
+// Gran Total en Bolívares
+const grandTotalBs = computed(() => {
+  return totalBs.value + totalUsdInBs.value
+})
+
+// Gran Total en Dólares
 const grandTotalUsd = computed(() => {
   const rate = parseNum(formData.value.exchange_rate)
-  if (rate === 0) return totalUsd.value
-  return totalUsd.value + (totalBs.value / rate)
+  if (rate <= 0) return totalUsd.value
+  return totalUsd.value + totalBsInUsd.value
 })
 
 const formatCurrency = (val: number) => val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -190,12 +228,19 @@ const validate = () => {
 
 const handleSubmit = async () => {
   if (!validate()) return
+  
+  const businessId = businessStore.business?.id || authStore.profile?.business_id
+  if (!businessId) {
+    showError('No se pudo identificar el negocio activo.')
+    return
+  }
+
   isSaving.value = true
   try {
     const payload = {
       id: isEditing.value ? formData.value.id : undefined,
-      business_id: businessStore.business!.id,
-      branch_id: businessStore.selectedBranchId,
+      business_id: businessId,
+      branch_id: businessStore.selectedBranchId || authStore.profile?.branch_id || null,
       date: formData.value.date,
       exchange_rate: parseNum(formData.value.exchange_rate),
       z_report_bs: parseNum(formData.value.z_report_bs),
@@ -212,11 +257,12 @@ const handleSubmit = async () => {
       total_usd: totalUsd.value,
     }
     await saveDailyReport(payload)
-    showSuccess('Reporte guardado exitosamente')
+    showSuccess(isEditing.value ? 'Reporte actualizado exitosamente' : 'Reporte guardado exitosamente')
     emit('saved')
     close()
   } catch (error: any) {
-    showError(error.message || 'Error al guardar')
+    console.error('Error al guardar reporte:', error)
+    showError(error?.response?.data?.message || error?.message || 'Error al guardar el reporte')
   } finally {
     isSaving.value = false
   }

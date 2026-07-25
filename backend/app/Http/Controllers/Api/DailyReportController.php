@@ -13,20 +13,18 @@ class DailyReportController extends Controller
     public function index(Request $request)
     {
         $request->validate([
-            'business_id' => 'required|uuid',
-            'branch_id' => 'nullable|uuid',
-            'month' => 'nullable|date_format:Y-m', // e.g. "2026-07"
+            'business_id' => 'required|string',
+            'branch_id' => 'nullable|string',
+            'month' => 'nullable|date_format:Y-m',
         ]);
 
         $query = DailyReport::where('business_id', $request->business_id);
 
-        if ($request->has('branch_id')) {
+        if ($request->filled('branch_id')) {
             $query->where('branch_id', $request->branch_id);
-        } else {
-            $query->whereNull('branch_id');
         }
 
-        if ($request->has('month')) {
+        if ($request->filled('month')) {
             $month = Carbon::createFromFormat('Y-m', $request->month);
             $query->whereYear('date', $month->year)
                   ->whereMonth('date', $month->month);
@@ -40,25 +38,30 @@ class DailyReportController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'business_id' => 'required|uuid',
-            'branch_id' => 'nullable|uuid',
+            'business_id' => 'required|string',
+            'branch_id' => 'nullable|string',
             'date' => 'required|date',
-            'exchange_rate' => 'numeric|min:0',
-            'z_report_bs' => 'numeric|min:0',
-            'z_report_usd' => 'numeric|min:0',
-            'pos_bs' => 'numeric|min:0',
-            'pago_movil_bs' => 'numeric|min:0',
-            'cash_bs' => 'numeric|min:0',
-            'transfer_bs' => 'numeric|min:0',
-            'cash_usd' => 'numeric|min:0',
-            'zelle_usd' => 'numeric|min:0',
-            'binance_usd' => 'numeric|min:0',
-            'cashea_usd' => 'numeric|min:0',
-            'total_bs' => 'numeric|min:0',
-            'total_usd' => 'numeric|min:0',
+            'exchange_rate' => 'nullable|numeric|min:0',
+            'z_report_bs' => 'nullable|numeric|min:0',
+            'z_report_usd' => 'nullable|numeric|min:0',
+            'pos_bs' => 'nullable|numeric|min:0',
+            'pago_movil_bs' => 'nullable|numeric|min:0',
+            'cash_bs' => 'nullable|numeric|min:0',
+            'transfer_bs' => 'nullable|numeric|min:0',
+            'cash_usd' => 'nullable|numeric|min:0',
+            'zelle_usd' => 'nullable|numeric|min:0',
+            'binance_usd' => 'nullable|numeric|min:0',
+            'cashea_usd' => 'nullable|numeric|min:0',
+            'total_bs' => 'nullable|numeric|min:0',
+            'total_usd' => 'nullable|numeric|min:0',
         ]);
 
-        $validated['user_id'] = $request->user()->id;
+        $validated['branch_id'] = !empty($validated['branch_id']) ? $validated['branch_id'] : null;
+        $validated['user_id'] = $request->user()?->id;
+
+        // Auto-calculate totals
+        $validated['total_bs'] = ($validated['pos_bs'] ?? 0) + ($validated['pago_movil_bs'] ?? 0) + ($validated['cash_bs'] ?? 0) + ($validated['transfer_bs'] ?? 0);
+        $validated['total_usd'] = ($validated['cash_usd'] ?? 0) + ($validated['zelle_usd'] ?? 0) + ($validated['binance_usd'] ?? 0) + ($validated['cashea_usd'] ?? 0);
 
         $report = DailyReport::create($validated);
 
@@ -71,20 +74,24 @@ class DailyReportController extends Controller
 
         $validated = $request->validate([
             'date' => 'required|date',
-            'exchange_rate' => 'numeric|min:0',
-            'z_report_bs' => 'numeric|min:0',
-            'z_report_usd' => 'numeric|min:0',
-            'pos_bs' => 'numeric|min:0',
-            'pago_movil_bs' => 'numeric|min:0',
-            'cash_bs' => 'numeric|min:0',
-            'transfer_bs' => 'numeric|min:0',
-            'cash_usd' => 'numeric|min:0',
-            'zelle_usd' => 'numeric|min:0',
-            'binance_usd' => 'numeric|min:0',
-            'cashea_usd' => 'numeric|min:0',
-            'total_bs' => 'numeric|min:0',
-            'total_usd' => 'numeric|min:0',
+            'exchange_rate' => 'nullable|numeric|min:0',
+            'z_report_bs' => 'nullable|numeric|min:0',
+            'z_report_usd' => 'nullable|numeric|min:0',
+            'pos_bs' => 'nullable|numeric|min:0',
+            'pago_movil_bs' => 'nullable|numeric|min:0',
+            'cash_bs' => 'nullable|numeric|min:0',
+            'transfer_bs' => 'nullable|numeric|min:0',
+            'cash_usd' => 'nullable|numeric|min:0',
+            'zelle_usd' => 'nullable|numeric|min:0',
+            'binance_usd' => 'nullable|numeric|min:0',
+            'cashea_usd' => 'nullable|numeric|min:0',
+            'total_bs' => 'nullable|numeric|min:0',
+            'total_usd' => 'nullable|numeric|min:0',
         ]);
+
+        // Auto-calculate totals
+        $validated['total_bs'] = ($validated['pos_bs'] ?? 0) + ($validated['pago_movil_bs'] ?? 0) + ($validated['cash_bs'] ?? 0) + ($validated['transfer_bs'] ?? 0);
+        $validated['total_usd'] = ($validated['cash_usd'] ?? 0) + ($validated['zelle_usd'] ?? 0) + ($validated['binance_usd'] ?? 0) + ($validated['cashea_usd'] ?? 0);
 
         $report->update($validated);
 
