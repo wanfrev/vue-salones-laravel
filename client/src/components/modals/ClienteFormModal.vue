@@ -198,7 +198,7 @@ const loadPets = async (clientId: string) => {
   }
 }
 
-const watch(
+watch(
   [isOpen, () => modalData.value?.cliente],
   ([open, cliente]) => {
     if (!open) return
