@@ -4,10 +4,13 @@ namespace App\Console\Commands;
 
 use App\Events\EntityChanged;
 use App\Models\Appointment;
+use App\Models\Business;
 use App\Models\InventoryStock;
+use App\Models\MessageTemplate;
 use App\Models\Profile;
 use App\Models\PushSubscription;
 use App\Services\NotificationService;
+use App\Services\WhatsAppService;
 use Illuminate\Console\Command;
 use Minishlink\WebPush\WebPush;
 use Minishlink\WebPush\Subscription;
@@ -19,6 +22,7 @@ class GenerateReminders extends Command
 
     public function __construct(
         private NotificationService $notificationService,
+        private WhatsAppService $whatsappService,
     ) {
         parent::__construct();
     }
@@ -29,7 +33,9 @@ class GenerateReminders extends Command
         $totalGenerated = 0;
         $unpaidGenerated = 0;
         $lowStockGenerated = 0;
+        $whatsappSent = 0;
         $affectedBusinesses = [];
+        $whatsappBizIds = [];
 
         // 1. Generate reminders: appointments starting in ~24h
         $this->info('[reminders:generate] Checking appointments in ~24h window...');
@@ -37,7 +43,7 @@ class GenerateReminders extends Command
         $in22h = $now->copy()->addHours(22);
         $in26h = $now->copy()->addHours(26);
 
-        $appointments = Appointment::with(['client', 'service', 'employeeProfile'])
+        $appointments = Appointment::with(['client', 'service', 'employeeProfile', 'pet'])
             ->whereNull('reminder_sent_at')
             ->whereIn('status', ['pending', 'confirmed'])
             ->whereBetween('start_time', [$in22h, $in26h])
@@ -88,6 +94,8 @@ class GenerateReminders extends Command
             }
 
             if (!empty($appointmentIds)) {
+                $this->sendWhatsAppReminders($appointments->whereIn('id', $appointmentIds), $whatsappBizIds, $whatsappSent);
+
                 Appointment::whereIn('id', $appointmentIds)->update([
                     'reminder_sent_at' => now(),
                 ]);
@@ -189,19 +197,49 @@ class GenerateReminders extends Command
         $this->info("[reminders:generate] {$lowStockGenerated} low stock notifications generated.");
 
         $grandTotal = $totalGenerated + $unpaidGenerated + $lowStockGenerated;
-        $this->info("[reminders:generate] Done. Total: {$grandTotal}");
+        $this->info("[reminders:generate] Done. Total: {$grandTotal}. WhatsApp: {$whatsappSent} sent.");
 
         // Broadcast real-time event so frontend picks up new notifications
-        foreach (array_keys($affectedBusinesses) as $bizId) {
+        $allAffectedBizIds = array_unique(array_merge(array_keys($affectedBusinesses), array_keys($whatsappBizIds)));
+        foreach ($allAffectedBizIds as $bizId) {
             EntityChanged::safe($bizId, 'notification', 'created');
         }
 
         // Send web push notifications to all subscribed devices
-        if ($grandTotal > 0) {
-            $this->sendPushNotifications(array_keys($affectedBusinesses));
+        if ($grandTotal > 0 || $whatsappSent > 0) {
+            $this->sendPushNotifications($allAffectedBizIds);
         }
 
         return self::SUCCESS;
+    }
+
+    private function sendWhatsAppReminders($appointments, array &$whatsappBizIds, int &$whatsappSent): void
+    {
+        foreach ($appointments as $appt) {
+            $business = Business::find($appt->business_id);
+            if (!$business || !$business->whatsapp_enabled || !$business->whatsapp_instance_id) {
+                continue;
+            }
+
+            if (!$appt->client || !$appt->client->phone) {
+                continue;
+            }
+
+            $template = MessageTemplate::where('business_id', $appt->business_id)
+                ->where('type', 'appointment_reminder')
+                ->where('is_active', true)
+                ->first();
+
+            $body = $template?->body ?? 'Hola {cliente}, recuerda tu cita de {servicio} el {fecha} a las {hora}. ¡Te esperamos en {negocio}!';
+
+            $success = $this->whatsappService->sendReminder($appt, $body);
+            if ($success) {
+                $whatsappSent++;
+                $whatsappBizIds[$appt->business_id] = true;
+            }
+        }
+
+        $this->info("[reminders:generate] {$whatsappSent} WhatsApp reminders sent.");
     }
 
     private function getAdminsToNotify(string $businessId, ?string $branchId, ?string $excludeProfileId = null)

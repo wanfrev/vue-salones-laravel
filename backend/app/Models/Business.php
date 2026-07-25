@@ -15,6 +15,8 @@ class Business extends Model
         'ves_exchange_rate', 'employee_ves_rate', 'niche_type',
         'theme_config', 'terminology', 'job_titles', 'service_categories',
         'features', 'multi_branch_enabled', 'active', 'deleted_at',
+        'whatsapp_enabled', 'whatsapp_instance_id', 'whatsapp_instance_status',
+        'whatsapp_instance_number', 'whatsapp_base_url', 'whatsapp_api_key',
     ];
 
     protected function casts(): array
@@ -22,6 +24,7 @@ class Business extends Model
         return [
             'active' => 'boolean',
             'multi_branch_enabled' => 'boolean',
+            'whatsapp_enabled' => 'boolean',
             'ves_exchange_rate' => 'float',
             'employee_ves_rate' => 'float',
             'theme_config' => 'json',
