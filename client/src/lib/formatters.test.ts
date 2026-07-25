@@ -63,8 +63,8 @@ describe('getStatusLabel', () => {
 
 describe('getStatusColor', () => {
   it('returns correct tailwind classes', () => {
-    expect(getStatusColor('confirmed')).toBe('bg-primary/10 text-primary')
-    expect(getStatusColor('pending')).toBe('bg-warning/10 text-warning')
+    expect(getStatusColor('confirmed')).toBe('bg-warning/10 text-warning')
+    expect(getStatusColor('pending')).toBe('bg-danger/10 text-danger')
     expect(getStatusColor('cancelled')).toBe('bg-danger/10 text-danger')
   })
 })

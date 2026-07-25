@@ -70,7 +70,7 @@ const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 const statusDotClass = (s: string) => {
   const map: Record<string, string> = {
-    confirmed: 'bg-primary', pending: 'bg-warning', paid: 'bg-success',
+    confirmed: 'bg-warning', pending: 'bg-danger', paid: 'bg-success',
     cancelled: 'bg-danger', no_show: 'bg-danger',
   }
   return map[s] || 'bg-primary'
@@ -78,8 +78,8 @@ const statusDotClass = (s: string) => {
 
 const monthCardBg = (s: string) => {
   const map: Record<string, string> = {
-    confirmed: 'bg-emerald-50 dark:bg-emerald-950/30',
-    pending: 'bg-amber-50 dark:bg-amber-950/30',
+    confirmed: 'bg-amber-50 dark:bg-amber-950/30',
+    pending: 'bg-red-50/70 dark:bg-red-950/30',
     paid: 'bg-green-50 dark:bg-green-950/20',
     cancelled: 'bg-red-50/60 dark:bg-red-950/15',
     no_show: 'bg-red-50/60 dark:bg-red-950/15',

@@ -552,8 +552,8 @@ const gridColumns = computed<GridColumn[]>(() => {
 
 // ---- Card styling ----
 const statusColors: Record<string, { bg: string; dot: string; stripe: string; checkout: string }> = {
-  confirmed: { bg: 'bg-emerald-50/70 dark:bg-emerald-950/30', dot: 'bg-primary', stripe: 'bg-primary', checkout: 'bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white dark:bg-emerald-900/40 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white' },
-  pending: { bg: 'bg-amber-50/80 dark:bg-amber-950/30', dot: 'bg-warning', stripe: 'bg-warning', checkout: 'bg-amber-100 text-amber-600 hover:bg-amber-600 hover:text-white dark:bg-amber-900/40 dark:text-amber-400 dark:hover:bg-amber-500 dark:hover:text-white' },
+  confirmed: { bg: 'bg-amber-50/80 dark:bg-amber-950/30', dot: 'bg-warning', stripe: 'bg-warning', checkout: 'bg-amber-100 text-amber-600 hover:bg-amber-600 hover:text-white dark:bg-amber-900/40 dark:text-amber-400 dark:hover:bg-amber-500 dark:hover:text-white' },
+  pending: { bg: 'bg-red-50/70 dark:bg-red-950/30', dot: 'bg-danger', stripe: 'bg-danger', checkout: 'bg-red-100 text-red-600 hover:bg-red-600 hover:text-white dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white' },
   paid: { bg: 'bg-green-50/70 dark:bg-green-950/25', dot: 'bg-success', stripe: 'bg-success', checkout: 'bg-transparent text-transparent' },
   cancelled: { bg: 'bg-red-50/50 dark:bg-red-950/15 opacity-60', dot: 'bg-danger', stripe: 'bg-danger', checkout: 'bg-transparent text-transparent' },
   no_show: { bg: 'bg-red-50/50 dark:bg-red-950/15 opacity-60', dot: 'bg-danger', stripe: 'bg-danger', checkout: 'bg-transparent text-transparent' },
@@ -630,7 +630,7 @@ function handleDeleteClick() {
 
 function statusTextClass(status: string) {
   const map: Record<string, string> = {
-    confirmed: 'text-primary', pending: 'text-warning', paid: 'text-success',
+    confirmed: 'text-warning', pending: 'text-danger', paid: 'text-success',
     cancelled: 'text-danger', no_show: 'text-danger',
   }
   return map[status] || 'text-text'
