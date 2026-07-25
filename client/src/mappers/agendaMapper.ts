@@ -38,39 +38,49 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
   const client = appointment.clients ?? (appointment as any).client
   const normalizedStatus = normalizeAppointmentStatus(appointment) as 'confirmed' | 'pending' | 'cancelled' | 'paid'
 
+  let associatedProducts = parseAssociatedProducts(appointment.associated_products ?? (appointment as any).associatedProducts)
+  if ((!associatedProducts || associatedProducts.length === 0) && (appointment as any).isGroup && Array.isArray((appointment as any).members)) {
+    const gathered: any[] = []
+    for (const m of (appointment as any).members) {
+      const p = parseAssociatedProducts(m.associated_products ?? m.associatedProducts)
+      if (p) gathered.push(...p)
+    }
+    if (gathered.length > 0) associatedProducts = gathered
+  }
+
   return {
     id: appointment.id,
     clientId: appointment.client_id,
-    clientName: client?.full_name ?? 'Cliente',
-    clientPhone: client?.phone ?? '',
-    petId: appointment.pet_id ?? undefined,
-    petName: appointment.pets?.name ?? undefined,
+    clientName: client?.full_name ?? (appointment as any).clientName ?? 'Cliente',
+    clientPhone: client?.phone ?? (appointment as any).clientPhone ?? '',
+    petId: appointment.pet_id ?? (appointment as any).petId ?? undefined,
+    petName: appointment.pets?.name ?? (appointment as any).petName ?? undefined,
     serviceId: appointment.service_id,
-    service: service?.name ?? 'Servicio',
+    service: service?.name ?? (appointment as any).service ?? 'Servicio',
     employeeId: appointment.employee_id,
-    employee: employee?.full_name ?? 'Empleado',
-    assistantId: appointment.assistant_employee_id ?? undefined,
-    assistantName: assistant?.full_name ?? undefined,
+    employee: employee?.full_name ?? (appointment as any).employee ?? 'Empleado',
+    assistantId: appointment.assistant_employee_id ?? (appointment as any).assistantId ?? undefined,
+    assistantName: assistant?.full_name ?? (appointment as any).assistantName ?? undefined,
     assistantPercentage: appointment.assistant_percentage != null ? Number(appointment.assistant_percentage) : undefined,
     employeePercentageOverride: appointment.employee_percentage_override != null ? Number(appointment.employee_percentage_override) : undefined,
     isFixedCommissionOverride: appointment.is_fixed_commission_override ?? false,
     employeeAmountOverride: appointment.employee_amount_override != null ? Number(appointment.employee_amount_override) : undefined,
     assistantAmountOverride: appointment.assistant_amount_override != null ? Number(appointment.assistant_amount_override) : undefined,
-    groupId: appointment.group_id ?? undefined,
-    date: toDateInput(appointment.start_time),
-    time: toTimeInput(appointment.start_time),
+    groupId: appointment.group_id ?? (appointment as any).groupId ?? (appointment as any).group_id ?? undefined,
+    date: appointment.start_time ? toDateInput(appointment.start_time) : ((appointment as any).date || toDateInput(new Date().toISOString())),
+    time: appointment.start_time ? toTimeInput(appointment.start_time) : ((appointment as any).time || '09:00'),
     duration: appointment.duration_override != null
       ? Number(appointment.duration_override)
-      : Math.round((new Date(appointment.end_time).getTime() - new Date(appointment.start_time).getTime()) / 60000) || (service?.duration_minutes ?? 30),
-    price: appointment.price_override != null ? Number(appointment.price_override) : Number(service?.price ?? 0),
+      : (appointment.end_time && appointment.start_time ? (Math.round((new Date(appointment.end_time).getTime() - new Date(appointment.start_time).getTime()) / 60000) || (service?.duration_minutes ?? 30)) : ((appointment as any).duration || 30)),
+    price: appointment.price_override != null ? Number(appointment.price_override) : Number(service?.price ?? (appointment as any).price ?? 0),
     status: normalizedStatus,
     paymentStatus: appointment.payment_status,
     statusLabel: getStatusLabel(normalizedStatus),
     statusColor: getStatusColor(normalizedStatus),
-    notes: appointment.internal_notes ?? '',
-    diagnosis: appointment.diagnosis ?? undefined,
-    treatment: appointment.treatment ?? undefined,
-    associatedProducts: parseAssociatedProducts(appointment.associated_products ?? (appointment as any).associatedProducts),
+    notes: appointment.internal_notes ?? (appointment as any).notes ?? '',
+    diagnosis: appointment.diagnosis ?? (appointment as any).diagnosis ?? undefined,
+    treatment: appointment.treatment ?? (appointment as any).treatment ?? undefined,
+    associatedProducts,
   }
 }
 
