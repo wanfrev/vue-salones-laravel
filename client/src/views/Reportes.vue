@@ -186,8 +186,13 @@ const openModal = (report?: DailyReport) => {
   modalRef.value?.open(report)
 }
 
-const onReportSaved = async () => {
+const invalidateReports = async () => {
   await queryClient.invalidateQueries({ queryKey: ['daily-reports'], exact: false })
+  await queryClient.refetchQueries({ queryKey: ['daily-reports'], exact: false })
+}
+
+const onReportSaved = async () => {
+  await invalidateReports()
 }
 
 const handleDelete = async (report: DailyReport) => {
@@ -195,7 +200,7 @@ const handleDelete = async (report: DailyReport) => {
   
   try {
     await deleteDailyReport(report.id)
-    await queryClient.invalidateQueries({ queryKey: ['daily-reports'], exact: false })
+    await invalidateReports()
     showSuccess('Reporte eliminado')
   } catch (err: any) {
     console.error('Error al eliminar:', err)
