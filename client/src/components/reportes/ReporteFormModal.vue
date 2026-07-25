@@ -325,12 +325,12 @@ const handleSubmit = async () => {
 
   try {
     await saveMutation.mutateAsync(payload)
-    isOpen.value = false
+    close()
     emit('saved')
   } catch (err) {
     // Error notification handled by saveMutation onError
   }
 }
 
-defineExpose({ open })
+defineExpose({ open, close })
 </script>

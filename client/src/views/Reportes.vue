@@ -104,7 +104,7 @@
         </table>
       </div>
     </div>
-    <ReporteFormModal ref="modalRef" @saved="onReportSaved" />
+    <ReporteFormModal ref="modalRef" />
   </div>
 </template>
 
