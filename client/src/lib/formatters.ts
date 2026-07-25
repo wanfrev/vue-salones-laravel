@@ -33,8 +33,8 @@ export function getStatusLabel(status: string): string {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  confirmed: 'bg-primary/10 text-primary',
-  pending: 'bg-warning/10 text-warning',
+  confirmed: 'bg-warning/10 text-warning',
+  pending: 'bg-danger/10 text-danger',
   cancelled: 'bg-danger/10 text-danger',
   paid: 'bg-success/10 text-success',
   completed: 'bg-success/10 text-success',

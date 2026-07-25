@@ -210,6 +210,7 @@ watch(
       }
       Object.assign(nicheValues, meta)
       if (isPet.value && cliente.id) {
+        pets.value = []
         loadPets(cliente.id)
       } else {
         pets.value = cliente.pets ?? []

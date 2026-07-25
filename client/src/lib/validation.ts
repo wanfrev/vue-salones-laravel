@@ -12,6 +12,14 @@ export const serviceItemSchema = z.object({
   price: z.number().min(0, 'El precio no puede ser negativo'),
 })
 
+const citaAssociatedProductSchema = z.object({
+  productId: z.string(),
+  productName: z.string().optional(),
+  quantity: z.number().positive().default(1),
+  unitPrice: z.number().min(0).default(0),
+  unitCost: z.number().min(0).optional(),
+})
+
 export const citaFormSchema = z.object({
   clientId: z.string().optional(),
   clientName: z.string().min(1, 'El nombre del cliente es requerido'),
@@ -31,6 +39,7 @@ export const citaFormSchema = z.object({
   notes: z.string().default(''),
   diagnosis: z.string().optional(),
   treatment: z.string().optional(),
+  associatedProducts: z.array(citaAssociatedProductSchema).optional(),
 })
 
 const posProductItemSchema = z.object({

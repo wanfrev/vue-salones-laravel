@@ -33,6 +33,7 @@
                   :class="statusDotClass(appt.status)" />
               </div>
               <div class="text-[10px] font-bold leading-tight truncate sm:text-xs">{{ appt.clientName }}</div>
+              <div v-if="appt.petName" class="text-[9px] text-primary/80 font-medium truncate sm:text-[10px] leading-tight">{{ appt.petName }}</div>
               <div class="text-[9px] text-text-secondary truncate sm:text-[10px] leading-tight">{{ appt.service }}</div>
               <div v-if="appt.employeeName" class="text-[9px] text-text-muted truncate sm:text-[10px] leading-tight">{{ appt.employeeName }}</div>
             </div>
@@ -69,7 +70,7 @@ const dayNames = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 
 const statusDotClass = (s: string) => {
   const map: Record<string, string> = {
-    confirmed: 'bg-primary', pending: 'bg-warning', paid: 'bg-success',
+    confirmed: 'bg-warning', pending: 'bg-danger', paid: 'bg-success',
     cancelled: 'bg-danger', no_show: 'bg-danger',
   }
   return map[s] || 'bg-primary'
@@ -77,8 +78,8 @@ const statusDotClass = (s: string) => {
 
 const monthCardBg = (s: string) => {
   const map: Record<string, string> = {
-    confirmed: 'bg-emerald-50 dark:bg-emerald-950/30',
-    pending: 'bg-amber-50 dark:bg-amber-950/30',
+    confirmed: 'bg-amber-50 dark:bg-amber-950/30',
+    pending: 'bg-red-50/70 dark:bg-red-950/30',
     paid: 'bg-green-50 dark:bg-green-950/20',
     cancelled: 'bg-red-50/60 dark:bg-red-950/15',
     no_show: 'bg-red-50/60 dark:bg-red-950/15',

@@ -173,6 +173,9 @@
     </div>
   </SectionCard>
 
+  <!-- WhatsApp -->
+  <WhatsAppSettings class="mb-6" />
+
   <!-- Permisos de Encargados (solo admin) -->
   <SectionCard
     v-if="isAdmin"
@@ -312,6 +315,7 @@ import { useThemeStore, type ThemeMode } from '../store/theme'
 import { SectionCard, EmptyState } from '../components/common'
 import { FormToggle } from '../components/forms'
 import { BranchFormModal } from '../components/modals'
+import WhatsAppSettings from '../components/settings/WhatsAppSettings.vue'
 import { requestNotificationPermission } from '../composables/common/useNotifications'
 import { unsubscribeFromPush, isPushSupported } from '../services/pushService'
 import { apiRequest } from '../lib/api'

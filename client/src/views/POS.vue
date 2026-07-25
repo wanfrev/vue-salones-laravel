@@ -48,6 +48,7 @@
         :total-count="filteredAppointments.length"
         :selected-id="selectedId"
         :products="products"
+        :cart="cartCtx.cart.value"
         :inline-product-search="inlineProductSearch"
         :show-inline-dropdown="showInlineDropdown"
         @select="selectAppointment"
@@ -73,6 +74,8 @@
         :tip-allocated-total="tipAllocatedTotal" :tip-remaining="tipRemaining"
         :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
         :retail-client-name="retailClientId ? retailClientSearch : null"
+        :are-products-included="areProductsIncluded"
+        @update:are-products-included="areProductsIncluded = $event"
         @select-method="paymentCtx.selectMethod"
         @update:other-currency="paymentCtx.otherCurrency.value = $event"
         @add-split="paymentCtx.addSplit" @remove-split="paymentCtx.removeSplit"
@@ -126,6 +129,7 @@ import AppointmentList from '../components/pos/AppointmentList.vue'
 import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
 import { useExchangeRate } from '../composables/finanzas/useExchangeRate'
 import { toISODate, minutesToHHmm } from '../lib/formatters'
+import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
 import type { PaymentMethod } from '../types/database'
 import type { Cita } from '../types/cita'
@@ -251,7 +255,10 @@ const servicePrice = computed(() => {
   return appt.price_override != null ? Number(appt.price_override) : Number(appt.service?.price ?? appt.services?.price ?? 0)
 })
 
-const grandTotal = computed(() => activeSaleType.value === 'retail_only' ? cartCtx.productsTotal.value : servicePrice.value + cartCtx.productsTotal.value + paymentCtx.tipAmount.value)
+const areProductsIncluded = ref(false)
+const effectiveProductsTotal = computed(() => areProductsIncluded.value ? 0 : cartCtx.productsTotal.value)
+
+const grandTotal = computed(() => activeSaleType.value === 'retail_only' ? effectiveProductsTotal.value : servicePrice.value + effectiveProductsTotal.value + paymentCtx.tipAmount.value)
 
 const tipParticipants = computed<TipParticipant[]>(() => {
   if (activeSaleType.value === 'retail_only' || !selectedAppointment.value) return []
@@ -298,9 +305,48 @@ const canPay = computed(() => {
 })
 
 const selectAppointment = (appt: any) => {
-  if (selectedAppointment.value?.id === appt.id) { selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset(); return }
+  if (selectedAppointment.value?.id === appt.id) { selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset(); areProductsIncluded.value = false; return }
   selectedAppointment.value = appt; activeSaleType.value = 'appointment'
   cartCtx.clearCart()
+  areProductsIncluded.value = false
+
+  const rawProducts: any[] = []
+  if (appt.isGroup && Array.isArray(appt.members)) {
+    for (const m of appt.members) {
+      if (m.associated_products && Array.isArray(m.associated_products)) rawProducts.push(...m.associated_products)
+      else if (m.associatedProducts && Array.isArray(m.associatedProducts)) rawProducts.push(...m.associatedProducts)
+    }
+  }
+  if (appt.associated_products && Array.isArray(appt.associated_products)) rawProducts.push(...appt.associated_products)
+  else if (appt.associatedProducts && Array.isArray(appt.associatedProducts)) rawProducts.push(...appt.associatedProducts)
+
+  for (const item of rawProducts) {
+    const pid = item.productId || item.product_id
+    if (!pid) continue
+    const qty = Number(item.quantity || 1)
+    const uPrice = Number(item.unitPrice ?? item.unit_price ?? item.price ?? 0)
+    const uCost = Number(item.unitCost ?? item.unit_cost ?? 0)
+    const pName = item.productName || item.product_name || item.name || 'Producto'
+
+    const existing = cartCtx.cart.value.find(c => c.productId === pid)
+    if (existing) {
+      existing.quantity += qty
+      existing.subtotal = existing.unitPrice * existing.quantity
+    } else {
+      cartCtx.cart.value.push({
+        productId: pid,
+        productName: pName,
+        availableQty: 999,
+        variantId: item.variantId || item.variant_id || null,
+        variantName: item.variantName || item.variant_name || null,
+        quantity: qty,
+        unitPrice: uPrice,
+        unitCost: uCost,
+        subtotal: uPrice * qty,
+      })
+    }
+  }
+
   setEqualTipAllocation()
 }
 
@@ -310,29 +356,10 @@ watch(() => appointments.value, (list) => {
   if (updated) selectedAppointment.value = updated
 })
 const goToAppointmentInCalendar = (appt: any) => {
-  const startDate = new Date(appt.start_time)
-  const minutes = startDate.getHours() * 60 + startDate.getMinutes()
-  const isGroup = !!(appt.isGroup || appt.group_id)
-  const cita: Cita = {
-    id: appt.id,
-    clientName: appt.client?.full_name ?? appt.clients?.full_name ?? 'Cliente',
-    clientId: appt.client_id,
-    clientPhone: appt.client?.phone ?? appt.clients?.phone ?? '',
-    service: appt.services?.name ?? (appt.service?.name ?? appt.services?.name) ?? '',
-    serviceId: appt.service_id,
-    employee: appt.employee_profile?.full_name ?? appt.profiles?.full_name ?? '',
-    employeeId: appt.employee_id,
-    date: toISODate(startDate),
-    time: minutesToHHmm(minutes),
-    duration: appt.duration_override ?? appt.service?.duration_minutes ?? appt.services?.duration_minutes ?? 30,
-    price: appt.price_override != null ? Number(appt.price_override) : Number(appt.service?.price ?? appt.services?.price ?? 0),
-    status: appt.status || 'pending',
-    notes: appt.notes || undefined,
-    groupId: appt.group_id || undefined,
-  }
+  const cita = mapAppointmentToCita(appt)
   posCitaModalRef.value?.open(cita)
 }
-const startRetailOnly = () => { selectedAppointment.value = null; activeSaleType.value = 'retail_only'; cartCtx.clearCart(); paymentCtx.reset(); retailProductSearch.value = ''; retailClientSearch.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailSearchRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false }
+const startRetailOnly = () => { selectedAppointment.value = null; activeSaleType.value = 'retail_only'; cartCtx.clearCart(); paymentCtx.reset(); retailProductSearch.value = ''; retailClientSearch.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailSearchRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false; areProductsIncluded.value = false }
 const setTipAllocation = (employeeId: string, value: number) => { tipManual.value = true; tipAllocations.value = { ...tipAllocations.value, [employeeId]: Math.max(0, Number(value || 0)) } }
 
 const handleRetailPayment = async () => {
@@ -370,14 +397,14 @@ const confirmPayment = async () => {
     products: cartCtx.cart.value,
     exchangeRate: exchangeRate.value,
     tipAmount: paymentCtx.tipAmount.value,
-    productsAmount: cartCtx.productsTotal.value,
+    productsAmount: effectiveProductsTotal.value,
     isGroup: !!(appt.isGroup && appt.groupIds?.length > 1),
     groupIds: appt.groupIds,
     members: appt.members,
     groupPrice: appt.groupPrice,
     tipAllocations: tipAllocations.value,
   })
-  if (ok) { selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset() }
+  if (ok) { selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset(); areProductsIncluded.value = false }
 }
 
 const { handleSaveCita, handleDeleteCita } = useAppointmentMutations({

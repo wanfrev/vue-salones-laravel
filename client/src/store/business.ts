@@ -29,6 +29,7 @@ const DEFAULT_TERMINOLOGY: Terminology = {
     disable_manager_inventory_edit: false,
     encargados_change_exchange_rate: false,
     encargados_change_employee_rate: false,
+    manual_reports: false,
   }
 
 export type FeatureKey = keyof typeof DEFAULT_FEATURES

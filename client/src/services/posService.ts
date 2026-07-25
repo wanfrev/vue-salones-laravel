@@ -54,6 +54,7 @@ export const groupPendingAppointments = (appointments: any[]) => {
         serviceName: m.service?.name ?? m.services?.name ?? 'Servicio',
         employeeName: m.employee_profile?.full_name ?? m.profiles?.full_name ?? 'Empleado',
         price: m.price_override != null ? Number(m.price_override) : Number(m.service?.price ?? m.services?.price ?? 0),
+        associated_products: m.associated_products,
       })),
     })
   }

@@ -225,6 +225,7 @@
                       </button>
                     </div>
                     <div class="font-bold text-text truncate text-[12px] sm:text-[13px] leading-tight mt-1">{{ appt.clientName }}</div>
+                    <div v-if="appt.petName" class="text-[10px] text-primary/80 font-medium truncate sm:text-[11px] leading-tight mt-0.5">{{ appt.petName }}</div>
                     <div class="text-[10px] text-text-secondary truncate sm:text-xs leading-tight mt-0.5">{{ appt.service }}</div>
                     <div v-if="appt.employeeName" class="text-[10px] text-text-muted truncate sm:text-xs leading-tight mt-0.5">{{ appt.employeeName }}</div>
                   </div>
@@ -311,6 +312,7 @@ import { useAgenda } from '../../composables/agenda/useAgenda'
 import { useAuthStore } from '../../store/auth'
 import { isAdminPanelRole } from '../../constants/roles'
 import { normalizeAppointmentStatus, getStatusLabel, dateToHHmm, dateToHHmm12, toISODate, getInitials, parseLocalDate } from '../../lib/formatters'
+import { mapAppointmentToCita } from '../../mappers/agendaMapper'
 import AgendaMonthView from './AgendaMonthView.vue'
 import AgendaYearView from './AgendaYearView.vue'
 import type { Cita } from '../../types/cita'
@@ -346,17 +348,15 @@ const totalGridHeight = (END_HOUR - START_HOUR) * HOUR_HEIGHT
 const totalHours = END_HOUR - START_HOUR
 
 const legend = [
-  { label: 'En Silla', color: 'var(--color-primary)' },
-  { label: 'Cobrada', color: 'var(--color-success)' },
-  { label: 'Pendiente', color: 'var(--color-warning)' },
-  { label: 'Cancelada', color: 'var(--color-danger)' },
+  { label: 'Pendiente', color: 'var(--color-danger)' },
+  { label: 'Confirmada', color: 'var(--color-warning)' },
+  { label: 'Pagada', color: 'var(--color-success)' },
 ]
 
 const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pendiente' },
   { value: 'confirmed', label: 'Confirmada' },
   { value: 'paid', label: 'Pagada' },
-  { value: 'cancelled', label: 'Cancelada' },
 ] as const
 
 // ---- State ----
@@ -550,8 +550,8 @@ const gridColumns = computed<GridColumn[]>(() => {
 
 // ---- Card styling ----
 const statusColors: Record<string, { bg: string; dot: string; stripe: string; checkout: string }> = {
-  confirmed: { bg: 'bg-emerald-50/70 dark:bg-emerald-950/30', dot: 'bg-primary', stripe: 'bg-primary', checkout: 'bg-emerald-100 text-emerald-600 hover:bg-emerald-600 hover:text-white dark:bg-emerald-900/40 dark:text-emerald-400 dark:hover:bg-emerald-500 dark:hover:text-white' },
-  pending: { bg: 'bg-amber-50/80 dark:bg-amber-950/30', dot: 'bg-warning', stripe: 'bg-warning', checkout: 'bg-amber-100 text-amber-600 hover:bg-amber-600 hover:text-white dark:bg-amber-900/40 dark:text-amber-400 dark:hover:bg-amber-500 dark:hover:text-white' },
+  confirmed: { bg: 'bg-amber-50/80 dark:bg-amber-950/30', dot: 'bg-warning', stripe: 'bg-warning', checkout: 'bg-amber-100 text-amber-600 hover:bg-amber-600 hover:text-white dark:bg-amber-900/40 dark:text-amber-400 dark:hover:bg-amber-500 dark:hover:text-white' },
+  pending: { bg: 'bg-red-50/70 dark:bg-red-950/30', dot: 'bg-danger', stripe: 'bg-danger', checkout: 'bg-red-100 text-red-600 hover:bg-red-600 hover:text-white dark:bg-red-900/40 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white' },
   paid: { bg: 'bg-green-50/70 dark:bg-green-950/25', dot: 'bg-success', stripe: 'bg-success', checkout: 'bg-transparent text-transparent' },
   cancelled: { bg: 'bg-red-50/50 dark:bg-red-950/15 opacity-60', dot: 'bg-danger', stripe: 'bg-danger', checkout: 'bg-transparent text-transparent' },
   no_show: { bg: 'bg-red-50/50 dark:bg-red-950/15 opacity-60', dot: 'bg-danger', stripe: 'bg-danger', checkout: 'bg-transparent text-transparent' },
@@ -577,28 +577,11 @@ function onColumnClick(col: GridColumn, e: MouseEvent) {
 
 function emitEventClick(raw: any) {
   const start = new Date(raw.start_time); const end = new Date(raw.end_time)
-  const svc = serviceMap.value.get(raw.service_id)
   const status = normalizeAppointmentStatus(raw)
-  const effectiveDuration = raw.duration_override != null
-    ? Number(raw.duration_override)
-    : Math.round((end.getTime() - start.getTime()) / 60000) || Number(svc?.duration_minutes ?? 30)
-  const effectivePrice = raw.price_override != null
-    ? Number(raw.price_override)
-    : Number(svc?.price ?? 0)
+  const citaData = mapAppointmentToCita(raw)
   emit('eventClick', {
     id: raw.id, title: raw.client?.full_name || raw.clients?.full_name || 'Cliente', start, end, status,
-    citaData: {
-      id: raw.id, clientId: raw.client_id, clientName: raw.client?.full_name || raw.clients?.full_name || 'Cliente',
-      serviceId: raw.service_id, service: svc?.name || 'Servicio', employeeId: raw.employee_id,
-      employee: employeeMap.value.get(raw.employee_id)?.full_name || 'Empleado',
-      assistantId: raw.assistant_employee_id || undefined,
-      assistantName: raw.assistant_profile?.full_name ?? undefined,
-      assistantPercentage: raw.assistant_percentage ?? undefined,
-      groupId: raw.group_id || undefined,
-      date: toISODate(start), time: dateToHHmm(start),
-      duration: effectiveDuration,
-      price: effectivePrice, status: status as Cita['status'], paymentStatus: raw.payment_status as Cita['paymentStatus'], notes: raw.internal_notes || '',
-    },
+    citaData,
   })
 }
 
@@ -645,7 +628,7 @@ function handleDeleteClick() {
 
 function statusTextClass(status: string) {
   const map: Record<string, string> = {
-    confirmed: 'text-primary', pending: 'text-warning', paid: 'text-success',
+    confirmed: 'text-warning', pending: 'text-danger', paid: 'text-success',
     cancelled: 'text-danger', no_show: 'text-danger',
   }
   return map[status] || 'text-text'

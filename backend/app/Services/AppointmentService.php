@@ -84,6 +84,7 @@ class AppointmentService
             'duration_override' => $data['duration_override'] ?? null,
             'diagnosis' => $data['diagnosis'] ?? null,
             'treatment' => $data['treatment'] ?? null,
+            'associated_products' => $data['associated_products'] ?? null,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -98,7 +99,7 @@ class AppointmentService
             'start_time', 'end_time', 'service_notes', 'internal_notes',
             'price_override', 'employee_percentage_override', 'assistant_percentage',
             'is_fixed_commission_override', 'employee_amount_override', 'assistant_amount_override',
-            'duration_override', 'diagnosis', 'treatment', 'group_id', 'branch_id',
+            'duration_override', 'diagnosis', 'treatment', 'associated_products', 'group_id', 'branch_id',
         ];
 
         $filtered = array_filter($data, fn($k) => in_array($k, $fillable), ARRAY_FILTER_USE_KEY);

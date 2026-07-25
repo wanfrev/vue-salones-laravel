@@ -1,21 +1,22 @@
 <template>
   <Teleport to="body">
-    <Transition enter-active-class="transition-all duration-300 ease-out" enter-from-class="opacity-0"
-      enter-to-class="opacity-100" leave-active-class="transition-all duration-200 ease-in"
-      leave-from-class="opacity-100" leave-to-class="opacity-0">
+    <Transition
+      enter-active-class="transition-all duration-300 ease-out"
+      enter-from-class="opacity-0 scale-95"
+      enter-to-class="opacity-100 scale-100"
+      leave-active-class="transition-all duration-200 ease-in"
+      leave-from-class="opacity-100 scale-100"
+      leave-to-class="opacity-0 scale-95"
+    >
       <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
         @click.self="handleBackdropClick">
         <!-- Backdrop -->
         <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
 
         <!-- Modal Container -->
-        <Transition enter-active-class="transition-all duration-300 ease-out"
-          enter-from-class="opacity-0 scale-95 translate-y-4" enter-to-class="opacity-100 scale-100 translate-y-0"
-          leave-active-class="transition-all duration-200 ease-in"
-          leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 translate-y-4">
-          <div v-if="isOpen"
-            class="relative w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl" style="overflow: clip;"
-            :class="sizeClasses[size]">
+        <div
+          class="relative w-full overflow-hidden rounded-2xl border border-border bg-surface shadow-2xl" style="overflow: clip;"
+          :class="sizeClasses[size]">
             <!-- Header -->
             <div class="flex items-center justify-between border-b border-border px-6 py-4">
               <div class="flex items-center gap-3">
@@ -65,8 +66,7 @@
               </slot>
             </div>
           </div>
-        </Transition>
-      </div>
+        </div>
     </Transition>
   </Teleport>
 </template>

@@ -150,6 +150,7 @@ export interface Appointment {
   internal_notes: string | null
   diagnosis: string | null
   treatment: string | null
+  associated_products?: any
   reminder_sent_at: string | null
   source: AppointmentSource
   created_by: string | null
@@ -165,6 +166,7 @@ export interface AppointmentWithRelations extends Appointment {
   profiles?: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
   employee_profile?: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
   assistant_profile?: Pick<Profile, 'id' | 'full_name' | 'avatar_url'> | null
+  pets?: Pick<Pet, 'name'> | null
 }
 
 export interface Transaction {

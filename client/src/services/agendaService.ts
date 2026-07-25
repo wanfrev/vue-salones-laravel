@@ -36,7 +36,7 @@ export const agendaKeys = {
   appointments: (businessId?: string | null, branchId?: string | null) => ['appointments', businessId, branchId] as const,
 }
 
-export const APPOINTMENT_SELECT = '*, clients(id, full_name, phone, email), services(id, name, duration_minutes, price, color, is_fixed_commission, fixed_commission_amount, fixed_commission_assistant_amount), profiles!appointments_employee_id_fkey(id, full_name, avatar_url), assistant_profile:profiles!appointments_assistant_employee_id_fkey(id, full_name, avatar_url)'
+export const APPOINTMENT_SELECT = '*, clients(id, full_name, phone, email), services(id, name, duration_minutes, price, color, is_fixed_commission, fixed_commission_amount, fixed_commission_assistant_amount), profiles!appointments_employee_id_fkey(id, full_name, avatar_url), assistant_profile:profiles!appointments_assistant_employee_id_fkey(id, full_name, avatar_url), pets(name)'
 
 export const listCitas = async (
   businessId: string,
@@ -215,7 +215,7 @@ async function buildServicePayloads(
       price: data.price,
     },
     clientId, data.date, data.time, data.status, data.notes,
-    groupId, createdBy, primaryService, branchId, data.petId, data.diagnosis, data.treatment,
+    groupId, createdBy, primaryService, branchId, data.petId, data.diagnosis, data.treatment, data.associatedProducts,
   )]
 
   for (const extra of data.extraServices) {
@@ -229,6 +229,7 @@ async function buildServicePayloads(
       data.petId,
       data.diagnosis,
       data.treatment,
+      data.associatedProducts,
     ))
   }
 
@@ -404,7 +405,7 @@ export const saveCita = async (
   )
 
   if (!data.extraServices || data.extraServices.length === 0) {
-    return saveSingleServiceAppointment(businessId, data, service, clientId, createdBy, branchId)
+    return saveSingleServiceAppointment(businessId, { ...parsed.data, id: data.id, associatedProducts: data.associatedProducts }, service, clientId, createdBy, branchId)
   }
 
   // Multi-service (grouped) path
