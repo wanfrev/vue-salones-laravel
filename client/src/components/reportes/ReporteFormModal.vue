@@ -145,7 +145,6 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useQueryClient } from '@tanstack/vue-query'
 import ModalBase from '../common/ModalBase.vue'
 import FormInput from '../forms/FormInput.vue'
 import { useBusinessStore } from '../../store/business'
@@ -156,7 +155,6 @@ import { useNotification } from '../../composables/common/useNotification'
 
 const businessStore = useBusinessStore()
 const authStore = useAuthStore()
-const queryClient = useQueryClient()
 const { showSuccess, showError } = useNotification()
 
 const isOpen = ref(false)
@@ -328,14 +326,13 @@ const handleSubmit = async () => {
     await saveDailyReport(payload)
     showSuccess(isEditing.value ? 'Reporte actualizado exitosamente' : 'Reporte guardado exitosamente')
     
-    // Invalidate queries with exact: false
-    await queryClient.invalidateQueries({ queryKey: ['daily-reports'], exact: false })
-    
     emit('saved')
     close()
   } catch (error: any) {
     console.error('Error al guardar reporte:', error)
-    showError(error?.response?.data?.message || error?.message || 'Error al guardar el reporte')
+    const errorMsg = error?.response?.data?.message || error?.message || 'Error al guardar el reporte'
+    showError(errorMsg)
+    alert(`DEBUG ERROR: ${errorMsg}`) // Forzar alerta nativa para que el usuario pueda decirnos exactamente qué falla
   } finally {
     isSaving.value = false
   }
