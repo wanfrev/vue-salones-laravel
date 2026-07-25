@@ -1,5 +1,5 @@
 <template>
-  <ModalBase :is-open="isOpen" :title="isEditing ? 'Editar Reporte Diario' : 'Nuevo Reporte Diario'" @close="close">
+  <ModalBase :is-open="isOpen" :title="isEditing ? 'Editar Reporte Diario' : 'Nuevo Reporte Diario'" size="xl" @close="close">
     <div class="space-y-6">
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FormInput v-model="formData.date" label="Fecha" type="date" required :error="errors.date" />
@@ -149,17 +149,18 @@ import ModalBase from '../common/ModalBase.vue'
 import FormInput from '../forms/FormInput.vue'
 import { useBusinessStore } from '../../store/business'
 import { useAuthStore } from '../../store/auth'
-import { saveDailyReport } from '../../services/dailyReportService'
+import { useDailyReports } from '../../composables/reportes/useDailyReports'
 import type { DailyReport } from '../../services/dailyReportService'
 import { useNotification } from '../../composables/common/useNotification'
 
 const businessStore = useBusinessStore()
 const authStore = useAuthStore()
-const { showSuccess, showError } = useNotification()
+const { showError } = useNotification()
+const { saveMutation, activeBusinessId } = useDailyReports()
 
 const isOpen = ref(false)
-const isSaving = ref(false)
 const isEditing = ref(false)
+const isSaving = computed(() => saveMutation.isPending.value)
 
 const errors = ref<Record<string, string>>({})
 
@@ -256,9 +257,10 @@ const open = (report?: DailyReport) => {
   errors.value = {}
   isEditing.value = !!report
   if (report) {
+    const formattedDate = report.date ? String(report.date).split('T')[0].split(' ')[0] : new Date().toISOString().split('T')[0]
     formData.value = {
       id: report.id,
-      date: report.date,
+      date: formattedDate,
       exchange_rate: String(report.exchange_rate ?? ''),
       z_report_bs: String(report.z_report_bs ?? ''),
       z_report_usd: String(report.z_report_usd ?? ''),
@@ -292,47 +294,41 @@ const validate = () => {
 const handleSubmit = async () => {
   if (!validate()) return
   
-  const businessId = businessStore.business?.id || authStore.profile?.business_id
-  if (!businessId) {
+  const bizId = activeBusinessId.value
+  if (!bizId) {
     showError('No se pudo identificar el negocio activo.')
     return
   }
 
-  isSaving.value = true
+  const payload: Partial<DailyReport> = {
+    business_id: bizId,
+    branch_id: businessStore.selectedBranchId || authStore.profile?.branch_id || null,
+    date: formData.value.date,
+    exchange_rate: parseNum(formData.value.exchange_rate),
+    z_report_bs: parseNum(formData.value.z_report_bs),
+    z_report_usd: parseNum(formData.value.z_report_usd),
+    pos_bs: parseNum(formData.value.pos_bs),
+    pago_movil_bs: parseNum(formData.value.pago_movil_bs),
+    cash_bs: parseNum(formData.value.cash_bs),
+    transfer_bs: parseNum(formData.value.transfer_bs),
+    cash_usd: parseNum(formData.value.cash_usd),
+    zelle_usd: parseNum(formData.value.zelle_usd),
+    binance_usd: parseNum(formData.value.binance_usd),
+    cashea_usd: parseNum(formData.value.cashea_usd),
+    total_bs: totalBs.value,
+    total_usd: totalUsd.value,
+  }
+
+  if (isEditing.value && formData.value.id) {
+    payload.id = formData.value.id
+  }
+
   try {
-    const payload: Partial<DailyReport> = {
-      business_id: businessId,
-      branch_id: businessStore.selectedBranchId || authStore.profile?.branch_id || null,
-      date: formData.value.date,
-      exchange_rate: parseNum(formData.value.exchange_rate),
-      z_report_bs: parseNum(formData.value.z_report_bs),
-      z_report_usd: parseNum(formData.value.z_report_usd),
-      pos_bs: parseNum(formData.value.pos_bs),
-      pago_movil_bs: parseNum(formData.value.pago_movil_bs),
-      cash_bs: parseNum(formData.value.cash_bs),
-      transfer_bs: parseNum(formData.value.transfer_bs),
-      cash_usd: parseNum(formData.value.cash_usd),
-      zelle_usd: parseNum(formData.value.zelle_usd),
-      binance_usd: parseNum(formData.value.binance_usd),
-      cashea_usd: parseNum(formData.value.cashea_usd),
-      total_bs: totalBs.value,
-      total_usd: totalUsd.value,
-    }
-
-    if (isEditing.value && formData.value.id) {
-      payload.id = formData.value.id
-    }
-
-    await saveDailyReport(payload)
-    showSuccess(isEditing.value ? 'Reporte actualizado exitosamente' : 'Reporte guardado exitosamente')
-    emit('saved')
+    await saveMutation.mutateAsync(payload)
     isOpen.value = false
-  } catch (error: any) {
-    console.error('Error al guardar reporte:', error)
-    const errorMsg = error?.response?.data?.message || error?.message || 'Error al guardar el reporte'
-    showError(errorMsg)
-  } finally {
-    isSaving.value = false
+    emit('saved')
+  } catch (err) {
+    // Error notification handled by saveMutation onError
   }
 }
 

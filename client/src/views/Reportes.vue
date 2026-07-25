@@ -109,35 +109,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { useBusinessStore } from '../store/business'
-import { useAuthStore } from '../store/auth'
-import { listDailyReports, deleteDailyReport } from '../services/dailyReportService'
+import { ref } from 'vue'
 import type { DailyReport } from '../services/dailyReportService'
 import ReporteFormModal from '../components/reportes/ReporteFormModal.vue'
-import { useNotification } from '../composables/common/useNotification'
-
-const businessStore = useBusinessStore()
-const authStore = useAuthStore()
-const queryClient = useQueryClient()
-const { showSuccess, showError } = useNotification()
+import { useDailyReports } from '../composables/reportes/useDailyReports'
 
 const modalRef = ref<InstanceType<typeof ReporteFormModal> | null>(null)
-
-const activeBusinessId = computed(() => businessStore.business?.id || authStore.profile?.business_id)
-
-const { data: reports, isLoading } = useQuery({
-  queryKey: () => ['daily-reports', activeBusinessId.value, businessStore.selectedBranchId],
-  queryFn: () => listDailyReports(activeBusinessId.value!, businessStore.selectedBranchId),
-  enabled: () => !!activeBusinessId.value,
-  staleTime: 0,
-})
+const { reports, isLoading, deleteMutation } = useDailyReports()
 
 const formatCurrency = (val: number | string) => Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 const formatDate = (dateStr: string) => {
-  const d = new Date(dateStr + 'T12:00:00')
+  const cleanDate = dateStr ? String(dateStr).split('T')[0].split(' ')[0] : ''
+  const d = new Date(cleanDate + 'T12:00:00')
   return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
@@ -186,25 +170,8 @@ const openModal = (report?: DailyReport) => {
   modalRef.value?.open(report)
 }
 
-const invalidateReports = async () => {
-  await queryClient.invalidateQueries({ queryKey: ['daily-reports'], exact: false })
-  await queryClient.refetchQueries({ queryKey: ['daily-reports'], exact: false })
-}
-
-const onReportSaved = async () => {
-  await invalidateReports()
-}
-
-const handleDelete = async (report: DailyReport) => {
+const handleDelete = (report: DailyReport) => {
   if (!confirm(`¿Estás seguro de eliminar el reporte del ${formatDate(report.date)}?`)) return
-  
-  try {
-    await deleteDailyReport(report.id)
-    await invalidateReports()
-    showSuccess('Reporte eliminado')
-  } catch (err: any) {
-    console.error('Error al eliminar:', err)
-    showError(err?.response?.data?.message || err?.message || 'Error al eliminar el reporte')
-  }
+  deleteMutation.mutate(report.id)
 }
 </script>

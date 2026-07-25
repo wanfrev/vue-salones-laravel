@@ -54,6 +54,8 @@ export function useRealtime() {
       gift_card: ['gift-cards'],
       employee_schedule: ['equipo', 'schedules'],
       employee_balance: ['employee-balance', 'employee-earnings'],
+      daily_report: ['daily-reports'],
+      daily_reports: ['daily-reports'],
     }
 
     const prefixes = queryKeyMap[payload.entity] || [payload.entity]
