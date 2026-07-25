@@ -81,6 +81,7 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
     diagnosis: appointment.diagnosis ?? (appointment as any).diagnosis ?? undefined,
     treatment: appointment.treatment ?? (appointment as any).treatment ?? undefined,
     associatedProducts,
+    clinicalHistory: appointment.clinical_history ?? (appointment as any).clinical_history ?? undefined,
   }
 }
 
@@ -125,6 +126,7 @@ export const mapCitaFormToAppointmentInsert = (
     internal_notes: data.notes.trim() || null,
     diagnosis: data.diagnosis?.trim() || null,
     treatment: data.treatment?.trim() || null,
+    clinical_history: data.clinicalHistory ?? null,
     associated_products: (() => {
       const valid = (data.associatedProducts || []).filter(p => !!(p && p.productId))
       return valid.length > 0 ? valid : null
@@ -150,6 +152,7 @@ export const mapServiceItemToAppointmentInsert = (
   diagnosis?: string,
   treatment?: string,
   associatedProducts?: any[],
+  clinicalHistory?: Record<string, string>,
 ) => {
   const startTime = new Date(`${date}T${time}:00`)
   const effectiveDuration = item.duration || service?.duration_minutes || 30
@@ -185,6 +188,7 @@ export const mapServiceItemToAppointmentInsert = (
     internal_notes: notes.trim() || null,
     diagnosis: diagnosis?.trim() || null,
     treatment: treatment?.trim() || null,
+    clinical_history: clinicalHistory ?? null,
     associated_products: (() => {
       const valid = (associatedProducts || []).filter(p => !!(p && (p.productId || p.product_id)))
       return valid.length > 0 ? valid : null

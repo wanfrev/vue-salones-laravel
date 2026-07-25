@@ -215,7 +215,7 @@ async function buildServicePayloads(
       price: data.price,
     },
     clientId, data.date, data.time, data.status, data.notes,
-    groupId, createdBy, primaryService, branchId, data.petId, data.diagnosis, data.treatment, data.associatedProducts,
+    groupId, createdBy, primaryService, branchId, data.petId, data.diagnosis, data.treatment, data.associatedProducts, data.clinicalHistory,
   )]
 
   for (const extra of data.extraServices) {
@@ -230,6 +230,7 @@ async function buildServicePayloads(
       data.diagnosis,
       data.treatment,
       data.associatedProducts,
+      data.clinicalHistory,
     ))
   }
 

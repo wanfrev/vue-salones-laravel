@@ -18,11 +18,20 @@
         .print-only { display: none; }
         @media print {
           .print-only { display: block; }
+          .print-hidden { display: none !important; }
         }
       </style>
-      <!-- Print button -->
-      <div class="flex justify-end">
-        <button @click="printHistory" class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-muted hover:bg-bg-secondary transition-colors">
+      <!-- Controls -->
+      <div class="flex items-center justify-between print-hidden">
+        <div v-if="petsWithHistory.length > 1" class="w-64">
+          <select v-model="selectedPetFilter" class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-text outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors">
+            <option value="">Todas las mascotas</option>
+            <option v-for="pet in petsWithHistory" :key="pet.id" :value="pet.id">{{ pet.name }}</option>
+          </select>
+        </div>
+        <div v-else></div>
+        
+        <button @click="printHistory" class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-semibold text-text-muted hover:bg-bg-secondary transition-colors">
           <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
           </svg>
@@ -39,7 +48,7 @@
         </div>
 
         <div class="space-y-8">
-          <template v-for="pet in petsWithHistory" :key="pet.id">
+          <template v-for="pet in filteredPets" :key="pet.id">
             <div class="rounded-xl border border-border bg-surface overflow-hidden page-break-inside-avoid">
               <!-- Pet header -->
               <div class="bg-primary/5 px-4 py-3 border-b border-primary/10">
@@ -302,7 +311,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import ModalBase from '../common/ModalBase.vue'
 import { listPetsByClient } from '../../services/petService'
 import { apiRequest } from '../../lib/api'
@@ -311,6 +320,12 @@ import { useModal } from '../../composables/common/useModal'
 import type { Pet } from '../../types/database'
 
 const MODAL_ID = 'pet-history-modal'
+
+const selectedPetFilter = ref<string>('')
+const filteredPets = computed(() => {
+  if (!selectedPetFilter.value) return petsWithHistory.value
+  return petsWithHistory.value.filter(p => p.id === selectedPetFilter.value)
+})
 
 const VET_SYSTEMS = [
   { key: 'Oftálmico', label: 'Sistema Oftálmico / Ojos' },
@@ -414,8 +429,10 @@ const loadHistory = async () => {
     }
 
     petsWithHistory.value = results
+    selectedPetFilter.value = ''
   } catch {
     petsWithHistory.value = []
+    selectedPetFilter.value = ''
   } finally {
     loading.value = false
   }
