@@ -46,7 +46,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuth } from '../../composables/common/useAuth'
 import { useBusinessStore } from '../../store/business'
-import { isAdminPanelRole } from '../../constants/roles'
+import { isAdminPanelRole, isCajero } from '../../constants/roles'
 import { sidebarSections } from './sidebarLinks'
 import type { SidebarLink } from './sidebarLinks'
 
@@ -65,6 +65,7 @@ const { authStore } = useAuth()
 const businessStore = useBusinessStore()
 
 const isAdmin = computed(() => isAdminPanelRole(authStore.role ?? undefined))
+const isCajeroRole = computed(() => isCajero(authStore.role ?? undefined))
 const agendaDisabled = computed(() => authStore.profile?.disable_agenda ?? false)
 
 const visibleSections = computed(() =>
@@ -72,6 +73,9 @@ const visibleSections = computed(() =>
     .map(section => ({
       ...section,
       links: section.links.filter(link => {
+        if (isCajeroRole.value) {
+          return link.to === '/admin/pos'
+        }
         if (link.adminOnly && !isAdmin.value) return false
         if (link.employeeOnly && isAdmin.value) return false
         if (link.requiresFeature && !businessStore.hasFeature(link.requiresFeature as any)) return false
@@ -79,7 +83,10 @@ const visibleSections = computed(() =>
         return true
       }),
     }))
-    .filter(section => !section.adminOnly || isAdmin.value)
+    .filter(section => {
+      if (isCajeroRole.value) return section.links.length > 0
+      return !section.adminOnly || isAdmin.value
+    })
     .filter(section => section.links.length > 0)
 )
 

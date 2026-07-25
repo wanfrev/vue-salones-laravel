@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../store/auth'
-import { isAdminPanelRole, resolveHomeByRole } from '../constants/roles'
+import { isRole, isAdminPanelRole, isEncargado, isCajero, resolveHomeByRole, ROLES } from '../constants/roles'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -195,6 +195,23 @@ router.beforeEach(async (to) => {
 
   if (to.meta.superadminOnly && authStore.role !== 'superadmin') {
     return resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda)
+  }
+
+  // ── CAJERO: solo puede acceder a /admin/pos ──
+  if (authStore.role === 'cajero') {
+    // Bloquear dashboard (es para empleados)
+    if (to.path.startsWith('/dashboard/')) {
+      return resolveHomeByRole(authStore.role)
+    }
+    // Bloquear superadmin
+    if (to.meta.superadminOnly) {
+      return resolveHomeByRole(authStore.role)
+    }
+    // Permitir solo /admin/pos, redirigir cualquier otra ruta admin
+    if (to.path.startsWith('/admin/') && to.path !== '/admin/pos') {
+      return resolveHomeByRole(authStore.role)
+    }
+    return
   }
 
   if (to.meta.adminOnly && !isAdminPanelRole(authStore.role ?? undefined)) {

@@ -230,6 +230,7 @@ const isEditing = computed(() => !!modalData.value?.empleado)
 const systemRoleOptions = [
   { value: 'empleado' as const, label: 'Empleado' },
   { value: 'encargado' as const, label: 'Encargado' },
+  { value: 'cajero' as const, label: 'Cajero (solo POS)' },
 ]
 
 const showingCustomRole = ref(false)
