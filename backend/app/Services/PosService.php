@@ -23,13 +23,17 @@ class PosService
      */
     public function getPendingAppointments(string $businessId, ?string $branchId = null): Collection
     {
-        $query = Appointment::with([
+        $serviceRelations = ['service.linkedProduct'];
+        if (\Illuminate\Support\Facades\Schema::hasTable('service_products')) {
+            $serviceRelations[] = 'service.linkedProducts.product';
+        }
+
+        $query = Appointment::with(array_merge([
             'client',
-            'service.linkedProduct',
             'employeeProfile',
             'assistantProfile',
             'transactions',
-        ])
+        ], $serviceRelations))
             ->where('business_id', $businessId)
             ->whereIn('status', ['confirmed', 'completed', 'pending'])
             ->where('payment_status', '!=', 'paid')

@@ -65,25 +65,39 @@ const displayProductsList = computed(() => {
     }
   }
 
-  // 3. Include service catalog linked products if not duplicated
-  const s = props.appt.service || props.appt.services
-  const serviceLinkedProds = s?.linked_products || s?.linkedProducts
-
-  if (Array.isArray(serviceLinkedProds) && serviceLinkedProds.length > 0) {
-    for (const lp of serviceLinkedProds) {
-      const prodId = lp.product_id || lp.productId
-      const prodInCatalog = props.products?.find((p: any) => p.id === prodId)
-      const linkedName = lp.product?.name || prodInCatalog?.name || 'Insumo'
-      const qty = Number(lp.quantity ?? 1)
-      if (!list.some(l => l.name === linkedName)) {
-        list.push({ name: linkedName, quantity: qty })
-      }
+  // 3. Include service catalog linked products from service or group members
+  const servicesToInspect: any[] = []
+  if (props.appt.isGroup && Array.isArray(props.appt.members)) {
+    for (const m of props.appt.members) {
+      if (m.service) servicesToInspect.push(m.service)
+      if (m.services) servicesToInspect.push(m.services)
     }
-  } else if (s?.linked_product_id) {
-    const prodInCatalog = props.products?.find((p: any) => p.id === s.linked_product_id)
-    const linkedName = s?.linked_product?.name || prodInCatalog?.name || 'Insumo'
-    if (!list.some(l => l.name === linkedName)) {
-      list.push({ name: linkedName, quantity: 1 })
+  }
+  if (props.appt.service) servicesToInspect.push(props.appt.service)
+  if (props.appt.services) servicesToInspect.push(props.appt.services)
+
+  const processedServiceIds = new Set<string>()
+  for (const s of servicesToInspect) {
+    if (!s || (s.id && processedServiceIds.has(s.id))) continue
+    if (s.id) processedServiceIds.add(s.id)
+
+    const serviceLinkedProds = s.linked_products || s.linkedProducts
+    if (Array.isArray(serviceLinkedProds) && serviceLinkedProds.length > 0) {
+      for (const lp of serviceLinkedProds) {
+        const prodId = lp.product_id || lp.productId
+        const prodInCatalog = props.products?.find((p: any) => p.id === prodId)
+        const linkedName = lp.product?.name || prodInCatalog?.name || 'Insumo'
+        const qty = Number(lp.quantity ?? 1)
+        if (!list.some(l => l.name === linkedName)) {
+          list.push({ name: linkedName, quantity: qty })
+        }
+      }
+    } else if (s.linked_product_id) {
+      const prodInCatalog = props.products?.find((p: any) => p.id === s.linked_product_id)
+      const linkedName = s.linked_product?.name || prodInCatalog?.name || 'Insumo'
+      if (!list.some(l => l.name === linkedName)) {
+        list.push({ name: linkedName, quantity: 1 })
+      }
     }
   }
 
