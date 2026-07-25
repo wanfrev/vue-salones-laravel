@@ -127,8 +127,8 @@ const modalRef = ref<InstanceType<typeof ReporteFormModal> | null>(null)
 
 const activeBusinessId = computed(() => businessStore.business?.id || authStore.profile?.business_id)
 
-const { data: reports, isLoading } = useQuery({
-  queryKey: ['daily-reports', activeBusinessId, businessStore.selectedBranchId],
+const { data: reports, isLoading, refetch } = useQuery({
+  queryKey: () => ['daily-reports', activeBusinessId.value, businessStore.selectedBranchId],
   queryFn: () => listDailyReports(activeBusinessId.value!, businessStore.selectedBranchId),
   enabled: () => !!activeBusinessId.value,
 })
@@ -186,17 +186,19 @@ const openModal = (report?: DailyReport) => {
 }
 
 const onReportSaved = async () => {
-  await queryClient.invalidateQueries({ queryKey: ['daily-reports'], exact: false })
+  await refetch()
 }
 
 const handleDelete = async (report: DailyReport) => {
   if (!confirm(`¿Estás seguro de eliminar el reporte del ${formatDate(report.date)}?`)) return
+  
   try {
     await deleteDailyReport(report.id)
     showSuccess('Reporte eliminado')
-    await queryClient.invalidateQueries({ queryKey: ['daily-reports'], exact: false })
+    await refetch()
   } catch (err: any) {
-    showError(err?.message || 'Error al eliminar el reporte')
+    console.error('Error al eliminar:', err)
+    showError(err?.response?.data?.message || err?.message || 'Error al eliminar el reporte')
   }
 }
 </script>
