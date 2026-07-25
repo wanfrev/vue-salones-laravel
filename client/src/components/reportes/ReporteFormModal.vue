@@ -279,7 +279,7 @@ const open = (report?: DailyReport) => {
 }
 
 const close = () => {
-  if (!isSaving.value) isOpen.value = false
+  isOpen.value = false
 }
 
 const validate = () => {
@@ -325,7 +325,6 @@ const handleSubmit = async () => {
 
     await saveDailyReport(payload)
     showSuccess(isEditing.value ? 'Reporte actualizado exitosamente' : 'Reporte guardado exitosamente')
-    
     emit('saved')
     isOpen.value = false
   } catch (error: any) {

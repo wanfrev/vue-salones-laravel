@@ -33,10 +33,20 @@ export const listDailyReports = async (businessId: string, branchId?: string | n
 }
 
 export const saveDailyReport = async (data: Partial<DailyReport>) => {
-  if (data.id) {
-    return await apiRequest<DailyReport>('PUT', `/daily-reports/${data.id}`, data)
+  console.log('[saveDailyReport] START', data.id ? 'UPDATE' : 'CREATE', data.date)
+  try {
+    if (data.id) {
+      const result = await apiRequest<DailyReport>('PUT', `/daily-reports/${data.id}`, data)
+      console.log('[saveDailyReport] UPDATE OK', result)
+      return result
+    }
+    const result = await apiRequest<DailyReport>('POST', `/daily-reports`, data)
+    console.log('[saveDailyReport] CREATE OK', result)
+    return result
+  } catch (err) {
+    console.error('[saveDailyReport] ERROR', err)
+    throw err
   }
-  return await apiRequest<DailyReport>('POST', `/daily-reports`, data)
 }
 
 export const deleteDailyReport = async (id: string) => {
