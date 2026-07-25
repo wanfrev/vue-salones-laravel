@@ -351,14 +351,12 @@ const legend = [
   { label: 'Pendiente', color: 'var(--color-danger)' },
   { label: 'Confirmada', color: 'var(--color-warning)' },
   { label: 'Pagada', color: 'var(--color-success)' },
-  { label: 'Cancelada', color: 'var(--color-danger)' },
 ]
 
 const STATUS_OPTIONS = [
   { value: 'pending', label: 'Pendiente' },
   { value: 'confirmed', label: 'Confirmada' },
   { value: 'paid', label: 'Pagada' },
-  { value: 'cancelled', label: 'Cancelada' },
 ] as const
 
 // ---- State ----
