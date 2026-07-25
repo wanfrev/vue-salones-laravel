@@ -326,12 +326,12 @@ const handleSubmit = async () => {
     await saveDailyReport(payload)
     showSuccess(isEditing.value ? 'Reporte actualizado exitosamente' : 'Reporte guardado exitosamente')
     emit('saved')
-    isSaving.value = false
     close()
   } catch (error: any) {
     console.error('Error al guardar reporte:', error)
     const errorMsg = error?.response?.data?.message || error?.message || 'Error al guardar el reporte'
     showError(errorMsg)
+  } finally {
     isSaving.value = false
   }
 }
