@@ -159,7 +159,7 @@ const { isOpen, modalData, close } = useModal(MODAL_ID)
 
 const businessStore = useBusinessStore()
 const authStore = useAuthStore()
-const { showError } = useNotification()
+const { error: showError } = useNotification()
 const { saveMutation, activeBusinessId } = useDailyReports()
 
 const isEditing = ref(false)

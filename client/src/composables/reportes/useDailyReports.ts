@@ -15,7 +15,7 @@ export function useDailyReports() {
   const queryClient = useQueryClient()
   const businessStore = useBusinessStore()
   const authStore = useAuthStore()
-  const { showSuccess, showError } = useNotification()
+  const { success: showSuccess, error: showError } = useNotification()
 
   const activeBusinessId = computed(() => businessStore.business?.id || authStore.profile?.business_id || null)
   const selectedBranchId = computed(() => businessStore.selectedBranchId)
