@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\ProductCategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\WhatsAppController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierPaymentController;
 use App\Http\Controllers\Api\SuperadminController;
@@ -195,6 +196,19 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'dismiss']);
+
+    // WhatsApp
+    Route::get('/whatsapp/config', [WhatsAppController::class, 'config']);
+    Route::put('/whatsapp/config', [WhatsAppController::class, 'updateConfig']);
+    Route::post('/whatsapp/instance', [WhatsAppController::class, 'createInstance']);
+    Route::get('/whatsapp/qr', [WhatsAppController::class, 'qrCode']);
+    Route::get('/whatsapp/status', [WhatsAppController::class, 'status']);
+    Route::post('/whatsapp/disconnect', [WhatsAppController::class, 'disconnect']);
+    Route::post('/whatsapp/test', [WhatsAppController::class, 'sendTest']);
+    Route::get('/whatsapp/templates', [WhatsAppController::class, 'templates']);
+    Route::post('/whatsapp/templates', [WhatsAppController::class, 'saveTemplate']);
+    Route::delete('/whatsapp/templates/{id}', [WhatsAppController::class, 'deleteTemplate']);
+    Route::get('/whatsapp/variables', [WhatsAppController::class, 'variables']);
 
     // Superadmin only
     Route::middleware('superadmin')->prefix('admin')->group(function () {
