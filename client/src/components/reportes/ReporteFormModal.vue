@@ -327,12 +327,11 @@ const handleSubmit = async () => {
     showSuccess(isEditing.value ? 'Reporte actualizado exitosamente' : 'Reporte guardado exitosamente')
     
     emit('saved')
-    close()
+    isOpen.value = false
   } catch (error: any) {
     console.error('Error al guardar reporte:', error)
     const errorMsg = error?.response?.data?.message || error?.message || 'Error al guardar el reporte'
     showError(errorMsg)
-    alert(`DEBUG ERROR: ${errorMsg}`) // Forzar alerta nativa para que el usuario pueda decirnos exactamente qué falla
   } finally {
     isSaving.value = false
   }

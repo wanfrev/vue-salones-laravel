@@ -28,6 +28,7 @@ export const listDailyReports = async (businessId: string, branchId?: string | n
   const params = new URLSearchParams({ business_id: businessId })
   if (branchId) params.set('branch_id', branchId)
   if (month) params.set('month', month)
+  params.set('_t', Date.now().toString())
   return await apiRequest<DailyReport[]>('GET', `/daily-reports?${params.toString()}`)
 }
 
