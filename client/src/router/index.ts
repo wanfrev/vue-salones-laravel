@@ -101,6 +101,11 @@ const router = createRouter({
           component: () => import('../views/FinanzasRegistros.vue'),
         },
         {
+          path: 'reportes',
+          name: 'admin-reportes',
+          component: () => import('../views/Reportes.vue'),
+        },
+        {
           path: 'equipo',
           name: 'admin-equipo',
           component: () => import('../views/Equipo.vue'),

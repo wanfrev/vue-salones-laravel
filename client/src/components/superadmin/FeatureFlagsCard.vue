@@ -33,6 +33,8 @@
 </template>
 
 <script setup lang="ts">
+import { Check, Calendar, CalendarDays, BarChart3, Receipt, Users, Briefcase, UserPlus, Gift, Building2, ShoppingCart, Truck, Package, MessageCircle, FileText } from 'lucide-vue-next'
+
 defineProps<{
   features: Record<string, boolean>
   isToggling: boolean
@@ -48,5 +50,6 @@ const toggles = [
   { key: 'multi_branch', label: 'Múltiples sucursales', description: 'Gestionar varias ubicaciones físicas' },
   { key: 'employees_create_clients', label: 'Empleados crean clientes', description: 'Permitir que empleados agreguen nuevos clientes desde la agenda' },
   { key: 'gift_cards', label: 'Gift Cards', description: 'Sistema de tarjetas de regalo' },
+  { key: 'manual_reports', label: 'Módulo de Reporte Diario', description: 'Generación y control de reportes diarios' },
 ]
 </script>

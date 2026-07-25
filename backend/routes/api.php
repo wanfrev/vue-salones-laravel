@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierPaymentController;
 use App\Http\Controllers\Api\SuperadminController;
 use App\Http\Controllers\Api\TransactionController;
+use App\Http\Controllers\Api\DailyReportController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -174,6 +175,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/expenses', [ExpenseController::class, 'store']);
     Route::put('/expenses/{id}', [ExpenseController::class, 'update']);
     Route::delete('/expenses/{id}', [ExpenseController::class, 'destroy']);
+
+    // Daily Reports
+    Route::get('/daily-reports', [DailyReportController::class, 'index']);
+    Route::post('/daily-reports', [DailyReportController::class, 'store']);
+    Route::put('/daily-reports/{id}', [DailyReportController::class, 'update']);
+    Route::delete('/daily-reports/{id}', [DailyReportController::class, 'destroy']);
 
     // POS
     Route::get('/pos/pending', [PosController::class, 'pendingAppointments']);

@@ -14,6 +14,7 @@ import {
   Truck,
   Settings,
   Gift,
+  FileText,
 } from 'lucide-vue-next'
 import type { Component } from 'vue'
 
@@ -54,6 +55,7 @@ export const sidebarSections: SidebarSection[] = [
       { to: '/admin/inventario', label: 'Inventario', icon: Package, adminOnly: true, requiresFeature: 'inventario' },
       { to: '/admin/proveedores', label: 'Proveedores', icon: Truck, adminOnly: true, requiresFeature: 'proveedores' },
       { to: '/admin/gift-cards', label: 'Gift Cards', icon: Gift, adminOnly: true, requiresFeature: 'gift_cards' },
+      { to: '/admin/reportes', label: 'Reporte', icon: FileText, adminOnly: true, requiresFeature: 'manual_reports', badge: 'Nuevo' },
     ],
   },
   {
