@@ -65,9 +65,23 @@ const displayProductsList = computed(() => {
     }
   }
 
-  // 3. Include service catalog linked product if not duplicated
-  if (props.appt.service?.linked_product_id) {
-    const linkedName = props.appt.service?.linked_product?.name || 'Insumo'
+  // 3. Include service catalog linked products if not duplicated
+  const s = props.appt.service || props.appt.services
+  const serviceLinkedProds = s?.linked_products || s?.linkedProducts
+
+  if (Array.isArray(serviceLinkedProds) && serviceLinkedProds.length > 0) {
+    for (const lp of serviceLinkedProds) {
+      const prodId = lp.product_id || lp.productId
+      const prodInCatalog = props.products?.find((p: any) => p.id === prodId)
+      const linkedName = lp.product?.name || prodInCatalog?.name || 'Insumo'
+      const qty = Number(lp.quantity ?? 1)
+      if (!list.some(l => l.name === linkedName)) {
+        list.push({ name: linkedName, quantity: qty })
+      }
+    }
+  } else if (s?.linked_product_id) {
+    const prodInCatalog = props.products?.find((p: any) => p.id === s.linked_product_id)
+    const linkedName = s?.linked_product?.name || prodInCatalog?.name || 'Insumo'
     if (!list.some(l => l.name === linkedName)) {
       list.push({ name: linkedName, quantity: 1 })
     }
