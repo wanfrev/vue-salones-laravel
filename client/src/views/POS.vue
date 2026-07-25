@@ -48,6 +48,7 @@
         :total-count="filteredAppointments.length"
         :selected-id="selectedId"
         :products="products"
+        :cart="cartCtx.cart.value"
         :inline-product-search="inlineProductSearch"
         :show-inline-dropdown="showInlineDropdown"
         @select="selectAppointment"

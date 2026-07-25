@@ -7,6 +7,7 @@ const props = defineProps<{
   isSelected: boolean
   variant: 'overdue' | 'upcoming'
   products: any[]
+  cart?: any[]
   inlineProductSearch: string
   showInlineDropdown: boolean
 }>()
@@ -22,6 +23,58 @@ const emit = defineEmits<{
 
 const normalize = (s: string): string =>
   (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+const displayProductsList = computed(() => {
+  const list: { name: string; quantity: number }[] = []
+
+  // 1. If card is selected and cart has items, use active cart for real-time live updates
+  if (props.isSelected && props.cart && props.cart.length > 0) {
+    for (const item of props.cart) {
+      const name = item.productName || item.name || 'Producto'
+      const qty = Number(item.quantity || 1)
+      const existing = list.find(l => l.name === name)
+      if (existing) {
+        existing.quantity += qty
+      } else {
+        list.push({ name, quantity: qty })
+      }
+    }
+    return list
+  }
+
+  // 2. Otherwise use associated_products on the appointment
+  const rawList: any[] = []
+  if (props.appt.isGroup && Array.isArray(props.appt.members)) {
+    for (const m of props.appt.members) {
+      if (m.associated_products && Array.isArray(m.associated_products)) rawList.push(...m.associated_products)
+      else if (m.associatedProducts && Array.isArray(m.associatedProducts)) rawList.push(...m.associatedProducts)
+    }
+  }
+  if (props.appt.associated_products && Array.isArray(props.appt.associated_products)) rawList.push(...props.appt.associated_products)
+  else if (props.appt.associatedProducts && Array.isArray(props.appt.associatedProducts)) rawList.push(...props.appt.associatedProducts)
+
+  for (const item of rawList) {
+    if (!item.productId && !item.product_id) continue
+    const name = item.productName || item.product_name || item.name || 'Producto'
+    const qty = Number(item.quantity || 1)
+    const existing = list.find(l => l.name === name)
+    if (existing) {
+      existing.quantity += qty
+    } else {
+      list.push({ name, quantity: qty })
+    }
+  }
+
+  // 3. Include service catalog linked product if not duplicated
+  if (props.appt.service?.linked_product_id) {
+    const linkedName = props.appt.service?.linked_product?.name || 'Insumo'
+    if (!list.some(l => l.name === linkedName)) {
+      list.push({ name: linkedName, quantity: 1 })
+    }
+  }
+
+  return list
+})
 
 const inlineFilteredProducts = computed(() => {
   if (!props.inlineProductSearch) return (props.products as any[]).filter((p: any) => Number(p.available_qty ?? 0) > 0).slice(0, 6)
@@ -43,9 +96,11 @@ const inlineFilteredProducts = computed(() => {
         <div class="min-w-0 flex-1">
           <p class="text-sm font-medium text-text truncate">{{ appt.client?.full_name || appt.clients?.full_name || 'Cliente' }}</p>
           <p class="text-xs text-text-muted truncate">{{ (appt.service?.name ?? appt.services?.name) || 'Servicio' }}<span v-if="appt.employeeName"> · {{ appt.employeeName }}</span></p>
-          <div v-if="appt.service?.linked_product_id" class="mt-1 flex items-center gap-1 text-[10px] text-amber-600 bg-amber-50 dark:bg-amber-500/10 dark:text-amber-400 px-1.5 py-0.5 rounded w-fit">
-            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-            Consumirá 1x {{ appt.service?.linked_product?.name || 'Insumo' }}
+          <div v-if="displayProductsList.length > 0" class="mt-1 flex flex-wrap items-center gap-1">
+            <div v-for="(prodItem, idx) in displayProductsList" :key="idx" class="flex items-center gap-1 text-[10px] text-amber-600 bg-amber-50 dark:bg-amber-500/10 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">
+              <svg class="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+              <span>{{ prodItem.quantity }}x {{ prodItem.name }}</span>
+            </div>
           </div>
         </div>
         <div class="flex items-center gap-2 shrink-0 ml-3">

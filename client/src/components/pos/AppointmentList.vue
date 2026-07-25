@@ -18,7 +18,7 @@
         <POSAppointmentCard
           v-for="appt in overdue" :key="appt.id"
           :appt="appt" :is-selected="selectedId === appt.id"
-          :products="products" :inline-product-search="inlineProductSearch"
+          :products="products" :cart="cart" :inline-product-search="inlineProductSearch"
           :show-inline-dropdown="showInlineDropdown" variant="overdue"
           @select="$emit('select', appt)" @go-to-calendar="$emit('go-to-calendar', appt)"
           @update:inline-product-search="$emit('update:inline-product-search', $event)"
@@ -37,7 +37,7 @@
         <POSAppointmentCard
           v-for="appt in upcoming" :key="appt.id"
           :appt="appt" :is-selected="selectedId === appt.id"
-          :products="products" :inline-product-search="inlineProductSearch"
+          :products="products" :cart="cart" :inline-product-search="inlineProductSearch"
           :show-inline-dropdown="showInlineDropdown" variant="upcoming"
           @select="$emit('select', appt)" @go-to-calendar="$emit('go-to-calendar', appt)"
           @update:inline-product-search="$emit('update:inline-product-search', $event)"
@@ -62,6 +62,7 @@ const props = defineProps<{
   totalCount: number
   selectedId: string | null
   products: any[]
+  cart?: any[]
   inlineProductSearch: string
   showInlineDropdown: boolean
 }>()
