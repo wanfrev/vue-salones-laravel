@@ -348,9 +348,9 @@ const totalGridHeight = (END_HOUR - START_HOUR) * HOUR_HEIGHT
 const totalHours = END_HOUR - START_HOUR
 
 const legend = [
-  { label: 'En Silla', color: 'var(--color-primary)' },
-  { label: 'Cobrada', color: 'var(--color-success)' },
-  { label: 'Pendiente', color: 'var(--color-warning)' },
+  { label: 'Pendiente', color: 'var(--color-danger)' },
+  { label: 'Confirmada', color: 'var(--color-warning)' },
+  { label: 'Pagada', color: 'var(--color-success)' },
   { label: 'Cancelada', color: 'var(--color-danger)' },
 ]
 
