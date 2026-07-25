@@ -14,9 +14,12 @@ class ServiceService
     public function list(string $businessId, ?string $branchId = null): Collection
     {
         $query = Service::query()
-            ->with('linkedProducts')
             ->where('business_id', $businessId)
             ->orderBy('name');
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('service_products')) {
+            $query->with('linkedProducts');
+        }
 
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
@@ -60,9 +63,11 @@ class ServiceService
             $this->syncLinkedProducts($service, $data['linked_products']);
         }
 
+        $withRelation = \Illuminate\Support\Facades\Schema::hasTable('service_products') ? ['linkedProducts'] : [];
+
         $cat = $data['category'] ?? '';
         if ($cat === '' || $cat === 'otros') {
-            return $service->fresh(['linkedProducts']);
+            return $withRelation ? $service->fresh($withRelation) : $service;
         }
 
         if (!empty($data['branch_id'])) {
@@ -85,7 +90,7 @@ class ServiceService
             }
         }
 
-        return $service->fresh(['linkedProducts']);
+        return $withRelation ? $service->fresh($withRelation) : $service;
     }
 
     public function update(string $id, array $data, string $businessId): Service
@@ -102,7 +107,8 @@ class ServiceService
             $this->syncLinkedProducts($service, $data['linked_products']);
         }
 
-        return $service->fresh(['linkedProducts']);
+        $withRelation = \Illuminate\Support\Facades\Schema::hasTable('service_products') ? ['linkedProducts'] : [];
+        return $withRelation ? $service->fresh($withRelation) : $service;
     }
 
     public function destroy(string $id, string $businessId): void
@@ -222,7 +228,11 @@ class ServiceService
 
     public function findForBusiness(string $id, string $businessId): Service
     {
-        $service = Service::with('linkedProducts')->find($id);
+        $query = Service::query();
+        if (\Illuminate\Support\Facades\Schema::hasTable('service_products')) {
+            $query->with('linkedProducts');
+        }
+        $service = $query->find($id);
         if (!$service || $service->business_id !== $businessId) {
             throw new NotFoundHttpException('Servicio no encontrado.');
         }
@@ -231,44 +241,52 @@ class ServiceService
 
     public function find(string $id): ?Service
     {
-        return Service::with('linkedProducts')->find($id);
+        $query = Service::query();
+        if (\Illuminate\Support\Facades\Schema::hasTable('service_products')) {
+            $query->with('linkedProducts');
+        }
+        return $query->find($id);
     }
 
     private function syncLinkedProducts(Service $service, ?array $linkedProducts): void
     {
-        if ($linkedProducts === null) {
+        if ($linkedProducts === null || !\Illuminate\Support\Facades\Schema::hasTable('service_products')) {
             return;
         }
 
-        \App\Models\ServiceLinkedProduct::where('service_id', $service->id)->delete();
+        try {
+            \App\Models\ServiceLinkedProduct::where('service_id', $service->id)->delete();
 
-        $firstProductId = null;
-        $firstVariantId = null;
+            $firstProductId = null;
+            $firstVariantId = null;
 
-        foreach ($linkedProducts as $item) {
-            if (empty($item['product_id'])) continue;
+            foreach ($linkedProducts as $item) {
+                if (empty($item['product_id'])) continue;
 
-            $productId = $item['product_id'];
-            $variantId = !empty($item['variant_id']) ? $item['variant_id'] : null;
-            $quantity = isset($item['quantity']) ? max(0.01, (float) $item['quantity']) : 1.0;
+                $productId = $item['product_id'];
+                $variantId = !empty($item['variant_id']) ? $item['variant_id'] : null;
+                $quantity = isset($item['quantity']) ? max(0.01, (float) $item['quantity']) : 1.0;
 
-            if (!$firstProductId) {
-                $firstProductId = $productId;
-                $firstVariantId = $variantId;
+                if (!$firstProductId) {
+                    $firstProductId = $productId;
+                    $firstVariantId = $variantId;
+                }
+
+                \App\Models\ServiceLinkedProduct::create([
+                    'id' => Str::uuid()->toString(),
+                    'service_id' => $service->id,
+                    'product_id' => $productId,
+                    'variant_id' => $variantId,
+                    'quantity' => $quantity,
+                ]);
             }
 
-            \App\Models\ServiceLinkedProduct::create([
-                'id' => Str::uuid()->toString(),
-                'service_id' => $service->id,
-                'product_id' => $productId,
-                'variant_id' => $variantId,
-                'quantity' => $quantity,
+            $service->update([
+                'linked_product_id' => $firstProductId,
+                'linked_variant_id' => $firstVariantId,
             ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("syncLinkedProducts failed: {$e->getMessage()}");
         }
-
-        $service->update([
-            'linked_product_id' => $firstProductId,
-            'linked_variant_id' => $firstVariantId,
-        ]);
     }
 }

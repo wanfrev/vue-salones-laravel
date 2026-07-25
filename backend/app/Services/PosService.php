@@ -235,8 +235,11 @@ class PosService
                 }
             }
 
-            $service->loadMissing('linkedProducts');
-            $linkedProducts = $service->linkedProducts;
+            $hasTable = \Illuminate\Support\Facades\Schema::hasTable('service_products');
+            if ($hasTable) {
+                $service->loadMissing('linkedProducts');
+            }
+            $linkedProducts = $hasTable ? $service->linkedProducts : null;
 
             if ($linkedProducts && $linkedProducts->count() > 0) {
                 $defaultLocation = $defaultLocation ?? $this->inventoryService->getDefaultLocation(
