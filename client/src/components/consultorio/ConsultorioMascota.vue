@@ -173,6 +173,7 @@
     </div>
     
     <ConsultorioFichaModal />
+    <HistoriaMedicaModal />
   </div>
 </template>
 
@@ -181,6 +182,7 @@ import { ref, watch, onMounted } from 'vue'
 import { apiRequest } from '../../lib/api'
 import { useModal } from '../../composables/common/useModal'
 import ConsultorioFichaModal from './ConsultorioFichaModal.vue'
+import HistoriaMedicaModal from './HistoriaMedicaModal.vue'
 import type { Pet } from '../../types/database'
 
 const props = defineProps<{
@@ -243,17 +245,11 @@ const getVisitProducts = (visit: any): any[] => {
 }
 
 const openNewFicha = () => {
-  // We use the existing Cita form, pre-filling client and pet.
-  // It handles clinical_history out of the box.
-  useModal('cita-form-modal').open({
-    client_id: props.pet.client_id,
-    pet_id: props.pet.id,
-    status: 'completed', // By default, histories are usually for past/current visits
-  })
+  useModal('historia-medica-modal').open({ pet: props.pet })
 }
 
 const editFicha = (visit: any) => {
-  useModal('cita-form-modal').open({ cita: visit })
+  useModal('historia-medica-modal').open({ cita: visit, pet: props.pet })
 }
 
 const openFichaModal = (visit: any) => {
