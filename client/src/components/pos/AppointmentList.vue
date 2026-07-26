@@ -19,7 +19,7 @@
           v-for="appt in overdue" :key="appt.id"
           :appt="appt" :is-selected="selectedId === appt.id"
           :products="products" :cart="cart" :inline-product-search="inlineProductSearch"
-          :show-inline-dropdown="showInlineDropdown" variant="overdue"
+          :show-inline-dropdown="showInlineDropdown" :show-go-to-calendar="showGoToCalendar" variant="overdue"
           @select="$emit('select', appt)" @go-to-calendar="$emit('go-to-calendar', appt)"
           @update:inline-product-search="$emit('update:inline-product-search', $event)"
           @add-product="$emit('add-product', $event)" @blur="$emit('blur', $event)" @focus="$emit('focus')"
@@ -38,7 +38,7 @@
           v-for="appt in upcoming" :key="appt.id"
           :appt="appt" :is-selected="selectedId === appt.id"
           :products="products" :cart="cart" :inline-product-search="inlineProductSearch"
-          :show-inline-dropdown="showInlineDropdown" variant="upcoming"
+          :show-inline-dropdown="showInlineDropdown" :show-go-to-calendar="showGoToCalendar" variant="upcoming"
           @select="$emit('select', appt)" @go-to-calendar="$emit('go-to-calendar', appt)"
           @update:inline-product-search="$emit('update:inline-product-search', $event)"
           @add-product="$emit('add-product', $event)" @blur="$emit('blur', $event)" @focus="$emit('focus')"
@@ -65,6 +65,7 @@ const props = defineProps<{
   cart?: any[]
   inlineProductSearch: string
   showInlineDropdown: boolean
+  showGoToCalendar?: boolean
 }>()
 
 const emit = defineEmits<{

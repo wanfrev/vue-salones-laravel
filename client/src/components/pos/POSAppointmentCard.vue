@@ -10,6 +10,7 @@ const props = defineProps<{
   cart?: any[]
   inlineProductSearch: string
   showInlineDropdown: boolean
+  showGoToCalendar?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -137,6 +138,7 @@ const inlineFilteredProducts = computed(() => {
             <p class="text-xs text-text-muted">{{ formatTime(appt.start_time) }}</p>
           </div>
           <button
+            v-if="showGoToCalendar"
             type="button"
             @click.stop="$emit('goToCalendar', appt)"
             class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-text-muted hover:text-primary hover:bg-primary/5 transition-colors"

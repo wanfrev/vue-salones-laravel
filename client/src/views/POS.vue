@@ -51,6 +51,7 @@
         :cart="cartCtx.cart.value"
         :inline-product-search="inlineProductSearch"
         :show-inline-dropdown="showInlineDropdown"
+        :show-go-to-calendar="!authStore.isCajeroProfile"
         @select="selectAppointment"
         @go-to-calendar="goToAppointmentInCalendar"
         @update:search="appointmentSearch = $event"
