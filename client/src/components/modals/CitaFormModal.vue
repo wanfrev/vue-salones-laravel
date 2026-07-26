@@ -31,6 +31,8 @@
             :error="errors.clientPhone" 
             @blur="handleBlur('clientPhone')" />
         </div>
+        <FormInput v-if="!formData.clientId" v-model="formData.clientEmail" label="Correo Electrónico (Opcional)" type="email" placeholder="cliente@correo.com"
+            prefix-icon="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         <FormDropdown
           v-if="showPetSelector"
           :model-value="formData.petId ?? ''"
@@ -260,7 +262,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  save: [cita: CitaFormData & { id?: string; clientPhone?: string; paymentData?: PaymentEditContext }]
+  save: [cita: CitaFormData & { id?: string; clientPhone?: string; clientEmail?: string; paymentData?: PaymentEditContext }]
   delete: [citaId: string]
 }>()
 
@@ -301,8 +303,11 @@ const petOptions = computed(() => {
   return [...opts, ...clientPets.value.map(p => ({ value: p.id, label: p.name }))]
 })
 
-const onClientSelected = (client: { id: string }) => {
+const onClientSelected = (client: { id: string, email?: string }) => {
   formData.value.clientId = client.id
+  if (client.email) {
+    formData.value.clientEmail = client.email
+  }
   if (showPetSelector.value) {
     loadClientPets(client.id)
   }
@@ -352,7 +357,7 @@ const defaultFormData = (): CitaFormData & { extraServices: CitaFormServiceItem[
   const minutes = now.getHours() * 60 + now.getMinutes()
   const nextSlot = Math.ceil(minutes / 30) * 30
   const myId = isEmployee.value ? (authStore.profile?.id ?? '') : ''
-  return { clientId: undefined, clientName: '', clientPhone: '', petId: '', service: '', employee: myId, assistantEmployee: '', assistantPercentage: 0, duration: 30, price: 0, isFixedCommissionOverride: false, employeePercentageOverride: undefined, employeeAmountOverride: undefined, assistantAmountOverride: undefined, extraServices: [], date: today, time: minutesToHHmm(nextSlot), status: 'pending', notes: '', diagnosis: '', treatment: '', associatedProducts: [], clinicalHistory: {} }
+  return { clientId: undefined, clientName: '', clientPhone: '', clientEmail: '', petId: '', service: '', employee: myId, assistantEmployee: '', assistantPercentage: 0, duration: 30, price: 0, isFixedCommissionOverride: false, employeePercentageOverride: undefined, employeeAmountOverride: undefined, assistantAmountOverride: undefined, extraServices: [], date: today, time: minutesToHHmm(nextSlot), status: 'pending', notes: '', diagnosis: '', treatment: '', associatedProducts: [], clinicalHistory: {} }
 }
 
 const addAssociatedProductRow = () => {
@@ -663,9 +668,9 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
 
     const incomingPetId: string | undefined = (cita as any).petId || (cita as any).pet_id || undefined
     const incomingClinicalHistory = (cita as any).clinicalHistory || (cita as any).clinical_history || {}
-    formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: cita.clientPhone || '', petId: incomingPetId, service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), isFixedCommissionOverride: cita.isFixedCommissionOverride ?? false, employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, employeeAmountOverride: cita.employeeAmountOverride != null ? Number(cita.employeeAmountOverride) : undefined, assistantAmountOverride: cita.assistantAmountOverride != null ? Number(cita.assistantAmountOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '', diagnosis: (cita as any).diagnosis || '', treatment: (cita as any).treatment || '', associatedProducts: initialAssociated, clinicalHistory: JSON.parse(JSON.stringify(incomingClinicalHistory)) }
+    formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: cita.clientPhone || '', clientEmail: (cita as any).clientEmail || '', petId: incomingPetId, service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), isFixedCommissionOverride: cita.isFixedCommissionOverride ?? false, employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, employeeAmountOverride: cita.employeeAmountOverride != null ? Number(cita.employeeAmountOverride) : undefined, assistantAmountOverride: cita.assistantAmountOverride != null ? Number(cita.assistantAmountOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '', diagnosis: (cita as any).diagnosis || '', treatment: (cita as any).treatment || '', associatedProducts: initialAssociated, clinicalHistory: JSON.parse(JSON.stringify(incomingClinicalHistory)) }
 
-    if (cita.clientId && businessId.value) { try { const { searchClients } = await import('../../services/clientesService'); const r = await searchClients(businessId.value, cita.clientName, branchId.value); const m = r.find(c => c.id === cita.clientId); if (m) formData.value.clientPhone = m.phone } catch {} }
+    if (cita.clientId && businessId.value) { try { const { searchClients } = await import('../../services/clientesService'); const r = await searchClients(businessId.value, cita.clientName, branchId.value); const m = r.find(c => c.id === cita.clientId); if (m) { formData.value.clientPhone = m.phone; formData.value.clientEmail = (m as any).email || '' } } catch {} }
     if (cita.groupId) {
       try {
         const members = await listCitaGroupMembers(cita.groupId)

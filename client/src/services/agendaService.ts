@@ -91,7 +91,7 @@ interface SaveDeps {
 
 async function resolveSaveDeps(
   businessId: string,
-  data: { service: string; clientId?: string; clientName: string; clientPhone?: string; notes: string },
+  data: { service: string; clientId?: string; clientName: string; clientPhone?: string; clientEmail?: string; notes: string },
   branchId: string | null | undefined,
   allowCreateClient: boolean,
 ): Promise<SaveDeps> {
@@ -116,6 +116,7 @@ async function resolveSaveDeps(
     const client = await findOrCreateClientByPhone(businessId, {
       fullName: data.clientName,
       phone: data.clientPhone || data.clientName,
+      email: data.clientEmail,
       notes: data.notes,
     }, branchId)
     clientId = client.id
