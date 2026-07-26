@@ -3,37 +3,8 @@
     <h3 class="text-base font-semibold text-text mb-4 shrink-0">Resumen de cobro</h3>
 
     <template v-if="selectedAppointment || isRetailOnly">
-<<<<<<< Updated upstream
-      <!-- Mobile collapsed summary -->
-      <div v-if="isMobile && mobileCollapsed" class="rounded-lg bg-bg-secondary p-3 mb-3">
-        <div class="flex items-center justify-between gap-3">
-          <div class="min-w-0">
-            <p class="text-sm font-medium text-text truncate">
-              {{ isRetailOnly ? (retailClientName || 'Venta Directa') : (selectedAppointment.client?.full_name || selectedAppointment.clients?.full_name || 'Cliente') }}
-            </p>
-            <p class="text-xs text-text-muted truncate">
-              {{ isRetailOnly ? 'Venta de productos' : ((selectedAppointment.service?.name ?? selectedAppointment.services?.name) || 'Servicio') }}
-            </p>
-          </div>
-          <div class="text-right shrink-0">
-            <DualAmount :amount="grandTotal" orientation="stack" size="md" primary-class="text-base font-bold text-primary" />
-            <button
-              @click="$emit('process-payment')"
-              :disabled="isProcessing || !canPay"
-              class="mt-1 rounded-lg bg-primary px-3 py-1 text-xs font-bold text-text-inverse transition-theme hover:bg-primary-hover disabled:opacity-50"
-            >
-              {{ isProcessing ? '...' : 'Cobrar' }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div v-if="!isMobile || !mobileCollapsed" class="flex-1 overflow-y-auto min-h-0 space-y-3 pr-1">
-        <div class="rounded-lg bg-bg-secondary p-2.5 sm:p-3">
-=======
       <div class="flex-1 overflow-y-auto min-h-0 space-y-3 pr-1">
         <div class="rounded-lg bg-bg-secondary p-3">
->>>>>>> Stashed changes
           <template v-if="isRetailOnly && !selectedAppointment">
             <div class="flex items-center justify-between text-sm">
               <span class="text-text-muted">Cliente</span>
@@ -336,7 +307,7 @@
         ></textarea>
       </div>
 
-      <div v-if="!isMobile || !mobileCollapsed" class="pt-3 shrink-0 border-t border-border-subtle">
+      <div class="pt-3 shrink-0 border-t border-border-subtle">
         <button
           @click="$emit('process-payment')"
           :disabled="isProcessing || !canPay"
