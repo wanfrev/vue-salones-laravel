@@ -35,15 +35,6 @@
           </svg>
           Imprimir / PDF
         </button>
-        <button
-          @click="openNewFicha"
-          class="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 hover:bg-primary-hover transition-colors"
-        >
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          Nueva Ficha
-        </button>
       </div>
     </header>
 
@@ -83,7 +74,8 @@
           <div
             v-for="visit in visits"
             :key="visit.id"
-            class="group border border-border hover:border-primary/50 rounded-xl p-5 bg-surface shadow-xs transition-all duration-200 page-break-inside-avoid relative"
+            @click="openFichaModal(visit)"
+            class="group border border-border hover:border-primary/50 rounded-xl p-5 bg-surface shadow-xs transition-all duration-200 page-break-inside-avoid relative cursor-pointer"
           >
             <!-- Visit Header -->
             <div class="flex justify-between items-start sm:items-center mb-5 pb-4 border-b border-border border-dashed flex-col sm:flex-row gap-3">
@@ -179,6 +171,8 @@
         </div>
       </div>
     </div>
+    
+    <ConsultorioFichaModal />
   </div>
 </template>
 
@@ -186,6 +180,7 @@
 import { ref, watch, onMounted } from 'vue'
 import { apiRequest } from '../../lib/api'
 import { useModal } from '../../composables/common/useModal'
+import ConsultorioFichaModal from './ConsultorioFichaModal.vue'
 import type { Pet } from '../../types/database'
 
 const props = defineProps<{
@@ -259,6 +254,10 @@ const openNewFicha = () => {
 
 const editFicha = (visit: any) => {
   useModal('cita-form-modal').open({ cita: visit })
+}
+
+const openFichaModal = (visit: any) => {
+  useModal('consultorio-ficha-modal').open({ visit, pet: props.pet })
 }
 
 // Window Event listener to refresh when Cita is saved

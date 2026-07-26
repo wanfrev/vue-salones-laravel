@@ -13,6 +13,17 @@
             Historias Clínicas
           </h1>
         </div>
+        <div class="mt-4 sm:mt-0">
+          <button
+            @click="openNewFicha"
+            class="flex items-center justify-center gap-1.5 w-full sm:w-auto rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 hover:bg-primary-hover transition-colors"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Nueva Historia Médica
+          </button>
+        </div>
       </div>
     </header>
 
@@ -138,6 +149,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
+import { useModal } from '../../composables/common/useModal'
 import { petsKeys, listAllPets } from '../../services/petService'
 import { getInitials } from '../../lib/formatters'
 import ConsultorioMascota from './ConsultorioMascota.vue'
@@ -152,6 +164,12 @@ onMounted(() => {
     searchQuery.value = route.query.q as string
   }
 })
+
+const openNewFicha = () => {
+  useModal('cita-form-modal').open({
+    status: 'completed', // For medical histories, default to completed
+  })
+}
 
 // React Query to fetch all pets for this business
 const { data: pets, isLoading } = useQuery({
