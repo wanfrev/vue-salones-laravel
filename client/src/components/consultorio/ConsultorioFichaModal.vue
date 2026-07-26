@@ -37,8 +37,8 @@
               <p class="text-sm font-semibold text-text">Dr. {{ visit.profiles?.full_name || visit.employee_profile?.full_name || '—' }}</p>
             </div>
             <div>
-              <p class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-1">Motivo / Servicio</p>
-              <p class="text-sm font-semibold text-text">{{ visit.services?.name || visit.service?.name || 'Consulta General' }}</p>
+              <p class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-1">Registro</p>
+              <p class="text-sm font-semibold text-text">Historia Médica Clínica</p>
             </div>
           </div>
 

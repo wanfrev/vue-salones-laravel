@@ -66,7 +66,7 @@
           />
         </div>
 
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div class="grid grid-cols-1">
           <FormDropdown
             v-model="formData.employeeId"
             label="Atendido por (Veterinario)"
@@ -74,12 +74,6 @@
             :options="employeeOptions"
             size="sm"
             required
-          />
-
-          <FormInput
-            v-model="formData.serviceName"
-            label="Motivo / Servicio de Consulta"
-            placeholder="Ej: Consulta Médica General, Desparasitación, etc."
           />
         </div>
       </div>
