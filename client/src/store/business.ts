@@ -29,6 +29,7 @@ const DEFAULT_TERMINOLOGY: Terminology = {
     disable_manager_inventory_edit: false,
     encargados_change_exchange_rate: false,
     encargados_change_employee_rate: false,
+    disable_employee_commission_edit: false,
     manual_reports: false,
   }
 

@@ -84,7 +84,7 @@
               <p v-if="getRowError(index, 'price')" class="text-xs text-danger mt-0.5">{{ getRowError(index, 'price') }}</p>
             </div>
             <div><input :value="String(row.duration)" @input="setRowDuration(index, ($event.target as HTMLInputElement).value)" type="number" class="w-full rounded-lg border bg-surface text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 py-1.5 px-2 text-sm border-border hover:border-border-strong text-right" /></div>
-            <button v-if="getEmployeeDefaultPercentage(row.employeeId) != null || isServiceFixedCommission(row.serviceId) || row.assistantEmployeeId" type="button" @click="toggleCommissionDetail(index)" class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors" :class="commissionDetailOpen.has(index) ? 'bg-primary/10 text-primary' : 'text-text-muted hover:bg-bg-secondary hover:text-text'" :title="commissionDetailOpen.has(index) ? 'Ocultar comisión' : 'Personalizar comisión'">
+            <button v-if="!disableCommissionEdit && (getEmployeeDefaultPercentage(row.employeeId) != null || isServiceFixedCommission(row.serviceId) || row.assistantEmployeeId)" type="button" @click="toggleCommissionDetail(index)" class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors" :class="commissionDetailOpen.has(index) ? 'bg-primary/10 text-primary' : 'text-text-muted hover:bg-bg-secondary hover:text-text'" :title="commissionDetailOpen.has(index) ? 'Ocultar comisión' : 'Personalizar comisión'">
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </button>
             <span v-else class="w-8"></span>
@@ -95,7 +95,7 @@
           </div>
 
           <!-- Commission panel -->
-          <div v-if="commissionDetailOpen.has(index) && (getEmployeeDefaultPercentage(row.employeeId) != null || isServiceFixedCommission(row.serviceId) || row.assistantEmployeeId)" class="border-t border-border px-3 py-2 space-y-3 bg-primary/5">
+          <div v-if="!disableCommissionEdit && commissionDetailOpen.has(index) && (getEmployeeDefaultPercentage(row.employeeId) != null || isServiceFixedCommission(row.serviceId) || row.assistantEmployeeId)" class="border-t border-border px-3 py-2 space-y-3 bg-primary/5">
             <!-- Employee Commission -->
             <div class="flex items-center gap-3 text-xs flex-wrap">
               <span class="text-text-muted font-medium w-20">Empleado:</span>
@@ -274,6 +274,11 @@ const businessStore = useBusinessStore()
 const queryClient = useQueryClient()
 const isEmployee = computed(() => authStore.role === 'empleado')
 const canCreateClients = computed(() => !isEmployee.value || businessStore.hasFeature('employees_create_clients'))
+const disableCommissionEdit = computed(() => {
+  const role = authStore.role
+  if (role === 'admin' || role === 'superadmin') return false
+  return businessStore.hasFeature('disable_employee_commission_edit')
+})
 const t = computed(() => businessStore.terminology)
 const nicheType = computed(() => businessStore.nicheType)
 const showPetSelector = computed(() => checkPetNiche(nicheType.value))

@@ -208,6 +208,14 @@
         hint="Los encargados podrán modificar la tasa asignada a los empleados"
         :disabled="updatingFeatures"
       />
+
+      <FormToggle
+        :model-value="!!businessStore.features.disable_employee_commission_edit"
+        @update:model-value="handleToggleDisableCommissionEdit"
+        label="Bloquear edición de comisiones"
+        hint="Si está activo, los encargados y empleados NO podrán modificar los porcentajes de ganancia en las citas"
+        :disabled="updatingFeatures"
+      />
     </div>
   </SectionCard>
 
@@ -356,6 +364,23 @@ async function handleToggleEncargadoEmployeeRate(val: boolean) {
     })
     businessStore.updateBusiness({ features: updatedFeatures } as any)
     success(val ? 'Permiso activado: Los encargados ya pueden modificar la tasa de empleados' : 'Permiso desactivado')
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar el permiso')
+  } finally {
+    updatingFeatures.value = false
+  }
+}
+
+async function handleToggleDisableCommissionEdit(val: boolean) {
+  if (!businessId.value) return
+  updatingFeatures.value = true
+  try {
+    const updatedFeatures = { ...businessStore.features, disable_employee_commission_edit: val }
+    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    success(val ? 'Permiso activado: encargados y empleados no pueden editar comisiones' : 'Permiso desactivado: pueden editar comisiones')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
   } finally {
