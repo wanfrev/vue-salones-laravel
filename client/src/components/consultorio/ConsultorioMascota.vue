@@ -126,7 +126,6 @@
                   </div>
                   <p class="text-xs text-text-muted mt-0.5 font-medium flex items-center gap-2">
                     <span>Atendido por: <strong class="text-text font-semibold">Dr. {{ visit.profiles?.full_name || visit.employee_profile?.full_name || '—' }}</strong></span>
-                    <span v-if="visit.services?.name || visit.service?.name">• {{ visit.services?.name || visit.service?.name }}</span>
                   </p>
                 </div>
               </div>
