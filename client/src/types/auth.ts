@@ -14,6 +14,7 @@ export interface AuthProfile {
   base_salary?: number | null
   disable_agenda?: boolean
   disable_inventory_edit?: boolean
+  can_create_appointments?: boolean
 }
 
 export interface LoginCredentials {
