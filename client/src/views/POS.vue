@@ -78,6 +78,7 @@
         :are-products-included="areProductsIncluded"
         :selected-gift-card-id="paymentCtx.selectedGiftCardId.value"
         @update:selected-gift-card-id="paymentCtx.selectedGiftCardId.value = $event"
+        @update:selectedGiftCardId="paymentCtx.selectedGiftCardId.value = $event"
         @update:are-products-included="areProductsIncluded = $event"
         @select-method="paymentCtx.selectMethod"
         @update:other-currency="paymentCtx.otherCurrency.value = $event"

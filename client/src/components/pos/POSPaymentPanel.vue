@@ -231,7 +231,7 @@
         <label class="block text-sm font-medium text-text">Gift Card a consumir</label>
         <select
           :value="selectedGiftCardId"
-          @change="$emit('update:selectedGiftCardId', ($event.target as HTMLSelectElement).value)"
+          @change="$emit('update:selectedGiftCardId', ($event.target as HTMLSelectElement).value); $emit('update:selected-gift-card-id', ($event.target as HTMLSelectElement).value)"
           class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-text outline-none focus:border-primary"
         >
           <option value="">-- Selecciona una Gift Card --</option>
@@ -393,6 +393,7 @@ defineEmits<{
   'remove-item': [idx: number]
   'update:are-products-included': [value: boolean]
   'update:selectedGiftCardId': [value: string | null]
+  'update:selected-gift-card-id': [value: string | null]
 }>()
 
 const { formatDual } = useCurrency()

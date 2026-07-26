@@ -247,7 +247,8 @@ export function usePOSPayment() {
             inputAmount: paymentCurrency === 'VES' ? memberAmount * exchangeRt : memberAmount,
             currency: paymentCurrency as 'USD' | 'VES',
             amount: memberAmount,
-            gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined
+            gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined,
+            giftCardId: method === 'gift_card' ? selectedGiftCardId.value : undefined,
           }]
         } else {
           const grand = params.serviceAmount + productsTotal + tipAmount.value || 1
@@ -255,6 +256,8 @@ export function usePOSPayment() {
             ...item,
             inputAmount: Number(((memberAmount / grand) * item.inputAmount).toFixed(2)),
             amount: Number(((memberAmount / grand) * item.amount).toFixed(2)),
+            gift_card_id: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
+            giftCardId: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
           }))
         }
 
@@ -280,10 +283,15 @@ export function usePOSPayment() {
           inputAmount: paymentCurrency === 'VES' ? totalAmount * exchangeRt : totalAmount,
           currency: paymentCurrency as 'USD' | 'VES',
           amount: totalAmount,
-          gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined
+          gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined,
+          giftCardId: method === 'gift_card' ? selectedGiftCardId.value : undefined,
         }]
       } else {
-        breakdown = [...breakdownSource]
+        breakdown = breakdownSource.map(item => ({
+          ...item,
+          gift_card_id: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
+          giftCardId: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
+        }))
       }
 
       payloads.push({
@@ -326,10 +334,15 @@ export function usePOSPayment() {
         inputAmount: paymentCurrency === 'VES' ? params.totalAmount * params.exchangeRate : params.totalAmount,
         currency: paymentCurrency as 'USD' | 'VES',
         amount: params.totalAmount,
-        gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined
+        gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined,
+        giftCardId: method === 'gift_card' ? selectedGiftCardId.value : undefined,
       }]
     } else {
-      breakdown = [...paymentsBreakdown.value]
+      breakdown = paymentsBreakdown.value.map(item => ({
+        ...item,
+        gift_card_id: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
+        giftCardId: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
+      }))
     }
 
     try {

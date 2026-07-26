@@ -203,17 +203,30 @@ class PosService
 
             if (is_array($paymentsBreakdown)) {
                 foreach ($paymentsBreakdown as $split) {
-                    if (isset($split['method']) && $split['method'] === 'gift_card' && !empty($split['gift_card_id'])) {
-                        $gc = \App\Models\GiftCard::find($split['gift_card_id']);
+                    if (isset($split['method']) && $split['method'] === 'gift_card') {
+                        $gcId = $split['gift_card_id'] ?? $split['giftCardId'] ?? null;
+                        $gc = null;
+                        if (!empty($gcId)) {
+                            $gc = \App\Models\GiftCard::find($gcId);
+                        }
+                        if (!$gc && !empty($businessId)) {
+                            $gc = \App\Models\GiftCard::where('business_id', $businessId)
+                                ->where('status', 'active')
+                                ->where('amount', '>', 0)
+                                ->orderByDesc('created_at')
+                                ->first();
+                        }
                         if ($gc && $gc->status === 'active') {
-                            $deduct = (float) ($split['amount'] ?? 0);
-                            $gc->amount -= $deduct;
-                            if ($gc->amount <= 0) {
-                                $gc->amount = 0;
-                                $gc->status = 'redeemed';
-                                $gc->redeemed_at = now();
+                            $deduct = (float) ($split['amount'] ?? $split['inputAmount'] ?? 0);
+                            if ($deduct > 0) {
+                                $gc->amount = max(0.0, (float) $gc->amount - $deduct);
+                                if ($gc->amount <= 0.001) {
+                                    $gc->amount = 0.0;
+                                    $gc->status = 'redeemed';
+                                    $gc->redeemed_at = now();
+                                }
+                                $gc->save();
                             }
-                            $gc->save();
                         }
                     }
                 }
@@ -408,17 +421,30 @@ class PosService
 
             if (is_array($paymentsBreakdown)) {
                 foreach ($paymentsBreakdown as $split) {
-                    if (isset($split['method']) && $split['method'] === 'gift_card' && !empty($split['gift_card_id'])) {
-                        $gc = \App\Models\GiftCard::find($split['gift_card_id']);
+                    if (isset($split['method']) && $split['method'] === 'gift_card') {
+                        $gcId = $split['gift_card_id'] ?? $split['giftCardId'] ?? null;
+                        $gc = null;
+                        if (!empty($gcId)) {
+                            $gc = \App\Models\GiftCard::find($gcId);
+                        }
+                        if (!$gc && !empty($businessId)) {
+                            $gc = \App\Models\GiftCard::where('business_id', $businessId)
+                                ->where('status', 'active')
+                                ->where('amount', '>', 0)
+                                ->orderByDesc('created_at')
+                                ->first();
+                        }
                         if ($gc && $gc->status === 'active') {
-                            $deduct = (float) ($split['amount'] ?? 0);
-                            $gc->amount -= $deduct;
-                            if ($gc->amount <= 0) {
-                                $gc->amount = 0;
-                                $gc->status = 'redeemed';
-                                $gc->redeemed_at = now();
+                            $deduct = (float) ($split['amount'] ?? $split['inputAmount'] ?? 0);
+                            if ($deduct > 0) {
+                                $gc->amount = max(0.0, (float) $gc->amount - $deduct);
+                                if ($gc->amount <= 0.001) {
+                                    $gc->amount = 0.0;
+                                    $gc->status = 'redeemed';
+                                    $gc->redeemed_at = now();
+                                }
+                                $gc->save();
                             }
-                            $gc->save();
                         }
                     }
                 }
