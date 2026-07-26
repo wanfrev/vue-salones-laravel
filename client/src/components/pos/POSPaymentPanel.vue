@@ -232,13 +232,26 @@
         <select
           :value="selectedGiftCardId"
           @change="$emit('update:selectedGiftCardId', ($event.target as HTMLSelectElement).value)"
-          class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-primary"
+          class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-text outline-none focus:border-primary"
         >
-          <option value="">Selecciona una gift card</option>
+          <option value="">-- Selecciona una Gift Card --</option>
           <option v-for="gc in activeGiftCards" :key="gc.id" :value="gc.id">
-            {{ gc.code || 'Sin código' }} - {{ gc.buyerName || gc.recipientName }} ({{ formatDual(gc.amount) }})
+            [{{ gc.code || 'SIN CÓDIGO' }}] {{ gc.recipientName }} (De: {{ gc.buyerName || 'Anónimo' }}) — Saldo: ${{ gc.amount.toFixed(2) }}
           </option>
         </select>
+
+        <div v-if="selectedGC" class="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-1">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-medium text-text-muted">Saldo disponible actual:</span>
+            <span class="font-bold text-success text-sm">{{ formatDual(selectedGC.amount) }}</span>
+          </div>
+          <div v-if="selectedGC.amount < grandTotal" class="text-[11px] text-warning font-medium">
+            ⚠️ El saldo de la gift card ({{ formatDual(selectedGC.amount) }}) es menor al total a cobrar ({{ formatDual(grandTotal) }}). Se consumirá el 100% de la gift card.
+          </div>
+          <div v-else class="text-[11px] text-success font-medium">
+            ✅ Saldo suficiente. Nuevo saldo tras el cobro: {{ formatDual(selectedGC.amount - grandTotal) }}.
+          </div>
+        </div>
       </div>
 
       <div v-if="paymentMethod === 'mixed'" class="space-y-2 border-t border-border-subtle pt-3 mt-4">
@@ -391,5 +404,9 @@ const { activeGiftCards } = useGiftCards(businessId)
 const needsGiftCardSelect = computed(() => 
   props.paymentMethod === 'gift_card' || 
   (props.paymentMethod === 'mixed' && props.paymentsBreakdown.some(b => b.method === 'gift_card'))
+)
+
+const selectedGC = computed(() => 
+  activeGiftCards.value.find(g => g.id === props.selectedGiftCardId)
 )
 </script>

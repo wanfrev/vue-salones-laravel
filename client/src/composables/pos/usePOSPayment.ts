@@ -82,11 +82,13 @@ export function usePOSPayment() {
       queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
       queryClient.invalidateQueries({ exact: false, queryKey: ['expenses'] }),
       queryClient.invalidateQueries({ exact: false, queryKey: ['supplier-payments'] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['gift-cards'] }),
     ])
     await Promise.allSettled([
       queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
       queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-summary'] }),
       queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
+      queryClient.refetchQueries({ exact: false, queryKey: ['gift-cards'] }),
     ])
   }
 
