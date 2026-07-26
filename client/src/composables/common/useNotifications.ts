@@ -15,6 +15,7 @@ import {
 import type { NotificationRecord } from '../../services/notificationService'
 import { sanitizePhone } from '../../lib/formatters'
 import { subscribeToPush, isPushSupported } from '../../services/pushService'
+import { useNotificationPrefs } from './useNotificationPrefs'
 
 let permissionRequested = false
 
@@ -59,6 +60,7 @@ export function useNotifications() {
   const authStore = useAuthStore()
   const queryClient = useQueryClient()
   const { error: showError } = useNotification()
+  const { isTypeEnabled, getSoundForType, prefs: notifPrefs, soundEnabled, toggleType: toggleNotifType, toggleSound, TYPE_LABELS } = useNotificationPrefs()
 
   const profileId = computed(() => authStore.profile?.id ?? null)
   const businessId = computed(() => authStore.businessId)
@@ -71,7 +73,10 @@ export function useNotifications() {
     staleTime: 30_000,
   })
 
-  const notifications = computed(() => unreadNotifications.value ?? [])
+  const rawNotifications = computed(() => unreadNotifications.value ?? [])
+  const notifications = computed(() =>
+    rawNotifications.value.filter(n => isTypeEnabled(n.type)),
+  )
   const unreadCount = computed(() => notifications.value.length)
 
   const invalidate = () => {
@@ -117,6 +122,10 @@ export function useNotifications() {
     const newNotifs = current.filter(n => !previous.find(p => p.id === n.id))
     for (const n of newNotifs) {
       showBrowserNotification(n)
+      const sound = getSoundForType(n.type)
+      if (sound) {
+        try { new Audio(sound).play().catch(() => {}) } catch { /* autoplay blocked */ }
+      }
     }
   })
 
@@ -145,6 +154,11 @@ export function useNotifications() {
     notifications,
     unreadCount,
     isLoading,
+    notifPrefs,
+    toggleNotifType,
+    soundEnabled,
+    toggleSound,
+    TYPE_LABELS,
     handleMarkAsRead,
     handleMarkAllAsRead,
     handleDismiss,
