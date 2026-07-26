@@ -31,6 +31,9 @@ class GiftCardController
         if (!$p || !$p->business_id) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
 
         $data = $request->validate([
+            'code' => 'nullable|string|max:100',
+            'buyer_name' => 'nullable|string|max:255',
+            'buyer_phone' => 'nullable|string|max:50',
             'recipient_name' => 'required|string|max:255',
             'recipient_phone' => 'nullable|string|max:50',
             'amount' => 'required|numeric|min:0.01',
@@ -49,6 +52,9 @@ class GiftCardController
         $p = $user?->profile;
 
         $data = $request->validate([
+            'code' => 'nullable|string|max:100',
+            'buyer_name' => 'nullable|string|max:255',
+            'buyer_phone' => 'nullable|string|max:50',
             'recipient_name' => 'sometimes|string|max:255',
             'recipient_phone' => 'nullable|string|max:50',
             'amount' => 'sometimes|numeric|min:0.01',

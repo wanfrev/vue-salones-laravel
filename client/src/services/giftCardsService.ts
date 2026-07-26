@@ -21,19 +21,30 @@ export const listGiftCards = async (businessId: string, branchId?: string | null
 }
 
 export const saveGiftCard = async (businessId: string, form: GiftCardFormData, branchId?: string | null): Promise<GiftCard> => {
+  const buyerTag = form.buyerName?.trim()
+    ? `[Comprador: ${form.buyerName.trim()}${form.buyerPhone?.trim() ? ' | ' + form.buyerPhone.trim() : ''}]`
+    : ''
+
+  let cleanNotes = form.notes.trim()
+  if (buyerTag && !cleanNotes.includes('[Comprador:')) {
+    cleanNotes = cleanNotes ? `${buyerTag} ${cleanNotes}` : buyerTag
+  }
+
+  const generatedCode = form.code?.trim() || 'GC-' + Math.random().toString(36).substring(2, 8).toUpperCase()
+
   const payload: any = {
     recipient_name: form.recipientName.trim(),
     recipient_phone: form.recipientPhone.trim() || null,
     buyer_name: form.buyerName?.trim() || null,
     buyer_phone: form.buyerPhone?.trim() || null,
+    code: generatedCode,
     amount: form.amount,
     status: form.status ?? 'active',
-    notes: form.notes.trim() || null,
+    notes: cleanNotes || null,
     branch_id: branchId ?? null,
   }
 
   if (form.id) {
-    if (form.code) payload.code = form.code
     const { data, error } = await db
       .from('gift_cards')
       .update(payload)
@@ -44,7 +55,6 @@ export const saveGiftCard = async (businessId: string, form: GiftCardFormData, b
     return mapRowToGiftCard(data)
   }
 
-  payload.code = form.code || Math.random().toString(36).substring(2, 10).toUpperCase()
   payload.business_id = businessId
   const { data, error } = await db
     .from('gift_cards')
@@ -64,18 +74,37 @@ export const deleteGiftCard = async (id: string): Promise<void> => {
 }
 
 function mapRowToGiftCard(row: any): GiftCard {
+  const fallbackCode = row.id ? 'GC-' + String(row.id).replace(/-/g, '').substring(0, 6).toUpperCase() : 'GC-CARD'
+
+  let buyerName = row.buyer_name ?? null
+  let buyerPhone = row.buyer_phone ?? null
+
+  if (!buyerName && row.notes && typeof row.notes === 'string') {
+    const match = row.notes.match(/\[Comprador:\s*([^\]|]+)(?:\|\s*([^\]]+))?\]/)
+    if (match) {
+      buyerName = match[1].trim()
+      if (match[2] && !buyerPhone) buyerPhone = match[2].trim()
+    }
+  }
+
+  // Clean notes from internal tag when returning to UI
+  let displayNotes = row.notes ?? null
+  if (displayNotes && typeof displayNotes === 'string') {
+    displayNotes = displayNotes.replace(/\[Comprador:[^\]]+\]\s*/g, '').trim() || null
+  }
+
   return {
     id: row.id,
     businessId: row.business_id,
     branchId: row.branch_id ?? null,
-    code: row.code ?? null,
-    buyerName: row.buyer_name ?? null,
-    buyerPhone: row.buyer_phone ?? null,
+    code: row.code || fallbackCode,
+    buyerName: buyerName,
+    buyerPhone: buyerPhone,
     recipientName: row.recipient_name,
     recipientPhone: row.recipient_phone ?? null,
     amount: Number(row.amount),
     status: row.status ?? 'active',
-    notes: row.notes ?? null,
+    notes: displayNotes,
     redeemedAt: row.redeemed_at ?? null,
     createdBy: row.created_by,
     createdAt: row.created_at,
