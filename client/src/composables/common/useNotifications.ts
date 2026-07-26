@@ -67,6 +67,8 @@ export function useNotifications() {
     queryKey: computed(() => notificationKeys.unread(profileId.value)),
     queryFn: () => listUnreadNotifications(),
     enabled: computed(() => !!profileId.value),
+    refetchInterval: 60_000,
+    staleTime: 30_000,
   })
 
   const notifications = computed(() => unreadNotifications.value ?? [])
