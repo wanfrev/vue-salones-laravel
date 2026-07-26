@@ -1,5 +1,5 @@
 <template>
-  <div class="relative">
+  <div ref="bellRef" class="relative">
     <button @click="isOpen = !isOpen"
       class="relative rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary">
       <Bell :size="20" />
@@ -20,10 +20,11 @@ import NotificationDropdown from './NotificationDropdown.vue'
 
 const { unreadCount } = useNotifications()
 const isOpen = ref(false)
+const bellRef = ref<HTMLElement | null>(null)
 
 const handleClickOutside = (e: MouseEvent) => {
-  const target = e.target as HTMLElement
-  if (!target.closest('.relative')) {
+  if (!bellRef.value) return
+  if (!bellRef.value.contains(e.target as Node)) {
     isOpen.value = false
   }
 }
