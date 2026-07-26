@@ -46,7 +46,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuth } from '../../composables/common/useAuth'
 import { useBusinessStore } from '../../store/business'
-import { isAdminPanelRole, isCajero } from '../../constants/roles'
+import { isAdminPanelRole } from '../../constants/roles'
 import { sidebarSections } from './sidebarLinks'
 import type { SidebarLink } from './sidebarLinks'
 
@@ -65,7 +65,7 @@ const { authStore } = useAuth()
 const businessStore = useBusinessStore()
 
 const isAdmin = computed(() => isAdminPanelRole(authStore.role ?? undefined))
-const isCajeroRole = computed(() => isCajero(authStore.role ?? undefined))
+const isCajeroRole = computed(() => authStore.isCajeroProfile)
 const agendaDisabled = computed(() => authStore.profile?.disable_agenda ?? false)
 
 const visibleSections = computed(() =>

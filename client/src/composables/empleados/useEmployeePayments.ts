@@ -25,6 +25,7 @@ import {
   getEmployeeBalance,
   listSchedules,
 } from '../../services/employeePaymentsService'
+import { listEquipo } from '../../services/equipoService'
 
 export function useEmployeePayments(
   businessId: import('vue').Ref<string | null>,
@@ -186,6 +187,15 @@ export function useEmployeePayments(
     available: true,
     break: '—',
   })))
+
+  // ── Employee list for dropdowns (exclude cajeros) ──
+  const { data: employeeListData } = useQuery({
+    queryKey: computed(() => ['employees-for-payment', businessId.value, branchId.value]),
+    queryFn: () => listEquipo(businessId.value!, branchId.value),
+    enabled: computed(() => !!businessId.value),
+    staleTime: 5 * 60 * 1000,
+  })
+  const employeeList = computed(() => (employeeListData.value ?? []).filter(e => !e.isCajero))
 
   // ── Payment form state ──
   const showPaymentModal = ref(false)
@@ -472,6 +482,7 @@ export function useEmployeePayments(
     showPaymentModal,
     editingPaymentId,
     paymentForm,
+    employeeList,
     showConsumptionModal,
     consumptionForm,
     isSaving,

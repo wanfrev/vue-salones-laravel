@@ -3,6 +3,7 @@ export interface Empleado {
   name: string
   role: string
   systemRole?: string
+  isCajero?: boolean
   citasHoy: number
   producido: string
   schedule?: { start: string; end: string; break: string }

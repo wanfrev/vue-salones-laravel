@@ -61,7 +61,7 @@
   <EmployeePaymentModal
     :payments-ctx="paymentsCtx" :business-id="authStore.businessId"
     :branch-id="businessStore.currentBranchId"
-    :employees="team"
+    :employees="teamForPayroll"
     @close="paymentsCtx.closePaymentModal()"
     @payment-saved="onPaymentSaved"
   />
@@ -69,7 +69,7 @@
   <EmployeeConsumptionModal
     :payments-ctx="paymentsCtx" :business-id="authStore.businessId"
     :branch-id="businessStore.currentBranchId"
-    :employees="team"
+    :employees="teamForPayroll"
     @close="paymentsCtx.closeConsumptionModal()"
     @consumption-saved="onPaymentSaved"
   />
@@ -147,6 +147,8 @@ const { items: team, handleSave: handleSaveEmpleado, handleDelete: handleDeleteE
     (id) => ['employees', id, branchId.value],
   ],
 })
+
+const teamForPayroll = computed(() => team.value.filter(e => !e.isCajero))
 
 const showEmployeeRateModal = ref(false)
 
