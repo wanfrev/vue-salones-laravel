@@ -21,10 +21,18 @@ export const useAuthStore = defineStore('auth', () => {
   const role = computed<Role | null>(() => {
     const p = profile.value
     if (!p) return null
-    if (p.role === 'empleado' && p.disable_agenda && p.disable_inventory_edit && p.can_create_appointments === false) {
+    if (p.role === 'cajero') return 'cajero' as Role
+    if (p.disable_agenda && p.disable_inventory_edit && p.role === 'empleado') {
       return 'cajero' as Role
     }
     return p.role ?? null
+  })
+  const isCajeroProfile = computed(() => {
+    const p = profile.value
+    if (!p) return false
+    if (p.role === 'cajero') return true
+    if (p.role === 'empleado' && p.disable_agenda && p.disable_inventory_edit) return true
+    return false
   })
   const businessId = computed(() => profile.value?.business_id ?? null)
   const disableInventoryEdit = computed(() => {
@@ -304,6 +312,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     isAuthenticated,
     role,
+    isCajeroProfile,
     businessId,
     disableInventoryEdit,
     initialize,

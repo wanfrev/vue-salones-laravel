@@ -27,11 +27,13 @@ export const mapProfileToEmpleado = (
       ? `$${baseSalary.toLocaleString()}${freqLabel} + ${payPercentage}%`
       : `${payPercentage}%`
 
+  const isCajero = profile.role === 'cajero' || (!!profile.disable_agenda && !!profile.disable_inventory_edit)
   return {
     id: profile.id,
     name: profile.full_name,
-    role: profile.job_title || (profile.role === 'admin' ? 'Administrador' : (profile.role === 'cajero' || (profile.role === 'empleado' && profile.disable_agenda && profile.disable_inventory_edit) ? 'Cajero' : 'Empleado')),
-    systemRole: (profile.role === 'empleado' && profile.disable_agenda && profile.disable_inventory_edit) ? 'cajero' : (profile.role as Empleado['systemRole']),
+    role: profile.job_title || (profile.role === 'admin' ? 'Administrador' : (isCajero ? 'Cajero' : 'Empleado')),
+    systemRole: isCajero ? 'cajero' : (profile.role as Empleado['systemRole']),
+    isCajero,
     citasHoy: stats?.citasHoy ?? 0,
     producido: (stats?.producido ?? 0).toLocaleString(),
     schedule: firstSchedule

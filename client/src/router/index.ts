@@ -197,6 +197,9 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.public && authStore.isAuthenticated) {
+    if (authStore.isCajeroProfile) {
+      return '/admin/pos'
+    }
     return resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda)
   }
 
@@ -209,18 +212,20 @@ router.beforeEach(async (to) => {
   }
 
   // ── CAJERO: solo puede acceder a /admin/pos ──
-  if (authStore.role === 'cajero') {
-    // Bloquear dashboard (es para empleados)
+  const isCajeroUser = authStore.isCajeroProfile
+
+  if (isCajeroUser) {
+    // Redirigir dashboard a POS
     if (to.path.startsWith('/dashboard/')) {
-      return resolveHomeByRole(authStore.role)
+      return '/admin/pos'
     }
     // Bloquear superadmin
     if (to.meta.superadminOnly) {
-      return resolveHomeByRole(authStore.role)
+      return '/admin/pos'
     }
     // Permitir solo /admin/pos, redirigir cualquier otra ruta admin
     if (to.path.startsWith('/admin/') && to.path !== '/admin/pos') {
-      return resolveHomeByRole(authStore.role)
+      return '/admin/pos'
     }
     return
   }

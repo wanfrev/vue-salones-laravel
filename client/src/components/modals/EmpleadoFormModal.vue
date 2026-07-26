@@ -105,7 +105,7 @@
             autocomplete="new-password"
           />
 
-          <label class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+          <label v-if="formData.systemRole !== 'cajero'" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
               <p class="text-sm font-medium text-text">Desactivar agenda</p>
               <p class="text-xs text-text-muted">Oculta Calendario y Agenda para este empleado</p>
@@ -131,7 +131,7 @@
 
 
 
-          <label class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+          <label v-if="formData.systemRole !== 'cajero'" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
               <p class="text-sm font-medium text-text">Puede agendar citas</p>
               <p class="text-xs text-text-muted">Permite crear y gestionar citas desde su perfil</p>
@@ -143,7 +143,7 @@
             </button>
           </label>
 
-          <label class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+          <label v-if="formData.systemRole !== 'cajero'" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
               <p class="text-sm font-medium text-text">Puede crear clientes</p>
               <p class="text-xs text-text-muted">Permite registrar nuevos clientes desde su perfil</p>
@@ -335,6 +335,9 @@ watch(
       formData.value.role = 'Encargado'
     } else if (newRole === 'cajero') {
       formData.value.role = 'Cajero'
+      formData.value.disableAgenda = true
+      formData.value.canCreateAppointments = false
+      formData.value.canCreateClients = false
     }
   }
 )
