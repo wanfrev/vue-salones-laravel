@@ -135,15 +135,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { petsKeys, listAllPets } from '../../services/petService'
 import { getInitials } from '../../lib/formatters'
 import ConsultorioMascota from './ConsultorioMascota.vue'
 import type { Pet } from '../../types/database'
 
+const route = useRoute()
 const searchQuery = ref('')
 const selectedPet = ref<Pet | null>(null)
+
+onMounted(() => {
+  if (route.query.q) {
+    searchQuery.value = route.query.q as string
+  }
+})
 
 // React Query to fetch all pets for this business
 const { data: pets, isLoading } = useQuery({
