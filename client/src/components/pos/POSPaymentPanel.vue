@@ -26,32 +26,31 @@
     </div>
 
     <template v-if="selectedAppointment || isRetailOnly">
-      <div class="flex-1 overflow-y-auto min-h-0 space-y-3 pr-1">
-        <!-- Mobile collapsed summary -->
-        <div v-if="isMobile && mobileCollapsed" class="rounded-lg bg-bg-secondary p-3">
-          <div class="flex items-center justify-between gap-3">
-            <div class="min-w-0">
-              <p class="text-sm font-medium text-text truncate">
-                {{ isRetailOnly ? (retailClientName || 'Venta Directa') : (selectedAppointment.client?.full_name || selectedAppointment.clients?.full_name || 'Cliente') }}
-              </p>
-              <p class="text-xs text-text-muted truncate">
-                {{ isRetailOnly ? 'Venta de productos' : ((selectedAppointment.service?.name ?? selectedAppointment.services?.name) || 'Servicio') }}
-              </p>
-            </div>
-            <div class="text-right shrink-0">
-              <DualAmount :amount="grandTotal" orientation="stack" size="md" primary-class="text-base font-bold text-primary" />
-              <button
-                @click="$emit('process-payment')"
-                :disabled="isProcessing || !canPay"
-                class="mt-1 rounded-lg bg-primary px-3 py-1 text-xs font-bold text-text-inverse transition-theme hover:bg-primary-hover disabled:opacity-50"
-              >
-                {{ isProcessing ? '...' : 'Cobrar' }}
-              </button>
-            </div>
+      <!-- Mobile collapsed summary -->
+      <div v-if="isMobile && mobileCollapsed" class="rounded-lg bg-bg-secondary p-3 mb-3">
+        <div class="flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-text truncate">
+              {{ isRetailOnly ? (retailClientName || 'Venta Directa') : (selectedAppointment.client?.full_name || selectedAppointment.clients?.full_name || 'Cliente') }}
+            </p>
+            <p class="text-xs text-text-muted truncate">
+              {{ isRetailOnly ? 'Venta de productos' : ((selectedAppointment.service?.name ?? selectedAppointment.services?.name) || 'Servicio') }}
+            </p>
+          </div>
+          <div class="text-right shrink-0">
+            <DualAmount :amount="grandTotal" orientation="stack" size="md" primary-class="text-base font-bold text-primary" />
+            <button
+              @click="$emit('process-payment')"
+              :disabled="isProcessing || !canPay"
+              class="mt-1 rounded-lg bg-primary px-3 py-1 text-xs font-bold text-text-inverse transition-theme hover:bg-primary-hover disabled:opacity-50"
+            >
+              {{ isProcessing ? '...' : 'Cobrar' }}
+            </button>
           </div>
         </div>
+      </div>
 
-        <template v-if="!isMobile || !mobileCollapsed">
+      <div v-if="!isMobile || !mobileCollapsed" class="flex-1 overflow-y-auto min-h-0 space-y-3 pr-1">
         <div class="rounded-lg bg-bg-secondary p-2.5 sm:p-3">
           <template v-if="isRetailOnly && !selectedAppointment">
             <div class="flex items-center justify-between text-sm">
@@ -351,7 +350,7 @@
       ></textarea>
       </div>
 
-      <div class="pt-3 shrink-0 border-t border-border-subtle">
+      <div v-if="!isMobile || !mobileCollapsed" class="pt-3 shrink-0 border-t border-border-subtle">
         <button
           @click="$emit('process-payment')"
           :disabled="isProcessing || !canPay"
@@ -364,7 +363,6 @@
           {{ isProcessing ? 'Procesando...' : `Cobrar ${formatDual(grandTotal)}` }}
         </button>
       </div>
-      </template>
     </template>
 
     <div v-else class="flex-1 flex items-center justify-center text-center text-sm text-text-muted py-6">
