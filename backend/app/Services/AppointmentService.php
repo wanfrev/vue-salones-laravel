@@ -58,7 +58,9 @@ class AppointmentService
 
         $filtered = array_filter($data, fn($k) => in_array($k, $fillable), ARRAY_FILTER_USE_KEY);
 
-        if (($filtered['source'] ?? 'internal') !== 'consultorio') {
+        $isConsultorio = !empty($filtered['clinical_history']);
+
+        if (!$isConsultorio) {
             $this->checkOverlap(
                 $businessId,
                 $filtered['employee_id'],
@@ -114,7 +116,9 @@ class AppointmentService
             ? $filtered['assistant_employee_id']
             : $appointment->assistant_employee_id;
 
-        if ($appointment->source !== 'consultorio' && ($data['source'] ?? null) !== 'consultorio') {
+        $isConsultorio = !empty($filtered['clinical_history']) || !empty($appointment->clinical_history);
+
+        if (!$isConsultorio) {
             $this->checkOverlap($businessId, $employeeId, $startTime, $endTime, $assistantId, $id, $appointment->group_id);
         }
 
@@ -207,9 +211,7 @@ class AppointmentService
     ): void {
         $query = Appointment::where('business_id', $businessId)
             ->whereNotIn('status', ['cancelled', 'no_show'])
-            ->where(function ($q) {
-                $q->whereNull('source')->orWhere('source', '!=', 'consultorio');
-            })
+            ->whereNull('clinical_history')
             ->where('start_time', '<', $endTime)
             ->where('end_time', '>', $startTime)
             ->where(function ($q) use ($employeeId, $assistantId) {
