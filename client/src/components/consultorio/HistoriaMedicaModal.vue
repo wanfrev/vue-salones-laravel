@@ -341,7 +341,7 @@ const handleSubmit = async () => {
       date: formData.value.date,
       time: currentTime,
       status: 'completed',
-      source: 'consultorio',
+      source: 'internal',
       diagnosis: finalDiagnosis,
       treatment: finalTreatment,
       notes: formData.value.notes.trim() || 'No aplica',
