@@ -105,6 +105,10 @@ export function handleDbError(error: unknown, fallback: string): never {
   }
   if (error instanceof AppError) throw error
   if (error instanceof Error) throw new AppError(error.message)
+  if (error && typeof error === 'object' && 'message' in error) {
+    const msg = (error as Record<string, unknown>).message
+    if (typeof msg === 'string' && msg.trim()) throw new AppError(msg.trim())
+  }
   throw new AppError(fallback)
 }
 

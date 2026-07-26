@@ -70,11 +70,19 @@ async function apiFetch<T>(
         let errorBody: ApiError = { message: `HTTP ${res.status}` }
         try {
           const json = await res.json()
-          const message =
+          let message =
             typeof json.message === 'string' ? json.message :
             typeof json.error === 'string' ? json.error :
             typeof json.error?.message === 'string' ? json.error.message :
             json.message ?? json.error ?? `HTTP ${res.status}`
+
+          if (res.status === 422 && json.errors) {
+            const firstError = Object.values(json.errors)[0]
+            if (Array.isArray(firstError) && firstError.length > 0 && typeof firstError[0] === 'string') {
+              message = firstError[0]
+            }
+          }
+
           errorBody = {
             message,
             code: json.code ?? String(res.status),

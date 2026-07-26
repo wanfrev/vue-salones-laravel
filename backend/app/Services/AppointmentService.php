@@ -47,31 +47,32 @@ class AppointmentService
 
     public function store(array $data, string $businessId, string $createdBy): Appointment
     {
-        if (($data['source'] ?? 'internal') !== 'consultorio') {
+        $fillable = [
+            'client_id', 'pet_id', 'employee_id', 'service_id', 'assistant_employee_id',
+            'start_time', 'end_time', 'status', 'service_notes', 'internal_notes',
+            'source', 'group_id', 'price_override', 'employee_percentage_override',
+            'assistant_percentage', 'is_fixed_commission_override', 'employee_amount_override',
+            'assistant_amount_override', 'duration_override', 'diagnosis', 'treatment',
+            'associated_products', 'clinical_history', 'branch_id',
+        ];
+
+        $filtered = array_filter($data, fn($k) => in_array($k, $fillable), ARRAY_FILTER_USE_KEY);
+
+        if (($filtered['source'] ?? 'internal') !== 'consultorio') {
             $this->checkOverlap(
                 $businessId,
-                $data['employee_id'],
-                $data['start_time'],
-                $data['end_time'],
-                $data['assistant_employee_id'] ?? null,
+                $filtered['employee_id'],
+                $filtered['start_time'],
+                $filtered['end_time'],
+                $filtered['assistant_employee_id'] ?? null,
                 null,
-                $data['group_id'] ?? null,
+                $filtered['group_id'] ?? null,
             );
         }
 
-        return Appointment::create([
+        return Appointment::create($filtered + [
             'id' => Str::uuid()->toString(),
             'business_id' => $businessId,
-            'branch_id' => $data['branch_id'] ?? null,
-            'client_id' => $data['client_id'],
-            'pet_id' => $data['pet_id'] ?? null,
-            'employee_id' => $data['employee_id'],
-            'service_id' => $data['service_id'],
-            'assistant_employee_id' => $data['assistant_employee_id'] ?? null,
-            'start_time' => $data['start_time'],
-            'end_time' => $data['end_time'],
-            'status' => $data['status'] ?? 'pending',
-            'payment_status' => 'unpaid',
             'service_notes' => $data['service_notes'] ?? null,
             'internal_notes' => $data['internal_notes'] ?? null,
             'source' => $data['source'] ?? 'internal',
