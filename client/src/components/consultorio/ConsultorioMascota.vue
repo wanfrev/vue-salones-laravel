@@ -243,9 +243,12 @@ import { ref, watch, onMounted } from 'vue'
 import { apiRequest } from '../../lib/api'
 import { useModal } from '../../composables/common/useModal'
 import { deleteCita } from '../../services/agendaService'
+import { useBusinessStore } from '../../store/business'
 import ConsultorioFichaModal from './ConsultorioFichaModal.vue'
 import HistoriaMedicaModal from './HistoriaMedicaModal.vue'
 import type { Pet } from '../../types/database'
+
+const businessStore = useBusinessStore()
 
 const props = defineProps<{
   pet: Pet
@@ -387,6 +390,8 @@ const printSingleVisit = (visit: any) => {
     `
   }
 
+  const businessName = businessStore.business?.name || 'Consultorio Veterinario'
+
   win.document.write(`
     <!DOCTYPE html>
     <html>
@@ -414,6 +419,7 @@ const printSingleVisit = (visit: any) => {
           font-weight: 800;
           color: #869C84;
           letter-spacing: -0.5px;
+          text-transform: uppercase;
         }
         .doc-type {
           font-size: 12px;
@@ -462,7 +468,7 @@ const printSingleVisit = (visit: any) => {
           margin-bottom: 16px;
         }
         .signature-section {
-          margin-top: 50px;
+          margin-top: 40px;
           display: flex;
           justify-content: flex-end;
         }
@@ -474,12 +480,22 @@ const printSingleVisit = (visit: any) => {
           font-size: 12px;
           color: #52525b;
         }
+        .footer {
+          margin-top: 30px;
+          padding-top: 12px;
+          border-top: 1px dashed #e4e4e7;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-size: 10px;
+          color: #a1a1aa;
+        }
       </style>
     </head>
     <body>
       <div class="header">
         <div>
-          <div class="logo-title">LUMA SAAS</div>
+          <div class="logo-title">${businessName}</div>
           <div style="font-size: 13px; font-weight: 600; color: #52525b; margin-top: 2px;">Consultorio Veterinario</div>
         </div>
         <div style="text-align: right;">
@@ -530,6 +546,11 @@ const printSingleVisit = (visit: any) => {
           <strong style="display: block; color: #18181b;">Dr. ${doctorName}</strong>
           Médico Veterinario / Firma y Sello
         </div>
+      </div>
+
+      <div class="footer">
+        <div>Generado el ${new Date().toLocaleDateString('es-ES')}</div>
+        <div>Desarrollado con <strong style="color: #71717a;">Luma SaaS</strong></div>
       </div>
     </body>
     </html>
