@@ -119,55 +119,56 @@
       </div>
 
       <!-- Mobile Cards -->
-      <div class="divide-y divide-border rounded-xl border border-border bg-surface sm:hidden">
+      <div class="sm:hidden space-y-2">
         <div v-for="cita in citas" :key="cita.id"
-          class="p-4 transition-theme first:rounded-t-xl last:rounded-b-xl hover:bg-bg-secondary/30">
-          <div class="flex items-start justify-between gap-3">
-            <div class="flex items-start gap-3 min-w-0 flex-1">
-              <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                {{ getInitials(cita.clientName) }}
-              </div>
-              <div class="min-w-0 flex-1">
-                <p class="font-semibold text-text truncate">{{ cita.clientName }}</p>
-                <p v-if="cita.petName" class="text-xs text-primary/80 font-medium truncate">{{ cita.petName }}</p>
-                <p class="text-xs text-text-muted">{{ cita.service }}</p>
-                <p v-if="cita.employee" class="text-xs text-text-muted">{{ cita.employee }}</p>
-                <p class="text-xs text-text-muted font-medium mt-0.5">{{ formatDateLabel(cita.date) }}</p>
-              </div>
+          class="rounded-xl border border-border bg-surface p-3 transition-theme active:bg-bg-secondary/50">
+          <div class="flex items-start gap-3">
+            <div
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
+              {{ getInitials(cita.clientName) }}
             </div>
-            <div class="text-right shrink-0">
-              <p class="text-sm font-bold tabular-nums text-text">{{ formatTime24to12(cita.time) }}</p>
-              <p class="text-xs text-text-muted">{{ cita.duration }}min</p>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-start justify-between gap-2">
+                <p class="font-semibold text-sm text-text truncate">{{ cita.clientName }}</p>
+                <span
+                  :class="['inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', getStatusColor(cita.status)]">
+                  <span class="h-1.5 w-1.5 rounded-full currentColor opacity-70"></span>
+                  {{ cita.statusLabel }}
+                </span>
+              </div>
+              <p v-if="cita.petName" class="text-[11px] text-primary/80 font-medium truncate">{{ cita.petName }}</p>
+              <div class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-text-secondary">
+                <span class="inline-flex items-center gap-1">
+                  <svg class="h-3 w-3 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span class="tabular-nums font-medium text-text">{{ formatTime24to12(cita.time) }}</span>
+                  <span class="text-text-muted">({{ cita.duration }}min)</span>
+                </span>
+                <span v-if="cita.service" class="truncate max-w-[120px]">{{ cita.service }}</span>
+              </div>
+              <p v-if="cita.employee" class="text-[11px] text-text-muted truncate">{{ cita.employee }}</p>
+              <p v-if="cita.notes" class="mt-1.5 border-t border-border-subtle pt-1 text-[11px] text-text-muted line-clamp-2">{{ cita.notes }}</p>
             </div>
           </div>
-          <div class="mt-3 flex items-center justify-between">
-            <span
-              :class="['inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold', getStatusColor(cita.status)]">
-              <span class="h-1.5 w-1.5 rounded-full currentColor opacity-70"></span>
-              {{ cita.statusLabel }}
-            </span>
-            <div class="flex gap-1">
-              <button @click="$emit('edit', cita)"
-                class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
-                title="Editar">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                </svg>
-              </button>
-              <button @click="$emit('delete', cita.id)"
-                class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-danger"
-                title="Eliminar">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div v-if="cita.notes" class="mt-2 border-t border-border-subtle pt-2">
-            <p class="text-xs text-text-muted truncate">{{ cita.notes }}</p>
+          <div class="mt-2.5 flex items-center justify-end gap-2 border-t border-border-subtle pt-2">
+            <button @click="$emit('delete', cita.id)"
+              class="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-text-muted transition-theme hover:bg-bg-secondary hover:text-danger"
+              title="Eliminar">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+            <button @click="$emit('edit', cita)"
+              class="flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover"
+              title="Editar">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+              <span>Editar</span>
+            </button>
           </div>
         </div>
       </div>
