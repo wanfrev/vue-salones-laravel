@@ -1,6 +1,6 @@
 <template>
   <div
-    class="group rounded-xl border border-border bg-surface px-3 py-2 shadow-sm transition-theme hover:shadow-md hover:border-warning/30 w-full sm:w-56"
+    class="group rounded-xl border border-border bg-surface px-3 py-2 shadow-sm transition-theme hover:shadow-md hover:border-warning/30 w-full sm:w-56 shrink-0"
     :class="{ 'cursor-pointer': !editing && isEditable }" @click="onCardClick">
     <!-- Display mode -->
     <template v-if="!editing">

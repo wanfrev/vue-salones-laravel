@@ -1,74 +1,122 @@
 <template>
-  <div class="rounded-xl border border-border bg-surface p-4 lg:flex lg:flex-col lg:h-full lg:min-h-0">
-    <h3 class="text-base font-semibold text-text mb-4 shrink-0">Resumen de cobro</h3>
+  <div
+    class="flex flex-col rounded-xl border border-border bg-surface p-3 sm:p-4 transition-all duration-300 ease-out"
+    :class="[
+      isMobile && mobileCollapsed ? 'max-h-[130px] overflow-hidden' : 'h-full lg:min-h-0',
+      isMobile && !mobileCollapsed ? 'max-h-[70vh] overflow-hidden' : ''
+    ]"
+  >
+    <div class="flex items-center justify-between shrink-0 mb-3 sm:mb-4">
+      <h3 class="text-base font-semibold text-text">Resumen de cobro</h3>
+      <button
+        v-if="isMobile && (selectedAppointment || isRetailOnly)"
+        type="button"
+        @click="mobileCollapsed = !mobileCollapsed"
+        :title="mobileCollapsed ? 'Expandir resumen' : 'Colapsar resumen'"
+        class="rounded-lg p-1 text-text-muted hover:bg-bg-secondary transition-colors"
+      >
+        <svg
+          class="h-4 w-4 transition-transform duration-300"
+          :class="mobileCollapsed ? '' : 'rotate-180'"
+          fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+    </div>
 
     <template v-if="selectedAppointment || isRetailOnly">
       <div class="flex-1 overflow-y-auto min-h-0 space-y-3 pr-1">
-      <div class="rounded-lg bg-bg-secondary p-3">
-        <template v-if="isRetailOnly && !selectedAppointment">
-          <div class="flex items-center justify-between text-sm">
-            <span class="text-text-muted">Cliente</span>
-            <span class="font-medium text-text">{{ retailClientName || 'Venta Directa / Mostrador' }}</span>
-          </div>
-          <div class="flex items-center justify-between text-sm mt-1">
-            <span class="text-text-muted">Servicio</span>
-            <span class="font-medium text-text-muted">—</span>
-          </div>
-        </template>
-        <template v-else-if="selectedAppointment">
-          <div class="flex items-center justify-between text-sm mt-1">
-            <span class="text-text-muted">Cliente</span>
-            <span class="font-medium text-text">{{ selectedAppointment.client?.full_name || selectedAppointment.clients?.full_name || '—' }}</span>
-          </div>
-          <div v-if="selectedAppointment.appointment_date" class="flex items-center justify-between text-sm mt-1">
-            <span class="text-text-muted">Fecha</span>
-            <span class="font-medium text-text">{{ formatDate(selectedAppointment.appointment_date) }}</span>
-          </div>
-          <template v-if="selectedAppointment.members?.length">
-            <div class="border-t border-border-subtle mt-2 pt-2 space-y-1">
-              <div
-                v-for="(m, i) in selectedAppointment.members"
-                :key="i"
-                class="flex items-center justify-between text-sm"
-              >
-                <div class="flex-1 min-w-0">
-                  <span class="text-text truncate">{{ m.serviceName }}</span>
-                  <span class="text-text-muted ml-1 text-xs">· {{ m.employeeName }}</span>
-                </div>
-                <span class="font-medium text-text text-xs shrink-0 ml-2 tabular-nums">${{ m.price }}</span>
-              </div>
+        <!-- Mobile collapsed summary -->
+        <div v-if="isMobile && mobileCollapsed" class="rounded-lg bg-bg-secondary p-3">
+          <div class="flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-text truncate">
+                {{ isRetailOnly ? (retailClientName || 'Venta Directa') : (selectedAppointment.client?.full_name || selectedAppointment.clients?.full_name || 'Cliente') }}
+              </p>
+              <p class="text-xs text-text-muted truncate">
+                {{ isRetailOnly ? 'Venta de productos' : ((selectedAppointment.service?.name ?? selectedAppointment.services?.name) || 'Servicio') }}
+              </p>
             </div>
-          </template>
-          <template v-else>
+            <div class="text-right shrink-0">
+              <DualAmount :amount="grandTotal" orientation="stack" size="md" primary-class="text-base font-bold text-primary" />
+              <button
+                @click="$emit('process-payment')"
+                :disabled="isProcessing || !canPay"
+                class="mt-1 rounded-lg bg-primary px-3 py-1 text-xs font-bold text-text-inverse transition-theme hover:bg-primary-hover disabled:opacity-50"
+              >
+                {{ isProcessing ? '...' : 'Cobrar' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <template v-if="!isMobile || !mobileCollapsed">
+        <div class="rounded-lg bg-bg-secondary p-2.5 sm:p-3">
+          <template v-if="isRetailOnly && !selectedAppointment">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-text-muted">Cliente</span>
+              <span class="font-medium text-text">{{ retailClientName || 'Venta Directa / Mostrador' }}</span>
+            </div>
             <div class="flex items-center justify-between text-sm mt-1">
               <span class="text-text-muted">Servicio</span>
-              <span class="font-medium text-text">{{ (selectedAppointment.service?.name ?? selectedAppointment.services?.name) || '—' }}</span>
-            </div>
-            <div class="flex items-center justify-between text-sm mt-1">
-              <span class="text-text-muted">Empleado</span>
-              <span class="font-medium text-text">{{ (selectedAppointment.employee_profile?.full_name ?? selectedAppointment.profiles?.full_name) || '—' }}</span>
-            </div>
-            <div v-if="selectedAppointment.assistant_employee_id" class="flex items-center justify-between text-sm mt-1">
-              <span class="text-text-muted">Asistente</span>
-              <span class="font-medium text-text">{{ (selectedAppointment.assistant_profile?.full_name) || '—' }} ({{ selectedAppointment.assistant_percentage ?? 0 }}%)</span>
+              <span class="font-medium text-text-muted">—</span>
             </div>
           </template>
-        </template>
-      </div>
+          <template v-else-if="selectedAppointment">
+            <div class="flex items-center justify-between text-sm mt-1">
+              <span class="text-text-muted">Cliente</span>
+              <span class="font-medium text-text">{{ selectedAppointment.client?.full_name || selectedAppointment.clients?.full_name || '—' }}</span>
+            </div>
+            <div v-if="selectedAppointment.appointment_date" class="flex items-center justify-between text-sm mt-1">
+              <span class="text-text-muted">Fecha</span>
+              <span class="font-medium text-text">{{ formatDate(selectedAppointment.appointment_date) }}</span>
+            </div>
+            <template v-if="selectedAppointment.members?.length">
+              <div class="border-t border-border-subtle mt-2 pt-2 space-y-1">
+                <div
+                  v-for="(m, i) in selectedAppointment.members"
+                  :key="i"
+                  class="flex items-center justify-between text-sm"
+                >
+                  <div class="flex-1 min-w-0">
+                    <span class="text-text truncate">{{ m.serviceName }}</span>
+                    <span class="text-text-muted ml-1 text-xs">· {{ m.employeeName }}</span>
+                  </div>
+                  <span class="font-medium text-text text-xs shrink-0 ml-2 tabular-nums">${{ m.price }}</span>
+                </div>
+              </div>
+            </template>
+            <template v-else>
+              <div class="flex items-center justify-between text-sm mt-1">
+                <span class="text-text-muted">Servicio</span>
+                <span class="font-medium text-text">{{ (selectedAppointment.service?.name ?? selectedAppointment.services?.name) || '—' }}</span>
+              </div>
+              <div class="flex items-center justify-between text-sm mt-1">
+                <span class="text-text-muted">Empleado</span>
+                <span class="font-medium text-text">{{ (selectedAppointment.employee_profile?.full_name ?? selectedAppointment.profiles?.full_name) || '—' }}</span>
+              </div>
+              <div v-if="selectedAppointment.assistant_employee_id" class="flex items-center justify-between text-sm mt-1">
+                <span class="text-text-muted">Asistente</span>
+                <span class="font-medium text-text">{{ (selectedAppointment.assistant_profile?.full_name) || '—' }} ({{ selectedAppointment.assistant_percentage ?? 0 }}%)</span>
+              </div>
+            </template>
+          </template>
+        </div>
 
-      <div v-if="cart.length > 0" class="border-t border-border-subtle pt-3">
+        <div v-if="cart.length > 0" class="border-t border-border-subtle pt-3">
         <div class="flex items-center justify-between mb-2">
           <h4 class="text-xs font-semibold text-text-muted uppercase tracking-wider">Productos</h4>
-          <label v-if="!isRetailOnly" class="flex items-center gap-2 cursor-pointer">
-            <span class="text-xs font-medium text-text-muted">Incluidos (Exonerar precio)</span>
+          <label v-if="!isRetailOnly" class="flex items-center gap-1.5 cursor-pointer">
+            <span class="text-[11px] font-medium text-text-muted">Incluidos</span>
             <div
-              class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               :class="areProductsIncluded ? 'bg-primary' : 'bg-bg-secondary border border-border'"
               @click="$emit('update:are-products-included', !areProductsIncluded)"
             >
               <span
-                class="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                :class="areProductsIncluded ? 'translate-x-4.5 bg-white' : 'translate-x-0.5 bg-border-strong'"
+                class="inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+                :class="areProductsIncluded ? 'translate-x-3 bg-white' : 'translate-x-0.5 bg-border-strong'"
               />
             </div>
           </label>
@@ -77,37 +125,37 @@
           <div
             v-for="(item, idx) in cart"
             :key="item.productId"
-            class="flex items-center justify-between gap-2 rounded-lg bg-bg-secondary px-3 py-2"
+            class="flex items-center justify-between gap-2 rounded-lg bg-bg-secondary px-2.5 py-2 sm:px-3"
           >
             <div class="flex-1 min-w-0">
               <p class="text-sm font-medium text-text truncate">{{ item.productName }}</p>
               <p class="text-xs" :class="areProductsIncluded ? 'text-text-muted line-through opacity-70' : 'text-text-muted'">{{ formatDual(item.unitPrice) }} c/u</p>
             </div>
-            <div class="flex items-center gap-1">
-              <button
-                @click="$emit('decrement-qty', idx)"
-                class="flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-text-muted hover:bg-surface hover:text-text transition-theme"
-              >
-                −
-              </button>
-              <span class="w-6 text-center text-sm font-semibold text-text">{{ item.quantity }}</span>
-              <button
-                @click="$emit('increment-qty', idx)"
-                class="flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-text-muted hover:bg-surface hover:text-text transition-theme"
-              >
-                +
-              </button>
-            </div>
             <div class="flex items-center gap-2">
-              <div class="text-right w-16">
-                <span v-if="areProductsIncluded" class="block text-xs font-bold text-success">Exonerado</span>
+              <div class="flex items-center gap-0.5 rounded-md border border-border bg-surface">
+                <button
+                  @click="$emit('decrement-qty', idx)"
+                  class="flex h-7 w-7 items-center justify-center rounded-l-md text-sm font-bold text-text-muted hover:bg-bg-secondary hover:text-text transition-theme"
+                >
+                  −
+                </button>
+                <span class="w-7 text-center text-sm font-semibold text-text">{{ item.quantity }}</span>
+                <button
+                  @click="$emit('increment-qty', idx)"
+                  class="flex h-7 w-7 items-center justify-center rounded-r-md text-sm font-bold text-text-muted hover:bg-bg-secondary hover:text-text transition-theme"
+                >
+                  +
+                </button>
+              </div>
+              <div class="text-right w-14 sm:w-16">
+                <span v-if="areProductsIncluded" class="block text-[10px] font-bold text-success">Exonerado</span>
                 <span v-else class="text-sm font-semibold text-text">{{ formatDual(item.subtotal) }}</span>
               </div>
               <button
                 @click="$emit('remove-item', idx)"
-                class="flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
+                class="flex h-7 w-7 items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
               >
-                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -126,18 +174,16 @@
           <span class="font-medium text-text">{{ formatDual(productsTotal) }}</span>
         </div>
         <div v-if="!isRetailOnly" class="space-y-1.5 border-t border-border pt-2">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <label class="block text-sm font-medium text-text">Propina {{ tipAmount > 0 ? '(' + formatDual(tipAmount) + ')' : '' }}</label>
-              <button
-                v-if="tipParticipants.length > 1"
-                type="button"
-                @click="$emit('toggle-tip-adjust')"
-                class="rounded-md border border-border px-2 py-0.5 text-[11px] font-medium text-text-secondary transition-theme hover:bg-bg-secondary"
-              >
-                Ajustar por empleado
-              </button>
-            </div>
+          <div class="flex items-center justify-between gap-2">
+            <label class="block text-sm font-medium text-text">Propina {{ tipAmount > 0 ? '(' + formatDual(tipAmount) + ')' : '' }}</label>
+            <button
+              v-if="tipParticipants.length > 1"
+              type="button"
+              @click="$emit('toggle-tip-adjust')"
+              class="rounded-md border border-border px-2 py-0.5 text-[11px] font-medium text-text-secondary transition-theme hover:bg-bg-secondary shrink-0"
+            >
+              Ajustar
+            </button>
           </div>
           <input
             :value="tipAmount || ''"
@@ -149,7 +195,7 @@
 
           <div v-if="showTipAdjust && tipParticipants.length > 0" class="rounded-lg border border-border bg-bg-secondary/40 p-2.5 space-y-2">
             <div class="flex items-center justify-between text-xs">
-              <span class="font-medium text-text">Distribución de propina</span>
+              <span class="font-medium text-text">Distribución</span>
               <button
                 type="button"
                 @click="$emit('set-equal-tip')"
@@ -166,7 +212,7 @@
                 type="number"
                 min="0"
                 step="0.01"
-                class="w-24 rounded-md border border-border bg-surface px-2 py-1 text-xs text-right text-text outline-none focus:border-primary"
+                class="w-20 sm:w-24 rounded-md border border-border bg-surface px-2 py-1 text-xs text-right text-text outline-none focus:border-primary"
               />
             </div>
             <div class="flex items-center justify-between text-xs">
@@ -187,29 +233,29 @@
         </div>
       </div>
 
-      <div class="space-y-2">
-        <label class="block text-sm font-medium text-text">Método de pago</label>
-        <div class="grid grid-cols-2 gap-2">
-          <button
-            v-for="pm in paymentMethods"
-            :key="pm.value"
-            @click="$emit('select-method', pm.value)"
-            :class="[
-              'rounded-lg border p-2 text-sm font-medium transition-theme text-center relative',
-              paymentMethod === pm.value
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-border text-text-secondary hover:bg-bg-secondary'
-            ]"
-          >
-            {{ pm.label }}
-            <span
-              v-if="(pm as any).currency"
-              class="ml-1 inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold"
-              :class="(pm as any).currency === 'USD' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'"
-            >{{ (pm as any).currency === 'USD' ? '$' : 'Bs' }}</span>
-          </button>
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-text">Método de pago</label>
+          <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <button
+              v-for="pm in paymentMethods"
+              :key="pm.value"
+              @click="$emit('select-method', pm.value)"
+              :class="[
+                'rounded-lg border p-2 text-xs font-medium transition-theme text-center relative sm:text-sm min-h-[44px] flex items-center justify-center',
+                paymentMethod === pm.value
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border text-text-secondary hover:bg-bg-secondary'
+              ]"
+            >
+              {{ pm.label }}
+              <span
+                v-if="(pm as any).currency"
+                class="ml-1 inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                :class="(pm as any).currency === 'USD' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'"
+              >{{ (pm as any).currency === 'USD' ? '$' : 'Bs' }}</span>
+            </button>
+          </div>
         </div>
-      </div>
 
       <div v-if="paymentMethod === 'other'" class="space-y-2 mt-4">
         <label class="block text-sm font-medium text-text">Moneda</label>
@@ -256,31 +302,30 @@
 
       <div v-if="paymentMethod === 'mixed'" class="space-y-2 border-t border-border-subtle pt-3 mt-4">
         <label class="block text-sm font-medium text-text">Distribución del pago</label>
-        <div v-for="(split, idx) in paymentsBreakdown" :key="idx" class="flex items-center gap-2">
+        <div v-for="(split, idx) in paymentsBreakdown" :key="idx" class="grid grid-cols-[1fr_3.5rem_1fr_auto] gap-1.5 items-center">
           <select
             v-model="split.method"
-            class="flex-1 rounded-lg border border-border bg-surface px-2 py-2 text-xs text-text outline-none focus:border-primary"
+            class="min-w-0 rounded-lg border border-border bg-surface px-2 py-2 text-xs text-text outline-none focus:border-primary"
           >
             <option v-for="m in mixedMethods" :key="m.value" :value="m.value">{{ m.label }}</option>
           </select>
           <select
             v-model="split.currency"
-            class="w-16 rounded-lg border border-border bg-surface px-1 py-2 text-xs text-text outline-none focus:border-primary"
+            class="rounded-lg border border-border bg-surface px-1 py-2 text-xs text-text outline-none focus:border-primary text-center"
           >
             <option value="USD">USD</option>
             <option value="VES">Bs</option>
           </select>
-          <div class="relative flex-1">
-            <input
-              v-model.number="split.inputAmount"
-              type="number" step="0.01" min="0"
-              class="w-full rounded-lg border border-border bg-surface px-2 py-2 text-xs text-text outline-none placeholder:text-text-muted focus:border-primary"
-            />
-          </div>
+          <input
+            v-model.number="split.inputAmount"
+            type="number" step="0.01" min="0"
+            placeholder="0.00"
+            class="w-full rounded-lg border border-border bg-surface px-2 py-2 text-xs text-text outline-none placeholder:text-text-muted focus:border-primary text-right"
+          />
           <button
             v-if="paymentsBreakdown.length > 1"
             @click="$emit('remove-split', idx)"
-            class="rounded p-1 text-text-muted hover:text-danger hover:bg-danger/10"
+            class="flex h-8 w-8 items-center justify-center rounded p-1 text-text-muted hover:text-danger hover:bg-danger/10"
           >
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -310,7 +355,7 @@
         <button
           @click="$emit('process-payment')"
           :disabled="isProcessing || !canPay"
-          class="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-text-inverse transition-theme hover:bg-primary-hover disabled:opacity-50"
+          class="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-sm font-bold text-text-inverse transition-theme hover:bg-primary-hover disabled:opacity-50 min-h-[52px]"
         >
           <svg v-if="isProcessing" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -319,23 +364,24 @@
           {{ isProcessing ? 'Procesando...' : `Cobrar ${formatDual(grandTotal)}` }}
         </button>
       </div>
+      </template>
     </template>
 
-    <div v-else class="flex-1 flex items-center justify-center text-center text-sm text-text-muted">
+    <div v-else class="flex-1 flex items-center justify-center text-center text-sm text-text-muted py-6">
       <div>
-        <div class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-bg-secondary mb-3">
-          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-bg-secondary mb-2">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
           </svg>
         </div>
-        <p>Selecciona una cita pendiente<br>o inicia una venta directa</p>
+        <p class="text-xs sm:text-sm">Selecciona una cita pendiente<br>o inicia una venta directa</p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { DualAmount } from '../common'
 import { formatDate } from '../../lib/formatters'
@@ -401,8 +447,17 @@ const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)
 const { activeGiftCards } = useGiftCards(businessId)
 
+const windowWidth = ref(window.innerWidth)
+const isMobile = computed(() => windowWidth.value < 1024)
+const mobileCollapsed = ref(true)
+const onResize = () => { windowWidth.value = window.innerWidth }
+onMounted(() => window.addEventListener('resize', onResize))
+onUnmounted(() => window.removeEventListener('resize', onResize))
 
-const needsGiftCardSelect = computed(() => 
+watch(() => props.selectedAppointment?.id, (newId, oldId) => { if (newId && !oldId) mobileCollapsed.value = true })
+watch(() => props.isRetailOnly, (v, old) => { if (v && !old) mobileCollapsed.value = true })
+
+const needsGiftCardSelect = computed(() =>
   props.paymentMethod === 'gift_card' || 
   (props.paymentMethod === 'mixed' && props.paymentsBreakdown.some(b => b.method === 'gift_card'))
 )

@@ -7,10 +7,10 @@
           <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
           <span class="font-medium uppercase tracking-wider">Ventas</span>
         </div>
-        <h1 class="text-2xl font-bold text-text lg:text-3xl">Punto de Venta</h1>
+        <h1 class="text-xl font-bold text-text sm:text-2xl lg:text-3xl">Punto de Venta</h1>
         <p class="hidden text-sm text-text-muted sm:block">Registra pagos de servicios y productos</p>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
         <ExchangeRateCard
           :is-editable="rateCtx.isEditable.value"
           :edit-rate-value="rateCtx.editRateValue.value"
@@ -30,7 +30,7 @@
           @select-client="selectRetailClient"
           @search-clients="onRetailSearchClients"
         />
-        <button v-else @click="startRetailOnly" class="flex items-center gap-1.5 rounded-lg border border-primary/30 px-3 py-2 text-xs font-semibold text-primary shadow-sm transition-all duration-200 hover:bg-primary/5">
+        <button v-else @click="startRetailOnly" class="flex items-center justify-center gap-1.5 rounded-lg border border-primary/30 px-3 py-2 text-xs font-semibold text-primary shadow-sm transition-all duration-200 hover:bg-primary/5">
           <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
           Venta directa
         </button>
@@ -40,7 +40,10 @@
 
   <div v-if="queryError" class="mb-4 rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm text-danger">Error al cargar citas: {{ queryError }}</div>
 
-  <div class="grid grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr]">
+  <div :class="[
+    'grid grid-cols-1 gap-3 lg:grid-cols-[3fr_2fr] lg:gap-4',
+    hasPaymentContext ? 'pb-[140px] lg:pb-0' : ''
+  ]">
       <!-- LEFT PANEL -->
       <AppointmentList
         :overdue="overdueAppointments"
@@ -61,7 +64,10 @@
       />
 
     <!-- RIGHT PANEL -->
-    <div class="space-y-4 lg:sticky lg:top-20 h-fit lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden">
+    <div :class="[
+      hasPaymentContext ? 'sticky bottom-0 z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]' : '',
+      'lg:static lg:z-auto lg:top-20 lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden lg:shadow-none'
+    ]">
       <POSPaymentPanel
         :selected-appointment="selectedAppointment"
         :cart="cartCtx.cart.value" :service-price="servicePrice"
@@ -156,6 +162,7 @@ const paymentCtx = usePOSPayment()
 
 const activeSaleType = ref<'appointment' | 'retail_only'>('appointment')
 const selectedAppointment = ref<any>(null)
+const hasPaymentContext = computed(() => selectedAppointment.value !== null || activeSaleType.value === 'retail_only')
 const queryError = ref<string | null>(null)
 const appointmentSearch = ref('')
 const inlineProductSearch = ref('')
