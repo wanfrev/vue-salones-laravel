@@ -326,6 +326,9 @@ const handleSubmit = async () => {
       throw new Error('No se encontró ningún servicio registrado. Por favor crea al menos un servicio en el sistema.')
     }
 
+    const now = new Date()
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
+
     const payload: any = {
       id: formData.value.id,
       clientId: formData.value.clientId,
@@ -336,14 +339,14 @@ const handleSubmit = async () => {
       service: defaultServiceId,
       employee: formData.value.employeeId,
       date: formData.value.date,
-      time: '09:00',
+      time: currentTime,
       status: 'completed',
       source: 'consultorio',
       diagnosis: finalDiagnosis,
       treatment: finalTreatment,
       notes: formData.value.notes.trim() || 'No aplica',
       clinicalHistory: processedHistory,
-      duration: 30,
+      duration: 1,
       price: 0,
       extraServices: [],
       associatedProducts: [],
