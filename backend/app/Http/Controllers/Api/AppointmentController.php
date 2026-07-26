@@ -154,6 +154,10 @@ class AppointmentController
             ->where('business_id', $businessId)
             ->where('client_id', $clientId)
             ->where('pet_id', $petId)
+            ->where(function ($query) {
+                $query->where('source', 'consultorio')
+                      ->orWhereNotNull('clinical_history');
+            })
             ->orderByDesc('start_time')
             ->get();
 

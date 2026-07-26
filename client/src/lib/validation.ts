@@ -35,7 +35,7 @@ export const citaFormSchema = z.object({
   extraServices: z.array(serviceItemSchema).default([]),
   date: z.string().min(1, 'Selecciona una fecha'),
   time: z.string().min(1, 'Selecciona una hora'),
-  status: z.enum(['confirmed', 'pending', 'cancelled', 'paid']).default('pending'),
+  status: z.enum(['confirmed', 'pending', 'cancelled', 'paid', 'completed', 'in_progress', 'no_show']).default('pending'),
   notes: z.string().default(''),
   diagnosis: z.string().optional(),
   treatment: z.string().optional(),

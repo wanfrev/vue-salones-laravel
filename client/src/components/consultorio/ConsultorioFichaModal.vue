@@ -43,38 +43,43 @@
           </div>
 
           <!-- Clinical History (Structured) -->
-          <div v-if="visit.clinical_history && Object.keys(visit.clinical_history).length > 0">
+          <div>
             <h5 class="text-[11px] font-bold text-primary uppercase tracking-widest mb-3 border-l-2 border-primary pl-2">Diagnóstico por Sistemas</h5>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 bg-primary/5 rounded-xl p-4 border border-primary/10">
-              <template v-for="(val, sys) in visit.clinical_history" :key="sys">
-                <div v-if="val" class="text-sm bg-surface p-3 rounded-lg border border-primary/5 shadow-xs">
-                  <span class="font-bold text-text text-[13px] block mb-0.5 text-primary">{{ sys }}</span> 
-                  <span class="text-text-secondary leading-relaxed whitespace-pre-line">{{ val }}</span>
-                </div>
-              </template>
+              <div v-for="sys in systemList" :key="sys.key" class="text-sm bg-surface p-3 rounded-lg border border-primary/5 shadow-xs">
+                <span class="font-bold text-text text-[13px] block mb-0.5 text-primary">{{ sys.label }}</span> 
+                <span class="text-text-secondary leading-relaxed whitespace-pre-line" :class="{ 'italic text-text-muted': !getSystemVal(sys.key) }">
+                  {{ getSystemVal(sys.key) || 'No aplica' }}
+                </span>
+              </div>
             </div>
           </div>
-          <!-- Fallback Diagnosis -->
-          <div v-else-if="visit.diagnosis">
+
+          <!-- General Diagnosis -->
+          <div>
             <h5 class="text-[11px] font-bold text-primary uppercase tracking-widest mb-2 border-l-2 border-primary pl-2">Diagnóstico General</h5>
-            <p class="text-sm text-text-secondary bg-bg-secondary/40 rounded-lg p-3 border border-border whitespace-pre-line">{{ visit.diagnosis }}</p>
+            <p class="text-sm text-text-secondary bg-bg-secondary/40 rounded-lg p-3 border border-border whitespace-pre-line" :class="{ 'italic text-text-muted': !visit.diagnosis }">
+              {{ visit.diagnosis || 'No aplica' }}
+            </p>
           </div>
 
           <!-- Treatment -->
-          <div v-if="visit.treatment">
+          <div>
             <h5 class="text-[11px] font-bold text-primary uppercase tracking-widest mb-2 border-l-2 border-primary pl-2">Tratamiento Indicado</h5>
-            <p class="text-sm text-text-secondary bg-bg-secondary/40 rounded-lg p-3 border border-border whitespace-pre-line">{{ visit.treatment }}</p>
+            <p class="text-sm text-text-secondary bg-bg-secondary/40 rounded-lg p-3 border border-border whitespace-pre-line" :class="{ 'italic text-text-muted': !visit.treatment }">
+              {{ visit.treatment || 'No aplica' }}
+            </p>
           </div>
 
           <!-- Notes -->
-          <div v-if="visit.internal_notes || visit.service_notes" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div v-if="visit.service_notes">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
               <h5 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-1.5 border-l-2 border-border pl-2">Notas del Servicio</h5>
-              <p class="text-sm text-text-secondary italic">{{ visit.service_notes }}</p>
+              <p class="text-sm text-text-secondary italic">{{ visit.service_notes || 'No aplica' }}</p>
             </div>
-            <div v-if="visit.internal_notes">
+            <div>
               <h5 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-1.5 border-l-2 border-border pl-2">Notas Internas</h5>
-              <p class="text-sm text-text-secondary italic">{{ visit.internal_notes }}</p>
+              <p class="text-sm text-text-secondary italic">{{ visit.internal_notes || visit.notes || 'No aplica' }}</p>
             </div>
           </div>
 
@@ -93,6 +98,16 @@
             </div>
           </div>
         </div>
+
+        <div class="mt-6 flex justify-start pt-4 border-t border-border print-hidden">
+          <button
+            type="button"
+            @click="handleDelete"
+            class="rounded-lg border border-danger/30 bg-danger/5 px-4 py-2 text-sm font-semibold text-danger hover:bg-danger/15 transition-colors"
+          >
+            Eliminar Ficha
+          </button>
+        </div>
       </div>
     </div>
   </ModalBase>
@@ -101,6 +116,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useModal } from '../../composables/common/useModal'
+import { deleteCita } from '../../services/agendaService'
+import { useQueryClient } from '@tanstack/vue-query'
 import ModalBase from '../common/ModalBase.vue'
 import type { Pet } from '../../types/database'
 
@@ -111,6 +128,28 @@ const { isOpen, modalData, close } = useModal(MODAL_ID)
 const visit = ref<any>(null)
 const pet = ref<Pet | null>(null)
 const printArea = ref<HTMLElement | null>(null)
+
+const systemList = [
+  { key: 'Oftálmico', label: 'Sistema Oftálmico / Ojos' },
+  { key: 'Otológico', label: 'Sistema Otológico / Oídos' },
+  { key: 'Tegumentario', label: 'Sistema Tegumentario / Piel y Anexos' },
+  { key: 'Músculo-Esquelético', label: 'Sistema Músculo-Esquelético' },
+  { key: 'Respiratorio', label: 'Sistema Respiratorio' },
+  { key: 'Cardiovascular', label: 'Sistema Cardiovascular' },
+  { key: 'Gastrointestinal', label: 'Sistema Gastrointestinal / Digestivo' },
+  { key: 'Genitourinario', label: 'Sistema Genitourinario (Urinario y Reproductor)' },
+  { key: 'Nervioso', label: 'Sistema Nervioso / Neurológico' },
+  { key: 'Linfático', label: 'Sistema Linfático / Inmunológico' },
+  { key: 'Otros', label: 'Otros Diagnósticos' },
+]
+
+const getSystemVal = (key: string) => {
+  if (!visit.value?.clinical_history && !visit.value?.clinicalHistory) return ''
+  const hist = visit.value.clinical_history || visit.value.clinicalHistory || {}
+  const val = hist[key]
+  if (!val || val === 'No aplica') return ''
+  return val
+}
 
 watch(() => modalData.value, (data) => {
   if (data?.visit && data?.pet) {
@@ -222,5 +261,20 @@ const printFicha = () => {
     win.print()
     win.close()
   }, 200)
+}
+
+const queryClient = useQueryClient()
+
+const handleDelete = async () => {
+  if (!visit.value?.id) return
+  if (!window.confirm('¿Deseas eliminar esta ficha médica? Esta acción no se puede deshacer.')) return
+  try {
+    await deleteCita(visit.value.id)
+    await queryClient.invalidateQueries({ queryKey: ['appointments'], exact: false })
+    await queryClient.invalidateQueries({ queryKey: ['pets'], exact: false })
+    close()
+  } catch (err) {
+    console.error('Error deleting ficha', err)
+  }
 }
 </script>

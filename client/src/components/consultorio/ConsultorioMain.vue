@@ -144,12 +144,7 @@
     @back="selectedPet = null"
   />
 
-  <CitaFormModal
-    ref="citaModalRef"
-    :servicios="serviciosList"
-    :empleados="empleadosList"
-    @save="handleSaveCita"
-  />
+  <HistoriaMedicaModal />
 </template>
 
 <script setup lang="ts">
@@ -160,15 +155,10 @@ import { useModal } from '../../composables/common/useModal'
 import { petsKeys, listAllPets } from '../../services/petService'
 import { getInitials } from '../../lib/formatters'
 import ConsultorioMascota from './ConsultorioMascota.vue'
+import HistoriaMedicaModal from './HistoriaMedicaModal.vue'
 import type { Pet } from '../../types/database'
-import { CitaFormModal } from '../modals'
-import { useAuthStore } from '../../store/auth'
-import { useAdminAgenda } from '../../composables/agenda/useAdminAgenda'
-import { useAppointmentMutations } from '../../composables/agenda/useAppointmentMutations'
 
 const route = useRoute()
-const authStore = useAuthStore()
-const businessId = computed(() => authStore.businessId)
 const searchQuery = ref('')
 const selectedPet = ref<Pet | null>(null)
 
@@ -178,25 +168,8 @@ onMounted(() => {
   }
 })
 
-const citaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
-
-const {
-  serviciosList,
-  empleadosList,
-} = useAdminAgenda(() => authStore.businessId)
-
-const {
-  handleSaveCita,
-} = useAppointmentMutations({
-  businessId,
-  createdBy: computed(() => authStore.profile?.id),
-  modalRef: citaModalRef,
-})
-
 const openNewFicha = () => {
-  citaModalRef.value?.open({
-    status: 'completed', // For medical histories, default to completed
-  })
+  useModal('historia-medica-modal').open()
 }
 
 // React Query to fetch all pets for this business

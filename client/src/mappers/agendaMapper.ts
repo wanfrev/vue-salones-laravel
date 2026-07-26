@@ -131,7 +131,7 @@ export const mapCitaFormToAppointmentInsert = (
       const valid = (data.associatedProducts || []).filter(p => !!(p && p.productId))
       return valid.length > 0 ? valid : null
     })(),
-    source: 'internal' as const,
+    source: (data as any).source || 'internal',
     created_by: createdBy ?? null,
   }
 }
@@ -193,7 +193,7 @@ export const mapServiceItemToAppointmentInsert = (
       const valid = (associatedProducts || []).filter(p => !!(p && (p.productId || p.product_id)))
       return valid.length > 0 ? valid : null
     })(),
-    source: 'internal' as const,
+    source: (item as any).source || (data as any).source || 'internal',
     created_by: createdBy ?? null,
   }
 }
