@@ -14,7 +14,7 @@ export const listEquipo = async (businessId: string, branchId?: string | null): 
     .from('profiles')
     .select('*, employee_schedules(*)')
     .eq('business_id', businessId)
-    .in('role', ['empleado', 'encargado'])
+    .in('role', ['empleado', 'encargado', 'cajero'])
     .order('full_name')
 
   if (error) throw error
@@ -56,8 +56,10 @@ export const saveEmpleado = async (
       pay_percentage: profileUpdate.pay_percentage,
       base_salary: profileUpdate.base_salary,
       salary_frequency: profileUpdate.salary_frequency || undefined,
-      disable_agenda: data.disableAgenda,
-      disable_inventory_edit: data.disableInventoryEdit,
+      disable_agenda: data.systemRole === 'cajero' ? true : data.disableAgenda,
+      disable_inventory_edit: data.systemRole === 'cajero' ? true : data.disableInventoryEdit,
+      can_create_appointments: data.systemRole !== 'cajero',
+      can_create_clients: data.systemRole !== 'cajero',
       branch_id: branchId ?? null,
       schedules: scheduleBlocks,
     })
@@ -71,6 +73,8 @@ export const saveEmpleado = async (
     ...(data.email ? { email: data.email } : {}),
     ...(data.password ? { password: data.password } : {}),
     ...profileUpdate,
+    can_create_appointments: data.systemRole !== 'cajero',
+    can_create_clients: data.systemRole !== 'cajero',
     branch_id: branchId ?? null,
     schedules: scheduleBlocks,
   })

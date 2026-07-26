@@ -39,7 +39,7 @@
             </div>
           </div>
 
-          <div v-if="formData.systemRole === 'empleado'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div v-if="formData.systemRole !== 'encargado'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <FormDropdown
               v-if="!showingCustomRole"
               v-model="formData.role"
@@ -333,6 +333,8 @@ watch(
   (newRole) => {
     if (newRole === 'encargado') {
       formData.value.role = 'Encargado'
+    } else if (newRole === 'cajero') {
+      formData.value.role = 'Cajero'
     }
   }
 )
