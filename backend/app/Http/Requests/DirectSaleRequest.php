@@ -25,6 +25,8 @@ class DirectSaleRequest extends FormRequest
             'payments_breakdown.*.inputAmount' => 'required|numeric|min:0',
             'payments_breakdown.*.currency' => 'required|in:USD,VES',
             'payments_breakdown.*.amount' => 'required|numeric|min:0',
+            'payments_breakdown.*.gift_card_id' => 'nullable|string',
+            'payments_breakdown.*.giftCardId' => 'nullable|string',
             'client_id' => 'nullable|uuid',
             'branch_id' => 'nullable|uuid',
         ];
