@@ -115,6 +115,16 @@
         <FormTextarea v-model="formData.treatment" label="Tratamiento Indicado" placeholder="Medicamentos, dosis, procedimiento realizado, indicaciones..." :rows="3" />
         <FormTextarea v-model="formData.notes" label="Notas Adicionales / Observaciones" placeholder="Notas internas..." :rows="2" />
       </div>
+
+      <div v-if="isEditing" class="border-t border-border pt-4">
+        <button
+          type="button"
+          @click="handleDelete"
+          class="rounded-lg border border-danger/30 bg-danger/5 px-4 py-2 text-sm font-semibold text-danger transition-colors hover:bg-danger/15"
+        >
+          Eliminar Historia Médica
+        </button>
+      </div>
     </form>
   </ModalBase>
 </template>
@@ -132,7 +142,7 @@ import CitaClientSearch from '../forms/CitaClientSearch.vue'
 import { listPetsByClient } from '../../services/petService'
 import { listServicios } from '../../services/serviciosService'
 import { listEquipo } from '../../services/equipoService'
-import { saveCita } from '../../services/agendaService'
+import { saveCita, deleteCita } from '../../services/agendaService'
 import { useQueryClient } from '@tanstack/vue-query'
 import type { Pet } from '../../types/database'
 
@@ -328,6 +338,7 @@ const handleSubmit = async () => {
       date: formData.value.date,
       time: '09:00',
       status: 'completed',
+      source: 'consultorio',
       diagnosis: finalDiagnosis,
       treatment: finalTreatment,
       notes: formData.value.notes.trim() || 'No aplica',
@@ -347,6 +358,23 @@ const handleSubmit = async () => {
     close()
   } catch (err: any) {
     showError(err?.message || 'Error al guardar la historia clínica')
+  } finally {
+    saveInProgress.value = false
+  }
+}
+
+const handleDelete = async () => {
+  if (!formData.value.id) return
+  if (!window.confirm('¿Deseas eliminar esta historia médica? Esta acción no se puede deshacer.')) return
+  saveInProgress.value = true
+  try {
+    await deleteCita(formData.value.id)
+    await queryClient.invalidateQueries({ queryKey: ['appointments'], exact: false })
+    await queryClient.invalidateQueries({ queryKey: ['pets'], exact: false })
+    success('Historia médica eliminada correctamente')
+    close()
+  } catch (err: any) {
+    showError(err?.message || 'Error al eliminar la historia médica')
   } finally {
     saveInProgress.value = false
   }

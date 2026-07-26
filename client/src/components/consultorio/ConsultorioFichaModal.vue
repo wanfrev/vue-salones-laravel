@@ -98,6 +98,16 @@
             </div>
           </div>
         </div>
+
+        <div class="mt-6 flex justify-start pt-4 border-t border-border print-hidden">
+          <button
+            type="button"
+            @click="handleDelete"
+            class="rounded-lg border border-danger/30 bg-danger/5 px-4 py-2 text-sm font-semibold text-danger hover:bg-danger/15 transition-colors"
+          >
+            Eliminar Ficha
+          </button>
+        </div>
       </div>
     </div>
   </ModalBase>
@@ -106,6 +116,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useModal } from '../../composables/common/useModal'
+import { deleteCita } from '../../services/agendaService'
+import { useQueryClient } from '@tanstack/vue-query'
 import ModalBase from '../common/ModalBase.vue'
 import type { Pet } from '../../types/database'
 
@@ -249,5 +261,20 @@ const printFicha = () => {
     win.print()
     win.close()
   }, 200)
+}
+
+const queryClient = useQueryClient()
+
+const handleDelete = async () => {
+  if (!visit.value?.id) return
+  if (!window.confirm('¿Deseas eliminar esta ficha médica? Esta acción no se puede deshacer.')) return
+  try {
+    await deleteCita(visit.value.id)
+    await queryClient.invalidateQueries({ queryKey: ['appointments'], exact: false })
+    await queryClient.invalidateQueries({ queryKey: ['pets'], exact: false })
+    close()
+  } catch (err) {
+    console.error('Error deleting ficha', err)
+  }
 }
 </script>
