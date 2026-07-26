@@ -160,6 +160,18 @@ export const useAuthStore = defineStore('auth', () => {
           profile.value = embeddedProfile
         }
 
+        // Always load full profile to get all flags (disable_agenda, disable_inventory_edit, etc.)
+        try {
+          await loadProfile(user.value.id, user.value?.role)
+        } catch (err) {
+          if (isProfileHardFailure(err)) {
+            clearAuthState()
+            await db.auth.signOut({ scope: 'local' }).catch(() => {})
+          } else {
+            console.warn('[auth.initialize] transient hydration error; keeping session', err)
+          }
+        }
+
         if (embeddedBusiness) {
           const businessStore = useBusinessStore()
           businessStore.business = embeddedBusiness
@@ -245,6 +257,15 @@ export const useAuthStore = defineStore('auth', () => {
         if (!embeddedProfile.active) throw new Error('El usuario está inactivo.')
         profile.value = embeddedProfile
       }
+
+      // Always load full profile to get all flags
+      try {
+        await loadProfile(user.value!.id, user.value?.role)
+      } catch (err) {
+        if (isProfileHardFailure(err)) throw err
+        console.warn('[auth.signIn] profile reload failed; keeping embedded', err)
+      }
+
       if (embeddedBusiness) {
         useBusinessStore().business = embeddedBusiness
       }
