@@ -132,6 +132,16 @@
 
               <div class="flex items-center gap-2">
                 <button
+                  @click.stop="printSingleVisit(visit)"
+                  class="print-hidden flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-primary bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors"
+                  title="Imprimir esta Historia Médica en PDF"
+                >
+                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  <span>PDF</span>
+                </button>
+                <button
                   @click.stop="editFicha(visit)"
                   class="print-hidden p-1.5 text-text-muted hover:text-primary bg-bg-secondary hover:bg-primary/10 rounded-lg transition-colors"
                   title="Editar Ficha"
@@ -320,6 +330,216 @@ const getVisitProducts = (visit: any): any[] => {
   if (Array.isArray(visit.associated_products)) return visit.associated_products
   if (Array.isArray(visit.associatedProducts)) return visit.associatedProducts
   return []
+}
+
+const printSingleVisit = (visit: any) => {
+  if (!visit || !props.pet) return
+  const win = window.open('', '_blank', 'width=900,height=750')
+  if (!win) return
+
+  const petName = props.pet.name || 'Paciente'
+  const tutorName = props.pet.client?.full_name || props.pet.client?.name || '—'
+  const breed = props.pet.breed || 'N/A'
+  const weight = props.pet.weight || 'N/A'
+  const dateStr = formatDate(visit.start_time)
+  const doctorName = visit.profiles?.full_name || visit.employee_profile?.full_name || '—'
+  const diagnosis = visit.diagnosis || 'No aplica'
+  const treatment = visit.treatment || 'No aplica'
+  const serviceNotes = visit.service_notes || 'No aplica'
+  const internalNotes = visit.internal_notes || visit.notes || 'No aplica'
+
+  const clinicalHist = visit.clinical_history || visit.clinicalHistory || {}
+  const systemKeys = [
+    { key: 'Oftálmico', label: 'Sistema Oftálmico / Ojos' },
+    { key: 'Otológico', label: 'Sistema Otológico / Oídos' },
+    { key: 'Tegumentario', label: 'Sistema Tegumentario / Piel' },
+    { key: 'Músculo-Esquelético', label: 'Sistema Músculo-Esquelético' },
+    { key: 'Respiratorio', label: 'Sistema Respiratorio' },
+    { key: 'Cardiovascular', label: 'Sistema Cardiovascular' },
+    { key: 'Gastrointestinal', label: 'Sistema Gastrointestinal' },
+    { key: 'Genitourinario', label: 'Sistema Genitourinario' },
+    { key: 'Nervioso', label: 'Sistema Nervioso' },
+    { key: 'Linfático', label: 'Sistema Linfático' },
+    { key: 'Otros', label: 'Otros Diagnósticos' },
+  ]
+
+  let systemHtml = ''
+  for (const sys of systemKeys) {
+    const val = clinicalHist[sys.key] || 'No aplica'
+    systemHtml += `
+      <div style="background: #f8faf8; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8e2;">
+        <div style="font-weight: 700; font-size: 11px; color: #869C84; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">${sys.label}</div>
+        <div style="font-size: 13px; color: #27272a; line-height: 1.4;">${val}</div>
+      </div>
+    `
+  }
+
+  const products = getVisitProducts(visit)
+  let productsHtml = ''
+  if (products.length > 0) {
+    productsHtml = `
+      <div style="margin-top: 20px;">
+        <div style="font-size: 11px; font-weight: 700; color: #71717a; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">Insumos / Productos Aplicados</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+          ${products.map((p: any) => `<span style="background: #ffffff; border: 1px solid #e4e4e7; padding: 4px 10px; border-radius: 6px; font-size: 12px; color: #3f3f46;">${p.productName || p.name || 'Producto'} <strong>x${p.quantity}</strong></span>`).join('')}
+        </div>
+      </div>
+    `
+  }
+
+  win.document.write(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Historia Clínica — ${petName} — ${dateStr}</title>
+      <style>
+        @page { size: A4; margin: 15mm; }
+        body {
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          color: #18181b;
+          margin: 0;
+          padding: 24px;
+          background: #ffffff;
+        }
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 2px solid #869C84;
+          padding-bottom: 16px;
+          margin-bottom: 20px;
+        }
+        .logo-title {
+          font-size: 22px;
+          font-weight: 800;
+          color: #869C84;
+          letter-spacing: -0.5px;
+        }
+        .doc-type {
+          font-size: 12px;
+          font-weight: 700;
+          color: #71717a;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+        }
+        .info-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 12px;
+          background: #f4f7f4;
+          border: 1px solid #e2e8e2;
+          border-radius: 12px;
+          padding: 16px;
+          margin-bottom: 20px;
+        }
+        .info-item { font-size: 13px; }
+        .info-label { font-size: 11px; font-weight: 700; color: #869C84; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+        .info-val { font-weight: 600; color: #18181b; }
+        .section-title {
+          font-size: 11px;
+          font-weight: 700;
+          color: #869C84;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 10px;
+          border-left: 3px solid #869C84;
+          padding-left: 8px;
+        }
+        .systems-grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 10px;
+          margin-bottom: 20px;
+        }
+        .box {
+          background: #fafafa;
+          border: 1px solid #e4e4e7;
+          border-radius: 8px;
+          padding: 12px;
+          font-size: 13px;
+          color: #27272a;
+          white-space: pre-line;
+          margin-bottom: 16px;
+        }
+        .signature-section {
+          margin-top: 50px;
+          display: flex;
+          justify-content: flex-end;
+        }
+        .signature-box {
+          text-align: center;
+          width: 240px;
+          border-top: 1px solid #a1a1aa;
+          padding-top: 8px;
+          font-size: 12px;
+          color: #52525b;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <div>
+          <div class="logo-title">LUMA SAAS</div>
+          <div style="font-size: 13px; font-weight: 600; color: #52525b; margin-top: 2px;">Consultorio Veterinario</div>
+        </div>
+        <div style="text-align: right;">
+          <div class="doc-type">Historia Clínica Veterinaria</div>
+          <div style="font-size: 13px; font-weight: 600; color: #18181b; margin-top: 4px;">Fecha: ${dateStr}</div>
+        </div>
+      </div>
+
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">Paciente / Mascota</div>
+          <div class="info-val">${petName}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Tutor / Responsable</div>
+          <div class="info-val">${tutorName}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Raza / Peso</div>
+          <div class="info-val">${breed} • ${weight}</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">Atendido Por</div>
+          <div class="info-val">Dr. ${doctorName}</div>
+        </div>
+      </div>
+
+      <div class="section-title">Evaluación por Sistemas</div>
+      <div class="systems-grid">
+        ${systemHtml}
+      </div>
+
+      <div class="section-title">Diagnóstico General</div>
+      <div class="box">${diagnosis}</div>
+
+      <div class="section-title">Tratamiento Indicado</div>
+      <div class="box">${treatment}</div>
+
+      ${(serviceNotes !== 'No aplica' || internalNotes !== 'No aplica') ? `
+        <div class="section-title">Notas u Observaciones</div>
+        <div class="box">${serviceNotes !== 'No aplica' ? serviceNotes : internalNotes}</div>
+      ` : ''}
+
+      ${productsHtml}
+
+      <div class="signature-section">
+        <div class="signature-box">
+          <strong style="display: block; color: #18181b;">Dr. ${doctorName}</strong>
+          Médico Veterinario / Firma y Sello
+        </div>
+      </div>
+    </body>
+    </html>
+  `)
+  win.document.close()
+  win.focus()
+  setTimeout(() => {
+    win.print()
+    win.close()
+  }, 250)
 }
 
 const openNewFicha = () => {
