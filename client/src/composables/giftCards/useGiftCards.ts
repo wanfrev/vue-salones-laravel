@@ -22,6 +22,8 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
   })
 
   const giftCards = computed(() => data.value ?? [])
+  const activeGiftCards = computed(() => giftCards.value.filter(g => g.status === 'active'))
+  const usedGiftCards = computed(() => giftCards.value.filter(g => g.status === 'redeemed' || g.status === 'expired'))
 
   const saveMutation = useMutation({
     mutationFn: (form: GiftCardFormData) => {
@@ -59,6 +61,9 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
   const formErrors = ref<Record<string, string>>({})
 
   const form = ref<GiftCardFormData>({
+    code: '',
+    buyerName: '',
+    buyerPhone: '',
     recipientName: '',
     recipientPhone: '',
     amount: 0,
@@ -66,7 +71,7 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
   })
 
   const resetForm = () => {
-    form.value = { recipientName: '', recipientPhone: '', amount: 0, notes: '' }
+    form.value = { code: '', buyerName: '', buyerPhone: '', recipientName: '', recipientPhone: '', amount: 0, notes: '' }
     editingId.value = null
     saveError.value = ''
     formErrors.value = {}
@@ -81,6 +86,9 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
     editingId.value = giftCard.id
     form.value = {
       id: giftCard.id,
+      code: giftCard.code ?? '',
+      buyerName: giftCard.buyerName ?? '',
+      buyerPhone: giftCard.buyerPhone ?? '',
       recipientName: giftCard.recipientName,
       recipientPhone: giftCard.recipientPhone ?? '',
       amount: giftCard.amount,
@@ -127,6 +135,8 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
 
   return {
     giftCards,
+    activeGiftCards,
+    usedGiftCards,
     isLoading,
     saveMutation,
     deleteMutation,

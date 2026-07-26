@@ -162,6 +162,8 @@ export const productoFormSchema = z.object({
 })
 
 export const giftCardFormSchema = z.object({
+  buyerName: z.string().min(1, 'El nombre del comprador es requerido'),
+  buyerPhone: z.string().default(''),
   recipientName: z.string().min(1, 'El nombre del beneficiario es requerido'),
   recipientPhone: z.string().default(''),
   amount: z.number().positive('El monto debe ser mayor a 0'),

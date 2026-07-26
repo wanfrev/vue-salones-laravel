@@ -21,9 +21,11 @@ export const listGiftCards = async (businessId: string, branchId?: string | null
 }
 
 export const saveGiftCard = async (businessId: string, form: GiftCardFormData, branchId?: string | null): Promise<GiftCard> => {
-  const payload = {
+  const payload: any = {
     recipient_name: form.recipientName.trim(),
     recipient_phone: form.recipientPhone.trim() || null,
+    buyer_name: form.buyerName?.trim() || null,
+    buyer_phone: form.buyerPhone?.trim() || null,
     amount: form.amount,
     status: form.status ?? 'active',
     notes: form.notes.trim() || null,
@@ -31,6 +33,7 @@ export const saveGiftCard = async (businessId: string, form: GiftCardFormData, b
   }
 
   if (form.id) {
+    if (form.code) payload.code = form.code
     const { data, error } = await db
       .from('gift_cards')
       .update(payload)
@@ -41,6 +44,8 @@ export const saveGiftCard = async (businessId: string, form: GiftCardFormData, b
     return mapRowToGiftCard(data)
   }
 
+  payload.code = form.code || Math.random().toString(36).substring(2, 10).toUpperCase()
+  payload.business_id = businessId
   const { data, error } = await db
     .from('gift_cards')
     .insert(payload)
@@ -63,6 +68,9 @@ function mapRowToGiftCard(row: any): GiftCard {
     id: row.id,
     businessId: row.business_id,
     branchId: row.branch_id ?? null,
+    code: row.code ?? null,
+    buyerName: row.buyer_name ?? null,
+    buyerPhone: row.buyer_phone ?? null,
     recipientName: row.recipient_name,
     recipientPhone: row.recipient_phone ?? null,
     amount: Number(row.amount),

@@ -76,6 +76,8 @@
         :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
         :retail-client-name="retailClientId ? retailClientSearch : null"
         :are-products-included="areProductsIncluded"
+        :selected-gift-card-id="paymentCtx.selectedGiftCardId.value"
+        @update:selected-gift-card-id="paymentCtx.selectedGiftCardId.value = $event"
         @update:are-products-included="areProductsIncluded = $event"
         @select-method="paymentCtx.selectMethod"
         @update:other-currency="paymentCtx.otherCurrency.value = $event"

@@ -18,6 +18,7 @@ class GiftCard extends Model
 
     protected $fillable = [
         'id', 'business_id', 'branch_id',
+        'code', 'buyer_name', 'buyer_phone',
         'recipient_name', 'recipient_phone',
         'amount', 'status', 'notes',
         'redeemed_at', 'created_by',

@@ -2,6 +2,9 @@ export interface GiftCard {
   id: string
   businessId: string
   branchId: string | null
+  code: string | null
+  buyerName: string | null
+  buyerPhone: string | null
   recipientName: string
   recipientPhone: string | null
   amount: number
@@ -15,6 +18,9 @@ export interface GiftCard {
 
 export interface GiftCardFormData {
   id?: string
+  code?: string
+  buyerName: string
+  buyerPhone: string
   recipientName: string
   recipientPhone: string
   amount: number

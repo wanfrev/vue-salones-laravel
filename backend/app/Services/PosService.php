@@ -201,6 +201,24 @@ class PosService
                 'paid_at' => now(),
             ]);
 
+            if (is_array($paymentsBreakdown)) {
+                foreach ($paymentsBreakdown as $split) {
+                    if (isset($split['method']) && $split['method'] === 'gift_card' && !empty($split['gift_card_id'])) {
+                        $gc = \App\Models\GiftCard::find($split['gift_card_id']);
+                        if ($gc && $gc->status === 'active') {
+                            $deduct = (float) ($split['amount'] ?? 0);
+                            $gc->amount -= $deduct;
+                            if ($gc->amount <= 0) {
+                                $gc->amount = 0;
+                                $gc->status = 'redeemed';
+                                $gc->redeemed_at = now();
+                            }
+                            $gc->save();
+                        }
+                    }
+                }
+            }
+
             if (!empty($products)) {
                 $defaultLocation = $this->inventoryService->getDefaultLocation(
                     $businessId,
@@ -387,6 +405,24 @@ class PosService
                 'tip_amount' => 0,
                 'paid_at' => now(),
             ]);
+
+            if (is_array($paymentsBreakdown)) {
+                foreach ($paymentsBreakdown as $split) {
+                    if (isset($split['method']) && $split['method'] === 'gift_card' && !empty($split['gift_card_id'])) {
+                        $gc = \App\Models\GiftCard::find($split['gift_card_id']);
+                        if ($gc && $gc->status === 'active') {
+                            $deduct = (float) ($split['amount'] ?? 0);
+                            $gc->amount -= $deduct;
+                            if ($gc->amount <= 0) {
+                                $gc->amount = 0;
+                                $gc->status = 'redeemed';
+                                $gc->redeemed_at = now();
+                            }
+                            $gc->save();
+                        }
+                    }
+                }
+            }
 
             $defaultLocation = $this->inventoryService->getDefaultLocation(
                 $businessId,

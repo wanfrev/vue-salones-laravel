@@ -211,7 +211,7 @@
         </div>
       </div>
 
-      <div v-if="paymentMethod === 'other'" class="space-y-2">
+      <div v-if="paymentMethod === 'other'" class="space-y-2 mt-4">
         <label class="block text-sm font-medium text-text">Moneda</label>
         <div class="flex rounded-lg border border-border bg-bg-secondary/50 p-0.5">
           <button
@@ -227,7 +227,21 @@
         </div>
       </div>
 
-      <div v-if="paymentMethod === 'mixed'" class="space-y-2 border-t border-border-subtle pt-3">
+      <div v-if="needsGiftCardSelect" class="space-y-2 mt-4">
+        <label class="block text-sm font-medium text-text">Gift Card a consumir</label>
+        <select
+          :value="selectedGiftCardId"
+          @change="$emit('update:selectedGiftCardId', ($event.target as HTMLSelectElement).value)"
+          class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-primary"
+        >
+          <option value="">Selecciona una gift card</option>
+          <option v-for="gc in activeGiftCards" :key="gc.id" :value="gc.id">
+            {{ gc.code || 'Sin código' }} - {{ gc.buyerName || gc.recipientName }} ({{ formatDual(gc.amount) }})
+          </option>
+        </select>
+      </div>
+
+      <div v-if="paymentMethod === 'mixed'" class="space-y-2 border-t border-border-subtle pt-3 mt-4">
         <label class="block text-sm font-medium text-text">Distribución del pago</label>
         <div v-for="(split, idx) in paymentsBreakdown" :key="idx" class="flex items-center gap-2">
           <select
@@ -275,7 +289,7 @@
         @input="$emit('update:notes', ($event.target as HTMLTextAreaElement).value)"
         placeholder="Notas del pago (opcional)"
         rows="2"
-        class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary"
+        class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary mt-4"
       ></textarea>
       </div>
 
@@ -308,9 +322,12 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { DualAmount } from '../common'
 import { formatDate } from '../../lib/formatters'
+import { useAuth } from '../../composables/common/useAuth'
+import { useGiftCards } from '../../composables/giftCards/useGiftCards'
 import type { PaymentMethod } from '../../types/database'
 import type { PaymentBreakdownItem, POSProductItem } from '../../types/pos'
 
@@ -319,7 +336,7 @@ interface TipParticipant {
   employeeName: string
 }
 
-defineProps<{
+const props = defineProps<{
   selectedAppointment: any
   cart: POSProductItem[]
   servicePrice: number
@@ -344,6 +361,7 @@ defineProps<{
   isRetailOnly?: boolean
   retailClientName?: string | null
   areProductsIncluded?: boolean
+  selectedGiftCardId?: string | null
 }>()
 
 defineEmits<{
@@ -361,7 +379,17 @@ defineEmits<{
   'decrement-qty': [idx: number]
   'remove-item': [idx: number]
   'update:are-products-included': [value: boolean]
+  'update:selectedGiftCardId': [value: string | null]
 }>()
 
 const { formatDual } = useCurrency()
+const { authStore } = useAuth()
+const businessId = computed(() => authStore.businessId)
+const { activeGiftCards } = useGiftCards(businessId)
+
+
+const needsGiftCardSelect = computed(() => 
+  props.paymentMethod === 'gift_card' || 
+  (props.paymentMethod === 'mixed' && props.paymentsBreakdown.some(b => b.method === 'gift_card'))
+)
 </script>

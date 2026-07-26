@@ -25,6 +25,7 @@ export interface PaymentBreakdownItem {
   inputAmount: number
   currency: 'USD' | 'VES'
   amount: number
+  gift_card_id?: string | null
 }
 
 export interface TipAllocationItem {

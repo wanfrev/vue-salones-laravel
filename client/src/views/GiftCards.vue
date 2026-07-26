@@ -11,10 +11,21 @@
         </div>
         <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Gestión de Gift Cards</h1>
       </div>
-      <button
-        @click="ctx.openNew()"
-        class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
-      >
+      <div class="flex items-center gap-2">
+        <div class="flex rounded-lg border border-border bg-bg-secondary p-1">
+          <button @click="activeTab = 'active'" :class="['rounded-md px-3 py-1.5 text-sm font-medium transition-colors', activeTab === 'active' ? 'bg-surface text-primary shadow-sm' : 'text-text-muted hover:text-text']">Activas</button>
+          <button @click="activeTab = 'used'" :class="['rounded-md px-3 py-1.5 text-sm font-medium transition-colors', activeTab === 'used' ? 'bg-surface text-primary shadow-sm' : 'text-text-muted hover:text-text']">Historial</button>
+        </div>
+        <button
+          @click="ctx.openNew()"
+          class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+          </svg>
+          Nueva Gift Card
+        </button>
+      </div>
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
         </svg>
@@ -45,8 +56,9 @@
       <table class="w-full">
         <thead>
           <tr class="border-b border-border bg-bg-secondary">
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Código</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Comprador</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Beneficiario</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted hidden sm:table-cell">Teléfono</th>
             <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-text-muted">Monto</th>
             <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-text-muted hidden md:table-cell">Estado</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted hidden md:table-cell">Notas</th>
@@ -54,16 +66,24 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-border">
-          <tr v-for="gc in ctx.giftCards.value" :key="gc.id" class="transition-colors hover:bg-bg-secondary/50">
+          <tr v-for="gc in currentGiftCards" :key="gc.id" class="transition-colors hover:bg-bg-secondary/50">
             <td class="px-4 py-3.5">
-              <div class="flex items-center gap-3">
-                <div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-                  {{ getInitials(gc.recipientName) }}
-                </div>
-                <p class="text-sm font-semibold text-text">{{ gc.recipientName }}</p>
+              <span class="font-mono text-sm text-text bg-bg-secondary px-2 py-1 rounded">{{ gc.code || '—' }}</span>
+            </td>
+            <td class="px-4 py-3.5">
+              <div class="flex flex-col">
+                <span class="text-sm font-semibold text-text">{{ gc.buyerName || '—' }}</span>
+                <span class="text-xs text-text-muted">{{ gc.buyerPhone || '—' }}</span>
               </div>
             </td>
-            <td class="px-4 py-3.5 text-sm text-text-secondary hidden sm:table-cell">{{ gc.recipientPhone || '—' }}</td>
+            <td class="px-4 py-3.5">
+              <div class="flex items-center gap-3">
+                <div class="flex flex-col">
+                  <span class="text-sm font-semibold text-text">{{ gc.recipientName }}</span>
+                  <span class="text-xs text-text-muted">{{ gc.recipientPhone || '—' }}</span>
+                </div>
+              </div>
+            </td>
             <td class="px-4 py-3.5 text-right">
               <div class="text-sm font-semibold text-text">{{ formatUSD(gc.amount) }}</div>
               <div class="text-xs text-text-muted">{{ formatVESInline(gc.amount) }} Bs</div>
@@ -111,17 +131,33 @@
           <p class="text-sm text-text-muted">{{ ctx.editingId.value ? 'Modifica los datos de la gift card' : 'Registra una nueva tarjeta de regalo' }}</p>
         </div>
         <form class="space-y-4" @submit.prevent="handleSave">
-          <div>
-            <label class="mb-1 block text-sm font-medium text-text" for="gc-recipient">Nombre del beneficiario</label>
-            <input id="gc-recipient" v-model="ctx.form.value.recipientName" type="text"
-              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
-              placeholder="Nombre de la persona" required />
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text" for="gc-buyer">Nombre del comprador</label>
+              <input id="gc-buyer" v-model="ctx.form.value.buyerName" type="text"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+                placeholder="Nombre de quien compra" required />
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text" for="gc-buyer-phone">Teléfono del comprador</label>
+              <input id="gc-buyer-phone" v-model="ctx.form.value.buyerPhone" type="text"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+                placeholder="+58 414-1234567" />
+            </div>
           </div>
-          <div>
-            <label class="mb-1 block text-sm font-medium text-text" for="gc-phone">Teléfono</label>
-            <input id="gc-phone" v-model="ctx.form.value.recipientPhone" type="text"
-              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
-              placeholder="+58 414-1234567" />
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text" for="gc-recipient">Nombre del beneficiario</label>
+              <input id="gc-recipient" v-model="ctx.form.value.recipientName" type="text"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+                placeholder="Nombre de la persona" required />
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text" for="gc-phone">Teléfono del beneficiario</label>
+              <input id="gc-phone" v-model="ctx.form.value.recipientPhone" type="text"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+                placeholder="+58 414-1234567" />
+            </div>
           </div>
           <div>
             <label class="mb-1 block text-sm font-medium text-text" for="gc-amount">Monto (USD)</label>
@@ -164,7 +200,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useAuth } from '../composables/common/useAuth'
 import { useGiftCards } from '../composables/giftCards/useGiftCards'
 import { getInitials } from '../lib/formatters'
@@ -175,6 +211,9 @@ const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)
 const ctx = useGiftCards(businessId)
 const { formatUSD, formatVESInline } = useCurrency()
+
+const activeTab = ref<'active' | 'used'>('active')
+const currentGiftCards = computed(() => activeTab.value === 'active' ? ctx.activeGiftCards.value : ctx.usedGiftCards.value)
 
 const handleSave = async () => {
   try {

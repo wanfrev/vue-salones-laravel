@@ -20,6 +20,7 @@ export function usePOSPayment() {
   const paymentNotes = ref('')
   const tipAmount = ref(0)
   const paymentsBreakdown = ref<PaymentBreakdownItem[]>([])
+  const selectedGiftCardId = ref<string | null>(null)
 
   const paymentMethods = [
     { label: 'Efectivo ($)', value: 'cash' as PaymentMethod, currency: 'USD' as const },
@@ -28,6 +29,7 @@ export function usePOSPayment() {
     { label: 'Transferencia', value: 'transfer' as PaymentMethod, currency: 'VES' as const },
     { label: 'Zelle', value: 'zelle' as PaymentMethod, currency: 'USD' as const },
     { label: 'Pago Móvil', value: 'pago_movil' as PaymentMethod, currency: 'VES' as const },
+    { label: 'Gift Card', value: 'gift_card' as PaymentMethod, currency: 'USD' as const },
     { label: 'Mixto', value: 'mixed' as PaymentMethod, currency: null as null },
     { label: 'Punto de Vta (Bs)', value: 'punto_venta' as PaymentMethod, currency: 'VES' as const },
     { label: 'Otro', value: 'other' as PaymentMethod, currency: null as null },
@@ -62,6 +64,7 @@ export function usePOSPayment() {
     paymentNotes.value = ''
     tipAmount.value = 0
     paymentsBreakdown.value = []
+    selectedGiftCardId.value = null
   }
 
   const invalidateQueries = async () => {
@@ -242,6 +245,7 @@ export function usePOSPayment() {
             inputAmount: paymentCurrency === 'VES' ? memberAmount * exchangeRt : memberAmount,
             currency: paymentCurrency as 'USD' | 'VES',
             amount: memberAmount,
+            gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined
           }]
         } else {
           const grand = params.serviceAmount + productsTotal + tipAmount.value || 1
@@ -274,6 +278,7 @@ export function usePOSPayment() {
           inputAmount: paymentCurrency === 'VES' ? totalAmount * exchangeRt : totalAmount,
           currency: paymentCurrency as 'USD' | 'VES',
           amount: totalAmount,
+          gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined
         }]
       } else {
         breakdown = [...breakdownSource]
@@ -319,6 +324,7 @@ export function usePOSPayment() {
         inputAmount: paymentCurrency === 'VES' ? params.totalAmount * params.exchangeRate : params.totalAmount,
         currency: paymentCurrency as 'USD' | 'VES',
         amount: params.totalAmount,
+        gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined
       }]
     } else {
       breakdown = [...paymentsBreakdown.value]
@@ -356,5 +362,6 @@ export function usePOSPayment() {
     processPayment,
     processDirectSale,
     reset,
+    selectedGiftCardId,
   }
 }
