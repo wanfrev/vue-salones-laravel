@@ -117,22 +117,22 @@ const inlineFilteredProducts = computed(() => {
     <button
       @click="$emit('select', appt)"
       :class="[
-        'w-full text-left rounded-lg border p-2.5 transition-theme',
+        'w-full text-left rounded-lg border p-2 sm:p-2.5 transition-theme',
         isSelected ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border hover:border-border-strong hover:bg-bg-secondary'
       ]"
     >
-      <div class="flex items-center justify-between">
+      <div class="flex items-center justify-between gap-2">
         <div class="min-w-0 flex-1">
           <p class="text-sm font-medium text-text truncate">{{ appt.client?.full_name || appt.clients?.full_name || 'Cliente' }}</p>
           <p class="text-xs text-text-muted truncate">{{ (appt.service?.name ?? appt.services?.name) || 'Servicio' }}<span v-if="appt.employeeName"> · {{ appt.employeeName }}</span></p>
           <div v-if="displayProductsList.length > 0" class="mt-1 flex flex-wrap items-center gap-1">
             <div v-for="(prodItem, idx) in displayProductsList" :key="idx" class="flex items-center gap-1 text-[10px] text-amber-600 bg-amber-50 dark:bg-amber-500/10 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">
               <svg class="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
-              <span>{{ prodItem.quantity }}x {{ prodItem.name }}</span>
+              <span class="truncate max-w-[120px]">{{ prodItem.quantity }}x {{ prodItem.name }}</span>
             </div>
           </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0 ml-3">
+        <div class="flex items-center gap-2 shrink-0">
           <div class="text-right">
             <p class="text-sm font-bold text-text">${{ appt.groupPrice ?? appt.price_override ?? (appt.service?.price ?? appt.services?.price) ?? 0 }}</p>
             <p class="text-xs text-text-muted">{{ formatTime(appt.start_time) }}</p>
@@ -140,8 +140,8 @@ const inlineFilteredProducts = computed(() => {
           <button
             v-if="showGoToCalendar"
             type="button"
-            @click.stop="$emit('goToCalendar', appt)"
-            class="flex items-center gap-1 rounded-lg px-2 py-1 text-xs text-text-muted hover:text-primary hover:bg-primary/5 transition-colors"
+            @click.stop="$emit('go-to-calendar', appt)"
+            class="flex h-7 w-7 items-center justify-center rounded-lg text-text-muted hover:text-primary hover:bg-primary/5 transition-colors"
             title="Ir a la cita en el calendario"
           >
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -153,7 +153,7 @@ const inlineFilteredProducts = computed(() => {
     </button>
 
     <!-- Inline product search (shown when this appointment is selected) -->
-    <div v-if="isSelected" class="ml-2 mr-1 mb-1.5 rounded-lg border border-primary/20 bg-primary/5 p-2">
+    <div v-if="isSelected" class="mx-1 mb-1.5 rounded-lg border border-primary/20 bg-primary/5 p-1.5 sm:p-2">
       <div class="relative">
         <input
           :value="inlineProductSearch"
