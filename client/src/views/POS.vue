@@ -40,34 +40,28 @@
 
   <div v-if="queryError" class="mb-4 rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm text-danger">Error al cargar citas: {{ queryError }}</div>
 
-  <div :class="[
-    'grid grid-cols-1 gap-3 lg:grid-cols-[3fr_2fr] lg:gap-4',
-    hasPaymentContext ? 'pb-[140px] lg:pb-0' : ''
-  ]">
-      <!-- LEFT PANEL -->
-      <AppointmentList
-        :overdue="overdueAppointments"
-        :upcoming="upcomingAppointments"
-        :total-count="filteredAppointments.length"
-        :selected-id="selectedId"
-        :products="products"
-        :cart="cartCtx.cart.value"
-        :inline-product-search="inlineProductSearch"
-        :show-inline-dropdown="showInlineDropdown"
-        :show-go-to-calendar="!authStore.isCajeroProfile"
-        @select="selectAppointment"
-        @go-to-calendar="goToAppointmentInCalendar"
-        @update:search="appointmentSearch = $event"
-        @update:inline-product-search="inlineProductSearch = $event"
-        @add-product="addInlineProduct"
-        @blur="onInlineBlur" @focus="showInlineDropdown = true"
-      />
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr]">
+    <!-- LEFT PANEL -->
+    <AppointmentList
+      :overdue="overdueAppointments"
+      :upcoming="upcomingAppointments"
+      :total-count="filteredAppointments.length"
+      :selected-id="selectedId"
+      :products="products"
+      :cart="cartCtx.cart.value"
+      :inline-product-search="inlineProductSearch"
+      :show-inline-dropdown="showInlineDropdown"
+      :show-go-to-calendar="!authStore.isCajeroProfile"
+      @select="onSelectAppointment"
+      @go-to-calendar="goToAppointmentInCalendar"
+      @update:search="appointmentSearch = $event"
+      @update:inline-product-search="inlineProductSearch = $event"
+      @add-product="addInlineProduct"
+      @blur="onInlineBlur" @focus="showInlineDropdown = true"
+    />
 
-    <!-- RIGHT PANEL -->
-    <div :class="[
-      hasPaymentContext ? 'sticky bottom-0 z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]' : '',
-      'lg:static lg:z-auto lg:top-20 lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden lg:shadow-none'
-    ]">
+    <!-- RIGHT PANEL (desktop only) -->
+    <div class="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden">
       <POSPaymentPanel
         :selected-appointment="selectedAppointment"
         :cart="cartCtx.cart.value" :service-price="servicePrice"
@@ -84,7 +78,6 @@
         :are-products-included="areProductsIncluded"
         :selected-gift-card-id="paymentCtx.selectedGiftCardId.value"
         @update:selected-gift-card-id="paymentCtx.selectedGiftCardId.value = $event"
-        @update:selectedGiftCardId="paymentCtx.selectedGiftCardId.value = $event"
         @update:are-products-included="areProductsIncluded = $event"
         @select-method="paymentCtx.selectMethod"
         @update:other-currency="paymentCtx.otherCurrency.value = $event"
@@ -99,6 +92,77 @@
       />
     </div>
   </div>
+
+  <!-- MOBILE PAYMENT DRAWER -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition ease-out duration-200"
+      enter-from-class="opacity-0 translate-y-full"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 translate-y-full"
+    >
+      <div
+        v-if="isMobile && mobilePaymentOpen"
+        class="fixed inset-0 z-50 flex flex-col bg-bg lg:hidden"
+      >
+        <div class="flex items-center justify-between border-b border-border bg-surface px-4 py-3">
+          <h2 class="text-base font-semibold text-text">Cobrar</h2>
+          <button
+            @click="closeMobilePayment"
+            class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="flex-1 overflow-hidden p-4">
+          <POSPaymentPanel
+            :selected-appointment="selectedAppointment"
+            :cart="cartCtx.cart.value" :service-price="servicePrice"
+            :products-total="cartCtx.productsTotal.value" :cart-count="cartCtx.cart.value.length"
+            :grand-total="grandTotal" :payment-method="paymentCtx.paymentMethod.value"
+            :other-currency="paymentCtx.otherCurrency.value" :payment-methods="paymentCtx.paymentMethods"
+            :mixed-methods="paymentCtx.mixedMethods" :payments-breakdown="paymentCtx.paymentsBreakdown.value"
+            :split-remaining="splitRemaining" :is-processing="isProcessing" :can-pay="canPay"
+            :notes="paymentCtx.paymentNotes.value" :tip-amount="paymentCtx.tipAmount.value"
+            :tip-participants="tipParticipants" :tip-allocations="tipAllocations"
+            :tip-allocated-total="tipAllocatedTotal" :tip-remaining="tipRemaining"
+            :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
+            :retail-client-name="retailClientId ? retailClientSearch : null"
+            :are-products-included="areProductsIncluded"
+            :selected-gift-card-id="paymentCtx.selectedGiftCardId.value"
+            @update:selected-gift-card-id="paymentCtx.selectedGiftCardId.value = $event"
+            @update:are-products-included="areProductsIncluded = $event"
+            @select-method="paymentCtx.selectMethod"
+            @update:other-currency="paymentCtx.otherCurrency.value = $event"
+            @add-split="paymentCtx.addSplit" @remove-split="paymentCtx.removeSplit"
+            @update:notes="paymentCtx.paymentNotes.value = $event"
+            @update:tip-amount="paymentCtx.tipAmount.value = $event"
+            @toggle-tip-adjust="showTipAdjust = !showTipAdjust"
+            @set-equal-tip="setEqualTipAllocation"
+            @update:tip-allocation="setTipAllocation"
+            @process-payment="handleMobileProcessPayment"
+            @increment-qty="cartCtx.incrementQty" @decrement-qty="cartCtx.decrementQty" @remove-item="cartCtx.removeItem"
+          />
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <!-- Mobile floating pay button when drawer is closed -->
+  <button
+    v-if="isMobile && !mobilePaymentOpen && hasPaymentContext"
+    @click="mobilePaymentOpen = true"
+    class="fixed bottom-4 right-4 z-20 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-bold text-text-inverse shadow-lg shadow-primary/25 transition-theme hover:bg-primary-hover lg:hidden"
+  >
+    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+    Cobrar
+  </button>
   </FeatureGate>
 
   <POSConfirmModal
@@ -117,7 +181,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../composables/common/useAuth'
@@ -162,6 +226,14 @@ const paymentCtx = usePOSPayment()
 
 const activeSaleType = ref<'appointment' | 'retail_only'>('appointment')
 const selectedAppointment = ref<any>(null)
+
+const mobilePaymentOpen = ref(false)
+const windowWidth = ref(window.innerWidth)
+const isMobile = computed(() => windowWidth.value < 1024)
+const onResize = () => { windowWidth.value = window.innerWidth }
+onMounted(() => window.addEventListener('resize', onResize))
+onUnmounted(() => window.removeEventListener('resize', onResize))
+
 const hasPaymentContext = computed(() => selectedAppointment.value !== null || activeSaleType.value === 'retail_only')
 const queryError = ref<string | null>(null)
 const appointmentSearch = ref('')
@@ -361,6 +433,20 @@ const selectAppointment = (appt: any) => {
   setEqualTipAllocation()
 }
 
+const onSelectAppointment = (appt: any) => {
+  selectAppointment(appt)
+  if (selectedAppointment.value && isMobile.value) mobilePaymentOpen.value = true
+}
+
+const closeMobilePayment = () => {
+  mobilePaymentOpen.value = false
+}
+
+const handleMobileProcessPayment = () => {
+  if (grandTotal.value <= 0) return
+  showConfirmModal.value = true
+}
+
 watch(() => appointments.value, (list) => {
   if (!selectedAppointment.value) return
   const updated = list.find((a: any) => a.id === selectedAppointment.value.id)
@@ -370,7 +456,10 @@ const goToAppointmentInCalendar = (appt: any) => {
   const cita = mapAppointmentToCita(appt)
   posCitaModalRef.value?.open(cita)
 }
-const startRetailOnly = () => { selectedAppointment.value = null; activeSaleType.value = 'retail_only'; cartCtx.clearCart(); paymentCtx.reset(); retailProductSearch.value = ''; retailClientSearch.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailSearchRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false; areProductsIncluded.value = false }
+const startRetailOnly = () => {
+  selectedAppointment.value = null; activeSaleType.value = 'retail_only'; cartCtx.clearCart(); paymentCtx.reset(); retailProductSearch.value = ''; retailClientSearch.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailSearchRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false; areProductsIncluded.value = false
+  if (isMobile.value) mobilePaymentOpen.value = true
+}
 const setTipAllocation = (employeeId: string, value: number) => { tipManual.value = true; tipAllocations.value = { ...tipAllocations.value, [employeeId]: Math.max(0, Number(value || 0)) } }
 
 const handleRetailPayment = async () => {
@@ -389,6 +478,7 @@ const handleRetailPayment = async () => {
     retailClientId.value = null
     retailClientSuggestions.value = []
     retailSearchRef.value?.reset()
+    mobilePaymentOpen.value = false
   }
 }
 
@@ -415,7 +505,7 @@ const confirmPayment = async () => {
     groupPrice: appt.groupPrice,
     tipAllocations: tipAllocations.value,
   })
-  if (ok) { selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset(); areProductsIncluded.value = false }
+  if (ok) { selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset(); areProductsIncluded.value = false; mobilePaymentOpen.value = false }
 }
 
 const { handleSaveCita, handleDeleteCita } = useAppointmentMutations({

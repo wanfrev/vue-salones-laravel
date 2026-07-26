@@ -51,10 +51,16 @@ export function useAppointmentMutations(options: {
     await Promise.allSettled(keys.map(key =>
       queryClient.invalidateQueries({ queryKey: key, exact: false })
     ))
-    await Promise.allSettled([
+
+    // Refetch typed agenda keys explicitly (covers admin, employee, and calendar views)
+    const agendaRefreshes = bid ? [
+      queryClient.refetchQueries({ queryKey: ['appointments', bid], exact: false }),
+      queryClient.refetchQueries({ queryKey: posKeys.pending(bid, brId), exact: true }),
+    ] : [
       queryClient.refetchQueries({ queryKey: ['appointments'], exact: false }),
       queryClient.refetchQueries({ queryKey: posKeys.pending(bid, brId), exact: true }),
-    ])
+    ]
+    await Promise.allSettled(agendaRefreshes)
   }
 
   const saveCitaMutation = useMutation({
@@ -152,7 +158,7 @@ export function useAppointmentMutations(options: {
       }
       return { tempId, previousQueries }
     },
-    onSuccess: (_result, _input, context) => {
+    onSuccess: async (_result, _input, context) => {
       if (context?.tempId && context?.previousQueries) {
         for (const [key] of context.previousQueries) {
           queryClient.setQueryData(key, (old: any) =>
@@ -160,7 +166,7 @@ export function useAppointmentMutations(options: {
           )
         }
       }
-      void invalidate()
+      await invalidate()
       options.modalRef?.value?.close()
       options.modalRef?.value?.onSaveComplete?.()
       success('Cita guardada correctamente')
@@ -175,7 +181,7 @@ export function useAppointmentMutations(options: {
       showError(translateError(err))
     },
     onSettled: () => {
-      void invalidate()
+      // onSuccess already awaits invalidate()
     },
   })
 
