@@ -17,12 +17,12 @@
             (idx % 7) === 6 ? 'border-r-0' : '',
           ]" @click="cell.iso && $emit('goToDate', cell.iso)">
           <span
-            class="inline-flex items-center justify-center h-4 w-4 rounded-full text-[10px] font-semibold sm:h-6 sm:w-6 sm:text-sm"
+            class="inline-flex items-center justify-center h-5 w-5 rounded-full text-[11px] font-semibold sm:h-6 sm:w-6 sm:text-sm"
             :class="cell.iso === todayIso ? 'bg-primary text-white' : cell.iso === selectedDate ? 'bg-primary/15 text-primary' : 'text-text'">
             {{ cell.number }}
           </span>
           <div class="mt-1 space-y-1 overflow-hidden">
-            <div v-for="appt in cell.appointments.slice(0, 2)" :key="appt.id"
+            <div v-for="appt in cell.appointments.slice(0, visibleAppointmentsPerCell)" :key="appt.id"
               class="flex flex-col gap-0.5 rounded-md px-1.5 py-1 cursor-pointer transition-colors hover:brightness-95 sm:gap-1 sm:rounded-md sm:px-2 sm:py-1.5"
               :class="monthCardBg(appt.status)"
               :title="`${appt.clientName} · ${appt.service} · ${appt.employeeName}\n${appt.time} · ${getStatusLabel(appt.status)}`"
@@ -37,9 +37,9 @@
               <div class="text-[9px] text-text-secondary truncate sm:text-[10px] leading-tight">{{ appt.service }}</div>
               <div v-if="appt.employeeName" class="text-[9px] text-text-muted truncate sm:text-[10px] leading-tight">{{ appt.employeeName }}</div>
             </div>
-            <div v-if="cell.appointments.length > 2"
+            <div v-if="cell.appointments.length > visibleAppointmentsPerCell"
               class="text-[9px] font-medium text-text-muted pl-0.5 sm:text-[10px] sm:pl-1">
-              +{{ cell.appointments.length - 2 }} más
+              +{{ cell.appointments.length - visibleAppointmentsPerCell }} más
             </div>
           </div>
         </div>
@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { toISODate, dateToHHmm, dateToHHmm12, getStatusLabel, normalizeAppointmentStatus, parseLocalDate } from '../../lib/formatters'
 
 const props = defineProps<{
@@ -99,6 +99,13 @@ interface MonthCellAppt {
   isGroup: boolean
   groupServices?: string[]
 }
+
+const windowWidth = ref(window.innerWidth)
+const onResize = () => { windowWidth.value = window.innerWidth }
+onMounted(() => window.addEventListener('resize', onResize))
+onUnmounted(() => window.removeEventListener('resize', onResize))
+
+const visibleAppointmentsPerCell = computed(() => windowWidth.value < 360 ? 1 : 2)
 
 const cells = computed(() => {
   const d = parseLocalDate(props.selectedDate, 12, 0, 0)

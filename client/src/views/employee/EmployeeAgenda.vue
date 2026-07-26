@@ -14,10 +14,10 @@
     </template>
 
     <div class="space-y-4">
-      <div class="flex items-center justify-between gap-2">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <header>
-          <h2 class="text-lg font-bold text-text">Mis {{ t.appointment || 'cita' }}s</h2>
-          <p v-if="citas.length > 0" class="text-sm text-text-muted">{{ citas.length }} {{ t.appointment?.toLowerCase() || 'cita' }}{{ citas.length !== 1 ? 's' : '' }}</p>
+          <h2 class="text-base font-bold text-text sm:text-lg">Mis {{ t.appointment || 'cita' }}s</h2>
+          <p v-if="citas.length > 0" class="text-xs text-text-muted sm:text-sm">{{ citas.length }} {{ t.appointment?.toLowerCase() || 'cita' }}{{ citas.length !== 1 ? 's' : '' }}</p>
         </header>
         <div class="flex items-center gap-2 shrink-0">
           <input

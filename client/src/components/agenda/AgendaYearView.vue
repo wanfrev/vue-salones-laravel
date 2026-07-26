@@ -1,7 +1,7 @@
 <template>
   <div class="flex-1 overflow-hidden rounded-lg border border-border bg-surface sm:rounded-xl">
     <div class="h-full overflow-auto p-2 sm:p-4">
-      <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 sm:gap-4">
+      <div class="grid grid-cols-2 gap-2 min-[400px]:grid-cols-3 md:grid-cols-4 sm:gap-4">
         <div v-for="m in months" :key="m.month"
           class="rounded-lg border border-border bg-bg p-2 sm:p-4 cursor-pointer transition-all hover:border-primary/40 hover:shadow-sm sm:hover:scale-[1.02]"
           :class="m.isCurrent ? 'ring-2 ring-primary/30' : ''" @click="$emit('goToMonth', m.month, m.year)">
@@ -13,11 +13,11 @@
           </div>
           <div class="grid grid-cols-7 mb-0.5">
             <span v-for="dn in miniDayNames" :key="dn"
-              class="text-center text-[6px] font-medium text-text-muted uppercase sm:text-[7px]">{{ dn }}</span>
+              class="text-center text-[7px] font-medium text-text-muted uppercase sm:text-[7px]">{{ dn }}</span>
           </div>
           <div class="grid grid-cols-7 gap-px">
             <div v-for="(day, di) in m.days" :key="di"
-              class="aspect-square flex items-center justify-center rounded-sm text-[7px] sm:text-[9px]" :class="[
+              class="aspect-square flex items-center justify-center rounded-sm text-[8px] sm:text-[9px]" :class="[
                 day.isToday ? 'bg-primary text-white rounded-full font-bold' : '',
                 !day.isCurrentMonth ? 'text-text-muted/30' : day.hasAppointments ? 'text-primary font-semibold' : 'text-text-muted'
               ]">

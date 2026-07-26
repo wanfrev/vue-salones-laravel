@@ -5,20 +5,20 @@
       class="flex flex-col gap-2 rounded-lg border border-border bg-surface p-2 sm:rounded-xl sm:p-2.5 lg:flex-row lg:items-center lg:justify-between">
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-1.5">
         <div v-if="isAdmin" class="flex items-center gap-2">
-          <div class="relative">
+          <div class="relative flex-1 min-w-0 sm:flex-none">
             <button @click="empDropdownOpen = !empDropdownOpen"
               class="flex items-center gap-2 w-full rounded-lg border border-border bg-surface pl-2.5 pr-3 py-1.5 text-sm font-medium text-text outline-none transition-all hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto"
               :disabled="loadingEmployees">
               <div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary flex-shrink-0">
                 {{ selectedEmployeeName ? getInitials(selectedEmployeeName) : '✦' }}
               </div>
-              <span class="truncate max-w-[120px]">{{ selectedEmployeeName || 'Todos' }}</span>
+              <span class="truncate max-w-[120px] sm:max-w-[160px]">{{ selectedEmployeeName || 'Todos' }}</span>
               <svg class="h-3.5 w-3.5 flex-shrink-0 text-text-muted transition-transform" :class="{ 'rotate-180': empDropdownOpen }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
             <Transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
-              <div v-if="empDropdownOpen" class="absolute left-0 top-full z-50 mt-1.5 w-56 rounded-xl border border-border bg-surface p-1.5 shadow-xl" @click.stop>
+              <div v-if="empDropdownOpen" class="absolute left-0 top-full z-50 mt-1.5 w-[min(16rem,92vw)] rounded-xl border border-border bg-surface p-1.5 shadow-xl" @click.stop>
                 <button @click="selectedEmployeeId = 'all'; empDropdownOpen = false"
                   class="flex items-center gap-2.5 w-full rounded-lg px-2.5 py-2 text-sm font-medium transition-colors"
                   :class="selectedEmployeeId === 'all' ? 'bg-primary/10 text-primary' : 'text-text hover:bg-bg-secondary'">
@@ -78,6 +78,17 @@
       </div>
     </div>
 
+    <!-- Mobile: switch to list when too many columns in day/week -->
+    <div
+      v-if="(viewMode === 'day' || viewMode === 'week') && gridColumns.length > 3 && windowWidth < 640"
+      class="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary-light p-2 text-xs text-primary"
+    >
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+      <span class="font-medium">Vista de columna comprimida. Usa “Mes” o gira el teléfono para ver más detalle.</span>
+    </div>
+
     <!-- Error state -->
     <div v-if="appointmentsError" class="rounded-xl border border-danger/30 bg-danger/5 p-4">
       <div class="flex items-start gap-3">
@@ -120,7 +131,7 @@
           <button v-for="v in viewOptions" :key="v.value" @click="viewMode = v.value"
             class="px-2 py-1 text-xs font-medium rounded-md transition-theme sm:px-3"
             :class="viewMode === v.value ? 'bg-surface text-primary shadow-sm' : 'text-text-muted hover:text-text'">{{
-              v.label }}</button>
+              v.shortLabel }}</button>
         </div>
       </div>
     </div>
@@ -141,9 +152,9 @@
     <!-- ============================================================
          DAY / WEEK — Time Grid
          ============================================================ -->
-    <div v-else class="flex-1 overflow-hidden rounded-lg border border-border bg-surface sm:rounded-xl">
-      <div class="h-full overflow-auto" ref="gridContainer">
-        <div class="relative" :style="{ minHeight: `${totalGridHeight}px` }">
+    <div v-else class="flex-1 overflow-hidden rounded-lg border border-border bg-surface sm:rounded-xl" :style="gridMinWidth ? { overflowX: 'auto' } : {}">
+  <div class="h-full overflow-auto" ref="gridContainer">
+         <div class="relative" :style="{ minHeight: `${totalGridHeight}px`, minWidth: gridMinWidth ? `${gridMinWidth}px` : undefined }">
           <!-- Sticky header -->
           <div class="sticky top-0 z-20 flex border-b border-border bg-surface"
             :style="{ paddingLeft: `${TIME_COL_WIDTH}px` }">
@@ -261,7 +272,7 @@
     <Teleport to="body">
       <div v-if="detailPopup" class="fixed inset-0 z-[90]" @click="detailPopup = null"></div>
       <div v-if="detailPopup"
-        class="fixed z-[100] rounded-xl border border-border bg-surface shadow-2xl p-4 w-72 animate-in fade-in zoom-in-95 duration-100"
+        class="fixed z-[100] rounded-xl border border-border bg-surface shadow-2xl p-4 w-[min(18rem,calc(100vw-2rem))] animate-in fade-in zoom-in-95 duration-100"
         :style="{ top: `${detailPopup.y}px`, left: `${detailPopup.x}px` }" @click.stop>
         <div class="flex items-center gap-3 mb-3">
           <div
@@ -373,16 +384,28 @@ const gridContainer = ref<HTMLElement | null>(null)
 const statusMenu = ref<{ appointmentId: string; currentStatus: string; x: number; y: number } | null>(null)
 const empDropdownOpen = ref(false)
 
+// Mobile viewport width for responsive decisions
+const windowWidth = ref(window.innerWidth)
+const onResize = () => { windowWidth.value = window.innerWidth }
+onMounted(() => window.addEventListener('resize', onResize))
+onUnmounted(() => window.removeEventListener('resize', onResize))
+
+const gridMinWidth = computed(() => {
+  if (viewMode.value === 'week') return Math.max(640, gridColumns.value.length * 90)
+  if (viewMode.value === 'day' && gridColumns.value.length > 3) return Math.max(640, gridColumns.value.length * 120)
+  return 0
+})
+
 const selectedEmployeeName = computed(() => {
   if (selectedEmployeeId.value === 'all') return ''
   return employees.value?.find(e => e.id === selectedEmployeeId.value)?.full_name || ''
 })
 
 const viewOptions = [
-  { value: 'day' as const, label: 'Día' },
-  { value: 'week' as const, label: 'Semana' },
-  { value: 'month' as const, label: 'Mes' },
-  { value: 'year' as const, label: 'Año' },
+  { value: 'day' as const, label: 'Día', shortLabel: 'D' },
+  { value: 'week' as const, label: 'Semana', shortLabel: 'S' },
+  { value: 'month' as const, label: 'Mes', shortLabel: 'M' },
+  { value: 'year' as const, label: 'Año', shortLabel: 'A' },
 ]
 
 // ---- Date helpers ----
@@ -606,10 +629,29 @@ onUnmounted(() => document.removeEventListener('click', onDocClick))
 // ---- Detail Popup ----
 const detailPopup = ref<{ appt: DisplayAppointment; x: number; y: number } | null>(null)
 
+const POPUP_HEIGHT = 260
+
+function getPopupWidth(): number {
+  return Math.min(288, window.innerWidth - 16)
+}
+
 function showDetailPopup(appt: DisplayAppointment, e: MouseEvent) {
-  const x = Math.min(e.clientX - 140, window.innerWidth - 300)
-  const y = Math.min(e.clientY, window.innerHeight - 300)
-  detailPopup.value = { appt, x: Math.max(x, 8), y: Math.max(y, 8) }
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const w = getPopupWidth()
+  let x = e.clientX - w / 2
+  let y = e.clientY + 12
+
+  // Right edge: anchor to right of screen
+  if (x + w > vw - 8) x = vw - w - 8
+  // Left edge: anchor to left
+  if (x < 8) x = 8
+
+  // Bottom edge: open above the click
+  if (y + POPUP_HEIGHT > vh - 8) y = e.clientY - POPUP_HEIGHT - 12
+  if (y < 8) y = 8
+
+  detailPopup.value = { appt, x, y }
 }
 
 function handleEditClick() {
