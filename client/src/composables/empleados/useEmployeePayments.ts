@@ -5,6 +5,7 @@ import { useNotification } from '../common/useNotification'
 import { useCurrency } from '../common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { translateError } from '../../lib/errors'
+import { employeePaymentFormSchema } from '../../lib/validation'
 
 const toYmdLocal = (d: Date) => {
   const y = d.getFullYear()
@@ -24,6 +25,7 @@ import {
   getEmployeeBalance,
   listSchedules,
 } from '../../services/employeePaymentsService'
+import { listEquipo } from '../../services/equipoService'
 
 export function useEmployeePayments(
   businessId: import('vue').Ref<string | null>,
@@ -186,12 +188,22 @@ export function useEmployeePayments(
     break: '—',
   })))
 
+  // ── Employee list for dropdowns (exclude cajeros) ──
+  const { data: employeeListData } = useQuery({
+    queryKey: computed(() => ['employees-for-payment', businessId.value, branchId.value]),
+    queryFn: () => listEquipo(businessId.value!, branchId.value),
+    enabled: computed(() => !!businessId.value),
+    staleTime: 5 * 60 * 1000,
+  })
+  const employeeList = computed(() => (employeeListData.value ?? []).filter(e => !e.isCajero))
+
   // ── Payment form state ──
   const showPaymentModal = ref(false)
   const showConsumptionModal = ref(false)
   const editingPaymentId = ref<string | null>(null)
   const isSaving = ref(false)
   const saveError = ref('')
+  const formErrors = ref<Record<string, string>>({})
 
   const paymentForm = ref({
     employeeId: '',
@@ -412,6 +424,18 @@ export function useEmployeePayments(
   }
 
   const handleSavePayment = async () => {
+    formErrors.value = {}
+    const parsed = employeePaymentFormSchema.safeParse(paymentForm.value)
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0] as string
+        if (!formErrors.value[field]) {
+          formErrors.value[field] = issue.message
+        }
+      }
+      return
+    }
+
     isSaving.value = true
     saveError.value = ''
     try {
@@ -458,10 +482,12 @@ export function useEmployeePayments(
     showPaymentModal,
     editingPaymentId,
     paymentForm,
+    employeeList,
     showConsumptionModal,
     consumptionForm,
     isSaving,
     saveError,
+    formErrors,
     employeeBalance,
     getEmployeePayInfo,
     onEmployeeChange,

@@ -23,13 +23,14 @@ class Appointment extends Model
         'source', 'created_by', 'group_id', 'price_override',
         'employee_percentage_override', 'assistant_percentage',
         'is_fixed_commission_override', 'employee_amount_override', 'assistant_amount_override',
-        'duration_override', 'diagnosis', 'treatment', 'associated_products',
+        'duration_override', 'diagnosis', 'treatment', 'associated_products', 'clinical_history',
     ];
 
     protected function casts(): array
     {
         return [
             'associated_products' => 'array',
+            'clinical_history' => 'array',
         ];
     }
 

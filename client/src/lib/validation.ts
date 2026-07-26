@@ -35,11 +35,13 @@ export const citaFormSchema = z.object({
   extraServices: z.array(serviceItemSchema).default([]),
   date: z.string().min(1, 'Selecciona una fecha'),
   time: z.string().min(1, 'Selecciona una hora'),
-  status: z.enum(['confirmed', 'pending', 'cancelled', 'paid']).default('pending'),
+  status: z.enum(['confirmed', 'pending', 'cancelled', 'paid', 'completed', 'in_progress', 'no_show']).default('pending'),
   notes: z.string().default(''),
   diagnosis: z.string().optional(),
   treatment: z.string().optional(),
   associatedProducts: z.array(citaAssociatedProductSchema).optional(),
+  clinicalHistory: z.record(z.string()).optional(),
+  source: z.string().optional(),
 })
 
 const posProductItemSchema = z.object({
@@ -113,6 +115,65 @@ export const supplierPaymentFormSchema = z.object({
   amount: z.number().min(0.01, 'El monto debe ser mayor a 0'),
   currency: z.enum(['USD', 'VES']),
   paymentMethod: z.string().min(1, 'Selecciona un método'),
+  paymentDate: z.string().min(1, 'Selecciona una fecha'),
+  notes: z.string().default(''),
+})
+
+export const empleadoFormSchema = z.object({
+  name: z.string().min(1, 'El nombre es obligatorio').min(2, 'El nombre debe tener al menos 2 caracteres'),
+  email: z.string().min(1, 'El email es obligatorio').email('El email no es válido'),
+  password: z.string().default(''),
+  role: z.string().default(''),
+  systemRole: z.string().default(''),
+  payType: z.string().default('percentage'),
+  payPercentage: z.number().min(0, 'El porcentaje debe estar entre 0 y 100').max(100, 'El porcentaje debe estar entre 0 y 100').default(0),
+  baseSalary: z.number().min(0, 'El sueldo base no puede ser negativo').default(0),
+  color: z.string().default('#869C84'),
+})
+
+export const servicioFormSchema = z.object({
+  name: z.string().min(1, 'El nombre es obligatorio').min(2, 'El nombre debe tener al menos 2 caracteres'),
+  price: z.number().positive('El precio debe ser mayor a 0'),
+  duration: z.number().positive('La duración debe ser mayor a 0 minutos'),
+  category: z.string().default(''),
+  employeeIds: z.array(z.string()).default([]),
+  isFixedCommission: z.boolean().default(false),
+  fixedCommissionAmount: z.number().min(0, 'La comisión no puede ser negativa').default(0),
+  commissionPercentage: z.number().min(0, 'El porcentaje debe estar entre 0 y 100').max(100, 'El porcentaje debe estar entre 0 y 100').default(0),
+})
+
+export const productoFormSchema = z.object({
+  name: z.string().min(1, 'El nombre es obligatorio').min(2, 'El nombre debe tener al menos 2 caracteres'),
+  unit: z.string().min(1, 'La unidad de medida es requerida'),
+  unitPrice: z.number().min(0, 'El precio no puede ser negativo'),
+  unitCost: z.number().min(0, 'El costo no puede ser negativo'),
+  categoryId: z.string().default(''),
+  stock: z.number().min(0, 'El stock no puede ser negativo').default(0),
+  minimumStock: z.number().min(0, 'El stock mínimo no puede ser negativo').default(0),
+  hasVariants: z.boolean().default(false),
+  variants: z.array(z.object({
+    id: z.string().optional(),
+    name: z.string().min(1, 'El nombre de la variante es obligatorio'),
+    unitPrice: z.number().min(0, 'El precio no puede ser negativo').default(0),
+    unitCost: z.number().min(0, 'El costo no puede ser negativo').default(0),
+    stock: z.number().min(0, 'El stock no puede ser negativo').default(0),
+    _delete: z.boolean().optional(),
+  })).default([]),
+})
+
+export const giftCardFormSchema = z.object({
+  recipientName: z.string().min(1, 'El nombre del beneficiario es requerido'),
+  recipientPhone: z.string().default(''),
+  amount: z.number().positive('El monto debe ser mayor a 0'),
+  notes: z.string().default(''),
+  status: z.enum(['active', 'redeemed', 'expired']).default('active'),
+})
+
+export const employeePaymentFormSchema = z.object({
+  employeeId: z.string().min(1, 'Selecciona un empleado'),
+  amount: z.number().positive('El monto debe ser mayor a 0'),
+  currency: z.enum(['USD', 'VES']),
+  paymentMethod: z.string().min(1, 'Selecciona un método de pago'),
   paymentDate: z.string().min(1, 'Selecciona una fecha'),
   notes: z.string().default(''),
 })

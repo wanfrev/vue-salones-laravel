@@ -27,11 +27,13 @@ export const mapProfileToEmpleado = (
       ? `$${baseSalary.toLocaleString()}${freqLabel} + ${payPercentage}%`
       : `${payPercentage}%`
 
+  const isCajero = profile.role === 'cajero' || (!!profile.disable_agenda && !!profile.disable_inventory_edit)
   return {
     id: profile.id,
     name: profile.full_name,
-    role: profile.job_title || (profile.role === 'admin' ? 'Administrador' : 'Empleado'),
-    systemRole: profile.role,
+    role: profile.job_title || (profile.role === 'admin' ? 'Administrador' : (isCajero ? 'Cajero' : 'Empleado')),
+    systemRole: isCajero ? 'cajero' : (profile.role as Empleado['systemRole']),
+    isCajero,
     citasHoy: stats?.citasHoy ?? 0,
     producido: (stats?.producido ?? 0).toLocaleString(),
     schedule: firstSchedule
@@ -64,9 +66,9 @@ export const mapEmpleadoFormToProfileUpdate = (data: EmpleadoFormData) => ({
   pay_percentage: data.payType === 'salary' ? 0 : Number(data.payPercentage),
   base_salary: data.payType === 'percentage' ? 0 : Number(data.baseSalary),
   salary_frequency: data.salaryFrequency,
-  disable_agenda: data.disableAgenda,
-  disable_inventory_edit: data.disableInventoryEdit,
-  role: data.systemRole,
+  disable_agenda: data.systemRole === 'cajero' ? true : data.disableAgenda,
+  disable_inventory_edit: data.systemRole === 'cajero' ? true : data.disableInventoryEdit,
+  role: data.systemRole === 'cajero' ? 'empleado' : data.systemRole,
 })
 
 export const mapEmpleadoFormToScheduleBlocks = (employeeId: string, data: EmpleadoFormData & { branchId?: string | null }) => {

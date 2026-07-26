@@ -91,7 +91,7 @@ interface SaveDeps {
 
 async function resolveSaveDeps(
   businessId: string,
-  data: { service: string; clientId?: string; clientName: string; clientPhone?: string; notes: string },
+  data: { service: string; clientId?: string; clientName: string; clientPhone?: string; clientEmail?: string; notes: string },
   branchId: string | null | undefined,
   allowCreateClient: boolean,
 ): Promise<SaveDeps> {
@@ -116,6 +116,7 @@ async function resolveSaveDeps(
     const client = await findOrCreateClientByPhone(businessId, {
       fullName: data.clientName,
       phone: data.clientPhone || data.clientName,
+      email: data.clientEmail,
       notes: data.notes,
     }, branchId)
     clientId = client.id
@@ -215,7 +216,7 @@ async function buildServicePayloads(
       price: data.price,
     },
     clientId, data.date, data.time, data.status, data.notes,
-    groupId, createdBy, primaryService, branchId, data.petId, data.diagnosis, data.treatment, data.associatedProducts,
+    groupId, createdBy, primaryService, branchId, data.petId, data.diagnosis, data.treatment, data.associatedProducts, data.clinicalHistory,
   )]
 
   for (const extra of data.extraServices) {
@@ -230,6 +231,7 @@ async function buildServicePayloads(
       data.diagnosis,
       data.treatment,
       data.associatedProducts,
+      data.clinicalHistory,
     ))
   }
 
@@ -405,7 +407,7 @@ export const saveCita = async (
   )
 
   if (!data.extraServices || data.extraServices.length === 0) {
-    return saveSingleServiceAppointment(businessId, { ...parsed.data, id: data.id, associatedProducts: data.associatedProducts }, service, clientId, createdBy, branchId)
+    return saveSingleServiceAppointment(businessId, { ...parsed.data, id: data.id, source: (data as any).source, associatedProducts: data.associatedProducts }, service, clientId, createdBy, branchId)
   }
 
   // Multi-service (grouped) path

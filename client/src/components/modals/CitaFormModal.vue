@@ -23,12 +23,16 @@
             :t="t"
             :can-create-clients="canCreateClients"
             :error="errors.clientName"
+            @blur="handleBlur('clientName')"
             @select-client="onClientSelected"
           />
           <FormInput v-model="formData.clientPhone" label="Teléfono" type="tel" placeholder="+58 412 1234567" required
             prefix-icon="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-            :error="errors.clientPhone" />
+            :error="errors.clientPhone" 
+            @blur="handleBlur('clientPhone')" />
         </div>
+        <FormInput v-if="!formData.clientId" v-model="formData.clientEmail" label="Correo Electrónico (Opcional)" type="email" placeholder="cliente@correo.com"
+            prefix-icon="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         <FormDropdown
           v-if="showPetSelector"
           :model-value="formData.petId ?? ''"
@@ -41,8 +45,10 @@
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_160px]">
           <div class="space-y-3">
             <FormInput v-model="formData.date" label="Fecha" type="date" required
-              prefix-icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" :error="errors.date" />
-            <FormTime v-model="formData.time" label="Hora" required :error="errors.time" />
+              prefix-icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" :error="errors.date" 
+              @blur="handleBlur('date')" />
+            <FormTime v-model="formData.time" label="Hora" required :error="errors.time" 
+              @blur="handleBlur('time')" />
           </div>
           <FormDropdown v-model="formData.status" label="Estado" :options="statusOptions" required :error="errors.status" />
         </div>
@@ -78,7 +84,7 @@
               <p v-if="getRowError(index, 'price')" class="text-xs text-danger mt-0.5">{{ getRowError(index, 'price') }}</p>
             </div>
             <div><input :value="String(row.duration)" @input="setRowDuration(index, ($event.target as HTMLInputElement).value)" type="number" class="w-full rounded-lg border bg-surface text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 py-1.5 px-2 text-sm border-border hover:border-border-strong text-right" /></div>
-            <button v-if="getEmployeeDefaultPercentage(row.employeeId) != null || isServiceFixedCommission(row.serviceId) || row.assistantEmployeeId" type="button" @click="toggleCommissionDetail(index)" class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors" :class="commissionDetailOpen.has(index) ? 'bg-primary/10 text-primary' : 'text-text-muted hover:bg-bg-secondary hover:text-text'" :title="commissionDetailOpen.has(index) ? 'Ocultar comisión' : 'Personalizar comisión'">
+            <button v-if="!disableCommissionEdit && (getEmployeeDefaultPercentage(row.employeeId) != null || isServiceFixedCommission(row.serviceId) || row.assistantEmployeeId)" type="button" @click="toggleCommissionDetail(index)" class="flex h-8 w-8 items-center justify-center rounded-lg transition-colors" :class="commissionDetailOpen.has(index) ? 'bg-primary/10 text-primary' : 'text-text-muted hover:bg-bg-secondary hover:text-text'" :title="commissionDetailOpen.has(index) ? 'Ocultar comisión' : 'Personalizar comisión'">
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </button>
             <span v-else class="w-8"></span>
@@ -89,7 +95,7 @@
           </div>
 
           <!-- Commission panel -->
-          <div v-if="commissionDetailOpen.has(index) && (getEmployeeDefaultPercentage(row.employeeId) != null || isServiceFixedCommission(row.serviceId) || row.assistantEmployeeId)" class="border-t border-border px-3 py-2 space-y-3 bg-primary/5">
+          <div v-if="!disableCommissionEdit && commissionDetailOpen.has(index) && (getEmployeeDefaultPercentage(row.employeeId) != null || isServiceFixedCommission(row.serviceId) || row.assistantEmployeeId)" class="border-t border-border px-3 py-2 space-y-3 bg-primary/5">
             <!-- Employee Commission -->
             <div class="flex items-center gap-3 text-xs flex-wrap">
               <span class="text-text-muted font-medium w-20">Empleado:</span>
@@ -148,9 +154,32 @@
       <!-- BLOQUE 3: NOTAS -->
       <FormTextarea v-model="formData.notes" label="Notas" placeholder="Notas adicionales sobre la cita..." :rows="2" :error="errors.notes" />
 
-      <div v-if="showPetSelector && formData.petId" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <FormTextarea v-model="formData.diagnosis" label="Diagnóstico" placeholder="Observaciones, síntomas, hallazgos..." :rows="2" />
-        <FormTextarea v-model="formData.treatment" label="Tratamiento" placeholder="Procedimiento, medicamentos, indicaciones..." :rows="2" />
+      <!-- BLOQUE HISTORIA CLÍNICA VETERINARIA -->
+      <div v-if="showPetSelector && formData.petId" class="space-y-4 rounded-xl border border-primary/20 bg-primary/5 p-4 mt-4">
+        <div class="flex items-center gap-2 mb-2">
+          <svg class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          </svg>
+          <h3 class="font-bold text-primary">Historia Clínica Específica</h3>
+        </div>
+        
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FormInput v-model="formData.clinicalHistory['Oftálmico']" label="Oftálmico / Ojos" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Otológico']" label="Otológico / Oídos" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Tegumentario']" label="Tegumentario / Piel" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Músculo-Esquelético']" label="Músculo-Esquelético" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Respiratorio']" label="Respiratorio" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Cardiovascular']" label="Cardiovascular" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Gastrointestinal']" label="Gastrointestinal" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Genitourinario']" label="Genitourinario" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Nervioso']" label="Nervioso / Neurológico" placeholder="Hallazgos..." />
+          <FormInput v-model="formData.clinicalHistory['Linfático']" label="Linfático / Inmunológico" placeholder="Hallazgos..." />
+        </div>
+        <FormTextarea v-model="formData.clinicalHistory['Otros']" label="Otros diagnósticos" placeholder="Cualquier otro hallazgo relevante..." :rows="2" />
+        
+        <div class="border-t border-primary/20 pt-4 mt-2">
+          <FormTextarea v-model="formData.treatment" label="Tratamiento" placeholder="Procedimiento, medicamentos, indicaciones..." :rows="3" />
+        </div>
       </div>
 
       <!-- BLOQUE 4: PRODUCTOS / INSUMOS ASOCIADOS (Solo Nicho Canino / Vet) -->
@@ -210,6 +239,8 @@ import { useNotification } from '../../composables/common/useNotification'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { toISODate, minutesToHHmm, getInitials } from '../../lib/formatters'
+import { citaFormSchema } from '../../lib/validation'
+import { useFormValidation } from '../../composables/common/useFormValidation'
 import { listCitaGroupMembers } from '../../services/agendaService'
 import type { Cita, CitaFormData, CitaFormServiceItem, PaymentEditContext } from '../../types/cita'
 import type { Pet } from '../../types/database'
@@ -231,7 +262,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  save: [cita: CitaFormData & { id?: string; clientPhone?: string; paymentData?: PaymentEditContext }]
+  save: [cita: CitaFormData & { id?: string; clientPhone?: string; clientEmail?: string; paymentData?: PaymentEditContext }]
   delete: [citaId: string]
 }>()
 
@@ -243,6 +274,11 @@ const businessStore = useBusinessStore()
 const queryClient = useQueryClient()
 const isEmployee = computed(() => authStore.role === 'empleado')
 const canCreateClients = computed(() => !isEmployee.value || businessStore.hasFeature('employees_create_clients'))
+const disableCommissionEdit = computed(() => {
+  const role = authStore.role
+  if (role === 'admin' || role === 'superadmin') return false
+  return businessStore.hasFeature('disable_employee_commission_edit')
+})
 const t = computed(() => businessStore.terminology)
 const nicheType = computed(() => businessStore.nicheType)
 const showPetSelector = computed(() => checkPetNiche(nicheType.value))
@@ -272,8 +308,11 @@ const petOptions = computed(() => {
   return [...opts, ...clientPets.value.map(p => ({ value: p.id, label: p.name }))]
 })
 
-const onClientSelected = (client: { id: string }) => {
+const onClientSelected = (client: { id: string, email?: string }) => {
   formData.value.clientId = client.id
+  if (client.email) {
+    formData.value.clientEmail = client.email
+  }
   if (showPetSelector.value) {
     loadClientPets(client.id)
   }
@@ -323,7 +362,7 @@ const defaultFormData = (): CitaFormData & { extraServices: CitaFormServiceItem[
   const minutes = now.getHours() * 60 + now.getMinutes()
   const nextSlot = Math.ceil(minutes / 30) * 30
   const myId = isEmployee.value ? (authStore.profile?.id ?? '') : ''
-  return { clientId: undefined, clientName: '', clientPhone: '', petId: '', service: '', employee: myId, assistantEmployee: '', assistantPercentage: 0, duration: 30, price: 0, isFixedCommissionOverride: false, employeePercentageOverride: undefined, employeeAmountOverride: undefined, assistantAmountOverride: undefined, extraServices: [], date: today, time: minutesToHHmm(nextSlot), status: 'pending', notes: '', diagnosis: '', treatment: '', associatedProducts: [] }
+  return { clientId: undefined, clientName: '', clientPhone: '', clientEmail: '', petId: '', service: '', employee: myId, assistantEmployee: '', assistantPercentage: 0, duration: 30, price: 0, isFixedCommissionOverride: false, employeePercentageOverride: undefined, employeeAmountOverride: undefined, assistantAmountOverride: undefined, extraServices: [], date: today, time: minutesToHHmm(nextSlot), status: 'pending', notes: '', diagnosis: '', treatment: '', associatedProducts: [], clinicalHistory: {} }
 }
 
 const addAssociatedProductRow = () => {
@@ -359,7 +398,6 @@ const updateAssociatedProductRow = (index: number, field: string, value: any) =>
 }
 
 const formData = ref<CitaFormData & { extraServices: CitaFormServiceItem[] }>(defaultFormData())
-const errors = ref<Partial<Record<keyof CitaFormData, string>> & { rowErrors?: Record<number, Partial<Record<string, string>>> }>({})
 const activeEmployeeOverrides = reactive(new Set<number>())
 
 const paymentEditorRef = ref<InstanceType<typeof PaymentEditor> | null>(null)
@@ -634,9 +672,10 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
       : ((cita as any).associated_products ? JSON.parse(JSON.stringify((cita as any).associated_products)) : [])
 
     const incomingPetId: string | undefined = (cita as any).petId || (cita as any).pet_id || undefined
-    formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: cita.clientPhone || '', petId: incomingPetId, service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), isFixedCommissionOverride: cita.isFixedCommissionOverride ?? false, employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, employeeAmountOverride: cita.employeeAmountOverride != null ? Number(cita.employeeAmountOverride) : undefined, assistantAmountOverride: cita.assistantAmountOverride != null ? Number(cita.assistantAmountOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '', diagnosis: (cita as any).diagnosis || '', treatment: (cita as any).treatment || '', associatedProducts: initialAssociated }
+    const incomingClinicalHistory = (cita as any).clinicalHistory || (cita as any).clinical_history || {}
+    formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: cita.clientPhone || '', clientEmail: (cita as any).clientEmail || '', petId: incomingPetId, service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), isFixedCommissionOverride: cita.isFixedCommissionOverride ?? false, employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, employeeAmountOverride: cita.employeeAmountOverride != null ? Number(cita.employeeAmountOverride) : undefined, assistantAmountOverride: cita.assistantAmountOverride != null ? Number(cita.assistantAmountOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '', diagnosis: (cita as any).diagnosis || '', treatment: (cita as any).treatment || '', associatedProducts: initialAssociated, clinicalHistory: JSON.parse(JSON.stringify(incomingClinicalHistory)) }
 
-    if (cita.clientId && businessId.value) { try { const { searchClients } = await import('../../services/clientesService'); const r = await searchClients(businessId.value, cita.clientName, branchId.value); const m = r.find(c => c.id === cita.clientId); if (m) formData.value.clientPhone = m.phone } catch {} }
+    if (cita.clientId && businessId.value) { try { const { searchClients } = await import('../../services/clientesService'); const r = await searchClients(businessId.value, cita.clientName, branchId.value); const m = r.find(c => c.id === cita.clientId); if (m) { formData.value.clientPhone = m.phone; formData.value.clientEmail = (m as any).email || '' } } catch {} }
     if (cita.groupId) {
       try {
         const members = await listCitaGroupMembers(cita.groupId)
@@ -696,27 +735,33 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
   commissionDetailOpen.clear()
   if (formData.value.employeePercentageOverride != null || formData.value.employeeAmountOverride != null || formData.value.isFixedCommissionOverride) { activeEmployeeOverrides.add(0); commissionDetailOpen.add(0) }
   formData.value.extraServices.forEach((_, i) => { if (formData.value.extraServices[i]?.employeePercentageOverride != null || formData.value.extraServices[i]?.employeeAmountOverride != null || formData.value.extraServices[i]?.isFixedCommissionOverride) { activeEmployeeOverrides.add(i + 1); commissionDetailOpen.add(i + 1) } })
-  errors.value = {}
+  clearErrors()
   nextTick(() => { isInitialSetup.value = false })
 }, { immediate: true })
 
 const normalizePhone = (phone: string): string => { let d = phone.replace(/\D/g, ''); if (!d) return ''; if (d.startsWith('0')) d = d.slice(1); if (!d.startsWith('58')) d = '58' + d; return '+' + d }
 
+const { errors, validate, clearErrors, handleBlur } = useFormValidation(citaFormSchema as any, formData as any) as any as ReturnType<typeof useFormValidation>
+
 const validateForm = (): boolean => {
-  errors.value = {}; const rowErrors: Record<number, Partial<Record<string, string>>> = {}
-  if (!formData.value.clientName.trim() || formData.value.clientName.length < 2) errors.value.clientName = 'El nombre del cliente es requerido'
-  const phone = formData.value.clientPhone.trim()
-  if (!phone) { errors.value.clientPhone = 'El teléfono es requerido' }
-  else { formData.value.clientPhone = normalizePhone(phone); if (formData.value.clientPhone.length < 10) errors.value.clientPhone = 'Al menos 10 dígitos'; else if (!/^\+58\d{9,}$/.test(formData.value.clientPhone)) errors.value.clientPhone = 'Formato inválido' }
+  const rowErrors: Record<number, Partial<Record<string, string>>> = {}
+
+  // Use Zod for top-level field validation
+  const baseValid = validate()
+
+  // Row-level validation (services table)
   if (!formData.value.service) rowErrors[0] = { ...rowErrors[0], serviceId: 'Selecciona un servicio' }
   if (!formData.value.employee) rowErrors[0] = { ...rowErrors[0], employeeId: 'Selecciona un empleado' }
   if (formData.value.assistantEmployee && formData.value.assistantEmployee === formData.value.employee) rowErrors[0] = { ...rowErrors[0], assistantEmployeeId: 'El asistente no puede ser el mismo empleado' }
-  for (let i = 0; i < formData.value.extraServices.length; i++) { const e = formData.value.extraServices[i]; const idx = i + 1; if (!e.serviceId) rowErrors[idx] = { ...rowErrors[idx], serviceId: 'Selecciona un servicio' }; if (!e.employeeId) rowErrors[idx] = { ...rowErrors[idx], employeeId: 'Selecciona un empleado' }; if (e.assistantEmployeeId && e.assistantEmployeeId === e.employeeId) rowErrors[idx] = { ...rowErrors[idx], assistantEmployeeId: 'El asistente no puede ser el mismo empleado' }; }
-  if (!formData.value.date) errors.value.date = 'Selecciona una fecha'
-  if (!formData.value.time) errors.value.time = 'Selecciona una hora'
+  for (let i = 0; i < formData.value.extraServices.length; i++) {
+    const e = formData.value.extraServices[i]; const idx = i + 1
+    if (!e.serviceId) rowErrors[idx] = { ...rowErrors[idx], serviceId: 'Selecciona un servicio' }
+    if (!e.employeeId) rowErrors[idx] = { ...rowErrors[idx], employeeId: 'Selecciona un empleado' }
+    if (e.assistantEmployeeId && e.assistantEmployeeId === e.employeeId) rowErrors[idx] = { ...rowErrors[idx], assistantEmployeeId: 'El asistente no puede ser el mismo empleado' }
+  }
 
-  // ── Overlap check ──
-  if (formData.value.date && formData.value.time && formData.value.employee && !errors.value.time) {
+  // Overlap check
+  if (formData.value.date && formData.value.time && formData.value.employee && !(errors as any).value?.time) {
     const durationMin = formData.value.duration || 30
     const startTime = new Date(`${formData.value.date}T${formData.value.time}:00`)
     const endTime = new Date(startTime.getTime() + durationMin * 60 * 1000)
@@ -738,29 +783,24 @@ const validateForm = (): boolean => {
       return aStart < endTime && aEnd > startTime
     })
     if (isConflictFor(formData.value.employee)) {
-      errors.value.time = 'El empleado ya tiene una cita en ese horario'
+      (errors as any).value.time = 'El empleado ya tiene una cita en ese horario'
     } else if (formData.value.assistantEmployee && isConflictFor(formData.value.assistantEmployee)) {
       rowErrors[0] = { ...rowErrors[0], assistantEmployeeId: 'El asistente ya tiene una cita en ese horario' }
     }
     for (let i = 0; i < formData.value.extraServices.length; i++) {
-      const e = formData.value.extraServices[i]
-      const idx = i + 1
-      if (e.employeeId && isConflictFor(e.employeeId)) {
-        rowErrors[idx] = { ...rowErrors[idx], employeeId: 'El empleado ya tiene una cita en ese horario' }
-      }
-      if (e.assistantEmployeeId && isConflictFor(e.assistantEmployeeId)) {
-        rowErrors[idx] = { ...rowErrors[idx], assistantEmployeeId: 'El asistente ya tiene una cita en ese horario' }
-      }
+      const e = formData.value.extraServices[i]; const idx = i + 1
+      if (e.employeeId && isConflictFor(e.employeeId)) { rowErrors[idx] = { ...rowErrors[idx], employeeId: 'El empleado ya tiene una cita en ese horario' } }
+      if (e.assistantEmployeeId && isConflictFor(e.assistantEmployeeId)) { rowErrors[idx] = { ...rowErrors[idx], assistantEmployeeId: 'El asistente ya tiene una cita en ese horario' } }
     }
   }
 
-  if (Object.keys(rowErrors).length > 0) (errors.value as any).rowErrors = rowErrors
-  return Object.keys(errors.value).length === 0
+  if (Object.keys(rowErrors).length > 0) (errors as any).value.rowErrors = rowErrors
+  return baseValid && Object.keys(rowErrors).length === 0
 }
 
 const handleSubmit = () => {
   if (saveInProgress.value) return
-  if (!validateForm()) { showError('Por favor corrige los errores en el formulario'); return }
+  if (!validateForm()) return
   saveInProgress.value = true
 
   if (formData.value.associatedProducts && formData.value.associatedProducts.length > 0) {

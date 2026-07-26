@@ -18,7 +18,22 @@ export const useAuthStore = defineStore('auth', () => {
   let authUnsubscribe: (() => void) | null = null
 
   const isAuthenticated = computed(() => !!session.value && !!user.value)
-  const role = computed<Role | null>(() => profile.value?.role ?? null)
+  const role = computed<Role | null>(() => {
+    const p = profile.value
+    if (!p) return null
+    if (p.role === 'cajero') return 'cajero' as Role
+    if (p.disable_agenda && p.disable_inventory_edit && p.role === 'empleado') {
+      return 'cajero' as Role
+    }
+    return p.role ?? null
+  })
+  const isCajeroProfile = computed(() => {
+    const p = profile.value
+    if (!p) return false
+    if (p.role === 'cajero') return true
+    if (p.role === 'empleado' && p.disable_agenda && p.disable_inventory_edit) return true
+    return false
+  })
   const businessId = computed(() => profile.value?.business_id ?? null)
   const disableInventoryEdit = computed(() => {
     if (profile.value?.role === 'encargado') {
@@ -91,6 +106,7 @@ export const useAuthStore = defineStore('auth', () => {
       base_salary: (authProfile as any).base_salary ?? null,
       disable_agenda: (authProfile as any).disable_agenda ?? false,
       disable_inventory_edit: (authProfile as any).disable_inventory_edit ?? false,
+      can_create_appointments: (authProfile as any).can_create_appointments ?? true,
     }
   }
 
@@ -142,6 +158,18 @@ export const useAuthStore = defineStore('auth', () => {
             throw new Error('El usuario está inactivo.')
           }
           profile.value = embeddedProfile
+        }
+
+        // Always load full profile to get all flags (disable_agenda, disable_inventory_edit, etc.)
+        try {
+          await loadProfile(user.value.id, user.value?.role)
+        } catch (err) {
+          if (isProfileHardFailure(err)) {
+            clearAuthState()
+            await db.auth.signOut({ scope: 'local' }).catch(() => {})
+          } else {
+            console.warn('[auth.initialize] transient hydration error; keeping session', err)
+          }
         }
 
         if (embeddedBusiness) {
@@ -229,6 +257,15 @@ export const useAuthStore = defineStore('auth', () => {
         if (!embeddedProfile.active) throw new Error('El usuario está inactivo.')
         profile.value = embeddedProfile
       }
+
+      // Always load full profile to get all flags
+      try {
+        await loadProfile(user.value!.id, user.value?.role)
+      } catch (err) {
+        if (isProfileHardFailure(err)) throw err
+        console.warn('[auth.signIn] profile reload failed; keeping embedded', err)
+      }
+
       if (embeddedBusiness) {
         useBusinessStore().business = embeddedBusiness
       }
@@ -296,6 +333,7 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     isAuthenticated,
     role,
+    isCajeroProfile,
     businessId,
     disableInventoryEdit,
     initialize,

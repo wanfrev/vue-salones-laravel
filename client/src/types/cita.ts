@@ -29,6 +29,7 @@ export interface Cita {
   diagnosis?: string
   treatment?: string
   associatedProducts?: CitaAssociatedProduct[]
+  clinicalHistory?: Record<string, string>
 }
 
 export interface CitaAssociatedProduct {
@@ -75,6 +76,7 @@ export interface CitaFormData {
   diagnosis?: string
   treatment?: string
   associatedProducts?: CitaAssociatedProduct[]
+  clinicalHistory?: Record<string, string>
 }
 
 export interface PaymentEditContext {

@@ -2,6 +2,7 @@ import { computed, ref } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useNotification } from '../common/useNotification'
 import { translateError } from '../../lib/errors'
+import { supplierFormSchema } from '../../lib/validation'
 import { resolvePeriodDates } from '../../lib/periodUtils'
 import { useCurrency } from '../common/useCurrency'
 import { useBusinessStore } from '../../store/business'
@@ -85,6 +86,7 @@ export function useSuppliers(businessId: import('vue').Ref<string | null>) {
     }
     editingId.value = null
     saveError.value = ''
+    formErrors.value = {}
   }
 
   const openNew = () => {
@@ -104,6 +106,7 @@ export function useSuppliers(businessId: import('vue').Ref<string | null>) {
       notes: supplier.notes,
     }
     saveError.value = ''
+    formErrors.value = {}
     showModal.value = true
   }
 
@@ -115,6 +118,19 @@ export function useSuppliers(businessId: import('vue').Ref<string | null>) {
   const handleSave = async () => {
     if (saveMutation.isPending.value) return
     saveError.value = ''
+    formErrors.value = {}
+
+    const parsed = supplierFormSchema.safeParse(form.value)
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const field = issue.path[0] as string
+        if (!formErrors.value[field]) {
+          formErrors.value[field] = issue.message
+        }
+      }
+      return
+    }
+
     try {
       await saveMutation.mutateAsync({ ...form.value, id: editingId.value ?? undefined })
     } catch (err) {
@@ -135,6 +151,7 @@ export function useSuppliers(businessId: import('vue').Ref<string | null>) {
     saveMutation,
     deleteMutation,
     saveError,
+    formErrors,
     showModal,
     editingId,
     form,

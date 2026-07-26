@@ -24,6 +24,7 @@
             required
             prefix-icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
             :error="errors.name"
+            @blur="handleBlur('name')"
           />
 
           <div>
@@ -38,7 +39,7 @@
             </div>
           </div>
 
-          <div v-if="formData.systemRole === 'empleado'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div v-if="formData.systemRole !== 'encargado'" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <FormDropdown
               v-if="!showingCustomRole"
               v-model="formData.role"
@@ -86,6 +87,7 @@
               required
               prefix-icon="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
               :error="errors.email"
+              @blur="handleBlur('email')"
             />
           </div>
 
@@ -98,11 +100,12 @@
             :hint="isEditing ? 'Dejar vacío para mantener la actual' : 'Mínimo 6 caracteres'"
             prefix-icon="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
             :error="errors.password"
+            @blur="handleBlur('password')"
             show-password-toggle
             autocomplete="new-password"
           />
 
-          <label class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+          <label v-if="formData.systemRole !== 'cajero'" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
               <p class="text-sm font-medium text-text">Desactivar agenda</p>
               <p class="text-xs text-text-muted">Oculta Calendario y Agenda para este empleado</p>
@@ -128,7 +131,7 @@
 
 
 
-          <label class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+          <label v-if="formData.systemRole !== 'cajero'" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
               <p class="text-sm font-medium text-text">Puede agendar citas</p>
               <p class="text-xs text-text-muted">Permite crear y gestionar citas desde su perfil</p>
@@ -140,7 +143,7 @@
             </button>
           </label>
 
-          <label class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+          <label v-if="formData.systemRole !== 'cajero'" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
               <p class="text-sm font-medium text-text">Puede crear clientes</p>
               <p class="text-xs text-text-muted">Permite registrar nuevos clientes desde su perfil</p>
@@ -194,6 +197,8 @@ import { useNotification } from '../../composables/common/useNotification'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { addBusinessJobTitle } from '../../services/equipoService'
+import { useFormValidation } from '../../composables/common/useFormValidation'
+import { empleadoFormSchema } from '../../lib/validation'
 import type { Empleado, EmpleadoFormData } from '../../types/empleado'
 import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormDropdown } from '../forms'
@@ -225,6 +230,7 @@ const isEditing = computed(() => !!modalData.value?.empleado)
 const systemRoleOptions = [
   { value: 'empleado' as const, label: 'Empleado' },
   { value: 'encargado' as const, label: 'Encargado' },
+  { value: 'cajero' as const, label: 'Cajero (solo POS)' },
 ]
 
 const showingCustomRole = ref(false)
@@ -264,7 +270,7 @@ const defaultFormData: EmpleadoFormData = {
 }
 
 const formData = ref<EmpleadoFormData>({ ...defaultFormData })
-const errors = ref<Partial<Record<keyof EmpleadoFormData, string>>>({})
+const { errors, isValid, validate, clearErrors, handleBlur } = useFormValidation(empleadoFormSchema as any, formData) as any as ReturnType<typeof useFormValidation>
 
 const isFormValid = computed(() => {
   const nameValid = formData.value.name.trim().length >= 2
@@ -307,7 +313,7 @@ watch(
     } else {
       formData.value = { ...defaultFormData }
     }
-    errors.value = {}
+    clearErrors()
   },
   { immediate: true }
 )
@@ -327,47 +333,14 @@ watch(
   (newRole) => {
     if (newRole === 'encargado') {
       formData.value.role = 'Encargado'
+    } else if (newRole === 'cajero') {
+      formData.value.role = 'Cajero'
+      formData.value.disableAgenda = true
+      formData.value.canCreateAppointments = false
+      formData.value.canCreateClients = false
     }
   }
 )
-
-const validateForm = (): boolean => {
-  errors.value = {}
-
-  if (!formData.value.name.trim() || formData.value.name.length < 2) {
-    errors.value.name = 'El nombre debe tener al menos 2 caracteres'
-  }
-
-  if (formData.value.systemRole !== 'encargado' && !formData.value.role.trim()) {
-    errors.value.role = 'El rol / puesto es obligatorio'
-  }
-
-  if (formData.value.payType !== 'salary' && (formData.value.payPercentage < 0 || formData.value.payPercentage > 100)) {
-    errors.value.payPercentage = 'El porcentaje debe estar entre 0 y 100'
-  }
-
-  if (formData.value.payType !== 'percentage' && formData.value.baseSalary < 0) {
-    errors.value.baseSalary = 'El sueldo base no puede ser negativo'
-  }
-
-  if (!formData.value.email.trim()) {
-    errors.value.email = 'El email es obligatorio'
-  } else if (!isValidEmail(formData.value.email)) {
-    errors.value.email = 'El email no es válido'
-  }
-
-  const pwdLength = formData.value.password.length
-
-  if (pwdLength === 0) {
-    if (!isEditing.value) {
-      errors.value.password = 'La contraseña debe tener al menos 6 caracteres'
-    }
-  } else if (pwdLength < 6) {
-    errors.value.password = 'La contraseña debe tener al menos 6 caracteres'
-  }
-
-  return Object.keys(errors.value).length === 0
-}
 
 const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -387,10 +360,7 @@ const confirmDelete = () => {
 const handleSubmit = async () => {
   if (isLoading.value) return
 
-  if (!validateForm()) {
-    showError('Por favor corrige los errores en el formulario')
-    return
-  }
+  if (!validate()) return
 
   isSubmitting.value = true
 

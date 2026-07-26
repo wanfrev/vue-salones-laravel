@@ -58,6 +58,17 @@ export const getServiceVisuals = (category?: string, icon?: string | null, color
 
 export const mapServiceToServicio = (service: Service, citasMes = 0, ingresos = 0): Servicio => {
   const visuals = getServiceVisuals(service.category, service.icon, service.color)
+  const rawProducts = service.linked_products || service.linkedProducts || []
+  const linkedProductsMapped = Array.isArray(rawProducts) && rawProducts.length > 0
+    ? rawProducts.map(p => ({
+        id: p.id,
+        product_id: p.product_id,
+        variant_id: p.variant_id ?? null,
+        quantity: Number(p.quantity ?? 1),
+      }))
+    : (service.linked_product_id
+        ? [{ product_id: service.linked_product_id, variant_id: service.linked_variant_id ?? null, quantity: 1 }]
+        : [])
 
   return {
     id: service.id,
@@ -75,6 +86,7 @@ export const mapServiceToServicio = (service: Service, citasMes = 0, ingresos = 
     color: visuals.color,
     linked_product_id: service.linked_product_id,
     linked_variant_id: service.linked_variant_id,
+    linked_products: linkedProductsMapped,
     is_fixed_commission: !!service.is_fixed_commission,
     fixed_commission_amount: service.fixed_commission_amount ? Number(service.fixed_commission_amount) : 0,
     fixed_commission_assistant_amount: service.fixed_commission_assistant_amount ? Number(service.fixed_commission_assistant_amount) : 0,
@@ -82,6 +94,7 @@ export const mapServiceToServicio = (service: Service, citasMes = 0, ingresos = 
 }
 
 export const mapServicioFormToServiceInsert = (businessId: string, data: ServicioFormData) => {
+  const firstProd = data.linked_products && data.linked_products.length > 0 ? data.linked_products[0] : null
   return {
     business_id: businessId,
     name: data.name.trim(),
@@ -90,8 +103,9 @@ export const mapServicioFormToServiceInsert = (businessId: string, data: Servici
     price: Number(data.price),
     category: data.category,
     active: data.status === 'Activo',
-    linked_product_id: data.linked_product_id ?? null,
-    linked_variant_id: data.linked_variant_id ?? null,
+    linked_product_id: firstProd ? firstProd.product_id : (data.linked_product_id ?? null),
+    linked_variant_id: firstProd ? (firstProd.variant_id ?? null) : (data.linked_variant_id ?? null),
+    linked_products: data.linked_products ?? [],
     is_fixed_commission: data.is_fixed_commission,
     fixed_commission_amount: data.fixed_commission_amount ?? null,
     fixed_commission_assistant_amount: data.fixed_commission_assistant_amount ?? null,

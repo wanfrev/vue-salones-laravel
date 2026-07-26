@@ -3,7 +3,7 @@
 //   supabase gen types typescript --project-id <ref> > src/types/database.ts
 // (o `--local` si trabajas con la CLI de Supabase localmente).
 
-export type AppRole = 'superadmin' | 'admin' | 'empleado' | 'encargado'
+export type AppRole = 'superadmin' | 'admin' | 'empleado' | 'encargado' | 'cajero'
 export type AppointmentStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid'
 export type PaymentMethod = 'cash' | 'cash_ves' | 'card' | 'transfer' | 'other' | 'zelle' | 'pago_movil' | 'punto_venta' | 'mixed'
@@ -95,6 +95,8 @@ export interface Service {
   active: boolean
   linked_product_id: string | null
   linked_variant_id: string | null
+  linked_products?: Array<{ id?: string; product_id: string; variant_id?: string | null; quantity: number }> | null
+  linkedProducts?: Array<{ id?: string; product_id: string; variant_id?: string | null; quantity: number }> | null
   is_fixed_commission?: boolean
   fixed_commission_amount?: number | null
   fixed_commission_assistant_amount?: number | null

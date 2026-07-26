@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../store/auth'
-import { isAdminPanelRole, resolveHomeByRole } from '../constants/roles'
+import { isRole, isAdminPanelRole, isEncargado, isCajero, resolveHomeByRole, ROLES } from '../constants/roles'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -59,6 +59,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/dashboard/consultorio',
+      name: 'employee-consultorio',
+      component: () => import('../views/employee/EmployeeConsultorio.vue'),
+      meta: { requiresAuth: true },
+    },
+    {
       path: '/dashboard/pagos',
       name: 'employee-payments',
       component: () => import('../views/employee/EmployeePayments.vue'),
@@ -89,6 +95,11 @@ const router = createRouter({
           path: 'clientes/:id',
           name: 'admin-cliente-historial',
           component: () => import('../views/ClienteHistorial.vue'),
+        },
+        {
+          path: 'consultorio',
+          name: 'admin-consultorio',
+          component: () => import('../views/Consultorio.vue'),
         },
         {
           path: 'finanzas',
@@ -186,6 +197,9 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.public && authStore.isAuthenticated) {
+    if (authStore.isCajeroProfile) {
+      return '/admin/pos'
+    }
     return resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda)
   }
 
@@ -195,6 +209,25 @@ router.beforeEach(async (to) => {
 
   if (to.meta.superadminOnly && authStore.role !== 'superadmin') {
     return resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda)
+  }
+
+  // ── CAJERO: solo puede acceder a /admin/pos ──
+  const isCajeroUser = authStore.isCajeroProfile
+
+  if (isCajeroUser) {
+    // Redirigir dashboard a POS
+    if (to.path.startsWith('/dashboard/')) {
+      return '/admin/pos'
+    }
+    // Bloquear superadmin
+    if (to.meta.superadminOnly) {
+      return '/admin/pos'
+    }
+    // Permitir solo /admin/pos, redirigir cualquier otra ruta admin
+    if (to.path.startsWith('/admin/') && to.path !== '/admin/pos') {
+      return '/admin/pos'
+    }
+    return
   }
 
   if (to.meta.adminOnly && !isAdminPanelRole(authStore.role ?? undefined)) {

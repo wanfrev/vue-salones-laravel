@@ -81,7 +81,20 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
     diagnosis: appointment.diagnosis ?? (appointment as any).diagnosis ?? undefined,
     treatment: appointment.treatment ?? (appointment as any).treatment ?? undefined,
     associatedProducts,
+    clinicalHistory: appointment.clinical_history ?? (appointment as any).clinical_history ?? undefined,
   }
+}
+
+function parseSafeDate(dateStr: string, timeStr: string): Date {
+  if (!dateStr) dateStr = toDateInput(new Date().toISOString())
+  if (!timeStr) timeStr = '12:00'
+  const cleanTime = timeStr.trim()
+  const formattedTime = cleanTime.split(':').length === 3 ? cleanTime : `${cleanTime}:00`
+  const d = new Date(`${dateStr}T${formattedTime}`)
+  if (isNaN(d.getTime())) {
+    return new Date()
+  }
+  return d
 }
 
 export const mapCitaFormToAppointmentInsert = (
@@ -93,8 +106,8 @@ export const mapCitaFormToAppointmentInsert = (
   branchId?: string | null
 ) => {
   const effectiveDuration = data.duration || service.duration_minutes
-  const startTime = new Date(`${data.date}T${data.time}:00`)
-  const endTime = new Date(startTime.getTime() + effectiveDuration * 60 * 1000)
+  const startTime = parseSafeDate(data.date, data.time)
+  const endTime = new Date(startTime.getTime() + (effectiveDuration || 30) * 60 * 1000)
 
   const isPaidStatus = data.status === 'paid'
   const appointmentStatus = isPaidStatus ? 'completed' : data.status
@@ -125,11 +138,12 @@ export const mapCitaFormToAppointmentInsert = (
     internal_notes: data.notes.trim() || null,
     diagnosis: data.diagnosis?.trim() || null,
     treatment: data.treatment?.trim() || null,
+    clinical_history: data.clinicalHistory ?? null,
     associated_products: (() => {
       const valid = (data.associatedProducts || []).filter(p => !!(p && p.productId))
       return valid.length > 0 ? valid : null
     })(),
-    source: 'internal' as const,
+    source: (data as any).source || 'internal',
     created_by: createdBy ?? null,
   }
 }
@@ -150,8 +164,9 @@ export const mapServiceItemToAppointmentInsert = (
   diagnosis?: string,
   treatment?: string,
   associatedProducts?: any[],
+  clinicalHistory?: Record<string, string>,
 ) => {
-  const startTime = new Date(`${date}T${time}:00`)
+  const startTime = parseSafeDate(date, time)
   const effectiveDuration = item.duration || service?.duration_minutes || 30
   const endTime = new Date(startTime.getTime() + effectiveDuration * 60 * 1000)
 
@@ -185,11 +200,12 @@ export const mapServiceItemToAppointmentInsert = (
     internal_notes: notes.trim() || null,
     diagnosis: diagnosis?.trim() || null,
     treatment: treatment?.trim() || null,
+    clinical_history: clinicalHistory ?? null,
     associated_products: (() => {
       const valid = (associatedProducts || []).filter(p => !!(p && (p.productId || p.product_id)))
       return valid.length > 0 ? valid : null
     })(),
-    source: 'internal' as const,
+    source: (item as any).source || (data as any).source || 'internal',
     created_by: createdBy ?? null,
   }
 }

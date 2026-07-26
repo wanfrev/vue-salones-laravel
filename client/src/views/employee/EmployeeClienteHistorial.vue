@@ -34,13 +34,13 @@
           </button>
           <button
             v-if="isPetNiche"
-            @click="showPetHistory = true"
+            @click="goToConsultorio"
             class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
           >
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
-            Historial Mascotas
+            Ver Historias Clínicas
           </button>
         </div>
       </div>
@@ -117,8 +117,6 @@
         </div>
       </div>
     </section>
-
-    <PetHistoryModal v-model="showPetHistory" :client-id="clienteId" :client-name="cliente?.name" />
   </AppLayout>
 </template>
 
@@ -133,7 +131,6 @@ import { listCitas } from '../../services/agendaService'
 import { getClienteById } from '../../services/clientesService'
 import { isPetNiche as checkPetNiche } from '../../config/nicheFields'
 import AppLayout from '../../components/layout/AppLayout.vue'
-import PetHistoryModal from '../../components/modals/PetHistoryModal.vue'
 import type { Cliente } from '../../types/cliente'
 
 const authStore = useAuthStore()
@@ -143,7 +140,6 @@ const router = useRouter()
 
 const clienteId = computed(() => route.params.id as string)
 const businessId = computed(() => authStore.businessId)
-const showPetHistory = ref(false)
 const isPetNiche = computed(() => checkPetNiche(businessStore.nicheType))
 const t = computed(() => businessStore.terminology)
 
@@ -180,6 +176,14 @@ const ultimaVisita = computed(() => historial.value[0]?.date || '')
 
 const goBack = () => {
   router.push('/dashboard/clientes')
+}
+
+const goToConsultorio = () => {
+  if (cliente.value) {
+    router.push(`/dashboard/consultorio?q=${encodeURIComponent(cliente.value.name)}`)
+  } else {
+    router.push('/dashboard/consultorio')
+  }
 }
 
 const handleWhatsApp = () => {

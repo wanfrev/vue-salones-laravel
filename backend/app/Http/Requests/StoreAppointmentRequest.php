@@ -36,6 +36,7 @@ class StoreAppointmentRequest extends FormRequest
             'diagnosis' => 'nullable|string',
             'treatment' => 'nullable|string',
             'associated_products' => 'nullable|array',
+            'clinical_history' => 'nullable|array',
             'branch_id' => 'nullable|uuid',
         ];
     }

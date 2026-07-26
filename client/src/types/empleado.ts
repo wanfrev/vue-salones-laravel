@@ -3,6 +3,7 @@ export interface Empleado {
   name: string
   role: string
   systemRole?: string
+  isCajero?: boolean
   citasHoy: number
   producido: string
   schedule?: { start: string; end: string; break: string }
@@ -23,7 +24,7 @@ export interface Empleado {
 export interface EmpleadoFormData {
   name: string
   role: string
-  systemRole: 'empleado' | 'encargado'
+  systemRole: 'empleado' | 'encargado' | 'cajero'
   phone: string
   email: string
   password: string

@@ -21,8 +21,9 @@ class AppointmentService
         ?string $groupId = null,
         ?string $idNot = null,
     ): Collection {
-        $query = Appointment::with(['client', 'service', 'employeeProfile', 'assistantProfile'])
+        $query = Appointment::with($this->getWithRelations())
             ->where('business_id', $businessId)
+            ->whereNull('clinical_history')
             ->orderBy('start_time');
 
         if ($startDate) $query->where('start_time', '>=', $startDate);
@@ -47,29 +48,34 @@ class AppointmentService
 
     public function store(array $data, string $businessId, string $createdBy): Appointment
     {
-        $this->checkOverlap(
-            $businessId,
-            $data['employee_id'],
-            $data['start_time'],
-            $data['end_time'],
-            $data['assistant_employee_id'] ?? null,
-            null,
-            $data['group_id'] ?? null,
-        );
+        $fillable = [
+            'client_id', 'pet_id', 'employee_id', 'service_id', 'assistant_employee_id',
+            'start_time', 'end_time', 'status', 'service_notes', 'internal_notes',
+            'source', 'group_id', 'price_override', 'employee_percentage_override',
+            'assistant_percentage', 'is_fixed_commission_override', 'employee_amount_override',
+            'assistant_amount_override', 'duration_override', 'diagnosis', 'treatment',
+            'associated_products', 'clinical_history', 'branch_id',
+        ];
 
-        return Appointment::create([
+        $filtered = array_filter($data, fn($k) => in_array($k, $fillable), ARRAY_FILTER_USE_KEY);
+
+        $isConsultorio = !empty($filtered['clinical_history']);
+
+        if (!$isConsultorio) {
+            $this->checkOverlap(
+                $businessId,
+                $filtered['employee_id'],
+                $filtered['start_time'],
+                $filtered['end_time'],
+                $filtered['assistant_employee_id'] ?? null,
+                null,
+                $filtered['group_id'] ?? null,
+            );
+        }
+
+        return Appointment::create($filtered + [
             'id' => Str::uuid()->toString(),
             'business_id' => $businessId,
-            'branch_id' => $data['branch_id'] ?? null,
-            'client_id' => $data['client_id'],
-            'pet_id' => $data['pet_id'] ?? null,
-            'employee_id' => $data['employee_id'],
-            'service_id' => $data['service_id'],
-            'assistant_employee_id' => $data['assistant_employee_id'] ?? null,
-            'start_time' => $data['start_time'],
-            'end_time' => $data['end_time'],
-            'status' => $data['status'] ?? 'pending',
-            'payment_status' => 'unpaid',
             'service_notes' => $data['service_notes'] ?? null,
             'internal_notes' => $data['internal_notes'] ?? null,
             'source' => $data['source'] ?? 'internal',
@@ -111,7 +117,11 @@ class AppointmentService
             ? $filtered['assistant_employee_id']
             : $appointment->assistant_employee_id;
 
-        $this->checkOverlap($businessId, $employeeId, $startTime, $endTime, $assistantId, $id, $appointment->group_id);
+        $isConsultorio = !empty($filtered['clinical_history']) || !empty($appointment->clinical_history);
+
+        if (!$isConsultorio) {
+            $this->checkOverlap($businessId, $employeeId, $startTime, $endTime, $assistantId, $id, $appointment->group_id);
+        }
 
         $appointment->update($filtered + [
             'updated_at' => now(),
@@ -152,6 +162,7 @@ class AppointmentService
     {
         $query = Appointment::with(['client', 'service', 'employeeProfile'])
             ->where('business_id', $businessId)
+            ->whereNull('clinical_history')
             ->whereIn('status', ['completed', 'confirmed'])
             ->whereIn('payment_status', ['unpaid', 'partial'])
             ->orderBy('start_time');
@@ -202,6 +213,7 @@ class AppointmentService
     ): void {
         $query = Appointment::where('business_id', $businessId)
             ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->whereNull('clinical_history')
             ->where('start_time', '<', $endTime)
             ->where('end_time', '>', $startTime)
             ->where(function ($q) use ($employeeId, $assistantId) {
@@ -229,5 +241,14 @@ class AppointmentService
                 'start_time' => "El {$conflictEmployee} ya tiene una cita en ese horario.",
             ]);
         }
+    }
+
+    private function getWithRelations(): array
+    {
+        $relations = ['client', 'service', 'employeeProfile', 'assistantProfile'];
+        if (\Illuminate\Support\Facades\Schema::hasTable('service_products')) {
+            $relations[] = 'service.linkedProducts.product';
+        }
+        return $relations;
     }
 }

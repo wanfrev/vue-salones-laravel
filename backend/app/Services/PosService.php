@@ -23,13 +23,17 @@ class PosService
      */
     public function getPendingAppointments(string $businessId, ?string $branchId = null): Collection
     {
-        $query = Appointment::with([
+        $serviceRelations = ['service.linkedProduct'];
+        if (\Illuminate\Support\Facades\Schema::hasTable('service_products')) {
+            $serviceRelations[] = 'service.linkedProducts.product';
+        }
+
+        $query = Appointment::with(array_merge([
             'client',
-            'service.linkedProduct',
             'employeeProfile',
             'assistantProfile',
             'transactions',
-        ])
+        ], $serviceRelations))
             ->where('business_id', $businessId)
             ->whereIn('status', ['confirmed', 'completed', 'pending'])
             ->where('payment_status', '!=', 'paid')
@@ -235,7 +239,51 @@ class PosService
                 }
             }
 
-            if ($service->linked_product_id) {
+            $hasTable = \Illuminate\Support\Facades\Schema::hasTable('service_products');
+            if ($hasTable) {
+                $service->loadMissing('linkedProducts');
+            }
+            $linkedProducts = $hasTable ? $service->linkedProducts : null;
+
+            if ($linkedProducts && $linkedProducts->count() > 0) {
+                $defaultLocation = $defaultLocation ?? $this->inventoryService->getDefaultLocation(
+                    $businessId,
+                    $appointment->branch_id,
+                );
+
+                foreach ($linkedProducts as $lp) {
+                    $prod = \App\Models\Product::find($lp->product_id);
+                    $prodName = $prod ? $prod->name : 'Producto Insumo';
+                    $qty = max(0.01, (float) $lp->quantity);
+
+                    $this->validateAndDeductStock(
+                        $businessId,
+                        $lp->product_id,
+                        $lp->variant_id,
+                        $qty,
+                        $prodName,
+                        $appointment->branch_id,
+                        $defaultLocation,
+                    );
+
+                    $this->inventoryService->recordMovement(
+                        businessId: $businessId,
+                        locationId: $defaultLocation,
+                        productId: $lp->product_id,
+                        variantId: $lp->variant_id,
+                        movementType: 'consumption',
+                        quantity: -$qty,
+                        unitCost: $prod ? (float) $prod->unit_cost : 0,
+                        referenceType: 'appointment',
+                        referenceId: $appointmentId,
+                        notes: "Consumo automático ({$qty}x) por servicio: {$service->name}",
+                        createdBy: $createdBy,
+                        branchId: $appointment->branch_id,
+                        exchangeRateUsed: $rate,
+                        clientId: $appointment->client_id,
+                    );
+                }
+            } else if ($service->linked_product_id) {
                 $defaultLocation = $defaultLocation ?? $this->inventoryService->getDefaultLocation(
                     $businessId,
                     $appointment->branch_id,

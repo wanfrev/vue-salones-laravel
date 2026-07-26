@@ -24,6 +24,7 @@
             required
             prefix-icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
             :error="errors.name"
+            @blur="handleBlur('name')"
           />
 
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -35,6 +36,7 @@
               required
               prefix-icon="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
               :error="errors.phone"
+              @blur="handleBlur('phone')"
             />
 
             <FormInput
@@ -44,6 +46,7 @@
               placeholder="maria@email.com"
               prefix-icon="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
               :error="errors.email"
+              @blur="handleBlur('email')"
             />
           </div>
 
@@ -91,7 +94,7 @@
         </div>
       </div>
 
-      <div v-if="isEditing" class="border-t border-border mt-6 pt-4">
+      <div v-if="isEditing" class="border-t border-border mt-6 pt-4 flex items-center justify-end">
         <button
           type="button"
           class="rounded-lg border border-danger/30 px-4 py-2 text-sm font-semibold text-danger transition-theme hover:bg-danger/10"
@@ -101,6 +104,7 @@
         </button>
       </div>
     </form>
+
   </ModalBase>
 </template>
 
@@ -109,6 +113,8 @@ import { reactive, ref, computed, watch } from 'vue'
 import { useModal } from '../../composables/common/useModal'
 import { useNotification } from '../../composables/common/useNotification'
 import { useBusinessStore } from '../../store/business'
+import { useFormValidation } from '../../composables/common/useFormValidation'
+import { clienteFormSchema } from '../../lib/validation'
 import type { Cliente, ClienteFormData, PetFormData } from '../../types/cliente'
 import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormTextarea } from '../forms'
@@ -152,6 +158,12 @@ const formData = ref<ClienteFormData>({ ...defaultFormData })
 const nicheValues = reactive<Record<string, string>>({})
 const pets = ref<PetFormData[]>([])
 
+const { errors, isValid, validate, clearErrors, handleBlur } = useFormValidation(clienteFormSchema as any, formData) as any as ReturnType<typeof useFormValidation>
+
+const isFormValid = computed(() => {
+  return formData.value.name.trim().length >= 2 && formData.value.phone.trim().length >= 8
+})
+
 const nicheConfig = computed(() => getNicheConfig(nicheType.value))
 
 const isPet = computed(() => isPetNiche(nicheType.value))
@@ -187,12 +199,6 @@ const loadPets = async (clientId: string) => {
   }
 }
 
-const errors = ref<Partial<Record<keyof ClienteFormData, string>>>({})
-
-const isFormValid = computed(() => {
-  return formData.value.name.trim().length >= 2 && formData.value.phone.trim().length >= 8
-})
-
 watch(
   [isOpen, () => modalData.value?.cliente],
   ([open, cliente]) => {
@@ -222,28 +228,12 @@ watch(
       }
       pets.value = []
     }
-    errors.value = {}
+    clearErrors()
   },
   { immediate: true }
 )
 
-const validateForm = (): boolean => {
-  errors.value = {}
-
-  if (!formData.value.name.trim() || formData.value.name.length < 2) {
-    errors.value.name = 'El nombre debe tener al menos 2 caracteres'
-  }
-
-  if (!formData.value.phone.trim()) {
-    errors.value.phone = 'El teléfono es requerido'
-  } else if (formData.value.phone.length < 8) {
-    errors.value.phone = 'El teléfono debe tener al menos 8 dígitos'
-  }
-
-  if (formData.value.email && !isValidEmail(formData.value.email)) {
-    errors.value.email = 'El email no es válido'
-  }
-
+const handlePetValidation = (): boolean => {
   if (isPet.value) {
     const activePets = pets.value.filter(p => !p._delete)
     if (activePets.length === 0) {
@@ -257,8 +247,7 @@ const validateForm = (): boolean => {
       }
     }
   }
-
-  return Object.keys(errors.value).length === 0
+  return true
 }
 
 const isValidEmail = (email: string): boolean => {
@@ -277,10 +266,8 @@ const confirmDelete = () => {
 }
 
 const handleSubmit = () => {
-  if (!validateForm()) {
-    showError('Por favor corrige los errores en el formulario')
-    return
-  }
+  if (!validate()) return
+  if (!handlePetValidation()) return
 
   const nicheMeta: Record<string, unknown> = { ...nicheValues }
   if (isPet.value) {
