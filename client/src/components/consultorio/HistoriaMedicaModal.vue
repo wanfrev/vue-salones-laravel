@@ -327,7 +327,7 @@ const handleSubmit = async () => {
     }
 
     const now = new Date()
-    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
 
     const payload: any = {
       id: formData.value.id,

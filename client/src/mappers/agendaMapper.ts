@@ -85,6 +85,18 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
   }
 }
 
+function parseSafeDate(dateStr: string, timeStr: string): Date {
+  if (!dateStr) dateStr = toDateInput(new Date().toISOString())
+  if (!timeStr) timeStr = '12:00'
+  const cleanTime = timeStr.trim()
+  const formattedTime = cleanTime.split(':').length === 3 ? cleanTime : `${cleanTime}:00`
+  const d = new Date(`${dateStr}T${formattedTime}`)
+  if (isNaN(d.getTime())) {
+    return new Date()
+  }
+  return d
+}
+
 export const mapCitaFormToAppointmentInsert = (
   businessId: string,
   data: CitaFormData,
@@ -94,8 +106,8 @@ export const mapCitaFormToAppointmentInsert = (
   branchId?: string | null
 ) => {
   const effectiveDuration = data.duration || service.duration_minutes
-  const startTime = new Date(`${data.date}T${data.time}:00`)
-  const endTime = new Date(startTime.getTime() + effectiveDuration * 60 * 1000)
+  const startTime = parseSafeDate(data.date, data.time)
+  const endTime = new Date(startTime.getTime() + (effectiveDuration || 30) * 60 * 1000)
 
   const isPaidStatus = data.status === 'paid'
   const appointmentStatus = isPaidStatus ? 'completed' : data.status
@@ -154,7 +166,7 @@ export const mapServiceItemToAppointmentInsert = (
   associatedProducts?: any[],
   clinicalHistory?: Record<string, string>,
 ) => {
-  const startTime = new Date(`${date}T${time}:00`)
+  const startTime = parseSafeDate(date, time)
   const effectiveDuration = item.duration || service?.duration_minutes || 30
   const endTime = new Date(startTime.getTime() + effectiveDuration * 60 * 1000)
 
