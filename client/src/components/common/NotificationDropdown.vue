@@ -1,14 +1,18 @@
 <template>
-  <div class="absolute right-0 top-full mt-2 w-80 rounded-xl border border-border bg-surface shadow-lg z-50">
-    <div class="flex items-center justify-between border-b border-border px-4 py-3">
+  <div
+    class="fixed left-2 right-2 top-16 z-50 rounded-xl border border-border bg-surface shadow-lg sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 sm:max-w-none"
+  >
+    <div class="flex items-center justify-between border-b border-border px-3 py-2.5 sm:px-4 sm:py-3">
       <h3 class="text-sm font-semibold text-text">Notificaciones</h3>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1.5 sm:gap-2">
         <span v-if="unreadCount > 0" class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
           {{ unreadCount }}
         </span>
         <button v-if="notifications.length > 1" @click="handleMarkAllAsRead"
-          class="rounded-md px-2 py-1 text-xs font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text">
-          Marcar todas leídas
+          class="rounded-md px-2 py-1 text-[11px] font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text sm:text-xs"
+          title="Marcar todas leídas">
+          <span class="hidden sm:inline">Marcar todas</span>
+          <span class="sm:hidden">Todas</span>
         </button>
         <button @click="showPrefs = !showPrefs"
           class="rounded-md p-1 text-text-muted transition-colors hover:bg-bg-secondary hover:text-text"
@@ -20,7 +24,7 @@
     </div>
 
     <!-- Preferences panel -->
-    <div v-if="showPrefs" class="border-b border-border px-4 py-3 space-y-2 bg-bg-secondary/30">
+    <div v-if="showPrefs" class="border-b border-border px-3 py-2.5 space-y-2 bg-bg-secondary/30 sm:px-4 sm:py-3">
       <p class="text-xs font-medium text-text-muted">Mostrar notificaciones de:</p>
       <label
         v-for="(label, type) in TYPE_LABELS"
@@ -70,19 +74,20 @@
       </div>
     </div>
 
-    <div class="max-h-80 overflow-y-auto touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
+    <div class="max-h-[min(24rem,70vh)] overflow-y-auto touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
       <div v-if="notifications.length === 0" class="px-4 py-8 text-center text-sm text-text-muted">
         No hay notificaciones
       </div>
 
       <div v-for="notif in notifications" :key="notif.id"
-        class="border-b border-border/50 px-4 py-3 last:border-b-0 hover:bg-bg-secondary/40 transition-theme">
-        <div class="flex items-start gap-3">
+        class="border-b border-border/50 px-3 py-2.5 last:border-b-0 hover:bg-bg-secondary/40 transition-theme sm:px-4 sm:py-3">
+        <div class="flex items-start gap-2.5 sm:gap-3">
           <div :class="[
-            'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
+            'flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full',
             typeStyle[notif.type]?.bg ?? 'bg-bg-secondary',
           ]">
-            <component :is="typeStyle[notif.type]?.icon ?? Bell" :size="16"
+            <component :is="typeStyle[notif.type]?.icon ?? Bell" :size="14"
+              class="sm:h-4 sm:w-4"
               :class="typeStyle[notif.type]?.color ?? 'text-text-muted'" />
           </div>
 
@@ -93,44 +98,44 @@
           </div>
         </div>
 
-        <div class="mt-2 flex gap-2">
+        <div class="mt-2 flex flex-wrap gap-1.5 sm:gap-2">
           <template v-if="notif.type === 'reminder'">
             <button @click="handleSendWhatsApp(notif)"
-              class="flex items-center gap-1 rounded-lg bg-success/10 px-3 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20">
+              class="flex items-center gap-1 rounded-lg bg-success/10 px-2.5 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20 sm:px-3">
               <MessageCircle :size="14" />
               WhatsApp
             </button>
             <button @click="handleNavigateToAppointment(notif)"
-              class="flex items-center gap-1 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20">
+              class="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20 sm:px-3">
               <Calendar :size="14" />
               Ver cita
             </button>
             <button @click="handleDismiss(notif.id)"
-              class="rounded-lg px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text-secondary">
+              class="rounded-lg px-2.5 py-1.5 text-xs font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text-secondary sm:px-3">
               Ignorar
             </button>
           </template>
 
           <template v-else-if="notif.type === 'low_stock'">
             <button @click="handleNavigateToInventory"
-              class="flex items-center gap-1 rounded-lg bg-danger/10 px-3 py-1.5 text-xs font-medium text-danger transition-colors hover:bg-danger/20">
+              class="flex items-center gap-1 rounded-lg bg-danger/10 px-2.5 py-1.5 text-xs font-medium text-danger transition-colors hover:bg-danger/20 sm:px-3">
               <PackageOpen :size="14" />
               Ver inventario
             </button>
             <button @click="handleDismiss(notif.id)"
-              class="rounded-lg px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text-secondary">
+              class="rounded-lg px-2.5 py-1.5 text-xs font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text-secondary sm:px-3">
               Ignorar
             </button>
           </template>
 
           <template v-else>
             <button @click="handleNavigateToAppointment(notif)"
-              class="flex items-center gap-1 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20">
+              class="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20 sm:px-3">
               <Calendar :size="14" />
               Ver cita
             </button>
             <button @click="handleDismiss(notif.id)"
-              class="rounded-lg px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text-secondary">
+              class="rounded-lg px-2.5 py-1.5 text-xs font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text-secondary sm:px-3">
               Ignorar
             </button>
           </template>
