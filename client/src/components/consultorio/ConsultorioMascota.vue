@@ -59,8 +59,30 @@
         @media print {
           .print-only { display: block; }
           .print-hidden { display: none !important; }
+          .expandable-body { display: block !important; }
         }
       </style>
+
+      <div class="flex items-center justify-between print-hidden">
+        <span class="text-xs font-semibold text-text-muted uppercase tracking-wider">
+          {{ visits.length }} {{ visits.length === 1 ? 'historia registrada' : 'historias registradas' }}
+        </span>
+        <div class="flex gap-2">
+          <button
+            @click="expandAll"
+            class="text-xs font-medium text-primary hover:underline"
+          >
+            Expandir todo
+          </button>
+          <span class="text-text-muted">•</span>
+          <button
+            @click="collapseAll"
+            class="text-xs font-medium text-text-muted hover:text-text hover:underline"
+          >
+            Colapsar todo
+          </button>
+        </div>
+      </div>
 
       <div ref="printArea" class="print-area">
         <!-- Print Header -->
@@ -70,44 +92,49 @@
           <p class="text-sm text-text-muted">Fecha de impresión: {{ new Date().toLocaleDateString('es-ES') }}</p>
         </div>
 
-        <div class="space-y-4">
+        <div class="space-y-3">
           <div
             v-for="visit in visits"
             :key="visit.id"
-            @click="openFichaModal(visit)"
-            class="group border border-border hover:border-primary/50 rounded-xl p-5 bg-surface shadow-xs transition-all duration-200 page-break-inside-avoid relative cursor-pointer"
+            class="border border-border hover:border-primary/40 rounded-xl bg-surface shadow-xs transition-all duration-200 page-break-inside-avoid overflow-hidden"
           >
-            <!-- Visit Header -->
-            <div class="flex justify-between items-start sm:items-center mb-5 pb-4 border-b border-border border-dashed flex-col sm:flex-row gap-3">
-              <div>
-                <div class="flex items-center gap-2">
-                  <svg class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                  <h4 class="font-bold text-text text-lg">{{ formatDate(visit.start_time) }}</h4>
-                  <span
-                    v-if="visit.status"
-                    class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ml-1"
-                    :class="{
-                      'bg-success/15 text-success': visit.status === 'confirmed' || visit.status === 'paid' || visit.status === 'completed',
-                      'bg-warning/15 text-warning': visit.status === 'pending' || visit.status === 'in_progress',
-                      'bg-danger/15 text-danger': visit.status === 'cancelled' || visit.status === 'no_show'
-                    }"
-                  >
-                    {{ getStatusLabel(visit.status) }}
-                  </span>
+            <!-- Visit Header Bar (Clickable Accordion Trigger) -->
+            <div
+              @click="toggleExpand(visit.id)"
+              class="flex justify-between items-center p-4 bg-surface hover:bg-bg-secondary/30 cursor-pointer select-none transition-colors"
+            >
+              <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary shrink-0">
+                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 00-2-2V5a2 2 0 002-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 002 2z" />
+                  </svg>
                 </div>
-                <p class="text-sm text-text-muted mt-1 font-medium flex items-center gap-1.5">
-                  <span class="inline-block w-2 h-2 rounded-full bg-primary/40"></span>
-                  {{ visit.services?.name || visit.service?.name || 'Servicio' }}
-                </p>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h4 class="font-bold text-text text-base">{{ formatDate(visit.start_time) }}</h4>
+                    <span
+                      v-if="visit.status"
+                      class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full"
+                      :class="{
+                        'bg-success/15 text-success': visit.status === 'confirmed' || visit.status === 'paid' || visit.status === 'completed',
+                        'bg-warning/15 text-warning': visit.status === 'pending' || visit.status === 'in_progress',
+                        'bg-danger/15 text-danger': visit.status === 'cancelled' || visit.status === 'no_show'
+                      }"
+                    >
+                      {{ getStatusLabel(visit.status) }}
+                    </span>
+                  </div>
+                  <p class="text-xs text-text-muted mt-0.5 font-medium flex items-center gap-2">
+                    <span>Atendido por: <strong class="text-text font-semibold">Dr. {{ visit.profiles?.full_name || visit.employee_profile?.full_name || '—' }}</strong></span>
+                    <span v-if="visit.services?.name || visit.service?.name">• {{ visit.services?.name || visit.service?.name }}</span>
+                  </p>
+                </div>
               </div>
-              <div class="text-left sm:text-right flex items-center gap-2 w-full sm:w-auto">
-                <span class="text-xs font-bold px-3 py-1.5 bg-bg-secondary/50 text-text-secondary rounded-lg border border-border inline-flex items-center gap-1.5 w-full sm:w-auto justify-center sm:justify-start">
-                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                  Dr. {{ visit.profiles?.full_name || visit.employee_profile?.full_name || '—' }}
-                </span>
+
+              <div class="flex items-center gap-2">
                 <button
                   @click.stop="editFicha(visit)"
-                  class="print-hidden p-1.5 text-text-muted hover:text-primary bg-bg-secondary rounded-md transition-colors"
+                  class="print-hidden p-1.5 text-text-muted hover:text-primary bg-bg-secondary hover:bg-primary/10 rounded-lg transition-colors"
                   title="Editar Ficha"
                 >
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -116,64 +143,80 @@
                 </button>
                 <button
                   @click.stop="deleteFicha(visit)"
-                  class="print-hidden p-1.5 text-text-muted hover:text-danger hover:bg-danger/10 bg-bg-secondary rounded-md transition-colors"
+                  class="print-hidden p-1.5 text-text-muted hover:text-danger bg-bg-secondary hover:bg-danger/10 rounded-lg transition-colors"
                   title="Eliminar Ficha"
                 >
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                   </svg>
                 </button>
-              </div>
-            </div>
-
-            <!-- Clinical History (Structured) -->
-            <div v-if="visit.clinical_history && Object.keys(visit.clinical_history).length > 0" class="mb-5">
-              <h5 class="text-[11px] font-bold text-primary uppercase tracking-widest mb-3 border-l-2 border-primary pl-2">Diagnóstico por Sistemas</h5>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 bg-primary/5 rounded-xl p-4 border border-primary/10">
-                <template v-for="(val, sys) in visit.clinical_history" :key="sys">
-                  <div v-if="val" class="text-sm bg-surface p-2.5 rounded-lg border border-primary/5 shadow-xs">
-                    <span class="font-bold text-text text-[13px] block mb-0.5 text-primary">{{ sys }}</span> 
-                    <span class="text-text-secondary leading-relaxed">{{ val }}</span>
-                  </div>
-                </template>
-              </div>
-            </div>
-            <!-- Fallback Diagnosis -->
-            <div v-else-if="visit.diagnosis" class="mb-5">
-              <h5 class="text-[11px] font-bold text-primary uppercase tracking-widest mb-2 border-l-2 border-primary pl-2">Diagnóstico General</h5>
-              <p class="text-sm text-text-secondary bg-bg-secondary/40 rounded-lg p-3 border border-border whitespace-pre-line">{{ visit.diagnosis }}</p>
-            </div>
-
-            <!-- Treatment -->
-            <div v-if="visit.treatment" class="mb-5">
-              <h5 class="text-[11px] font-bold text-primary uppercase tracking-widest mb-2 border-l-2 border-primary pl-2">Tratamiento Indicado</h5>
-              <p class="text-sm text-text-secondary bg-bg-secondary/40 rounded-lg p-3 border border-border whitespace-pre-line">{{ visit.treatment }}</p>
-            </div>
-
-            <!-- Notes -->
-            <div v-if="visit.internal_notes || visit.service_notes" class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <div v-if="visit.service_notes">
-                <h5 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-1.5 border-l-2 border-border pl-2">Notas del Servicio</h5>
-                <p class="text-sm text-text-secondary italic">{{ visit.service_notes }}</p>
-              </div>
-              <div v-if="visit.internal_notes">
-                <h5 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-1.5 border-l-2 border-border pl-2">Notas Internas</h5>
-                <p class="text-sm text-text-secondary italic">{{ visit.internal_notes }}</p>
-              </div>
-            </div>
-
-            <!-- Associated Products -->
-            <div v-if="getVisitProducts(visit).length > 0" class="mt-4 pt-4 border-t border-border/60">
-              <h5 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-2">Insumos/Productos Aplicados</h5>
-              <div class="flex flex-wrap gap-2">
-                <span 
-                  v-for="(p, i) in getVisitProducts(visit)" 
-                  :key="i"
-                  class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface border border-border text-xs font-medium text-text-secondary"
+                <!-- Chevron Expand / Collapse Indicator -->
+                <div
+                  class="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted transition-transform duration-200 print-hidden"
+                  :class="{ 'rotate-180 text-primary': isExpanded(visit.id) }"
                 >
-                  <svg class="h-3.5 w-3.5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
-                  {{ p.productName || p.name || 'Producto' }} <strong class="text-text">x{{ p.quantity }}</strong>
-                </span>
+                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Expandable Content Section -->
+            <div
+              v-show="isExpanded(visit.id)"
+              class="expandable-body border-t border-border p-5 bg-bg-secondary/15 space-y-4"
+            >
+              <!-- Clinical History (Structured Systems) -->
+              <div v-if="visit.clinical_history && Object.keys(visit.clinical_history).length > 0">
+                <h5 class="text-[11px] font-bold text-primary uppercase tracking-widest mb-3 border-l-2 border-primary pl-2">Evaluación por Sistemas</h5>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-surface rounded-xl p-4 border border-border/80">
+                  <template v-for="(val, sys) in visit.clinical_history" :key="sys">
+                    <div v-if="val" class="text-sm bg-bg-secondary/30 p-2.5 rounded-lg border border-border/40">
+                      <span class="font-bold text-text text-[13px] block mb-0.5 text-primary">{{ sys }}</span> 
+                      <span class="text-text-secondary leading-relaxed">{{ val }}</span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Diagnosis & Treatment Grid -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div v-if="visit.diagnosis">
+                  <h5 class="text-[11px] font-bold text-primary uppercase tracking-widest mb-1.5 border-l-2 border-primary pl-2">Diagnóstico General</h5>
+                  <p class="text-sm text-text-secondary bg-surface rounded-lg p-3 border border-border whitespace-pre-line">{{ visit.diagnosis }}</p>
+                </div>
+                <div v-if="visit.treatment">
+                  <h5 class="text-[11px] font-bold text-primary uppercase tracking-widest mb-1.5 border-l-2 border-primary pl-2">Tratamiento Indicado</h5>
+                  <p class="text-sm text-text-secondary bg-surface rounded-lg p-3 border border-border whitespace-pre-line">{{ visit.treatment }}</p>
+                </div>
+              </div>
+
+              <!-- Notes -->
+              <div v-if="visit.internal_notes || visit.service_notes" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div v-if="visit.service_notes">
+                  <h5 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-1 border-l-2 border-border pl-2">Notas del Servicio</h5>
+                  <p class="text-sm text-text-secondary italic bg-surface p-2.5 rounded-lg border border-border">{{ visit.service_notes }}</p>
+                </div>
+                <div v-if="visit.internal_notes">
+                  <h5 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-1 border-l-2 border-border pl-2">Notas Internas</h5>
+                  <p class="text-sm text-text-secondary italic bg-surface p-2.5 rounded-lg border border-border">{{ visit.internal_notes }}</p>
+                </div>
+              </div>
+
+              <!-- Associated Products -->
+              <div v-if="getVisitProducts(visit).length > 0" class="pt-2">
+                <h5 class="text-[11px] font-bold text-text-muted uppercase tracking-widest mb-2">Insumos/Productos Aplicados</h5>
+                <div class="flex flex-wrap gap-2">
+                  <span 
+                    v-for="(p, i) in getVisitProducts(visit)" 
+                    :key="i"
+                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-surface border border-border text-xs font-medium text-text-secondary"
+                  >
+                    <svg class="h-3.5 w-3.5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m5.231 13.481L15 17.25m-4.5-15H5.625c-.621 0-1.125.504-1.125 1.125v16.5c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
+                    {{ p.productName || p.name || 'Producto' }} <strong class="text-text">x{{ p.quantity }}</strong>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -206,6 +249,27 @@ const emit = defineEmits<{
 const visits = ref<any[]>([])
 const isLoading = ref(true)
 const printArea = ref<HTMLElement | null>(null)
+const expandedVisitIds = ref<Set<string>>(new Set())
+
+const toggleExpand = (id: string) => {
+  const newSet = new Set(expandedVisitIds.value)
+  if (newSet.has(id)) {
+    newSet.delete(id)
+  } else {
+    newSet.add(id)
+  }
+  expandedVisitIds.value = newSet
+}
+
+const isExpanded = (id: string) => expandedVisitIds.value.has(id)
+
+const expandAll = () => {
+  expandedVisitIds.value = new Set(visits.value.map(v => v.id))
+}
+
+const collapseAll = () => {
+  expandedVisitIds.value = new Set()
+}
 
 const loadHistory = async () => {
   if (!props.pet || !props.pet.client_id) return
@@ -214,6 +278,10 @@ const loadHistory = async () => {
     const data = await apiRequest<any[]>('GET', `/clients/${props.pet.client_id}/pets/${props.pet.id}/history`)
     // Only show medical records created from Consultorio (or containing structured clinical history)
     visits.value = (data || []).filter(v => v.clinical_history && Object.keys(v.clinical_history).length > 0)
+    // Expand the most recent visit by default if available
+    if (visits.value.length > 0 && expandedVisitIds.value.size === 0) {
+      expandedVisitIds.value = new Set([visits.value[0].id])
+    }
   } catch (error) {
     console.error('Failed to load history', error)
   } finally {

@@ -23,6 +23,7 @@ class AppointmentService
     ): Collection {
         $query = Appointment::with($this->getWithRelations())
             ->where('business_id', $businessId)
+            ->whereNull('clinical_history')
             ->orderBy('start_time');
 
         if ($startDate) $query->where('start_time', '>=', $startDate);
@@ -161,6 +162,7 @@ class AppointmentService
     {
         $query = Appointment::with(['client', 'service', 'employeeProfile'])
             ->where('business_id', $businessId)
+            ->whereNull('clinical_history')
             ->whereIn('status', ['completed', 'confirmed'])
             ->whereIn('payment_status', ['unpaid', 'partial'])
             ->orderBy('start_time');
