@@ -307,8 +307,14 @@ const handleSubmit = async () => {
     const finalDiagnosis = formData.value.diagnosis.trim() || 'No aplica'
     const finalTreatment = formData.value.treatment.trim() || 'No aplica'
 
-    // Pick first valid service or create single payload
-    const defaultServiceId = serviciosList.value[0]?.id || '00000000-0000-0000-0000-000000000000'
+    // Ensure we have a valid service ID from DB
+    if (serviciosList.value.length === 0) {
+      serviciosList.value = (await listServicios(businessId.value, branchId.value)) ?? []
+    }
+    const defaultServiceId = serviciosList.value[0]?.id
+    if (!defaultServiceId) {
+      throw new Error('No se encontró ningún servicio registrado. Por favor crea al menos un servicio en el sistema.')
+    }
 
     const payload: any = {
       id: formData.value.id,
