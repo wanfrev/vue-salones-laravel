@@ -41,6 +41,7 @@ export const citaFormSchema = z.object({
   treatment: z.string().optional(),
   associatedProducts: z.array(citaAssociatedProductSchema).optional(),
   clinicalHistory: z.record(z.string()).optional(),
+  source: z.string().optional(),
 })
 
 const posProductItemSchema = z.object({
