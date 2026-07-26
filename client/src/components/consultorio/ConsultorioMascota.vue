@@ -213,7 +213,7 @@ const loadHistory = async () => {
   try {
     const data = await apiRequest<any[]>('GET', `/clients/${props.pet.client_id}/pets/${props.pet.id}/history`)
     // Only show medical records created from Consultorio (or containing structured clinical history)
-    visits.value = (data || []).filter(v => v.source === 'consultorio' || (v.clinical_history && Object.keys(v.clinical_history).length > 0))
+    visits.value = (data || []).filter(v => v.clinical_history && Object.keys(v.clinical_history).length > 0)
   } catch (error) {
     console.error('Failed to load history', error)
   } finally {
