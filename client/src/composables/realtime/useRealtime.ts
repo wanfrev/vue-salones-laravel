@@ -59,7 +59,7 @@ export function useRealtime() {
     }
 
     const prefixes = queryKeyMap[payload.entity] || [payload.entity]
-    prefixes.forEach(p => pendingPrefixes.add(p + '|' + businessId))
+    prefixes.forEach(p => pendingPrefixes.add(p))
 
     if (debounceTimer) clearTimeout(debounceTimer)
     debounceTimer = setTimeout(flushInvalidations, 150)
