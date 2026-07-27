@@ -30,10 +30,21 @@
           @select-client="selectRetailClient"
           @search-clients="onRetailSearchClients"
         />
-        <button v-else @click="startRetailOnly" class="flex items-center justify-center gap-1.5 rounded-lg border border-primary/30 px-3 py-2 text-xs font-semibold text-primary shadow-sm transition-all duration-200 hover:bg-primary/5">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-          Venta directa
-        </button>
+        <div v-else class="flex items-center gap-2">
+          <button
+            v-if="businessStore.features.pos_direct_service_sale"
+            @click="startDirectService"
+            class="flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200"
+            :class="activeSaleType === 'direct_service' ? 'bg-primary text-text-inverse border-primary' : 'border-primary/30 text-primary hover:bg-primary/5'"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            Servicio directo
+          </button>
+          <button @click="startRetailOnly" class="flex items-center justify-center gap-1.5 rounded-lg border border-primary/30 px-3 py-2 text-xs font-semibold text-primary shadow-sm transition-all duration-200 hover:bg-primary/5">
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+            Venta directa
+          </button>
+        </div>
       </div>
     </div>
   </header>
@@ -42,23 +53,113 @@
 
   <div class="grid grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr]">
     <!-- LEFT PANEL -->
-    <AppointmentList
-      :overdue="overdueAppointments"
-      :upcoming="upcomingAppointments"
-      :total-count="filteredAppointments.length"
-      :selected-id="selectedId"
-      :products="products"
-      :cart="cartCtx.cart.value"
-      :inline-product-search="inlineProductSearch"
-      :show-inline-dropdown="showInlineDropdown"
-      :show-go-to-calendar="!authStore.isCajeroProfile"
-      @select="onSelectAppointment"
-      @go-to-calendar="goToAppointmentInCalendar"
-      @update:search="appointmentSearch = $event"
-      @update:inline-product-search="inlineProductSearch = $event"
-      @add-product="addInlineProduct"
-      @blur="onInlineBlur" @focus="showInlineDropdown = true"
-    />
+    <div>
+      <!-- DIRECT SERVICE PANEL -->
+      <div v-if="activeSaleType === 'direct_service'" class="rounded-2xl border border-primary/30 bg-surface p-4 shadow-sm space-y-4 mb-4">
+        <div class="flex items-center justify-between border-b border-border pb-3">
+          <div class="flex items-center gap-2">
+            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-text">Cobro Directo de Servicio</h3>
+              <p class="text-xs text-text-muted">Selecciona el servicio y el personal a cargo</p>
+            </div>
+          </div>
+          <button @click="cancelDirectService" class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <!-- Servicio -->
+          <div>
+            <label class="block text-xs font-semibold text-text-secondary mb-1">Servicio *</label>
+            <select
+              v-model="directServiceId"
+              class="w-full rounded-xl border border-border bg-bg-secondary px-3 py-2 text-xs text-text outline-none focus:border-primary"
+            >
+              <option value="" disabled>Selecciona un servicio</option>
+              <option v-for="s in posServiciosList" :key="s.id" :value="s.id">
+                {{ s.name }} (${{ s.price }})
+              </option>
+            </select>
+          </div>
+
+          <!-- Empleado Principal -->
+          <div>
+            <label class="block text-xs font-semibold text-text-secondary mb-1">Empleado a cargo *</label>
+            <select
+              v-model="directServiceEmployeeId"
+              class="w-full rounded-xl border border-border bg-bg-secondary px-3 py-2 text-xs text-text outline-none focus:border-primary"
+            >
+              <option value="" disabled>Selecciona empleado</option>
+              <option v-for="e in posEmpleadosList" :key="e.id" :value="e.id">
+                {{ e.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Asistente -->
+          <div>
+            <label class="block text-xs font-semibold text-text-secondary mb-1">Asistente (opcional)</label>
+            <select
+              v-model="directServiceAssistantId"
+              class="w-full rounded-xl border border-border bg-bg-secondary px-3 py-2 text-xs text-text outline-none focus:border-primary"
+            >
+              <option value="">Sin asistente</option>
+              <option v-for="e in posEmpleadosList.filter((x: any) => x.id !== directServiceEmployeeId)" :key="e.id" :value="e.id">
+                {{ e.name }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Cliente (Opcional) -->
+          <div>
+            <label class="block text-xs font-semibold text-text-secondary mb-1">Cliente (opcional)</label>
+            <div class="relative">
+              <input
+                v-model="directServiceClientSearch"
+                @input="onDirectServiceSearchClients(directServiceClientSearch)"
+                placeholder="Buscar por nombre o teléfono"
+                class="w-full rounded-xl border border-border bg-bg-secondary px-3 py-2 text-xs text-text outline-none focus:border-primary"
+              />
+              <div v-if="directServiceClientSuggestions.length > 0" class="absolute left-0 right-0 top-full z-30 mt-1 max-h-40 overflow-y-auto rounded-xl border border-border bg-surface p-1 shadow-lg">
+                <button
+                  v-for="c in directServiceClientSuggestions"
+                  :key="c.id"
+                  @click="selectDirectServiceClient(c)"
+                  class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs text-text hover:bg-bg-secondary"
+                >
+                  <span class="font-medium">{{ c.full_name }}</span>
+                  <span class="text-text-muted text-[10px]">{{ c.phone }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <AppointmentList
+        :overdue="overdueAppointments"
+        :upcoming="upcomingAppointments"
+        :total-count="filteredAppointments.length"
+        :selected-id="selectedId"
+        :products="products"
+        :cart="cartCtx.cart.value"
+        :inline-product-search="inlineProductSearch"
+        :show-inline-dropdown="showInlineDropdown"
+        :show-go-to-calendar="!authStore.isCajeroProfile"
+        @select="onSelectAppointment"
+        @go-to-calendar="goToAppointmentInCalendar"
+        @update:search="appointmentSearch = $event"
+        @update:inline-product-search="inlineProductSearch = $event"
+        @add-product="addInlineProduct"
+        @blur="onInlineBlur" @focus="showInlineDropdown = true"
+      />
+    </div>
 
     <!-- RIGHT PANEL (desktop only) -->
     <div class="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden">
@@ -224,8 +325,70 @@ const branchId = computed(() => businessStore.currentBranchId)
 const cartCtx = usePOSCart()
 const paymentCtx = usePOSPayment()
 
-const activeSaleType = ref<'appointment' | 'retail_only'>('appointment')
+const activeSaleType = ref<'appointment' | 'retail_only' | 'direct_service'>('appointment')
 const selectedAppointment = ref<any>(null)
+
+const directServiceId = ref('')
+const directServiceEmployeeId = ref('')
+const directServiceAssistantId = ref('')
+const directServiceClientId = ref<string | null>(null)
+const directServiceClientSearch = ref('')
+const directServiceClientSuggestions = ref<{ id: string; full_name: string; phone: string }[]>([])
+const directServicePriceOverride = ref<number | null>(null)
+
+const directServiceSelected = computed(() =>
+  posServiciosList.value.find((s: any) => s.id === directServiceId.value)
+)
+
+const startDirectService = () => {
+  selectedAppointment.value = null
+  activeSaleType.value = 'direct_service'
+  cartCtx.clearCart()
+  paymentCtx.reset()
+  directServiceId.value = ''
+  directServiceEmployeeId.value = ''
+  directServiceAssistantId.value = ''
+  directServiceClientId.value = null
+  directServiceClientSearch.value = ''
+  directServiceClientSuggestions.value = []
+  directServicePriceOverride.value = null
+  tipAllocations.value = {}
+  tipManual.value = false
+  showTipAdjust.value = false
+  areProductsIncluded.value = false
+  if (isMobile.value) mobilePaymentOpen.value = true
+}
+
+const cancelDirectService = () => {
+  activeSaleType.value = 'appointment'
+  directServiceId.value = ''
+  directServiceEmployeeId.value = ''
+  directServiceAssistantId.value = ''
+  directServiceClientId.value = null
+  directServiceClientSearch.value = ''
+  directServiceClientSuggestions.value = []
+  directServicePriceOverride.value = null
+  paymentCtx.reset()
+  cartCtx.clearCart()
+}
+
+const selectDirectServiceClient = (client: { id: string; full_name: string; phone: string }) => {
+  directServiceClientId.value = client.id
+  directServiceClientSearch.value = client.full_name
+  directServiceClientSuggestions.value = []
+}
+
+const onDirectServiceSearchClients = async (query: string) => {
+  if (!businessId.value || !query.trim()) {
+    directServiceClientSuggestions.value = []
+    return
+  }
+  try {
+    directServiceClientSuggestions.value = await searchClients(businessId.value, query, branchId.value)
+  } catch {
+    directServiceClientSuggestions.value = []
+  }
+}
 
 const mobilePaymentOpen = ref(false)
 const windowWidth = ref(window.innerWidth)
@@ -234,7 +397,7 @@ const onResize = () => { windowWidth.value = window.innerWidth }
 onMounted(() => window.addEventListener('resize', onResize))
 onUnmounted(() => window.removeEventListener('resize', onResize))
 
-const hasPaymentContext = computed(() => selectedAppointment.value !== null || activeSaleType.value === 'retail_only')
+const hasPaymentContext = computed(() => selectedAppointment.value !== null || activeSaleType.value === 'retail_only' || activeSaleType.value === 'direct_service')
 const queryError = ref<string | null>(null)
 const appointmentSearch = ref('')
 const inlineProductSearch = ref('')
@@ -331,6 +494,9 @@ const onRetailSearchClients = async (query: string) => {
 }
 
 const servicePrice = computed(() => {
+  if (activeSaleType.value === 'direct_service') {
+    return directServiceSelected.value ? Number(directServicePriceOverride.value ?? directServiceSelected.value.price ?? 0) : 0
+  }
   const appt = selectedAppointment.value
   if (!appt) return 0
   if (Array.isArray(appt.members) && appt.members.length > 0) return appt.members.reduce((sum: number, m: any) => sum + Number(m.price ?? 0), 0)
@@ -344,8 +510,21 @@ const effectiveProductsTotal = computed(() => areProductsIncluded.value ? 0 : ca
 const grandTotal = computed(() => activeSaleType.value === 'retail_only' ? effectiveProductsTotal.value : servicePrice.value + effectiveProductsTotal.value + paymentCtx.tipAmount.value)
 
 const tipParticipants = computed<TipParticipant[]>(() => {
-  if (activeSaleType.value === 'retail_only' || !selectedAppointment.value) return []
+  if (activeSaleType.value === 'retail_only') return []
+  if (activeSaleType.value === 'direct_service') {
+    const result: TipParticipant[] = []
+    if (directServiceEmployeeId.value) {
+      const emp = posEmpleadosList.value.find((e: any) => e.id === directServiceEmployeeId.value)
+      result.push({ employeeId: directServiceEmployeeId.value, employeeName: emp?.name ?? 'Empleado' })
+    }
+    if (directServiceAssistantId.value) {
+      const asst = posEmpleadosList.value.find((e: any) => e.id === directServiceAssistantId.value)
+      result.push({ employeeId: directServiceAssistantId.value, employeeName: asst?.name ?? 'Asistente' })
+    }
+    return result
+  }
   const appt = selectedAppointment.value
+  if (!appt) return []
   if (appt.isGroup && Array.isArray(appt.members)) {
     const map = new Map<string, string>()
     for (const m of appt.members) { if (m.employeeId && !map.has(m.employeeId)) map.set(m.employeeId, m.employeeName ?? 'Empleado') }
@@ -379,6 +558,9 @@ const splitRemaining = computed(() =>
 const isProcessing = computed(() => paymentCtx.isProcessing.value)
 const canPay = computed(() => {
   if (grandTotal.value <= 0) return false
+  if (activeSaleType.value === 'direct_service') {
+    if (!directServiceId.value || !directServiceEmployeeId.value) return false
+  }
   if (activeSaleType.value !== 'retail_only' && paymentCtx.tipAmount.value > 0 && tipParticipants.value.length > 0 && Math.abs(tipRemaining.value) >= 0.01) return false
   if (paymentCtx.paymentMethod.value === 'mixed') {
     const total = paymentCtx.paymentsBreakdown.value.reduce((sum: number, s: any) => sum + (s.currency === 'VES' ? (s.inputAmount || 0) / exchangeRate.value : (s.inputAmount || 0)), 0)
@@ -482,14 +664,41 @@ const handleRetailPayment = async () => {
   }
 }
 
+const handleDirectServicePayment = async () => {
+  if (isProcessing.value || !directServiceId.value || !directServiceEmployeeId.value) return
+  const ok = await paymentCtx.processDirectServiceSale({
+    serviceId: directServiceId.value,
+    employeeId: directServiceEmployeeId.value,
+    assistantEmployeeId: directServiceAssistantId.value || null,
+    clientId: directServiceClientId.value || null,
+    serviceAmount: servicePrice.value,
+    productsAmount: effectiveProductsTotal.value,
+    products: cartCtx.cart.value,
+    exchangeRate: exchangeRate.value,
+    tipAmount: paymentCtx.tipAmount.value,
+  })
+  if (ok) {
+    selectedAppointment.value = null
+    cartCtx.clearCart()
+    paymentCtx.reset()
+    cancelDirectService()
+    mobilePaymentOpen.value = false
+  }
+}
+
 const showConfirmModal = ref(false)
-const confirmClientName = computed(() => activeSaleType.value === 'retail_only' ? null : (selectedAppointment.value?.client?.full_name ?? selectedAppointment.value?.clients?.full_name) || null)
+const confirmClientName = computed(() => {
+  if (activeSaleType.value === 'retail_only') return retailClientId.value ? retailClientSearch.value : null
+  if (activeSaleType.value === 'direct_service') return directServiceClientId.value ? directServiceClientSearch.value : null
+  return (selectedAppointment.value?.client?.full_name ?? selectedAppointment.value?.clients?.full_name) || null
+})
 const handleProcessPayment = () => { if (grandTotal.value > 0) showConfirmModal.value = true }
 const cancelPayment = () => { showConfirmModal.value = false }
 
 const confirmPayment = async () => {
   showConfirmModal.value = false
   if (activeSaleType.value === 'retail_only') { await handleRetailPayment(); return }
+  if (activeSaleType.value === 'direct_service') { await handleDirectServicePayment(); return }
   if (!selectedAppointment.value) return
   const appt = selectedAppointment.value
   const ok = await paymentCtx.processPayment({

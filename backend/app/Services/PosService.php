@@ -492,6 +492,74 @@ class PosService
         });
     }
 
+    /**
+     * Process a direct service sale (without a pre-created appointment).
+     * Automatically creates a completed appointment record and processes the sale atomically.
+     */
+    public function processDirectServiceSale(
+        string $serviceId,
+        string $employeeId,
+        ?string $assistantEmployeeId,
+        ?string $clientId,
+        float $serviceAmount,
+        string $method,
+        array $products,
+        ?string $notes,
+        ?float $exchangeRate,
+        array $paymentsBreakdown,
+        ?float $tipAmount,
+        string $businessId,
+        ?string $branchId,
+        string $createdBy,
+        float $productsAmount = 0,
+    ): string {
+        $service = \App\Models\Service::where('business_id', $businessId)->findOrFail($serviceId);
+        $duration = (int) ($service->duration_minutes ?? 30);
+        if ($duration < 1) $duration = 30;
+
+        $startTime = now();
+        $endTime = (clone $startTime)->addMinutes($duration);
+
+        return DB::transaction(function () use (
+            $serviceId, $employeeId, $assistantEmployeeId, $clientId,
+            $serviceAmount, $method, $products, $notes, $exchangeRate,
+            $paymentsBreakdown, $tipAmount, $businessId, $branchId, $createdBy, $productsAmount,
+            $startTime, $endTime
+        ) {
+            $appointment = Appointment::create([
+                'id' => Str::uuid()->toString(),
+                'business_id' => $businessId,
+                'branch_id' => $branchId,
+                'client_id' => $clientId,
+                'employee_id' => $employeeId,
+                'assistant_employee_id' => $assistantEmployeeId,
+                'service_id' => $serviceId,
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'status' => 'completed',
+                'payment_status' => 'unpaid',
+                'service_notes' => $notes,
+                'internal_notes' => 'Cobro directo en POS',
+                'source' => 'pos_direct',
+                'created_by' => $createdBy,
+            ]);
+
+            return $this->processSale(
+                appointmentId: $appointment->id,
+                serviceAmount: $serviceAmount,
+                method: $method,
+                products: $products,
+                notes: $notes,
+                exchangeRate: $exchangeRate,
+                paymentsBreakdown: $paymentsBreakdown,
+                tipAmount: $tipAmount,
+                businessId: $businessId,
+                createdBy: $createdBy,
+                productsAmount: $productsAmount,
+            );
+        });
+    }
+
     private function validateAndDeductStock(
         string $businessId,
         string $productId,

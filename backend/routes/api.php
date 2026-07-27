@@ -191,6 +191,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/pos/products', [PosController::class, 'saleableProducts']);
     Route::post('/pos/sale', [PosController::class, 'recordSale']);
     Route::post('/pos/direct-sale', [PosController::class, 'directSale']);
+    Route::post('/pos/direct-service-sale', [PosController::class, 'directServiceSale']);
 
     // Gift Cards
     Route::get('/gift-cards', [GiftCardController::class, 'index']);

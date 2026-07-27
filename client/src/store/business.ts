@@ -31,6 +31,7 @@ const DEFAULT_TERMINOLOGY: Terminology = {
     encargados_change_employee_rate: false,
     disable_employee_commission_edit: false,
     manual_reports: false,
+    pos_direct_service_sale: false,
   }
 
 export type FeatureKey = keyof typeof DEFAULT_FEATURES
