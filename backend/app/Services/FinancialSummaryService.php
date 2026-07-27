@@ -156,7 +156,7 @@ class FinancialSummaryService
 
         $employeeCommissions = round($totalIncome - $localIncome, 2);
 
-        $netProfit = $totalIncome - ($totalExpenses + $employeeCommissions);
+        $netProfit = $totalIncome - $totalExpenses;
 
         return [
             'total_income' => round($totalIncome, 2),

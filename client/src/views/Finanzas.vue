@@ -165,17 +165,11 @@ const summaryCtx = useFinancialSummary(businessId, selectedPeriod, expenses, sel
 
 const incomeTotal = summaryCtx.incomeTotal
 const localIncomeTotal = summaryCtx.localIncomeTotal
-const employeeCommissionsTotal = summaryCtx.employeeCommissionsTotal
 const vesIncomeTotal = summaryCtx.vesIncomeTotal
 const employeePaymentTotal = computed(() => {
   return (employeePaymentsCtx.paymentsMade.value ?? []).reduce((sum, p) => sum + Number(p.amount ?? 0), 0)
 })
-const expenseTotal = computed(() =>
-  expensesCtx.expenseTotal.value +
-  supplierPaymentsCtx.paymentTotal.value +
-  employeePaymentTotal.value +
-  employeeCommissionsTotal.value
-)
+const expenseTotal = computed(() => expensesCtx.expenseTotal.value + supplierPaymentsCtx.paymentTotal.value + employeePaymentTotal.value)
 const netTotal = computed(() => incomeTotal.value - expenseTotal.value)
 const marginTotal = computed(() => (incomeTotal.value > 0 ? (netTotal.value / incomeTotal.value) * 100 : 0))
 
@@ -242,16 +236,13 @@ const expenseBreakdown = computed(() => {
     else { empUSD += p.amount; totalUSD += p.amount }
   }
 
-  const commUSD = employeeCommissionsTotal.value
-  if (commUSD > 0) { empUSD += commUSD; totalUSD += commUSD; }
-
   if (opUSD > 0) usdItems.push({ label: 'Gastos Operativos (USD)', amount: opUSD })
   if (supUSD > 0) usdItems.push({ label: 'Abonos a Proveedores (USD)', amount: supUSD })
-  if (empUSD > 0) usdItems.push({ label: 'Nómina + Comisiones (USD)', amount: empUSD })
+  if (empUSD > 0) usdItems.push({ label: 'Pagos de Nómina (USD)', amount: empUSD })
 
   if (opVES > 0) vesItems.push({ label: 'Gastos Operativos (Bs)', amount: opVES })
   if (supVES > 0) vesItems.push({ label: 'Abonos a Proveedores (Bs)', amount: supVES })
-  if (empVES > 0) vesItems.push({ label: 'Nómina + Comisiones (Bs)', amount: empVES })
+  if (empVES > 0) vesItems.push({ label: 'Pagos de Nómina (Bs)', amount: empVES })
 
   return {
     title: 'Desglose de Gastos', usdTotal: totalUSD, vesTotal: totalVES,
