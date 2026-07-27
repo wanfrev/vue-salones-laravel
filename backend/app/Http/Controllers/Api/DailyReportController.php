@@ -54,6 +54,8 @@ class DailyReportController extends Controller
             'zelle_usd' => 'nullable|numeric|min:0',
             'binance_usd' => 'nullable|numeric|min:0',
             'cashea_usd' => 'nullable|numeric|min:0',
+            'credit_bs' => 'nullable|numeric|min:0',
+            'credit_usd' => 'nullable|numeric|min:0',
             'total_bs' => 'nullable|numeric|min:0',
             'total_usd' => 'nullable|numeric|min:0',
         ]);
@@ -88,6 +90,8 @@ class DailyReportController extends Controller
             'zelle_usd' => 'nullable|numeric|min:0',
             'binance_usd' => 'nullable|numeric|min:0',
             'cashea_usd' => 'nullable|numeric|min:0',
+            'credit_bs' => 'nullable|numeric|min:0',
+            'credit_usd' => 'nullable|numeric|min:0',
             'total_bs' => 'nullable|numeric|min:0',
             'total_usd' => 'nullable|numeric|min:0',
         ]);

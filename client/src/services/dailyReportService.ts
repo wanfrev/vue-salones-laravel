@@ -17,6 +17,8 @@ export interface DailyReport {
   zelle_usd: number
   binance_usd: number
   cashea_usd: number
+  credit_bs: number
+  credit_usd: number
   total_bs: number
   total_usd: number
   created_at?: string

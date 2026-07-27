@@ -85,6 +85,7 @@
               <th class="px-4 py-3 font-semibold text-text-secondary uppercase tracking-wider text-xs">Reporte Z</th>
               <th class="px-4 py-3 font-semibold text-text-secondary uppercase tracking-wider text-xs">Total Bs</th>
               <th class="px-4 py-3 font-semibold text-text-secondary uppercase tracking-wider text-xs">Total USD</th>
+              <th class="px-4 py-3 font-semibold text-text-secondary uppercase tracking-wider text-xs">Créditos</th>
               <th class="px-4 py-3 font-semibold text-text-secondary uppercase tracking-wider text-xs">Gran Total (USD + Bs)</th>
               <th class="px-4 py-3 font-semibold text-text-secondary uppercase tracking-wider text-xs w-[100px] text-right">Acciones</th>
             </tr>
@@ -115,6 +116,11 @@
               <td class="px-4 py-3">
                 <div class="font-bold text-text">${{ formatCurrency(report.total_usd) }} USD</div>
                 <div class="text-[11px] text-text-muted">≈ {{ formatCurrency(getUsdInBs(report)) }} Bs</div>
+              </td>
+              <td class="px-4 py-3">
+                <div v-if="Number(report.credit_bs) > 0" class="font-semibold text-amber-600 dark:text-amber-400">{{ formatCurrency(report.credit_bs) }} Bs</div>
+                <div v-if="Number(report.credit_usd) > 0" class="font-semibold text-amber-600 dark:text-amber-400">${{ formatCurrency(report.credit_usd) }} USD</div>
+                <div v-if="!Number(report.credit_bs) && !Number(report.credit_usd)" class="text-text-muted text-xs">—</div>
               </td>
               <td class="px-4 py-3">
                 <div class="font-extrabold text-primary">{{ formatCurrency(getGrandTotalBs(report)) }} Bs</div>
