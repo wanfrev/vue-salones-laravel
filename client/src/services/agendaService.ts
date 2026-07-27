@@ -58,8 +58,8 @@ export const listCitas = async (
     const startIso = dateRange.start instanceof Date ? dateRange.start.toISOString() : new Date(dateRange.start).toISOString()
     const endIso = dateRange.end instanceof Date ? dateRange.end.toISOString() : new Date(dateRange.end).toISOString()
     query = query
-      .gte('start_time', startIso)
-      .lte('start_time', endIso)
+      .gte('start_date', startIso)
+      .lte('end_date', endIso)
   }
 
   if (employeeId && employeeId !== 'all') {

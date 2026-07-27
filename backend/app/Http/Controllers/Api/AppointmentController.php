@@ -45,16 +45,27 @@ class AppointmentController
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId) return response()->json([]);
 
+        $startDate = $request->get('start_date') ?? $request->get('start_time');
+        $endDate = $request->get('end_date') ?? $request->get('end_time');
+        $employeeId = $request->get('employee_id');
+
+        if (!$employeeId && $request->has('or')) {
+            $orParam = (string) $request->get('or');
+            if (preg_match('/employee_id\.eq\.([a-f0-9\-]+)/i', $orParam, $m)) {
+                $employeeId = $m[1];
+            }
+        }
+
         return response()->json(
             $this->appointmentService->list(
                 $businessId,
-                $request->start_date,
-                $request->end_date,
-                $request->employee_id,
-                $request->branch_id,
-                $request->status,
-                $request->group_id,
-                $request->id_not,
+                $startDate,
+                $endDate,
+                $employeeId,
+                $request->get('branch_id'),
+                $request->get('status'),
+                $request->get('group_id'),
+                $request->get('id_not'),
             )
         );
     }

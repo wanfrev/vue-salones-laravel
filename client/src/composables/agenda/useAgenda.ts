@@ -108,8 +108,8 @@ export const useAgenda = () => {
       }
       const startIso = start instanceof Date ? start.toISOString() : new Date(start).toISOString()
       const endIso = end instanceof Date ? end.toISOString() : new Date(end).toISOString()
-      query = query.gte('start_time', startIso)
-        .lte('start_time', endIso)
+      query = query.gte('start_date', startIso)
+        .lte('end_date', endIso)
       if (empId !== 'all') {
         query = query.or(`employee_id.eq.${empId},assistant_employee_id.eq.${empId}`)
       }
