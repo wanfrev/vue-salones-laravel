@@ -121,10 +121,11 @@ class AppointmentService
 
         $fillable = [
             'client_id', 'pet_id', 'employee_id', 'service_id', 'assistant_employee_id',
-            'start_time', 'end_time', 'service_notes', 'internal_notes',
+            'start_time', 'end_time', 'status', 'service_notes', 'internal_notes',
             'price_override', 'employee_percentage_override', 'assistant_percentage',
             'is_fixed_commission_override', 'employee_amount_override', 'assistant_amount_override',
-            'duration_override', 'diagnosis', 'treatment', 'associated_products', 'group_id', 'branch_id',
+            'duration_override', 'diagnosis', 'treatment', 'associated_products', 'clinical_history',
+            'group_id', 'branch_id'
         ];
 
         $filtered = array_filter($data, fn($k) => in_array($k, $fillable), ARRAY_FILTER_USE_KEY);
