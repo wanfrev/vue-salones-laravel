@@ -63,6 +63,7 @@ export function useSuppliers(businessId: import('vue').Ref<string | null>) {
   const showModal = ref(false)
   const editingId = ref<string | null>(null)
   const saveError = ref('')
+  const formErrors = ref<Record<string, string>>({})
 
   const form = ref<SupplierFormData>({
     firstName: '',
