@@ -47,6 +47,7 @@ import { useRoute } from 'vue-router'
 import { useAuth } from '../../composables/common/useAuth'
 import { useBusinessStore } from '../../store/business'
 import { isAdminPanelRole } from '../../constants/roles'
+import { isPetNiche } from '../../config/nicheFields'
 import { sidebarSections } from './sidebarLinks'
 import type { SidebarLink } from './sidebarLinks'
 
@@ -67,6 +68,7 @@ const businessStore = useBusinessStore()
 const isAdmin = computed(() => isAdminPanelRole(authStore.role ?? undefined))
 const isCajeroRole = computed(() => authStore.isCajeroProfile)
 const agendaDisabled = computed(() => authStore.profile?.disable_agenda ?? false)
+const isPetNicheBusiness = computed(() => isPetNiche(businessStore.nicheType))
 
 const visibleSections = computed(() =>
   sidebarSections
@@ -79,6 +81,7 @@ const visibleSections = computed(() =>
         if (link.adminOnly && !isAdmin.value) return false
         if (link.employeeOnly && isAdmin.value) return false
         if (link.requiresFeature && !businessStore.hasFeature(link.requiresFeature as any)) return false
+        if (link.requiresPetNiche && !isPetNicheBusiness.value) return false
         if (link.hideIfAgendaDisabled && agendaDisabled.value) return false
         return true
       }),
