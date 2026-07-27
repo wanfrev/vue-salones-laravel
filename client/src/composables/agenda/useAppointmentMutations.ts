@@ -144,12 +144,17 @@ export function useAppointmentMutations(options: {
 
       return savedCita
     },
-    onMutate: async (input) => {
-      if (input.id) return null
-      await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
-      const { _paymentData, ...data } = input
+    onMutate: (input) => {
+      if (input.id) return
       const tempId = `temp-${Date.now()}`
-      const optimistic: any = { id: tempId, status: 'pending', paymentStatus: 'unpaid', ...data }
+      const tempStart = new Date(`${input.date}T${input.time}:00`).toISOString()
+      const optimistic: any = {
+        id: tempId, status: 'pending', payment_status: 'unpaid',
+        start_time: tempStart, end_time: tempStart,
+        service_id: input.service, employee_id: input.employee,
+        business_id: options.businessId.value, branch_id: businessStore.currentBranchId,
+        client: { full_name: input.clientName, phone: input.clientPhone },
+      }
       const previousQueries = queryClient.getQueriesData({ queryKey: ['appointments'], exact: false })
       for (const [key, old] of previousQueries) {
         if (Array.isArray(old)) {
@@ -158,7 +163,7 @@ export function useAppointmentMutations(options: {
       }
       return { tempId, previousQueries }
     },
-    onSuccess: async (_result, _input, context) => {
+    onSuccess: (_result, _input, context) => {
       if (context?.tempId && context?.previousQueries) {
         for (const [key] of context.previousQueries) {
           queryClient.setQueryData(key, (old: any) =>
@@ -166,7 +171,6 @@ export function useAppointmentMutations(options: {
           )
         }
       }
-      await invalidate()
       options.modalRef?.value?.close()
       options.modalRef?.value?.onSaveComplete?.()
       success('Cita guardada correctamente')
@@ -181,7 +185,7 @@ export function useAppointmentMutations(options: {
       showError(translateError(err))
     },
     onSettled: () => {
-      // onSuccess already awaits invalidate()
+      void invalidate()
     },
   })
 
