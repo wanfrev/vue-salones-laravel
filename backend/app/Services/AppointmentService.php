@@ -47,9 +47,20 @@ class AppointmentService
                 $q->whereNull('branch_id')->orWhere('branch_id', $cleanBranch);
             });
         }
-        if ($status) $query->whereIn('status', (array) $status);
-        if ($groupId) $query->where('group_id', $groupId);
-        if ($idNot) $query->where('id', '!=', $idNot);
+        if ($status) {
+            $cleanStatus = is_array($status)
+                ? array_map(fn($s) => preg_replace('/^(gte|lte|gt|lt|eq|in|neq)\./i', '', $s), (array) $status)
+                : preg_replace('/^(gte|lte|gt|lt|eq|in|neq)\./i', '', $status);
+            $query->whereIn('status', (array) $cleanStatus);
+        }
+        if ($groupId) {
+            $cleanGroup = preg_replace('/^(gte|lte|gt|lt|eq|in|neq)\./i', '', $groupId);
+            $query->where('group_id', $cleanGroup);
+        }
+        if ($idNot) {
+            $cleanIdNot = preg_replace('/^(gte|lte|gt|lt|eq|in|neq)\./i', '', $idNot);
+            $query->where('id', '!=', $cleanIdNot);
+        }
 
         return $query->get();
     }
@@ -191,8 +202,10 @@ class AppointmentService
 
     public function groupMembers(string $groupId, string $businessId): Collection
     {
+        $cleanGroup = preg_replace('/^(gte|lte|gt|lt|eq|in|neq)\./i', '', $groupId);
         return Appointment::with(['client', 'service', 'employeeProfile'])
-            ->where('group_id', $groupId)
+            ->where('business_id', $businessId)
+            ->where('group_id', $cleanGroup)
             ->get();
     }
 

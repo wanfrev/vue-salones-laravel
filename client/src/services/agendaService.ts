@@ -73,10 +73,11 @@ export const listCitas = async (
 }
 
 export const listCitaGroupMembers = async (groupId: string): Promise<AppointmentWithRelations[]> => {
+  const cleanGroupId = groupId.replace(/^(gte|lte|gt|lt|eq|in|neq)\./i, '')
   const { data, error } = await db
     .from('appointments')
     .select(APPOINTMENT_SELECT)
-    .eq('group_id', groupId)
+    .eq('group_id', cleanGroupId)
     .order('start_time')
 
   if (error) throw error
