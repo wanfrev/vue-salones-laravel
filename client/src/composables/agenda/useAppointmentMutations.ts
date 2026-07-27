@@ -51,10 +51,16 @@ export function useAppointmentMutations(options: {
     await Promise.allSettled(keys.map(key =>
       queryClient.invalidateQueries({ queryKey: key, exact: false })
     ))
-    await Promise.allSettled([
+
+    // Refetch typed agenda keys explicitly (covers admin, employee, and calendar views)
+    const agendaRefreshes = bid ? [
+      queryClient.refetchQueries({ queryKey: ['appointments', bid], exact: false }),
+      queryClient.refetchQueries({ queryKey: posKeys.pending(bid, brId), exact: true }),
+    ] : [
       queryClient.refetchQueries({ queryKey: ['appointments'], exact: false }),
       queryClient.refetchQueries({ queryKey: posKeys.pending(bid, brId), exact: true }),
-    ])
+    ]
+    await Promise.allSettled(agendaRefreshes)
   }
 
   const saveCitaMutation = useMutation({
@@ -138,12 +144,17 @@ export function useAppointmentMutations(options: {
 
       return savedCita
     },
-    onMutate: async (input) => {
-      if (input.id) return null
-      await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
-      const { _paymentData, ...data } = input
+    onMutate: (input) => {
+      if (input.id) return
       const tempId = `temp-${Date.now()}`
-      const optimistic: any = { id: tempId, status: 'pending', paymentStatus: 'unpaid', ...data }
+      const tempStart = new Date(`${input.date}T${input.time}:00`).toISOString()
+      const optimistic: any = {
+        id: tempId, status: 'pending', payment_status: 'unpaid',
+        start_time: tempStart, end_time: tempStart,
+        service_id: input.service, employee_id: input.employee,
+        business_id: options.businessId.value, branch_id: businessStore.currentBranchId,
+        client: { full_name: input.clientName, phone: input.clientPhone },
+      }
       const previousQueries = queryClient.getQueriesData({ queryKey: ['appointments'], exact: false })
       for (const [key, old] of previousQueries) {
         if (Array.isArray(old)) {
@@ -160,7 +171,6 @@ export function useAppointmentMutations(options: {
           )
         }
       }
-      void invalidate()
       options.modalRef?.value?.close()
       options.modalRef?.value?.onSaveComplete?.()
       success('Cita guardada correctamente')
