@@ -138,7 +138,7 @@ export const mapCitaFormToAppointmentInsert = (
     internal_notes: data.notes.trim() || null,
     diagnosis: data.diagnosis?.trim() || null,
     treatment: data.treatment?.trim() || null,
-    clinical_history: data.clinicalHistory ?? null,
+    clinical_history: (data.clinicalHistory && Object.keys(data.clinicalHistory).length > 0) ? data.clinicalHistory : null,
     associated_products: (() => {
       const valid = (data.associatedProducts || []).filter(p => !!(p && p.productId))
       return valid.length > 0 ? valid : null
@@ -200,7 +200,7 @@ export const mapServiceItemToAppointmentInsert = (
     internal_notes: notes.trim() || null,
     diagnosis: diagnosis?.trim() || null,
     treatment: treatment?.trim() || null,
-    clinical_history: clinicalHistory ?? null,
+    clinical_history: (clinicalHistory && Object.keys(clinicalHistory).length > 0) ? clinicalHistory : null,
     associated_products: (() => {
       const valid = (associatedProducts || []).filter(p => !!(p && (p.productId || p.product_id)))
       return valid.length > 0 ? valid : null

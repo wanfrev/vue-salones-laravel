@@ -72,6 +72,8 @@ export function useNotifications() {
   const notifications = computed(() => unreadNotifications.value ?? [])
   const unreadCount = computed(() => notifications.value.length)
 
+  const shownNotificationIds = new Set<string>()
+
   const invalidate = () => {
     queryClient.invalidateQueries({ exact: false, queryKey: ['notifications'] }).catch(() => {})
   }
@@ -112,8 +114,9 @@ export function useNotifications() {
 
   watch(notifications, (current, previous) => {
     if (!previous || previous.length === 0) return
-    const newNotifs = current.filter(n => !previous.find(p => p.id === n.id))
+    const newNotifs = current.filter(n => !previous.find(p => p.id === n.id) && !shownNotificationIds.has(n.id))
     for (const n of newNotifs) {
+      shownNotificationIds.add(n.id)
       showBrowserNotification(n)
     }
   })
