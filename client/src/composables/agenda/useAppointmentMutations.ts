@@ -52,13 +52,12 @@ export function useAppointmentMutations(options: {
       queryClient.invalidateQueries({ queryKey: key, exact: false })
     ))
 
-    // Refetch typed agenda keys explicitly (covers admin, employee, and calendar views)
     const agendaRefreshes = bid ? [
-      queryClient.refetchQueries({ queryKey: ['appointments', bid], exact: false }),
-      queryClient.refetchQueries({ queryKey: posKeys.pending(bid, brId), exact: true }),
+      queryClient.refetchQueries({ queryKey: ['appointments', bid], exact: false, type: 'all' }),
+      queryClient.refetchQueries({ queryKey: posKeys.pending(bid, brId), exact: true, type: 'all' }),
     ] : [
-      queryClient.refetchQueries({ queryKey: ['appointments'], exact: false }),
-      queryClient.refetchQueries({ queryKey: posKeys.pending(bid, brId), exact: true }),
+      queryClient.refetchQueries({ queryKey: ['appointments'], exact: false, type: 'all' }),
+      queryClient.refetchQueries({ queryKey: posKeys.pending(bid, brId), exact: true, type: 'all' }),
     ]
     await Promise.allSettled(agendaRefreshes)
   }
@@ -163,12 +162,24 @@ export function useAppointmentMutations(options: {
       }
       return { tempId, previousQueries }
     },
-    onSuccess: (_result, _input, context) => {
-      if (context?.tempId && context?.previousQueries) {
-        for (const [key] of context.previousQueries) {
-          queryClient.setQueryData(key, (old: any) =>
-            Array.isArray(old) ? old.filter((c: any) => c.id !== context.tempId) : old
-          )
+    onSuccess: (result, _input, context) => {
+      const saved = result as any
+      if (context?.previousQueries) {
+        for (const [key, oldData] of context.previousQueries) {
+          let updated: any[]
+          if (Array.isArray(oldData)) {
+            if (context.tempId) {
+              updated = oldData.map((c: any) => c.id === context.tempId ? { ...saved, ...c, id: saved.id ?? c.id } : c)
+              if (!updated.some((c: any) => c.id === saved.id)) {
+                updated = [saved, ...updated.filter((c: any) => c.id !== context.tempId)]
+              }
+            } else {
+              updated = [saved, ...oldData]
+            }
+          } else {
+            updated = [saved]
+          }
+          queryClient.setQueryData(key, updated)
         }
       }
       options.modalRef?.value?.close()
@@ -184,8 +195,8 @@ export function useAppointmentMutations(options: {
       options.modalRef?.value?.onSaveComplete?.()
       showError(translateError(err))
     },
-    onSettled: () => {
-      void invalidate()
+    onSettled: async () => {
+      await invalidate()
     },
   })
 
@@ -212,8 +223,8 @@ export function useAppointmentMutations(options: {
       }
       showError(translateError(err))
     },
-    onSettled: () => {
-      void invalidate()
+    onSettled: async () => {
+      await invalidate()
     },
   })
 
