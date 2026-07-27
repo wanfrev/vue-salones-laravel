@@ -238,9 +238,15 @@ class AppointmentService
             ->where('start_time', '<', $endTime)
             ->where('end_time', '>', $startTime)
             ->where(function ($q) use ($employeeId, $assistantId) {
-                $q->where('employee_id', $employeeId);
+                $q->where(function ($sub) use ($employeeId) {
+                    $sub->where('employee_id', $employeeId)
+                        ->orWhere('assistant_employee_id', $employeeId);
+                });
                 if ($assistantId) {
-                    $q->orWhere('assistant_employee_id', $assistantId);
+                    $q->orWhere(function ($sub) use ($assistantId) {
+                        $sub->where('employee_id', $assistantId)
+                            ->orWhere('assistant_employee_id', $assistantId);
+                    });
                 }
             });
 
