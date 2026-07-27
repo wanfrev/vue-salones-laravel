@@ -41,9 +41,16 @@ class ClientController
     {
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
-        if (!$this->canEmployeeSeeClients($request)) return response()->json(['error' => ['message' => 'No tienes permiso para ver información de clientes.']], 403);
 
         $client = $this->clientService->findForBusiness($id, $businessId);
+        if (!$client) return response()->json(['error' => ['message' => 'No encontrado.']], 404);
+
+        if ($request->user()?->profile?->role === 'empleado') {
+            $client->phone = '';
+            $client->email = null;
+            $client->notes = null;
+        }
+
         return response()->json($client);
     }
 
@@ -80,7 +87,7 @@ class ClientController
     public function search(Request $request): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
-        if (!$businessId || !$this->canEmployeeSeeClients($request)) return response()->json([]);
+        if (!$businessId) return response()->json([]);
 
         $request->validate(['q' => 'required|string|min:1']);
         return response()->json($this->clientService->search($businessId, $request->q, $request->branch_id));
@@ -90,7 +97,6 @@ class ClientController
     {
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
-        if (!$this->canEmployeeSeeClients($request)) return response()->json(['error' => ['message' => 'No tienes permiso para ver o buscar clientes.']], 403);
 
         $data = $request->validate([
             'phone' => 'required|string|max:50',
@@ -106,7 +112,7 @@ class ClientController
     public function history(Request $request, string $id): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
-        if (!$businessId || !$this->canEmployeeSeeClients($request)) return response()->json([]);
+        if (!$businessId) return response()->json([]);
 
         return response()->json($this->clientService->getHistory($id, $businessId));
     }
