@@ -534,6 +534,26 @@ class PosService
             $source = 'internal';
         }
 
+        try {
+            DB::statement('ALTER TABLE appointments ALTER COLUMN client_id DROP NOT NULL;');
+        } catch (\Throwable $e) {
+            // Ignore if column already nullable or sqlite
+        }
+
+        if (!$clientId) {
+            $generalClient = \App\Models\Client::firstOrCreate(
+                [
+                    'business_id' => $businessId,
+                    'full_name' => 'Cliente General',
+                ],
+                [
+                    'phone' => '0000000000',
+                    'notes' => 'Cliente genérico para ventas directas sin cliente asignado',
+                ]
+            );
+            $clientId = $generalClient->id;
+        }
+
         return DB::transaction(function () use (
             $services, $clientId, $serviceAmount, $method, $products, $notes,
             $exchangeRate, $paymentsBreakdown, $tipAmount, $businessId, $branchId,
