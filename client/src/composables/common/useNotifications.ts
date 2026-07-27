@@ -1,9 +1,8 @@
-import { computed, watchEffect, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useAuthStore } from '../../store/auth'
 import { useNotification } from '../common/useNotification'
 import { translateError } from '../../lib/errors'
-import { echoClient } from '../../lib/echo'
 import router from '../../router'
 import {
   listUnreadNotifications,
@@ -83,22 +82,6 @@ export function useNotifications() {
     queryClient.invalidateQueries({ exact: false, queryKey: ['notifications'] }).catch(() => {})
   }
 
-  watchEffect((onCleanup) => {
-    if (!businessId.value) return
-
-    const channel = echoClient.private(`business.${businessId.value}`)
-
-    channel.listen('.entity.changed', (payload: any) => {
-      if (payload?.entity === 'notification') {
-        invalidate()
-      }
-    })
-
-    onCleanup(() => {
-      echoClient.leave(`business.${businessId.value}`)
-    })
-  })
-
   const markAsReadMutation = useMutation({
     mutationFn: (id: string) => markNotificationAsRead(id),
     onSuccess: async () => { await invalidate() },
@@ -118,7 +101,7 @@ export function useNotifications() {
   })
 
   watch(notifications, (current, previous) => {
-    if (!previous || previous.length === 0) return
+    if (!previous) return
     const newNotifs = current.filter(n => !previous.find(p => p.id === n.id))
     for (const n of newNotifs) {
       showBrowserNotification(n)
