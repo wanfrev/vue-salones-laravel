@@ -29,6 +29,8 @@ class Appointment extends Model
     protected function casts(): array
     {
         return [
+            'start_time' => 'datetime',
+            'end_time' => 'datetime',
             'associated_products' => 'array',
             'clinical_history' => 'array',
         ];

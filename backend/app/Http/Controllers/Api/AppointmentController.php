@@ -87,6 +87,8 @@ class AppointmentController
         $appointment->load(['client', 'service', 'employeeProfile', 'assistantProfile']);
         EntityChanged::safe($businessId, 'appointment', 'created', $appointment->id);
 
+        $notifiedProfiles = [];
+        
         // Notify assigned employee
         $notifService = app(NotificationService::class);
         $clientName = $appointment->client?->full_name ?? 'Cliente';
@@ -105,6 +107,7 @@ class AppointmentController
             'service_name' => $serviceName,
             'appointment_time' => $startTime,
         ]);
+        $notifiedProfiles[] = $appointment->employee_id;
 
         // Notify assistant if assigned
         if ($appointment->assistant_employee_id) {
@@ -119,11 +122,14 @@ class AppointmentController
                 'service_name' => $serviceName,
                 'appointment_time' => $startTime,
             ]);
+            $notifiedProfiles[] = $appointment->assistant_employee_id;
         }
 
         // Notify admins and encargados
         $admins = $this->getAdminsToNotify($businessId, $appointment->branch_id);
         foreach ($admins as $admin) {
+            if (in_array($admin->id, $notifiedProfiles)) continue;
+            
             $notifService->create([
                 'business_id' => $businessId,
                 'profile_id' => $admin->id,
