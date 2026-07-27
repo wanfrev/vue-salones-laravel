@@ -28,6 +28,7 @@ export interface SidebarLink {
   employeeOnly?: boolean
   badge?: string
   requiresFeature?: string
+  requiresPetNiche?: boolean
   hideIfAgendaDisabled?: boolean
 }
 
@@ -50,8 +51,8 @@ export const sidebarSections: SidebarSection[] = [
       { to: '/admin/pos', label: 'Punto de Venta', icon: ShoppingCart, adminOnly: true, requiresFeature: 'pos' },
       { to: '/admin/clientes', label: 'Clientes', labelKey: 'client', icon: Users, adminOnly: true },
       { to: '/dashboard/clientes', label: 'Clientes', labelKey: 'client', icon: Users, employeeOnly: true, requiresFeature: 'employees_see_clients' },
-      { to: '/admin/consultorio', label: 'Consultorio', icon: Stethoscope, adminOnly: true },
-      { to: '/dashboard/consultorio', label: 'Consultorio', icon: Stethoscope, employeeOnly: true },
+      { to: '/admin/consultorio', label: 'Consultorio', icon: Stethoscope, adminOnly: true, requiresPetNiche: true },
+      { to: '/dashboard/consultorio', label: 'Consultorio', icon: Stethoscope, employeeOnly: true, requiresPetNiche: true },
       { to: '/admin/equipo', label: 'Equipo', labelKey: 'employee', icon: Briefcase, adminOnly: true },
       { to: '/admin/finanzas', label: 'Finanzas', icon: BarChart3, adminOnly: true, badge: 'Nuevo' },
       { to: '/admin/servicios', label: 'Servicios', labelKey: 'service', icon: Sparkles, adminOnly: true },
