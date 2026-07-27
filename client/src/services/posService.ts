@@ -178,11 +178,17 @@ export const recordDirectSale = async (params: {
 }
 
 export const recordDirectServiceSale = async (params: {
-  serviceId: string
-  employeeId: string
+  services?: Array<{
+    serviceId: string
+    employeeId: string
+    assistantEmployeeId?: string | null
+    price: number
+  }>
+  serviceId?: string
+  employeeId?: string
   assistantEmployeeId?: string | null
   clientId?: string | null
-  serviceAmount: number
+  serviceAmount?: number
   productsAmount?: number
   method: PaymentMethod
   products?: POSProductItem[]
@@ -209,12 +215,20 @@ export const recordDirectServiceSale = async (params: {
     name: p.productName,
   }))
 
+  const servicesPayload = params.services?.map(s => ({
+    service_id: s.serviceId,
+    employee_id: s.employeeId,
+    assistant_employee_id: s.assistantEmployeeId ?? null,
+    price: s.price,
+  }))
+
   const response = await apiRequest<{ id: string }>('POST', '/pos/direct-service-sale', {
+    services: servicesPayload,
     service_id: params.serviceId,
     employee_id: params.employeeId,
     assistant_employee_id: params.assistantEmployeeId ?? null,
     client_id: params.clientId ?? null,
-    service_amount: params.serviceAmount,
+    service_amount: params.serviceAmount ?? 0,
     products_amount: params.productsAmount ?? 0,
     method: params.method,
     products: productsPayload,

@@ -6,22 +6,26 @@
       <div class="flex-1 overflow-y-auto min-h-0 space-y-3 pr-1">
         <div class="rounded-lg bg-bg-secondary p-3">
           <template v-if="isDirectService && !selectedAppointment">
-            <div class="flex items-center justify-between text-sm">
+            <div class="flex items-center justify-between text-sm mb-2 pb-2 border-b border-border">
               <span class="text-text-muted">Cliente</span>
               <span class="font-medium text-text">{{ retailClientName || 'Servicio Directo' }}</span>
             </div>
-            <div class="flex items-center justify-between text-sm mt-1">
-              <span class="text-text-muted">Servicio</span>
-              <span class="font-medium text-text">{{ directServiceName || '—' }}</span>
+            <div v-if="directServicesList && directServicesList.length > 0" class="space-y-2">
+              <div
+                v-for="(item, i) in directServicesList"
+                :key="item.id || i"
+                class="flex items-start justify-between text-sm"
+              >
+                <div class="flex-1 min-w-0 pr-2">
+                  <p class="font-medium text-text text-xs truncate">{{ item.serviceName }}</p>
+                  <p class="text-text-muted text-[11px] truncate">
+                    {{ item.employeeName }}<template v-if="item.assistantEmployeeName"> + {{ item.assistantEmployeeName }}</template>
+                  </p>
+                </div>
+                <span class="font-semibold text-text text-xs shrink-0 tabular-nums">${{ item.price }}</span>
+              </div>
             </div>
-            <div class="flex items-center justify-between text-sm mt-1">
-              <span class="text-text-muted">Empleado</span>
-              <span class="font-medium text-text">{{ directServiceEmployeeName || '—' }}</span>
-            </div>
-            <div v-if="directServiceAssistantName" class="flex items-center justify-between text-sm mt-1">
-              <span class="text-text-muted">Asistente</span>
-              <span class="font-medium text-text">{{ directServiceAssistantName }}</span>
-            </div>
+            <p v-else class="text-xs text-text-muted text-center py-1">Sin servicios agregados</p>
           </template>
           <template v-else-if="isRetailOnly && !selectedAppointment">
             <div class="flex items-center justify-between text-sm">
@@ -398,6 +402,13 @@ const props = defineProps<{
   directServiceName?: string | null
   directServiceEmployeeName?: string | null
   directServiceAssistantName?: string | null
+  directServicesList?: Array<{
+    id?: string
+    serviceName: string
+    employeeName: string
+    assistantEmployeeName?: string | null
+    price: number
+  }>
 }>()
 
 defineEmits<{

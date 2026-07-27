@@ -9,11 +9,16 @@ class DirectServiceSaleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'service_id' => 'required|uuid',
-            'employee_id' => 'required|uuid',
+            'services' => 'nullable|array|min:1',
+            'services.*.service_id' => 'required_with:services|uuid',
+            'services.*.employee_id' => 'required_with:services|uuid',
+            'services.*.assistant_employee_id' => 'nullable|uuid',
+            'services.*.price' => 'required_with:services|numeric|min:0',
+            'service_id' => 'nullable|uuid',
+            'employee_id' => 'nullable|uuid',
             'assistant_employee_id' => 'nullable|uuid',
+            'service_amount' => 'nullable|numeric|min:0',
             'client_id' => 'nullable|uuid',
-            'service_amount' => 'required|numeric|min:0',
             'method' => 'required|string|max:50',
             'products' => 'nullable|array',
             'products.*.product_id' => 'required_with:products|uuid',
