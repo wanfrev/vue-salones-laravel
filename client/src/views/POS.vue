@@ -64,79 +64,154 @@
               </svg>
             </div>
             <div>
-              <h3 class="text-sm font-bold text-text">Cobro Directo de Servicio</h3>
-              <p class="text-xs text-text-muted">Selecciona el servicio y el personal a cargo</p>
+              <h3 class="text-sm font-bold text-text">Cobro Directo de Servicios</h3>
+              <p class="text-xs text-text-muted">Agrega múltiples servicios y modifica sus montos fácilmente</p>
             </div>
           </div>
-          <button @click="cancelDirectService" class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text">
+          <button @click="cancelDirectService" class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text" title="Cancelar servicio directo">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
 
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <!-- Servicio -->
-          <div>
-            <label class="block text-xs font-semibold text-text-secondary mb-1">Servicio *</label>
-            <select
-              v-model="directServiceId"
-              class="w-full rounded-xl border border-border bg-bg-secondary px-3 py-2 text-xs text-text outline-none focus:border-primary"
-            >
-              <option value="" disabled>Selecciona un servicio</option>
-              <option v-for="s in posServiciosList" :key="s.id" :value="s.id">
-                {{ s.name }} (${{ s.price }})
-              </option>
-            </select>
-          </div>
+        <!-- Formulario para agregar un servicio -->
+        <div class="rounded-xl bg-bg-secondary/60 p-3 space-y-3 border border-border/50">
+          <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Servicio -->
+            <div class="lg:col-span-2">
+              <label class="block text-[11px] font-semibold text-text-secondary mb-1">Servicio *</label>
+              <select
+                v-model="pendingServiceId"
+                @change="onPendingServiceChange"
+                class="w-full rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-text outline-none focus:border-primary"
+              >
+                <option value="" disabled>Selecciona un servicio</option>
+                <option v-for="s in posServiciosList" :key="s.id" :value="s.id">
+                  {{ s.name }} (${{ s.price }})
+                </option>
+              </select>
+            </div>
 
-          <!-- Empleado Principal -->
-          <div>
-            <label class="block text-xs font-semibold text-text-secondary mb-1">Empleado a cargo *</label>
-            <select
-              v-model="directServiceEmployeeId"
-              class="w-full rounded-xl border border-border bg-bg-secondary px-3 py-2 text-xs text-text outline-none focus:border-primary"
-            >
-              <option value="" disabled>Selecciona empleado</option>
-              <option v-for="e in posEmpleadosList" :key="e.id" :value="e.id">
-                {{ e.name }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Asistente -->
-          <div>
-            <label class="block text-xs font-semibold text-text-secondary mb-1">Asistente (opcional)</label>
-            <select
-              v-model="directServiceAssistantId"
-              class="w-full rounded-xl border border-border bg-bg-secondary px-3 py-2 text-xs text-text outline-none focus:border-primary"
-            >
-              <option value="">Sin asistente</option>
-              <option v-for="e in posEmpleadosList.filter((x: any) => x.id !== directServiceEmployeeId)" :key="e.id" :value="e.id">
-                {{ e.name }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Cliente (Opcional) -->
-          <div>
-            <label class="block text-xs font-semibold text-text-secondary mb-1">Cliente (opcional)</label>
-            <div class="relative">
+            <!-- Precio Modificable -->
+            <div>
+              <label class="block text-[11px] font-semibold text-text-secondary mb-1">Precio ($) *</label>
               <input
-                v-model="directServiceClientSearch"
-                @input="onDirectServiceSearchClients(directServiceClientSearch)"
-                placeholder="Buscar por nombre o teléfono"
-                class="w-full rounded-xl border border-border bg-bg-secondary px-3 py-2 text-xs text-text outline-none focus:border-primary"
+                type="number"
+                step="0.01"
+                min="0"
+                v-model.number="pendingServicePrice"
+                placeholder="0.00"
+                class="w-full rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-text font-medium outline-none focus:border-primary"
               />
-              <div v-if="directServiceClientSuggestions.length > 0" class="absolute left-0 right-0 top-full z-30 mt-1 max-h-40 overflow-y-auto rounded-xl border border-border bg-surface p-1 shadow-lg">
+            </div>
+
+            <!-- Empleado Principal -->
+            <div>
+              <label class="block text-[11px] font-semibold text-text-secondary mb-1">Empleado *</label>
+              <select
+                v-model="pendingEmployeeId"
+                class="w-full rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-text outline-none focus:border-primary"
+              >
+                <option value="" disabled>Selecciona empleado</option>
+                <option v-for="e in posEmpleadosList" :key="e.id" :value="e.id">
+                  {{ e.name }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Asistente (Opcional) -->
+            <div class="lg:col-span-2">
+              <label class="block text-[11px] font-semibold text-text-secondary mb-1">Asistente (opcional)</label>
+              <select
+                v-model="pendingAssistantId"
+                class="w-full rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-text outline-none focus:border-primary"
+              >
+                <option value="">Sin asistente</option>
+                <option v-for="e in posEmpleadosList.filter((x: any) => x.id !== pendingEmployeeId)" :key="e.id" :value="e.id">
+                  {{ e.name }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Botón Agregar -->
+            <div class="lg:col-span-2 flex items-end">
+              <button
+                @click="addDirectServiceToList"
+                :disabled="!pendingServiceId || !pendingEmployeeId || pendingServicePrice < 0"
+                class="w-full flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-all hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              >
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                + Agregar servicio a la cuenta
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista de Servicios Agregados -->
+        <div v-if="directServicesList.length > 0" class="space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-text uppercase tracking-wider">Servicios Agregados ({{ directServicesList.length }})</h4>
+            <span class="text-xs font-bold text-primary tabular-nums">Subtotal Servicios: ${{ servicePrice.toFixed(2) }}</span>
+          </div>
+
+          <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+            <div
+              v-for="(item, idx) in directServicesList"
+              :key="item.id"
+              class="flex items-center justify-between gap-2 rounded-xl border border-border bg-surface p-2.5 shadow-2xs"
+            >
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-semibold text-text truncate">{{ item.serviceName }}</p>
+                <p class="text-[11px] text-text-muted truncate">
+                  Por: <span class="font-medium text-text">{{ item.employeeName }}</span>
+                  <template v-if="item.assistantEmployeeName"> | Asistente: <span class="font-medium text-text">{{ item.assistantEmployeeName }}</span></template>
+                </p>
+              </div>
+
+              <div class="flex items-center gap-2 shrink-0">
+                <div class="flex items-center gap-1 bg-bg-secondary px-2 py-1 rounded-lg border border-border">
+                  <span class="text-xs text-text-muted">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    :value="item.price"
+                    @input="updateDirectServicePrice(idx, ($event.target as HTMLInputElement).valueAsNumber)"
+                    class="w-16 bg-transparent text-right text-xs font-bold text-text outline-none"
+                  />
+                </div>
+
                 <button
-                  v-for="c in directServiceClientSuggestions"
-                  :key="c.id"
-                  @click="selectDirectServiceClient(c)"
-                  class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs text-text hover:bg-bg-secondary"
+                  @click="removeDirectServiceFromList(idx)"
+                  class="rounded-lg p-1 text-text-muted hover:bg-danger/10 hover:text-danger transition-colors"
+                  title="Eliminar servicio"
                 >
-                  <span class="font-medium">{{ c.full_name }}</span>
-                  <span class="text-text-muted text-[10px]">{{ c.phone }}</span>
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cliente Opcional -->
+        <div class="border-t border-border pt-3">
+          <label class="block text-xs font-semibold text-text-secondary mb-1">Cliente asignado (opcional)</label>
+          <div class="relative">
+            <input
+              v-model="directServiceClientSearch"
+              @input="onDirectServiceSearchClients(directServiceClientSearch)"
+              placeholder="Buscar cliente por nombre o teléfono..."
+              class="w-full rounded-xl border border-border bg-bg-secondary px-3 py-2 text-xs text-text outline-none focus:border-primary"
+            />
+            <div v-if="directServiceClientSuggestions.length > 0" class="absolute left-0 right-0 top-full z-30 mt-1 max-h-40 overflow-y-auto rounded-xl border border-border bg-surface p-1 shadow-lg">
+              <button
+                v-for="c in directServiceClientSuggestions"
+                :key="c.id"
+                @click="selectDirectServiceClient(c)"
+                class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs text-text hover:bg-bg-secondary"
+              >
+                <span class="font-medium">{{ c.full_name }}</span>
+                <span class="text-text-muted text-[10px]">{{ c.phone }}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -175,9 +250,11 @@
         :tip-participants="tipParticipants" :tip-allocations="tipAllocations"
         :tip-allocated-total="tipAllocatedTotal" :tip-remaining="tipRemaining"
         :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
-        :retail-client-name="retailClientId ? retailClientSearch : null"
+        :retail-client-name="activeSaleType === 'retail_only' ? (retailClientId ? retailClientSearch : null) : (directServiceClientId ? directServiceClientSearch : null)"
         :are-products-included="areProductsIncluded"
         :selected-gift-card-id="paymentCtx.selectedGiftCardId.value"
+        :is-direct-service="activeSaleType === 'direct_service'"
+        :direct-services-list="directServicesList"
         @update:selected-gift-card-id="paymentCtx.selectedGiftCardId.value = $event"
         @update:are-products-included="areProductsIncluded = $event"
         @select-method="paymentCtx.selectMethod"
@@ -232,9 +309,11 @@
             :tip-participants="tipParticipants" :tip-allocations="tipAllocations"
             :tip-allocated-total="tipAllocatedTotal" :tip-remaining="tipRemaining"
             :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
-            :retail-client-name="retailClientId ? retailClientSearch : null"
+            :retail-client-name="activeSaleType === 'retail_only' ? (retailClientId ? retailClientSearch : null) : (directServiceClientId ? directServiceClientSearch : null)"
             :are-products-included="areProductsIncluded"
             :selected-gift-card-id="paymentCtx.selectedGiftCardId.value"
+            :is-direct-service="activeSaleType === 'direct_service'"
+            :direct-services-list="directServicesList"
             @update:selected-gift-card-id="paymentCtx.selectedGiftCardId.value = $event"
             @update:are-products-included="areProductsIncluded = $event"
             @select-method="paymentCtx.selectMethod"
@@ -325,33 +404,78 @@ const branchId = computed(() => businessStore.currentBranchId)
 const cartCtx = usePOSCart()
 const paymentCtx = usePOSPayment()
 
-const activeSaleType = ref<'appointment' | 'retail_only' | 'direct_service'>('appointment')
-const selectedAppointment = ref<any>(null)
+interface DirectServiceItem {
+  id: string
+  serviceId: string
+  serviceName: string
+  employeeId: string
+  employeeName: string
+  assistantEmployeeId?: string | null
+  assistantEmployeeName?: string | null
+  price: number
+}
 
-const directServiceId = ref('')
-const directServiceEmployeeId = ref('')
-const directServiceAssistantId = ref('')
+const directServicesList = ref<DirectServiceItem[]>([])
+const pendingServiceId = ref('')
+const pendingServicePrice = ref<number>(0)
+const pendingEmployeeId = ref('')
+const pendingAssistantId = ref('')
 const directServiceClientId = ref<string | null>(null)
 const directServiceClientSearch = ref('')
 const directServiceClientSuggestions = ref<{ id: string; full_name: string; phone: string }[]>([])
-const directServicePriceOverride = ref<number | null>(null)
 
-const directServiceSelected = computed(() =>
-  posServiciosList.value.find((s: any) => s.id === directServiceId.value)
-)
+const onPendingServiceChange = () => {
+  const svc = posServiciosList.value.find((s: any) => s.id === pendingServiceId.value)
+  if (svc) {
+    pendingServicePrice.value = Number(svc.price ?? 0)
+  }
+}
+
+const addDirectServiceToList = () => {
+  if (!pendingServiceId.value || !pendingEmployeeId.value) return
+  const svc = posServiciosList.value.find((s: any) => s.id === pendingServiceId.value)
+  const emp = posEmpleadosList.value.find((e: any) => e.id === pendingEmployeeId.value)
+  const asst = pendingAssistantId.value ? posEmpleadosList.value.find((e: any) => e.id === pendingAssistantId.value) : null
+
+  directServicesList.value.push({
+    id: 'ds_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    serviceId: pendingServiceId.value,
+    serviceName: svc?.name ?? 'Servicio',
+    employeeId: pendingEmployeeId.value,
+    employeeName: emp?.name ?? 'Empleado',
+    assistantEmployeeId: pendingAssistantId.value || null,
+    assistantEmployeeName: asst?.name ?? null,
+    price: Number(pendingServicePrice.value || 0),
+  })
+
+  pendingServiceId.value = ''
+  pendingServicePrice.value = 0
+  pendingAssistantId.value = ''
+}
+
+const removeDirectServiceFromList = (index: number) => {
+  directServicesList.value.splice(index, 1)
+}
+
+const updateDirectServicePrice = (index: number, newPrice: number) => {
+  if (directServicesList.value[index]) {
+    directServicesList.value[index].price = Math.max(0, Number(newPrice || 0))
+  }
+}
 
 const startDirectService = () => {
   selectedAppointment.value = null
   activeSaleType.value = 'direct_service'
   cartCtx.clearCart()
   paymentCtx.reset()
-  directServiceId.value = ''
-  directServiceEmployeeId.value = ''
-  directServiceAssistantId.value = ''
+  directServicesList.value = []
+  pendingServiceId.value = ''
+  pendingServicePrice.value = 0
+  pendingEmployeeId.value = ''
+  pendingAssistantId.value = ''
   directServiceClientId.value = null
   directServiceClientSearch.value = ''
   directServiceClientSuggestions.value = []
-  directServicePriceOverride.value = null
   tipAllocations.value = {}
   tipManual.value = false
   showTipAdjust.value = false
@@ -361,13 +485,14 @@ const startDirectService = () => {
 
 const cancelDirectService = () => {
   activeSaleType.value = 'appointment'
-  directServiceId.value = ''
-  directServiceEmployeeId.value = ''
-  directServiceAssistantId.value = ''
+  directServicesList.value = []
+  pendingServiceId.value = ''
+  pendingServicePrice.value = 0
+  pendingEmployeeId.value = ''
+  pendingAssistantId.value = ''
   directServiceClientId.value = null
   directServiceClientSearch.value = ''
   directServiceClientSuggestions.value = []
-  directServicePriceOverride.value = null
   paymentCtx.reset()
   cartCtx.clearCart()
 }
@@ -495,7 +620,7 @@ const onRetailSearchClients = async (query: string) => {
 
 const servicePrice = computed(() => {
   if (activeSaleType.value === 'direct_service') {
-    return directServiceSelected.value ? Number(directServicePriceOverride.value ?? directServiceSelected.value.price ?? 0) : 0
+    return directServicesList.value.reduce((sum, item) => sum + Number(item.price || 0), 0)
   }
   const appt = selectedAppointment.value
   if (!appt) return 0
@@ -512,16 +637,12 @@ const grandTotal = computed(() => activeSaleType.value === 'retail_only' ? effec
 const tipParticipants = computed<TipParticipant[]>(() => {
   if (activeSaleType.value === 'retail_only') return []
   if (activeSaleType.value === 'direct_service') {
-    const result: TipParticipant[] = []
-    if (directServiceEmployeeId.value) {
-      const emp = posEmpleadosList.value.find((e: any) => e.id === directServiceEmployeeId.value)
-      result.push({ employeeId: directServiceEmployeeId.value, employeeName: emp?.name ?? 'Empleado' })
+    const map = new Map<string, string>()
+    for (const item of directServicesList.value) {
+      if (item.employeeId && !map.has(item.employeeId)) map.set(item.employeeId, item.employeeName)
+      if (item.assistantEmployeeId && !map.has(item.assistantEmployeeId)) map.set(item.assistantEmployeeId, item.assistantEmployeeName ?? 'Asistente')
     }
-    if (directServiceAssistantId.value) {
-      const asst = posEmpleadosList.value.find((e: any) => e.id === directServiceAssistantId.value)
-      result.push({ employeeId: directServiceAssistantId.value, employeeName: asst?.name ?? 'Asistente' })
-    }
-    return result
+    return Array.from(map.entries()).map(([id, name]) => ({ employeeId: id, employeeName: name }))
   }
   const appt = selectedAppointment.value
   if (!appt) return []
@@ -559,7 +680,7 @@ const isProcessing = computed(() => paymentCtx.isProcessing.value)
 const canPay = computed(() => {
   if (grandTotal.value <= 0) return false
   if (activeSaleType.value === 'direct_service') {
-    if (!directServiceId.value || !directServiceEmployeeId.value) return false
+    if (directServicesList.value.length === 0) return false
   }
   if (activeSaleType.value !== 'retail_only' && paymentCtx.tipAmount.value > 0 && tipParticipants.value.length > 0 && Math.abs(tipRemaining.value) >= 0.01) return false
   if (paymentCtx.paymentMethod.value === 'mixed') {
@@ -665,11 +786,14 @@ const handleRetailPayment = async () => {
 }
 
 const handleDirectServicePayment = async () => {
-  if (isProcessing.value || !directServiceId.value || !directServiceEmployeeId.value) return
+  if (isProcessing.value || directServicesList.value.length === 0) return
   const ok = await paymentCtx.processDirectServiceSale({
-    serviceId: directServiceId.value,
-    employeeId: directServiceEmployeeId.value,
-    assistantEmployeeId: directServiceAssistantId.value || null,
+    services: directServicesList.value.map(s => ({
+      serviceId: s.serviceId,
+      employeeId: s.employeeId,
+      assistantEmployeeId: s.assistantEmployeeId || null,
+      price: s.price,
+    })),
     clientId: directServiceClientId.value || null,
     serviceAmount: servicePrice.value,
     productsAmount: effectiveProductsTotal.value,

@@ -106,11 +106,11 @@ class PosController
 
         try {
             $txId = $this->posService->processDirectServiceSale(
-                serviceId: $data['service_id'],
-                employeeId: $data['employee_id'],
+                serviceId: $data['service_id'] ?? null,
+                employeeId: $data['employee_id'] ?? null,
                 assistantEmployeeId: $data['assistant_employee_id'] ?? null,
                 clientId: $data['client_id'] ?? null,
-                serviceAmount: (float) $data['service_amount'],
+                serviceAmount: (float) ($data['service_amount'] ?? 0),
                 method: $data['method'],
                 products: $data['products'] ?? [],
                 notes: $data['notes'] ?? null,
@@ -121,6 +121,7 @@ class PosController
                 branchId: $data['branch_id'] ?? null,
                 createdBy: $request->user()->id,
                 productsAmount: (float) ($data['products_amount'] ?? 0),
+                services: $data['services'] ?? [],
             );
 
             EntityChanged::safe($businessId, 'transaction', 'created', $txId);

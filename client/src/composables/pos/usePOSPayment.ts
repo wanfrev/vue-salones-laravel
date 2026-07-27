@@ -185,11 +185,17 @@ export function usePOSPayment() {
 
   const directServiceSaleMutation = useMutation({
     mutationFn: (params: {
-      serviceId: string
-      employeeId: string
+      services?: Array<{
+        serviceId: string
+        employeeId: string
+        assistantEmployeeId?: string | null
+        price: number
+      }>
+      serviceId?: string
+      employeeId?: string
       assistantEmployeeId?: string | null
       clientId?: string | null
-      serviceAmount: number
+      serviceAmount?: number
       productsAmount?: number
       method: PaymentMethod
       products: POSProductItem[]
@@ -198,6 +204,7 @@ export function usePOSPayment() {
       paymentsBreakdown: PaymentBreakdownItem[]
       tipAmount?: number
     }) => recordDirectServiceSale({
+      services: params.services,
       serviceId: params.serviceId,
       employeeId: params.employeeId,
       assistantEmployeeId: params.assistantEmployeeId,
@@ -402,8 +409,14 @@ export function usePOSPayment() {
   }
 
   const processDirectServiceSale = async (params: {
-    serviceId: string
-    employeeId: string
+    services?: Array<{
+      serviceId: string
+      employeeId: string
+      assistantEmployeeId?: string | null
+      price: number
+    }>
+    serviceId?: string
+    employeeId?: string
     assistantEmployeeId?: string | null
     clientId?: string | null
     serviceAmount: number
@@ -438,6 +451,7 @@ export function usePOSPayment() {
 
     try {
       await directServiceSaleMutation.mutateAsync({
+        services: params.services,
         serviceId: params.serviceId,
         employeeId: params.employeeId,
         assistantEmployeeId: params.assistantEmployeeId,
