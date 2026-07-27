@@ -103,8 +103,6 @@ export function useNotifications() {
   })
 
   watch(notifications, (current, previous) => {
-    if (!previous) return
-    const newNotifs = current.filter(n => !previous.find(p => p.id === n.id))
     if (!previous || previous.length === 0) return
     const newNotifs = current.filter(n => !previous.find(p => p.id === n.id) && !shownNotificationIds.has(n.id))
     for (const n of newNotifs) {
