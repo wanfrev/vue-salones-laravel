@@ -25,6 +25,7 @@ class StoreClientRequest extends FormRequest
             'pets.*.name' => 'required_with:pets|string|max:255',
             'pets.*.breed' => 'nullable|string|max:255',
             'pets.*.weight' => 'nullable|string|max:50',
+            'pets.*.birthday' => 'nullable|date',
             'pets.*.notes' => 'nullable|string',
             'pets.*.metadata' => 'nullable|array',
         ];

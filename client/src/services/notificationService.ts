@@ -1,6 +1,6 @@
 import { apiRequest } from '../lib/api'
 
-export type NotificationType = 'reminder' | 'status_change' | 'new_appointment' | 'unpaid_alert' | 'low_stock'
+export type NotificationType = 'reminder' | 'status_change' | 'new_appointment' | 'unpaid_alert' | 'low_stock' | 'pet_birthday'
 
 export interface NotificationRecord {
   id: string

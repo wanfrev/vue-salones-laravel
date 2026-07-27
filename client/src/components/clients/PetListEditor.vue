@@ -61,6 +61,12 @@
           placeholder="Ej: 15 kg"
           @update:model-value="updatePet(index, 'weight', $event)"
         />
+        <FormInput
+          :model-value="pet.birthday || ''"
+          label="Cumpleaños"
+          type="date"
+          @update:model-value="updatePet(index, 'birthday', $event)"
+        />
       </div>
       <div class="sm:col-span-2">
         <FormTextarea
@@ -108,7 +114,7 @@ const emit = defineEmits<{
 }>()
 
 const addPet = () => {
-  const newPet: PetFormData = { name: '', breed: '', weight: '', notes: '' }
+  const newPet: PetFormData = { name: '', breed: '', weight: '', birthday: '', notes: '' }
   emit('update:modelValue', [...props.modelValue, newPet])
 }
 

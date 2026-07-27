@@ -16,12 +16,13 @@ class Pet extends Model
 
     protected $fillable = [
         'id', 'business_id', 'client_id',
-        'name', 'breed', 'weight', 'notes', 'metadata',
+        'name', 'breed', 'weight', 'birthday', 'notes', 'metadata',
     ];
 
     protected function casts(): array
     {
         return [
+            'birthday' => 'date',
             'metadata' => 'json',
         ];
     }

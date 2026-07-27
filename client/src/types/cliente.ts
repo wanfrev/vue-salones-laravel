@@ -3,6 +3,7 @@ export interface PetFormData {
   name: string
   breed?: string
   weight?: string
+  birthday?: string
   notes?: string
   metadata?: Record<string, unknown>
   _delete?: boolean

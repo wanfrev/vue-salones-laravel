@@ -94,6 +94,7 @@ export const clienteFormSchema = z.object({
     name: z.string().min(1),
     breed: z.string().optional(),
     weight: z.string().optional(),
+    birthday: z.string().optional(),
     notes: z.string().optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
     _delete: z.boolean().optional(),

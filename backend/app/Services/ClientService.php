@@ -175,6 +175,7 @@ class ClientService
                 'name' => $petData['name'],
                 'breed' => $petData['breed'] ?? null,
                 'weight' => $petData['weight'] ?? null,
+                'birthday' => $petData['birthday'] ?? null,
                 'notes' => $petData['notes'] ?? null,
                 'metadata' => $metadata,
             ];

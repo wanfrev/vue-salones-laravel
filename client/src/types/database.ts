@@ -403,6 +403,7 @@ export interface Pet {
   name: string
   breed: string | null
   weight: string | null
+  birthday: string | null
   notes: string | null
   metadata: Record<string, unknown>
   created_at: string

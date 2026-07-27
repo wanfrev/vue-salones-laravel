@@ -1,6 +1,6 @@
 import { ref, watch } from 'vue'
 
-export type NotifType = 'reminder' | 'status_change' | 'new_appointment' | 'unpaid_alert' | 'low_stock'
+export type NotifType = 'reminder' | 'status_change' | 'new_appointment' | 'unpaid_alert' | 'low_stock' | 'pet_birthday'
 
 const STORAGE_KEY = 'luma_notif_prefs'
 
@@ -10,6 +10,7 @@ const DEFAULTS: Record<NotifType, boolean> = {
   new_appointment: true,
   unpaid_alert: true,
   low_stock: true,
+  pet_birthday: true,
 }
 
 const TYPE_LABELS: Record<NotifType, string> = {
@@ -18,6 +19,7 @@ const TYPE_LABELS: Record<NotifType, string> = {
   new_appointment: 'Nuevas citas',
   unpaid_alert: 'Citas sin cobrar',
   low_stock: 'Stock bajo',
+  pet_birthday: 'Cumpleaños mascotas',
 }
 
 const SOUND_MAP: Partial<Record<NotifType, string>> = {
@@ -25,6 +27,7 @@ const SOUND_MAP: Partial<Record<NotifType, string>> = {
   new_appointment: '/sounds/nuevacita.mp3',
   unpaid_alert: '/sounds/error.mp3',
   low_stock: '/sounds/error.mp3',
+  pet_birthday: '/sounds/cumple.mp3',
 }
 
 interface StoredPrefs {
