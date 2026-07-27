@@ -2,10 +2,28 @@
   <div class="flex flex-col h-full rounded-xl border border-border bg-surface p-4 lg:min-h-0">
     <h3 class="text-base font-semibold text-text mb-4 shrink-0">Resumen de cobro</h3>
 
-    <template v-if="selectedAppointment || isRetailOnly">
+    <template v-if="selectedAppointment || isRetailOnly || isDirectService">
       <div class="flex-1 overflow-y-auto min-h-0 space-y-3 pr-1">
         <div class="rounded-lg bg-bg-secondary p-3">
-          <template v-if="isRetailOnly && !selectedAppointment">
+          <template v-if="isDirectService && !selectedAppointment">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-text-muted">Cliente</span>
+              <span class="font-medium text-text">{{ retailClientName || 'Servicio Directo' }}</span>
+            </div>
+            <div class="flex items-center justify-between text-sm mt-1">
+              <span class="text-text-muted">Servicio</span>
+              <span class="font-medium text-text">{{ directServiceName || '—' }}</span>
+            </div>
+            <div class="flex items-center justify-between text-sm mt-1">
+              <span class="text-text-muted">Empleado</span>
+              <span class="font-medium text-text">{{ directServiceEmployeeName || '—' }}</span>
+            </div>
+            <div v-if="directServiceAssistantName" class="flex items-center justify-between text-sm mt-1">
+              <span class="text-text-muted">Asistente</span>
+              <span class="font-medium text-text">{{ directServiceAssistantName }}</span>
+            </div>
+          </template>
+          <template v-else-if="isRetailOnly && !selectedAppointment">
             <div class="flex items-center justify-between text-sm">
               <span class="text-text-muted">Cliente</span>
               <span class="font-medium text-text">{{ retailClientName || 'Venta Directa / Mostrador' }}</span>
@@ -376,6 +394,10 @@ const props = defineProps<{
   retailClientName?: string | null
   areProductsIncluded?: boolean
   selectedGiftCardId?: string | null
+  isDirectService?: boolean
+  directServiceName?: string | null
+  directServiceEmployeeName?: string | null
+  directServiceAssistantName?: string | null
 }>()
 
 defineEmits<{
