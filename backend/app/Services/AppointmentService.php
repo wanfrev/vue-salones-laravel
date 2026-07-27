@@ -47,9 +47,20 @@ class AppointmentService
                 $q->whereNull('branch_id')->orWhere('branch_id', $cleanBranch);
             });
         }
-        if ($status) $query->whereIn('status', (array) $status);
-        if ($groupId) $query->where('group_id', $groupId);
-        if ($idNot) $query->where('id', '!=', $idNot);
+        if ($status) {
+            $cleanStatus = is_array($status)
+                ? array_map(fn($s) => preg_replace('/^(gte|lte|gt|lt|eq|in|neq)\./i', '', $s), (array) $status)
+                : preg_replace('/^(gte|lte|gt|lt|eq|in|neq)\./i', '', $status);
+            $query->whereIn('status', (array) $cleanStatus);
+        }
+        if ($groupId) {
+            $cleanGroup = preg_replace('/^(gte|lte|gt|lt|eq|in|neq)\./i', '', $groupId);
+            $query->where('group_id', $cleanGroup);
+        }
+        if ($idNot) {
+            $cleanIdNot = preg_replace('/^(gte|lte|gt|lt|eq|in|neq)\./i', '', $idNot);
+            $query->where('id', '!=', $cleanIdNot);
+        }
 
         return $query->get();
     }
@@ -110,10 +121,11 @@ class AppointmentService
 
         $fillable = [
             'client_id', 'pet_id', 'employee_id', 'service_id', 'assistant_employee_id',
-            'start_time', 'end_time', 'service_notes', 'internal_notes',
+            'start_time', 'end_time', 'status', 'service_notes', 'internal_notes',
             'price_override', 'employee_percentage_override', 'assistant_percentage',
             'is_fixed_commission_override', 'employee_amount_override', 'assistant_amount_override',
-            'duration_override', 'diagnosis', 'treatment', 'associated_products', 'group_id', 'branch_id',
+            'duration_override', 'diagnosis', 'treatment', 'associated_products', 'clinical_history',
+            'group_id', 'branch_id'
         ];
 
         $filtered = array_filter($data, fn($k) => in_array($k, $fillable), ARRAY_FILTER_USE_KEY);
@@ -191,8 +203,10 @@ class AppointmentService
 
     public function groupMembers(string $groupId, string $businessId): Collection
     {
+        $cleanGroup = preg_replace('/^(gte|lte|gt|lt|eq|in|neq)\./i', '', $groupId);
         return Appointment::with(['client', 'service', 'employeeProfile'])
-            ->where('group_id', $groupId)
+            ->where('business_id', $businessId)
+            ->where('group_id', $cleanGroup)
             ->get();
     }
 
@@ -225,9 +239,15 @@ class AppointmentService
             ->where('start_time', '<', $endTime)
             ->where('end_time', '>', $startTime)
             ->where(function ($q) use ($employeeId, $assistantId) {
-                $q->where('employee_id', $employeeId);
+                $q->where(function ($sub) use ($employeeId) {
+                    $sub->where('employee_id', $employeeId)
+                        ->orWhere('assistant_employee_id', $employeeId);
+                });
                 if ($assistantId) {
-                    $q->orWhere('assistant_employee_id', $assistantId);
+                    $q->orWhere(function ($sub) use ($assistantId) {
+                        $sub->where('employee_id', $assistantId)
+                            ->orWhere('assistant_employee_id', $assistantId);
+                    });
                 }
             });
 

@@ -73,10 +73,11 @@ export const listCitas = async (
 }
 
 export const listCitaGroupMembers = async (groupId: string): Promise<AppointmentWithRelations[]> => {
+  const cleanGroupId = groupId.replace(/^(gte|lte|gt|lt|eq|in|neq)\./i, '')
   const { data, error } = await db
     .from('appointments')
     .select(APPOINTMENT_SELECT)
-    .eq('group_id', groupId)
+    .eq('group_id', cleanGroupId)
     .order('start_time')
 
   if (error) throw error
@@ -213,8 +214,12 @@ async function buildServicePayloads(
       assistantEmployeeId: data.assistantEmployee,
       assistantPercentage: data.assistantPercentage,
       employeePercentageOverride: data.employeePercentageOverride,
+      isFixedCommissionOverride: data.isFixedCommissionOverride,
+      employeeAmountOverride: data.employeeAmountOverride,
+      assistantAmountOverride: data.assistantAmountOverride,
       duration: data.duration,
       price: data.price,
+      source: (data as any).source,
     },
     clientId, data.date, data.time, data.status, data.notes,
     groupId, createdBy, primaryService, branchId, data.petId, data.diagnosis, data.treatment, data.associatedProducts, data.clinicalHistory,

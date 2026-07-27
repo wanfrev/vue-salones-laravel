@@ -767,10 +767,13 @@ const validateForm = (): boolean => {
     const startTime = new Date(`${formData.value.date}T${formData.value.time}:00`)
     const endTime = new Date(startTime.getTime() + durationMin * 60 * 1000)
     const editingId = modalData.value?.cita?.id
+    const editingGroupId = modalData.value?.cita?.groupId
     const allQueries = queryClient.getQueriesData<any[]>({ queryKey: ['appointments'], exact: false })
     const cachedAppts = allQueries.flatMap(([, data]) => (Array.isArray(data) ? data : []))
     const isConflictFor = (empId: string) => cachedAppts.some((a: any) => {
       if (a.id === editingId) return false
+      const aGroupId = a.groupId ?? a.group_id
+      if (editingGroupId && aGroupId && aGroupId === editingGroupId) return false
       const aStatus = a.status ?? a.paymentStatus
       if (aStatus === 'cancelled') return false
       const aEmpId = a.employeeId ?? a.employee_id
