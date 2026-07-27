@@ -221,7 +221,7 @@ export const mapServiceItemToAppointmentInsert = (
       const valid = (associatedProducts || []).filter(p => !!(p && (p.productId || p.product_id)))
       return valid.length > 0 ? valid : null
     })(),
-    source: (item as any).source || (data as any).source || 'internal',
+    source: (item as any).source || 'internal',
     created_by: createdBy ?? null,
   }
 }
