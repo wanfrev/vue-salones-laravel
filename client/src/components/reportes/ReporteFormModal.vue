@@ -54,10 +54,7 @@
               <FormInput v-model="formData.pago_movil_bs" label="Pago Móvil" type="number" step="0.01" min="0" placeholder="0.00" />
               <FormInput v-model="formData.cash_bs" label="Efectivo Bs" type="number" step="0.01" min="0" placeholder="0.00" />
               <FormInput v-model="formData.transfer_bs" label="Transferencia" type="number" step="0.01" min="0" placeholder="0.00" />
-            </div>
-            <div class="mt-3 pt-3 border-t border-amber-500/20">
               <FormInput v-model="formData.credit_bs" label="Créditos (Bs)" type="number" step="0.01" min="0" placeholder="0.00" />
-              <p class="text-[10px] text-amber-600/70 dark:text-amber-400/70 mt-1 ml-1">Ventas a crédito — no se suma al total de ingresos Bs</p>
             </div>
           </div>
           <div class="pt-3 mt-3 border-t border-border space-y-1">
@@ -86,10 +83,7 @@
               <FormInput v-model="formData.zelle_usd" label="Zelle" type="number" step="0.01" min="0" placeholder="0.00" />
               <FormInput v-model="formData.binance_usd" label="Binance" type="number" step="0.01" min="0" placeholder="0.00" />
               <FormInput v-model="formData.cashea_usd" label="Cashea" type="number" step="0.01" min="0" placeholder="0.00" />
-            </div>
-            <div class="mt-3 pt-3 border-t border-amber-500/20">
               <FormInput v-model="formData.credit_usd" label="Créditos (USD)" type="number" step="0.01" min="0" placeholder="0.00" />
-              <p class="text-[10px] text-amber-600/70 dark:text-amber-400/70 mt-1 ml-1">Ventas a crédito — no se suma al total de ingresos USD</p>
             </div>
           </div>
           <div class="pt-3 mt-3 border-t border-border space-y-1">
@@ -236,7 +230,8 @@ const totalBs = computed(() => {
   return parseNum(formData.value.pos_bs) +
          parseNum(formData.value.pago_movil_bs) +
          parseNum(formData.value.cash_bs) +
-         parseNum(formData.value.transfer_bs)
+         parseNum(formData.value.transfer_bs) +
+         parseNum(formData.value.credit_bs)
 })
 
 // Total Dólares
@@ -244,7 +239,8 @@ const totalUsd = computed(() => {
   return parseNum(formData.value.cash_usd) +
          parseNum(formData.value.zelle_usd) +
          parseNum(formData.value.binance_usd) +
-         parseNum(formData.value.cashea_usd)
+         parseNum(formData.value.cashea_usd) +
+         parseNum(formData.value.credit_usd)
 })
 
 // Total Bs al cambio en USD

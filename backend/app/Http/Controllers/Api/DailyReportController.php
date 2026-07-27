@@ -65,8 +65,8 @@ class DailyReportController extends Controller
         $validated['user_id'] = $request->user()?->id;
 
         // Auto-calculate totals
-        $validated['total_bs'] = ($validated['pos_bs'] ?? 0) + ($validated['pago_movil_bs'] ?? 0) + ($validated['cash_bs'] ?? 0) + ($validated['transfer_bs'] ?? 0);
-        $validated['total_usd'] = ($validated['cash_usd'] ?? 0) + ($validated['zelle_usd'] ?? 0) + ($validated['binance_usd'] ?? 0) + ($validated['cashea_usd'] ?? 0);
+        $validated['total_bs'] = ($validated['pos_bs'] ?? 0) + ($validated['pago_movil_bs'] ?? 0) + ($validated['cash_bs'] ?? 0) + ($validated['transfer_bs'] ?? 0) + ($validated['credit_bs'] ?? 0);
+        $validated['total_usd'] = ($validated['cash_usd'] ?? 0) + ($validated['zelle_usd'] ?? 0) + ($validated['binance_usd'] ?? 0) + ($validated['cashea_usd'] ?? 0) + ($validated['credit_usd'] ?? 0);
 
         $report = DailyReport::create($validated);
 
@@ -99,8 +99,8 @@ class DailyReportController extends Controller
         unset($validated['id']);
 
         // Auto-calculate totals
-        $validated['total_bs'] = ($validated['pos_bs'] ?? 0) + ($validated['pago_movil_bs'] ?? 0) + ($validated['cash_bs'] ?? 0) + ($validated['transfer_bs'] ?? 0);
-        $validated['total_usd'] = ($validated['cash_usd'] ?? 0) + ($validated['zelle_usd'] ?? 0) + ($validated['binance_usd'] ?? 0) + ($validated['cashea_usd'] ?? 0);
+        $validated['total_bs'] = ($validated['pos_bs'] ?? 0) + ($validated['pago_movil_bs'] ?? 0) + ($validated['cash_bs'] ?? 0) + ($validated['transfer_bs'] ?? 0) + ($validated['credit_bs'] ?? 0);
+        $validated['total_usd'] = ($validated['cash_usd'] ?? 0) + ($validated['zelle_usd'] ?? 0) + ($validated['binance_usd'] ?? 0) + ($validated['cashea_usd'] ?? 0) + ($validated['credit_usd'] ?? 0);
 
         $report->update($validated);
 
