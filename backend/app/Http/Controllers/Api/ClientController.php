@@ -15,13 +15,20 @@ class ClientController
         private ClientService $clientService,
     ) {}
 
+    private function resolveBusinessId(Request $request): ?string
+    {
+        return $request->user()?->profile?->business_id ?? $request->header('X-Business-Id');
+    }
+
     private function canEmployeeSeeClients(Request $request): bool
     {
         $profile = $request->user()?->profile;
         if (!$profile || $profile->role !== 'empleado') {
             return true;
         }
-        $business = $profile->business;
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return true;
+        $business = \App\Models\Business::find($businessId);
         if (!$business) return true;
         $features = is_array($business->features) ? $business->features : json_decode($business->features ?? '[]', true);
         return (bool) ($features['employees_see_clients'] ?? true);
@@ -32,9 +39,18 @@ class ClientController
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId || !$this->canEmployeeSeeClients($request)) return response()->json([]);
 
-        return response()->json(
-            $this->clientService->list($businessId, $request->branch_id)
-        );
+        $clients = $this->clientService->list($businessId, $request->branch_id);
+
+        if ($request->user()?->profile?->role === 'empleado') {
+            $clients->transform(function ($client) {
+                $client->phone = '';
+                $client->email = null;
+                $client->notes = null;
+                return $client;
+            });
+        }
+
+        return response()->json($clients);
     }
 
     public function show(Request $request, string $id): JsonResponse
@@ -90,7 +106,18 @@ class ClientController
         if (!$businessId) return response()->json([]);
 
         $request->validate(['q' => 'required|string|min:1']);
-        return response()->json($this->clientService->search($businessId, $request->q, $request->branch_id));
+        $results = $this->clientService->search($businessId, $request->q, $request->branch_id);
+
+        if ($request->user()?->profile?->role === 'empleado') {
+            $results->transform(function ($client) {
+                $client->phone = '';
+                $client->email = null;
+                $client->notes = null;
+                return $client;
+            });
+        }
+
+        return response()->json($results);
     }
 
     public function findOrCreateByPhone(Request $request): JsonResponse
