@@ -79,10 +79,15 @@ class AppointmentController
             $request->get('id_not'),
         );
 
-        if (!$this->canEmployeeSeeClients($request)) {
-            $list->transform(function ($appointment) {
+        $isEmployee = $request->user()?->profile?->role === 'empleado';
+        $canSeeClients = $this->canEmployeeSeeClients($request);
+
+        if ($isEmployee) {
+            $list->transform(function ($appointment) use ($canSeeClients) {
                 if ($appointment->client) {
-                    $appointment->client->full_name = 'Cliente';
+                    if (!$canSeeClients) {
+                        $appointment->client->full_name = 'Cliente';
+                    }
                     $appointment->client->phone = '';
                     $appointment->client->email = null;
                     $appointment->client->notes = null;
@@ -100,8 +105,13 @@ class AppointmentController
         if (!$appointment) return response()->json(['error' => ['message' => 'No encontrado.']], 404);
         $appointment->load(['client', 'service', 'employeeProfile', 'assistantProfile']);
 
-        if (!$this->canEmployeeSeeClients($request) && $appointment->client) {
-            $appointment->client->full_name = 'Cliente';
+        $isEmployee = $request->user()?->profile?->role === 'empleado';
+        $canSeeClients = $this->canEmployeeSeeClients($request);
+
+        if ($isEmployee && $appointment->client) {
+            if (!$canSeeClients) {
+                $appointment->client->full_name = 'Cliente';
+            }
             $appointment->client->phone = '';
             $appointment->client->email = null;
             $appointment->client->notes = null;

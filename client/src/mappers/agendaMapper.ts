@@ -41,12 +41,14 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
   const normalizedStatus = normalizeAppointmentStatus(appointment) as 'confirmed' | 'pending' | 'cancelled' | 'paid'
 
   let canSeeClients = true
+  let isEmployee = false
   let defaultClientLabel = 'Cliente'
   try {
     const authStore = useAuthStore()
     const businessStore = useBusinessStore()
     defaultClientLabel = businessStore.terminology.client || 'Cliente'
-    if (authStore.role === 'empleado' && !businessStore.hasFeature('employees_see_clients')) {
+    isEmployee = authStore.role === 'empleado'
+    if (isEmployee && !businessStore.hasFeature('employees_see_clients')) {
       canSeeClients = false
     }
   } catch {
@@ -55,7 +57,7 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
 
   const rawClientName = client?.full_name ?? (appointment as any).clientName ?? defaultClientLabel
   const clientName = canSeeClients ? rawClientName : defaultClientLabel
-  const clientPhone = canSeeClients ? (client?.phone ?? (appointment as any).clientPhone ?? '') : ''
+  const clientPhone = (isEmployee || !canSeeClients) ? '' : (client?.phone ?? (appointment as any).clientPhone ?? '')
 
   let associatedProducts = parseAssociatedProducts(appointment.associated_products ?? (appointment as any).associatedProducts)
   if ((!associatedProducts || associatedProducts.length === 0) && (appointment as any).isGroup && Array.isArray((appointment as any).members)) {

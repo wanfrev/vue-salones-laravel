@@ -220,8 +220,8 @@
       <FormToggle
         :model-value="!!businessStore.features.employees_see_clients"
         @update:model-value="handleToggleEmployeesSeeClients"
-        label="Permitir a empleados ver clientes"
-        hint="Si está activo, los empleados podrán ver nombres, teléfonos y datos de contacto de los clientes. Si se desactiva, esta información estará oculta para ellos."
+        label="Permitir a empleados ver nombres de clientes"
+        hint="Si está activo, los empleados podrán ver el nombre del cliente en la agenda, calendario, historial, recibo, consultorio, etc. (los teléfonos siempre se mantendrán ocultos para empleados). Si se desactiva, los nombres se ocultarán como 'Cliente'."
         :disabled="updatingFeatures"
       />
 
