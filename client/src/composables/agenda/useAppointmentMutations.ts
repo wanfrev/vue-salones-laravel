@@ -47,6 +47,7 @@ export function useAppointmentMutations(options: {
       dashboardKeys.history(bid),
       dashboardKeys.appointments(bid),
       dashboardKeys.earnings(bid),
+      ['notifications'] as const,
     ]
     await Promise.allSettled(keys.map(key =>
       queryClient.invalidateQueries({ queryKey: key, exact: false })
