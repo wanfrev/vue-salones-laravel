@@ -113,7 +113,7 @@ class FinancialSummaryService
             });
         }
 
-        $totalExpenses = (float) $expQuery->sum('amount');
+        $operationalExpenses = (float) $expQuery->sum('amount');
 
         // Employee payments
         $empQuery = DB::table('employee_payments')
@@ -146,19 +146,22 @@ class FinancialSummaryService
 
         $totalSupplierPayments = (float) $supQuery->sum('amount');
 
+        $totalExpenses = $operationalExpenses + $totalEmployeePayments + $totalSupplierPayments;
+
         $totalIncome = (float) ($txTotals->total_income ?? 0);
         $localIncome = (float) ($txTotals->local_income ?? 0);
         $employeeIncome = (float) ($txTotals->employee_income ?? 0);
         $tips = (float) ($txTotals->tips ?? 0);
         $transactionCount = (int) ($txTotals->total_transactions ?? 0);
 
-        $netProfit = $localIncome - $totalExpenses - $totalEmployeePayments;
+        $netProfit = $localIncome - $totalExpenses;
 
         return [
             'total_income' => round($totalIncome, 2),
             'local_income' => round($localIncome, 2),
             'employee_income' => round($employeeIncome, 2),
             'tips' => round($tips, 2),
+            'operational_expenses' => round($operationalExpenses, 2),
             'total_expenses' => round($totalExpenses, 2),
             'total_employee_payments' => round($totalEmployeePayments, 2),
             'total_supplier_payments' => round($totalSupplierPayments, 2),

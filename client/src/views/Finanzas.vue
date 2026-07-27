@@ -60,11 +60,12 @@
     <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :hide-tabs="['gastos', 'servicios']" :hide-total="isEncargadoRole" />
   </template>
 
-  <!-- TAB 3: Egresos y Proveedores -->
+  <!-- TAB 3: Egresos, Proveedores y Nómina -->
   <template v-if="activeTab === 'egresos'">
     <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :show-only="'gastos'" />
-    <div class="mt-4">
+    <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
       <SupplierPaymentsSection :ctx="supplierPaymentsCtx" />
+      <EmployeePaymentsSection :business-id="businessId" />
     </div>
   </template>
 
@@ -90,8 +91,10 @@ import { usePeriodSelection } from '../composables/finanzas/usePeriodSelection'
 import { useFinancialSummary } from '../composables/finanzas/useFinancialSummary'
 import { useExpenses } from '../composables/finanzas/useExpenses'
 import { useSupplierPayments } from '../composables/suppliers/useSuppliers'
+import { useEmployeePayments } from '../composables/empleados/useEmployeePayments'
 import KpiCards from '../components/finanzas/KpiCards.vue'
 import SupplierPaymentsSection from '../components/finanzas/SupplierPaymentsSection.vue'
+import EmployeePaymentsSection from '../components/finanzas/EmployeePaymentsSection.vue'
 import ExpenseFormModal from '../components/finanzas/ExpenseFormModal.vue'
 import CurrencyBreakdown from '../components/finanzas/CurrencyBreakdown.vue'
 import RecentTransactionsCard from '../components/finanzas/RecentTransactionsCard.vue'
@@ -126,15 +129,47 @@ const mainTabs = [
   { key: 'egresos' as const, label: 'Egresos' },
 ]
 
+const periodDates = computed(() => {
+  const today = new Date()
+  const toYmd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+  if (selectedPeriod.value === 'month') {
+    const match = selectedMonth.value.match(/^(\d{4})-(\d{2})$/)
+    if (match) {
+      const y = Number(match[1])
+      const m = Number(match[2]) - 1
+      const isCurrent = y === today.getFullYear() && m === today.getMonth()
+      return { start: toYmd(new Date(y, m, 1)), end: toYmd(isCurrent ? today : new Date(y, m + 1, 0)) }
+    }
+  }
+  if (selectedPeriod.value === 'quarter') {
+    const qs = Math.floor(today.getMonth() / 3) * 3
+    return { start: toYmd(new Date(today.getFullYear(), qs, 1)), end: toYmd(today) }
+  }
+  if (selectedPeriod.value === 'year') {
+    return { start: `${today.getFullYear()}-01-01`, end: toYmd(today) }
+  }
+  if (selectedPeriod.value === 'week') {
+    const monday = new Date(today)
+    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7))
+    return { start: toYmd(monday), end: toYmd(today) }
+  }
+  return { start: `${today.getFullYear()}-01-01`, end: toYmd(today) }
+})
+
 const expensesCtx = useExpenses(businessId, selectedPeriod, selectedMonth)
 const expenses = expensesCtx.expenses
 const supplierPaymentsCtx = useSupplierPayments(businessId, selectedPeriod, selectedMonth)
+const employeePaymentsCtx = useEmployeePayments(businessId, periodDates)
 const summaryCtx = useFinancialSummary(businessId, selectedPeriod, expenses, selectedMonth)
 
 const incomeTotal = summaryCtx.incomeTotal
 const localIncomeTotal = summaryCtx.localIncomeTotal
 const vesIncomeTotal = summaryCtx.vesIncomeTotal
-const expenseTotal = computed(() => expensesCtx.expenseTotal.value + supplierPaymentsCtx.paymentTotal.value)
+const employeePaymentTotal = computed(() => {
+  return (employeePaymentsCtx.paymentsMade.value ?? []).reduce((sum, p) => sum + Number(p.amount ?? 0), 0)
+})
+const expenseTotal = computed(() => expensesCtx.expenseTotal.value + supplierPaymentsCtx.paymentTotal.value + employeePaymentTotal.value)
 const netTotal = computed(() => localIncomeTotal.value - expenseTotal.value)
 const marginTotal = computed(() => (localIncomeTotal.value > 0 ? (netTotal.value / localIncomeTotal.value) * 100 : 0))
 
@@ -183,23 +218,36 @@ const expenseBreakdown = computed(() => {
   const usdItems: { label: string; amount: number }[] = []
   const vesItems: { label: string; amount: number }[] = []
 
+  let opUSD = 0, opVES = 0
   for (const exp of expenses.value) {
-    if (exp.currency === 'VES') totalVES += exp.originalAmount
-    else totalUSD += exp.amount
+    if (exp.currency === 'VES') { opVES += exp.originalAmount; totalVES += exp.originalAmount }
+    else { opUSD += exp.amount; totalUSD += exp.amount }
   }
 
+  let supUSD = 0, supVES = 0
   for (const pay of supplierPaymentsCtx.payments.value) {
-    if (pay.currency === 'VES') totalVES += pay.originalAmount
-    else totalUSD += pay.amount
+    if (pay.currency === 'VES') { supVES += pay.originalAmount; totalVES += pay.originalAmount }
+    else { supUSD += pay.amount; totalUSD += pay.amount }
   }
 
-  if (totalUSD > 0) usdItems.push({ label: 'Gastos + Abonos (USD)', amount: totalUSD })
-  if (totalVES > 0) vesItems.push({ label: 'Gastos + Abonos (Bs)', amount: totalVES })
+  let empUSD = 0, empVES = 0
+  for (const p of employeePaymentsCtx.paymentsMade.value) {
+    if (p.currency === 'VES') { empVES += p.originalAmount; totalVES += p.originalAmount }
+    else { empUSD += p.amount; totalUSD += p.amount }
+  }
+
+  if (opUSD > 0) usdItems.push({ label: 'Gastos Operativos (USD)', amount: opUSD })
+  if (supUSD > 0) usdItems.push({ label: 'Abonos a Proveedores (USD)', amount: supUSD })
+  if (empUSD > 0) usdItems.push({ label: 'Pagos de Nómina (USD)', amount: empUSD })
+
+  if (opVES > 0) vesItems.push({ label: 'Gastos Operativos (Bs)', amount: opVES })
+  if (supVES > 0) vesItems.push({ label: 'Abonos a Proveedores (Bs)', amount: supVES })
+  if (empVES > 0) vesItems.push({ label: 'Pagos de Nómina (Bs)', amount: empVES })
 
   return {
     title: 'Desglose de Gastos', usdTotal: totalUSD, vesTotal: totalVES,
     usdItems, vesItems,
-    usdLabel: 'Moneda', vesLabel: 'Moneda',
+    usdLabel: 'Categoría de Egreso', vesLabel: 'Categoría de Egreso',
   }
 })
 
