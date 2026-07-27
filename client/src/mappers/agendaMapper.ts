@@ -40,7 +40,6 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
   const client = appointment.clients ?? (appointment as any).client
   const normalizedStatus = normalizeAppointmentStatus(appointment) as 'confirmed' | 'pending' | 'cancelled' | 'paid'
 
-  let canSeeClients = true
   let isEmployee = false
   let defaultClientLabel = 'Cliente'
   try {
@@ -48,16 +47,12 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
     const businessStore = useBusinessStore()
     defaultClientLabel = businessStore.terminology.client || 'Cliente'
     isEmployee = authStore.role === 'empleado'
-    if (isEmployee && !businessStore.hasFeature('employees_see_clients')) {
-      canSeeClients = false
-    }
   } catch {
     // Pinia not active (e.g. unit tests)
   }
 
-  const rawClientName = client?.full_name ?? (appointment as any).clientName ?? defaultClientLabel
-  const clientName = canSeeClients ? rawClientName : defaultClientLabel
-  const clientPhone = (isEmployee || !canSeeClients) ? '' : (client?.phone ?? (appointment as any).clientPhone ?? '')
+  const clientName = client?.full_name ?? (appointment as any).clientName ?? defaultClientLabel
+  const clientPhone = isEmployee ? '' : (client?.phone ?? (appointment as any).clientPhone ?? '')
 
   let associatedProducts = parseAssociatedProducts(appointment.associated_products ?? (appointment as any).associatedProducts)
   if ((!associatedProducts || associatedProducts.length === 0) && (appointment as any).isGroup && Array.isArray((appointment as any).members)) {

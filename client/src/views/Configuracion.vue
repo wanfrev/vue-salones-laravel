@@ -220,8 +220,8 @@
       <FormToggle
         :model-value="!!businessStore.features.employees_see_clients"
         @update:model-value="handleToggleEmployeesSeeClients"
-        label="Permitir a empleados ver nombres de clientes"
-        hint="Si está activo, los empleados podrán ver el nombre del cliente en la agenda, calendario, historial, recibo, consultorio, etc. (los teléfonos siempre se mantendrán ocultos para empleados). Si se desactiva, los nombres se ocultarán como 'Cliente'."
+        label="Permitir módulo de clientes a empleados"
+        hint="Si está activo, los empleados tendrán acceso al módulo de Clientes en su menú lateral. Si se desactiva, no tendrán el módulo de clientes, pero seguirán viendo los nombres en sus citas, agenda, historial, recibo y consultorio."
         :disabled="updatingFeatures"
       />
 
@@ -430,7 +430,7 @@ async function handleToggleEmployeesSeeClients(val: boolean) {
       features: updatedFeatures,
     })
     businessStore.updateBusiness({ features: updatedFeatures } as any)
-    success(val ? 'Permiso activado: Los empleados ya pueden ver la información de los clientes' : 'Permiso desactivado: Información de clientes oculta para empleados')
+    success(val ? 'Módulo de clientes activado para empleados' : 'Módulo de clientes desactivado para empleados (seguirán viendo nombres en sus citas)')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
   } finally {

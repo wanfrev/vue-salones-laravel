@@ -324,17 +324,7 @@ class EmployeeCommissionService
             $query->whereBetween('appointments.start_time', [$startDate, $this->normalizeEndDate($endDate)]);
         }
 
-        $business = Business::find($businessId);
-        $canSeeClients = true;
-        if ($business) {
-            $features = is_array($business->features) ? $business->features : json_decode($business->features ?? '[]', true);
-            $user = request()->user();
-            if ($user && $user->profile?->role === 'empleado' && isset($features['employees_see_clients'])) {
-                $canSeeClients = (bool) $features['employees_see_clients'];
-            }
-        }
-
-        return $query->get()->map(function ($row) use ($employeeId, $canSeeClients) {
+        return $query->get()->map(function ($row) use ($employeeId) {
             $isAssistant = $row->assistant_employee_id === $employeeId;
             $pct = (float) ($isAssistant
                 ? ($row->assistant_percentage ?? 0)
@@ -353,7 +343,7 @@ class EmployeeCommissionService
                 'group_id' => $row->group_id ?? null,
                 'date' => $row->start_time,
                 'time' => $row->start_time,
-                'client_name' => $canSeeClients ? ($row->client_name ?? '—') : 'Cliente',
+                'client_name' => $row->client_name ?? '—',
                 'service_name' => $row->service_name ?? '—',
                 'service_price' => (float) ($row->service_price ?? $serviceAmount),
                 'amount' => $serviceAmount,

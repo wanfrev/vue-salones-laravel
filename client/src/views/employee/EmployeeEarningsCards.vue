@@ -15,10 +15,10 @@
         >
           <div class="flex items-start gap-3 min-w-0 flex-1">
             <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-              {{ getInitials(canViewClients ? group.clientName : (businessStore.terminology.client || 'Cliente')) }}
+              {{ getInitials(group.clientName) }}
             </div>
             <div class="min-w-0">
-              <p class="font-semibold text-text truncate">{{ canViewClients ? group.clientName : (businessStore.terminology.client || 'Cliente') }}</p>
+              <p class="font-semibold text-text truncate">{{ group.clientName }}</p>
               <p class="text-xs text-text-muted">{{ formatDate(group.date) }}</p>
               <div class="flex items-center gap-2 mt-1">
                 <span class="text-xs text-text-muted">{{ group.serviceCount }} servicio{{ group.serviceCount !== 1 ? 's' : '' }}</span>

@@ -80,14 +80,10 @@ class AppointmentController
         );
 
         $isEmployee = $request->user()?->profile?->role === 'empleado';
-        $canSeeClients = $this->canEmployeeSeeClients($request);
 
         if ($isEmployee) {
-            $list->transform(function ($appointment) use ($canSeeClients) {
+            $list->transform(function ($appointment) {
                 if ($appointment->client) {
-                    if (!$canSeeClients) {
-                        $appointment->client->full_name = 'Cliente';
-                    }
                     $appointment->client->phone = '';
                     $appointment->client->email = null;
                     $appointment->client->notes = null;
@@ -106,12 +102,8 @@ class AppointmentController
         $appointment->load(['client', 'service', 'employeeProfile', 'assistantProfile']);
 
         $isEmployee = $request->user()?->profile?->role === 'empleado';
-        $canSeeClients = $this->canEmployeeSeeClients($request);
 
         if ($isEmployee && $appointment->client) {
-            if (!$canSeeClients) {
-                $appointment->client->full_name = 'Cliente';
-            }
             $appointment->client->phone = '';
             $appointment->client->email = null;
             $appointment->client->notes = null;

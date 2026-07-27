@@ -53,7 +53,7 @@
                 <span class="block text-sm">{{ formatDate(appt.date) }}</span>
                 <span class="block text-xs text-text-muted">{{ formatTime(appt.time) }}</span>
               </td>
-              <td class="px-4 py-3 font-medium text-text">{{ canViewClients ? appt.client_name : (businessStore.terminology.client || 'Cliente') }}</td>
+              <td class="px-4 py-3 font-medium text-text">{{ appt.client_name }}</td>
               <td class="px-4 py-3 text-text-secondary">{{ appt.service_name }}</td>
               <td class="px-4 py-3 text-right text-text">${{ formatNum(appt.service_price) }}</td>
               <td class="px-4 py-3 text-center text-text-secondary">
