@@ -404,6 +404,9 @@ const branchId = computed(() => businessStore.currentBranchId)
 const cartCtx = usePOSCart()
 const paymentCtx = usePOSPayment()
 
+const activeSaleType = ref<'appointment' | 'retail_only' | 'direct_service'>('appointment')
+const selectedAppointment = ref<any>(null)
+
 interface DirectServiceItem {
   id: string
   serviceId: string
