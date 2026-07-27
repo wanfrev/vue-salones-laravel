@@ -22,16 +22,17 @@
             :branch-id="branchId"
             :t="t"
             :can-create-clients="canCreateClients"
+            :can-view-clients="canViewClients"
             :error="errors.clientName"
             @blur="handleBlur('clientName')"
             @select-client="onClientSelected"
           />
-          <FormInput v-model="formData.clientPhone" label="Teléfono" type="tel" placeholder="+58 412 1234567" required
+          <FormInput v-if="canViewClients" v-model="formData.clientPhone" label="Teléfono" type="tel" placeholder="+58 412 1234567" required
             prefix-icon="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
             :error="errors.clientPhone" 
             @blur="handleBlur('clientPhone')" />
         </div>
-        <FormInput v-if="!formData.clientId" v-model="formData.clientEmail" label="Correo Electrónico (Opcional)" type="email" placeholder="cliente@correo.com"
+        <FormInput v-if="canViewClients && !formData.clientId" v-model="formData.clientEmail" label="Correo Electrónico (Opcional)" type="email" placeholder="cliente@correo.com"
             prefix-icon="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         <FormDropdown
           v-if="showPetSelector"
@@ -274,6 +275,7 @@ const businessStore = useBusinessStore()
 const queryClient = useQueryClient()
 const isEmployee = computed(() => authStore.role === 'empleado')
 const canCreateClients = computed(() => !isEmployee.value || businessStore.hasFeature('employees_create_clients'))
+const canViewClients = computed(() => !isEmployee.value || businessStore.hasFeature('employees_see_clients'))
 const disableCommissionEdit = computed(() => {
   const role = authStore.role
   if (role === 'admin' || role === 'superadmin') return false
@@ -633,7 +635,8 @@ const isFormValid = computed(() => {
   const hp = formData.value.service !== '' && formData.value.employee !== ''
   const ev = formData.value.extraServices.every(e => e.serviceId !== '' && e.employeeId !== '')
   const hc = canCreateClients.value || !!formData.value.clientId
-  return formData.value.clientName.trim().length >= 2 && formData.value.clientPhone.trim().length >= 7 && hp && ev && hc && formData.value.date !== '' && formData.value.time !== ''
+  const vp = !canViewClients.value || formData.value.clientPhone.trim().length >= 7
+  return formData.value.clientName.trim().length >= 2 && vp && hp && ev && hc && formData.value.date !== '' && formData.value.time !== ''
 })
 
 const confirmButtonLabel = computed(() => {
@@ -641,7 +644,7 @@ const confirmButtonLabel = computed(() => {
   if (!formData.value.date) return 'Falta la fecha'
   if (!formData.value.time) return 'Falta la hora'
   if (formData.value.clientName.trim().length < 2) return 'Falta nombre del cliente'
-  if (formData.value.clientPhone.trim().length < 7) return 'Falta teléfono'
+  if (canViewClients.value && formData.value.clientPhone.trim().length < 7) return 'Falta teléfono'
   if (!formData.value.service) return 'Falta seleccionar servicio'
   if (!formData.value.employee) return 'Falta seleccionar empleado'
   if (formData.value.extraServices.some(e => !e.serviceId || !e.employeeId)) return 'Falta completar servicios extras'
@@ -820,6 +823,7 @@ const handleSubmit = () => {
 
   const citaData: CitaFormData & { id?: string; clientPhone?: string; paymentData?: PaymentEditContext } = {
     ...formData.value,
+    clientPhone: formData.value.clientPhone || (!canViewClients.value ? '0000000000' : ''),
   }
 
   if (modalData.value?.cita?.id) {

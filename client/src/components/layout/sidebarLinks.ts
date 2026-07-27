@@ -49,7 +49,7 @@ export const sidebarSections: SidebarSection[] = [
       { to: '/dashboard/recibo', label: 'Recibo', icon: Receipt, employeeOnly: true },
       { to: '/admin/pos', label: 'Punto de Venta', icon: ShoppingCart, adminOnly: true, requiresFeature: 'pos' },
       { to: '/admin/clientes', label: 'Clientes', labelKey: 'client', icon: Users, adminOnly: true },
-      { to: '/dashboard/clientes', label: 'Clientes', labelKey: 'client', icon: Users, employeeOnly: true },
+      { to: '/dashboard/clientes', label: 'Clientes', labelKey: 'client', icon: Users, employeeOnly: true, requiresFeature: 'employees_see_clients' },
       { to: '/admin/consultorio', label: 'Consultorio', icon: Stethoscope, adminOnly: true },
       { to: '/dashboard/consultorio', label: 'Consultorio', icon: Stethoscope, employeeOnly: true },
       { to: '/admin/equipo', label: 'Equipo', labelKey: 'employee', icon: Briefcase, adminOnly: true },

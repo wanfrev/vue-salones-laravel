@@ -32,7 +32,7 @@ class DemoBusinessSeeder extends Seeder
             'terminology' => json_encode(['client' => 'Cliente', 'employee' => 'Empleado', 'service' => 'Servicio']),
             'job_titles' => json_encode(['Estilista', 'Barbero', 'Colorista', 'Manicurista']),
             'service_categories' => json_encode([['id' => 'cat1', 'name' => 'Corte'], ['id' => 'cat2', 'name' => 'Color'], ['id' => 'cat3', 'name' => 'Barba'], ['id' => 'cat4', 'name' => 'Uñas']]),
-            'features' => json_encode(['pos' => true, 'inventario' => true, 'productos' => true, 'proveedores' => true, 'multi_branch' => false, 'gift_cards' => true, 'employees_create_clients' => true]),
+            'features' => json_encode(['pos' => true, 'inventario' => true, 'productos' => true, 'proveedores' => true, 'multi_branch' => false, 'gift_cards' => true, 'employees_create_clients' => true, 'employees_see_clients' => true]),
             'active' => true, 'created_at' => $now, 'updated_at' => $now,
         ]);
 

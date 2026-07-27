@@ -62,7 +62,7 @@
           <tbody class="divide-y divide-border">
             <tr v-for="row in earnings" :key="row.id" class="transition-colors hover:bg-bg-secondary/50">
               <td class="px-4 py-2.5 text-text-secondary whitespace-nowrap">{{ row.date }}</td>
-              <td class="px-4 py-2.5 font-medium text-text">{{ row.clientName }}</td>
+              <td class="px-4 py-2.5 font-medium text-text">{{ canViewClients ? row.clientName : (businessStore.terminology.client || 'Cliente') }}</td>
               <td class="px-4 py-2.5 text-text-secondary">{{ row.serviceName }}</td>
               <td class="px-4 py-2.5 text-right text-text">${{ row.totalAmount }}</td>
               <td class="px-4 py-2.5 text-right text-text-secondary">{{ row.employeePercentage }}%</td>
@@ -125,6 +125,7 @@ const businessStore = useBusinessStore()
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 const employeeId = computed(() => authStore.profile?.id ?? '')
+const canViewClients = computed(() => businessStore.hasFeature('employees_see_clients'))
 
 const selectedMonth = ref(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`)
 

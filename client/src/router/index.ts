@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../store/auth'
+import { useBusinessStore } from '../store/business'
 import { isRole, isAdminPanelRole, isEncargado, isCajero, resolveHomeByRole, ROLES } from '../constants/roles'
 
 const router = createRouter({
@@ -240,6 +241,13 @@ router.beforeEach(async (to) => {
 
   if (authStore.role === 'empleado' && authStore.profile?.disable_agenda && (to.path === '/dashboard/agenda' || to.path === '/dashboard/calendario')) {
     return resolveHomeByRole(authStore.role, true)
+  }
+
+  if (authStore.role === 'empleado' && to.path.startsWith('/dashboard/clientes')) {
+    const businessStore = useBusinessStore()
+    if (!businessStore.hasFeature('employees_see_clients')) {
+      return resolveHomeByRole(authStore.role, authStore.profile?.disable_agenda)
+    }
   }
 })
 

@@ -1,6 +1,8 @@
 import { normalizeAppointmentStatus, getStatusLabel, getStatusColor } from '../lib/formatters'
 import type { AppointmentWithRelations, Service } from '../types/database'
 import type { Cita, CitaFormData, CitaFormServiceItem } from '../types/cita'
+import { useAuthStore } from '../store/auth'
+import { useBusinessStore } from '../store/business'
 
 const toDateInput = (iso: string) => {
   const d = new Date(iso)
@@ -38,6 +40,23 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
   const client = appointment.clients ?? (appointment as any).client
   const normalizedStatus = normalizeAppointmentStatus(appointment) as 'confirmed' | 'pending' | 'cancelled' | 'paid'
 
+  let canSeeClients = true
+  let defaultClientLabel = 'Cliente'
+  try {
+    const authStore = useAuthStore()
+    const businessStore = useBusinessStore()
+    defaultClientLabel = businessStore.terminology.client || 'Cliente'
+    if (authStore.role === 'empleado' && !businessStore.hasFeature('employees_see_clients')) {
+      canSeeClients = false
+    }
+  } catch {
+    // Pinia not active (e.g. unit tests)
+  }
+
+  const rawClientName = client?.full_name ?? (appointment as any).clientName ?? defaultClientLabel
+  const clientName = canSeeClients ? rawClientName : defaultClientLabel
+  const clientPhone = canSeeClients ? (client?.phone ?? (appointment as any).clientPhone ?? '') : ''
+
   let associatedProducts = parseAssociatedProducts(appointment.associated_products ?? (appointment as any).associatedProducts)
   if ((!associatedProducts || associatedProducts.length === 0) && (appointment as any).isGroup && Array.isArray((appointment as any).members)) {
     const gathered: any[] = []
@@ -51,8 +70,8 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
   return {
     id: appointment.id,
     clientId: appointment.client_id,
-    clientName: client?.full_name ?? (appointment as any).clientName ?? 'Cliente',
-    clientPhone: client?.phone ?? (appointment as any).clientPhone ?? '',
+    clientName,
+    clientPhone,
     petId: appointment.pet_id ?? (appointment as any).petId ?? undefined,
     petName: appointment.pets?.name ?? (appointment as any).petName ?? undefined,
     serviceId: appointment.service_id,

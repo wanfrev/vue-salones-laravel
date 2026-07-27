@@ -25,6 +25,7 @@ const DEFAULT_TERMINOLOGY: Terminology = {
     proveedores: true,
     multi_branch: false,
     employees_create_clients: true,
+    employees_see_clients: true,
     gift_cards: true,
     disable_manager_inventory_edit: false,
     encargados_change_exchange_rate: false,

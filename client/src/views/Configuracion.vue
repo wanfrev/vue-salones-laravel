@@ -218,6 +218,14 @@
       />
 
       <FormToggle
+        :model-value="!!businessStore.features.employees_see_clients"
+        @update:model-value="handleToggleEmployeesSeeClients"
+        label="Permitir a empleados ver clientes"
+        hint="Si está activo, los empleados podrán ver nombres, teléfonos y datos de contacto de los clientes. Si se desactiva, esta información estará oculta para ellos."
+        :disabled="updatingFeatures"
+      />
+
+      <FormToggle
         :model-value="!!businessStore.features.pos_direct_service_sale"
         @update:model-value="handleToggleDirectServiceSale"
         label="Permitir cobro directo de servicios en POS"
@@ -406,6 +414,23 @@ async function handleToggleDirectServiceSale(val: boolean) {
     })
     businessStore.updateBusiness({ features: updatedFeatures } as any)
     success(val ? 'Permiso activado: Se permite el cobro directo de servicios en el POS' : 'Permiso desactivado: Cobro directo de servicios deshabilitado')
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar el permiso')
+  } finally {
+    updatingFeatures.value = false
+  }
+}
+
+async function handleToggleEmployeesSeeClients(val: boolean) {
+  if (!businessId.value) return
+  updatingFeatures.value = true
+  try {
+    const updatedFeatures = { ...businessStore.features, employees_see_clients: val }
+    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    success(val ? 'Permiso activado: Los empleados ya pueden ver la información de los clientes' : 'Permiso desactivado: Información de clientes oculta para empleados')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
   } finally {

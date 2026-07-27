@@ -40,6 +40,18 @@ class AppointmentController
             ->get();
     }
 
+    private function canEmployeeSeeClients(Request $request): bool
+    {
+        $profile = $request->user()?->profile;
+        if (!$profile || $profile->role !== 'empleado') {
+            return true;
+        }
+        $business = $profile->business;
+        if (!$business) return true;
+        $features = is_array($business->features) ? $business->features : json_decode($business->features ?? '[]', true);
+        return (bool) ($features['employees_see_clients'] ?? true);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
@@ -56,18 +68,30 @@ class AppointmentController
             }
         }
 
-        return response()->json(
-            $this->appointmentService->list(
-                $businessId,
-                $startDate,
-                $endDate,
-                $employeeId,
-                $request->get('branch_id'),
-                $request->get('status'),
-                $request->get('group_id'),
-                $request->get('id_not'),
-            )
+        $list = $this->appointmentService->list(
+            $businessId,
+            $startDate,
+            $endDate,
+            $employeeId,
+            $request->get('branch_id'),
+            $request->get('status'),
+            $request->get('group_id'),
+            $request->get('id_not'),
         );
+
+        if (!$this->canEmployeeSeeClients($request)) {
+            $list->transform(function ($appointment) {
+                if ($appointment->client) {
+                    $appointment->client->full_name = 'Cliente';
+                    $appointment->client->phone = '';
+                    $appointment->client->email = null;
+                    $appointment->client->notes = null;
+                }
+                return $appointment;
+            });
+        }
+
+        return response()->json($list);
     }
 
     public function show(Request $request, string $id): JsonResponse
@@ -75,6 +99,14 @@ class AppointmentController
         $appointment = $this->appointmentService->findForBusiness($id, $this->resolveBusinessId($request) ?? '');
         if (!$appointment) return response()->json(['error' => ['message' => 'No encontrado.']], 404);
         $appointment->load(['client', 'service', 'employeeProfile', 'assistantProfile']);
+
+        if (!$this->canEmployeeSeeClients($request) && $appointment->client) {
+            $appointment->client->full_name = 'Cliente';
+            $appointment->client->phone = '';
+            $appointment->client->email = null;
+            $appointment->client->notes = null;
+        }
+
         return response()->json($appointment);
     }
 
