@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { searchClients } from '../../services/clientesService'
 import { FormInput } from '../../components/forms'
+import { useAuthStore } from '../../store/auth'
+
+const authStore = useAuthStore()
+const isEmployee = computed(() => authStore.role === 'empleado')
 
 const props = defineProps<{
   modelValue: string
@@ -76,7 +80,7 @@ const onFocus = () => { if (suggestions.value.length > 0) showSuggestions.value 
         </div>
         <div class="flex-1 min-w-0">
           <div class="font-medium text-text truncate">{{ client.full_name }}</div>
-          <div class="text-xs text-text-muted">{{ client.phone }}</div>
+          <div v-if="!isEmployee && client.phone" class="text-xs text-text-muted">{{ client.phone }}</div>
         </div>
       </button>
     </div>

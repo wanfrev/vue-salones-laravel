@@ -7,10 +7,10 @@
           <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
           <span class="font-medium uppercase tracking-wider">Ventas</span>
         </div>
-        <h1 class="text-2xl font-bold text-text lg:text-3xl">Punto de Venta</h1>
+        <h1 class="text-xl font-bold text-text sm:text-2xl lg:text-3xl">Punto de Venta</h1>
         <p class="hidden text-sm text-text-muted sm:block">Registra pagos de servicios y productos</p>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
         <ExchangeRateCard
           :is-editable="rateCtx.isEditable.value"
           :edit-rate-value="rateCtx.editRateValue.value"
@@ -30,10 +30,21 @@
           @select-client="selectRetailClient"
           @search-clients="onRetailSearchClients"
         />
-        <button v-else @click="startRetailOnly" class="flex items-center gap-1.5 rounded-lg border border-primary/30 px-3 py-2 text-xs font-semibold text-primary shadow-sm transition-all duration-200 hover:bg-primary/5">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-          Venta directa
-        </button>
+        <div v-else class="flex items-center gap-2">
+          <button
+            v-if="businessStore.features.pos_direct_service_sale"
+            @click="startDirectService"
+            class="flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200"
+            :class="activeSaleType === 'direct_service' ? 'bg-primary text-text-inverse border-primary' : 'border-primary/30 text-primary hover:bg-primary/5'"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            Servicio directo
+          </button>
+          <button @click="startRetailOnly" class="flex items-center justify-center gap-1.5 rounded-lg border border-primary/30 px-3 py-2 text-xs font-semibold text-primary shadow-sm transition-all duration-200 hover:bg-primary/5">
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+            Venta directa
+          </button>
+        </div>
       </div>
     </div>
   </header>
@@ -41,7 +52,171 @@
   <div v-if="queryError" class="mb-4 rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm text-danger">Error al cargar citas: {{ queryError }}</div>
 
   <div class="grid grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr]">
-      <!-- LEFT PANEL -->
+    <!-- LEFT PANEL -->
+    <div>
+      <!-- DIRECT SERVICE PANEL -->
+      <div v-if="activeSaleType === 'direct_service'" class="rounded-2xl border border-primary/30 bg-surface p-4 shadow-sm space-y-4 mb-4">
+        <div class="flex items-center justify-between border-b border-border pb-3">
+          <div class="flex items-center gap-2">
+            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-sm font-bold text-text">Cobro Directo de Servicios</h3>
+              <p class="text-xs text-text-muted">Agrega múltiples servicios y modifica sus montos fácilmente</p>
+            </div>
+          </div>
+          <button @click="cancelDirectService" class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text" title="Cancelar servicio directo">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <!-- Formulario para agregar un servicio -->
+        <div class="rounded-xl bg-bg-secondary/60 p-3 space-y-3 border border-border/50">
+          <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Servicio -->
+            <div class="lg:col-span-2">
+              <label class="block text-[11px] font-semibold text-text-secondary mb-1">Servicio *</label>
+              <select
+                v-model="pendingServiceId"
+                @change="onPendingServiceChange"
+                class="w-full rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-text outline-none focus:border-primary"
+              >
+                <option value="" disabled>Selecciona un servicio</option>
+                <option v-for="s in posServiciosList" :key="s.id" :value="s.id">
+                  {{ s.name }} (${{ s.price }})
+                </option>
+              </select>
+            </div>
+
+            <!-- Precio Modificable -->
+            <div>
+              <label class="block text-[11px] font-semibold text-text-secondary mb-1">Precio ($) *</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                v-model.number="pendingServicePrice"
+                placeholder="0.00"
+                class="w-full rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-text font-medium outline-none focus:border-primary"
+              />
+            </div>
+
+            <!-- Empleado Principal -->
+            <div>
+              <label class="block text-[11px] font-semibold text-text-secondary mb-1">Empleado *</label>
+              <select
+                v-model="pendingEmployeeId"
+                class="w-full rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-text outline-none focus:border-primary"
+              >
+                <option value="" disabled>Selecciona empleado</option>
+                <option v-for="e in posEmpleadosList" :key="e.id" :value="e.id">
+                  {{ e.name }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Asistente (Opcional) -->
+            <div class="lg:col-span-2">
+              <label class="block text-[11px] font-semibold text-text-secondary mb-1">Asistente (opcional)</label>
+              <select
+                v-model="pendingAssistantId"
+                class="w-full rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-text outline-none focus:border-primary"
+              >
+                <option value="">Sin asistente</option>
+                <option v-for="e in posEmpleadosList.filter((x: any) => x.id !== pendingEmployeeId)" :key="e.id" :value="e.id">
+                  {{ e.name }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Botón Agregar -->
+            <div class="lg:col-span-2 flex items-end">
+              <button
+                @click="addDirectServiceToList"
+                :disabled="!pendingServiceId || !pendingEmployeeId || pendingServicePrice < 0"
+                class="w-full flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-all hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              >
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                + Agregar servicio a la cuenta
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista de Servicios Agregados -->
+        <div v-if="directServicesList.length > 0" class="space-y-2">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-text uppercase tracking-wider">Servicios Agregados ({{ directServicesList.length }})</h4>
+            <span class="text-xs font-bold text-primary tabular-nums">Subtotal Servicios: ${{ servicePrice.toFixed(2) }}</span>
+          </div>
+
+          <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+            <div
+              v-for="(item, idx) in directServicesList"
+              :key="item.id"
+              class="flex items-center justify-between gap-2 rounded-xl border border-border bg-surface p-2.5 shadow-2xs"
+            >
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-semibold text-text truncate">{{ item.serviceName }}</p>
+                <p class="text-[11px] text-text-muted truncate">
+                  Por: <span class="font-medium text-text">{{ item.employeeName }}</span>
+                  <template v-if="item.assistantEmployeeName"> | Asistente: <span class="font-medium text-text">{{ item.assistantEmployeeName }}</span></template>
+                </p>
+              </div>
+
+              <div class="flex items-center gap-2 shrink-0">
+                <div class="flex items-center gap-1 bg-bg-secondary px-2 py-1 rounded-lg border border-border">
+                  <span class="text-xs text-text-muted">$</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    :value="item.price"
+                    @input="updateDirectServicePrice(idx, ($event.target as HTMLInputElement).valueAsNumber)"
+                    class="w-16 bg-transparent text-right text-xs font-bold text-text outline-none"
+                  />
+                </div>
+
+                <button
+                  @click="removeDirectServiceFromList(idx)"
+                  class="rounded-lg p-1 text-text-muted hover:bg-danger/10 hover:text-danger transition-colors"
+                  title="Eliminar servicio"
+                >
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cliente Opcional -->
+        <div class="border-t border-border pt-3">
+          <label class="block text-xs font-semibold text-text-secondary mb-1">Cliente asignado (opcional)</label>
+          <div class="relative">
+            <input
+              v-model="directServiceClientSearch"
+              @input="onDirectServiceSearchClients(directServiceClientSearch)"
+              placeholder="Buscar cliente por nombre o teléfono..."
+              class="w-full rounded-xl border border-border bg-bg-secondary px-3 py-2 text-xs text-text outline-none focus:border-primary"
+            />
+            <div v-if="directServiceClientSuggestions.length > 0" class="absolute left-0 right-0 top-full z-30 mt-1 max-h-40 overflow-y-auto rounded-xl border border-border bg-surface p-1 shadow-lg">
+              <button
+                v-for="c in directServiceClientSuggestions"
+                :key="c.id"
+                @click="selectDirectServiceClient(c)"
+                class="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs text-text hover:bg-bg-secondary"
+              >
+                <span class="font-medium">{{ c.full_name }}</span>
+                <span class="text-text-muted text-[10px]">{{ c.phone }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <AppointmentList
         :overdue="overdueAppointments"
         :upcoming="upcomingAppointments"
@@ -52,16 +227,17 @@
         :inline-product-search="inlineProductSearch"
         :show-inline-dropdown="showInlineDropdown"
         :show-go-to-calendar="!authStore.isCajeroProfile"
-        @select="selectAppointment"
+        @select="onSelectAppointment"
         @go-to-calendar="goToAppointmentInCalendar"
         @update:search="appointmentSearch = $event"
         @update:inline-product-search="inlineProductSearch = $event"
         @add-product="addInlineProduct"
         @blur="onInlineBlur" @focus="showInlineDropdown = true"
       />
+    </div>
 
-    <!-- RIGHT PANEL -->
-    <div class="space-y-4 lg:sticky lg:top-20 h-fit lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden">
+    <!-- RIGHT PANEL (desktop only) -->
+    <div class="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden">
       <POSPaymentPanel
         :selected-appointment="selectedAppointment"
         :cart="cartCtx.cart.value" :service-price="servicePrice"
@@ -74,8 +250,12 @@
         :tip-participants="tipParticipants" :tip-allocations="tipAllocations"
         :tip-allocated-total="tipAllocatedTotal" :tip-remaining="tipRemaining"
         :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
-        :retail-client-name="retailClientId ? retailClientSearch : null"
+        :retail-client-name="activeSaleType === 'retail_only' ? (retailClientId ? retailClientSearch : null) : (directServiceClientId ? directServiceClientSearch : null)"
         :are-products-included="areProductsIncluded"
+        :selected-gift-card-id="paymentCtx.selectedGiftCardId.value"
+        :is-direct-service="activeSaleType === 'direct_service'"
+        :direct-services-list="directServicesList"
+        @update:selected-gift-card-id="paymentCtx.selectedGiftCardId.value = $event"
         @update:are-products-included="areProductsIncluded = $event"
         @select-method="paymentCtx.selectMethod"
         @update:other-currency="paymentCtx.otherCurrency.value = $event"
@@ -90,6 +270,79 @@
       />
     </div>
   </div>
+
+  <!-- MOBILE PAYMENT DRAWER -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition ease-out duration-200"
+      enter-from-class="opacity-0 translate-y-full"
+      enter-to-class="opacity-100 translate-y-0"
+      leave-active-class="transition ease-in duration-200"
+      leave-from-class="opacity-100 translate-y-0"
+      leave-to-class="opacity-0 translate-y-full"
+    >
+      <div
+        v-if="isMobile && mobilePaymentOpen"
+        class="fixed inset-0 z-50 flex flex-col bg-bg lg:hidden"
+      >
+        <div class="flex items-center justify-between border-b border-border bg-surface px-4 py-3">
+          <h2 class="text-base font-semibold text-text">Cobrar</h2>
+          <button
+            @click="closeMobilePayment"
+            class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="flex-1 overflow-hidden p-4">
+          <POSPaymentPanel
+            :selected-appointment="selectedAppointment"
+            :cart="cartCtx.cart.value" :service-price="servicePrice"
+            :products-total="cartCtx.productsTotal.value" :cart-count="cartCtx.cart.value.length"
+            :grand-total="grandTotal" :payment-method="paymentCtx.paymentMethod.value"
+            :other-currency="paymentCtx.otherCurrency.value" :payment-methods="paymentCtx.paymentMethods"
+            :mixed-methods="paymentCtx.mixedMethods" :payments-breakdown="paymentCtx.paymentsBreakdown.value"
+            :split-remaining="splitRemaining" :is-processing="isProcessing" :can-pay="canPay"
+            :notes="paymentCtx.paymentNotes.value" :tip-amount="paymentCtx.tipAmount.value"
+            :tip-participants="tipParticipants" :tip-allocations="tipAllocations"
+            :tip-allocated-total="tipAllocatedTotal" :tip-remaining="tipRemaining"
+            :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
+            :retail-client-name="activeSaleType === 'retail_only' ? (retailClientId ? retailClientSearch : null) : (directServiceClientId ? directServiceClientSearch : null)"
+            :are-products-included="areProductsIncluded"
+            :selected-gift-card-id="paymentCtx.selectedGiftCardId.value"
+            :is-direct-service="activeSaleType === 'direct_service'"
+            :direct-services-list="directServicesList"
+            @update:selected-gift-card-id="paymentCtx.selectedGiftCardId.value = $event"
+            @update:are-products-included="areProductsIncluded = $event"
+            @select-method="paymentCtx.selectMethod"
+            @update:other-currency="paymentCtx.otherCurrency.value = $event"
+            @add-split="paymentCtx.addSplit" @remove-split="paymentCtx.removeSplit"
+            @update:notes="paymentCtx.paymentNotes.value = $event"
+            @update:tip-amount="paymentCtx.tipAmount.value = $event"
+            @toggle-tip-adjust="showTipAdjust = !showTipAdjust"
+            @set-equal-tip="setEqualTipAllocation"
+            @update:tip-allocation="setTipAllocation"
+            @process-payment="handleMobileProcessPayment"
+            @increment-qty="cartCtx.incrementQty" @decrement-qty="cartCtx.decrementQty" @remove-item="cartCtx.removeItem"
+          />
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+
+  <!-- Mobile floating pay button when drawer is closed -->
+  <button
+    v-if="isMobile && !mobilePaymentOpen && hasPaymentContext"
+    @click="mobilePaymentOpen = true"
+    class="fixed bottom-4 right-4 z-20 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-bold text-text-inverse shadow-lg shadow-primary/25 transition-theme hover:bg-primary-hover lg:hidden"
+  >
+    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+    </svg>
+    Cobrar
+  </button>
   </FeatureGate>
 
   <POSConfirmModal
@@ -108,7 +361,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../composables/common/useAuth'
@@ -151,8 +404,128 @@ const branchId = computed(() => businessStore.currentBranchId)
 const cartCtx = usePOSCart()
 const paymentCtx = usePOSPayment()
 
-const activeSaleType = ref<'appointment' | 'retail_only'>('appointment')
+const activeSaleType = ref<'appointment' | 'retail_only' | 'direct_service'>('appointment')
 const selectedAppointment = ref<any>(null)
+
+interface DirectServiceItem {
+  id: string
+  serviceId: string
+  serviceName: string
+  employeeId: string
+  employeeName: string
+  assistantEmployeeId?: string | null
+  assistantEmployeeName?: string | null
+  price: number
+}
+
+const directServicesList = ref<DirectServiceItem[]>([])
+const pendingServiceId = ref('')
+const pendingServicePrice = ref<number>(0)
+const pendingEmployeeId = ref('')
+const pendingAssistantId = ref('')
+const directServiceClientId = ref<string | null>(null)
+const directServiceClientSearch = ref('')
+const directServiceClientSuggestions = ref<{ id: string; full_name: string; phone: string }[]>([])
+
+const onPendingServiceChange = () => {
+  const svc = posServiciosList.value.find((s: any) => s.id === pendingServiceId.value)
+  if (svc) {
+    pendingServicePrice.value = Number(svc.price ?? 0)
+  }
+}
+
+const addDirectServiceToList = () => {
+  if (!pendingServiceId.value || !pendingEmployeeId.value) return
+  const svc = posServiciosList.value.find((s: any) => s.id === pendingServiceId.value)
+  const emp = posEmpleadosList.value.find((e: any) => e.id === pendingEmployeeId.value)
+  const asst = pendingAssistantId.value ? posEmpleadosList.value.find((e: any) => e.id === pendingAssistantId.value) : null
+
+  directServicesList.value.push({
+    id: 'ds_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+    serviceId: pendingServiceId.value,
+    serviceName: svc?.name ?? 'Servicio',
+    employeeId: pendingEmployeeId.value,
+    employeeName: emp?.name ?? 'Empleado',
+    assistantEmployeeId: pendingAssistantId.value || null,
+    assistantEmployeeName: asst?.name ?? null,
+    price: Number(pendingServicePrice.value || 0),
+  })
+
+  pendingServiceId.value = ''
+  pendingServicePrice.value = 0
+  pendingAssistantId.value = ''
+}
+
+const removeDirectServiceFromList = (index: number) => {
+  directServicesList.value.splice(index, 1)
+}
+
+const updateDirectServicePrice = (index: number, newPrice: number) => {
+  if (directServicesList.value[index]) {
+    directServicesList.value[index].price = Math.max(0, Number(newPrice || 0))
+  }
+}
+
+const startDirectService = () => {
+  selectedAppointment.value = null
+  activeSaleType.value = 'direct_service'
+  cartCtx.clearCart()
+  paymentCtx.reset()
+  directServicesList.value = []
+  pendingServiceId.value = ''
+  pendingServicePrice.value = 0
+  pendingEmployeeId.value = ''
+  pendingAssistantId.value = ''
+  directServiceClientId.value = null
+  directServiceClientSearch.value = ''
+  directServiceClientSuggestions.value = []
+  tipAllocations.value = {}
+  tipManual.value = false
+  showTipAdjust.value = false
+  areProductsIncluded.value = false
+  if (isMobile.value) mobilePaymentOpen.value = true
+}
+
+const cancelDirectService = () => {
+  activeSaleType.value = 'appointment'
+  directServicesList.value = []
+  pendingServiceId.value = ''
+  pendingServicePrice.value = 0
+  pendingEmployeeId.value = ''
+  pendingAssistantId.value = ''
+  directServiceClientId.value = null
+  directServiceClientSearch.value = ''
+  directServiceClientSuggestions.value = []
+  paymentCtx.reset()
+  cartCtx.clearCart()
+}
+
+const selectDirectServiceClient = (client: { id: string; full_name: string; phone: string }) => {
+  directServiceClientId.value = client.id
+  directServiceClientSearch.value = client.full_name
+  directServiceClientSuggestions.value = []
+}
+
+const onDirectServiceSearchClients = async (query: string) => {
+  if (!businessId.value || !query.trim()) {
+    directServiceClientSuggestions.value = []
+    return
+  }
+  try {
+    directServiceClientSuggestions.value = await searchClients(businessId.value, query, branchId.value)
+  } catch {
+    directServiceClientSuggestions.value = []
+  }
+}
+
+const mobilePaymentOpen = ref(false)
+const windowWidth = ref(window.innerWidth)
+const isMobile = computed(() => windowWidth.value < 1024)
+const onResize = () => { windowWidth.value = window.innerWidth }
+onMounted(() => window.addEventListener('resize', onResize))
+onUnmounted(() => window.removeEventListener('resize', onResize))
+
+const hasPaymentContext = computed(() => selectedAppointment.value !== null || activeSaleType.value === 'retail_only' || activeSaleType.value === 'direct_service')
 const queryError = ref<string | null>(null)
 const appointmentSearch = ref('')
 const inlineProductSearch = ref('')
@@ -249,6 +622,9 @@ const onRetailSearchClients = async (query: string) => {
 }
 
 const servicePrice = computed(() => {
+  if (activeSaleType.value === 'direct_service') {
+    return directServicesList.value.reduce((sum, item) => sum + Number(item.price || 0), 0)
+  }
   const appt = selectedAppointment.value
   if (!appt) return 0
   if (Array.isArray(appt.members) && appt.members.length > 0) return appt.members.reduce((sum: number, m: any) => sum + Number(m.price ?? 0), 0)
@@ -262,8 +638,17 @@ const effectiveProductsTotal = computed(() => areProductsIncluded.value ? 0 : ca
 const grandTotal = computed(() => activeSaleType.value === 'retail_only' ? effectiveProductsTotal.value : servicePrice.value + effectiveProductsTotal.value + paymentCtx.tipAmount.value)
 
 const tipParticipants = computed<TipParticipant[]>(() => {
-  if (activeSaleType.value === 'retail_only' || !selectedAppointment.value) return []
+  if (activeSaleType.value === 'retail_only') return []
+  if (activeSaleType.value === 'direct_service') {
+    const map = new Map<string, string>()
+    for (const item of directServicesList.value) {
+      if (item.employeeId && !map.has(item.employeeId)) map.set(item.employeeId, item.employeeName)
+      if (item.assistantEmployeeId && !map.has(item.assistantEmployeeId)) map.set(item.assistantEmployeeId, item.assistantEmployeeName ?? 'Asistente')
+    }
+    return Array.from(map.entries()).map(([id, name]) => ({ employeeId: id, employeeName: name }))
+  }
   const appt = selectedAppointment.value
+  if (!appt) return []
   if (appt.isGroup && Array.isArray(appt.members)) {
     const map = new Map<string, string>()
     for (const m of appt.members) { if (m.employeeId && !map.has(m.employeeId)) map.set(m.employeeId, m.employeeName ?? 'Empleado') }
@@ -297,6 +682,9 @@ const splitRemaining = computed(() =>
 const isProcessing = computed(() => paymentCtx.isProcessing.value)
 const canPay = computed(() => {
   if (grandTotal.value <= 0) return false
+  if (activeSaleType.value === 'direct_service') {
+    if (directServicesList.value.length === 0) return false
+  }
   if (activeSaleType.value !== 'retail_only' && paymentCtx.tipAmount.value > 0 && tipParticipants.value.length > 0 && Math.abs(tipRemaining.value) >= 0.01) return false
   if (paymentCtx.paymentMethod.value === 'mixed') {
     const total = paymentCtx.paymentsBreakdown.value.reduce((sum: number, s: any) => sum + (s.currency === 'VES' ? (s.inputAmount || 0) / exchangeRate.value : (s.inputAmount || 0)), 0)
@@ -351,6 +739,20 @@ const selectAppointment = (appt: any) => {
   setEqualTipAllocation()
 }
 
+const onSelectAppointment = (appt: any) => {
+  selectAppointment(appt)
+  if (selectedAppointment.value && isMobile.value) mobilePaymentOpen.value = true
+}
+
+const closeMobilePayment = () => {
+  mobilePaymentOpen.value = false
+}
+
+const handleMobileProcessPayment = () => {
+  if (grandTotal.value <= 0) return
+  showConfirmModal.value = true
+}
+
 watch(() => appointments.value, (list) => {
   if (!selectedAppointment.value) return
   const updated = list.find((a: any) => a.id === selectedAppointment.value.id)
@@ -360,7 +762,10 @@ const goToAppointmentInCalendar = (appt: any) => {
   const cita = mapAppointmentToCita(appt)
   posCitaModalRef.value?.open(cita)
 }
-const startRetailOnly = () => { selectedAppointment.value = null; activeSaleType.value = 'retail_only'; cartCtx.clearCart(); paymentCtx.reset(); retailProductSearch.value = ''; retailClientSearch.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailSearchRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false; areProductsIncluded.value = false }
+const startRetailOnly = () => {
+  selectedAppointment.value = null; activeSaleType.value = 'retail_only'; cartCtx.clearCart(); paymentCtx.reset(); retailProductSearch.value = ''; retailClientSearch.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailSearchRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false; areProductsIncluded.value = false
+  if (isMobile.value) mobilePaymentOpen.value = true
+}
 const setTipAllocation = (employeeId: string, value: number) => { tipManual.value = true; tipAllocations.value = { ...tipAllocations.value, [employeeId]: Math.max(0, Number(value || 0)) } }
 
 const handleRetailPayment = async () => {
@@ -379,17 +784,48 @@ const handleRetailPayment = async () => {
     retailClientId.value = null
     retailClientSuggestions.value = []
     retailSearchRef.value?.reset()
+    mobilePaymentOpen.value = false
+  }
+}
+
+const handleDirectServicePayment = async () => {
+  if (isProcessing.value || directServicesList.value.length === 0) return
+  const ok = await paymentCtx.processDirectServiceSale({
+    services: directServicesList.value.map(s => ({
+      serviceId: s.serviceId,
+      employeeId: s.employeeId,
+      assistantEmployeeId: s.assistantEmployeeId || null,
+      price: s.price,
+    })),
+    clientId: directServiceClientId.value || null,
+    serviceAmount: servicePrice.value,
+    productsAmount: effectiveProductsTotal.value,
+    products: cartCtx.cart.value,
+    exchangeRate: exchangeRate.value,
+    tipAmount: paymentCtx.tipAmount.value,
+  })
+  if (ok) {
+    selectedAppointment.value = null
+    cartCtx.clearCart()
+    paymentCtx.reset()
+    cancelDirectService()
+    mobilePaymentOpen.value = false
   }
 }
 
 const showConfirmModal = ref(false)
-const confirmClientName = computed(() => activeSaleType.value === 'retail_only' ? null : (selectedAppointment.value?.client?.full_name ?? selectedAppointment.value?.clients?.full_name) || null)
+const confirmClientName = computed(() => {
+  if (activeSaleType.value === 'retail_only') return retailClientId.value ? retailClientSearch.value : null
+  if (activeSaleType.value === 'direct_service') return directServiceClientId.value ? directServiceClientSearch.value : null
+  return (selectedAppointment.value?.client?.full_name ?? selectedAppointment.value?.clients?.full_name) || null
+})
 const handleProcessPayment = () => { if (grandTotal.value > 0) showConfirmModal.value = true }
 const cancelPayment = () => { showConfirmModal.value = false }
 
 const confirmPayment = async () => {
   showConfirmModal.value = false
   if (activeSaleType.value === 'retail_only') { await handleRetailPayment(); return }
+  if (activeSaleType.value === 'direct_service') { await handleDirectServicePayment(); return }
   if (!selectedAppointment.value) return
   const appt = selectedAppointment.value
   const ok = await paymentCtx.processPayment({
@@ -405,7 +841,7 @@ const confirmPayment = async () => {
     groupPrice: appt.groupPrice,
     tipAllocations: tipAllocations.value,
   })
-  if (ok) { selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset(); areProductsIncluded.value = false }
+  if (ok) { selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset(); areProductsIncluded.value = false; mobilePaymentOpen.value = false }
 }
 
 const { handleSaveCita, handleDeleteCita } = useAppointmentMutations({

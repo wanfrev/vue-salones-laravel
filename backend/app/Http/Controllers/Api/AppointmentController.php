@@ -5,9 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Events\EntityChanged;
 use App\Http\Requests\StoreAppointmentRequest;
 use App\Http\Requests\UpdateAppointmentRequest;
+use App\Models\Appointment;
+use App\Models\Profile;
 use App\Services\AppointmentService;
+use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class AppointmentController
 {
@@ -20,23 +24,63 @@ class AppointmentController
         return $request->user()?->profile?->business_id;
     }
 
+    private function getAdminsToNotify(string $businessId, ?string $branchId): Collection
+    {
+        return Profile::where('business_id', $businessId)
+            ->where('active', true)
+            ->where(function ($query) use ($branchId) {
+                $query->whereIn('role', ['admin', 'superadmin']);
+                if ($branchId) {
+                    $query->orWhere(function ($q) use ($branchId) {
+                        $q->where('role', 'encargado')
+                          ->where('branch_id', $branchId);
+                    });
+                }
+            })
+            ->get();
+    }
+
     public function index(Request $request): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId) return response()->json([]);
 
-        return response()->json(
-            $this->appointmentService->list(
-                $businessId,
-                $request->start_date,
-                $request->end_date,
-                $request->employee_id,
-                $request->branch_id,
-                $request->status,
-                $request->group_id,
-                $request->id_not,
-            )
+        $startDate = $request->get('start_date') ?? $request->get('start_time');
+        $endDate = $request->get('end_date') ?? $request->get('end_time');
+        $employeeId = $request->get('employee_id');
+
+        if (!$employeeId && $request->has('or')) {
+            $orParam = (string) $request->get('or');
+            if (preg_match('/employee_id\.eq\.([a-f0-9\-]+)/i', $orParam, $m)) {
+                $employeeId = $m[1];
+            }
+        }
+
+        $list = $this->appointmentService->list(
+            $businessId,
+            $startDate,
+            $endDate,
+            $employeeId,
+            $request->get('branch_id'),
+            $request->get('status'),
+            $request->get('group_id'),
+            $request->get('id_not'),
         );
+
+        $isEmployee = $request->user()?->profile?->role === 'empleado';
+
+        if ($isEmployee) {
+            $list->transform(function ($appointment) {
+                if ($appointment->client) {
+                    $appointment->client->phone = '';
+                    $appointment->client->email = null;
+                    $appointment->client->notes = null;
+                }
+                return $appointment;
+            });
+        }
+
+        return response()->json($list);
     }
 
     public function show(Request $request, string $id): JsonResponse
@@ -44,6 +88,15 @@ class AppointmentController
         $appointment = $this->appointmentService->findForBusiness($id, $this->resolveBusinessId($request) ?? '');
         if (!$appointment) return response()->json(['error' => ['message' => 'No encontrado.']], 404);
         $appointment->load(['client', 'service', 'employeeProfile', 'assistantProfile']);
+
+        $isEmployee = $request->user()?->profile?->role === 'empleado';
+
+        if ($isEmployee && $appointment->client) {
+            $appointment->client->phone = '';
+            $appointment->client->email = null;
+            $appointment->client->notes = null;
+        }
+
         return response()->json($appointment);
     }
 
@@ -56,10 +109,15 @@ class AppointmentController
         $appointment->load(['client', 'service', 'employeeProfile', 'assistantProfile']);
         EntityChanged::safe($businessId, 'appointment', 'created', $appointment->id);
 
+        $creatorProfileId = $request->user()?->profile?->id;
+        $notifiedProfiles = $creatorProfileId ? [$creatorProfileId] : [];
+        
         // Notify assigned employee
-        $notifService = app(\App\Services\NotificationService::class);
+        $notifService = app(NotificationService::class);
         $clientName = $appointment->client?->full_name ?? 'Cliente';
         $serviceName = $appointment->service?->name ?? 'Servicio';
+        $employeeName = $appointment->employeeProfile?->full_name ?? '';
+        $startTime = $appointment->start_time;
 
         $notifService->create([
             'business_id' => $businessId,
@@ -70,8 +128,9 @@ class AppointmentController
             'message' => "{$clientName} — {$serviceName}",
             'client_name' => $clientName,
             'service_name' => $serviceName,
-            'appointment_time' => $appointment->start_time,
+            'appointment_time' => $startTime,
         ]);
+        $notifiedProfiles[] = $appointment->employee_id;
 
         // Notify assistant if assigned
         if ($appointment->assistant_employee_id) {
@@ -84,7 +143,26 @@ class AppointmentController
                 'message' => "{$clientName} — {$serviceName}",
                 'client_name' => $clientName,
                 'service_name' => $serviceName,
-                'appointment_time' => $appointment->start_time,
+                'appointment_time' => $startTime,
+            ]);
+            $notifiedProfiles[] = $appointment->assistant_employee_id;
+        }
+
+        // Notify admins and encargados
+        $admins = $this->getAdminsToNotify($businessId, $appointment->branch_id);
+        foreach ($admins as $admin) {
+            if (in_array($admin->id, $notifiedProfiles)) continue;
+            
+            $notifService->create([
+                'business_id' => $businessId,
+                'profile_id' => $admin->id,
+                'appointment_id' => $appointment->id,
+                'type' => 'new_appointment',
+                'title' => 'Nueva cita agendada',
+                'message' => "{$clientName} — {$serviceName}" . ($employeeName ? " con {$employeeName}" : ''),
+                'client_name' => $clientName,
+                'service_name' => $serviceName,
+                'appointment_time' => $startTime,
             ]);
         }
 
@@ -126,6 +204,57 @@ class AppointmentController
         $appointment = $this->appointmentService->updateStatus($id, $data['status'], $businessId);
         $appointment->load(['client', 'service', 'employeeProfile', 'assistantProfile']);
         EntityChanged::safe($businessId, 'appointment', 'updated', $id);
+
+        // Notification: status change
+        $clientName = $appointment->client?->full_name ?? 'Cliente';
+        $serviceName = $appointment->service?->name ?? 'Servicio';
+        $statusLabel = match ($data['status']) {
+            'confirmed' => 'Confirmada',
+            'pending' => 'Pendiente',
+            'completed' => 'Completada',
+            'cancelled' => 'Cancelada',
+            'no_show' => 'No asistió',
+            'in_progress' => 'En progreso',
+            default => $data['status'],
+        };
+
+        $notifService = app(NotificationService::class);
+
+        $notifiedProfiles = [];
+
+        // Notify assigned employee
+        $notifService->create([
+            'business_id' => $businessId,
+            'profile_id' => $appointment->employee_id,
+            'appointment_id' => $appointment->id,
+            'type' => 'status_change',
+            'title' => "Cita {$statusLabel}",
+            'message' => "{$clientName} — {$serviceName}",
+            'client_name' => $clientName,
+            'service_name' => $serviceName,
+            'appointment_time' => $appointment->start_time,
+        ]);
+        $notifiedProfiles[] = $appointment->employee_id;
+
+        // Notify admins and encargados
+        $admins = $this->getAdminsToNotify($businessId, $appointment->branch_id);
+        foreach ($admins as $admin) {
+            if (in_array($admin->id, $notifiedProfiles)) continue;
+            $notifService->create([
+                'business_id' => $businessId,
+                'profile_id' => $admin->id,
+                'appointment_id' => $appointment->id,
+                'type' => 'status_change',
+                'title' => "Cita {$statusLabel}",
+                'message' => "{$clientName} — {$serviceName}",
+                'client_name' => $clientName,
+                'service_name' => $serviceName,
+                'appointment_time' => $appointment->start_time,
+            ]);
+        }
+
+        EntityChanged::safe($businessId, 'notification', 'updated', $id);
+
         return response()->json($appointment);
     }
 

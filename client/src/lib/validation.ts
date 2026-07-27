@@ -77,7 +77,7 @@ export const expenseFormSchema = z.object({
   category: z.string().min(1, 'Selecciona una categoría'),
   amount: z.number().min(0.01, 'El monto debe ser mayor a 0'),
   currency: z.enum(['USD', 'VES']),
-  date: z.string().min(1, 'Selecciona una fecha'),
+  expenseDate: z.string().min(1, 'Selecciona una fecha'),
   notes: z.string().default(''),
 })
 
@@ -162,6 +162,9 @@ export const productoFormSchema = z.object({
 })
 
 export const giftCardFormSchema = z.object({
+  code: z.string().optional(),
+  buyerName: z.string().min(1, 'El nombre del comprador es requerido'),
+  buyerPhone: z.string().default(''),
   recipientName: z.string().min(1, 'El nombre del beneficiario es requerido'),
   recipientPhone: z.string().default(''),
   amount: z.number().positive('El monto debe ser mayor a 0'),

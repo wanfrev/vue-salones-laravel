@@ -105,7 +105,7 @@ class FinancialSummaryService
             ->where('business_id', $businessId);
 
         if ($start && $end) {
-            $expQuery->whereBetween('expense_date', [$start, $end]);
+            $expQuery->whereBetween('expense_date', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
         }
         if ($branchId) {
             $expQuery->where(function ($q) use ($branchId) {
@@ -121,7 +121,7 @@ class FinancialSummaryService
             ->where('type', 'payment');
 
         if ($start && $end) {
-            $empQuery->whereBetween('payment_date', [$start, $end]);
+            $empQuery->whereBetween('payment_date', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
         }
         if ($branchId) {
             $empQuery->where(function ($q) use ($branchId) {
@@ -136,7 +136,7 @@ class FinancialSummaryService
             ->where('business_id', $businessId);
 
         if ($start && $end) {
-            $supQuery->whereBetween('payment_date', [$start, $end]);
+            $supQuery->whereBetween('payment_date', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
         }
         if ($branchId) {
             $supQuery->where(function ($q) use ($branchId) {
@@ -154,12 +154,15 @@ class FinancialSummaryService
         $tips = (float) ($txTotals->tips ?? 0);
         $transactionCount = (int) ($txTotals->total_transactions ?? 0);
 
-        $netProfit = $localIncome - $totalExpenses;
+        $employeeCommissions = round($totalIncome - $localIncome, 2);
+
+        $netProfit = $totalIncome - $totalExpenses;
 
         return [
             'total_income' => round($totalIncome, 2),
             'local_income' => round($localIncome, 2),
             'employee_income' => round($employeeIncome, 2),
+            'employee_commissions' => $employeeCommissions,
             'tips' => round($tips, 2),
             'operational_expenses' => round($operationalExpenses, 2),
             'total_expenses' => round($totalExpenses, 2),

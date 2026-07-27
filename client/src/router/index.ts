@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../store/auth'
+import { useBusinessStore } from '../store/business'
 import { isRole, isAdminPanelRole, isEncargado, isCajero, resolveHomeByRole, ROLES } from '../constants/roles'
+import { isPetNiche } from '../config/nicheFields'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -240,6 +242,20 @@ router.beforeEach(async (to) => {
 
   if (authStore.role === 'empleado' && authStore.profile?.disable_agenda && (to.path === '/dashboard/agenda' || to.path === '/dashboard/calendario')) {
     return resolveHomeByRole(authStore.role, true)
+  }
+
+  if (to.path.includes('/consultorio')) {
+    const businessStore = useBusinessStore()
+    if (!isPetNiche(businessStore.nicheType)) {
+      return resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda)
+    }
+  }
+
+  if (authStore.role === 'empleado' && to.path.startsWith('/dashboard/clientes')) {
+    const businessStore = useBusinessStore()
+    if (!businessStore.hasFeature('employees_see_clients')) {
+      return resolveHomeByRole(authStore.role, authStore.profile?.disable_agenda)
+    }
   }
 })
 

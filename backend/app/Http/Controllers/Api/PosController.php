@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Events\EntityChanged;
 use App\Http\Requests\ProcessSaleRequest;
 use App\Http\Requests\DirectSaleRequest;
+use App\Http\Requests\DirectServiceSaleRequest;
 use App\Services\PosService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -87,6 +88,40 @@ class PosController
                 businessId: $businessId,
                 branchId: $data['branch_id'] ?? null,
                 createdBy: $request->user()->id,
+            );
+
+            EntityChanged::safe($businessId, 'transaction', 'created', $txId);
+
+            return response()->json(['id' => $txId], 201);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 400);
+        }
+    }
+
+    public function directServiceSale(DirectServiceSaleRequest $request): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+
+        $data = $request->validated();
+
+        try {
+            $txId = $this->posService->processDirectServiceSale(
+                serviceId: $data['service_id'] ?? null,
+                employeeId: $data['employee_id'] ?? null,
+                assistantEmployeeId: $data['assistant_employee_id'] ?? null,
+                clientId: $data['client_id'] ?? null,
+                serviceAmount: (float) ($data['service_amount'] ?? 0),
+                method: $data['method'],
+                products: $data['products'] ?? [],
+                notes: $data['notes'] ?? null,
+                exchangeRate: $data['exchange_rate_used'] ?? null,
+                paymentsBreakdown: $data['payments_breakdown'] ?? [],
+                tipAmount: $data['tip_amount'] ?? null,
+                businessId: $businessId,
+                branchId: $data['branch_id'] ?? null,
+                createdBy: $request->user()->id,
+                productsAmount: (float) ($data['products_amount'] ?? 0),
+                services: $data['services'] ?? [],
             );
 
             EntityChanged::safe($businessId, 'transaction', 'created', $txId);

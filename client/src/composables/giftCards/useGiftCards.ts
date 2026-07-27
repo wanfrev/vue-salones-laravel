@@ -7,6 +7,17 @@ import { useBusinessStore } from '../../store/business'
 import { giftCardsKeys, listGiftCards, saveGiftCard, deleteGiftCard } from '../../services/giftCardsService'
 import type { GiftCard, GiftCardFormData } from '../../types/giftCard'
 
+import { findOrCreateClientByPhone } from '../../services/clientesService'
+
+export function generateGiftCardCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let code = 'GC-'
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return code
+}
+
 export function useGiftCards(businessId: import('vue').Ref<string | null>) {
   const queryClient = useQueryClient()
   const { success, error: showError } = useNotification()
@@ -22,6 +33,8 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
   })
 
   const giftCards = computed(() => data.value ?? [])
+  const activeGiftCards = computed(() => giftCards.value.filter(g => g.status === 'active'))
+  const usedGiftCards = computed(() => giftCards.value.filter(g => g.status === 'redeemed' || g.status === 'expired'))
 
   const saveMutation = useMutation({
     mutationFn: (form: GiftCardFormData) => {
@@ -58,7 +71,13 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
   const saveError = ref('')
   const formErrors = ref<Record<string, string>>({})
 
+  const saveBuyerAsClient = ref(true)
+  const saveRecipientAsClient = ref(true)
+
   const form = ref<GiftCardFormData>({
+    code: '',
+    buyerName: '',
+    buyerPhone: '',
     recipientName: '',
     recipientPhone: '',
     amount: 0,
@@ -66,14 +85,17 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
   })
 
   const resetForm = () => {
-    form.value = { recipientName: '', recipientPhone: '', amount: 0, notes: '' }
+    form.value = { code: '', buyerName: '', buyerPhone: '', recipientName: '', recipientPhone: '', amount: 0, notes: '' }
     editingId.value = null
     saveError.value = ''
     formErrors.value = {}
+    saveBuyerAsClient.value = true
+    saveRecipientAsClient.value = true
   }
 
   const openNew = () => {
     resetForm()
+    form.value.code = generateGiftCardCode()
     showModal.value = true
   }
 
@@ -81,6 +103,9 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
     editingId.value = giftCard.id
     form.value = {
       id: giftCard.id,
+      code: giftCard.code ?? generateGiftCardCode(),
+      buyerName: giftCard.buyerName ?? '',
+      buyerPhone: giftCard.buyerPhone ?? '',
       recipientName: giftCard.recipientName,
       recipientPhone: giftCard.recipientPhone ?? '',
       amount: giftCard.amount,
@@ -100,6 +125,10 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
     saveError.value = ''
     formErrors.value = {}
 
+    if (!form.value.code) {
+      form.value.code = generateGiftCardCode()
+    }
+
     const parsed = giftCardFormSchema.safeParse(form.value)
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
@@ -109,6 +138,26 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
         }
       }
       return
+    }
+
+    // Auto-save buyer and recipient into clients table if requested
+    if (businessId.value) {
+      if (saveBuyerAsClient.value && form.value.buyerName.trim() && form.value.buyerPhone.trim()) {
+        try {
+          await findOrCreateClientByPhone(businessId.value, {
+            fullName: form.value.buyerName,
+            phone: form.value.buyerPhone,
+          }, branchId.value)
+        } catch { /* ignore if exists */ }
+      }
+      if (saveRecipientAsClient.value && form.value.recipientName.trim() && form.value.recipientPhone.trim()) {
+        try {
+          await findOrCreateClientByPhone(businessId.value, {
+            fullName: form.value.recipientName,
+            phone: form.value.recipientPhone,
+          }, branchId.value)
+        } catch { /* ignore if exists */ }
+      }
     }
 
     try {
@@ -127,6 +176,8 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
 
   return {
     giftCards,
+    activeGiftCards,
+    usedGiftCards,
     isLoading,
     saveMutation,
     deleteMutation,
@@ -135,6 +186,8 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
     form,
     saveError,
     formErrors,
+    saveBuyerAsClient,
+    saveRecipientAsClient,
     openNew,
     openEdit,
     closeModal,

@@ -216,6 +216,22 @@
         hint="Si está activo, los encargados y empleados NO podrán modificar los porcentajes de ganancia en las citas"
         :disabled="updatingFeatures"
       />
+
+      <FormToggle
+        :model-value="!!businessStore.features.employees_see_clients"
+        @update:model-value="handleToggleEmployeesSeeClients"
+        label="Permitir módulo de clientes a empleados"
+        hint="Si está activo, los empleados tendrán acceso al módulo de Clientes en su menú lateral. Si se desactiva, no tendrán el módulo de clientes, pero seguirán viendo los nombres en sus citas, agenda, historial, recibo y consultorio."
+        :disabled="updatingFeatures"
+      />
+
+      <FormToggle
+        :model-value="!!businessStore.features.pos_direct_service_sale"
+        @update:model-value="handleToggleDirectServiceSale"
+        label="Permitir cobro directo de servicios en POS"
+        hint="Permite cobrar servicios en el Punto de Venta al instante sin necesidad de agendar previamente una cita en el calendario"
+        :disabled="updatingFeatures"
+      />
     </div>
   </SectionCard>
 
@@ -381,6 +397,40 @@ async function handleToggleDisableCommissionEdit(val: boolean) {
     })
     businessStore.updateBusiness({ features: updatedFeatures } as any)
     success(val ? 'Permiso activado: encargados y empleados no pueden editar comisiones' : 'Permiso desactivado: pueden editar comisiones')
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar el permiso')
+  } finally {
+    updatingFeatures.value = false
+  }
+}
+
+async function handleToggleDirectServiceSale(val: boolean) {
+  if (!businessId.value) return
+  updatingFeatures.value = true
+  try {
+    const updatedFeatures = { ...businessStore.features, pos_direct_service_sale: val }
+    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    success(val ? 'Permiso activado: Se permite el cobro directo de servicios en el POS' : 'Permiso desactivado: Cobro directo de servicios deshabilitado')
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar el permiso')
+  } finally {
+    updatingFeatures.value = false
+  }
+}
+
+async function handleToggleEmployeesSeeClients(val: boolean) {
+  if (!businessId.value) return
+  updatingFeatures.value = true
+  try {
+    const updatedFeatures = { ...businessStore.features, employees_see_clients: val }
+    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    success(val ? 'Módulo de clientes activado para empleados' : 'Módulo de clientes desactivado para empleados (seguirán viendo nombres en sus citas)')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
   } finally {

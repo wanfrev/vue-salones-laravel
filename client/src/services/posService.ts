@@ -177,6 +177,71 @@ export const recordDirectSale = async (params: {
   return response.id
 }
 
+export const recordDirectServiceSale = async (params: {
+  services?: Array<{
+    serviceId: string
+    employeeId: string
+    assistantEmployeeId?: string | null
+    price: number
+  }>
+  serviceId?: string
+  employeeId?: string
+  assistantEmployeeId?: string | null
+  clientId?: string | null
+  serviceAmount?: number
+  productsAmount?: number
+  method: PaymentMethod
+  products?: POSProductItem[]
+  notes?: string
+  exchangeRate: number
+  paymentsBreakdown: PaymentBreakdownItem[]
+  businessId: string
+  branchId?: string | null
+  tipAmount?: number
+}): Promise<string> => {
+  const products = params.products ?? []
+  let locationId: string | null = null
+
+  if (products.length > 0) {
+    locationId = await getDefaultLocation(params.businessId, params.branchId)
+  }
+
+  const productsPayload = products.map(p => ({
+    product_id: p.productId,
+    variant_id: p.variantId,
+    quantity: p.quantity,
+    location_id: locationId ?? (p as any).locationId,
+    unit_cost: p.unitCost,
+    name: p.productName,
+  }))
+
+  const servicesPayload = params.services?.map(s => ({
+    service_id: s.serviceId,
+    employee_id: s.employeeId,
+    assistant_employee_id: s.assistantEmployeeId ?? null,
+    price: s.price,
+  }))
+
+  const response = await apiRequest<{ id: string }>('POST', '/pos/direct-service-sale', {
+    services: servicesPayload,
+    service_id: params.serviceId,
+    employee_id: params.employeeId,
+    assistant_employee_id: params.assistantEmployeeId ?? null,
+    client_id: params.clientId ?? null,
+    service_amount: params.serviceAmount ?? 0,
+    products_amount: params.productsAmount ?? 0,
+    method: params.method,
+    products: productsPayload,
+    notes: params.notes ?? null,
+    exchange_rate_used: params.exchangeRate,
+    payments_breakdown: params.paymentsBreakdown,
+    tip_amount: params.tipAmount ?? 0,
+    branch_id: params.branchId ?? null,
+  })
+
+  return response.id
+}
+
 export const updateTransaction = async (params: {
   transactionId: string
   amount: number

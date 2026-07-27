@@ -26,17 +26,25 @@ class AppointmentService
             ->whereNull('clinical_history')
             ->orderBy('start_time');
 
-        if ($startDate) $query->where('start_time', '>=', $startDate);
-        if ($endDate) $query->where('start_time', '<=', $endDate);
-        if ($employeeId) {
-            $query->where(function ($q) use ($employeeId) {
-                $q->where('employee_id', $employeeId)
-                  ->orWhere('assistant_employee_id', $employeeId);
+        if ($startDate) {
+            $cleanStart = preg_replace('/^(gte|lte|gt|lt|eq)\./i', '', $startDate);
+            $query->where('start_time', '>=', $cleanStart);
+        }
+        if ($endDate) {
+            $cleanEnd = preg_replace('/^(gte|lte|gt|lt|eq)\./i', '', $endDate);
+            $query->where('start_time', '<=', $cleanEnd);
+        }
+        if ($employeeId && $employeeId !== 'all') {
+            $cleanEmp = preg_replace('/^(gte|lte|gt|lt|eq|in)\./i', '', $employeeId);
+            $query->where(function ($q) use ($cleanEmp) {
+                $q->where('employee_id', $cleanEmp)
+                  ->orWhere('assistant_employee_id', $cleanEmp);
             });
         }
         if ($branchId) {
-            $query->where(function ($q) use ($branchId) {
-                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            $cleanBranch = preg_replace('/^(gte|lte|gt|lt|eq|in)\./i', '', $branchId);
+            $query->where(function ($q) use ($cleanBranch) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $cleanBranch);
             });
         }
         if ($status) $query->whereIn('status', (array) $status);

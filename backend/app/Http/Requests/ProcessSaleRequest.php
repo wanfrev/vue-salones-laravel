@@ -26,6 +26,8 @@ class ProcessSaleRequest extends FormRequest
             'payments_breakdown.*.inputAmount' => 'required|numeric|min:0',
             'payments_breakdown.*.currency' => 'required|in:USD,VES',
             'payments_breakdown.*.amount' => 'required|numeric|min:0',
+            'payments_breakdown.*.gift_card_id' => 'nullable|string',
+            'payments_breakdown.*.giftCardId' => 'nullable|string',
             'tip_amount' => 'nullable|numeric|min:0',
             'products_amount' => 'nullable|numeric|min:0',
         ];

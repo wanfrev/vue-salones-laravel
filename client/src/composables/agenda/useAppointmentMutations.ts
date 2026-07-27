@@ -47,14 +47,20 @@ export function useAppointmentMutations(options: {
       dashboardKeys.history(bid),
       dashboardKeys.appointments(bid),
       dashboardKeys.earnings(bid),
+      ['notifications'] as const,
     ]
     await Promise.allSettled(keys.map(key =>
       queryClient.invalidateQueries({ queryKey: key, exact: false })
     ))
-    await Promise.allSettled([
-      queryClient.refetchQueries({ queryKey: ['appointments'], exact: false }),
-      queryClient.refetchQueries({ queryKey: posKeys.pending(bid, brId), exact: true }),
-    ])
+
+    const agendaRefreshes = bid ? [
+      queryClient.refetchQueries({ queryKey: ['appointments', bid], exact: false, type: 'all' }),
+      queryClient.refetchQueries({ queryKey: posKeys.pending(bid, brId), exact: true, type: 'all' }),
+    ] : [
+      queryClient.refetchQueries({ queryKey: ['appointments'], exact: false, type: 'all' }),
+      queryClient.refetchQueries({ queryKey: posKeys.pending(bid, brId), exact: true, type: 'all' }),
+    ]
+    await Promise.allSettled(agendaRefreshes)
   }
 
   const saveCitaMutation = useMutation({
@@ -138,12 +144,17 @@ export function useAppointmentMutations(options: {
 
       return savedCita
     },
-    onMutate: async (input) => {
-      if (input.id) return null
-      await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
-      const { _paymentData, ...data } = input
+    onMutate: (input) => {
+      if (input.id) return
       const tempId = `temp-${Date.now()}`
-      const optimistic: any = { id: tempId, status: 'pending', paymentStatus: 'unpaid', ...data }
+      const tempStart = new Date(`${input.date}T${input.time}:00`).toISOString()
+      const optimistic: any = {
+        id: tempId, status: 'pending', payment_status: 'unpaid',
+        start_time: tempStart, end_time: tempStart,
+        service_id: input.service, employee_id: input.employee,
+        business_id: options.businessId.value, branch_id: businessStore.currentBranchId,
+        client: { full_name: input.clientName, phone: input.clientPhone },
+      }
       const previousQueries = queryClient.getQueriesData({ queryKey: ['appointments'], exact: false })
       for (const [key, old] of previousQueries) {
         if (Array.isArray(old)) {
@@ -152,15 +163,26 @@ export function useAppointmentMutations(options: {
       }
       return { tempId, previousQueries }
     },
-    onSuccess: (_result, _input, context) => {
-      if (context?.tempId && context?.previousQueries) {
-        for (const [key] of context.previousQueries) {
-          queryClient.setQueryData(key, (old: any) =>
-            Array.isArray(old) ? old.filter((c: any) => c.id !== context.tempId) : old
-          )
+    onSuccess: (result, _input, context) => {
+      const saved = result as any
+      if (context?.previousQueries) {
+        for (const [key, oldData] of context.previousQueries) {
+          let updated: any[]
+          if (Array.isArray(oldData)) {
+            if (context.tempId) {
+              updated = oldData.map((c: any) => c.id === context.tempId ? { ...saved, ...c, id: saved.id ?? c.id } : c)
+              if (!updated.some((c: any) => c.id === saved.id)) {
+                updated = [saved, ...updated.filter((c: any) => c.id !== context.tempId)]
+              }
+            } else {
+              updated = [saved, ...oldData]
+            }
+          } else {
+            updated = [saved]
+          }
+          queryClient.setQueryData(key, updated)
         }
       }
-      void invalidate()
       options.modalRef?.value?.close()
       options.modalRef?.value?.onSaveComplete?.()
       success('Cita guardada correctamente')
@@ -174,8 +196,8 @@ export function useAppointmentMutations(options: {
       options.modalRef?.value?.onSaveComplete?.()
       showError(translateError(err))
     },
-    onSettled: () => {
-      void invalidate()
+    onSettled: async () => {
+      await invalidate()
     },
   })
 
@@ -202,8 +224,8 @@ export function useAppointmentMutations(options: {
       }
       showError(translateError(err))
     },
-    onSettled: () => {
-      void invalidate()
+    onSettled: async () => {
+      await invalidate()
     },
   })
 

@@ -139,6 +139,8 @@ function useFinancialSummary(
 
   const incomeTotal = computed(() => kpis.value.total_income ?? 0)
   const localIncomeTotal = computed(() => kpis.value.local_income ?? 0)
+  const employeeCommissionsTotal = computed(() => kpis.value.employee_commissions ?? (kpis.value.total_income - kpis.value.local_income) ?? 0)
+  const netProfitTotal = computed(() => kpis.value.net_profit ?? 0)
   const tipsTotal = computed(() => kpis.value.tips ?? 0)
   const employeePaymentsTotal = computed(() => kpis.value.total_employee_payments ?? 0)
   const vesIncomeTotal = computed(() => {
@@ -705,6 +707,8 @@ function useFinancialSummary(
     transactionsAll: allTransactionsRaw,
     incomeTotal,
     localIncomeTotal,
+    employeeCommissionsTotal,
+    netProfitTotal,
     tipsTotal,
     employeePaymentsTotal,
     vesIncomeTotal,

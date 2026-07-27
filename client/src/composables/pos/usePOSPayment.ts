@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../common/useAuth'
 import { useNotification } from '../common/useNotification'
 import { useBusinessStore } from '../../store/business'
-import { recordSale, recordDirectSale, posKeys } from '../../services/posService'
+import { recordSale, recordDirectSale, recordDirectServiceSale, posKeys } from '../../services/posService'
 import type { PaymentMethod } from '../../types/database'
 import type { POSProductItem, PaymentBreakdownItem } from '../../types/pos'
 
@@ -20,6 +20,7 @@ export function usePOSPayment() {
   const paymentNotes = ref('')
   const tipAmount = ref(0)
   const paymentsBreakdown = ref<PaymentBreakdownItem[]>([])
+  const selectedGiftCardId = ref<string | null>(null)
 
   const paymentMethods = [
     { label: 'Efectivo ($)', value: 'cash' as PaymentMethod, currency: 'USD' as const },
@@ -28,6 +29,7 @@ export function usePOSPayment() {
     { label: 'Transferencia', value: 'transfer' as PaymentMethod, currency: 'VES' as const },
     { label: 'Zelle', value: 'zelle' as PaymentMethod, currency: 'USD' as const },
     { label: 'Pago Móvil', value: 'pago_movil' as PaymentMethod, currency: 'VES' as const },
+    { label: 'Gift Card', value: 'gift_card' as PaymentMethod, currency: 'USD' as const },
     { label: 'Mixto', value: 'mixed' as PaymentMethod, currency: null as null },
     { label: 'Punto de Vta (Bs)', value: 'punto_venta' as PaymentMethod, currency: 'VES' as const },
     { label: 'Otro', value: 'other' as PaymentMethod, currency: null as null },
@@ -62,6 +64,7 @@ export function usePOSPayment() {
     paymentNotes.value = ''
     tipAmount.value = 0
     paymentsBreakdown.value = []
+    selectedGiftCardId.value = null
   }
 
   const invalidateQueries = async () => {
@@ -79,11 +82,13 @@ export function usePOSPayment() {
       queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
       queryClient.invalidateQueries({ exact: false, queryKey: ['expenses'] }),
       queryClient.invalidateQueries({ exact: false, queryKey: ['supplier-payments'] }),
+      queryClient.invalidateQueries({ exact: false, queryKey: ['gift-cards'] }),
     ])
     await Promise.allSettled([
       queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
       queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-summary'] }),
       queryClient.refetchQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
+      queryClient.refetchQueries({ exact: false, queryKey: ['gift-cards'] }),
     ])
   }
 
@@ -178,8 +183,54 @@ export function usePOSPayment() {
     },
   })
 
+  const directServiceSaleMutation = useMutation({
+    mutationFn: (params: {
+      services?: Array<{
+        serviceId: string
+        employeeId: string
+        assistantEmployeeId?: string | null
+        price: number
+      }>
+      serviceId?: string
+      employeeId?: string
+      assistantEmployeeId?: string | null
+      clientId?: string | null
+      serviceAmount?: number
+      productsAmount?: number
+      method: PaymentMethod
+      products: POSProductItem[]
+      notes: string
+      exchangeRate: number
+      paymentsBreakdown: PaymentBreakdownItem[]
+      tipAmount?: number
+    }) => recordDirectServiceSale({
+      services: params.services,
+      serviceId: params.serviceId,
+      employeeId: params.employeeId,
+      assistantEmployeeId: params.assistantEmployeeId,
+      clientId: params.clientId,
+      serviceAmount: params.serviceAmount,
+      productsAmount: params.productsAmount,
+      method: params.method,
+      products: params.products,
+      notes: params.notes,
+      exchangeRate: params.exchangeRate,
+      paymentsBreakdown: params.paymentsBreakdown,
+      businessId: businessId.value!,
+      branchId: branchId.value,
+      tipAmount: params.tipAmount,
+    }),
+    onSuccess: () => {
+      success('Cobro de servicio directo registrado correctamente')
+      invalidateQueries()
+    },
+    onError: (err) => {
+      showError((err as any)?.message ?? 'Error al registrar servicio directo')
+    },
+  })
+
   const isProcessing = computed(() =>
-    recordSaleMutation.isPending.value || directSaleMutation.isPending.value
+    recordSaleMutation.isPending.value || directSaleMutation.isPending.value || directServiceSaleMutation.isPending.value
   )
 
   const processPayment = async (params: {
@@ -242,6 +293,8 @@ export function usePOSPayment() {
             inputAmount: paymentCurrency === 'VES' ? memberAmount * exchangeRt : memberAmount,
             currency: paymentCurrency as 'USD' | 'VES',
             amount: memberAmount,
+            gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined,
+            giftCardId: method === 'gift_card' ? selectedGiftCardId.value : undefined,
           }]
         } else {
           const grand = params.serviceAmount + productsTotal + tipAmount.value || 1
@@ -249,6 +302,8 @@ export function usePOSPayment() {
             ...item,
             inputAmount: Number(((memberAmount / grand) * item.inputAmount).toFixed(2)),
             amount: Number(((memberAmount / grand) * item.amount).toFixed(2)),
+            gift_card_id: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
+            giftCardId: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
           }))
         }
 
@@ -274,9 +329,15 @@ export function usePOSPayment() {
           inputAmount: paymentCurrency === 'VES' ? totalAmount * exchangeRt : totalAmount,
           currency: paymentCurrency as 'USD' | 'VES',
           amount: totalAmount,
+          gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined,
+          giftCardId: method === 'gift_card' ? selectedGiftCardId.value : undefined,
         }]
       } else {
-        breakdown = [...breakdownSource]
+        breakdown = breakdownSource.map(item => ({
+          ...item,
+          gift_card_id: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
+          giftCardId: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
+        }))
       }
 
       payloads.push({
@@ -319,9 +380,15 @@ export function usePOSPayment() {
         inputAmount: paymentCurrency === 'VES' ? params.totalAmount * params.exchangeRate : params.totalAmount,
         currency: paymentCurrency as 'USD' | 'VES',
         amount: params.totalAmount,
+        gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined,
+        giftCardId: method === 'gift_card' ? selectedGiftCardId.value : undefined,
       }]
     } else {
-      breakdown = [...paymentsBreakdown.value]
+      breakdown = paymentsBreakdown.value.map(item => ({
+        ...item,
+        gift_card_id: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
+        giftCardId: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
+      }))
     }
 
     try {
@@ -333,6 +400,70 @@ export function usePOSPayment() {
         exchangeRate: params.exchangeRate,
         paymentsBreakdown: breakdown,
         clientId: params.clientId ?? null,
+      })
+      reset()
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  const processDirectServiceSale = async (params: {
+    services?: Array<{
+      serviceId: string
+      employeeId: string
+      assistantEmployeeId?: string | null
+      price: number
+    }>
+    serviceId?: string
+    employeeId?: string
+    assistantEmployeeId?: string | null
+    clientId?: string | null
+    serviceAmount: number
+    productsAmount?: number
+    products: POSProductItem[]
+    exchangeRate: number
+    tipAmount?: number
+  }): Promise<boolean> => {
+    const method = paymentMethod.value
+    const notes = paymentNotes.value
+    const pMethodObj = paymentMethods.find(m => m.value === method)
+    const paymentCurrency = pMethodObj?.currency ?? otherCurrency.value
+    const totalAmount = params.serviceAmount + (params.productsAmount ?? 0)
+
+    let breakdown: PaymentBreakdownItem[]
+    if (method !== 'mixed') {
+      breakdown = [{
+        method,
+        inputAmount: paymentCurrency === 'VES' ? totalAmount * params.exchangeRate : totalAmount,
+        currency: paymentCurrency as 'USD' | 'VES',
+        amount: totalAmount,
+        gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined,
+        giftCardId: method === 'gift_card' ? selectedGiftCardId.value : undefined,
+      }]
+    } else {
+      breakdown = paymentsBreakdown.value.map(item => ({
+        ...item,
+        gift_card_id: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
+        giftCardId: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
+      }))
+    }
+
+    try {
+      await directServiceSaleMutation.mutateAsync({
+        services: params.services,
+        serviceId: params.serviceId,
+        employeeId: params.employeeId,
+        assistantEmployeeId: params.assistantEmployeeId,
+        clientId: params.clientId,
+        serviceAmount: params.serviceAmount,
+        productsAmount: params.productsAmount ?? 0,
+        method: method as PaymentMethod,
+        products: params.products,
+        notes,
+        exchangeRate: params.exchangeRate,
+        paymentsBreakdown: breakdown,
+        tipAmount: params.tipAmount,
       })
       reset()
       return true
@@ -355,6 +486,8 @@ export function usePOSPayment() {
     removeSplit,
     processPayment,
     processDirectSale,
+    processDirectServiceSale,
     reset,
+    selectedGiftCardId,
   }
 }

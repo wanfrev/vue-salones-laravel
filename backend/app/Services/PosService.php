@@ -201,6 +201,37 @@ class PosService
                 'paid_at' => now(),
             ]);
 
+            if (is_array($paymentsBreakdown)) {
+                foreach ($paymentsBreakdown as $split) {
+                    if (isset($split['method']) && $split['method'] === 'gift_card') {
+                        $gcId = $split['gift_card_id'] ?? $split['giftCardId'] ?? null;
+                        $gc = null;
+                        if (!empty($gcId)) {
+                            $gc = \App\Models\GiftCard::find($gcId);
+                        }
+                        if (!$gc && !empty($businessId)) {
+                            $gc = \App\Models\GiftCard::where('business_id', $businessId)
+                                ->where('status', 'active')
+                                ->where('amount', '>', 0)
+                                ->orderByDesc('created_at')
+                                ->first();
+                        }
+                        if ($gc && $gc->status === 'active') {
+                            $deduct = (float) ($split['amount'] ?? $split['inputAmount'] ?? 0);
+                            if ($deduct > 0) {
+                                $gc->amount = max(0.0, (float) $gc->amount - $deduct);
+                                if ($gc->amount <= 0.001) {
+                                    $gc->amount = 0.0;
+                                    $gc->status = 'redeemed';
+                                    $gc->redeemed_at = now();
+                                }
+                                $gc->save();
+                            }
+                        }
+                    }
+                }
+            }
+
             if (!empty($products)) {
                 $defaultLocation = $this->inventoryService->getDefaultLocation(
                     $businessId,
@@ -388,6 +419,37 @@ class PosService
                 'paid_at' => now(),
             ]);
 
+            if (is_array($paymentsBreakdown)) {
+                foreach ($paymentsBreakdown as $split) {
+                    if (isset($split['method']) && $split['method'] === 'gift_card') {
+                        $gcId = $split['gift_card_id'] ?? $split['giftCardId'] ?? null;
+                        $gc = null;
+                        if (!empty($gcId)) {
+                            $gc = \App\Models\GiftCard::find($gcId);
+                        }
+                        if (!$gc && !empty($businessId)) {
+                            $gc = \App\Models\GiftCard::where('business_id', $businessId)
+                                ->where('status', 'active')
+                                ->where('amount', '>', 0)
+                                ->orderByDesc('created_at')
+                                ->first();
+                        }
+                        if ($gc && $gc->status === 'active') {
+                            $deduct = (float) ($split['amount'] ?? $split['inputAmount'] ?? 0);
+                            if ($deduct > 0) {
+                                $gc->amount = max(0.0, (float) $gc->amount - $deduct);
+                                if ($gc->amount <= 0.001) {
+                                    $gc->amount = 0.0;
+                                    $gc->status = 'redeemed';
+                                    $gc->redeemed_at = now();
+                                }
+                                $gc->save();
+                            }
+                        }
+                    }
+                }
+            }
+
             $defaultLocation = $this->inventoryService->getDefaultLocation(
                 $businessId,
                 $branchId,
@@ -427,6 +489,171 @@ class PosService
             }
 
             return $tx->id;
+        });
+    }
+
+    /**
+     * Process a direct service sale (without a pre-created appointment).
+     * Automatically creates a completed appointment record and processes the sale atomically.
+     */
+    public function processDirectServiceSale(
+        ?string $serviceId,
+        ?string $employeeId,
+        ?string $assistantEmployeeId,
+        ?string $clientId,
+        float $serviceAmount,
+        string $method,
+        array $products,
+        ?string $notes,
+        ?float $exchangeRate,
+        array $paymentsBreakdown,
+        ?float $tipAmount,
+        string $businessId,
+        ?string $branchId,
+        string $createdBy,
+        float $productsAmount = 0,
+        array $services = [],
+    ): string {
+        if (empty($services) && $serviceId && $employeeId) {
+            $services = [[
+                'service_id' => $serviceId,
+                'employee_id' => $employeeId,
+                'assistant_employee_id' => $assistantEmployeeId,
+                'price' => $serviceAmount,
+            ]];
+        }
+
+        if (empty($services)) {
+            throw new RuntimeException('Debe incluir al menos un servicio para realizar el cobro directo.');
+        }
+
+        $source = 'pos_direct';
+        try {
+            DB::statement("ALTER TYPE appointment_source ADD VALUE IF NOT EXISTS 'pos_direct'");
+        } catch (\Throwable $e) {
+            $source = 'internal';
+        }
+
+        try {
+            DB::statement('ALTER TABLE appointments ALTER COLUMN client_id DROP NOT NULL;');
+        } catch (\Throwable $e) {
+            // Ignore if column already nullable or sqlite
+        }
+
+        if (!$clientId) {
+            $generalClient = \App\Models\Client::firstOrCreate(
+                [
+                    'business_id' => $businessId,
+                    'full_name' => 'Cliente General',
+                ],
+                [
+                    'phone' => '0000000000',
+                    'notes' => 'Cliente genérico para ventas directas sin cliente asignado',
+                ]
+            );
+            $clientId = $generalClient->id;
+        }
+
+        return DB::transaction(function () use (
+            $services, $clientId, $serviceAmount, $method, $products, $notes,
+            $exchangeRate, $paymentsBreakdown, $tipAmount, $businessId, $branchId,
+            $createdBy, $productsAmount, $source
+        ) {
+            $groupId = count($services) > 1 ? Str::uuid()->toString() : null;
+            $createdAppointments = [];
+            $totalServicesAmount = 0;
+
+            foreach ($services as $svcItem) {
+                $svc = \App\Models\Service::where('business_id', $businessId)->find($svcItem['service_id']);
+                $duration = (int) ($svc?->duration_minutes ?? 30);
+                if ($duration < 1) $duration = 30;
+
+                $startTime = now();
+                $endTime = (clone $startTime)->addMinutes($duration);
+                $svcPrice = isset($svcItem['price']) ? (float) $svcItem['price'] : (float) ($svc?->price ?? 0);
+                $totalServicesAmount += $svcPrice;
+
+                $appointment = Appointment::create([
+                    'id' => Str::uuid()->toString(),
+                    'business_id' => $businessId,
+                    'branch_id' => $branchId,
+                    'client_id' => $clientId,
+                    'employee_id' => $svcItem['employee_id'],
+                    'assistant_employee_id' => $svcItem['assistant_employee_id'] ?? null,
+                    'service_id' => $svcItem['service_id'],
+                    'start_time' => $startTime,
+                    'end_time' => $endTime,
+                    'status' => 'completed',
+                    'payment_status' => 'unpaid',
+                    'price_override' => $svcPrice,
+                    'group_id' => $groupId,
+                    'service_notes' => $notes,
+                    'internal_notes' => 'Cobro directo en POS',
+                    'source' => $source,
+                    'created_by' => $createdBy,
+                ]);
+
+                $createdAppointments[] = [
+                    'appointment' => $appointment,
+                    'price' => $svcPrice,
+                ];
+            }
+
+            if (count($createdAppointments) === 1) {
+                $item = $createdAppointments[0];
+                return $this->processSale(
+                    appointmentId: $item['appointment']->id,
+                    serviceAmount: $item['price'],
+                    method: $method,
+                    products: $products,
+                    notes: $notes,
+                    exchangeRate: $exchangeRate,
+                    paymentsBreakdown: $paymentsBreakdown,
+                    tipAmount: $tipAmount,
+                    businessId: $businessId,
+                    createdBy: $createdBy,
+                    productsAmount: $productsAmount,
+                );
+            }
+
+            $lastTxId = null;
+            $tipsPerAppt = count($createdAppointments) > 0 && $tipAmount ? round($tipAmount / count($createdAppointments), 2) : 0;
+
+            foreach ($createdAppointments as $index => $item) {
+                $isFirst = ($index === 0);
+                $appt = $item['appointment'];
+                $price = $item['price'];
+
+                $proportion = $totalServicesAmount > 0 ? ($price / $totalServicesAmount) : (1 / count($createdAppointments));
+                
+                $itemBreakdown = [];
+                if (is_array($paymentsBreakdown)) {
+                    foreach ($paymentsBreakdown as $bItem) {
+                        $inputAmt = isset($bItem['inputAmount']) ? (float) $bItem['inputAmount'] : (float) ($bItem['amount'] ?? 0);
+                        $amt = isset($bItem['amount']) ? (float) $bItem['amount'] : 0;
+                        $itemBreakdown[] = array_merge($bItem, [
+                            'inputAmount' => round($inputAmt * $proportion, 2),
+                            'amount' => round($amt * $proportion, 2),
+                        ]);
+                    }
+                }
+
+                $lastTxId = $this->processSale(
+                    appointmentId: $appt->id,
+                    serviceAmount: $price,
+                    method: $method,
+                    products: $isFirst ? $products : [],
+                    notes: $notes,
+                    exchangeRate: $exchangeRate,
+                    paymentsBreakdown: $itemBreakdown,
+                    tipAmount: $tipsPerAppt,
+                    businessId: $businessId,
+                    createdBy: $createdBy,
+                    productsAmount: $isFirst ? $productsAmount : 0,
+                );
+            }
+
+            return $lastTxId;
         });
     }
 

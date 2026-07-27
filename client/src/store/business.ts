@@ -25,12 +25,14 @@ const DEFAULT_TERMINOLOGY: Terminology = {
     proveedores: true,
     multi_branch: false,
     employees_create_clients: true,
+    employees_see_clients: true,
     gift_cards: true,
     disable_manager_inventory_edit: false,
     encargados_change_exchange_rate: false,
     encargados_change_employee_rate: false,
     disable_employee_commission_edit: false,
     manual_reports: false,
+    pos_direct_service_sale: false,
   }
 
 export type FeatureKey = keyof typeof DEFAULT_FEATURES
