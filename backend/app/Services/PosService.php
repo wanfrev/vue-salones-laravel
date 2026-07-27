@@ -527,10 +527,17 @@ class PosService
             throw new RuntimeException('Debe incluir al menos un servicio para realizar el cobro directo.');
         }
 
+        $source = 'pos_direct';
+        try {
+            DB::statement("ALTER TYPE appointment_source ADD VALUE IF NOT EXISTS 'pos_direct'");
+        } catch (\Throwable $e) {
+            $source = 'internal';
+        }
+
         return DB::transaction(function () use (
             $services, $clientId, $serviceAmount, $method, $products, $notes,
             $exchangeRate, $paymentsBreakdown, $tipAmount, $businessId, $branchId,
-            $createdBy, $productsAmount
+            $createdBy, $productsAmount, $source
         ) {
             $groupId = count($services) > 1 ? Str::uuid()->toString() : null;
             $createdAppointments = [];
@@ -562,7 +569,7 @@ class PosService
                     'group_id' => $groupId,
                     'service_notes' => $notes,
                     'internal_notes' => 'Cobro directo en POS',
-                    'source' => 'pos_direct',
+                    'source' => $source,
                     'created_by' => $createdBy,
                 ]);
 
