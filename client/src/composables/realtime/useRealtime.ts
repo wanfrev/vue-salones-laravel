@@ -24,7 +24,7 @@ export function useRealtime() {
     if (!businessId) return
     Promise.allSettled(
       prefixes.map(prefix =>
-        queryClient.invalidateQueries({ queryKey: [prefix, businessId], exact: false })
+        queryClient.invalidateQueries({ queryKey: [prefix], exact: false })
       )
     )
   }
