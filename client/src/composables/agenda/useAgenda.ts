@@ -4,7 +4,6 @@ import { db } from '../../lib/api'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { APPOINTMENT_SELECT } from '../../services/agendaService'
-import { toLocalISO } from '../../lib/formatters'
 import type { Profile, Service } from '../../types/database'
 
 function defaultWeekRange() {
@@ -107,8 +106,10 @@ export const useAgenda = () => {
       if (branchId) {
         query = query.eq('branch_id', branchId)
       }
-      query = query.gte('start_date', toLocalISO(start))
-        .lte('end_date', toLocalISO(end))
+      const startIso = start instanceof Date ? start.toISOString() : new Date(start).toISOString()
+      const endIso = end instanceof Date ? end.toISOString() : new Date(end).toISOString()
+      query = query.gte('start_time', startIso)
+        .lte('start_time', endIso)
       if (empId !== 'all') {
         query = query.or(`employee_id.eq.${empId},assistant_employee_id.eq.${empId}`)
       }
