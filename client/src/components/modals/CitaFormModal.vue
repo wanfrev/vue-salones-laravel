@@ -22,7 +22,6 @@
             :branch-id="branchId"
             :t="t"
             :can-create-clients="canCreateClients"
-            :can-view-clients="canViewClients"
             :error="errors.clientName"
             @blur="handleBlur('clientName')"
             @select-client="onClientSelected"
@@ -275,7 +274,6 @@ const businessStore = useBusinessStore()
 const queryClient = useQueryClient()
 const isEmployee = computed(() => authStore.role === 'empleado')
 const canCreateClients = computed(() => !isEmployee.value || businessStore.hasFeature('employees_create_clients'))
-const canViewClients = computed(() => !isEmployee.value || businessStore.hasFeature('employees_see_clients'))
 const disableCommissionEdit = computed(() => {
   const role = authStore.role
   if (role === 'admin' || role === 'superadmin') return false

@@ -51,10 +51,6 @@
 import { computed } from 'vue'
 import { formatDate } from '../../lib/formatters'
 import { useCurrency } from '../../composables/common/useCurrency'
-import { useBusinessStore } from '../../store/business'
-
-const businessStore = useBusinessStore()
-const canViewClients = computed(() => businessStore.hasFeature('employees_see_clients'))
 
 const props = defineProps<{
   earnings: any[]

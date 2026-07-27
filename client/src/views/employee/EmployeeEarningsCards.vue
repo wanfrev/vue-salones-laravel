@@ -74,11 +74,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { formatDate, getInitials } from '../../lib/formatters'
-import { useBusinessStore } from '../../store/business'
 import type { EmployeeEarningRecord } from '../../services/employeeDashboardService'
-
-const businessStore = useBusinessStore()
-const canViewClients = computed(() => businessStore.hasFeature('employees_see_clients'))
 
 const props = defineProps<{
   earnings: EmployeeEarningRecord[]

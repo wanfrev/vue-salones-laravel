@@ -40,18 +40,6 @@ class AppointmentController
             ->get();
     }
 
-    private function canEmployeeSeeClients(Request $request): bool
-    {
-        $profile = $request->user()?->profile;
-        if (!$profile || $profile->role !== 'empleado') {
-            return true;
-        }
-        $business = $profile->business;
-        if (!$business) return true;
-        $features = is_array($business->features) ? $business->features : json_decode($business->features ?? '[]', true);
-        return (bool) ($features['employees_see_clients'] ?? true);
-    }
-
     public function index(Request $request): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);

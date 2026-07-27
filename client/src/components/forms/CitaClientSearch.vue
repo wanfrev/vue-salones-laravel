@@ -7,18 +7,15 @@ import { useAuthStore } from '../../store/auth'
 const authStore = useAuthStore()
 const isEmployee = computed(() => authStore.role === 'empleado')
 
-const props = withDefaults(defineProps<{
+const props = defineProps<{
   modelValue: string
   clientPhone: string
   businessId: string | null
   branchId: string | null
   t: { client: string }
   canCreateClients: boolean
-  canViewClients?: boolean
   error?: string
-}>(), {
-  canViewClients: true,
-})
+}>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
@@ -83,7 +80,7 @@ const onFocus = () => { if (suggestions.value.length > 0) showSuggestions.value 
         </div>
         <div class="flex-1 min-w-0">
           <div class="font-medium text-text truncate">{{ client.full_name }}</div>
-          <div v-if="props.canViewClients && !isEmployee && client.phone" class="text-xs text-text-muted">{{ client.phone }}</div>
+          <div v-if="!isEmployee && client.phone" class="text-xs text-text-muted">{{ client.phone }}</div>
         </div>
       </button>
     </div>

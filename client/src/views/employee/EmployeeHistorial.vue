@@ -103,7 +103,6 @@ const businessStore = useBusinessStore()
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 const employeeId = computed(() => authStore.profile?.id ?? '')
-const canViewClients = computed(() => businessStore.hasFeature('employees_see_clients'))
 
 const search = ref('')
 
