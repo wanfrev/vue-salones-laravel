@@ -170,12 +170,16 @@ class ClientService
             if (is_array($metadata) && empty($metadata)) {
                 $metadata = null;
             }
+            $birthday = $petData['birthday'] ?? null;
+            if (is_string($birthday) && trim($birthday) === '') {
+                $birthday = null;
+            }
             $petPayload = [
                 'business_id' => $businessId,
                 'name' => $petData['name'],
                 'breed' => $petData['breed'] ?? null,
                 'weight' => $petData['weight'] ?? null,
-                'birthday' => $petData['birthday'] ?? null,
+                'birthday' => $birthday,
                 'notes' => $petData['notes'] ?? null,
                 'metadata' => $metadata,
             ];

@@ -114,7 +114,7 @@ const emit = defineEmits<{
 }>()
 
 const addPet = () => {
-  const newPet: PetFormData = { name: '', breed: '', weight: '', birthday: '', notes: '' }
+  const newPet: PetFormData = { name: '', breed: '', weight: '', birthday: undefined, notes: '' }
   emit('update:modelValue', [...props.modelValue, newPet])
 }
 
@@ -130,7 +130,8 @@ const removePet = (index: number) => {
 
 const updatePet = (index: number, key: string, value: string | number) => {
   const updated = [...props.modelValue]
-  updated[index] = { ...updated[index], [key]: String(value) }
+  const cleanValue = key === 'birthday' && !value ? null : String(value)
+  updated[index] = { ...updated[index], [key]: cleanValue }
   emit('update:modelValue', updated)
 }
 

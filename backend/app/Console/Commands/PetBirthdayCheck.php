@@ -27,7 +27,8 @@ class PetBirthdayCheck extends Command
 
         $birthdayPets = Pet::with('client')
             ->whereNotNull('birthday')
-            ->whereRaw("TO_CHAR(birthday, 'MM-DD') = TO_CHAR(DATE ? , 'MM-DD')", [$today])
+            ->whereRaw('EXTRACT(MONTH FROM birthday) = ?', [now()->month])
+            ->whereRaw('EXTRACT(DAY FROM birthday) = ?', [now()->day])
             ->get()
             ->groupBy('business_id');
 
