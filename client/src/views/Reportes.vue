@@ -219,22 +219,22 @@ const getGrandTotalUsd = (report: DailyReport) => {
 const hasDiscrepancyBs = (report: DailyReport) => {
   const z = Number(report.z_report_bs)
   if (z <= 0) return false
-  return Math.abs(Number(report.total_bs) - z) > 0.01
+  return Math.abs(getGrandTotalBs(report) - z) > 0.01
 }
 
 const hasDiscrepancyUsd = (report: DailyReport) => {
   const z = Number(report.z_report_usd)
   if (z <= 0) return false
-  return Math.abs(Number(report.total_usd) - z) > 0.01
+  return Math.abs(getGrandTotalUsd(report) - z) > 0.01
 }
 
 const getDiffBsText = (report: DailyReport) => {
-  const diff = Number(report.total_bs) - Number(report.z_report_bs)
+  const diff = getGrandTotalBs(report) - Number(report.z_report_bs)
   return `${diff > 0 ? '+' : ''}${formatCurrency(diff)} Bs`
 }
 
 const getDiffUsdText = (report: DailyReport) => {
-  const diff = Number(report.total_usd) - Number(report.z_report_usd)
+  const diff = getGrandTotalUsd(report) - Number(report.z_report_usd)
   return `${diff > 0 ? '+' : ''}$${formatCurrency(diff)} USD`
 }
 

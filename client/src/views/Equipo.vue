@@ -36,7 +36,7 @@
   <EmployeeGrid
     :employees="visibleTeam" :show-all="showAll" :has-more="hasMoreThanDefault" :total-count="team.length"
     :get-initials="getInitials"
-    @edit="handleEditEmpleado" @view-agenda="handleViewAgenda" @toggle-show-all="showAll = !showAll"
+    @edit="handleEditEmpleado" @view-agenda="handleViewAgenda" @view-recibo="handleOpenRecibo" @toggle-show-all="showAll = !showAll"
   />
 
   <GestionTabs
@@ -56,6 +56,7 @@
     @open-consumption="paymentsCtx.openConsumptionModal()"
     @open-edit-payment="(ep) => paymentsCtx.openEditPayment(ep)"
     @delete-payment="(id) => paymentsCtx.handleDelete(id)"
+    @open-recibo="handleOpenRecibo"
   />
 
   <EmployeePaymentModal
@@ -72,6 +73,12 @@
     :employees="teamForPayroll"
     @close="paymentsCtx.closeConsumptionModal()"
     @consumption-saved="onPaymentSaved"
+  />
+
+  <EmployeeReciboModal
+    :is-open="showReciboModal"
+    :employee="selectedReciboEmployee"
+    @close="showReciboModal = false"
   />
 
   <EmployeeRateModal :show="showEmployeeRateModal" @close="showEmployeeRateModal = false" />
@@ -100,6 +107,7 @@ import { StatCard } from '../components/common'
 import EmployeeGrid from '../components/common/EmployeeGrid.vue'
 import EmployeePaymentModal from '../components/equipo/EmployeePaymentModal.vue'
 import EmployeeConsumptionModal from '../components/equipo/EmployeeConsumptionModal.vue'
+import EmployeeReciboModal from '../components/equipo/EmployeeReciboModal.vue'
 import EmployeeRateModal from '../components/equipo/EmployeeRateModal.vue'
 import GestionTabs from '../components/equipo/GestionTabs.vue'
 import type { Empleado, EmpleadoFormData } from '../types/empleado'
@@ -111,6 +119,22 @@ const queryClient = useQueryClient()
 const empleadoModalRef = ref<InstanceType<typeof EmpleadoFormModal> | null>(null)
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
+
+const selectedReciboEmployee = ref<any>(null)
+const showReciboModal = ref(false)
+
+const handleOpenRecibo = (e: any) => {
+  const empId = e.id || e.employeeId
+  const member = team.value.find(t => t.id === empId) || {
+    id: empId,
+    name: e.name || e.employeeName || 'Empleado',
+    payType: e.payType || e.pay_type || 'percentage',
+    payPercentage: Number(e.payPercentage ?? e.pay_percentage ?? 50),
+    baseSalary: Number(e.baseSalary ?? e.base_salary ?? 0),
+  }
+  selectedReciboEmployee.value = member
+  showReciboModal.value = true
+}
 
 const { selectedPeriod, selectedMonth, resetToCurrent } = usePeriodSelection()
 const canEditEmployeeRate = computed(() => {
