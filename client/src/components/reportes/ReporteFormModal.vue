@@ -1,11 +1,48 @@
 <template>
   <ModalBase :is-open="isOpen" :title="isEditing ? 'Editar Reporte Diario' : 'Nuevo Reporte Diario'" size="xl" @close="close">
     <div class="space-y-6">
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <FormInput v-model="formData.date" label="Fecha" type="date" required :error="errors.date" />
         <FormInput v-model="formData.exchange_rate" label="Tasa del Día (Bs/$)" type="number" step="0.01" min="0" required :error="errors.exchange_rate" />
-        <FormInput v-model="formData.z_report_bs" label="Reporte Z (Bs)" type="number" step="0.01" min="0" placeholder="0.00" />
-        <FormInput v-model="formData.z_report_usd" label="Reporte Z (USD)" type="number" step="0.01" min="0" placeholder="0.00" />
+        
+        <!-- Campo Único de Reporte Z con Selector de Moneda -->
+        <div>
+          <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-1">
+            Reporte Z
+          </label>
+          <div class="flex rounded-xl border border-border bg-surface overflow-hidden focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15 transition-theme h-10">
+            <input
+              v-model="zReportAmount"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              class="w-full bg-transparent px-3 text-sm text-text outline-none"
+            />
+            <div class="flex items-center border-l border-border bg-bg-secondary/60 p-1 shrink-0 gap-1">
+              <button
+                type="button"
+                @click="zReportCurrency = 'VES'"
+                class="px-2.5 py-1 text-xs font-bold rounded-lg transition-all"
+                :class="zReportCurrency === 'VES' ? 'bg-primary text-text-inverse shadow-xs' : 'text-text-muted hover:text-text hover:bg-surface/50'"
+              >
+                Bs
+              </button>
+              <button
+                type="button"
+                @click="zReportCurrency = 'USD'"
+                class="px-2.5 py-1 text-xs font-bold rounded-lg transition-all"
+                :class="zReportCurrency === 'USD' ? 'bg-primary text-text-inverse shadow-xs' : 'text-text-muted hover:text-text hover:bg-surface/50'"
+              >
+                USD
+              </button>
+            </div>
+          </div>
+          <div v-if="zReportEquivalentText" class="text-[11px] text-text-muted mt-1 font-medium flex items-center gap-1">
+            <span>Equivalente:</span>
+            <span class="text-primary font-semibold">{{ zReportEquivalentText }}</span>
+          </div>
+        </div>
       </div>
 
       <!-- General Discrepancy Banners -->
@@ -15,8 +52,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <div>
-            <span class="font-bold">Diferencia en Bolívares:</span> 
-            El desglose por métodos ({{ formatCurrency(totalBs) }} Bs) no coincide con el Reporte Z en Bs ({{ formatCurrency(zReportBs) }} Bs).
+            <span class="font-bold">Diferencia en Bolívares (Bs):</span> 
+            El desglose por métodos ({{ formatCurrency(totalBs) }} Bs) no coincide con el Reporte Z ({{ formatCurrency(computedZReportBs) }} Bs).
             <div class="font-semibold mt-0.5">
               Diferencia: <span class="font-mono">{{ diffBs > 0 ? '+' : '' }}{{ formatCurrency(diffBs) }} Bs</span> 
               ({{ diffBs > 0 ? 'Sobrante en métodos' : 'Faltante en métodos' }})
@@ -29,8 +66,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <div>
-            <span class="font-bold">Diferencia en Dólares:</span> 
-            El desglose por métodos (${{ formatCurrency(totalUsd) }}) no coincide con el Reporte Z en USD (${{ formatCurrency(zReportUsd) }}).
+            <span class="font-bold">Diferencia en Dólares (USD):</span> 
+            El desglose por métodos (${{ formatCurrency(totalUsd) }}) no coincide con el Reporte Z (${{ formatCurrency(computedZReportUsd) }}).
             <div class="font-semibold mt-0.5">
               Diferencia: <span class="font-mono">{{ diffUsd > 0 ? '+' : '' }}${{ formatCurrency(diffUsd) }} USD</span> 
               ({{ diffUsd > 0 ? 'Sobrante en métodos' : 'Faltante en métodos' }})
@@ -169,12 +206,13 @@ const isSaving = computed(() => saveMutation.isPending.value)
 
 const errors = ref<Record<string, string>>({})
 
+const zReportAmount = ref<string>('')
+const zReportCurrency = ref<'VES' | 'USD'>('VES')
+
 const defaultForm = () => ({
   id: '',
   date: new Date().toISOString().split('T')[0],
   exchange_rate: '',
-  z_report_bs: '',
-  z_report_usd: '',
   pos_bs: '',
   pago_movil_bs: '',
   cash_bs: '',
@@ -193,6 +231,42 @@ const emit = defineEmits<{
   saved: []
 }>()
 
+const parseNum = (val: string | number) => Number(val) || 0
+
+// Computados para Reporte Z
+const computedZReportBs = computed(() => {
+  const amount = parseNum(zReportAmount.value)
+  const rate = parseNum(formData.value.exchange_rate)
+  if (zReportCurrency.value === 'VES') {
+    return amount
+  } else {
+    return amount * rate
+  }
+})
+
+const computedZReportUsd = computed(() => {
+  const amount = parseNum(zReportAmount.value)
+  const rate = parseNum(formData.value.exchange_rate)
+  if (zReportCurrency.value === 'USD') {
+    return amount
+  } else {
+    return rate > 0 ? amount / rate : 0
+  }
+})
+
+const zReportEquivalentText = computed(() => {
+  const amount = parseNum(zReportAmount.value)
+  const rate = parseNum(formData.value.exchange_rate)
+  if (amount <= 0) return ''
+  if (zReportCurrency.value === 'VES') {
+    const usd = rate > 0 ? amount / rate : 0
+    return `$${formatCurrency(usd)} USD (Tasa: ${formatCurrency(rate)} Bs/$)`
+  } else {
+    const bs = amount * rate
+    return `${formatCurrency(bs)} Bs (Tasa: ${formatCurrency(rate)} Bs/$)`
+  }
+})
+
 watch(modalData, (data) => {
   if (data?.report) {
     const report = data.report as DailyReport
@@ -202,8 +276,6 @@ watch(modalData, (data) => {
       id: report.id,
       date: formattedDate,
       exchange_rate: String(report.exchange_rate ?? ''),
-      z_report_bs: String(report.z_report_bs ?? ''),
-      z_report_usd: String(report.z_report_usd ?? ''),
       pos_bs: String(report.pos_bs ?? ''),
       pago_movil_bs: String(report.pago_movil_bs ?? ''),
       cash_bs: String(report.cash_bs ?? ''),
@@ -215,15 +287,29 @@ watch(modalData, (data) => {
       credit_bs: String(report.credit_bs ?? ''),
       credit_usd: String(report.credit_usd ?? ''),
     }
+
+    if (report.z_report_usd && !report.z_report_bs) {
+      zReportCurrency.value = 'USD'
+      zReportAmount.value = String(report.z_report_usd)
+    } else if (report.z_report_bs) {
+      zReportCurrency.value = 'VES'
+      zReportAmount.value = String(report.z_report_bs)
+    } else if (report.z_report_usd) {
+      zReportCurrency.value = 'USD'
+      zReportAmount.value = String(report.z_report_usd)
+    } else {
+      zReportCurrency.value = 'VES'
+      zReportAmount.value = ''
+    }
   } else {
     isEditing.value = false
     formData.value = defaultForm()
     formData.value.exchange_rate = String(businessStore.business?.ves_exchange_rate || '')
+    zReportCurrency.value = 'VES'
+    zReportAmount.value = ''
   }
   errors.value = {}
 }, { immediate: true })
-
-const parseNum = (val: string | number) => Number(val) || 0
 
 // Total Bolívares
 const totalBs = computed(() => {
@@ -269,25 +355,22 @@ const grandTotalUsd = computed(() => {
 })
 
 // Discrepancias con Reporte Z
-const zReportBs = computed(() => parseNum(formData.value.z_report_bs))
-const zReportUsd = computed(() => parseNum(formData.value.z_report_usd))
-
 const diffBs = computed(() => {
-  if (zReportBs.value <= 0) return 0
-  return totalBs.value - zReportBs.value
+  if (computedZReportBs.value <= 0) return 0
+  return totalBs.value - computedZReportBs.value
 })
 
 const diffUsd = computed(() => {
-  if (zReportUsd.value <= 0) return 0
-  return totalUsd.value - zReportUsd.value
+  if (computedZReportUsd.value <= 0) return 0
+  return totalUsd.value - computedZReportUsd.value
 })
 
 const hasDiscrepancyBs = computed(() => {
-  return zReportBs.value > 0 && Math.abs(diffBs.value) > 0.01
+  return computedZReportBs.value > 0 && Math.abs(diffBs.value) > 0.01
 })
 
 const hasDiscrepancyUsd = computed(() => {
-  return zReportUsd.value > 0 && Math.abs(diffUsd.value) > 0.01
+  return computedZReportUsd.value > 0 && Math.abs(diffUsd.value) > 0.01
 })
 
 const formatCurrency = (val: number) => val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -317,8 +400,8 @@ const handleSubmit = async () => {
     branch_id: businessStore.selectedBranchId || authStore.profile?.branch_id || null,
     date: formData.value.date,
     exchange_rate: parseNum(formData.value.exchange_rate),
-    z_report_bs: parseNum(formData.value.z_report_bs),
-    z_report_usd: parseNum(formData.value.z_report_usd),
+    z_report_bs: computedZReportBs.value,
+    z_report_usd: computedZReportUsd.value,
     pos_bs: parseNum(formData.value.pos_bs),
     pago_movil_bs: parseNum(formData.value.pago_movil_bs),
     cash_bs: parseNum(formData.value.cash_bs),
