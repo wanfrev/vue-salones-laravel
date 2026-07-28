@@ -15,12 +15,26 @@ class WhatsAppController extends Controller
         private WhatsAppService $whatsappService,
     ) {}
 
+    private function resolveBusinessId(Request $request): ?string
+    {
+        return $request->user()?->profile?->business_id;
+    }
+
+    private function resolveBusiness(Request $request): Business
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
+            abort(403, 'Sin negocio asignado.');
+        }
+        return Business::findOrFail($businessId);
+    }
+
     /**
      * Get WhatsApp configuration for the business.
      */
     public function config(Request $request): JsonResponse
     {
-        $business = Business::findOrFail($request->user()->business_id);
+        $business = $this->resolveBusiness($request);
 
         return response()->json([
             'whatsapp_enabled' => $business->whatsapp_enabled,
@@ -37,7 +51,7 @@ class WhatsAppController extends Controller
      */
     public function updateConfig(Request $request): JsonResponse
     {
-        $business = Business::findOrFail($request->user()->business_id);
+        $business = $this->resolveBusiness($request);
 
         $data = $request->validate([
             'whatsapp_enabled' => ['boolean'],
@@ -62,7 +76,7 @@ class WhatsAppController extends Controller
      */
     public function createInstance(Request $request): JsonResponse
     {
-        $business = Business::findOrFail($request->user()->business_id);
+        $business = $this->resolveBusiness($request);
 
         $data = $request->validate([
             'instance_name' => ['required', 'string', 'max:100'],
@@ -96,7 +110,7 @@ class WhatsAppController extends Controller
      */
     public function qrCode(Request $request): JsonResponse
     {
-        $business = Business::findOrFail($request->user()->business_id);
+        $business = $this->resolveBusiness($request);
 
         if (!$business->whatsapp_instance_id) {
             return response()->json(['message' => 'No hay instancia configurada'], 404);
@@ -114,7 +128,7 @@ class WhatsAppController extends Controller
      */
     public function status(Request $request): JsonResponse
     {
-        $business = Business::findOrFail($request->user()->business_id);
+        $business = $this->resolveBusiness($request);
 
         if (!$business->whatsapp_instance_id) {
             return response()->json(['status' => 'disconnected']);
@@ -134,7 +148,7 @@ class WhatsAppController extends Controller
      */
     public function disconnect(Request $request): JsonResponse
     {
-        $business = Business::findOrFail($request->user()->business_id);
+        $business = $this->resolveBusiness($request);
 
         $this->whatsappService->disconnectInstance($business);
 
@@ -152,7 +166,7 @@ class WhatsAppController extends Controller
      */
     public function sendTest(Request $request): JsonResponse
     {
-        $business = Business::findOrFail($request->user()->business_id);
+        $business = $this->resolveBusiness($request);
 
         $data = $request->validate([
             'number' => ['required', 'string', 'max:20'],
@@ -177,7 +191,9 @@ class WhatsAppController extends Controller
      */
     public function templates(Request $request): JsonResponse
     {
-        $templates = MessageTemplate::where('business_id', $request->user()->business_id)
+        $businessId = $this->resolveBusinessId($request);
+
+        $templates = MessageTemplate::where('business_id', $businessId)
             ->orderBy('type')
             ->orderBy('name')
             ->get();
@@ -198,12 +214,14 @@ class WhatsAppController extends Controller
             'is_active' => ['boolean'],
         ]);
 
+        $businessId = $this->resolveBusinessId($request);
+
         if (!empty($data['id'])) {
-            $template = MessageTemplate::where('business_id', $request->user()->business_id)
+            $template = MessageTemplate::where('business_id', $businessId)
                 ->findOrFail($data['id']);
             $template->update($data);
         } else {
-            $data['business_id'] = $request->user()->business_id;
+            $data['business_id'] = $businessId;
             $template = MessageTemplate::create($data);
         }
 
@@ -215,7 +233,9 @@ class WhatsAppController extends Controller
      */
     public function deleteTemplate(Request $request, string $id): JsonResponse
     {
-        $template = MessageTemplate::where('business_id', $request->user()->business_id)
+        $businessId = $this->resolveBusinessId($request);
+
+        $template = MessageTemplate::where('business_id', $businessId)
             ->findOrFail($id);
 
         $template->delete();

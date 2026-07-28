@@ -104,7 +104,17 @@ const { data: citasData, isLoading, error: citasError } = useQuery({
   staleTime: 0,
 })
 
-const citas = computed<Cita[]>(() => citasData.value ?? [])
+const citas = computed<Cita[]>(() => {
+  const all = citasData.value ?? []
+  const seen = new Set<string>()
+  return all.filter(c => {
+    if (c.groupId) {
+      if (seen.has(c.groupId)) return false
+      seen.add(c.groupId)
+    }
+    return true
+  })
+})
 
 const { data: serviciosData } = useQuery({
   queryKey: computed(() => serviciosKeys.all(businessId.value, currentBranchId.value)),
