@@ -60,8 +60,8 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
-            <tr v-for="row in earnings" :key="row.id" class="transition-colors hover:bg-bg-secondary/50">
-              <td class="px-4 py-2.5 text-text-secondary whitespace-nowrap">{{ row.date }}</td>
+            <tr v-for="row in paginatedEarnings" :key="row.id" class="transition-colors hover:bg-bg-secondary/50">
+              <td class="px-4 py-2.5 text-text-secondary whitespace-nowrap">{{ formatDate(row.date) }}</td>
               <td class="px-4 py-2.5 font-medium text-text">{{ row.clientName }}</td>
               <td class="px-4 py-2.5 text-text-secondary">{{ row.serviceName }}</td>
               <td class="px-4 py-2.5 text-right text-text">${{ row.totalAmount }}</td>
@@ -70,6 +70,19 @@
             </tr>
           </tbody>
         </table>
+        <div v-if="totalEarningsPages > 1" class="flex items-center justify-center gap-1 border-t border-border px-4 py-2.5">
+          <button
+            :disabled="earningsPage <= 1"
+            @click="earningsPage = Math.max(1, earningsPage - 1)"
+            class="rounded-md px-2 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-secondary disabled:opacity-30 disabled:cursor-not-allowed"
+          >← Anterior</button>
+          <span class="px-2 text-xs text-text-muted">{{ earningsPage }} / {{ totalEarningsPages }}</span>
+          <button
+            :disabled="earningsPage >= totalEarningsPages"
+            @click="earningsPage = Math.min(totalEarningsPages, earningsPage + 1)"
+            class="rounded-md px-2 py-1 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-secondary disabled:opacity-30 disabled:cursor-not-allowed"
+          >Siguiente →</button>
+        </div>
         </div>
       </div>
 
@@ -109,7 +122,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { formatMethod, formatDate, formatNumber } from '../../lib/formatters'
@@ -127,6 +140,9 @@ const branchId = computed(() => businessStore.currentBranchId)
 const employeeId = computed(() => authStore.profile?.id ?? '')
 
 const selectedMonth = ref(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`)
+
+const EARNINGS_PAGE_SIZE = 10
+const earningsPage = ref(1)
 
 const dateRange = computed(() => {
   const [y, m] = selectedMonth.value.split('-').map(Number)
@@ -151,6 +167,14 @@ const { data: earningsData, isLoading: loadingEarnings } = useQuery({
   staleTime: 0,
 })
 const earnings = computed(() => earningsData.value ?? [])
+
+const totalEarningsPages = computed(() => Math.max(1, Math.ceil(earnings.value.length / EARNINGS_PAGE_SIZE)))
+const paginatedEarnings = computed(() => {
+  const start = (earningsPage.value - 1) * EARNINGS_PAGE_SIZE
+  return earnings.value.slice(start, start + EARNINGS_PAGE_SIZE)
+})
+
+watch(selectedMonth, () => { earningsPage.value = 1 })
 
 const totalBilled = computed(() =>
   formatNumber(earnings.value.reduce((sum, r) => sum + (r.totalAmount ?? 0), 0))
