@@ -25,14 +25,30 @@
         </div>
       </div>
 
-      <div class="mt-4 flex gap-2">
+      <div class="mt-4 grid grid-cols-3 gap-1.5">
         <button @click="$emit('viewAgenda', member)"
-          class="flex-1 rounded-lg border border-border py-2 text-xs font-medium text-text-secondary transition-theme hover:bg-primary/5 hover:text-primary hover:border-primary/30">
-          Ver Agenda
+          class="rounded-lg border border-border py-2 text-xs font-medium text-text-secondary transition-theme hover:bg-primary/5 hover:text-primary hover:border-primary/30 flex items-center justify-center gap-1"
+          title="Ver Agenda">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span class="hidden sm:inline">Agenda</span>
+        </button>
+        <button @click="$emit('viewRecibo', member)"
+          class="rounded-lg border border-border py-2 text-xs font-medium text-text-secondary transition-theme hover:bg-primary/5 hover:text-primary hover:border-primary/30 flex items-center justify-center gap-1"
+          title="Imprimir Recibo de Pago">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+          </svg>
+          <span>Recibo</span>
         </button>
         <button @click="$emit('edit', member)"
-          class="flex-1 rounded-lg border border-border py-2 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text hover:border-border-strong">
-          Editar
+          class="rounded-lg border border-border py-2 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text hover:border-border-strong flex items-center justify-center gap-1"
+          title="Editar Empleado">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+          </svg>
+          <span class="hidden sm:inline">Editar</span>
         </button>
       </div>
     </div>
@@ -63,6 +79,7 @@ defineProps<{
 defineEmits<{
   edit: [employee: any]
   viewAgenda: [employee: any]
+  viewRecibo: [employee: any]
   toggleShowAll: []
 }>()
 </script>
