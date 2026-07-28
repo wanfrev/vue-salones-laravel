@@ -202,7 +202,7 @@ export function useAppointmentMutations(options: {
   })
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'pending' | 'confirmed' | 'cancelled' | 'paid' }) =>
+    mutationFn: ({ id, status }: { id: string; status: 'pending' | 'confirmed' | 'paid' }) =>
       updateCitaStatus(id, status),
     onMutate: async ({ id, status }) => {
       await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
@@ -304,7 +304,7 @@ export function useAppointmentMutations(options: {
     }
   }
 
-  const handleStatusChange = async ({ id, status }: { id: string; status: 'pending' | 'confirmed' | 'cancelled' | 'paid' }) => {
+  const handleStatusChange = async ({ id, status }: { id: string; status: 'pending' | 'confirmed' | 'paid' }) => {
     await updateStatusMutation.mutateAsync({ id, status })
     success(`Estado actualizado a ${status}`)
   }

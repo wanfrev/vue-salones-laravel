@@ -346,10 +346,9 @@ const assistantOptions = computed(() => {
 })
 const isSingleEmployee = computed(() => employeeOptions.value.length <= 1)
 const statusOptions = [
-  { value: 'confirmed', label: 'Confirmada', icon: '✓' },
   { value: 'pending', label: 'Pendiente', icon: '◉' },
+  { value: 'confirmed', label: 'Confirmada', icon: '✓' },
   { value: 'paid', label: 'Pagada', icon: '$' },
-  { value: 'cancelled', label: 'Cancelada', icon: '✕' },
 ]
 
 const emptyServiceRow = (): CitaFormServiceItem => ({

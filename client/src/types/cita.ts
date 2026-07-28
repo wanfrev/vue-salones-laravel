@@ -71,7 +71,7 @@ export interface CitaFormData {
   extraServices: CitaFormServiceItem[]
   date: string
   time: string
-  status: 'confirmed' | 'pending' | 'cancelled' | 'paid'
+  status: 'confirmed' | 'pending' | 'paid'
   notes: string
   diagnosis?: string
   treatment?: string
