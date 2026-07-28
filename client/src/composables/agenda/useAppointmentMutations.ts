@@ -210,7 +210,7 @@ export function useAppointmentMutations(options: {
       for (const [key, data] of previousQueries) {
         if (Array.isArray(data)) {
           queryClient.setQueryData(key, data.map((cita: any) =>
-            cita.id === id ? { ...cita, status, paymentStatus: status === 'paid' ? 'paid' : cita.paymentStatus } : cita
+            cita.id === id ? { ...cita, status: status === 'paid' ? 'completed' : status, payment_status: status === 'paid' ? 'paid' : 'unpaid' } : cita
           ))
         }
       }
@@ -305,7 +305,11 @@ export function useAppointmentMutations(options: {
   }
 
   const handleStatusChange = async ({ id, status }: { id: string; status: 'pending' | 'confirmed' | 'paid' }) => {
-    await updateStatusMutation.mutateAsync({ id, status })
+    try {
+      await updateStatusMutation.mutateAsync({ id, status })
+    } catch {
+      return
+    }
     success(`Estado actualizado a ${status}`)
   }
 
