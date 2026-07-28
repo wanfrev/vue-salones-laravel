@@ -52,11 +52,12 @@
 
           <FormInput
             v-if="!isPet"
-            v-model="formData.birthday"
+            :model-value="birthdayDisplay(formData.birthday)"
             label="Cumpleaños"
-            type="date"
+            placeholder="DD/MM/AAAA"
             prefix-icon="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
             :error="errors.birthday"
+            @update:model-value="formData.birthday = birthdayParse($event as string)"
           />
 
           <FormTextarea
@@ -168,6 +169,25 @@ const nicheConfig = computed(() => getNicheConfig(nicheType.value))
 
 const isPet = computed(() => isPetNiche(nicheType.value))
 const isVet = computed(() => isVetNiche(nicheType.value))
+
+function birthdayDisplay(value: string | undefined): string {
+  if (!value) return ''
+  const s = String(value)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split('-')
+    return `${d}/${m}/${y}`
+  }
+  return s
+}
+
+function birthdayParse(value: string): string {
+  if (!value.trim()) return ''
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(value.trim())) {
+    const [d, m, y] = value.trim().split('/')
+    return `${y}-${m}-${d}`
+  }
+  return value
+}
 
 const onNicheFieldUpdate = (key: string, value: string) => {
   nicheValues[key] = value

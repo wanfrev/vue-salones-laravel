@@ -62,10 +62,10 @@
           @update:model-value="updatePet(index, 'weight', $event)"
         />
         <FormInput
-          :model-value="pet.birthday || ''"
+          :model-value="birthdayDisplay(pet.birthday)"
           label="Cumpleaños"
-          type="date"
-          @update:model-value="updatePet(index, 'birthday', $event)"
+          placeholder="DD/MM/AAAA"
+          @update:model-value="updatePetBirthday(index, $event)"
         />
       </div>
       <div class="sm:col-span-2">
@@ -133,6 +133,30 @@ const updatePet = (index: number, key: string, value: string | number) => {
   const cleanValue = key === 'birthday' && !value ? '' : String(value)
   updated[index] = { ...updated[index], [key]: cleanValue }
   emit('update:modelValue', updated)
+}
+
+function birthdayDisplay(value: string | undefined): string {
+  if (!value) return ''
+  const s = String(value)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split('-')
+    return `${d}/${m}/${y}`
+  }
+  return s
+}
+
+function updatePetBirthday(index: number, value: string | number) {
+  const s = String(value)
+  if (s === '') {
+    updatePet(index, 'birthday', '')
+    return
+  }
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+    const [d, m, y] = s.split('/')
+    updatePet(index, 'birthday', `${y}-${m}-${d}`)
+  } else {
+    updatePet(index, 'birthday', s)
+  }
 }
 
 const getMeta = (pet: PetFormData, key: string): string => {
