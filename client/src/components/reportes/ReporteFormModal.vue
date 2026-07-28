@@ -45,32 +45,21 @@
         </div>
       </div>
 
-      <!-- General Discrepancy Banners -->
+      <!-- General Discrepancy Banner -->
       <div v-if="hasDiscrepancyBs || hasDiscrepancyUsd" class="space-y-2">
-        <div v-if="hasDiscrepancyBs" class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400 flex items-start gap-2.5">
+        <div class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400 flex items-start gap-2.5">
           <svg class="h-4 w-4 shrink-0 mt-0.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
           <div>
-            <span class="font-bold">Diferencia en Bolívares (Bs):</span> 
-            El desglose por métodos ({{ formatCurrency(totalBs) }} Bs) no coincide con el Reporte Z ({{ formatCurrency(computedZReportBs) }} Bs).
+            <span class="font-bold">Descuadre en el Cierre del Día:</span> 
+            El Gran Total de ingresos acumulados ({{ zReportCurrency === 'VES' ? formatCurrency(grandTotalBs) + ' Bs' : '$' + formatCurrency(grandTotalUsd) + ' USD' }}) 
+            no coincide con el Reporte Z registrado ({{ zReportCurrency === 'VES' ? formatCurrency(computedZReportBs) + ' Bs' : '$' + formatCurrency(computedZReportUsd) + ' USD' }}).
             <div class="font-semibold mt-0.5">
-              Diferencia: <span class="font-mono">{{ diffBs > 0 ? '+' : '' }}{{ formatCurrency(diffBs) }} Bs</span> 
-              ({{ diffBs > 0 ? 'Sobrante en métodos' : 'Faltante en métodos' }})
-            </div>
-          </div>
-        </div>
-
-        <div v-if="hasDiscrepancyUsd" class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-400 flex items-start gap-2.5">
-          <svg class="h-4 w-4 shrink-0 mt-0.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <div>
-            <span class="font-bold">Diferencia en Dólares (USD):</span> 
-            El desglose por métodos (${{ formatCurrency(totalUsd) }}) no coincide con el Reporte Z (${{ formatCurrency(computedZReportUsd) }}).
-            <div class="font-semibold mt-0.5">
-              Diferencia: <span class="font-mono">{{ diffUsd > 0 ? '+' : '' }}${{ formatCurrency(diffUsd) }} USD</span> 
-              ({{ diffUsd > 0 ? 'Sobrante en métodos' : 'Faltante en métodos' }})
+              Diferencia Total: 
+              <span class="font-mono" v-if="zReportCurrency === 'VES'">{{ diffBs > 0 ? '+' : '' }}{{ formatCurrency(diffBs) }} Bs</span>
+              <span class="font-mono" v-else>{{ diffUsd > 0 ? '+' : '' }}${{ formatCurrency(diffUsd) }} USD</span>
+              ({{ (zReportCurrency === 'VES' ? diffBs : diffUsd) > 0 ? 'Sobrante en ingresos' : 'Faltante en ingresos' }})
             </div>
           </div>
         </div>
@@ -354,15 +343,15 @@ const grandTotalUsd = computed(() => {
   return totalUsd.value + totalBsInUsd.value
 })
 
-// Discrepancias con Reporte Z
+// Discrepancias con Reporte Z (compara el Gran Total combinado de ingresos contra el Reporte Z)
 const diffBs = computed(() => {
   if (computedZReportBs.value <= 0) return 0
-  return totalBs.value - computedZReportBs.value
+  return grandTotalBs.value - computedZReportBs.value
 })
 
 const diffUsd = computed(() => {
   if (computedZReportUsd.value <= 0) return 0
-  return totalUsd.value - computedZReportUsd.value
+  return grandTotalUsd.value - computedZReportUsd.value
 })
 
 const hasDiscrepancyBs = computed(() => {
