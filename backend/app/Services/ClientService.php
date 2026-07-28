@@ -28,42 +28,50 @@ class ClientService
 
     public function store(array $data, string $businessId): Client
     {
-        return DB::transaction(function () use ($data, $businessId) {
-            $client = Client::create([
-                'id' => Str::uuid()->toString(),
-                'business_id' => $businessId,
-                'branch_id' => $data['branch_id'] ?? null,
-                'full_name' => $data['full_name'],
-                'phone' => $data['phone'],
-                'email' => $data['email'] ?? null,
-                'notes' => $data['notes'] ?? null,
-                'birthday' => $data['birthday'] ?? null,
-                'metadata' => $data['metadata'] ?? [],
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+        try {
+            return DB::transaction(function () use ($data, $businessId) {
+                $client = Client::create([
+                    'id' => Str::uuid()->toString(),
+                    'business_id' => $businessId,
+                    'branch_id' => $data['branch_id'] ?? null,
+                    'full_name' => $data['full_name'],
+                    'phone' => $data['phone'],
+                    'email' => $data['email'] ?? null,
+                    'notes' => $data['notes'] ?? null,
+                    'birthday' => $data['birthday'] ?? null,
+                    'metadata' => $data['metadata'] ?? [],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
 
-            if (!empty($data['pets'])) {
-                $this->syncPets($client, $data['pets'], $businessId);
-            }
+                if (!empty($data['pets'])) {
+                    $this->syncPets($client, $data['pets'], $businessId);
+                }
 
-            return $client;
-        });
+                return $client;
+            });
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'Ya existe un cliente registrado con este teléfono');
+        }
     }
 
     public function update(string $id, array $data, string $businessId): Client
     {
         $client = $this->findForBusiness($id, $businessId);
 
-        DB::transaction(function () use ($client, $data, $businessId) {
-            $client->update(array_filter($data, fn($k) => in_array($k, [
-                'full_name', 'phone', 'email', 'branch_id', 'notes', 'birthday', 'metadata',
-            ]), ARRAY_FILTER_USE_KEY) + ['updated_at' => now()]);
+        try {
+            DB::transaction(function () use ($client, $data, $businessId) {
+                $client->update(array_filter($data, fn($k) => in_array($k, [
+                    'full_name', 'phone', 'email', 'branch_id', 'notes', 'birthday', 'metadata',
+                ]), ARRAY_FILTER_USE_KEY) + ['updated_at' => now()]);
 
-            if (array_key_exists('pets', $data)) {
-                $this->syncPets($client, $data['pets'], $businessId);
-            }
-        });
+                if (array_key_exists('pets', $data)) {
+                    $this->syncPets($client, $data['pets'], $businessId);
+                }
+            });
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'Ya existe otro cliente registrado con este teléfono');
+        }
 
         return $client->fresh();
     }
