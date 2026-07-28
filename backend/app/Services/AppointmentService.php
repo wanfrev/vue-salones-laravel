@@ -125,7 +125,7 @@ class AppointmentService
             'price_override', 'employee_percentage_override', 'assistant_percentage',
             'is_fixed_commission_override', 'employee_amount_override', 'assistant_amount_override',
             'duration_override', 'diagnosis', 'treatment', 'associated_products', 'clinical_history',
-            'group_id', 'branch_id'
+            'group_id', 'branch_id', 'payment_status'
         ];
 
         $filtered = array_filter($data, fn($k) => in_array($k, $fillable), ARRAY_FILTER_USE_KEY);

@@ -214,7 +214,8 @@
                   :class="cardBgClass(appt.status)"
                   :style="{ top: `${appt.top}px`, height: `${Math.max(appt.height - 2, 80)}px` }"
                   :title="`${appt.clientName} · ${appt.service} · ${appt.employeeName}\n${appt.time} · ${getStatusLabel(appt.status)}`"
-                  @click.stop="showDetailPopup(appt, $event)">
+                  @click.stop="showDetailPopup(appt, $event)"
+                  @contextmenu.prevent="toggleStatusMenu(appt, $event)">
                   <div class="absolute left-0 top-0 bottom-0 w-[3px] sm:w-[4px]"
                     :class="statusStripeClass(appt.status)" />
                   <div class="flex flex-col h-full px-2 py-1.5 sm:px-2.5 sm:py-2 text-xs leading-tight">
@@ -338,7 +339,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   eventClick: [event: { id: string; title: string; start: Date; end: Date; status?: string; citaData?: Omit<Cita, 'paymentStatus' | 'statusLabel' | 'statusColor'> }]
-  statusChange: [payload: { id: string; status: 'pending' | 'confirmed' | 'cancelled' | 'paid' }]
+  statusChange: [payload: { id: string; status: 'pending' | 'confirmed' | 'paid' }]
   eventChange: [payload: { id: string; start: string; end: string; employeeId?: string }]
   slotSelect: [payload: { start: Date; end: Date; employeeId?: string }]
   checkout: [appointmentId: string]
@@ -618,7 +619,7 @@ function toggleStatusMenu(appt: DisplayAppointment, e: MouseEvent) {
 }
 
 function changeStatus(id: string, s: string) {
-  emit('statusChange', { id, status: s as 'pending' | 'confirmed' | 'cancelled' | 'paid' })
+  emit('statusChange', { id, status: s as 'pending' | 'confirmed' | 'paid' })
   statusMenu.value = null
 }
 

@@ -36,6 +36,8 @@ class UpdateAppointmentRequest extends FormRequest
             'clinical_history' => 'nullable|array',
             'group_id' => 'nullable|uuid',
             'branch_id' => 'nullable|uuid',
+            'status' => 'sometimes|in:pending,confirmed,in_progress,completed,cancelled,no_show',
+            'payment_status' => 'sometimes|in:paid,unpaid,partial',
         ];
     }
 }

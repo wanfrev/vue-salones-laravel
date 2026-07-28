@@ -436,7 +436,7 @@ export const saveCita = async (
 
 export const updateCitaStatus = async (
   id: string,
-  status: 'pending' | 'confirmed' | 'cancelled' | 'paid'
+  status: 'pending' | 'confirmed' | 'paid'
 ): Promise<void> => {
   const statusPayload = status === 'paid'
     ? { status: 'completed' as const, payment_status: 'paid' as const }

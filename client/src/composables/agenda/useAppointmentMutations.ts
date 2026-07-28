@@ -202,7 +202,7 @@ export function useAppointmentMutations(options: {
   })
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'pending' | 'confirmed' | 'cancelled' | 'paid' }) =>
+    mutationFn: ({ id, status }: { id: string; status: 'pending' | 'confirmed' | 'paid' }) =>
       updateCitaStatus(id, status),
     onMutate: async ({ id, status }) => {
       await queryClient.cancelQueries({ queryKey: ['appointments'], exact: false })
@@ -210,7 +210,7 @@ export function useAppointmentMutations(options: {
       for (const [key, data] of previousQueries) {
         if (Array.isArray(data)) {
           queryClient.setQueryData(key, data.map((cita: any) =>
-            cita.id === id ? { ...cita, status, paymentStatus: status === 'paid' ? 'paid' : cita.paymentStatus } : cita
+            cita.id === id ? { ...cita, status: status === 'paid' ? 'completed' : status, payment_status: status === 'paid' ? 'paid' : 'unpaid' } : cita
           ))
         }
       }
@@ -304,8 +304,12 @@ export function useAppointmentMutations(options: {
     }
   }
 
-  const handleStatusChange = async ({ id, status }: { id: string; status: 'pending' | 'confirmed' | 'cancelled' | 'paid' }) => {
-    await updateStatusMutation.mutateAsync({ id, status })
+  const handleStatusChange = async ({ id, status }: { id: string; status: 'pending' | 'confirmed' | 'paid' }) => {
+    try {
+      await updateStatusMutation.mutateAsync({ id, status })
+    } catch {
+      return
+    }
     success(`Estado actualizado a ${status}`)
   }
 
