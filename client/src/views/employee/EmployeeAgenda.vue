@@ -85,7 +85,8 @@ const selectedDate = ref<Date>(new Date())
 const dateRange = computed(() => {
   const start = new Date(selectedDate.value)
   start.setHours(0, 0, 0, 0)
-  const end = new Date(start.getFullYear(), start.getMonth() + 3, 1)
+  const end = new Date(start)
+  end.setHours(23, 59, 59, 999)
   return { start, end }
 })
 
