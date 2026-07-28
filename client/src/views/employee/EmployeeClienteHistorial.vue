@@ -83,7 +83,7 @@
             </thead>
             <tbody class="divide-y divide-border-subtle">
               <tr v-for="item in historial" :key="item.id" class="text-sm">
-                <td class="py-3 text-text-secondary">{{ item.date }}</td>
+                <td class="py-3 text-text-secondary">{{ formatDate(item.date) }}</td>
                 <td class="py-3 font-medium text-text">{{ item.service }}</td>
                 <td class="py-3 text-text-secondary">{{ item.employee }}</td>
                 <td class="py-3 text-right text-text">${{ item.amount }}</td>
@@ -124,7 +124,7 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
-import { sanitizePhone, getInitials } from '../../lib/formatters'
+import { sanitizePhone, getInitials, formatDate } from '../../lib/formatters'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { listCitas } from '../../services/agendaService'
@@ -172,7 +172,10 @@ const historial = computed(() => (citasData.value || [])
 )
 
 const totalGasto = computed(() => historial.value.reduce((sum, item) => sum + Number(item.amount.toString().replace(/,/g, '')), 0).toLocaleString())
-const ultimaVisita = computed(() => historial.value[0]?.date || '')
+const ultimaVisita = computed(() => {
+  const d = historial.value[0]?.date
+  return d ? formatDate(d) : ''
+})
 
 const goBack = () => {
   router.push('/dashboard/clientes')
