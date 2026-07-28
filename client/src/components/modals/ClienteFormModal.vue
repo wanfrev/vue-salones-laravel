@@ -186,7 +186,7 @@ const loadPets = async (clientId: string) => {
         name: p.name,
         breed: p.breed ?? '',
         weight: p.weight ?? '',
-        birthday: p.birthday ?? '',
+        birthday: p.birthday ? p.birthday.split('T')[0] : '',
         notes: p.notes ?? '',
       }
       const meta = p.metadata

@@ -130,7 +130,7 @@ const removePet = (index: number) => {
 
 const updatePet = (index: number, key: string, value: string | number) => {
   const updated = [...props.modelValue]
-  const cleanValue = key === 'birthday' && !value ? null : String(value)
+  const cleanValue = key === 'birthday' && !value ? '' : String(value)
   updated[index] = { ...updated[index], [key]: cleanValue }
   emit('update:modelValue', updated)
 }

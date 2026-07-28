@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\Concerns\BelongsToBusiness;
@@ -25,6 +26,11 @@ class Pet extends Model
             'birthday' => 'date',
             'metadata' => 'json',
         ];
+    }
+
+    protected function serializeDate(DateTimeInterface $date): string
+    {
+        return $date->format('Y-m-d');
     }
 
     public function client(): BelongsTo
