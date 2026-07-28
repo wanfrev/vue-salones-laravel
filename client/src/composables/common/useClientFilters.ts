@@ -68,7 +68,7 @@ export function useClientFilters(clients: Ref<Cliente[]>) {
 
   const pagination = usePagination({
     data: filteredClients,
-    pageSize: 5,
+    pageSize: 15,
   })
 
   const handleApplyFilters = (filters: FilterState) => {
