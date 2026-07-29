@@ -38,7 +38,6 @@ export const dailyReportsKeys = {
   all: (businessId?: string | null, branchId?: string | null) => ['daily-reports', businessId, branchId] as const,
 }
 
-
 export const listDailyReports = async (businessId: string, branchId?: string | null, month?: string) => {
   const params = new URLSearchParams({ business_id: businessId })
   if (branchId) params.set('branch_id', branchId)

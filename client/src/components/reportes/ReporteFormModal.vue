@@ -80,7 +80,6 @@
               <FormInput v-model="formData.pago_movil_bs" label="Pago Móvil" type="number" step="0.01" min="0" placeholder="0.00" />
               <FormInput v-model="formData.cash_bs" label="Efectivo Bs" type="number" step="0.01" min="0" placeholder="0.00" />
               <FormInput v-model="formData.transfer_bs" label="Transferencia" type="number" step="0.01" min="0" placeholder="0.00" />
-              <FormInput v-model="formData.credit_bs" label="Créditos (Bs)" type="number" step="0.01" min="0" placeholder="0.00" />
             </div>
           </div>
           <div class="pt-3 mt-3 border-t border-border space-y-1">
@@ -109,7 +108,6 @@
               <FormInput v-model="formData.zelle_usd" label="Zelle" type="number" step="0.01" min="0" placeholder="0.00" />
               <FormInput v-model="formData.binance_usd" label="Binance" type="number" step="0.01" min="0" placeholder="0.00" />
               <FormInput v-model="formData.cashea_usd" label="Cashea" type="number" step="0.01" min="0" placeholder="0.00" />
-              <FormInput v-model="formData.credit_usd" label="Créditos (USD)" type="number" step="0.01" min="0" placeholder="0.00" />
             </div>
           </div>
           <div class="pt-3 mt-3 border-t border-border space-y-1">
@@ -125,7 +123,7 @@
         </div>
       </div>
 
-      <!-- Sección Créditos (Persona por Persona) -->
+      <!-- Única Sección de Créditos (Persona por Persona) -->
       <div class="rounded-xl border border-border p-4 bg-bg-secondary/30 space-y-4">
         <div class="flex items-center justify-between">
           <div>
@@ -319,8 +317,6 @@ const defaultForm = () => ({
   zelle_usd: '',
   binance_usd: '',
   cashea_usd: '',
-  credit_bs: '',
-  credit_usd: '',
 })
 
 const formData = ref(defaultForm())
@@ -382,8 +378,6 @@ watch(modalData, (data) => {
       zelle_usd: String(report.zelle_usd ?? ''),
       binance_usd: String(report.binance_usd ?? ''),
       cashea_usd: String(report.cashea_usd ?? ''),
-      credit_bs: String(report.credit_bs ?? ''),
-      credit_usd: String(report.credit_usd ?? ''),
     }
 
     if (report.z_report_usd && !report.z_report_bs) {
@@ -400,7 +394,7 @@ watch(modalData, (data) => {
       zReportAmount.value = ''
     }
 
-    if (report.credits_detail && Array.isArray(report.credits_detail)) {
+    if (report.credits_detail && Array.isArray(report.credits_detail) && report.credits_detail.length > 0) {
       creditsList.value = report.credits_detail.map((c, i) => ({
         id: c.id || String(Date.now() + i),
         name: c.name || '',
@@ -408,7 +402,25 @@ watch(modalData, (data) => {
         currency: c.currency || 'USD',
       }))
     } else {
-      creditsList.value = []
+      // Si no hay desglose por personas pero existen credit_usd o credit_bs de reportes anteriores
+      const initialCredits: CreditItemForm[] = []
+      if (parseNum(report.credit_usd) > 0) {
+        initialCredits.push({
+          id: String(Date.now() + 1),
+          name: 'Crédito USD (Anterior)',
+          amount: String(report.credit_usd),
+          currency: 'USD',
+        })
+      }
+      if (parseNum(report.credit_bs) > 0) {
+        initialCredits.push({
+          id: String(Date.now() + 2),
+          name: 'Crédito Bs (Anterior)',
+          amount: String(report.credit_bs),
+          currency: 'Bs',
+        })
+      }
+      creditsList.value = initialCredits
     }
   } else {
     isEditing.value = false
@@ -483,7 +495,7 @@ const grandTotalUsd = computed(() => {
   return totalUsd.value + totalBsInUsd.value
 })
 
-// Discrepancias con Reporte Z (compara el Gran Total combinado de ingresos contra el Reporte Z)
+// Discrepancias con Reporte Z (compara el Gran Total acumulado contra el Reporte Z)
 const diffBs = computed(() => {
   if (computedZReportBs.value <= 0) return 0
   return grandTotalBs.value - computedZReportBs.value
