@@ -76,7 +76,7 @@
           Limpiar búsqueda
         </button>
       </div>
-      <div v-else class="flex-1 overflow-auto touch-pan-y" style="-webkit-overflow-scrolling: touch;">
+      <div v-else class="flex-1 overflow-auto">
         <table class="w-full text-left text-sm whitespace-nowrap">
           <thead class="sticky top-0 z-10 bg-surface/95 backdrop-blur-sm shadow-sm ring-1 ring-border-subtle">
             <tr>
@@ -87,11 +87,11 @@
               <th class="px-4 py-3 font-semibold text-text-secondary uppercase tracking-wider text-xs">Total USD</th>
               <th class="px-4 py-3 font-semibold text-text-secondary uppercase tracking-wider text-xs">Créditos</th>
               <th class="px-4 py-3 font-semibold text-text-secondary uppercase tracking-wider text-xs">Gran Total (USD + Bs)</th>
-              <th class="px-4 py-3 font-semibold text-text-secondary uppercase tracking-wider text-xs w-[100px] text-right">Acciones</th>
+              <th class="px-4 py-3 font-semibold text-text-secondary uppercase tracking-wider text-xs w-[100px] text-right sticky right-0 bg-surface z-20 border-l border-border/50">Acciones</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
-            <tr v-for="report in filteredReports" :key="report.id" class="transition-colors hover:bg-bg-secondary/50">
+            <tr v-for="report in filteredReports" :key="report.id" class="transition-colors hover:bg-bg-secondary/50 group">
               <td class="px-4 py-3 font-medium text-text">
                 {{ formatDate(report.date) }}
                 <span v-if="report.user?.name" class="block text-[11px] text-text-muted font-normal">Por: {{ report.user.name }}</span>
@@ -132,15 +132,10 @@
                 <span v-else class="text-text-muted font-normal">-</span>
               </td>
               <td class="px-4 py-3">
-                <div v-if="Number(report.credit_bs) > 0" class="font-semibold text-amber-600 dark:text-amber-400">{{ formatCurrency(report.credit_bs) }} Bs</div>
-                <div v-if="Number(report.credit_usd) > 0" class="font-semibold text-amber-600 dark:text-amber-400">${{ formatCurrency(report.credit_usd) }} USD</div>
-                <div v-if="!Number(report.credit_bs) && !Number(report.credit_usd)" class="text-text-muted text-xs">—</div>
-              </td>
-              <td class="px-4 py-3">
                 <div class="font-extrabold text-primary">{{ formatCurrency(getGrandTotalBs(report)) }} Bs</div>
                 <div class="text-xs font-semibold text-text-muted">≈ ${{ formatCurrency(getGrandTotalUsd(report)) }} USD</div>
               </td>
-              <td class="px-4 py-3 text-right">
+              <td class="px-4 py-3 text-right sticky right-0 bg-surface z-10 border-l border-border/50 group-hover:bg-surface">
                 <div class="flex items-center justify-end gap-1">
                   <button
                     @click="openModal(report)"
