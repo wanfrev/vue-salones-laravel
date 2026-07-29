@@ -20,7 +20,7 @@
             v-if="selectedPeriod === 'day'"
             type="date"
             :value="selectedMonth"
-            @change="selectedMonth = ($event.target as HTMLInputElement).value"
+            @change="onDayChange"
             class="w-[130px] rounded-md border border-border bg-surface px-2 py-1 text-xs text-text text-center outline-none transition-theme focus:border-primary"
           />
           <input
@@ -33,14 +33,14 @@
             <input
               type="date"
               :value="customFrom"
-              @change="customFrom = ($event.target as HTMLInputElement).value"
+              @change="onCustomFromChange"
               class="w-[120px] rounded-md border border-border bg-surface px-2 py-1 text-xs text-text text-center outline-none transition-theme focus:border-primary"
             />
             <span class="text-xs text-text-muted">—</span>
             <input
               type="date"
               :value="customTo"
-              @change="customTo = ($event.target as HTMLInputElement).value"
+              @change="onCustomToChange"
               class="w-[120px] rounded-md border border-border bg-surface px-2 py-1 text-xs text-text text-center outline-none transition-theme focus:border-primary"
             />
           </template>
@@ -110,7 +110,7 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
 import { usePeriodSelection } from '../composables/finanzas/usePeriodSelection'
-import { getMondayOfISOWeek, getISOWeek } from '../lib/periodUtils'
+import { resolvePeriodDates } from '../lib/periodUtils'
 import { useFinancialSummary } from '../composables/finanzas/useFinancialSummary'
 import { useExpenses } from '../composables/finanzas/useExpenses'
 import { useSupplierPayments } from '../composables/suppliers/useSuppliers'
@@ -145,6 +145,16 @@ const isEncargadoRole = computed(() => isEncargado(authStore.role ?? undefined))
 const { selectedPeriod, selectedMonth, customFrom, customTo, resetToCurrent, goPrev, goNext, displayLabel, periods } = usePeriodSelection()
 const businessId = computed(() => authStore.businessId)
 
+function onDayChange(e: Event) {
+  selectedMonth.value = (e.target as HTMLInputElement).value
+}
+function onCustomFromChange(e: Event) {
+  customFrom.value = (e.target as HTMLInputElement).value
+}
+function onCustomToChange(e: Event) {
+  customTo.value = (e.target as HTMLInputElement).value
+}
+
 const activeTab = ref<'resumen' | 'ingresos' | 'egresos'>('resumen')
 const mainTabs = [
   { key: 'resumen' as const, label: 'Resumen' },
@@ -153,54 +163,8 @@ const mainTabs = [
 ]
 
 const periodDates = computed(() => {
-  const today = new Date()
-  const toYmd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  const parseDate = (s: string) => { const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : today }
-
-  if (selectedPeriod.value === 'day') {
-    const d = parseDate(selectedMonth.value)
-    return { start: toYmd(new Date(d.getFullYear(), d.getMonth(), d.getDate())), end: toYmd(new Date(d.getFullYear(), d.getMonth(), d.getDate())) }
-  }
-  if (selectedPeriod.value === 'custom') {
-    return { start: toYmd(parseDate(customFrom.value)), end: toYmd(parseDate(customTo.value)) }
-  }
-  if (selectedPeriod.value === 'month') {
-    const match = selectedMonth.value.match(/^(\d{4})-(\d{2})$/)
-    if (match) {
-      const y = Number(match[1])
-      const m = Number(match[2]) - 1
-      const isCurrent = y === today.getFullYear() && m === today.getMonth()
-      return { start: toYmd(new Date(y, m, 1)), end: toYmd(isCurrent ? today : new Date(y, m + 1, 0)) }
-    }
-  }
-  if (selectedPeriod.value === 'quarter') {
-    const match = selectedMonth.value.match(/^(\d{4})-Q([1-4])$/)
-    if (match) {
-      const y = Number(match[1])
-      const q = Number(match[2])
-      const startMonth = (q - 1) * 3
-      const isCurrent = y === today.getFullYear() && q === Math.floor(today.getMonth() / 3) + 1
-      return { start: toYmd(new Date(y, startMonth, 1)), end: toYmd(isCurrent ? today : new Date(y, startMonth + 3, 0)) }
-    }
-  }
-  if (selectedPeriod.value === 'year') {
-    const y = parseInt(selectedMonth.value) || today.getFullYear()
-    const isCurrent = y === today.getFullYear()
-    return { start: `${y}-01-01`, end: toYmd(isCurrent ? today : new Date(y, 11, 31)) }
-  }
-  if (selectedPeriod.value === 'week') {
-    const match = selectedMonth.value.match(/^(\d{4})-W(\d{2})$/)
-    if (match) {
-      const y = Number(match[1])
-      const w = Number(match[2])
-      const monday = getMondayOfISOWeek(y, w)
-      const sunday = new Date(monday)
-      sunday.setDate(monday.getDate() + 6)
-      const isCurrent = getISOWeek(today) === w && today.getFullYear() === y
-      return { start: toYmd(monday), end: toYmd(isCurrent ? today : sunday) }
-    }
-  }
-  return { start: `${today.getFullYear()}-01-01`, end: toYmd(today) }
+  const key = selectedPeriod.value === 'custom' ? customFrom.value : selectedMonth.value
+  return resolvePeriodDates(selectedPeriod.value, key, customTo.value)
 })
 
 const expensesCtx = useExpenses(businessId, selectedPeriod, selectedMonth, customFrom, customTo)

@@ -116,7 +116,7 @@ function useFinancialSummary(
   // ── Summary + KPIs ──
   const summaryQueryKey = computed(() => [
     'finanzas-summary', businessId.value, selectedPeriod.value,
-    selectedMonth?.value ?? null, branchId.value,
+    selectedMonth?.value ?? null, customTo?.value ?? null, branchId.value,
   ] as const)
 
   const { data: summaryData, isLoading: isSummaryLoading } = useQuery({
@@ -168,7 +168,7 @@ function useFinancialSummary(
   // ── Transactions (Cobros) ──
   const transactionsQueryKey = computed(() => [
     'finanzas-transactions', businessId.value, selectedPeriod.value,
-    selectedMonth?.value ?? null, branchId.value,
+    selectedMonth?.value ?? null, customTo?.value ?? null, branchId.value,
   ] as const)
 
   const { data: transactionsData, isLoading: isTxLoading } = useQuery({
@@ -298,7 +298,7 @@ function useFinancialSummary(
   const { data: productSalesData } = useQuery({
     queryKey: computed(() => [
       'finanzas-product-sales', businessId.value, selectedPeriod.value,
-      selectedMonth?.value ?? null, branchId.value,
+      selectedMonth?.value ?? null, customTo?.value ?? null, branchId.value,
     ] as const),
     queryFn: async () => {
       const cfg = periodConfig.value
