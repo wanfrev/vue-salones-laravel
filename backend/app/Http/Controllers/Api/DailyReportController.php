@@ -56,6 +56,7 @@ class DailyReportController extends Controller
             'cashea_usd' => 'nullable|numeric|min:0',
             'credit_bs' => 'nullable|numeric|min:0',
             'credit_usd' => 'nullable|numeric|min:0',
+            'credits_detail' => 'nullable|array',
             'total_bs' => 'nullable|numeric|min:0',
             'total_usd' => 'nullable|numeric|min:0',
         ]);
@@ -92,6 +93,7 @@ class DailyReportController extends Controller
             'cashea_usd' => 'nullable|numeric|min:0',
             'credit_bs' => 'nullable|numeric|min:0',
             'credit_usd' => 'nullable|numeric|min:0',
+            'credits_detail' => 'nullable|array',
             'total_bs' => 'nullable|numeric|min:0',
             'total_usd' => 'nullable|numeric|min:0',
         ]);

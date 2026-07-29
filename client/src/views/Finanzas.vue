@@ -13,20 +13,42 @@
           <button v-for="period in periods" :key="period.value" @click="selectedPeriod = period.value" :class="['rounded-lg px-3 py-1.5 text-xs font-medium transition-theme flex-1 sm:flex-none text-center', selectedPeriod === period.value ? 'bg-primary text-text-inverse shadow-sm shadow-primary/20' : 'text-text-secondary hover:text-text hover:bg-bg-secondary']">{{ period.label }}</button>
         </div>
         <div class="flex items-center gap-1 rounded-xl border border-border bg-surface px-1.5 py-1 shadow-sm w-full sm:w-auto justify-center sm:justify-start">
-          <button @click="goPrev" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-text" title="Anterior">
+          <button v-if="selectedPeriod !== 'custom'" @click="goPrev" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-text" title="Anterior">
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
           </button>
           <input
-            v-if="selectedPeriod === 'month'"
+            v-if="selectedPeriod === 'day'"
+            type="date"
+            :value="selectedMonth"
+            @change="selectedMonth = ($event.target as HTMLInputElement).value"
+            class="w-[130px] rounded-md border border-border bg-surface px-2 py-1 text-xs text-text text-center outline-none transition-theme focus:border-primary"
+          />
+          <input
+            v-else-if="selectedPeriod === 'month'"
             v-model="selectedMonth"
             type="month"
             class="w-[130px] rounded-md border border-border bg-surface px-2 py-1 text-xs text-text text-center outline-none transition-theme focus:border-primary"
           />
+          <template v-else-if="selectedPeriod === 'custom'">
+            <input
+              type="date"
+              :value="customFrom"
+              @change="customFrom = ($event.target as HTMLInputElement).value"
+              class="w-[120px] rounded-md border border-border bg-surface px-2 py-1 text-xs text-text text-center outline-none transition-theme focus:border-primary"
+            />
+            <span class="text-xs text-text-muted">—</span>
+            <input
+              type="date"
+              :value="customTo"
+              @change="customTo = ($event.target as HTMLInputElement).value"
+              class="w-[120px] rounded-md border border-border bg-surface px-2 py-1 text-xs text-text text-center outline-none transition-theme focus:border-primary"
+            />
+          </template>
           <span v-else class="min-w-[130px] text-center text-xs font-medium text-text px-2">{{ displayLabel }}</span>
-          <button @click="goNext" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-text" title="Siguiente">
+          <button v-if="selectedPeriod !== 'custom'" @click="goNext" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-text" title="Siguiente">
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
           </button>
-          <button type="button" class="rounded-md border border-border px-2 py-1 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text whitespace-nowrap ml-0.5" @click="resetToCurrent">Ahora</button>
+          <button type="button" class="rounded-md border border-border px-2 py-1 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text whitespace-nowrap ml-0.5" @click="resetToCurrent">{{ selectedPeriod === 'custom' ? 'Hoy' : 'Ahora' }}</button>
         </div>
         <ExchangeRateCard
           :is-editable="rateCtx.isEditable.value"
@@ -88,6 +110,7 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
 import { usePeriodSelection } from '../composables/finanzas/usePeriodSelection'
+import { getMondayOfISOWeek, getISOWeek } from '../lib/periodUtils'
 import { useFinancialSummary } from '../composables/finanzas/useFinancialSummary'
 import { useExpenses } from '../composables/finanzas/useExpenses'
 import { useSupplierPayments } from '../composables/suppliers/useSuppliers'
@@ -119,7 +142,7 @@ const router = useRouter()
 const rateCtx = useExchangeRate()
 const isEncargadoRole = computed(() => isEncargado(authStore.role ?? undefined))
 
-const { selectedPeriod, selectedMonth, resetToCurrent, goPrev, goNext, displayLabel, periods } = usePeriodSelection()
+const { selectedPeriod, selectedMonth, customFrom, customTo, resetToCurrent, goPrev, goNext, displayLabel, periods } = usePeriodSelection()
 const businessId = computed(() => authStore.businessId)
 
 const activeTab = ref<'resumen' | 'ingresos' | 'egresos'>('resumen')
@@ -132,7 +155,15 @@ const mainTabs = [
 const periodDates = computed(() => {
   const today = new Date()
   const toYmd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  const parseDate = (s: string) => { const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : today }
 
+  if (selectedPeriod.value === 'day') {
+    const d = parseDate(selectedMonth.value)
+    return { start: toYmd(new Date(d.getFullYear(), d.getMonth(), d.getDate())), end: toYmd(new Date(d.getFullYear(), d.getMonth(), d.getDate())) }
+  }
+  if (selectedPeriod.value === 'custom') {
+    return { start: toYmd(parseDate(customFrom.value)), end: toYmd(parseDate(customTo.value)) }
+  }
   if (selectedPeriod.value === 'month') {
     const match = selectedMonth.value.match(/^(\d{4})-(\d{2})$/)
     if (match) {
@@ -143,25 +174,40 @@ const periodDates = computed(() => {
     }
   }
   if (selectedPeriod.value === 'quarter') {
-    const qs = Math.floor(today.getMonth() / 3) * 3
-    return { start: toYmd(new Date(today.getFullYear(), qs, 1)), end: toYmd(today) }
+    const match = selectedMonth.value.match(/^(\d{4})-Q([1-4])$/)
+    if (match) {
+      const y = Number(match[1])
+      const q = Number(match[2])
+      const startMonth = (q - 1) * 3
+      const isCurrent = y === today.getFullYear() && q === Math.floor(today.getMonth() / 3) + 1
+      return { start: toYmd(new Date(y, startMonth, 1)), end: toYmd(isCurrent ? today : new Date(y, startMonth + 3, 0)) }
+    }
   }
   if (selectedPeriod.value === 'year') {
-    return { start: `${today.getFullYear()}-01-01`, end: toYmd(today) }
+    const y = parseInt(selectedMonth.value) || today.getFullYear()
+    const isCurrent = y === today.getFullYear()
+    return { start: `${y}-01-01`, end: toYmd(isCurrent ? today : new Date(y, 11, 31)) }
   }
   if (selectedPeriod.value === 'week') {
-    const monday = new Date(today)
-    monday.setDate(today.getDate() - ((today.getDay() + 6) % 7))
-    return { start: toYmd(monday), end: toYmd(today) }
+    const match = selectedMonth.value.match(/^(\d{4})-W(\d{2})$/)
+    if (match) {
+      const y = Number(match[1])
+      const w = Number(match[2])
+      const monday = getMondayOfISOWeek(y, w)
+      const sunday = new Date(monday)
+      sunday.setDate(monday.getDate() + 6)
+      const isCurrent = getISOWeek(today) === w && today.getFullYear() === y
+      return { start: toYmd(monday), end: toYmd(isCurrent ? today : sunday) }
+    }
   }
   return { start: `${today.getFullYear()}-01-01`, end: toYmd(today) }
 })
 
-const expensesCtx = useExpenses(businessId, selectedPeriod, selectedMonth)
+const expensesCtx = useExpenses(businessId, selectedPeriod, selectedMonth, customFrom, customTo)
 const expenses = expensesCtx.expenses
-const supplierPaymentsCtx = useSupplierPayments(businessId, selectedPeriod, selectedMonth)
+const supplierPaymentsCtx = useSupplierPayments(businessId, selectedPeriod, selectedMonth, customFrom, customTo)
 const employeePaymentsCtx = useEmployeePayments(businessId, periodDates)
-const summaryCtx = useFinancialSummary(businessId, selectedPeriod, expenses, selectedMonth)
+const summaryCtx = useFinancialSummary(businessId, selectedPeriod, expenses, selectedMonth, customTo)
 
 const incomeTotal = summaryCtx.incomeTotal
 const localIncomeTotal = summaryCtx.localIncomeTotal

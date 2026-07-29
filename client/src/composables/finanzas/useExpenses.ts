@@ -6,13 +6,16 @@ import { useBusinessStore } from '../../store/business'
 import { expensesKeys, listExpenses, saveExpense, deleteExpense, type ExpenseFormData, type ExpenseRow } from '../../services/expensesService'
 import { translateError } from '../../lib/errors'
 import { expenseFormSchema } from '../../lib/validation'
+import { getMondayOfISOWeek, getISOWeek } from '../../lib/periodUtils'
 
-type PeriodValue = 'month' | 'quarter' | 'year'
+type PeriodValue = 'day' | 'custom' | 'week' | 'month' | 'quarter' | 'year'
 
 export function useExpenses(
   businessId: import('vue').Ref<string | null>,
   selectedPeriod?: import('vue').Ref<PeriodValue>,
   selectedMonth?: import('vue').Ref<string>,
+  customFrom?: import('vue').Ref<string>,
+  customTo?: import('vue').Ref<string>,
 ) {
   const queryClient = useQueryClient()
   const { success, error: showError } = useNotification()
@@ -25,7 +28,15 @@ export function useExpenses(
     const today = new Date()
     const toYmd = (d: Date) =>
       `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    const parseDate = (s: string) => { const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : today }
 
+    if (selectedPeriod.value === 'day') {
+      const d = parseDate(selectedMonth?.value ?? '')
+      return { start: toYmd(new Date(d.getFullYear(), d.getMonth(), d.getDate())), end: toYmd(new Date(d.getFullYear(), d.getMonth(), d.getDate())) }
+    }
+    if (selectedPeriod.value === 'custom') {
+      return { start: toYmd(parseDate(customFrom?.value ?? '')), end: toYmd(parseDate(customTo?.value ?? '')) }
+    }
     if (selectedPeriod.value === 'month') {
       const monthMatch = selectedMonth?.value.match(/^(\d{4})-(\d{2})$/)
       if (monthMatch) {
@@ -36,8 +47,31 @@ export function useExpenses(
       }
     }
     if (selectedPeriod.value === 'quarter') {
-      const qs = Math.floor(today.getMonth() / 3) * 3
-      return { start: toYmd(new Date(today.getFullYear(), qs, 1)), end: toYmd(today) }
+      const match = selectedMonth?.value.match(/^(\d{4})-Q([1-4])$/)
+      if (match) {
+        const y = Number(match[1])
+        const q = Number(match[2])
+        const startMonth = (q - 1) * 3
+        const isCurrent = y === today.getFullYear() && q === Math.floor(today.getMonth() / 3) + 1
+        return { start: toYmd(new Date(y, startMonth, 1)), end: toYmd(isCurrent ? today : new Date(y, startMonth + 3, 0)) }
+      }
+    }
+    if (selectedPeriod.value === 'year') {
+      const y = parseInt(selectedMonth?.value ?? '') || today.getFullYear()
+      const isCurrent = y === today.getFullYear()
+      return { start: `${y}-01-01`, end: toYmd(isCurrent ? today : new Date(y, 11, 31)) }
+    }
+    if (selectedPeriod.value === 'week') {
+      const match = selectedMonth?.value.match(/^(\d{4})-W(\d{2})$/)
+      if (match) {
+        const y = Number(match[1])
+        const w = Number(match[2])
+        const monday = getMondayOfISOWeek(y, w)
+        const sunday = new Date(monday)
+        sunday.setDate(monday.getDate() + 6)
+        const isCurrent = getISOWeek(today) === w && today.getFullYear() === y
+        return { start: toYmd(monday), end: toYmd(isCurrent ? today : sunday) }
+      }
     }
     return { start: toYmd(new Date(today.getFullYear(), 0, 1)), end: toYmd(today) }
   })

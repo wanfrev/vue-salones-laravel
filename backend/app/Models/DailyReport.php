@@ -29,8 +29,9 @@ class DailyReport extends Model
         'zelle_usd',
         'binance_usd',
         'cashea_usd',
-        'credit_bs',
         'credit_usd',
+        'credit_bs',
+        'credits_detail',
         'total_bs',
         'total_usd',
     ];
@@ -47,8 +48,9 @@ class DailyReport extends Model
         'zelle_usd' => 'float',
         'binance_usd' => 'float',
         'cashea_usd' => 'float',
-        'credit_bs' => 'float',
         'credit_usd' => 'float',
+        'credit_bs' => 'float',
+        'credits_detail' => 'array',
         'total_bs' => 'float',
         'total_usd' => 'float',
     ];

@@ -5,6 +5,19 @@ export function toYmd(d: Date): string {
   return `${yyyy}-${mm}-${dd}`
 }
 
+export function currentDayKey(): string {
+  return toYmd(new Date())
+}
+
+export function parseDayKey(key?: string): Date | null {
+  if (!key) return null
+  const match = key.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return null
+  const d = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  if (isNaN(d.getTime())) return null
+  return d
+}
+
 export function currentMonthKey(): string {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -96,8 +109,22 @@ export interface PeriodConfig {
   end: Date
 }
 
-export function resolvePeriod(value: 'week' | 'month' | 'quarter' | 'year', key?: string): PeriodConfig {
+export function resolvePeriod(value: 'day' | 'custom' | 'week' | 'month' | 'quarter' | 'year', key?: string, customEnd?: string): PeriodConfig {
   const today = new Date()
+  if (value === 'day') {
+    const parsed = parseDayKey(key)
+    const day = parsed ?? today
+    const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0, 0)
+    const dayEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 23, 59, 59, 999)
+    return { bucket: 'day', start: dayStart, end: dayEnd }
+  }
+  if (value === 'custom') {
+    const startDate = parseDayKey(key) ?? today
+    const endDate = customEnd ? (parseDayKey(customEnd) ?? today) : today
+    startDate.setHours(0, 0, 0, 0)
+    endDate.setHours(23, 59, 59, 999)
+    return { bucket: 'day', start: startDate <= endDate ? startDate : endDate, end: endDate }
+  }
   if (value === 'week') {
     const parsed = parseWeekKey(key) ?? { year: today.getFullYear(), week: getISOWeek(today) }
     const monday = getMondayOfISOWeek(parsed.year, parsed.week)
@@ -158,8 +185,22 @@ export function formatBucketLabel(date: Date, bucket: PeriodBucket): string {
   return `${dd}/${mm}/${yy}`
 }
 
-export function resolvePeriodDates(value: 'week' | 'month' | 'quarter' | 'year', key?: string): { start: string; end: string } {
+export function resolvePeriodDates(value: 'day' | 'custom' | 'week' | 'month' | 'quarter' | 'year', key?: string, customEnd?: string): { start: string; end: string } {
   const today = new Date()
+  if (value === 'day') {
+    const parsed = parseDayKey(key)
+    const day = parsed ?? today
+    const dayStart = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0, 0)
+    const dayEnd = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 23, 59, 59, 999)
+    return { start: toYmd(dayStart), end: toYmd(dayEnd) }
+  }
+  if (value === 'custom') {
+    const startDate = parseDayKey(key) ?? today
+    const endDate = customEnd ? (parseDayKey(customEnd) ?? today) : today
+    startDate.setHours(0, 0, 0, 0)
+    endDate.setHours(23, 59, 59, 999)
+    return { start: toYmd(startDate <= endDate ? startDate : endDate), end: toYmd(endDate) }
+  }
   if (value === 'week') {
     const parsed = parseWeekKey(key) ?? { year: today.getFullYear(), week: getISOWeek(today) }
     const monday = getMondayOfISOWeek(parsed.year, parsed.week)
