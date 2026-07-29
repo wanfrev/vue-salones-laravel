@@ -282,10 +282,9 @@ const isSaving = computed(() => saveMutation.isPending.value)
 
 const errors = ref<Record<string, string>>({})
 
-<<<<<<< Updated upstream
 const zReportAmount = ref<string>('')
 const zReportCurrency = ref<'VES' | 'USD'>('VES')
-=======
+
 interface CreditItemForm {
   id: string
   name: string
@@ -307,7 +306,6 @@ const addCreditRow = () => {
 const removeCreditRow = (index: number) => {
   creditsList.value.splice(index, 1)
 }
->>>>>>> Stashed changes
 
 const defaultForm = () => ({
   id: '',
@@ -416,20 +414,12 @@ watch(modalData, (data) => {
     isEditing.value = false
     formData.value = defaultForm()
     formData.value.exchange_rate = String(businessStore.business?.ves_exchange_rate || '')
-<<<<<<< Updated upstream
     zReportCurrency.value = 'VES'
     zReportAmount.value = ''
-=======
     creditsList.value = []
->>>>>>> Stashed changes
   }
   errors.value = {}
 }, { immediate: true })
-
-<<<<<<< Updated upstream
-// Total Bolívares
-=======
-const parseNum = (val: string | number) => Number(val) || 0
 
 // Total Créditos USD y Bs
 const totalCreditUsd = computed(() => {
@@ -451,17 +441,12 @@ const totalCreditBs = computed(() => {
 })
 
 // Total Bolívares (incluye Créditos en Bs)
->>>>>>> Stashed changes
 const totalBs = computed(() => {
   return parseNum(formData.value.pos_bs) +
          parseNum(formData.value.pago_movil_bs) +
          parseNum(formData.value.cash_bs) +
          parseNum(formData.value.transfer_bs) +
-<<<<<<< Updated upstream
-         parseNum(formData.value.credit_bs)
-=======
          totalCreditBs.value
->>>>>>> Stashed changes
 })
 
 // Total Dólares (incluye Créditos en USD)
@@ -470,11 +455,7 @@ const totalUsd = computed(() => {
          parseNum(formData.value.zelle_usd) +
          parseNum(formData.value.binance_usd) +
          parseNum(formData.value.cashea_usd) +
-<<<<<<< Updated upstream
-         parseNum(formData.value.credit_usd)
-=======
          totalCreditUsd.value
->>>>>>> Stashed changes
 })
 
 // Total Bs al cambio en USD
@@ -558,10 +539,6 @@ const handleSubmit = async () => {
     zelle_usd: parseNum(formData.value.zelle_usd),
     binance_usd: parseNum(formData.value.binance_usd),
     cashea_usd: parseNum(formData.value.cashea_usd),
-<<<<<<< Updated upstream
-    credit_bs: parseNum(formData.value.credit_bs),
-    credit_usd: parseNum(formData.value.credit_usd),
-=======
     credit_usd: totalCreditUsd.value,
     credit_bs: totalCreditBs.value,
     credits_detail: creditsList.value
@@ -571,7 +548,6 @@ const handleSubmit = async () => {
         amount: parseNum(c.amount),
         currency: c.currency,
       })),
->>>>>>> Stashed changes
     total_bs: totalBs.value,
     total_usd: totalUsd.value,
   }
