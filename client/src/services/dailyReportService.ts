@@ -1,5 +1,12 @@
 import { apiRequest } from '../lib/api'
 
+export interface CreditItem {
+  id?: string
+  name: string
+  amount: number
+  currency: 'USD' | 'Bs'
+}
+
 export interface DailyReport {
   id: string
   business_id: string
@@ -17,8 +24,14 @@ export interface DailyReport {
   zelle_usd: number
   binance_usd: number
   cashea_usd: number
+<<<<<<< Updated upstream
   credit_bs: number
   credit_usd: number
+=======
+  credit_usd?: number
+  credit_bs?: number
+  credits_detail?: CreditItem[]
+>>>>>>> Stashed changes
   total_bs: number
   total_usd: number
   created_at?: string

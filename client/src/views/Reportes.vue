@@ -117,6 +117,20 @@
                 <div class="font-bold text-text">${{ formatCurrency(report.total_usd) }} USD</div>
                 <div class="text-[11px] text-text-muted">≈ {{ formatCurrency(getUsdInBs(report)) }} Bs</div>
               </td>
+              <td class="px-4 py-3 text-xs">
+                <div v-if="(report.credit_usd || 0) > 0 || (report.credit_bs || 0) > 0">
+                  <div v-if="(report.credit_usd || 0) > 0" class="font-semibold text-text">
+                    ${{ formatCurrency(report.credit_usd || 0) }} USD
+                  </div>
+                  <div v-if="(report.credit_bs || 0) > 0" class="font-semibold text-text">
+                    {{ formatCurrency(report.credit_bs || 0) }} Bs
+                  </div>
+                  <div v-if="report.credits_detail && report.credits_detail.length > 0" class="text-[11px] text-text-muted">
+                    {{ report.credits_detail.length }} persona(s)
+                  </div>
+                </div>
+                <span v-else class="text-text-muted font-normal">-</span>
+              </td>
               <td class="px-4 py-3">
                 <div v-if="Number(report.credit_bs) > 0" class="font-semibold text-amber-600 dark:text-amber-400">{{ formatCurrency(report.credit_bs) }} Bs</div>
                 <div v-if="Number(report.credit_usd) > 0" class="font-semibold text-amber-600 dark:text-amber-400">${{ formatCurrency(report.credit_usd) }} USD</div>
@@ -186,13 +200,17 @@ const filteredReports = computed(() => {
     const rateStr = report.exchange_rate ? String(report.exchange_rate) : ''
     const formattedRate = formatCurrency(report.exchange_rate)
     const userName = report.user?.name ? report.user.name.toLowerCase() : ''
+    const creditNames = report.credits_detail && Array.isArray(report.credits_detail)
+      ? report.credits_detail.map(c => c.name.toLowerCase()).join(' ')
+      : ''
 
     return (
       rawDate.includes(query) ||
       formattedDateStr.includes(query) ||
       rateStr.includes(query) ||
       formattedRate.includes(query) ||
-      userName.includes(query)
+      userName.includes(query) ||
+      creditNames.includes(query)
     )
   })
 })

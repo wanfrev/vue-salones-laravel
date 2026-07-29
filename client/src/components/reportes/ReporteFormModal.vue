@@ -125,6 +125,93 @@
         </div>
       </div>
 
+      <!-- Sección Créditos (Persona por Persona) -->
+      <div class="rounded-xl border border-border p-4 bg-bg-secondary/30 space-y-4">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-bold text-text-secondary uppercase tracking-wider">Créditos Otorgados (Por Persona)</h3>
+            <p class="text-xs text-text-muted">Registra las personas que sacaron crédito y sus montos.</p>
+          </div>
+          <button
+            type="button"
+            @click="addCreditRow"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Agregar Persona
+          </button>
+        </div>
+
+        <div v-if="creditsList.length === 0" class="text-center py-4 border border-dashed border-border rounded-xl text-xs text-text-muted">
+          No hay créditos registrados. Haz clic en "Agregar Persona" si se otorgaron créditos en el día.
+        </div>
+
+        <div v-else class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+          <div
+            v-for="(item, index) in creditsList"
+            :key="item.id || index"
+            class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-surface p-2.5 rounded-xl border border-border/70"
+          >
+            <div class="flex-1">
+              <input
+                v-model="item.name"
+                type="text"
+                placeholder="Nombre de la persona (ej: María Pérez)"
+                class="w-full rounded-lg border border-border bg-bg-secondary/40 px-3 py-1.5 text-xs text-text outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+              />
+            </div>
+            <div class="w-full sm:w-36">
+              <input
+                v-model="item.amount"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Monto 0.00"
+                class="w-full rounded-lg border border-border bg-bg-secondary/40 px-3 py-1.5 text-xs text-text outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+              />
+            </div>
+            <div class="flex items-center gap-1">
+              <button
+                type="button"
+                @click="item.currency = 'USD'"
+                class="px-2.5 py-1 rounded-md text-xs font-bold transition-colors"
+                :class="item.currency === 'USD' ? 'bg-primary text-text-inverse' : 'bg-bg-secondary text-text-muted hover:text-text'"
+              >
+                USD ($)
+              </button>
+              <button
+                type="button"
+                @click="item.currency = 'Bs'"
+                class="px-2.5 py-1 rounded-md text-xs font-bold transition-colors"
+                :class="item.currency === 'Bs' ? 'bg-primary text-text-inverse' : 'bg-bg-secondary text-text-muted hover:text-text'"
+              >
+                Bs
+              </button>
+              <button
+                type="button"
+                @click="removeCreditRow(index)"
+                class="p-1.5 text-text-muted hover:text-danger hover:bg-danger-light rounded-lg transition-colors ml-1"
+                title="Eliminar crédito"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="creditsList.length > 0" class="pt-2 border-t border-border flex flex-wrap justify-between items-center text-xs font-medium text-text-muted gap-2">
+          <span>Resumen de Créditos:</span>
+          <div class="flex items-center gap-4">
+            <span>Total Créditos USD: <strong class="text-text">${{ formatCurrency(totalCreditUsd) }}</strong></span>
+            <span>Total Créditos Bs: <strong class="text-text">{{ formatCurrency(totalCreditBs) }} Bs</strong></span>
+          </div>
+        </div>
+      </div>
+
       <!-- Gran Total Card -->
       <div class="rounded-xl border border-primary/30 bg-primary-light/10 p-4 space-y-3">
         <div class="flex items-center justify-between border-b border-border/40 pb-2">
@@ -178,7 +265,7 @@ import FormInput from '../forms/FormInput.vue'
 import { useBusinessStore } from '../../store/business'
 import { useAuthStore } from '../../store/auth'
 import { useDailyReports } from '../../composables/reportes/useDailyReports'
-import type { DailyReport } from '../../services/dailyReportService'
+import type { DailyReport, CreditItem } from '../../services/dailyReportService'
 import { useNotification } from '../../composables/common/useNotification'
 import { useModal } from '../../composables/common/useModal'
 
@@ -195,8 +282,32 @@ const isSaving = computed(() => saveMutation.isPending.value)
 
 const errors = ref<Record<string, string>>({})
 
+<<<<<<< Updated upstream
 const zReportAmount = ref<string>('')
 const zReportCurrency = ref<'VES' | 'USD'>('VES')
+=======
+interface CreditItemForm {
+  id: string
+  name: string
+  amount: string | number
+  currency: 'USD' | 'Bs'
+}
+
+const creditsList = ref<CreditItemForm[]>([])
+
+const addCreditRow = () => {
+  creditsList.value.push({
+    id: String(Date.now() + Math.random()),
+    name: '',
+    amount: '',
+    currency: 'USD',
+  })
+}
+
+const removeCreditRow = (index: number) => {
+  creditsList.value.splice(index, 1)
+}
+>>>>>>> Stashed changes
 
 const defaultForm = () => ({
   id: '',
@@ -290,32 +401,80 @@ watch(modalData, (data) => {
       zReportCurrency.value = 'VES'
       zReportAmount.value = ''
     }
+
+    if (report.credits_detail && Array.isArray(report.credits_detail)) {
+      creditsList.value = report.credits_detail.map((c, i) => ({
+        id: c.id || String(Date.now() + i),
+        name: c.name || '',
+        amount: String(c.amount ?? ''),
+        currency: c.currency || 'USD',
+      }))
+    } else {
+      creditsList.value = []
+    }
   } else {
     isEditing.value = false
     formData.value = defaultForm()
     formData.value.exchange_rate = String(businessStore.business?.ves_exchange_rate || '')
+<<<<<<< Updated upstream
     zReportCurrency.value = 'VES'
     zReportAmount.value = ''
+=======
+    creditsList.value = []
+>>>>>>> Stashed changes
   }
   errors.value = {}
 }, { immediate: true })
 
+<<<<<<< Updated upstream
 // Total Bolívares
+=======
+const parseNum = (val: string | number) => Number(val) || 0
+
+// Total Créditos USD y Bs
+const totalCreditUsd = computed(() => {
+  return creditsList.value.reduce((acc, curr) => {
+    if (curr.currency === 'USD') {
+      return acc + parseNum(curr.amount)
+    }
+    return acc
+  }, 0)
+})
+
+const totalCreditBs = computed(() => {
+  return creditsList.value.reduce((acc, curr) => {
+    if (curr.currency === 'Bs') {
+      return acc + parseNum(curr.amount)
+    }
+    return acc
+  }, 0)
+})
+
+// Total Bolívares (incluye Créditos en Bs)
+>>>>>>> Stashed changes
 const totalBs = computed(() => {
   return parseNum(formData.value.pos_bs) +
          parseNum(formData.value.pago_movil_bs) +
          parseNum(formData.value.cash_bs) +
          parseNum(formData.value.transfer_bs) +
+<<<<<<< Updated upstream
          parseNum(formData.value.credit_bs)
+=======
+         totalCreditBs.value
+>>>>>>> Stashed changes
 })
 
-// Total Dólares
+// Total Dólares (incluye Créditos en USD)
 const totalUsd = computed(() => {
   return parseNum(formData.value.cash_usd) +
          parseNum(formData.value.zelle_usd) +
          parseNum(formData.value.binance_usd) +
          parseNum(formData.value.cashea_usd) +
+<<<<<<< Updated upstream
          parseNum(formData.value.credit_usd)
+=======
+         totalCreditUsd.value
+>>>>>>> Stashed changes
 })
 
 // Total Bs al cambio en USD
@@ -399,8 +558,20 @@ const handleSubmit = async () => {
     zelle_usd: parseNum(formData.value.zelle_usd),
     binance_usd: parseNum(formData.value.binance_usd),
     cashea_usd: parseNum(formData.value.cashea_usd),
+<<<<<<< Updated upstream
     credit_bs: parseNum(formData.value.credit_bs),
     credit_usd: parseNum(formData.value.credit_usd),
+=======
+    credit_usd: totalCreditUsd.value,
+    credit_bs: totalCreditBs.value,
+    credits_detail: creditsList.value
+      .filter((c) => c.name.trim() !== '' || parseNum(c.amount) > 0)
+      .map((c) => ({
+        name: c.name.trim(),
+        amount: parseNum(c.amount),
+        currency: c.currency,
+      })),
+>>>>>>> Stashed changes
     total_bs: totalBs.value,
     total_usd: totalUsd.value,
   }
