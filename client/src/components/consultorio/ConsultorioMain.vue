@@ -64,7 +64,7 @@
     <!-- Mobile Cards -->
     <div v-else class="lg:hidden space-y-3">
       <div
-        v-for="pet in filteredPets"
+        v-for="pet in paginatedPets"
         :key="pet.id"
         class="rounded-xl border border-border bg-surface p-4 transition-theme active:bg-bg-secondary"
         @click="openHistory(pet)"
@@ -98,7 +98,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="pet in filteredPets" :key="pet.id" class="cursor-pointer border-b border-border-subtle last:border-b-0 transition-theme hover:bg-bg-secondary group" @click="openHistory(pet)">
+            <tr v-for="pet in paginatedPets" :key="pet.id" class="cursor-pointer border-b border-border-subtle last:border-b-0 transition-theme hover:bg-bg-secondary group" @click="openHistory(pet)">
               <td class="px-4 py-3">
                 <div class="flex items-center gap-3">
                   <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary group-hover:bg-primary/20 transition-colors">
@@ -136,6 +136,20 @@
         </table>
       </div>
     </div>
+
+    <div v-if="totalPages > 1 && !isLoading && filteredPets.length > 0" class="flex items-center justify-center gap-1 pt-2">
+      <button
+        :disabled="currentPage <= 1"
+        @click="currentPage = Math.max(1, currentPage - 1)"
+        class="rounded-md px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-secondary border border-border disabled:opacity-30 disabled:cursor-not-allowed"
+      >← Anterior</button>
+      <span class="px-3 text-xs text-text-muted">{{ currentPage }} / {{ totalPages }}</span>
+      <button
+        :disabled="currentPage >= totalPages"
+        @click="currentPage = Math.min(totalPages, currentPage + 1)"
+        class="rounded-md px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-secondary border border-border disabled:opacity-30 disabled:cursor-not-allowed"
+      >Siguiente →</button>
+    </div>
   </div>
 
   <ConsultorioMascota
@@ -148,7 +162,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { useModal } from '../../composables/common/useModal'
@@ -161,6 +175,9 @@ import type { Pet } from '../../types/database'
 const route = useRoute()
 const searchQuery = ref('')
 const selectedPet = ref<Pet | null>(null)
+
+const PAGE_SIZE = 10
+const currentPage = ref(1)
 
 onMounted(() => {
   if (route.query.q) {
@@ -190,6 +207,14 @@ const filteredPets = computed(() => {
     return petName.includes(query) || clientName.includes(query)
   })
 })
+
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredPets.value.length / PAGE_SIZE)))
+const paginatedPets = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE
+  return filteredPets.value.slice(start, start + PAGE_SIZE)
+})
+
+watch(searchQuery, () => { currentPage.value = 1 })
 
 const openHistory = (pet: Pet) => {
   selectedPet.value = pet
