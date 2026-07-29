@@ -24,14 +24,9 @@ export interface DailyReport {
   zelle_usd: number
   binance_usd: number
   cashea_usd: number
-<<<<<<< Updated upstream
-  credit_bs: number
-  credit_usd: number
-=======
-  credit_usd?: number
   credit_bs?: number
+  credit_usd?: number
   credits_detail?: CreditItem[]
->>>>>>> Stashed changes
   total_bs: number
   total_usd: number
   created_at?: string
@@ -42,7 +37,6 @@ export interface DailyReport {
 export const dailyReportsKeys = {
   all: (businessId?: string | null, branchId?: string | null) => ['daily-reports', businessId, branchId] as const,
 }
-
 
 export const listDailyReports = async (businessId: string, branchId?: string | null, month?: string) => {
   const params = new URLSearchParams({ business_id: businessId })
