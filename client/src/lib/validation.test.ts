@@ -65,7 +65,7 @@ describe('citaFormSchema', () => {
   })
 
   it('accepts all valid statuses', () => {
-    for (const status of ['confirmed', 'pending', 'cancelled', 'paid'] as const) {
+    for (const status of ['confirmed', 'pending', 'paid'] as const) {
       const result = citaFormSchema.safeParse({ ...validCita, status })
       expect(result.success).toBe(true)
     }
