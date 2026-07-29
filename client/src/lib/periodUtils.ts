@@ -18,6 +18,11 @@ export function parseDayKey(key?: string): Date | null {
   return d
 }
 
+export function currentMonthKey(): string {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
 export function parseMonthKey(key?: string): { year: number; month: number } | null {
   if (!key) return null
   const match = key.match(/^(\d{4})-(\d{2})$/)
