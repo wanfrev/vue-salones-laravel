@@ -1,14 +1,39 @@
 <template>
   <AppLayout>
     <div class="space-y-6">
-      <!-- Month filter -->
-      <div class="flex items-center gap-2">
-        <input
-          type="month"
-          :value="selectedMonth"
-          @change="selectedMonth = ($event.target as HTMLInputElement).value"
-          class="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary"
-        />
+      <!-- Date filter -->
+      <div class="flex flex-wrap items-center gap-2">
+        <select
+          v-model="filterMode"
+          class="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary"
+        >
+          <option value="day">Por día</option>
+          <option value="month">Por mes</option>
+        </select>
+        <template v-if="filterMode === 'day'">
+          <input
+            type="date"
+            :value="selectedDay"
+            @change="selectedDay = ($event.target as HTMLInputElement).value"
+            class="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary"
+          />
+          <button
+            @click="goToToday"
+            class="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary"
+          >Hoy</button>
+        </template>
+        <template v-else>
+          <input
+            type="month"
+            :value="selectedMonth"
+            @change="selectedMonth = ($event.target as HTMLInputElement).value"
+            class="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary"
+          />
+          <button
+            @click="goToCurrentMonth"
+            class="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary"
+          >Este mes</button>
+        </template>
       </div>
 
       <!-- Summary Cards -->
@@ -139,12 +164,26 @@ const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 const employeeId = computed(() => authStore.profile?.id ?? '')
 
+const todayStr = new Date().toISOString().slice(0, 10)
 const selectedMonth = ref(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`)
+const selectedDay = ref(todayStr)
+const filterMode = ref<'day' | 'month'>('month')
+
+function goToToday() {
+  selectedDay.value = new Date().toISOString().slice(0, 10)
+}
+function goToCurrentMonth() {
+  const now = new Date()
+  selectedMonth.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
 
 const EARNINGS_PAGE_SIZE = 10
 const earningsPage = ref(1)
 
 const dateRange = computed(() => {
+  if (filterMode.value === 'day') {
+    return { start: selectedDay.value, end: selectedDay.value }
+  }
   const [y, m] = selectedMonth.value.split('-').map(Number)
   const start = `${y}-${String(m).padStart(2, '0')}-01`
   const end = `${y}-${String(m).padStart(2, '0')}-${new Date(y, m, 0).getDate()}`
@@ -161,7 +200,7 @@ const payInfo = computed(() => {
 })
 
 const { data: earningsData, isLoading: loadingEarnings } = useQuery({
-  queryKey: dashboardKeys.earnings(businessId.value, employeeId.value, branchId.value, dateRange.value.start, dateRange.value.end),
+  queryKey: computed(() => dashboardKeys.earnings(businessId.value, employeeId.value, branchId.value, dateRange.value.start, dateRange.value.end)),
   queryFn: () => listEmployeeTransactions(businessId.value!, employeeId.value!, branchId.value, dateRange.value.start, dateRange.value.end),
   enabled: computed(() => !!businessId.value && !!employeeId.value),
   staleTime: 0,
@@ -174,7 +213,7 @@ const paginatedEarnings = computed(() => {
   return earnings.value.slice(start, start + EARNINGS_PAGE_SIZE)
 })
 
-watch(selectedMonth, () => { earningsPage.value = 1 })
+watch([selectedMonth, selectedDay, filterMode], () => { earningsPage.value = 1 })
 
 const totalBilled = computed(() =>
   formatNumber(earnings.value.reduce((sum, r) => sum + (r.totalAmount ?? 0), 0))
