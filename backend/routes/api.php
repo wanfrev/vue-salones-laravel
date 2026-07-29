@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PetController;
 use App\Http\Controllers\Api\PosController;
+use App\Http\Controllers\Api\PublicBookingController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 
 use App\Http\Controllers\Api\ProductCategoryController;
@@ -46,6 +47,15 @@ Route::post('/broadcasting/auth', function (\Illuminate\Http\Request $request) {
 
 // Auth (public — stricter rate limit)
 Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:auth');
+
+// Public Booking (no auth required)
+Route::prefix('public')->group(function () {
+    Route::get('/business/{slug}', [PublicBookingController::class, 'business']);
+    Route::get('/business/{slug}/employee/{employeeId}', [PublicBookingController::class, 'employee']);
+    Route::get('/business/{slug}/services', [PublicBookingController::class, 'services']);
+    Route::get('/business/{slug}/calendar/{employeeId}', [PublicBookingController::class, 'calendar']);
+    Route::post('/business/{slug}/request', [PublicBookingController::class, 'request']);
+});
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {

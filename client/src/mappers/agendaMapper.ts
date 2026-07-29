@@ -91,6 +91,7 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
     price: appointment.price_override != null ? Number(appointment.price_override) : Number(service?.price ?? (appointment as any).price ?? 0),
     status: normalizedStatus,
     paymentStatus: appointment.payment_status,
+    source: appointment.source ?? (appointment as any).source ?? undefined,
     statusLabel: getStatusLabel(normalizedStatus),
     statusColor: getStatusColor(normalizedStatus),
     notes: appointment.internal_notes ?? (appointment as any).notes ?? '',

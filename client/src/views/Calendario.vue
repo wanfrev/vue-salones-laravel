@@ -18,6 +18,7 @@
     @save="handleSaveCita"
     @delete="handleDeleteCita"
   />
+  <PendingInvitationsModal ref="invitationsModalRef" />
 </template>
 
 <script setup lang="ts">
@@ -34,6 +35,7 @@ import { useAppointmentMutations } from '../composables/agenda/useAppointmentMut
 import AgendaCalendar from '../components/agenda/AgendaCalendar.vue'
 import { toISODate, dateToHHmm } from '../lib/formatters'
 import { CitaFormModal } from '../components/modals'
+import PendingInvitationsModal from '../components/agenda/PendingInvitationsModal.vue'
 import type { Cita, PaymentEditContext } from '../types/cita'
 import type { PaymentMethod } from '../types/database'
 
@@ -44,6 +46,7 @@ useNotification()
 const businessStore = useBusinessStore()
 
 const citaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
+const invitationsModalRef = ref<InstanceType<typeof PendingInvitationsModal> | null>(null)
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 
@@ -135,5 +138,9 @@ const handleEventClick = async (event: { id: string; title: string; start: Date;
 
 const handleCheckout = (appointmentId: string) => {
   router.push({ name: 'admin-pos', query: { appointment: appointmentId } })
+}
+
+function openInvitations() {
+  invitationsModalRef.value?.open()
 }
 </script>

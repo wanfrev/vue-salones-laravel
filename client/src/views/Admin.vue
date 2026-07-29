@@ -34,6 +34,14 @@
               </button>
             </div>
             <button
+              v-if="canManageInvitations"
+              @click="openInvitations"
+              class="flex items-center gap-1.5 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-3 py-2 text-xs font-semibold text-orange-700 dark:text-orange-400 transition-colors hover:bg-orange-100 dark:hover:bg-orange-950/40"
+            >
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              <span class="hidden sm:inline">Invitaciones</span>
+            </button>
+            <button
               @click="handleNewCita"
               class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover sm:gap-2 sm:px-4"
               :aria-label="`Nueva ${(businessStore.terminology.appointment || 'cita').toLowerCase()}`"
@@ -144,6 +152,14 @@
                 Todas
               </button>
             </div>
+            <button
+              v-if="canManageInvitations"
+              @click="openInvitations"
+              class="flex items-center gap-1.5 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-2.5 py-1.5 text-xs font-semibold text-orange-700 dark:text-orange-400 transition-colors hover:bg-orange-100 dark:hover:bg-orange-950/40"
+            >
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              Invitaciones
+            </button>
           </div>
         </header>
 
@@ -164,6 +180,7 @@
       @save="handleSaveCita"
       @delete="handleDeleteCita"
     />
+    <PendingInvitationsModal ref="invitationsModalRef" />
   </div>
 </template>
 
@@ -176,14 +193,26 @@ import { useAppointmentMutations } from '../composables/agenda/useAppointmentMut
 import { CitaFormModal } from '../components/modals'
 import { db } from '../lib/api'
 import AgendaListView from '../components/agenda/AgendaListView.vue'
+import PendingInvitationsModal from '../components/agenda/PendingInvitationsModal.vue'
 import type { Cita, PaymentEditContext } from '../types/cita'
 import type { PaymentMethod } from '../types/database'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
 
+const canManageInvitations = computed(() => {
+  const role = authStore.role
+  if (!role) return false
+  if (role === 'admin' || role === 'superadmin') return true
+  return (authStore.profile as any)?.can_create_appointments !== false
+})
+
 const citaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
-const editingCita = ref<Cita | null>(null)
+const invitationsModalRef = ref<InstanceType<typeof PendingInvitationsModal> | null>(null)
+
+function openInvitations() {
+  invitationsModalRef.value?.open()
+}const editingCita = ref<Cita | null>(null)
 const businessId = computed(() => authStore.businessId)
 const viewMode = ref<'active' | 'historial'>('active')
 

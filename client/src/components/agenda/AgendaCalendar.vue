@@ -71,6 +71,14 @@
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-1 sm:gap-1.5">
+        <button
+          v-if="canManageInvitations"
+          @click="openInvitations"
+          class="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 hover:bg-orange-100 dark:hover:bg-orange-950/40 transition-colors sm:text-[11px]"
+        >
+          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          Invitaciones
+        </button>
         <span v-for="l in legend" :key="l.label" class="flex items-center gap-1 rounded-md px-1.5 py-0.5">
           <span class="h-2 w-2 rounded-full" :style="{ background: l.color }"></span>
           <span class="text-[10px] font-medium text-text-muted sm:text-[11px]">{{ l.label }}</span>
@@ -315,6 +323,7 @@
       </div>
     </Teleport>
   </div>
+  <PendingInvitationsModal ref="invitationsModalRef" />
 </template>
 
 <script setup lang="ts">
@@ -325,6 +334,7 @@ import { useAuthStore } from '../../store/auth'
 import { isAdminPanelRole } from '../../constants/roles'
 import { normalizeAppointmentStatus, getStatusLabel, dateToHHmm, dateToHHmm12, toISODate, getInitials, parseLocalDate } from '../../lib/formatters'
 import { mapAppointmentToCita } from '../../mappers/agendaMapper'
+import PendingInvitationsModal from './PendingInvitationsModal.vue'
 import AgendaMonthView from './AgendaMonthView.vue'
 import AgendaYearView from './AgendaYearView.vue'
 import type { Cita } from '../../types/cita'
@@ -332,6 +342,12 @@ import type { Cita } from '../../types/cita'
 const route = useRoute()
 const authStore = useAuthStore()
 const isAdmin = computed(() => isAdminPanelRole(authStore.role ?? undefined))
+const canManageInvitations = computed(() => {
+  const role = authStore.role
+  if (!role) return false
+  if (role === 'admin' || role === 'superadmin') return true
+  return (authStore.profile as any)?.can_create_appointments !== false
+})
 
 const props = defineProps<{
   initialDate?: string
@@ -384,6 +400,7 @@ const selectedDate = ref(toISODate(new Date()))
 const gridContainer = ref<HTMLElement | null>(null)
 const statusMenu = ref<{ appointmentId: string; currentStatus: string; x: number; y: number } | null>(null)
 const empDropdownOpen = ref(false)
+const invitationsModalRef = ref<InstanceType<typeof PendingInvitationsModal> | null>(null)
 
 // Mobile viewport width for responsive decisions
 const windowWidth = ref(window.innerWidth)
@@ -691,6 +708,10 @@ onMounted(() => {
   if (ep) selectedEmployeeId.value = ep
   if (props.initialDate) goToDate(props.initialDate)
 })
+
+function openInvitations() {
+  invitationsModalRef.value?.open()
+}
 </script>
 
 <style scoped>
