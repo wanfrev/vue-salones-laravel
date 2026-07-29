@@ -129,8 +129,6 @@ const shareLink = computed(() => {
   return `${origin}/reservar/${slug}?empleado=${empId}`
 })
 
-const { success } = useNotification()
-
 function copyShareLink() {
   navigator.clipboard.writeText(shareLink.value).then(() => {
     success('Link copiado al portapapeles')
