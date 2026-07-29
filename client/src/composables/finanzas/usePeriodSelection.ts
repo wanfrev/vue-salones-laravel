@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import {
   currentMonthKey, currentWeekKey, currentQuarterKey, currentYearKey, currentDayKey,
@@ -38,6 +38,20 @@ export function usePeriodSelection() {
   } else if (typeof route.query.month === 'string' && /^\d{4}-\d{2}$/.test(route.query.month)) {
     selectedMonth.value = route.query.month
   }
+
+  watch(selectedPeriod, (newPeriod) => {
+    if (newPeriod === 'day') {
+      selectedMonth.value = currentDayKey()
+    } else if (newPeriod === 'custom') {
+      customFrom.value = currentDayKey()
+      customTo.value = currentDayKey()
+      selectedMonth.value = customFrom.value
+    }
+  })
+
+  watch(customFrom, (val) => {
+    if (selectedPeriod.value === 'custom') selectedMonth.value = val
+  })
 
   const periodKey = computed(() => {
     if (selectedPeriod.value === 'day' || selectedPeriod.value === 'custom') return currentDayKey()
