@@ -158,7 +158,7 @@ import RecordSection from '../components/finanzas/RecordSection.vue'
 import EditCobroModal from '../components/finanzas/EditCobroModal.vue'
 import CobroActionsModal from '../components/finanzas/CobroActionsModal.vue'
 
-type PeriodValue = 'month' | 'quarter' | 'year'
+type PeriodValue = 'day' | 'custom' | 'week' | 'month' | 'quarter' | 'year'
 type TipoRegistros = 'gastos' | 'pagos' | 'transacciones' | 'cobros' | 'ventas-productos'
 
 const route = useRoute()

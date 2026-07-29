@@ -166,8 +166,9 @@ export function useSuppliers(businessId: import('vue').Ref<string | null>) {
 
 export function useSupplierPayments(
   businessId: import('vue').Ref<string | null>,
-  selectedPeriod?: import('vue').Ref<'month' | 'quarter' | 'year'>,
+  selectedPeriod?: import('vue').Ref<'day' | 'custom' | 'week' | 'month' | 'quarter' | 'year'>,
   selectedMonth?: import('vue').Ref<string>,
+  customTo?: import('vue').Ref<string>,
 ) {
   const queryClient = useQueryClient()
   const { success, error: showError } = useNotification()
@@ -177,7 +178,7 @@ export function useSupplierPayments(
 
   const periodDates = computed(() => {
     if (!selectedPeriod) return { start: '', end: '' }
-    return resolvePeriodDates(selectedPeriod.value, selectedMonth?.value)
+    return resolvePeriodDates(selectedPeriod.value, selectedMonth?.value, customTo?.value)
   })
 
   const queryKey = computed(() =>

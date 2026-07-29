@@ -104,14 +104,15 @@ function extractClientFromNotes(notes: string | null | undefined): string | null
 
 function useFinancialSummary(
   businessId: import('vue').Ref<string | null>,
-  selectedPeriod: import('vue').Ref<'month' | 'quarter' | 'year'>,
+  selectedPeriod: import('vue').Ref<'day' | 'custom' | 'week' | 'month' | 'quarter' | 'year'>,
   expenses: import('vue').Ref<{ date: string; amount: number }[]>,
   selectedMonth?: import('vue').Ref<string>,
+  customTo?: import('vue').Ref<string>,
 ) {
   const queryClient = useQueryClient()
   const businessStore = useBusinessStore()
   const branchId = computed(() => businessStore.currentBranchId)
-  const periodConfig = computed(() => resolvePeriod(selectedPeriod.value, selectedMonth?.value))
+  const periodConfig = computed(() => resolvePeriod(selectedPeriod.value, selectedMonth?.value, customTo?.value))
   // ── Summary + KPIs ──
   const summaryQueryKey = computed(() => [
     'finanzas-summary', businessId.value, selectedPeriod.value,
