@@ -3,20 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
+use App\Http\Controllers\Api\Concerns\ResolvesBusinessId;
 use App\Services\FinancialSummaryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class FinancialSummaryController
 {
-    public function __construct(
-        private FinancialSummaryService $financialService,
-    ) {}
+    use ResolvesBusinessId;
 
-    private function resolveBusinessId(Request $request): ?string
-    {
-        return $request->user()?->profile?->business_id;
-    }
+    public function __construct(
 
     public function summary(Request $request): JsonResponse
     {

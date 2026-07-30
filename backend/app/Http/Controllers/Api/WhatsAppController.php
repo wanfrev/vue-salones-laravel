@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesBusinessId;
 use App\Http\Controllers\Controller;
 use App\Models\Business;
 use App\Models\MessageTemplate;
@@ -11,14 +12,9 @@ use Illuminate\Http\Request;
 
 class WhatsAppController extends Controller
 {
-    public function __construct(
-        private WhatsAppService $whatsappService,
-    ) {}
+    use ResolvesBusinessId;
 
-    private function resolveBusinessId(Request $request): ?string
-    {
-        return $request->user()?->profile?->business_id;
-    }
+    public function __construct(
 
     private function resolveBusiness(Request $request): Business
     {

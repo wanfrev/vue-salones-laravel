@@ -2,16 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesBusinessId;
 use App\Models\Pet;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PetController
 {
-    private function resolveBusinessId(Request $request): ?string
-    {
-        return $request->user()?->profile?->business_id;
-    }
+    use ResolvesBusinessId;
 
     public function index(Request $request): JsonResponse
     {

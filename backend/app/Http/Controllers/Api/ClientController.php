@@ -5,20 +5,18 @@ namespace App\Http\Controllers\Api;
 use App\Events\EntityChanged;
 use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
+use App\Http\Controllers\Api\Concerns\ResolvesBusinessId;
 use App\Services\ClientService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ClientController
 {
+    use ResolvesBusinessId;
+
     public function __construct(
         private ClientService $clientService,
     ) {}
-
-    private function resolveBusinessId(Request $request): ?string
-    {
-        return $request->user()?->profile?->business_id ?? $request->header('X-Business-Id');
-    }
 
     private function canEmployeeSeeClients(Request $request): bool
     {

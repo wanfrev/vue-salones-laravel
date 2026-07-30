@@ -6,20 +6,16 @@ use App\Events\EntityChanged;
 use App\Http\Requests\StoreBranchRequest;
 use App\Http\Resources\BranchResource;
 use App\Models\Branch;
+use App\Http\Controllers\Api\Concerns\ResolvesBusinessId;
 use App\Services\BranchService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class BranchController
 {
-    public function __construct(
-        private BranchService $branchService,
-    ) {}
+    use ResolvesBusinessId;
 
-    private function resolveBusinessId(Request $request): ?string
-    {
-        return $request->user()?->profile?->business_id;
-    }
+    public function __construct(
 
     public function index(Request $request): JsonResponse
     {

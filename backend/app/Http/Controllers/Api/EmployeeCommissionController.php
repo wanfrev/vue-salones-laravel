@@ -2,20 +2,18 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Api\Concerns\ResolvesBusinessId;
 use App\Services\EmployeeCommissionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class EmployeeCommissionController
 {
+    use ResolvesBusinessId;
+
     public function __construct(
         private EmployeeCommissionService $commissionService,
     ) {}
-
-    private function resolveBusinessId(Request $request): ?string
-    {
-        return $request->user()?->profile?->business_id;
-    }
 
     public function index(Request $request): JsonResponse
     {

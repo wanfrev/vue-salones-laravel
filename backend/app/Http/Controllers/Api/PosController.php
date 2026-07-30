@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
+use App\Http\Controllers\Api\Concerns\ResolvesBusinessId;
 use App\Http\Requests\ProcessSaleRequest;
 use App\Http\Requests\DirectSaleRequest;
 use App\Http\Requests\DirectServiceSaleRequest;
@@ -12,14 +13,9 @@ use Illuminate\Http\Request;
 
 class PosController
 {
-    public function __construct(
-        private PosService $posService,
-    ) {}
+    use ResolvesBusinessId;
 
-    private function resolveBusinessId(Request $request): ?string
-    {
-        return $request->user()?->profile?->business_id;
-    }
+    public function __construct(
 
     public function pendingAppointments(Request $request): JsonResponse
     {

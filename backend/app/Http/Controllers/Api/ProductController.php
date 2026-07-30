@@ -3,21 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
+use App\Http\Controllers\Api\Concerns\ResolvesBusinessId;
 use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProductController
 {
+    use ResolvesBusinessId;
 
     public function __construct(
-        private ProductService $productService,
-    ) {}
-
-    private function resolveBusinessId(Request $request): ?string
-    {
-        return $request->user()?->profile?->business_id;
-    }
 
     public function index(Request $request): JsonResponse
     {
