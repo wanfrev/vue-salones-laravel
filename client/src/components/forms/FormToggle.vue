@@ -10,8 +10,8 @@
     <button :id="toggleId" type="button" role="switch" :aria-checked="modelValue" @click="toggle" :disabled="disabled"
       :class="[
         'relative inline-flex h-6 w-11 items-center rounded-full transition-theme focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface',
-        'disabled:cursor-not-allowed disabled:opacity-50',
-        modelValue ? 'bg-primary' : 'bg-bg-secondary',
+        'disabled:cursor-not-allowed',
+        modelValue ? (disabled ? 'bg-primary/40' : 'bg-primary') : (disabled ? 'bg-bg-secondary/60' : 'bg-bg-secondary'),
       ]">
       <span :class="[
         'inline-block h-4 w-4 transform rounded-full bg-text-inverse transition-theme shadow-sm',
