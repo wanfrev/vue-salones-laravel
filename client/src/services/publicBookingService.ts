@@ -10,6 +10,7 @@ export interface PublicBusiness {
   terminology: any
   phone: string | null
   address: string | null
+  features: Record<string, boolean> | null
 }
 
 export interface PublicService {

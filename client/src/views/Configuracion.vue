@@ -232,6 +232,14 @@
         hint="Permite cobrar servicios en el Punto de Venta al instante sin necesidad de agendar previamente una cita en el calendario"
         :disabled="updatingFeatures"
       />
+
+      <FormToggle
+        :model-value="!!businessStore.features.enable_public_booking"
+        @update:model-value="handleTogglePublicBooking"
+        label="Reservas públicas / Invitaciones"
+        hint="Permite a los empleados compartir links de reserva con clientes y gestionar invitaciones pendientes. Si se desactiva, desaparece el botón de Invitaciones y Link de reserva."
+        :disabled="updatingFeatures"
+      />
     </div>
   </SectionCard>
 
@@ -431,6 +439,23 @@ async function handleToggleEmployeesSeeClients(val: boolean) {
     })
     businessStore.updateBusiness({ features: updatedFeatures } as any)
     success(val ? 'Módulo de clientes activado para empleados' : 'Módulo de clientes desactivado para empleados (seguirán viendo nombres en sus citas)')
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar el permiso')
+  } finally {
+    updatingFeatures.value = false
+  }
+}
+
+async function handleTogglePublicBooking(val: boolean) {
+  if (!businessId.value) return
+  updatingFeatures.value = true
+  try {
+    const updatedFeatures = { ...businessStore.features, enable_public_booking: val }
+    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    success(val ? 'Reservas públicas activadas: empleados pueden compartir links de reserva' : 'Reservas públicas desactivadas')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
   } finally {

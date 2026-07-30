@@ -20,8 +20,16 @@
       </div>
     </header>
 
+    <!-- Disabled by business -->
+    <div v-if="!loadingBusiness && business && !publicBookingEnabled" class="flex-1 flex items-center justify-center px-4 text-center">
+      <div>
+        <p class="text-lg font-bold text-text mb-2">Reservas no disponibles</p>
+        <p class="text-sm text-text-muted">Las reservas públicas no están habilitadas para este negocio en este momento.</p>
+      </div>
+    </div>
+
     <!-- Error / Loading -->
-    <div v-if="loadingCalendar" class="flex-1 flex items-center justify-center text-text-muted text-sm">
+    <div v-else-if="loadingCalendar" class="flex-1 flex items-center justify-center text-text-muted text-sm">
       <svg class="h-5 w-5 animate-spin text-primary mr-2" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
       </svg>
@@ -198,6 +206,11 @@ const { data: business, error: businessError, isLoading: loadingBusiness } = use
 })
 
 const primaryColor = computed(() => business.value?.theme_config?.primary_color || '#869C84')
+const publicBookingEnabled = computed(() => {
+  const features = business.value?.features
+  if (!features || typeof features !== 'object') return true
+  return features.enable_public_booking !== false
+})
 
 // Employee
 const { data: employeeData } = useQuery({

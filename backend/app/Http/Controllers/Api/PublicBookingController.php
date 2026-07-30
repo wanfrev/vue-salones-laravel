@@ -13,9 +13,20 @@ use Illuminate\Support\Str;
 
 class PublicBookingController extends Controller
 {
+    private function findActiveBusiness(string $slug): ?Business
+    {
+        return Business::where('slug', $slug)->where('active', true)->first();
+    }
+
+    private function isPublicBookingEnabled(Business $business): bool
+    {
+        $features = is_array($business->features) ? $business->features : json_decode($business->features ?? '[]', true);
+        return (bool) ($features['enable_public_booking'] ?? true);
+    }
+
     public function business(string $slug): JsonResponse
     {
-        $business = Business::where('slug', $slug)->where('active', true)->first();
+        $business = $this->findActiveBusiness($slug);
         if (!$business) return response()->json(['message' => 'Negocio no encontrado'], 404);
 
         return response()->json([
@@ -24,6 +35,7 @@ class PublicBookingController extends Controller
             'currency' => $business->currency, 'niche_type' => $business->niche_type,
             'theme_config' => $business->theme_config, 'terminology' => $business->terminology,
             'phone' => $business->phone, 'address' => $business->address,
+            'features' => $business->features,
         ]);
     }
 
@@ -113,8 +125,12 @@ class PublicBookingController extends Controller
      */
     public function request(Request $request, string $slug): JsonResponse
     {
-        $business = Business::where('slug', $slug)->where('active', true)->first();
+        $business = $this->findActiveBusiness($slug);
         if (!$business) return response()->json(['message' => 'Negocio no encontrado'], 404);
+
+        if (!$this->isPublicBookingEnabled($business)) {
+            return response()->json(['message' => 'Las reservas públicas no están disponibles para este negocio'], 403);
+        }
 
         $validated = $request->validate([
             'employee_id' => 'required|uuid',

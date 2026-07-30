@@ -51,5 +51,6 @@ const toggles = [
   { key: 'employees_create_clients', label: 'Empleados crean clientes', description: 'Permitir que empleados agreguen nuevos clientes desde la agenda' },
   { key: 'gift_cards', label: 'Gift Cards', description: 'Sistema de tarjetas de regalo' },
   { key: 'manual_reports', label: 'Módulo de Reporte Diario', description: 'Generación y control de reportes diarios' },
+  { key: 'enable_public_booking', label: 'Reservas públicas / Invitaciones', description: 'Permite compartir links de reserva y gestionar invitaciones de clientes' },
 ]
 </script>

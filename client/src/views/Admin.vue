@@ -203,7 +203,7 @@ const businessStore = useBusinessStore()
 const canManageInvitations = computed(() => {
   const role = authStore.role
   if (!role) return false
-  if (role === 'admin' || role === 'superadmin') return true
+  if (role === 'admin' || role === 'superadmin') return businessStore.hasFeature('enable_public_booking')
   return (authStore.profile as any)?.can_create_appointments !== false
 })
 

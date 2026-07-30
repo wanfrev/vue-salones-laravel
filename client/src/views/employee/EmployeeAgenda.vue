@@ -21,6 +21,7 @@
           <span class="hidden sm:inline">Invitaciones</span>
         </button>
         <button
+          v-if="businessStore.hasFeature('enable_public_booking')"
           @click="copyShareLink"
           class="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-light px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
           title="Compartir link de reserva"
@@ -100,7 +101,7 @@ const businessStore = useBusinessStore()
 const t = computed(() => businessStore.terminology)
 const businessId = computed(() => authStore.businessId)
 
-const canManageInvitations = computed(() => (authStore.profile as any)?.can_create_appointments !== false)
+const canManageInvitations = computed(() => (authStore.profile as any)?.can_create_appointments !== false && businessStore.hasFeature('enable_public_booking'))
 
 const citaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
 const invitationsModalRef = ref<InstanceType<typeof PendingInvitationsModal> | null>(null)
