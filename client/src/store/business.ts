@@ -34,6 +34,7 @@ const DEFAULT_TERMINOLOGY: Terminology = {
     manual_reports: false,
     pos_direct_service_sale: false,
     enable_public_booking: true,
+    hide_client_phone_from_employees: false,
   }
 
 export type FeatureKey = keyof typeof DEFAULT_FEATURES

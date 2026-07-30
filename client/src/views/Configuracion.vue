@@ -240,6 +240,14 @@
         hint="Permite a los empleados compartir links de reserva con clientes y gestionar invitaciones pendientes. Si se desactiva, desaparece el botón de Invitaciones y Link de reserva."
         :disabled="updatingFeatures"
       />
+
+      <FormToggle
+        :model-value="!!businessStore.features.hide_client_phone_from_employees"
+        @update:model-value="handleToggleHideClientPhone"
+        label="Ocultar teléfono y email a empleados"
+        hint="Si está activo, los empleados no verán el teléfono ni email de los clientes al agendar citas, buscar clientes o en el listado. No impedirá crear citas sin teléfono."
+        :disabled="updatingFeatures"
+      />
     </div>
   </SectionCard>
 
@@ -456,6 +464,23 @@ async function handleTogglePublicBooking(val: boolean) {
     })
     businessStore.updateBusiness({ features: updatedFeatures } as any)
     success(val ? 'Reservas públicas activadas: empleados pueden compartir links de reserva' : 'Reservas públicas desactivadas')
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar el permiso')
+  } finally {
+    updatingFeatures.value = false
+  }
+}
+
+async function handleToggleHideClientPhone(val: boolean) {
+  if (!businessId.value) return
+  updatingFeatures.value = true
+  try {
+    const updatedFeatures = { ...businessStore.features, hide_client_phone_from_employees: val }
+    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    success(val ? 'Teléfono y email ocultos para empleados' : 'Teléfono y email visibles para empleados')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
   } finally {
