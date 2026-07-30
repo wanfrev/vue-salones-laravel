@@ -5,18 +5,32 @@ namespace App\Http\Controllers\Api;
 use App\Events\EntityChanged;
 use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
-use App\Http\Controllers\Api\Concerns\ResolvesBusinessId;
 use App\Services\ClientService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ClientController
 {
-    use ResolvesBusinessId;
-
     public function __construct(
         private ClientService $clientService,
     ) {}
+
+    private function resolveBusinessId(Request $request): ?string
+    {
+        $fromProfile = $request->user()?->profile?->business_id;
+        if ($fromProfile) {
+            return $fromProfile;
+        }
+        $fromHeader = $request->header('X-Business-Id');
+        if ($fromHeader) {
+            return $fromHeader;
+        }
+        $raw = $request->query('business_id');
+        if ($raw && preg_match('/eq\.(.+)/', $raw, $m)) {
+            return $m[1];
+        }
+        return $raw ?: null;
+    }
 
     private function canEmployeeSeeClients(Request $request): bool
     {

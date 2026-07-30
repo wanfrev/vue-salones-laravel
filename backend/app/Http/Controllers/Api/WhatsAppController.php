@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\Concerns\ResolvesBusinessId;
 use App\Http\Controllers\Controller;
 use App\Models\Business;
 use App\Models\MessageTemplate;
@@ -12,9 +11,22 @@ use Illuminate\Http\Request;
 
 class WhatsAppController extends Controller
 {
-    use ResolvesBusinessId;
-
     public function __construct(
+        private WhatsAppService $whatsappService,
+    ) {}
+
+    private function resolveBusinessId(Request $request): ?string
+    {
+        $fromProfile = $request->user()?->profile?->business_id;
+        if ($fromProfile) {
+            return $fromProfile;
+        }
+        $raw = $request->query('business_id');
+        if ($raw && preg_match('/eq\.(.+)/', $raw, $m)) {
+            return $m[1];
+        }
+        return $raw ?: null;
+    }
 
     private function resolveBusiness(Request $request): Business
     {

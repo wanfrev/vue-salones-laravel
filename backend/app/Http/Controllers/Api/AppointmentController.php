@@ -7,7 +7,6 @@ use App\Http\Requests\StoreAppointmentRequest;
 use App\Http\Requests\UpdateAppointmentRequest;
 use App\Models\Appointment;
 use App\Models\Profile;
-use App\Http\Controllers\Api\Concerns\ResolvesBusinessId;
 use App\Services\AppointmentService;
 use App\Services\NotificationService;
 use Illuminate\Http\JsonResponse;
@@ -16,11 +15,22 @@ use Illuminate\Support\Collection;
 
 class AppointmentController
 {
-    use ResolvesBusinessId;
-
     public function __construct(
         private AppointmentService $appointmentService,
     ) {}
+
+    private function resolveBusinessId(Request $request): ?string
+    {
+        $fromProfile = $request->user()?->profile?->business_id;
+        if ($fromProfile) {
+            return $fromProfile;
+        }
+        $raw = $request->query('business_id');
+        if ($raw && preg_match('/eq\.(.+)/', $raw, $m)) {
+            return $m[1];
+        }
+        return $raw ?: null;
+    }
 
     private function getAdminsToNotify(string $businessId, ?string $branchId): Collection
     {
