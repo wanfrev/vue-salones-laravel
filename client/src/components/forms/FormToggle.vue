@@ -1,11 +1,11 @@
 <template>
-  <div class="flex items-center justify-between">
-    <div class="flex-1">
+  <div class="flex items-center justify-between gap-4">
+    <div class="flex-1 min-w-0">
       <label v-if="label" :for="toggleId" class="block text-sm font-medium text-text">
         {{ label }}
         <span v-if="required" class="text-danger">*</span>
       </label>
-      <p v-if="hint" class="text-sm text-text-muted">{{ hint }}</p>
+      <p v-if="hint" class="text-xs text-text-muted leading-relaxed mt-0.5">{{ hint }}</p>
     </div>
     <button :id="toggleId" type="button" role="switch" :aria-checked="modelValue" @click="toggle" :disabled="disabled"
       :class="[

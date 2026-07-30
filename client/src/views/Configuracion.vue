@@ -19,7 +19,7 @@
 
     <!-- ═══════════ GENERAL ═══════════ -->
     <section class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
-      <div class="flex items-center gap-3 mb-5">
+      <div class="flex items-center gap-3 mb-6">
         <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-900/30 text-amber-600">
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -31,9 +31,9 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <!-- Tema -->
-        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-4">
+        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-5">
           <h3 class="text-sm font-semibold text-text mb-3 flex items-center gap-2">
             <svg class="h-4 w-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -54,7 +54,7 @@
         </div>
 
         <!-- Cambiar clave -->
-        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-4">
+        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-5">
           <h3 class="text-sm font-semibold text-text mb-3 flex items-center gap-2">
             <svg class="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
@@ -135,7 +135,7 @@
 
     <!-- ═══════════ COMUNICACIÓN ═══════════ -->
     <section v-if="pushSupported" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
-      <div class="flex items-center gap-3 mb-5">
+      <div class="flex items-center gap-3 mb-6">
         <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600">
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
@@ -147,9 +147,9 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <!-- Push -->
-        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-4">
+        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-5">
           <h3 class="text-sm font-semibold text-text mb-3 flex items-center gap-2">
             <svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
@@ -202,7 +202,7 @@
 
     <!-- Fallback when no push: WhatsApp solo -->
     <section v-else class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
-      <div class="flex items-center gap-3 mb-5">
+      <div class="flex items-center gap-3 mb-6">
         <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600">
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
@@ -218,7 +218,7 @@
 
     <!-- ═══════════ PERMISOS Y FUNCIONALIDADES (admin) ═══════════ -->
     <section v-if="isAdmin" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
-      <div class="flex items-center gap-3 mb-5">
+      <div class="flex items-center gap-3 mb-6">
         <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600">
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
@@ -230,10 +230,10 @@
         </div>
       </div>
 
-      <div class="space-y-5">
+      <div class="space-y-6">
         <!-- Subcategoría: Encargados -->
         <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 overflow-hidden">
-          <div class="flex items-center gap-2 px-4 py-2.5 border-b border-border-subtle bg-bg-secondary/60">
+          <div class="flex items-center gap-2.5 px-5 py-3 border-b border-border-subtle bg-bg-secondary/60">
             <svg class="h-4 w-4 text-purple-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
@@ -246,7 +246,7 @@
               label="Desactivar edición de inventario"
               hint="Los encargados solo podrán ver el inventario y vender en el POS, sin ajustar cantidades ni costos."
               :disabled="updatingFeatures"
-              class="px-4 py-3.5"
+              class="px-5 py-4"
             />
             <FormToggle
               :model-value="!!businessStore.features.encargados_change_exchange_rate"
@@ -254,7 +254,7 @@
               label="Permitir cambiar la tasa del día"
               hint="Los encargados podrán modificar la tasa de cambio principal Bs/$"
               :disabled="updatingFeatures"
-              class="px-4 py-3.5"
+              class="px-5 py-4"
             />
             <FormToggle
               :model-value="!!businessStore.features.encargados_change_employee_rate"
@@ -262,7 +262,7 @@
               label="Permitir cambiar tasa de empleados"
               hint="Los encargados podrán modificar la tasa Bs asignada a cada empleado"
               :disabled="updatingFeatures"
-              class="px-4 py-3.5"
+              class="px-5 py-4"
             />
             <FormToggle
               :model-value="!!businessStore.features.disable_employee_commission_edit"
@@ -270,14 +270,14 @@
               label="Bloquear edición de comisiones"
               hint="Encargados y empleados NO podrán modificar porcentajes de ganancia en las citas"
               :disabled="updatingFeatures"
-              class="px-4 py-3.5"
+              class="px-5 py-4"
             />
           </div>
         </div>
 
         <!-- Subcategoría: Empleados -->
         <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 overflow-hidden">
-          <div class="flex items-center gap-2 px-4 py-2.5 border-b border-border-subtle bg-bg-secondary/60">
+          <div class="flex items-center gap-2.5 px-5 py-3 border-b border-border-subtle bg-bg-secondary/60">
             <svg class="h-4 w-4 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
             </svg>
@@ -290,7 +290,7 @@
               label="Permitir módulo de clientes"
               hint="Los empleados tendrán acceso al módulo de Clientes en su menú lateral"
               :disabled="updatingFeatures"
-              class="px-4 py-3.5"
+              class="px-5 py-4"
             />
             <FormToggle
               :model-value="!!businessStore.features.hide_client_phone_from_employees"
@@ -298,14 +298,14 @@
               label="Ocultar teléfono y email de clientes"
               hint="Los empleados no verán datos de contacto de clientes. No impedirá crear citas."
               :disabled="updatingFeatures"
-              class="px-4 py-3.5"
+              class="px-5 py-4"
             />
           </div>
         </div>
 
         <!-- Subcategoría: POS y Ventas -->
         <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 overflow-hidden">
-          <div class="flex items-center gap-2 px-4 py-2.5 border-b border-border-subtle bg-bg-secondary/60">
+          <div class="flex items-center gap-2.5 px-5 py-3 border-b border-border-subtle bg-bg-secondary/60">
             <svg class="h-4 w-4 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
             </svg>
@@ -318,14 +318,14 @@
               label="Cobro directo de servicios en POS"
               hint="Permite cobrar servicios al instante sin necesidad de agendar una cita previamente"
               :disabled="updatingFeatures"
-              class="px-4 py-3.5"
+              class="px-5 py-4"
             />
           </div>
         </div>
 
         <!-- Subcategoría: Reservas -->
         <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 overflow-hidden">
-          <div class="flex items-center gap-2 px-4 py-2.5 border-b border-border-subtle bg-bg-secondary/60">
+          <div class="flex items-center gap-2.5 px-5 py-3 border-b border-border-subtle bg-bg-secondary/60">
             <svg class="h-4 w-4 text-orange-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
             </svg>
@@ -338,7 +338,7 @@
               label="Reservas públicas / Invitaciones"
               hint="Los empleados pueden compartir links de reserva y gestionar invitaciones pendientes de clientes"
               :disabled="updatingFeatures"
-              class="px-4 py-3.5"
+              class="px-5 py-4"
             />
           </div>
         </div>
@@ -348,7 +348,7 @@
     <!-- ═══════════ SUCURSALES ═══════════ -->
     <template v-if="businessStore.isMultiBranch">
       <section class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
-        <div class="flex items-center gap-3 mb-5">
+        <div class="flex items-center gap-3 mb-6">
           <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
