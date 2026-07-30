@@ -75,19 +75,6 @@ class AppointmentController
             $request->get('id_not'),
         );
 
-        $isEmployee = $request->user()?->profile?->role === 'empleado';
-
-        if ($isEmployee) {
-            $list->transform(function ($appointment) {
-                if ($appointment->client) {
-                    $appointment->client->phone = '';
-                    $appointment->client->email = null;
-                    $appointment->client->notes = null;
-                }
-                return $appointment;
-            });
-        }
-
         return response()->json($list);
     }
 
@@ -96,14 +83,6 @@ class AppointmentController
         $appointment = $this->appointmentService->findForBusiness($id, $this->resolveBusinessId($request) ?? '');
         if (!$appointment) return response()->json(['error' => ['message' => 'No encontrado.']], 404);
         $appointment->load(['client', 'service', 'employeeProfile', 'assistantProfile']);
-
-        $isEmployee = $request->user()?->profile?->role === 'empleado';
-
-        if ($isEmployee && $appointment->client) {
-            $appointment->client->phone = '';
-            $appointment->client->email = null;
-            $appointment->client->notes = null;
-        }
 
         return response()->json($appointment);
     }

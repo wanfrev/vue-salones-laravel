@@ -80,7 +80,7 @@ const onFocus = () => { if (suggestions.value.length > 0) showSuggestions.value 
         </div>
         <div class="flex-1 min-w-0">
           <div class="font-medium text-text truncate">{{ client.full_name }}</div>
-          <div v-if="!isEmployee && client.phone" class="text-xs text-text-muted">{{ client.phone }}</div>
+          <div v-if="client.phone" class="text-xs text-text-muted">{{ client.phone }}</div>
         </div>
       </button>
     </div>

@@ -53,15 +53,6 @@ class ClientController
 
         $clients = $this->clientService->list($businessId, $request->branch_id);
 
-        if ($request->user()?->profile?->role === 'empleado') {
-            $clients->transform(function ($client) {
-                $client->phone = '';
-                $client->email = null;
-                $client->notes = null;
-                return $client;
-            });
-        }
-
         return response()->json($clients);
     }
 
@@ -72,12 +63,6 @@ class ClientController
 
         $client = $this->clientService->findForBusiness($id, $businessId);
         if (!$client) return response()->json(['error' => ['message' => 'No encontrado.']], 404);
-
-        if ($request->user()?->profile?->role === 'empleado') {
-            $client->phone = '';
-            $client->email = null;
-            $client->notes = null;
-        }
 
         return response()->json($client);
     }
@@ -120,14 +105,7 @@ class ClientController
         $request->validate(['q' => 'required|string|min:1']);
         $results = $this->clientService->search($businessId, $request->q, $request->branch_id);
 
-        if ($request->user()?->profile?->role === 'empleado') {
-            $results->transform(function ($client) {
-                $client->phone = '';
-                $client->email = null;
-                $client->notes = null;
-                return $client;
-            });
-        }
+
 
         return response()->json($results);
     }
