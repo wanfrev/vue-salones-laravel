@@ -1,5 +1,5 @@
 <template>
-  <header class="mb-5 lg:mb-8">
+  <header class="mb-6 lg:mb-8">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1.5">
@@ -10,339 +10,439 @@
           <span>Configuración</span>
         </div>
         <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Ajustes del Negocio</h1>
+        <p class="mt-1 text-sm text-text-muted">Personaliza la experiencia de tu equipo y clientes</p>
       </div>
     </div>
   </header>
 
-  <!-- Apariencia -->
-  <SectionCard
-    class="mb-6"
-    title="Apariencia"
-    subtitle="Personaliza el tema visual de la aplicación"
-    icon="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-  >
-    <div class="flex items-center gap-4">
-      <button
-        v-for="opt in themeOptions" :key="opt.value"
-        @click="themeStore.setMode(opt.value)"
-        class="flex flex-col items-center gap-2 rounded-xl border-2 p-4 transition-theme cursor-pointer min-w-[100px]"
-        :class="themeStore.mode === opt.value ? 'border-primary bg-primary/5' : 'border-border hover:border-border-strong'"
-      >
-        <component :is="opt.icon" class="h-6 w-6" :class="themeStore.mode === opt.value ? 'text-primary' : 'text-text-muted'" />
-        <span class="text-sm font-medium" :class="themeStore.mode === opt.value ? 'text-primary' : 'text-text'">{{ opt.label }}</span>
-      </button>
-    </div>
-  </SectionCard>
+  <div class="space-y-5 lg:space-y-6">
 
-  <!-- Cambiar Clave -->
-  <SectionCard
-    class="mb-6"
-    title="Cambiar clave"
-    subtitle="Modifica tu contraseña de acceso"
-    icon="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-  >
-    <form @submit.prevent="handleChangePassword" class="space-y-4">
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <!-- ═══════════ GENERAL ═══════════ -->
+    <section class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-900/30 text-amber-600">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          </svg>
+        </div>
         <div>
-          <label class="block text-sm font-medium text-text-secondary mb-1.5">Clave actual</label>
-          <div class="relative">
-            <input
-              v-model="passwordForm.currentPassword"
-              :type="showCurrentPassword ? 'text' : 'password'"
-              required
-              placeholder="Tu contraseña actual"
-              class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-text-muted disabled:opacity-50"
-              :disabled="passwordLoading"
-            />
-            <button type="button" @click="showCurrentPassword = !showCurrentPassword"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text transition-colors"
-              :disabled="passwordLoading" tabindex="-1">
-              <svg v-if="!showCurrentPassword" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              <svg v-else class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-              </svg>
+          <h2 class="text-base font-semibold text-text">General</h2>
+          <p class="text-xs text-text-muted">Apariencia, seguridad y preferencias básicas</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <!-- Tema -->
+        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-4">
+          <h3 class="text-sm font-semibold text-text mb-3 flex items-center gap-2">
+            <svg class="h-4 w-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            Tema
+          </h3>
+          <div class="flex flex-wrap gap-3">
+            <button
+              v-for="opt in themeOptions" :key="opt.value"
+              @click="themeStore.setMode(opt.value)"
+              class="flex flex-1 flex-col items-center gap-2 rounded-xl border-2 p-3.5 transition-all duration-200 cursor-pointer min-w-[90px]"
+              :class="themeStore.mode === opt.value ? 'border-primary bg-primary/5 shadow-sm shadow-primary/10' : 'border-border hover:border-border-strong hover:bg-surface'"
+            >
+              <component :is="opt.icon" class="h-6 w-6 transition-colors" :class="themeStore.mode === opt.value ? 'text-primary' : 'text-text-muted'" />
+              <span class="text-xs font-semibold" :class="themeStore.mode === opt.value ? 'text-primary' : 'text-text'">{{ opt.label }}</span>
             </button>
           </div>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-text-secondary mb-1.5">Clave nueva</label>
-          <div class="relative">
-            <input
-              v-model="passwordForm.newPassword"
-              :type="showNewPassword ? 'text' : 'password'"
-              required
-              minlength="6"
-              placeholder="Mínimo 6 caracteres"
-              class="w-full rounded-xl border border-border bg-surface px-4 py-2.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-text-muted disabled:opacity-50"
-              :disabled="passwordLoading"
-            />
-            <button type="button" @click="showNewPassword = !showNewPassword"
-              class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text transition-colors"
-              :disabled="passwordLoading" tabindex="-1">
-              <svg v-if="!showNewPassword" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
-              <svg v-else class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-      <div class="flex items-center justify-between">
-        <p v-if="passwordError" class="text-sm text-danger">{{ passwordError }}</p>
-        <p v-else-if="passwordSuccess" class="text-sm text-success font-medium">{{ passwordSuccess }}</p>
-        <span v-else></span>
-        <button
-          type="submit"
-          :disabled="passwordLoading || !passwordForm.currentPassword || !passwordForm.newPassword || passwordForm.newPassword.length < 6"
-          class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover shadow-sm shadow-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <svg v-if="passwordLoading" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          Actualizar clave
-        </button>
-      </div>
-    </form>
-  </SectionCard>
 
-  <!-- Notificaciones Push -->
-  <SectionCard
-    v-if="pushSupported"
-    class="mb-6"
-    title="Notificaciones Push"
-    subtitle="Recibe alertas en tu teléfono incluso con la app cerrada"
-    icon="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-  >
-    <div class="flex items-center justify-between gap-4">
-      <div>
-        <p class="text-sm text-text-secondary">
-          <template v-if="pushPermission === 'granted'">
-            Las notificaciones push están <span class="font-semibold text-green-600">activadas</span>. Recibirás alertas de nuevas citas y recordatorios en tu teléfono.
-          </template>
-          <template v-else-if="pushPermission === 'denied'">
-            Las notificaciones están <span class="font-semibold text-red-500">bloqueadas</span>. Para activarlas, ve a Ajustes &gt; Safari &gt; Notificaciones en tu iPhone y permite las notificaciones para este sitio.
-          </template>
-          <template v-else>
-            Activa las alertas para recibir notificaciones de nuevas citas y recordatorios directamente en tu teléfono, incluso con la pantalla bloqueada.
-          </template>
-        </p>
-      </div>
-      <div class="shrink-0">
-        <button
-          v-if="pushPermission === 'granted'"
-          @click="handleDisablePush"
-          :disabled="pushLoading"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-theme hover:bg-danger/10 hover:text-danger hover:border-danger/30 disabled:opacity-50"
-        >
-          <svg v-if="pushLoading" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          <span v-else>Desactivar</span>
-        </button>
-        <button
-          v-else-if="pushPermission === 'denied'"
-          disabled
-          class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-muted cursor-not-allowed opacity-50"
-        >
-          Bloqueado
-        </button>
-        <button
-          v-else
-          @click="handleEnablePush"
-          :disabled="pushLoading"
-          class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shadow-sm shadow-primary/20 disabled:opacity-50"
-        >
-          <svg v-if="pushLoading" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          <svg v-else class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-          Activar notificaciones
-        </button>
-      </div>
-    </div>
-  </SectionCard>
-
-  <!-- WhatsApp -->
-  <WhatsAppSettings class="mb-6" />
-
-  <!-- Permisos de Encargados (solo admin) -->
-  <SectionCard
-    v-if="isAdmin"
-    class="mb-6"
-    title="Permisos de encargados"
-    subtitle="Configura los permisos globales para todos los encargados del negocio"
-    icon="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-  >
-    <div class="space-y-4">
-      <FormToggle
-        :model-value="!!businessStore.features.disable_manager_inventory_edit"
-        @update:model-value="toggleManagerInventoryEdit"
-        label="Desactivar edición de inventario"
-        hint="Si está activo, los encargados solo podrán ver el inventario y vender en el POS, sin poder ajustar cantidades ni costos."
-        :disabled="updatingFeatures"
-      />
-
-      <FormToggle
-        :model-value="!!businessStore.features.encargados_change_exchange_rate"
-        @update:model-value="handleToggleEncargadoExchangeRate"
-        label="Permitir cambiar la tasa del día"
-        hint="Los encargados podrán modificar la tasa de cambio principal"
-        :disabled="updatingFeatures"
-      />
-
-      <FormToggle
-        :model-value="!!businessStore.features.encargados_change_employee_rate"
-        @update:model-value="handleToggleEncargadoEmployeeRate"
-        label="Permitir cambiar la tasa de empleados"
-        hint="Los encargados podrán modificar la tasa asignada a los empleados"
-        :disabled="updatingFeatures"
-      />
-
-      <FormToggle
-        :model-value="!!businessStore.features.disable_employee_commission_edit"
-        @update:model-value="handleToggleDisableCommissionEdit"
-        label="Bloquear edición de comisiones"
-        hint="Si está activo, los encargados y empleados NO podrán modificar los porcentajes de ganancia en las citas"
-        :disabled="updatingFeatures"
-      />
-
-      <FormToggle
-        :model-value="!!businessStore.features.employees_see_clients"
-        @update:model-value="handleToggleEmployeesSeeClients"
-        label="Permitir módulo de clientes a empleados"
-        hint="Si está activo, los empleados tendrán acceso al módulo de Clientes en su menú lateral. Si se desactiva, no tendrán el módulo de clientes, pero seguirán viendo los nombres en sus citas, agenda, historial, recibo y consultorio."
-        :disabled="updatingFeatures"
-      />
-
-      <FormToggle
-        :model-value="!!businessStore.features.pos_direct_service_sale"
-        @update:model-value="handleToggleDirectServiceSale"
-        label="Permitir cobro directo de servicios en POS"
-        hint="Permite cobrar servicios en el Punto de Venta al instante sin necesidad de agendar previamente una cita en el calendario"
-        :disabled="updatingFeatures"
-      />
-
-      <FormToggle
-        :model-value="!!businessStore.features.enable_public_booking"
-        @update:model-value="handleTogglePublicBooking"
-        label="Reservas públicas / Invitaciones"
-        hint="Permite a los empleados compartir links de reserva con clientes y gestionar invitaciones pendientes. Si se desactiva, desaparece el botón de Invitaciones y Link de reserva."
-        :disabled="updatingFeatures"
-      />
-
-      <FormToggle
-        :model-value="!!businessStore.features.hide_client_phone_from_employees"
-        @update:model-value="handleToggleHideClientPhone"
-        label="Ocultar teléfono y email a empleados"
-        hint="Si está activo, los empleados no verán el teléfono ni email de los clientes al agendar citas, buscar clientes o en el listado. No impedirá crear citas sin teléfono."
-        :disabled="updatingFeatures"
-      />
-    </div>
-  </SectionCard>
-
-  <!-- Sucursales (multi-branch) -->
-  <template v-if="businessStore.isMultiBranch">
-    <!-- Sucursales -->
-    <SectionCard
-      title="Sucursales"
-      subtitle="Gestiona las ubicaciones físicas de tu negocio"
-      icon="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-    >
-      <template #header-actions>
-        <button
-          @click="branchesCtx.openNew()"
-          class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shadow-sm shadow-primary/20"
-        >
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Nueva sucursal
-        </button>
-      </template>
-
-      <div v-if="branchesCtx.isLoading.value" class="flex items-center justify-center py-8">
-        <svg class="h-6 w-6 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
-      </div>
-
-      <div v-else-if="branchesCtx.branches.value.length === 0" class="py-8 text-center">
-        <EmptyState
-          icon="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-          title="No hay sucursales"
-          subtitle="Agrega tu primera ubicación física"
-          action-label="Nueva sucursal"
-          @action="branchesCtx.openNew()"
-        />
-      </div>
-
-      <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <div
-          v-for="branch in branchesCtx.branches.value"
-          :key="branch.id"
-          class="group rounded-lg border border-border bg-bg-secondary/50 p-4 transition-theme hover:border-border-strong"
-        >
-          <div class="flex items-start justify-between mb-2">
-            <div class="flex items-center gap-2 min-w-0">
-              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        <!-- Cambiar clave -->
+        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-4">
+          <h3 class="text-sm font-semibold text-text mb-3 flex items-center gap-2">
+            <svg class="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            </svg>
+            Cambiar clave
+          </h3>
+          <form @submit.prevent="handleChangePassword" class="space-y-3">
+            <div class="space-y-2.5">
+              <div class="relative">
+                <input
+                  v-model="passwordForm.currentPassword"
+                  :type="showCurrentPassword ? 'text' : 'password'"
+                  required
+                  placeholder="Contraseña actual"
+                  class="w-full rounded-lg border border-border bg-surface pl-9 pr-9 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-text-muted disabled:opacity-50"
+                  :disabled="passwordLoading"
+                />
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                 </svg>
+                <button type="button" @click="showCurrentPassword = !showCurrentPassword"
+                  class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted hover:text-text transition-colors"
+                  :disabled="passwordLoading" tabindex="-1">
+                  <svg v-if="!showCurrentPassword" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                  </svg>
+                </button>
               </div>
-              <div class="min-w-0">
-                <p class="text-sm font-semibold text-text truncate">{{ branch.name }}</p>
-                <p v-if="branch.address" class="text-xs text-text-muted truncate">{{ branch.address }}</p>
+              <div class="relative">
+                <input
+                  v-model="passwordForm.newPassword"
+                  :type="showNewPassword ? 'text' : 'password'"
+                  required minlength="6"
+                  placeholder="Nueva clave (mín. 6 caracteres)"
+                  class="w-full rounded-lg border border-border bg-surface pl-9 pr-9 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-text-muted disabled:opacity-50"
+                  :disabled="passwordLoading"
+                />
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                </svg>
+                <button type="button" @click="showNewPassword = !showNewPassword"
+                  class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted hover:text-text transition-colors"
+                  :disabled="passwordLoading" tabindex="-1">
+                  <svg v-if="!showNewPassword" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                  </svg>
+                </button>
               </div>
             </div>
-            <span v-if="branch.is_default" class="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Principal</span>
+            <div class="flex items-center justify-between gap-3">
+              <p v-if="passwordError" class="text-xs text-danger">{{ passwordError }}</p>
+              <p v-else-if="passwordSuccess" class="text-xs text-success font-medium">{{ passwordSuccess }}</p>
+              <span v-else></span>
+              <button
+                type="submit"
+                :disabled="passwordLoading || !passwordForm.currentPassword || !passwordForm.newPassword || passwordForm.newPassword.length < 6"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shadow-sm shadow-primary/15 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <svg v-if="passwordLoading" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Actualizar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════ COMUNICACIÓN ═══════════ -->
+    <section v-if="pushSupported" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-base font-semibold text-text">Comunicación</h2>
+          <p class="text-xs text-text-muted">Notificaciones push y configuración de WhatsApp</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <!-- Push -->
+        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-4">
+          <h3 class="text-sm font-semibold text-text mb-3 flex items-center gap-2">
+            <svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+            </svg>
+            Notificaciones Push
+          </h3>
+          <p class="text-xs text-text-muted mb-3 leading-relaxed">
+            <template v-if="pushPermission === 'granted'">
+              <span class="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-semibold text-success">Activadas</span>
+              <span class="block mt-1.5">Recibirás alertas de nuevas citas y recordatorios en tu teléfono.</span>
+            </template>
+            <template v-else-if="pushPermission === 'denied'">
+              <span class="inline-flex items-center gap-1 rounded-full bg-danger/10 px-2 py-0.5 text-[11px] font-semibold text-danger">Bloqueadas</span>
+              <span class="block mt-1.5">Ve a Ajustes del navegador para permitir notificaciones.</span>
+            </template>
+            <template v-else>
+              Recibe alertas de nuevas citas y recordatorios directamente en tu teléfono.
+            </template>
+          </p>
+          <button
+            v-if="pushPermission === 'granted'"
+            @click="handleDisablePush" :disabled="pushLoading"
+            class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-theme hover:bg-danger/10 hover:text-danger hover:border-danger/30 disabled:opacity-50"
+          >
+            <svg v-if="pushLoading" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+            <span v-else>Desactivar</span>
+          </button>
+          <button
+            v-else-if="pushPermission === 'denied'"
+            disabled
+            class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-muted cursor-not-allowed opacity-50"
+          >Bloqueado</button>
+          <button
+            v-else
+            @click="handleEnablePush" :disabled="pushLoading"
+            class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shadow-sm shadow-primary/20 disabled:opacity-50"
+          >
+            <svg v-if="pushLoading" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+            <svg v-else class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+            Activar
+          </button>
+        </div>
+
+        <!-- WhatsApp -->
+        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-4">
+          <WhatsAppSettings />
+        </div>
+      </div>
+    </section>
+
+    <!-- Fallback when no push: WhatsApp solo -->
+    <section v-else class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-base font-semibold text-text">Comunicación</h2>
+          <p class="text-xs text-text-muted">Configuración de mensajería</p>
+        </div>
+      </div>
+      <WhatsAppSettings />
+    </section>
+
+    <!-- ═══════════ PERMISOS Y FUNCIONALIDADES (admin) ═══════════ -->
+    <section v-if="isAdmin" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
+      <div class="flex items-center gap-3 mb-5">
+        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-base font-semibold text-text">Permisos y Funcionalidades</h2>
+          <p class="text-xs text-text-muted">Controla qué pueden hacer tus encargados y empleados</p>
+        </div>
+      </div>
+
+      <div class="space-y-5">
+        <!-- Subcategoría: Encargados -->
+        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 overflow-hidden">
+          <div class="flex items-center gap-2 px-4 py-2.5 border-b border-border-subtle bg-bg-secondary/60">
+            <svg class="h-4 w-4 text-purple-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Encargados</span>
           </div>
-          <p v-if="branch.phone" class="text-xs text-text-muted mb-3">{{ branch.phone }}</p>
-          <div class="flex gap-2">
-            <button
-              @click="branchesCtx.openEdit(branch)"
-              class="flex-1 rounded-lg border border-border py-1.5 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text"
-            >
-              Editar
-            </button>
-            <button
-              v-if="!branch.is_default"
-              @click="branchesCtx.handleDelete(branch.id)"
-              :disabled="branchesCtx.deleteMutation.isPending.value"
-              class="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-theme hover:bg-danger/10 hover:text-danger hover:border-danger/30 disabled:opacity-50"
-              title="Eliminar sucursal"
-            >
-              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
+          <div class="divide-y divide-border-subtle">
+            <FormToggle
+              :model-value="!!businessStore.features.disable_manager_inventory_edit"
+              @update:model-value="toggleManagerInventoryEdit"
+              label="Desactivar edición de inventario"
+              hint="Los encargados solo podrán ver el inventario y vender en el POS, sin ajustar cantidades ni costos."
+              :disabled="updatingFeatures"
+              class="px-4 py-3.5"
+            />
+            <FormToggle
+              :model-value="!!businessStore.features.encargados_change_exchange_rate"
+              @update:model-value="handleToggleEncargadoExchangeRate"
+              label="Permitir cambiar la tasa del día"
+              hint="Los encargados podrán modificar la tasa de cambio principal Bs/$"
+              :disabled="updatingFeatures"
+              class="px-4 py-3.5"
+            />
+            <FormToggle
+              :model-value="!!businessStore.features.encargados_change_employee_rate"
+              @update:model-value="handleToggleEncargadoEmployeeRate"
+              label="Permitir cambiar tasa de empleados"
+              hint="Los encargados podrán modificar la tasa Bs asignada a cada empleado"
+              :disabled="updatingFeatures"
+              class="px-4 py-3.5"
+            />
+            <FormToggle
+              :model-value="!!businessStore.features.disable_employee_commission_edit"
+              @update:model-value="handleToggleDisableCommissionEdit"
+              label="Bloquear edición de comisiones"
+              hint="Encargados y empleados NO podrán modificar porcentajes de ganancia en las citas"
+              :disabled="updatingFeatures"
+              class="px-4 py-3.5"
+            />
+          </div>
+        </div>
+
+        <!-- Subcategoría: Empleados -->
+        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 overflow-hidden">
+          <div class="flex items-center gap-2 px-4 py-2.5 border-b border-border-subtle bg-bg-secondary/60">
+            <svg class="h-4 w-4 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+            </svg>
+            <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Empleados</span>
+          </div>
+          <div class="divide-y divide-border-subtle">
+            <FormToggle
+              :model-value="!!businessStore.features.employees_see_clients"
+              @update:model-value="handleToggleEmployeesSeeClients"
+              label="Permitir módulo de clientes"
+              hint="Los empleados tendrán acceso al módulo de Clientes en su menú lateral"
+              :disabled="updatingFeatures"
+              class="px-4 py-3.5"
+            />
+            <FormToggle
+              :model-value="!!businessStore.features.hide_client_phone_from_employees"
+              @update:model-value="handleToggleHideClientPhone"
+              label="Ocultar teléfono y email de clientes"
+              hint="Los empleados no verán datos de contacto de clientes. No impedirá crear citas."
+              :disabled="updatingFeatures"
+              class="px-4 py-3.5"
+            />
+          </div>
+        </div>
+
+        <!-- Subcategoría: POS y Ventas -->
+        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 overflow-hidden">
+          <div class="flex items-center gap-2 px-4 py-2.5 border-b border-border-subtle bg-bg-secondary/60">
+            <svg class="h-4 w-4 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+            </svg>
+            <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">POS y Ventas</span>
+          </div>
+          <div class="divide-y divide-border-subtle">
+            <FormToggle
+              :model-value="!!businessStore.features.pos_direct_service_sale"
+              @update:model-value="handleToggleDirectServiceSale"
+              label="Cobro directo de servicios en POS"
+              hint="Permite cobrar servicios al instante sin necesidad de agendar una cita previamente"
+              :disabled="updatingFeatures"
+              class="px-4 py-3.5"
+            />
+          </div>
+        </div>
+
+        <!-- Subcategoría: Reservas -->
+        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 overflow-hidden">
+          <div class="flex items-center gap-2 px-4 py-2.5 border-b border-border-subtle bg-bg-secondary/60">
+            <svg class="h-4 w-4 text-orange-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+            </svg>
+            <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Reservas</span>
+          </div>
+          <div class="divide-y divide-border-subtle">
+            <FormToggle
+              :model-value="!!businessStore.features.enable_public_booking"
+              @update:model-value="handleTogglePublicBooking"
+              label="Reservas públicas / Invitaciones"
+              hint="Los empleados pueden compartir links de reserva y gestionar invitaciones pendientes de clientes"
+              :disabled="updatingFeatures"
+              class="px-4 py-3.5"
+            />
           </div>
         </div>
       </div>
-    </SectionCard>
+    </section>
 
-    <!-- Branch Form Modal -->
-    <BranchFormModal
-      :is-open="branchesCtx.showModal.value"
-      :is-editing="!!branchesCtx.editingId.value"
-      :form="branchesCtx.form.value"
-      :save-error="branchesCtx.saveError.value"
-      :save-mutation="branchesCtx.saveMutation"
-      @close="branchesCtx.closeModal()"
-      @save="branchesCtx.handleSave()"
-    />
-  </template>
+    <!-- ═══════════ SUCURSALES ═══════════ -->
+    <template v-if="businessStore.isMultiBranch">
+      <section class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
+        <div class="flex items-center gap-3 mb-5">
+          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+          </div>
+          <div class="flex-1">
+            <h2 class="text-base font-semibold text-text">Sucursales</h2>
+            <p class="text-xs text-text-muted">Gestiona las ubicaciones físicas de tu negocio</p>
+          </div>
+          <button
+            @click="branchesCtx.openNew()"
+            class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shadow-sm shadow-primary/20"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Nueva
+          </button>
+        </div>
+
+        <div v-if="branchesCtx.isLoading.value" class="flex items-center justify-center py-8">
+          <svg class="h-6 w-6 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+        </div>
+
+        <div v-else-if="branchesCtx.branches.value.length === 0" class="py-8 text-center">
+          <EmptyState
+            icon="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+            title="No hay sucursales"
+            subtitle="Agrega tu primera ubicación física"
+            action-label="Nueva sucursal"
+            @action="branchesCtx.openNew()"
+          />
+        </div>
+
+        <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div
+            v-for="branch in branchesCtx.branches.value"
+            :key="branch.id"
+            class="group rounded-xl border border-border bg-bg-secondary/50 p-4 transition-all duration-200 hover:border-border-strong hover:shadow-sm"
+          >
+            <div class="flex items-start justify-between mb-2">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                  </svg>
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-semibold text-text truncate">{{ branch.name }}</p>
+                  <p v-if="branch.address" class="text-xs text-text-muted truncate">{{ branch.address }}</p>
+                </div>
+              </div>
+              <span v-if="branch.is_default" class="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">Principal</span>
+            </div>
+            <p v-if="branch.phone" class="text-xs text-text-muted mb-3 flex items-center gap-1.5">
+              <svg class="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 002.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 01-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 00-1.091-.852H4.5A2.25 2.25 0 002.25 4.5v2.25z" /></svg>
+              {{ branch.phone }}
+            </p>
+            <div class="flex gap-2">
+              <button
+                @click="branchesCtx.openEdit(branch)"
+                class="flex-1 rounded-lg border border-border py-1.5 text-xs font-medium text-text-secondary transition-theme hover:bg-surface hover:text-text"
+              >Editar</button>
+              <button
+                v-if="!branch.is_default"
+                @click="branchesCtx.handleDelete(branch.id)"
+                :disabled="branchesCtx.deleteMutation.isPending.value"
+                class="rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-text-secondary transition-theme hover:bg-danger/10 hover:text-danger hover:border-danger/30 disabled:opacity-50"
+                title="Eliminar sucursal"
+              >
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <BranchFormModal
+        :is-open="branchesCtx.showModal.value"
+        :is-editing="!!branchesCtx.editingId.value"
+        :form="branchesCtx.form.value"
+        :save-error="branchesCtx.saveError.value"
+        :save-mutation="branchesCtx.saveMutation"
+        @close="branchesCtx.closeModal()"
+        @save="branchesCtx.handleSave()"
+      />
+    </template>
+  </div>
 </template>
 
 <script setup lang="ts">
