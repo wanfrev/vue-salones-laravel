@@ -233,7 +233,7 @@
       <div class="space-y-6">
         <!-- Subcategoría: Encargados -->
         <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 overflow-hidden">
-          <div class="flex items-center gap-2.5 px-5 py-3 border-b border-border-subtle bg-bg-secondary/60">
+          <div class="flex items-center gap-2.5 px-5 py-[14px] border-b border-border-subtle bg-bg-secondary/60">
             <svg class="h-4 w-4 text-purple-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
@@ -246,7 +246,7 @@
               label="Desactivar edición de inventario"
               hint="Los encargados solo podrán ver el inventario y vender en el POS, sin ajustar cantidades ni costos."
               :disabled="updatingFeatures"
-              class="px-5 py-4"
+              class="px-5 py-5"
             />
             <FormToggle
               :model-value="!!businessStore.features.encargados_change_exchange_rate"
@@ -254,7 +254,7 @@
               label="Permitir cambiar la tasa del día"
               hint="Los encargados podrán modificar la tasa de cambio principal Bs/$"
               :disabled="updatingFeatures"
-              class="px-5 py-4"
+              class="px-5 py-5"
             />
             <FormToggle
               :model-value="!!businessStore.features.encargados_change_employee_rate"
@@ -262,7 +262,7 @@
               label="Permitir cambiar tasa de empleados"
               hint="Los encargados podrán modificar la tasa Bs asignada a cada empleado"
               :disabled="updatingFeatures"
-              class="px-5 py-4"
+              class="px-5 py-5"
             />
             <FormToggle
               :model-value="!!businessStore.features.disable_employee_commission_edit"
@@ -270,14 +270,14 @@
               label="Bloquear edición de comisiones"
               hint="Encargados y empleados NO podrán modificar porcentajes de ganancia en las citas"
               :disabled="updatingFeatures"
-              class="px-5 py-4"
+              class="px-5 py-5"
             />
           </div>
         </div>
 
         <!-- Subcategoría: Empleados -->
         <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 overflow-hidden">
-          <div class="flex items-center gap-2.5 px-5 py-3 border-b border-border-subtle bg-bg-secondary/60">
+          <div class="flex items-center gap-2.5 px-5 py-[14px] border-b border-border-subtle bg-bg-secondary/60">
             <svg class="h-4 w-4 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
             </svg>
@@ -290,7 +290,7 @@
               label="Permitir módulo de clientes"
               hint="Los empleados tendrán acceso al módulo de Clientes en su menú lateral"
               :disabled="updatingFeatures"
-              class="px-5 py-4"
+              class="px-5 py-5"
             />
             <FormToggle
               :model-value="!!businessStore.features.hide_client_phone_from_employees"
@@ -298,14 +298,14 @@
               label="Ocultar teléfono y email de clientes"
               hint="Los empleados no verán datos de contacto de clientes. No impedirá crear citas."
               :disabled="updatingFeatures"
-              class="px-5 py-4"
+              class="px-5 py-5"
             />
           </div>
         </div>
 
         <!-- Subcategoría: POS y Ventas -->
         <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 overflow-hidden">
-          <div class="flex items-center gap-2.5 px-5 py-3 border-b border-border-subtle bg-bg-secondary/60">
+          <div class="flex items-center gap-2.5 px-5 py-[14px] border-b border-border-subtle bg-bg-secondary/60">
             <svg class="h-4 w-4 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
             </svg>
@@ -318,14 +318,14 @@
               label="Cobro directo de servicios en POS"
               hint="Permite cobrar servicios al instante sin necesidad de agendar una cita previamente"
               :disabled="updatingFeatures"
-              class="px-5 py-4"
+              class="px-5 py-5"
             />
           </div>
         </div>
 
         <!-- Subcategoría: Reservas -->
         <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 overflow-hidden">
-          <div class="flex items-center gap-2.5 px-5 py-3 border-b border-border-subtle bg-bg-secondary/60">
+          <div class="flex items-center gap-2.5 px-5 py-[14px] border-b border-border-subtle bg-bg-secondary/60">
             <svg class="h-4 w-4 text-orange-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
             </svg>
@@ -338,7 +338,7 @@
               label="Reservas públicas / Invitaciones"
               hint="Los empleados pueden compartir links de reserva y gestionar invitaciones pendientes de clientes"
               :disabled="updatingFeatures"
-              class="px-5 py-4"
+              class="px-5 py-5"
             />
           </div>
         </div>
