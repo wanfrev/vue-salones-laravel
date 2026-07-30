@@ -33,6 +33,7 @@ const DEFAULT_TERMINOLOGY: Terminology = {
     disable_employee_commission_edit: false,
     manual_reports: false,
     pos_direct_service_sale: false,
+    enable_public_booking: true,
   }
 
 export type FeatureKey = keyof typeof DEFAULT_FEATURES

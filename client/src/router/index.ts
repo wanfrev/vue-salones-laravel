@@ -14,6 +14,12 @@ const router = createRouter({
       meta: { public: true },
     },
     {
+      path: '/reservar/:slug',
+      name: 'public-booking',
+      component: () => import('../views/public/PublicBooking.vue'),
+      meta: { public: true },
+    },
+    {
       path: '/dashboard',
       redirect: '/dashboard/agenda',
     },

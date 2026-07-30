@@ -22,6 +22,7 @@ export interface Cita {
   duration: number
   price: number
   status: 'confirmed' | 'pending' | 'cancelled' | 'paid'
+  source?: string
   paymentStatus?: 'unpaid' | 'partial' | 'paid'
   statusLabel?: string
   statusColor?: string

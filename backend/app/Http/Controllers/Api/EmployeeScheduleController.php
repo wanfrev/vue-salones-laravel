@@ -15,7 +15,15 @@ class EmployeeScheduleController
 
     private function resolveBusinessId(Request $request): ?string
     {
-        return $request->user()?->profile?->business_id;
+        $fromProfile = $request->user()?->profile?->business_id;
+        if ($fromProfile) {
+            return $fromProfile;
+        }
+        $raw = $request->query('business_id');
+        if ($raw && preg_match('/eq\.(.+)/', $raw, $m)) {
+            return $m[1];
+        }
+        return $raw ?: null;
     }
 
     public function index(Request $request): JsonResponse

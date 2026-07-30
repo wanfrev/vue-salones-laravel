@@ -21,7 +21,15 @@ class AppointmentController
 
     private function resolveBusinessId(Request $request): ?string
     {
-        return $request->user()?->profile?->business_id;
+        $fromProfile = $request->user()?->profile?->business_id;
+        if ($fromProfile) {
+            return $fromProfile;
+        }
+        $raw = $request->query('business_id');
+        if ($raw && preg_match('/eq\.(.+)/', $raw, $m)) {
+            return $m[1];
+        }
+        return $raw ?: null;
     }
 
     private function getAdminsToNotify(string $businessId, ?string $branchId): Collection
@@ -67,19 +75,6 @@ class AppointmentController
             $request->get('id_not'),
         );
 
-        $isEmployee = $request->user()?->profile?->role === 'empleado';
-
-        if ($isEmployee) {
-            $list->transform(function ($appointment) {
-                if ($appointment->client) {
-                    $appointment->client->phone = '';
-                    $appointment->client->email = null;
-                    $appointment->client->notes = null;
-                }
-                return $appointment;
-            });
-        }
-
         return response()->json($list);
     }
 
@@ -88,14 +83,6 @@ class AppointmentController
         $appointment = $this->appointmentService->findForBusiness($id, $this->resolveBusinessId($request) ?? '');
         if (!$appointment) return response()->json(['error' => ['message' => 'No encontrado.']], 404);
         $appointment->load(['client', 'service', 'employeeProfile', 'assistantProfile']);
-
-        $isEmployee = $request->user()?->profile?->role === 'empleado';
-
-        if ($isEmployee && $appointment->client) {
-            $appointment->client->phone = '';
-            $appointment->client->email = null;
-            $appointment->client->notes = null;
-        }
 
         return response()->json($appointment);
     }

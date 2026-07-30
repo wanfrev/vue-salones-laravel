@@ -112,19 +112,9 @@ export const NICHE_FIELDS: Record<string, NicheConfig> = {
       { key: 'allergies', label: 'Alergias o contraindicaciones', type: 'textarea', placeholder: 'Aceites esenciales, fragancias, condiciones médicas...' },
     ],
   },
-  spa_perros: {
-    sectionTitle: 'Mascotas',
-    fields: [...PET_FIELDS],
-    listType: 'petList',
-  },
   dog_spa: {
     sectionTitle: 'Mascotas',
     fields: [...PET_FIELDS],
-    listType: 'petList',
-  },
-  vet: {
-    sectionTitle: 'Mascotas',
-    fields: [...PET_FIELDS, ...VET_EXTRA_FIELDS],
     listType: 'petList',
   },
   mixto: {
@@ -154,7 +144,7 @@ export function getNicheConfig(nicheType: string): NicheConfig | null {
   return NICHE_FIELDS[nicheType] ?? null
 }
 
-export const PET_NICHE_TYPES = ['spa_perros', 'dog_spa', 'vet']
+export const PET_NICHE_TYPES = ['dog_spa']
 export function isPetNiche(nicheType: string): boolean {
   return PET_NICHE_TYPES.includes(nicheType)
 }
