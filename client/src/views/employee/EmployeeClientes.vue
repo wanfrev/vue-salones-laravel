@@ -66,8 +66,9 @@
                   </div>
                 </td>
                 <td class="px-4 py-3">
-                  <div class="text-xs text-text-secondary">{{ client.phone }}</div>
-                  <div v-if="client.email" class="text-xs text-text-muted truncate max-w-40">{{ client.email }}</div>
+                  <div v-if="!hidePhoneFromEmployee" class="text-xs text-text-secondary">{{ client.phone }}</div>
+                  <div v-if="!hidePhoneFromEmployee && client.email" class="text-xs text-text-muted truncate max-w-40">{{ client.email }}</div>
+                  <span v-if="hidePhoneFromEmployee" class="text-xs text-text-muted italic">Oculto</span>
                 </td>
                 <td class="px-4 py-3">
                   <span class="text-xs text-text-secondary">{{ client.lastVisit }}</span>
@@ -80,6 +81,7 @@
                 </td>
                 <td class="px-4 py-3 text-center">
                   <button
+                    v-if="!hidePhoneFromEmployee"
                     @click.stop="handleWhatsApp(client)"
                     class="rounded-md p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-success"
                     title="Escribir por WhatsApp"
@@ -180,6 +182,7 @@ const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 const t = computed(() => businessStore.terminology)
 const label = computed(() => (t.value.client || 'cliente').toLowerCase())
+const hidePhoneFromEmployee = computed(() => authStore.role === 'empleado' && businessStore.hasFeature('hide_client_phone_from_employees'))
 
 const { data: clientesData } = useQuery({
   queryKey: computed(() => clientesKeys.all(businessId.value, branchId.value)),
@@ -216,7 +219,7 @@ const handleWhatsApp = (cliente: Cliente) => {
 }
 
 const canCreateClients = computed(() =>
-  businessStore.hasFeature('employees_create_clients')
+  businessStore.hasFeature('employees_create_clients') && !businessStore.hasFeature('hide_client_phone_from_employees')
 )
 
 const newClientModalRef = ref<InstanceType<typeof ClienteFormModal> | null>(null)
