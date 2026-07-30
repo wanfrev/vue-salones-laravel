@@ -230,16 +230,16 @@
         </div>
       </div>
 
-      <div class="space-y-6">
+      <div class="space-y-8">
         <!-- Subcategoría: Encargados -->
-        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 overflow-hidden">
-          <div class="flex items-center gap-2.5 px-5 py-[14px] border-b border-border-subtle bg-bg-secondary/60">
+        <div>
+          <div class="flex items-center gap-2.5 mb-2 px-1">
             <svg class="h-4 w-4 text-purple-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
             </svg>
-            <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Encargados</span>
+            <span class="text-[11px] font-bold text-text-secondary uppercase tracking-widest">Encargados</span>
           </div>
-          <div class="divide-y divide-border-subtle">
+          <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
             <FormToggle
               :model-value="!!businessStore.features.disable_manager_inventory_edit"
               @update:model-value="toggleManagerInventoryEdit"
@@ -276,14 +276,14 @@
         </div>
 
         <!-- Subcategoría: Empleados -->
-        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 overflow-hidden">
-          <div class="flex items-center gap-2.5 px-5 py-[14px] border-b border-border-subtle bg-bg-secondary/60">
+        <div>
+          <div class="flex items-center gap-2.5 mb-2 px-1">
             <svg class="h-4 w-4 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
             </svg>
-            <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Empleados</span>
+            <span class="text-[11px] font-bold text-text-secondary uppercase tracking-widest">Empleados</span>
           </div>
-          <div class="divide-y divide-border-subtle">
+          <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
             <FormToggle
               :model-value="!!businessStore.features.employees_see_clients"
               @update:model-value="handleToggleEmployeesSeeClients"
@@ -304,14 +304,14 @@
         </div>
 
         <!-- Subcategoría: POS y Ventas -->
-        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 overflow-hidden">
-          <div class="flex items-center gap-2.5 px-5 py-[14px] border-b border-border-subtle bg-bg-secondary/60">
+        <div>
+          <div class="flex items-center gap-2.5 mb-2 px-1">
             <svg class="h-4 w-4 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
             </svg>
-            <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">POS y Ventas</span>
+            <span class="text-[11px] font-bold text-text-secondary uppercase tracking-widest">POS y Ventas</span>
           </div>
-          <div class="divide-y divide-border-subtle">
+          <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
             <FormToggle
               :model-value="!!businessStore.features.pos_direct_service_sale"
               @update:model-value="handleToggleDirectServiceSale"
@@ -324,12 +324,12 @@
         </div>
 
         <!-- Subcategoría: Reservas -->
-        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 overflow-hidden">
-          <div class="flex items-center gap-2.5 px-5 py-[14px] border-b border-border-subtle bg-bg-secondary/60">
+        <div>
+          <div class="flex items-center gap-2.5 mb-2 px-1">
             <svg class="h-4 w-4 text-orange-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
             </svg>
-            <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Reservas</span>
+            <span class="text-[11px] font-bold text-text-secondary uppercase tracking-widest">Reservas</span>
           </div>
           <div class="divide-y divide-border-subtle">
             <FormToggle
