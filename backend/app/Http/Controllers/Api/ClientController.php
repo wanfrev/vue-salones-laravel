@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Events\EntityChanged;
 use App\Http\Requests\StoreClientRequest;
 use App\Http\Requests\UpdateClientRequest;
+use App\Models\Business;
 use App\Services\ClientService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -46,12 +47,33 @@ class ClientController
         return (bool) ($features['employees_see_clients'] ?? true);
     }
 
+    private function shouldHideClientPhoneFromEmployee(Request $request): bool
+    {
+        $profile = $request->user()?->profile;
+        if (!$profile || $profile->role !== 'empleado') return false;
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return false;
+        $business = Business::find($businessId);
+        if (!$business) return false;
+        $features = is_array($business->features) ? $business->features : json_decode($business->features ?? '[]', true);
+        return (bool) ($features['hide_client_phone_from_employees'] ?? false);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId || !$this->canEmployeeSeeClients($request)) return response()->json([]);
 
         $clients = $this->clientService->list($businessId, $request->branch_id);
+
+        if ($this->shouldHideClientPhoneFromEmployee($request)) {
+            $clients->transform(function ($client) {
+                $client->phone = '';
+                $client->email = null;
+                $client->notes = null;
+                return $client;
+            });
+        }
 
         return response()->json($clients);
     }
@@ -63,6 +85,12 @@ class ClientController
 
         $client = $this->clientService->findForBusiness($id, $businessId);
         if (!$client) return response()->json(['error' => ['message' => 'No encontrado.']], 404);
+
+        if ($this->shouldHideClientPhoneFromEmployee($request)) {
+            $client->phone = '';
+            $client->email = null;
+            $client->notes = null;
+        }
 
         return response()->json($client);
     }
@@ -104,6 +132,15 @@ class ClientController
 
         $request->validate(['q' => 'required|string|min:1']);
         $results = $this->clientService->search($businessId, $request->q, $request->branch_id);
+
+        if ($this->shouldHideClientPhoneFromEmployee($request)) {
+            $results->transform(function ($client) {
+                $client->phone = '';
+                $client->email = null;
+                $client->notes = null;
+                return $client;
+            });
+        }
 
 
 

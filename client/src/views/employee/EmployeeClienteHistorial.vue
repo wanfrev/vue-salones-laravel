@@ -23,7 +23,7 @@
             Volver
           </button>
           <button
-            v-if="cliente?.phone"
+            v-if="!hidePhoneFromEmployee && cliente?.phone"
             @click="handleWhatsApp"
             class="flex items-center gap-2 rounded-xl bg-success px-3 py-2 text-sm font-medium text-text-inverse shadow-lg shadow-success/25 transition-theme hover:bg-success/90"
           >
@@ -54,8 +54,8 @@
         </div>
         <div class="min-w-0">
           <p class="text-lg font-semibold text-text">{{ cliente.name }}</p>
-          <p class="text-sm text-text-secondary">{{ cliente.phone }}</p>
-          <p v-if="cliente.email" class="text-sm text-text-muted truncate">{{ cliente.email }}</p>
+          <p v-if="!hidePhoneFromEmployee" class="text-sm text-text-secondary">{{ cliente.phone }}</p>
+          <p v-if="!hidePhoneFromEmployee && cliente.email" class="text-sm text-text-muted truncate">{{ cliente.email }}</p>
         </div>
       </div>
       <div v-if="cliente.notes" class="mt-3 border-t border-border pt-3">
@@ -142,6 +142,7 @@ const clienteId = computed(() => route.params.id as string)
 const businessId = computed(() => authStore.businessId)
 const isPetNiche = computed(() => checkPetNiche(businessStore.nicheType))
 const t = computed(() => businessStore.terminology)
+const hidePhoneFromEmployee = computed(() => authStore.role === 'empleado' && businessStore.hasFeature('hide_client_phone_from_employees'))
 
 const { data: clienteData } = useQuery({
   queryKey: computed(() => ['cliente', clienteId.value]),

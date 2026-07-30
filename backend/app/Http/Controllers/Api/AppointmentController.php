@@ -6,6 +6,7 @@ use App\Events\EntityChanged;
 use App\Http\Requests\StoreAppointmentRequest;
 use App\Http\Requests\UpdateAppointmentRequest;
 use App\Models\Appointment;
+use App\Models\Business;
 use App\Models\Profile;
 use App\Services\AppointmentService;
 use App\Services\NotificationService;
@@ -48,6 +49,16 @@ class AppointmentController
             ->get();
     }
 
+    private function shouldHideClientPhoneFromEmployee(Request $request, string $businessId): bool
+    {
+        $profile = $request->user()?->profile;
+        if (!$profile || $profile->role !== 'empleado') return false;
+        $business = Business::find($businessId);
+        if (!$business) return false;
+        $features = is_array($business->features) ? $business->features : json_decode($business->features ?? '[]', true);
+        return (bool) ($features['hide_client_phone_from_employees'] ?? false);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
@@ -75,14 +86,32 @@ class AppointmentController
             $request->get('id_not'),
         );
 
+        if ($this->shouldHideClientPhoneFromEmployee($request, $businessId)) {
+            $list->transform(function ($appointment) {
+                if ($appointment->client) {
+                    $appointment->client->phone = '';
+                    $appointment->client->email = null;
+                    $appointment->client->notes = null;
+                }
+                return $appointment;
+            });
+        }
+
         return response()->json($list);
     }
 
     public function show(Request $request, string $id): JsonResponse
     {
-        $appointment = $this->appointmentService->findForBusiness($id, $this->resolveBusinessId($request) ?? '');
+        $businessId = $this->resolveBusinessId($request) ?? '';
+        $appointment = $this->appointmentService->findForBusiness($id, $businessId);
         if (!$appointment) return response()->json(['error' => ['message' => 'No encontrado.']], 404);
         $appointment->load(['client', 'service', 'employeeProfile', 'assistantProfile']);
+
+        if ($this->shouldHideClientPhoneFromEmployee($request, $businessId) && $appointment->client) {
+            $appointment->client->phone = '';
+            $appointment->client->email = null;
+            $appointment->client->notes = null;
+        }
 
         return response()->json($appointment);
     }
