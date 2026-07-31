@@ -331,6 +331,7 @@ import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAgenda } from '../../composables/agenda/useAgenda'
 import { useAuthStore } from '../../store/auth'
+import { useBusinessStore } from '../../store/business'
 import { isAdminPanelRole } from '../../constants/roles'
 import { normalizeAppointmentStatus, getStatusLabel, dateToHHmm, dateToHHmm12, toISODate, getInitials, parseLocalDate } from '../../lib/formatters'
 import { mapAppointmentToCita } from '../../mappers/agendaMapper'
@@ -341,6 +342,7 @@ import type { Cita } from '../../types/cita'
 
 const route = useRoute()
 const authStore = useAuthStore()
+const businessStore = useBusinessStore()
 const isAdmin = computed(() => isAdminPanelRole(authStore.role ?? undefined))
 const canManageInvitations = computed(() => {
   const role = authStore.role
