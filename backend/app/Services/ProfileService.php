@@ -79,6 +79,7 @@ class ProfileService
                 'disable_inventory_edit' => $data['disable_inventory_edit'] ?? false,
                 'can_create_appointments' => $data['can_create_appointments'] ?? true,
                 'can_create_clients' => $data['can_create_clients'] ?? true,
+                'can_access_consultorio' => $data['can_access_consultorio'] ?? true,
                 'active' => true,
             ]);
 
@@ -135,6 +136,9 @@ class ProfileService
             }
             if (array_key_exists('can_create_clients', $data)) {
                 $profileFields['can_create_clients'] = $data['can_create_clients'];
+            }
+            if (array_key_exists('can_access_consultorio', $data)) {
+                $profileFields['can_access_consultorio'] = $data['can_access_consultorio'];
             }
             if (array_key_exists('active', $data)) {
                 $profileFields['active'] = $data['active'];

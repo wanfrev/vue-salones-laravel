@@ -255,6 +255,9 @@ router.beforeEach(async (to) => {
     if (!isPetNiche(businessStore.nicheType)) {
       return resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda)
     }
+    if (authStore.role === 'empleado' && !(authStore.profile?.can_access_consultorio ?? true)) {
+      return resolveHomeByRole(authStore.role, authStore.profile?.disable_agenda)
+    }
   }
 
   if (authStore.role === 'empleado' && to.path.startsWith('/dashboard/clientes')) {

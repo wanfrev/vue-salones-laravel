@@ -58,8 +58,9 @@ export const saveEmpleado = async (
       salary_frequency: profileUpdate.salary_frequency || undefined,
       disable_agenda: data.systemRole === 'cajero' ? true : data.disableAgenda,
       disable_inventory_edit: data.systemRole === 'cajero' ? true : data.disableInventoryEdit,
-      can_create_appointments: data.systemRole !== 'cajero',
-      can_create_clients: data.systemRole !== 'cajero',
+      can_create_appointments: data.systemRole !== 'cajero' ? data.canCreateAppointments : false,
+      can_create_clients: data.systemRole !== 'cajero' ? data.canCreateClients : false,
+      can_access_consultorio: data.systemRole !== 'cajero' ? data.canAccessConsultorio : false,
       branch_id: branchId ?? null,
       schedules: scheduleBlocks,
     })
@@ -73,8 +74,9 @@ export const saveEmpleado = async (
     ...(data.email ? { email: data.email } : {}),
     ...(data.password ? { password: data.password } : {}),
     ...profileUpdate,
-    can_create_appointments: data.systemRole !== 'cajero',
-    can_create_clients: data.systemRole !== 'cajero',
+    can_create_appointments: data.systemRole !== 'cajero' ? data.canCreateAppointments : false,
+    can_create_clients: data.systemRole !== 'cajero' ? data.canCreateClients : false,
+    can_access_consultorio: data.systemRole !== 'cajero' ? data.canAccessConsultorio : false,
     branch_id: branchId ?? null,
     schedules: scheduleBlocks,
   })

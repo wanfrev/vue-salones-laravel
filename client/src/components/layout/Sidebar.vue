@@ -68,6 +68,7 @@ const businessStore = useBusinessStore()
 const isAdmin = computed(() => isAdminPanelRole(authStore.role ?? undefined))
 const isCajeroRole = computed(() => authStore.isCajeroProfile)
 const agendaDisabled = computed(() => authStore.profile?.disable_agenda ?? false)
+const canAccessConsultorio = computed(() => authStore.profile?.can_access_consultorio ?? true)
 const isPetNicheBusiness = computed(() => isPetNiche(businessStore.nicheType))
 
 const visibleSections = computed(() =>
@@ -83,6 +84,7 @@ const visibleSections = computed(() =>
         if (link.requiresFeature && !businessStore.hasFeature(link.requiresFeature as any)) return false
         if (link.requiresPetNiche && !isPetNicheBusiness.value) return false
         if (link.hideIfAgendaDisabled && agendaDisabled.value) return false
+        if (link.requireCanAccessConsultorio && !canAccessConsultorio.value) return false
         return true
       }),
     }))

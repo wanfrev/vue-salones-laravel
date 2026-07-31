@@ -154,6 +154,18 @@
               <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canCreateClients ? 'translate-x-4' : 'translate-x-0']" />
             </button>
           </label>
+
+          <label v-if="formData.systemRole !== 'cajero'" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-text">Puede ver Consultorio</p>
+              <p class="text-xs text-text-muted">Permite acceder al módulo de historia clínica veterinaria</p>
+            </div>
+            <button type="button" role="switch" :aria-checked="formData.canAccessConsultorio"
+              @click="formData.canAccessConsultorio = !formData.canAccessConsultorio"
+              :class="['relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2', formData.canAccessConsultorio ? 'bg-primary border-primary' : 'bg-border border-border']">
+              <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAccessConsultorio ? 'translate-x-4' : 'translate-x-0']" />
+            </button>
+          </label>
         </div>
 
         <!-- COLUMNA DERECHA: Contratación -->
@@ -267,6 +279,7 @@ const defaultFormData: EmpleadoFormData = {
   disableInventoryEdit: false,
   canCreateAppointments: true,
   canCreateClients: true,
+  canAccessConsultorio: true,
 }
 
 const formData = ref<EmpleadoFormData>({ ...defaultFormData })
@@ -309,6 +322,7 @@ watch(
         disableInventoryEdit: empleado.disableInventoryEdit ?? false,
         canCreateAppointments: empleado.canCreateAppointments ?? true,
         canCreateClients: empleado.canCreateClients ?? true,
+        canAccessConsultorio: empleado.canAccessConsultorio ?? true,
       }
     } else {
       formData.value = { ...defaultFormData }
@@ -338,6 +352,7 @@ watch(
       formData.value.disableAgenda = true
       formData.value.canCreateAppointments = false
       formData.value.canCreateClients = false
+      formData.value.canAccessConsultorio = false
     }
   }
 )

@@ -30,6 +30,7 @@ export interface SidebarLink {
   requiresFeature?: string
   requiresPetNiche?: boolean
   hideIfAgendaDisabled?: boolean
+  requireCanAccessConsultorio?: boolean
 }
 
 export interface SidebarSection {
@@ -52,7 +53,7 @@ export const sidebarSections: SidebarSection[] = [
       { to: '/admin/clientes', label: 'Clientes', labelKey: 'client', icon: Users, adminOnly: true },
       { to: '/dashboard/clientes', label: 'Clientes', labelKey: 'client', icon: Users, employeeOnly: true, requiresFeature: 'employees_see_clients' },
       { to: '/admin/consultorio', label: 'Consultorio', icon: Stethoscope, adminOnly: true, requiresPetNiche: true },
-      { to: '/dashboard/consultorio', label: 'Consultorio', icon: Stethoscope, employeeOnly: true, requiresPetNiche: true },
+      { to: '/dashboard/consultorio', label: 'Consultorio', icon: Stethoscope, employeeOnly: true, requiresPetNiche: true, requireCanAccessConsultorio: true },
       { to: '/admin/equipo', label: 'Equipo', labelKey: 'employee', icon: Briefcase, adminOnly: true },
       { to: '/admin/finanzas', label: 'Finanzas', icon: BarChart3, adminOnly: true, badge: 'Nuevo' },
       { to: '/admin/servicios', label: 'Servicios', labelKey: 'service', icon: Sparkles, adminOnly: true },

@@ -52,7 +52,7 @@ export const useAuthStore = defineStore('auth', () => {
   const loadProfile = async (userId: string, userRole?: string | null) => {
     const { data, error } = await db
       .from('profiles')
-      .select('id, business_id, branch_id, full_name, role, phone, avatar_url, active, pay_type, pay_percentage, base_salary, disable_agenda, disable_inventory_edit, employee_ves_rate, can_create_appointments, can_create_clients')
+      .select('id, business_id, branch_id, full_name, role, phone, avatar_url, active, pay_type, pay_percentage, base_salary, disable_agenda, disable_inventory_edit, employee_ves_rate, can_create_appointments, can_create_clients, can_access_consultorio')
       .eq('id', userId)
       .maybeSingle()
 
@@ -107,6 +107,7 @@ export const useAuthStore = defineStore('auth', () => {
       disable_agenda: (authProfile as any).disable_agenda ?? false,
       disable_inventory_edit: (authProfile as any).disable_inventory_edit ?? false,
       can_create_appointments: (authProfile as any).can_create_appointments ?? true,
+      can_access_consultorio: (authProfile as any).can_access_consultorio ?? true,
     }
   }
 
