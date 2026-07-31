@@ -144,7 +144,7 @@ export function getNicheConfig(nicheType: string): NicheConfig | null {
   return NICHE_FIELDS[nicheType] ?? null
 }
 
-export const PET_NICHE_TYPES = ['dog_spa']
+export const PET_NICHE_TYPES = ['dog_spa', 'vet']
 export function isPetNiche(nicheType: string): boolean {
   return PET_NICHE_TYPES.includes(nicheType)
 }

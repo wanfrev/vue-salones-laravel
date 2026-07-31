@@ -155,7 +155,7 @@
             </button>
           </label>
 
-          <label v-if="formData.systemRole !== 'cajero'" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+          <label v-if="formData.systemRole !== 'cajero' && isPetNicheBusiness" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
               <p class="text-sm font-medium text-text">Puede ver Consultorio</p>
               <p class="text-xs text-text-muted">Permite acceder al módulo de historia clínica veterinaria</p>
@@ -211,6 +211,7 @@ import { useBusinessStore } from '../../store/business'
 import { addBusinessJobTitle } from '../../services/equipoService'
 import { useFormValidation } from '../../composables/common/useFormValidation'
 import { empleadoFormSchema } from '../../lib/validation'
+import { isPetNiche } from '../../config/nicheFields'
 import type { Empleado, EmpleadoFormData } from '../../types/empleado'
 import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormDropdown } from '../forms'
@@ -234,6 +235,8 @@ const authStore = useAuthStore()
 const businessStore = useBusinessStore()
 
 const t = computed(() => businessStore.terminology)
+
+const isPetNicheBusiness = computed(() => isPetNiche(businessStore.nicheType))
 
 const isSubmitting = ref(false)
 const isLoading = computed(() => isSubmitting.value || props.isSaving)
