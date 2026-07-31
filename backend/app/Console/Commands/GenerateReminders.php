@@ -221,6 +221,11 @@ class GenerateReminders extends Command
                 continue;
             }
 
+            $features = $business->features ?? [];
+            if (!($features['whatsapp_reminders_enabled'] ?? true)) {
+                continue;
+            }
+
             if (!$appt->client || !$appt->client->phone) {
                 continue;
             }
