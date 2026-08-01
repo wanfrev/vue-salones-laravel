@@ -11,7 +11,7 @@
     @close="close"
     @confirm="handleSubmit"
   >
-    <form @submit.prevent="handleSubmit" class="space-y-4">
+    <form @submit.prevent class="space-y-4">
       <!-- Nombre -->
       <FormInput
         v-model="formData.name"

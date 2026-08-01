@@ -11,7 +11,7 @@
     @close="close"
     @confirm="handleSubmit"
   >
-    <form @submit.prevent="handleSubmit" class="space-y-5">
+    <form @submit.prevent class="space-y-5">
       <!-- BLOQUE 1: DATOS GENERALES -->
       <div class="space-y-3">
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">

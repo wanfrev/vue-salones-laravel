@@ -293,15 +293,11 @@ export function useAppointmentMutations(options: {
       await db.auth.getSession()
     } catch {
     }
-    try {
-      const { paymentData, ...formData } = data
-      await saveCitaMutation.mutateAsync({
-        ...formData,
-        ...(paymentData ? { _paymentData: paymentData } : {}),
-      })
-    } catch (err) {
-      showError(translateError(err))
-    }
+    const { paymentData, ...formData } = data
+    await saveCitaMutation.mutateAsync({
+      ...formData,
+      ...(paymentData ? { _paymentData: paymentData } : {}),
+    })
   }
 
   const handleStatusChange = async ({ id, status }: { id: string; status: 'pending' | 'confirmed' | 'paid' }) => {
