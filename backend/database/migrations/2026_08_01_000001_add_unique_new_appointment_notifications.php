@@ -8,17 +8,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('notifications', function (Blueprint $table) {
-            // Remove any duplicate new_appointment notifications first
-            \App\Models\Notification::where('type', 'new_appointment')
-                ->get()
-                ->groupBy(['appointment_id', 'profile_id'])
-                ->each(function ($group) {
-                    if ($group->count() > 1) {
-                        $group->skip(1)->each->delete();
-                    }
-                });
+        // Remove any duplicate new_appointment notifications first
+        $notifications = \App\Models\Notification::where('type', 'new_appointment')->get();
+        $groups = $notifications->groupBy(['appointment_id', 'profile_id']);
+        foreach ($groups as $group) {
+            if ($group->count() > 1) {
+                foreach ($group->skip(1) as $notification) {
+                    $notification->delete();
+                }
+            }
+        }
 
+        Schema::table('notifications', function (Blueprint $table) {
             // Add unique index to prevent duplicates
             if (!Schema::hasIndex('notifications', 'unique_new_appointment_per_profile')) {
                 $table->unique(
