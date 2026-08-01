@@ -3,29 +3,42 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        // Remove any duplicate new_appointment notifications first
-        $notifications = \App\Models\Notification::where('type', 'new_appointment')->get();
-        $groups = $notifications->groupBy(['appointment_id', 'profile_id']);
-        foreach ($groups as $group) {
-            if ($group->count() > 1) {
-                foreach ($group->skip(1) as $notification) {
-                    $notification->delete();
-                }
+        // Delete duplicate new_appointment notifications (keep earliest one)
+        $duplicateGroups = DB::table('notifications')
+            ->where('type', 'new_appointment')
+            ->whereNotNull('appointment_id')
+            ->groupBy(['appointment_id', 'profile_id'])
+            ->havingRaw('COUNT(*) > 1')
+            ->select(DB::raw('appointment_id, profile_id, COUNT(*) as cnt'))
+            ->get();
+
+        foreach ($duplicateGroups as $group) {
+            $keep = DB::table('notifications')
+                ->where('appointment_id', $group->appointment_id)
+                ->where('profile_id', $group->profile_id)
+                ->where('type', 'new_appointment')
+                ->orderBy('created_at')
+                ->first(['id']);
+
+            if ($keep) {
+                DB::table('notifications')
+                    ->where('appointment_id', $group->appointment_id)
+                    ->where('profile_id', $group->profile_id)
+                    ->where('type', 'new_appointment')
+                    ->where('id', '!=', $keep->id)
+                    ->delete();
             }
         }
 
         Schema::table('notifications', function (Blueprint $table) {
-            // Add unique index to prevent duplicates
-            if (!Schema::hasIndex('notifications', 'unique_new_appointment_per_profile')) {
-                $table->unique(
-                    ['appointment_id', 'profile_id', 'type'],
-                    'unique_new_appointment_per_profile'
-                );
+            if (!Schema::hasIndex('notifications', 'unique_notif_appointment_profile_type')) {
+                $table->unique(['appointment_id', 'profile_id', 'type'], 'unique_notif_appointment_profile_type');
             }
         });
     }
@@ -33,8 +46,10 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('notifications', function (Blueprint $table) {
-            if (Schema::hasIndex('notifications', 'unique_new_appointment_per_profile')) {
-                $table->dropUnique('unique_new_appointment_per_profile');
+            try {
+                $table->dropUnique('unique_notif_appointment_profile_type');
+            } catch (\Exception $e) {
+                // Index might not exist
             }
         });
     }
