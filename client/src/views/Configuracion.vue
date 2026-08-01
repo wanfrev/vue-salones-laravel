@@ -327,6 +327,72 @@
 
     <!-- ═══════════ SUCURSALES ═══════════ -->
     <template v-if="businessStore.isMultiBranch">
+      <!-- ═══════════ NOTIFICACIONES (admin) ═══════════ -->
+      <section class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
+        <div class="flex items-center gap-3 mb-6">
+          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-base font-semibold text-text">Notificaciones</h2>
+            <p class="text-xs text-text-muted">Configura cómo y cuándo recibir alertas de citas pendientes</p>
+          </div>
+        </div>
+
+        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-5 space-y-5">
+          <!-- Toggle para activar/desactivar notificaciones de citas pendientes -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-sm font-semibold text-text">Notificaciones de citas pendientes</label>
+              <button
+                @click="togglePendingNotifications(!businessStore.features.pending_notifications_enabled)"
+                :disabled="updatingFeatures"
+                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+                :class="businessStore.features.pending_notifications_enabled ? 'bg-primary' : 'bg-border-subtle'"
+              >
+                <span
+                  class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                  :class="businessStore.features.pending_notifications_enabled ? 'translate-x-6' : 'translate-x-1'"
+                />
+              </button>
+            </div>
+            <p class="text-xs text-text-muted mb-3">Recibe alertas automáticas de las citas que aún no han sido confirmadas</p>
+          </div>
+
+          <!-- Hora configurable (solo si está activado) -->
+          <div v-if="businessStore.features.pending_notifications_enabled" class="pt-4 border-t border-border-subtle">
+            <label class="text-sm font-semibold text-text block mb-3 flex items-center gap-2">
+              <svg class="h-4 w-4 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Hora de notificación
+            </label>
+            <div class="flex items-center gap-3">
+              <div class="flex items-center border border-border rounded-lg bg-surface overflow-hidden">
+                <input
+                  type="number"
+                  min="0"
+                  max="23"
+                  v-model.number="pendingNotificationHour"
+                  @change="handlePendingNotificationHourChange"
+                  :disabled="updatingFeatures"
+                  class="w-16 px-3 py-2 text-sm text-text bg-transparent outline-none border-r border-border-subtle"
+                  placeholder="HH"
+                />
+                <span class="px-2 text-text">:00</span>
+              </div>
+              <p class="text-xs text-text-muted">Recibiras notificaciones de citas pendientes diariamente a esta hora</p>
+            </div>
+            <p v-if="pendingNotificationHour !== null" class="text-xs text-success mt-2 flex items-center gap-1.5">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+              Notificación programada para las {{ String(pendingNotificationHour).padStart(2, '0') }}:00
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
         <div class="flex items-center gap-3 mb-6">
           <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600">
@@ -586,6 +652,8 @@ const passwordLoading = ref(false)
 const passwordError = ref('')
 const passwordSuccess = ref('')
 
+const pendingNotificationHour = ref<number | null>(businessStore.features.pending_notifications_hour ?? null)
+
 async function handleChangePassword() {
   passwordError.value = ''
   passwordSuccess.value = ''
@@ -652,6 +720,48 @@ async function toggleManagerInventoryEdit(val: boolean) {
     success(val ? 'Permiso activado: Desactivada edición de inventario para encargados' : 'Permiso desactivado: Permitida edición de inventario')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
+  } finally {
+    updatingFeatures.value = false
+  }
+}
+
+async function togglePendingNotifications(val: boolean) {
+  if (!businessId.value) return
+  updatingFeatures.value = true
+  try {
+    const updatedFeatures = { ...businessStore.features, pending_notifications_enabled: val }
+    if (!val) {
+      pendingNotificationHour.value = null
+    } else if (pendingNotificationHour.value === null) {
+      pendingNotificationHour.value = 9
+    }
+    updatedFeatures.pending_notifications_hour = pendingNotificationHour.value
+    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    success(val ? 'Notificaciones de citas pendientes activadas' : 'Notificaciones de citas pendientes desactivadas')
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar las notificaciones')
+  } finally {
+    updatingFeatures.value = false
+  }
+}
+
+async function handlePendingNotificationHourChange() {
+  if (!businessId.value || pendingNotificationHour.value === null) return
+  updatingFeatures.value = true
+  try {
+    const hour = Math.max(0, Math.min(23, pendingNotificationHour.value))
+    pendingNotificationHour.value = hour
+    const updatedFeatures = { ...businessStore.features, pending_notifications_hour: hour }
+    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    success(`Hora de notificación actualizada a las ${String(hour).padStart(2, '0')}:00`)
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar la hora')
   } finally {
     updatingFeatures.value = false
   }

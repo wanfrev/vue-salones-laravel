@@ -256,6 +256,23 @@ class WhatsAppService
     }
 
     /**
+     * Generate a WhatsApp chat link for a phone number.
+     * Returns a clickable link to start a conversation on WhatsApp.
+     */
+    public function generateWhatsAppLink(string $phone, string $message = ''): string
+    {
+        $number = $this->sanitizePhone($phone);
+        $base = "https://wa.me/{$number}";
+
+        if (!empty($message)) {
+            $encoded = urlencode($message);
+            return "{$base}?text={$encoded}";
+        }
+
+        return $base;
+    }
+
+    /**
      * Sanitize a phone number for WhatsApp (remove +, spaces, etc).
      */
     private function sanitizePhone(string $phone): string
