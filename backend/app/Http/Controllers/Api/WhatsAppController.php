@@ -97,8 +97,8 @@ class WhatsAppController extends Controller
             'instance_name' => ['required', 'string', 'max:100'],
         ]);
 
-        if (!$business->whatsapp_base_url) {
-            return response()->json(['message' => 'Debes configurar la URL del servidor WhatsApp primero'], 422);
+        if (!$this->whatsappService->getBaseUrl($business)) {
+            return response()->json(['message' => 'El servidor de WhatsApp no está configurado. Contacta al administrador.'], 422);
         }
 
         if ($business->whatsapp_instance_id) {

@@ -53,7 +53,7 @@ class WhatsAppService
      */
     public function getBaseUrl(Business $business): ?string
     {
-        return $business->whatsapp_base_url;
+        return $business->whatsapp_base_url ?: config('services.evolution.url');
     }
 
     /**
@@ -61,7 +61,7 @@ class WhatsAppService
      */
     public function getApiKey(Business $business): ?string
     {
-        return $business->whatsapp_api_key;
+        return $business->whatsapp_api_key ?: config('services.evolution.api_key');
     }
 
     /**

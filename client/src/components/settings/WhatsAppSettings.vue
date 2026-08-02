@@ -15,43 +15,20 @@
       />
 
       <template v-if="config.whatsapp_enabled">
-        <!-- Server Configuration -->
-        <div v-if="!config.whatsapp_instance_id || config.whatsapp_instance_status === 'disconnected'" class="border-t border-border pt-4 space-y-3">
-          <p class="text-sm font-medium text-text">Configuración del servidor</p>
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label class="block text-xs font-medium text-text-secondary mb-1">URL del servidor WhatsApp</label>
-              <input v-model="serverUrl" type="text" placeholder="http://tu-servidor-wa"
-                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                :disabled="loading" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-text-secondary mb-1">API Key</label>
-              <input v-model="apiKey" type="password" placeholder="Tu API key del servidor"
-                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                :disabled="loading" />
-            </div>
-          </div>
-          <button @click="saveServerConfig" :disabled="!serverUrl || loading"
-            class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-50 transition-theme">
-            Guardar configuración
-          </button>
-        </div>
-
         <!-- Instance Management -->
-        <div v-if="config.whatsapp_base_url" class="border-t border-border pt-4 space-y-3">
-          <!-- Not Connected -->
+        <div class="border-t border-border pt-4 space-y-3">
+          <!-- Not Connected / Create -->
           <div v-if="!config.whatsapp_instance_id || config.whatsapp_instance_status === 'disconnected'">
             <p class="text-sm font-medium text-text mb-2">Conectar WhatsApp</p>
             <div class="flex items-end gap-3">
               <div class="flex-1">
                 <label class="block text-xs font-medium text-text-secondary mb-1">Nombre de la instancia</label>
-                <input v-model="instanceName" type="text" placeholder="Ej: instancia_mi_negocio"
+                <input v-model="instanceName" type="text" placeholder="Ej: mi_negocio"
                   class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
                   :disabled="loading" />
               </div>
               <button @click="createInstance" :disabled="!instanceName || loading"
-                class="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-50 transition-theme">
+                class="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-theme">
                 Crear instancia
               </button>
             </div>
@@ -264,8 +241,6 @@ const config = ref<WhatsAppConfig>({
   whatsapp_api_key: null,
 })
 
-const serverUrl = ref('')
-const apiKey = ref('')
 const instanceName = ref('')
 const qrCode = ref<string | null>(null)
 
@@ -297,7 +272,6 @@ const typeLabel = (type: string) => {
 const loadConfig = async () => {
   try {
     config.value = await getWhatsAppConfig()
-    serverUrl.value = config.value.whatsapp_base_url ?? ''
   } catch { /* silently fail */ }
 }
 
@@ -309,24 +283,6 @@ const handleToggleEnabled = async (val: boolean) => {
     success(val ? 'WhatsApp activado' : 'WhatsApp desactivado')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar')
-  } finally {
-    loading.value = false
-  }
-}
-
-const saveServerConfig = async () => {
-  if (!serverUrl.value) return
-  loading.value = true
-  try {
-    await updateWhatsAppConfig({
-      whatsapp_base_url: serverUrl.value,
-      whatsapp_api_key: apiKey.value || undefined,
-    })
-    config.value.whatsapp_base_url = serverUrl.value
-    config.value.whatsapp_api_key = apiKey.value ? '••••••••' : null
-    success('Configuración guardada')
-  } catch (err: any) {
-    showError(err?.message ?? 'Error al guardar')
   } finally {
     loading.value = false
   }

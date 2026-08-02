@@ -525,7 +525,6 @@
         @close="branchesCtx.closeModal()"
         @save="branchesCtx.handleSave()"
       />
-    </template>
   </div>
 </template>
 
