@@ -33,6 +33,38 @@
                 Historial
               </button>
             </div>
+            <template v-if="businessStore.hasFeature('enable_public_booking')">
+              <div class="relative" v-click-outside="() => shareDropdownOpen = false">
+                <button
+                  @click="shareDropdownOpen = !shareDropdownOpen"
+                  class="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-light px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+                >
+                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  <span class="hidden sm:inline">Link de reserva</span>
+                </button>
+                <Transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
+                  <div v-if="shareDropdownOpen" class="absolute right-0 top-full z-50 mt-1.5 w-56 rounded-xl border border-border bg-surface p-1.5 shadow-xl">
+                    <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider px-2.5 py-1.5">Selecciona empleado</p>
+                    <button
+                      v-for="emp in shareableEmployees"
+                      :key="emp.id"
+                      @click="copyShareLink(emp.id)"
+                      class="flex items-center gap-2.5 w-full rounded-lg px-2.5 py-2 text-sm transition-colors hover:bg-bg-secondary text-left"
+                    >
+                      <div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary flex-shrink-0">
+                        {{ getInitials(emp.full_name) }}
+                      </div>
+                      <span class="truncate text-text">{{ emp.full_name }}</span>
+                    </button>
+                    <div v-if="shareableEmployees.length === 0" class="px-2.5 py-3 text-xs text-text-muted text-center">
+                      No hay empleados disponibles
+                    </div>
+                  </div>
+                </Transition>
+              </div>
+            </template>
             <button
               v-if="canManageInvitations"
               @click="openInvitations"
@@ -189,6 +221,7 @@ import { ref, computed } from 'vue'
 import { useAuth } from '../composables/common/useAuth'
 import { useAdminAgenda } from '../composables/agenda/useAdminAgenda'
 import { useBusinessStore } from '../store/business'
+import { useNotification } from '../composables/common/useNotification'
 import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
 import { CitaFormModal } from '../components/modals'
 import { db } from '../lib/api'
@@ -199,6 +232,7 @@ import type { PaymentMethod } from '../types/database'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
+const { success } = useNotification()
 
 const canManageInvitations = computed(() => {
   const role = authStore.role
@@ -212,9 +246,12 @@ const invitationsModalRef = ref<InstanceType<typeof PendingInvitationsModal> | n
 
 function openInvitations() {
   invitationsModalRef.value?.open()
-}const editingCita = ref<Cita | null>(null)
+}
+const editingCita = ref<Cita | null>(null)
 const businessId = computed(() => authStore.businessId)
 const viewMode = ref<'active' | 'historial'>('active')
+
+const shareDropdownOpen = ref(false)
 
 const displayedCitas = computed(() =>
   viewMode.value === 'historial' ? historialCitas.value : activeCitas.value
@@ -238,6 +275,26 @@ const {
   setWeekMode,
   setFilterDate,
 } = useAdminAgenda(() => authStore.businessId)
+
+const shareableEmployees = computed(() =>
+  empleadosList.value.filter((e: any) => !e.disableAgenda)
+)
+
+function getInitials(name: string): string {
+  return name.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('')
+}
+
+function copyShareLink(employeeId: string) {
+  shareDropdownOpen.value = false
+  const origin = window.location.origin
+  const slug = businessStore.business?.slug || 'salon'
+  const link = `${origin}/reservar/${slug}?empleado=${employeeId}`
+  navigator.clipboard.writeText(link).then(() => {
+    success('Link de reserva copiado al portapapeles')
+  }).catch(() => {
+    prompt('Copia este link:', link)
+  })
+}
 
 const {
   handleSaveCita,
