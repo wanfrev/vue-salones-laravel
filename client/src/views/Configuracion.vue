@@ -133,84 +133,17 @@
       </div>
     </section>
 
-    <!-- ═══════════ COMUNICACIÓN ═══════════ -->
-    <section v-if="pushSupported" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
+    <!-- ═══════════ WHATSAPP ═══════════ -->
+    <section v-if="businessStore.features.whatsapp_reminders_enabled" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
       <div class="flex items-center gap-3 mb-6">
-        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600">
+        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-100 dark:bg-green-900/30 text-green-600">
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
           </svg>
         </div>
         <div>
-          <h2 class="text-base font-semibold text-text">Comunicación</h2>
-          <p class="text-xs text-text-muted">Notificaciones push y configuración de WhatsApp</p>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <!-- Push -->
-        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-5">
-          <h3 class="text-sm font-semibold text-text mb-3 flex items-center gap-2">
-            <svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-            </svg>
-            Notificaciones Push
-          </h3>
-          <p class="text-xs text-text-muted mb-3 leading-relaxed">
-            <template v-if="pushPermission === 'granted'">
-              <span class="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-semibold text-success">Activadas</span>
-              <span class="block mt-1.5">Recibirás alertas de nuevas citas y recordatorios en tu teléfono.</span>
-            </template>
-            <template v-else-if="pushPermission === 'denied'">
-              <span class="inline-flex items-center gap-1 rounded-full bg-danger/10 px-2 py-0.5 text-[11px] font-semibold text-danger">Bloqueadas</span>
-              <span class="block mt-1.5">Ve a Ajustes del navegador para permitir notificaciones.</span>
-            </template>
-            <template v-else>
-              Recibe alertas de nuevas citas y recordatorios directamente en tu teléfono.
-            </template>
-          </p>
-          <button
-            v-if="pushPermission === 'granted'"
-            @click="handleDisablePush" :disabled="pushLoading"
-            class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary transition-theme hover:bg-danger/10 hover:text-danger hover:border-danger/30 disabled:opacity-50"
-          >
-            <svg v-if="pushLoading" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-            <span v-else>Desactivar</span>
-          </button>
-          <button
-            v-else-if="pushPermission === 'denied'"
-            disabled
-            class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-muted cursor-not-allowed opacity-50"
-          >Bloqueado</button>
-          <button
-            v-else
-            @click="handleEnablePush" :disabled="pushLoading"
-            class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shadow-sm shadow-primary/20 disabled:opacity-50"
-          >
-            <svg v-if="pushLoading" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-            <svg v-else class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
-            Activar
-          </button>
-        </div>
-
-        <!-- WhatsApp -->
-        <div v-if="businessStore.features.whatsapp_reminders_enabled" class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-4">
-          <WhatsAppSettings />
-        </div>
-      </div>
-    </section>
-
-    <!-- Fallback when no push: WhatsApp solo -->
-    <section v-else-if="businessStore.features.whatsapp_reminders_enabled" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600">
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-          </svg>
-        </div>
-        <div>
-          <h2 class="text-base font-semibold text-text">Comunicación</h2>
-          <p class="text-xs text-text-muted">Configuración de mensajería</p>
+          <h2 class="text-base font-semibold text-text">WhatsApp</h2>
+          <p class="text-xs text-text-muted">Configuración de WhatsApp para recordatorios automáticos</p>
         </div>
       </div>
       <WhatsAppSettings />
@@ -359,22 +292,30 @@
           </div>
           <p class="text-xs text-text-muted mb-1">Recibe un resumen diario de las citas que aún no han sido confirmadas</p>
 
-          <div v-if="businessStore.features.pending_notifications_enabled" class="mt-3 flex items-center gap-3">
-            <div class="flex items-center border border-border rounded-lg bg-surface overflow-hidden">
-              <input
-                type="number"
-                min="0" max="23"
-                v-model.number="pendingNotificationHour"
-                @change="handlePendingNotificationHourChange"
+          <div v-if="businessStore.features.pending_notifications_enabled" class="mt-3">
+            <label class="text-xs font-medium text-text-secondary mb-1.5 block">Recibir resumen de citas pendientes a las:</label>
+            <div class="flex items-center gap-2">
+              <select
+                v-model.number="pendingNotificationHour12"
+                @change="handlePendingHourSelect"
                 :disabled="updatingFeatures"
-                class="w-16 px-3 py-1.5 text-sm text-text bg-transparent outline-none border-r border-border-subtle"
-                placeholder="HH"
-              />
-              <span class="px-2 text-xs text-text-muted">:00</span>
+                class="rounded-lg border border-border bg-surface pl-3 pr-8 py-2 text-sm font-medium text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 appearance-none"
+                style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;12&quot; height=&quot;12&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;%236b7280&quot; stroke-width=&quot;2&quot;><path d=&quot;M6 9l6 6 6-6&quot;/></svg>'); background-repeat: no-repeat; background-position: right 8px center;"
+              >
+                <option v-for="h in hours12" :key="h.value" :value="h.value">{{ h.label }}</option>
+              </select>
+              <button
+                @click="toggleAmPm"
+                :disabled="updatingFeatures"
+                class="rounded-lg border border-border px-3 py-2 text-xs font-semibold transition-colors hover:bg-bg-secondary min-w-[44px]"
+                :class="isPM ? 'bg-primary/10 text-primary border-primary/30' : 'bg-surface text-text-secondary'"
+              >
+                {{ isPM ? 'PM' : 'AM' }}
+              </button>
             </div>
-            <p class="text-[11px] text-text-muted flex items-center gap-1.5">
-              <svg class="h-3 w-3 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" stroke-width="2"/></svg>
-              Notificación diaria a las {{ String(pendingNotificationHour ?? 9).padStart(2, '0') }}:00
+            <p class="text-[11px] text-text-muted mt-1.5 flex items-center gap-1">
+              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Todos los días a las {{ displayNotificationHour }}
             </p>
           </div>
         </div>
@@ -505,8 +446,55 @@
               </button>
             </div>
           </div>
+        <!-- Notificaciones Push -->
+        <div v-if="pushSupported" class="py-4 first:pt-0 last:pb-0">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm font-semibold text-text">Notificaciones Push</label>
+            <div class="flex items-center gap-2">
+              <span
+                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                :class="pushPermission === 'granted' ? 'bg-success/10 text-success' : pushPermission === 'denied' ? 'bg-danger/10 text-danger' : 'bg-bg-secondary text-text-muted'"
+              >
+                {{ pushPermission === 'granted' ? 'Activadas' : pushPermission === 'denied' ? 'Bloqueadas' : 'No configuradas' }}
+              </span>
+              <button
+                v-if="pushPermission === 'granted'"
+                @click="handleDisablePush" :disabled="pushLoading"
+                class="rounded-lg border border-border px-2.5 py-1 text-[11px] font-medium text-text-secondary hover:bg-danger/10 hover:text-danger hover:border-danger/30 disabled:opacity-50 transition-colors"
+              >
+                <svg v-if="pushLoading" class="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                <span v-else>Desactivar</span>
+              </button>
+              <button
+                v-else-if="pushPermission === 'denied'"
+                disabled
+                class="rounded-lg border border-border px-2.5 py-1 text-[11px] font-medium text-text-muted cursor-not-allowed opacity-50"
+              >Bloqueado</button>
+              <button
+                v-else
+                @click="handleEnablePush" :disabled="pushLoading"
+                class="rounded-lg bg-primary px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors"
+              >
+                <svg v-if="pushLoading" class="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                <span v-else>Activar</span>
+              </button>
+            </div>
+          </div>
+          <p class="text-xs text-text-muted">
+            <template v-if="pushPermission === 'granted'">
+              Recibirás alertas de nuevas citas y recordatorios aunque tengas la app en segundo plano.
+            </template>
+            <template v-else-if="pushPermission === 'denied'">
+              Las notificaciones están bloqueadas. Ve a Ajustes del navegador para permitirlas.
+            </template>
+            <template v-else>
+              Recibe recordatorios y alertas directamente en tu pantalla, incluso con la app cerrada.
+            </template>
+          </p>
         </div>
-      </section>
+
+      </div>
+    </section>
 
       <BranchFormModal
         :is-open="branchesCtx.showModal.value"
@@ -682,7 +670,51 @@ const passwordLoading = ref(false)
 const passwordError = ref('')
 const passwordSuccess = ref('')
 
-const pendingNotificationHour = ref<number | null>(businessStore.features.pending_notifications_hour ?? null)
+const pendingNotificationHour = ref<number | null>(businessStore.features.pending_notifications_hour ?? 9)
+
+const hours12 = Array.from({ length: 12 }, (_, i) => ({
+  value: i + 1,
+  label: `${i + 1}:00`,
+}))
+
+const isPM = computed(() => (pendingNotificationHour.value ?? 9) >= 12)
+const pendingNotificationHour12 = computed({
+  get: () => {
+    const h = pendingNotificationHour.value ?? 9
+    if (h === 0 || h === 12) return 12
+    return h > 12 ? h - 12 : h
+  },
+  set: (val: number) => { /* noop — synced via handlePendingHourSelect */ },
+})
+
+const displayNotificationHour = computed(() => {
+  const h = pendingNotificationHour.value ?? 9
+  const h12 = h === 0 || h === 12 ? 12 : h > 12 ? h - 12 : h
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  return `${h12}:00 ${ampm}`
+})
+
+function toggleAmPm() {
+  if (pendingNotificationHour.value === null) return
+  const current = pendingNotificationHour.value
+  if (current >= 12) {
+    pendingNotificationHour.value = current - 12
+  } else {
+    pendingNotificationHour.value = current + 12
+  }
+  handlePendingNotificationHourChange()
+}
+
+function handlePendingHourSelect() {
+  const hour12 = pendingNotificationHour12.value
+  const base = isPM.value ? 12 : 0
+  if (hour12 === 12) {
+    pendingNotificationHour.value = isPM.value ? 12 : 0
+  } else {
+    pendingNotificationHour.value = base + hour12
+  }
+  handlePendingNotificationHourChange()
+}
 
 async function handleChangePassword() {
   passwordError.value = ''
