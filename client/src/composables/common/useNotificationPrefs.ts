@@ -26,6 +26,7 @@ const TYPE_LABELS: Record<NotifType, string> = {
 
 const SOUND_MAP: Partial<Record<NotifType, string>> = {
   reminder: '/sounds/recordatorio.mp3',
+  status_change: '/sounds/nuevacita.mp3',
   new_appointment: '/sounds/nuevacita.mp3',
   unpaid_alert: '/sounds/error.mp3',
   low_stock: '/sounds/error.mp3',

@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { playSound as playAudio } from '../../lib/audioPlayer'
 
 export type NotificationType = 'success' | 'error' | 'warning' | 'info'
 
@@ -13,11 +14,19 @@ export interface Notification {
 const notifications = ref<Notification[]>([])
 let idCounter = 0
 
+const TOAST_SOUNDS: Partial<Record<NotificationType, string>> = {
+  error: '/sounds/error.mp3',
+  warning: '/sounds/error.mp3',
+}
+
 export function useNotification() {
   const show = (message: string, type: NotificationType = 'info', duration: number = 4000) => {
     const id = `notification-${++idCounter}`
     const notification: Notification = { id, type, message, duration, progress: 100 }
     notifications.value.push(notification)
+
+    const soundPath = TOAST_SOUNDS[type]
+    if (soundPath) playAudio(soundPath)
 
     requestAnimationFrame(() => {
       const n = notifications.value.find(x => x.id === id)
