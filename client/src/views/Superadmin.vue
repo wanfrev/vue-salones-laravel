@@ -1,169 +1,140 @@
 <template>
-  <div class="min-h-screen bg-bg">
-    <header class="border-b border-border bg-surface">
-      <div class="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <div class="flex items-center gap-4">
-          <img :src="lumaLogo" alt="Luma" class="h-7 w-auto object-contain" />
-          <div>
-            <h1 class="text-2xl font-bold tracking-tight text-text">SaaS control</h1>
-            <p class="text-sm text-text-muted">Alta y control de negocios en un solo lugar.</p>
-          </div>
-        </div>
-        <button
-          type="button"
-          class="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
-          :disabled="loading"
-          @click="logout"
-        >
-          Cerrar sesion
-        </button>
+  <SuperadminLayout>
+    <!-- Stats -->
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-6">
+      <div class="rounded-xl border border-border bg-surface p-4">
+        <p class="text-2xl font-extrabold text-text tabular-nums">{{ businessesCount }}</p>
+        <p class="text-xs text-text-muted mt-1">Total negocios</p>
       </div>
-    </header>
+      <div class="rounded-xl border border-border bg-surface p-4">
+        <p class="text-2xl font-extrabold text-success tabular-nums">{{ activeCount }}</p>
+        <p class="text-xs text-text-muted mt-1">Activos</p>
+      </div>
+      <div class="rounded-xl border border-border bg-surface p-4">
+        <p class="text-2xl font-extrabold text-danger tabular-nums">{{ inactiveCount }}</p>
+        <p class="text-xs text-text-muted mt-1">Inactivos</p>
+      </div>
+      <div class="rounded-xl border border-border bg-surface p-4">
+        <p class="text-2xl font-extrabold text-primary tabular-nums">{{ nichesCount }}</p>
+        <p class="text-xs text-text-muted mt-1">Nichos</p>
+      </div>
+    </div>
 
-    <main class="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
-      <section class="grid gap-4 lg:grid-cols-[1.05fr_1fr]">
-        <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-          <div class="mb-4 flex items-center justify-between">
+    <div class="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+      <!-- Create Form -->
+      <div class="rounded-2xl border border-border bg-surface p-6">
+        <h2 class="text-base font-bold text-text mb-1">Registrar nuevo negocio</h2>
+        <p class="text-xs text-text-muted mb-5">Crea el negocio, su admin y las funcionalidades base</p>
+
+        <form class="space-y-4" @submit.prevent="handleSubmit">
+          <div>
+            <label class="block text-xs font-semibold text-text mb-1">Nombre del negocio</label>
+            <input v-model="form.businessName" type="text" placeholder="Ej: Spa Mimosa"
+              class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text placeholder:text-text-muted/50 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
             <div>
-              <h2 class="text-lg font-semibold text-text">Registrar negocio</h2>
-              <p class="text-sm text-text-muted">Crea el negocio y envia la invitacion al dueno.</p>
+              <label class="block text-xs font-semibold text-text mb-1">Email del dueño</label>
+              <input v-model="form.ownerEmail" type="email" placeholder="dueno@spa.com"
+                class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text placeholder:text-text-muted/50 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
             </div>
-            <div class="rounded-full bg-primary-light px-3 py-1 text-xs font-semibold text-primary">
-              Total: {{ businessesCount }}
+            <div>
+              <label class="block text-xs font-semibold text-text mb-1">Contraseña</label>
+              <input v-model="form.ownerPassword" type="password" placeholder="Mínimo 6 caracteres"
+                class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text placeholder:text-text-muted/50 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
             </div>
           </div>
 
-          <form class="grid gap-3" @submit.prevent="handleSubmit">
-            <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="businessName">Nombre del negocio</label>
-              <input
-                id="businessName"
-                v-model="form.businessName"
-                type="text"
-                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
-                placeholder="Salon Luma"
-              />
+          <div>
+            <label class="block text-xs font-semibold text-text mb-1">Nicho</label>
+            <select v-if="!showingCustomNiche" :value="form.nicheType" @change="onNicheSelect"
+              class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
+              <option value="" disabled selected>Selecciona un nicho</option>
+              <option value="salon">Salón de belleza</option>
+              <option value="barberia">Barbería</option>
+              <option value="spa">Spa</option>
+              <option value="mixto">Mixto (Barbería + Salón + Spa)</option>
+              <option value="dog_spa">Spa canino / Veterinaria</option>
+              <option value="nail_bar">Barra de uñas</option>
+              <option value="centro_estetico">Centro estético</option>
+              <option value="__new__">+ Otro (personalizado)</option>
+            </select>
+            <div v-else class="flex gap-2">
+              <input v-model="form.nicheType" type="text" placeholder="Escribe el nicho..."
+                class="flex-1 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
+              <button type="button" @click="cancelCustomNiche"
+                class="rounded-xl border border-border px-3 py-2.5 text-xs text-text-secondary hover:bg-bg-secondary transition-colors">
+                Volver
+              </button>
             </div>
+          </div>
 
-            <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="ownerEmail">Email del dueno</label>
-              <input
-                id="ownerEmail"
-                v-model="form.ownerEmail"
-                type="email"
-                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
-                placeholder="dueno@salon.com"
-              />
-            </div>
+          <p v-if="formError" class="text-xs text-danger flex items-center gap-1">
+            <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+            {{ formError }}
+          </p>
 
-            <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="ownerPassword">Contraseña del dueno</label>
-              <input
-                id="ownerPassword"
-                v-model="form.ownerPassword"
-                type="password"
-                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
-                placeholder="••••••••"
-              />
-            </div>
+          <button type="submit" :disabled="isCreating"
+            class="w-full rounded-xl bg-primary py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary-hover active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+            {{ isCreating ? 'Creando...' : 'Crear negocio e invitar admin' }}
+          </button>
+        </form>
+      </div>
 
-            <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="nicheType">Nicho</label>
-              <select
-                v-if="!showingCustomNiche"
-                id="nicheType"
-                :value="form.nicheType"
-                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
-                @change="onNicheSelect"
-              >
-                <option value="" disabled selected>Selecciona un nicho</option>
-                <option value="__new__">+ Agregar nuevo</option>
-                <option value="salon">Salón de belleza</option>
-                <option value="barberia">Barbería</option>
-                <option value="spa">Spa (humano)</option>
-                <option value="mixto">Mixto (Barbería + Salón + Spa)</option>
-                <option value="dog_spa">Spa canino / Veterinaria</option>
-                <option value="nail_bar">Barra de uñas</option>
-                <option value="centro_estetico">Centro estético</option>
-              </select>
-              <div v-else class="flex gap-2">
-                <input
-                  id="nicheType"
-                  v-model="form.nicheType"
-                  type="text"
-                  class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
-                  placeholder="Escribe el nicho..."
-                />
-                <button
-                  type="button"
-                  class="shrink-0 rounded-lg border border-border px-3 py-2 text-sm text-text-muted transition-theme hover:bg-bg-secondary"
-                  @click="cancelCustomNiche"
-                >
-                  Volver
-                </button>
-              </div>
-            </div>
-
-            <p v-if="formError" class="text-sm text-danger">{{ formError }}</p>
-
-            <button
-              type="submit"
-              :disabled="isCreating"
-              class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-sm transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {{ isCreating ? 'Creando...' : 'Crear negocio e invitar' }}
-            </button>
-          </form>
+      <!-- Business List -->
+      <div class="rounded-2xl border border-border bg-surface p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-base font-bold text-text">Negocios registrados</h2>
+            <p class="text-xs text-text-muted">{{ filteredBusinesses.length }} de {{ businessesCount }}</p>
+          </div>
+          <input v-model="search" type="search" placeholder="Buscar..."
+            class="w-44 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-text-muted/50 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
         </div>
 
-        <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-          <div class="mb-4 flex items-center justify-between">
-            <div>
-              <h2 class="text-lg font-semibold text-text">Negocios registrados</h2>
-              <p class="text-sm text-text-muted">Selecciona un negocio para administrarlo.</p>
-            </div>
-            <input
-              v-model="search"
-              type="search"
-              placeholder="Buscar"
-              class="w-40 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
-            />
-          </div>
-
-          <div class="space-y-3">
-            <router-link
-              v-for="biz in filteredBusinesses"
-              :key="biz.id"
-              :to="`/superadmin/business/${biz.id}`"
-              class="block rounded-xl border border-border bg-bg-secondary p-4 transition-theme hover:border-primary/50 hover:shadow-sm"
-            >
-              <div class="flex items-start justify-between gap-3">
-                <div class="min-w-0">
-                  <div class="flex items-center gap-2">
-                    <h3 class="text-sm font-semibold text-text">{{ biz.name }}</h3>
-                    <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                      :class="biz.active ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'"
-                    >
-                      {{ biz.active ? 'Activo' : 'Inactivo' }}
-                    </span>
-                  </div>
-                  <p class="text-xs text-text-muted">Slug: {{ biz.slug }} · Nicho: {{ biz.niche_type }}</p>
-                  <p class="text-xs text-text-muted">Creado: {{ formatDate(biz.created_at) }}</p>
-                </div>
-                <svg class="mt-0.5 h-4 w-4 shrink-0 text-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                </svg>
+        <div class="space-y-2 max-h-[440px] overflow-y-auto -mx-2 px-2">
+          <router-link
+            v-for="biz in filteredBusinesses"
+            :key="biz.id"
+            :to="`/superadmin/business/${biz.id}`"
+            class="flex items-center justify-between gap-3 rounded-xl border border-border-subtle bg-bg-secondary/40 p-3.5 hover:border-primary/30 hover:bg-primary/3 transition-all group"
+          >
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-semibold text-text group-hover:text-primary transition-colors truncate">{{ biz.name }}</h3>
+                <span class="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase"
+                  :class="biz.active ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'">
+                  {{ biz.active ? 'Activo' : 'Inactivo' }}
+                </span>
               </div>
-            </router-link>
-
-            <div v-if="!filteredBusinesses.length" class="rounded-xl border border-dashed border-border bg-bg-secondary p-6 text-center text-sm text-text-muted">
-              No hay negocios para mostrar.
+              <div class="flex items-center gap-2 mt-1 text-[11px] text-text-muted">
+                <span>{{ biz.slug }}</span>
+                <span>·</span>
+                <span class="capitalize">{{ biz.niche_type?.replace(/_/g, ' ') || 'Sin nicho' }}</span>
+                <span>·</span>
+                <span>{{ formatDate(biz.created_at) }}</span>
+              </div>
             </div>
+            <svg class="h-4 w-4 shrink-0 text-text-muted/40 group-hover:text-primary/60 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </router-link>
+
+          <div v-if="!filteredBusinesses.length && !businessesCount" class="py-12 text-center">
+            <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-bg-secondary">
+              <svg class="h-6 w-6 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            </div>
+            <p class="text-sm font-semibold text-text mb-1">Sin negocios</p>
+            <p class="text-xs text-text-muted">Crea el primer negocio usando el formulario</p>
+          </div>
+          <div v-else-if="!filteredBusinesses.length" class="py-8 text-center text-sm text-text-muted">
+            Sin resultados para "{{ search }}"
           </div>
         </div>
-      </section>
-    </main>
-  </div>
+      </div>
+    </div>
+  </SuperadminLayout>
 </template>
 
 <script setup lang="ts">
@@ -171,44 +142,16 @@ import { computed, ref } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { formatDate } from '../lib/formatters'
 import { useNotification } from '../composables/common/useNotification'
-import { useAuth } from '../composables/common/useAuth'
-import { useThemeStore } from '../store/theme'
 import { createBusinessWithOwner, listBusinesses, superadminKeys } from '../services/superadminService'
 import { translateError } from '../lib/errors'
-import lumaLogoLight from '../assets/Luma.svg'
-import lumaLogoDark from '../assets/Luma blanco.svg'
+import SuperadminLayout from '../components/layout/SuperadminLayout.vue'
 import type { Business } from '../types/database'
 
-const { logout, loading } = useAuth()
-const { success, error } = useNotification()
+const { success, error: showError } = useNotification()
 const queryClient = useQueryClient()
-const themeStore = useThemeStore()
-const lumaLogo = computed(() => (themeStore.isDark ? lumaLogoDark : lumaLogoLight))
 
-const form = ref({
-  businessName: '',
-  ownerEmail: '',
-  ownerPassword: '',
-  nicheType: '',
-})
-
+const form = ref({ businessName: '', ownerEmail: '', ownerPassword: '', nicheType: '' })
 const showingCustomNiche = ref(false)
-
-const onNicheSelect = (event: Event) => {
-  const value = (event.target as HTMLSelectElement).value
-  if (value === '__new__') {
-    showingCustomNiche.value = true
-    form.value.nicheType = ''
-    return
-  }
-  form.value.nicheType = value
-}
-
-const cancelCustomNiche = () => {
-  showingCustomNiche.value = false
-  form.value.nicheType = ''
-}
-
 const search = ref('')
 const formError = ref('')
 
@@ -219,52 +162,54 @@ const { data: businessesData } = useQuery({
 
 const businesses = computed<Business[]>(() => businessesData.value ?? [])
 const businessesCount = computed(() => businesses.value.length)
+const activeCount = computed(() => businesses.value.filter(b => b.active).length)
+const inactiveCount = computed(() => businesses.value.filter(b => !b.active).length)
+const nichesCount = computed(() => new Set(businesses.value.map(b => b.niche_type).filter(Boolean)).size)
 
 const { mutateAsync: createBusiness, isPending: isCreating } = useMutation({
   mutationFn: createBusinessWithOwner,
-  onSuccess: async () => {
-    success('Negocio creado. El admin ya puede iniciar sesión.')
-    form.value.businessName = ''
-    form.value.ownerEmail = ''
-    form.value.ownerPassword = ''
-    form.value.nicheType = ''
+  onSuccess: () => {
+    success('Negocio creado correctamente')
+    form.value = { businessName: '', ownerEmail: '', ownerPassword: '', nicheType: '' }
     formError.value = ''
     queryClient.invalidateQueries({ queryKey: superadminKeys.businesses() }).catch(() => {})
   },
   onError: (err: unknown) => {
-    error(translateError(err, 'No fue posible crear el negocio.'))
+    showError(translateError(err, 'No fue posible crear el negocio'))
   },
 })
 
 const filteredBusinesses = computed(() => {
   const term = search.value.trim().toLowerCase()
   if (!term) return businesses.value
-  return businesses.value.filter(biz =>
-    biz.name.toLowerCase().includes(term)
-      || biz.slug.toLowerCase().includes(term)
-      || biz.niche_type.toLowerCase().includes(term)
+  return businesses.value.filter(b =>
+    b.name.toLowerCase().includes(term) ||
+    b.slug.toLowerCase().includes(term) ||
+    (b.niche_type || '').toLowerCase().includes(term)
   )
 })
 
+const onNicheSelect = (e: Event) => {
+  const val = (e.target as HTMLSelectElement).value
+  if (val === '__new__') { showingCustomNiche.value = true; form.value.nicheType = ''; return }
+  form.value.nicheType = val
+}
+const cancelCustomNiche = () => { showingCustomNiche.value = false; form.value.nicheType = '' }
+
 const handleSubmit = async () => {
   formError.value = ''
-
   if (!form.value.businessName.trim() || !form.value.ownerEmail.trim() || !form.value.ownerPassword.trim()) {
-    formError.value = 'Nombre, email y contraseña son requeridos.'
+    formError.value = 'Todos los campos son requeridos.'
     return
   }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(form.value.ownerEmail.trim())) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.ownerEmail.trim())) {
     formError.value = 'El formato del email no es válido.'
     return
   }
-
   if (form.value.ownerPassword.trim().length < 6) {
     formError.value = 'La contraseña debe tener al menos 6 caracteres.'
     return
   }
-
   await createBusiness({
     businessName: form.value.businessName,
     ownerEmail: form.value.ownerEmail,
@@ -272,6 +217,4 @@ const handleSubmit = async () => {
     nicheType: form.value.nicheType.trim() || undefined,
   })
 }
-
-
 </script>
