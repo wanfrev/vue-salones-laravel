@@ -17,7 +17,7 @@ use Minishlink\WebPush\Subscription;
 
 class GenerateReminders extends Command
 {
-    protected $signature = 'reminders:generate';
+    protected $signature = 'reminders:generate {--debug : Show verbose debug output}';
     protected $description = 'Generate appointment reminders, unpaid alerts, and low stock notifications.';
 
     public function __construct(
@@ -33,9 +33,12 @@ class GenerateReminders extends Command
         $totalGenerated = 0;
         $unpaidGenerated = 0;
         $lowStockGenerated = 0;
+        $pendingGenerated = 0;
         $whatsappSent = 0;
         $affectedBusinesses = [];
         $whatsappBizIds = [];
+
+        \Illuminate\Support\Facades\Log::info('[reminders:generate] STARTING at ' . $now->toIso8601String());
 
         // 1. Generate reminders: appointments starting in ~24h
         $this->info('[reminders:generate] Checking appointments in ~24h window...');
@@ -49,13 +52,32 @@ class GenerateReminders extends Command
             ->whereBetween('start_time', [$in22h, $in26h])
             ->get();
 
+        \Illuminate\Support\Facades\Log::info("[reminders:generate] 24h window ({$in22h->toIso8601String()} to {$in26h->toIso8601String()}): found {$appointments->count()} appointments");
+
+        if ($this->option('debug')) {
+            foreach ($appointments as $appt) {
+                $this->line("  - Appointment {$appt->id}: {$appt->client?->full_name} — {$appt->service?->name} at {$appt->start_time} (status: {$appt->status})");
+            }
+        }
+
         if ($appointments->isNotEmpty()) {
             $appointmentIds = [];
 
             foreach ($appointments as $appt) {
                 $client = $appt->client;
                 $service = $appt->service;
-                if (!$client || !$service) continue;
+                if (!$client || !$service) {
+                    \Illuminate\Support\Facades\Log::warning("[reminders:generate] 24h: Skipping appointment {$appt->id} — missing client or service");
+                    continue;
+                }
+
+                // Check if internal reminders are enabled for this business
+                $biz = Business::find($appt->business_id);
+                $bizFeatures = $biz?->features ?? [];
+                if (isset($bizFeatures['reminder_24h_enabled']) && !$bizFeatures['reminder_24h_enabled']) {
+                    \Illuminate\Support\Facades\Log::debug("[reminders:generate] 24h: Skipping appointment {$appt->id} — reminder_24h_enabled is false for business {$appt->business_id}");
+                    continue;
+                }
 
                 $notifications = [];
 
@@ -63,13 +85,16 @@ class GenerateReminders extends Command
                     'business_id' => $appt->business_id,
                     'appointment_id' => $appt->id,
                     'type' => 'reminder',
-                    'title' => 'Recordatorio de cita',
+                    'title' => 'Recordatorio de cita (24 horas)',
                     'message' => "El cliente {$client->full_name} tiene cita de {$service->name}",
                     'client_name' => $client->full_name,
                     'client_phone' => $client->phone,
                     'service_name' => $service->name,
                     'appointment_time' => $appt->start_time,
-                    'metadata' => [],
+                    'metadata' => [
+                        'type' => 'reminder_24h',
+                        'whatsapp_link' => $this->whatsappService->generateWhatsAppLink($client->phone),
+                    ],
                 ];
 
                 $notifications[] = array_merge($baseData, [
@@ -102,9 +127,154 @@ class GenerateReminders extends Command
             }
         }
 
-        $this->info("[reminders:generate] {$totalGenerated} reminder notifications generated.");
+        $this->info("[reminders:generate] {$totalGenerated} reminder (24h) notifications generated.");
 
-        // 2. Generate unpaid alerts: confirmed >24h ago, not paid
+        // 2. Generate reminders: appointments starting in ~1h
+        $this->info('[reminders:generate] Checking appointments in ~1h window...');
+
+        $in50m = $now->copy()->addMinutes(50);
+        $in70m = $now->copy()->addMinutes(70);
+
+        $appointmentsIn1h = Appointment::with(['client', 'service', 'employeeProfile', 'pet'])
+            ->whereNull('reminder_1h_sent_at')
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->whereBetween('start_time', [$in50m, $in70m])
+            ->get();
+
+        \Illuminate\Support\Facades\Log::info("[reminders:generate] 1h window ({$in50m->toIso8601String()} to {$in70m->toIso8601String()}): found {$appointmentsIn1h->count()} appointments");
+
+        if ($appointmentsIn1h->isNotEmpty()) {
+            $appointmentIds1h = [];
+
+            foreach ($appointmentsIn1h as $appt) {
+                $client = $appt->client;
+                $service = $appt->service;
+                if (!$client || !$service) {
+                    \Illuminate\Support\Facades\Log::warning("[reminders:generate] 1h: Skipping appointment {$appt->id} — missing client or service");
+                    continue;
+                }
+
+                $biz = Business::find($appt->business_id);
+                $bizFeatures = $biz?->features ?? [];
+                if (isset($bizFeatures['reminder_24h_enabled']) && !$bizFeatures['reminder_24h_enabled']) {
+                    continue;
+                }
+
+                $notifications = [];
+
+                $baseData = [
+                    'business_id' => $appt->business_id,
+                    'appointment_id' => $appt->id,
+                    'type' => 'reminder',
+                    'title' => 'Recordatorio de cita (1 hora)',
+                    'message' => "El cliente {$client->full_name} tiene cita de {$service->name} en 1 hora",
+                    'client_name' => $client->full_name,
+                    'client_phone' => $client->phone,
+                    'service_name' => $service->name,
+                    'appointment_time' => $appt->start_time,
+                    'metadata' => [
+                        'type' => 'reminder_1h',
+                        'whatsapp_link' => $this->whatsappService->generateWhatsAppLink($client->phone),
+                    ],
+                ];
+
+                $notifications[] = array_merge($baseData, [
+                    'profile_id' => $appt->employee_id,
+                ]);
+
+                $admins = $this->getAdminsToNotify($appt->business_id, $appt->branch_id, $appt->employee_id);
+
+                foreach ($admins as $admin) {
+                    $notifications[] = array_merge($baseData, [
+                        'profile_id' => $admin->id,
+                    ]);
+                }
+
+                foreach ($notifications as $n) {
+                    $this->notificationService->create($n);
+                    $totalGenerated++;
+                }
+
+                $appointmentIds1h[] = $appt->id;
+                $affectedBusinesses[$appt->business_id] = true;
+            }
+
+            if (!empty($appointmentIds1h)) {
+                $this->sendWhatsAppReminders($appointmentsIn1h->whereIn('id', $appointmentIds1h), $whatsappBizIds, $whatsappSent);
+
+                Appointment::whereIn('id', $appointmentIds1h)->update([
+                    'reminder_1h_sent_at' => now(),
+                ]);
+            }
+        }
+
+        $this->info("[reminders:generate] {$totalGenerated} total reminders (24h + 1h) generated.");
+
+        // 3. Generate pending appointments reminders (configurable hour)
+        $this->info('[reminders:generate] Checking pending appointments for notifications...');
+
+        $businesses = Business::where('active', true)->get();
+
+        foreach ($businesses as $business) {
+            $pendingNotificationHour = $business->features['pending_notifications_hour'] ?? null;
+            $pendingNotificationsEnabled = $business->features['pending_notifications_enabled'] ?? false;
+
+            if (!$pendingNotificationsEnabled || $pendingNotificationHour === null) {
+                if ($this->option('debug')) {
+                    $this->line("  - Business {$business->id} ({$business->name}): pending_notifications_enabled=" . ($pendingNotificationsEnabled ? 'true' : 'false') . ", hour=" . ($pendingNotificationHour ?? 'null'));
+                }
+                continue;
+            }
+
+            $today = $now->copy()->startOfDay();
+            $targetTime = $today->copy()->setHour((int)$pendingNotificationHour)->setMinute(0)->setSecond(0);
+
+            \Illuminate\Support\Facades\Log::info("[reminders:generate] Business {$business->id}: pending_notifications_hour={$pendingNotificationHour}, target_time={$targetTime->toIso8601String()}, now={$now->toIso8601String()}, diff_in_hours={$now->diffInHours($targetTime)}");
+
+            if ($now->greaterThanOrEqualTo($targetTime) && $now->diffInHours($targetTime) < 1) {
+                $pendingAppts = Appointment::with(['client', 'service'])
+                    ->where('business_id', $business->id)
+                    ->where('status', 'pending')
+                    ->where(function ($query) {
+                        $query->whereNull('pending_reminder_sent_at')
+                            ->orWhere('pending_reminder_sent_at', '<', now()->subDay());
+                    })
+                    ->get();
+
+                if ($pendingAppts->isNotEmpty()) {
+                    $admins = $this->getAdminsToNotify($business->id, null);
+
+                    foreach ($admins as $admin) {
+                        $appointmentList = $pendingAppts->map(function ($appt) {
+                            return "{$appt->client?->full_name} - {$appt->service?->name} ({$appt->start_time->format('H:i')})";
+                        })->implode(', ');
+
+                        $this->notificationService->create([
+                            'business_id' => $business->id,
+                            'profile_id' => $admin->id,
+                            'type' => 'pending_appointments',
+                            'title' => 'Citas pendientes de confirmación',
+                            'message' => "Tienes {$pendingAppts->count()} cita(s) sin confirmar: {$appointmentList}",
+                            'metadata' => [
+                                'type' => 'pending_appointments',
+                                'pending_count' => $pendingAppts->count(),
+                            ],
+                        ]);
+                        $pendingGenerated++;
+                    }
+
+                    Appointment::whereIn('id', $pendingAppts->pluck('id'))->update([
+                        'pending_reminder_sent_at' => now(),
+                    ]);
+
+                    $affectedBusinesses[$business->id] = true;
+                }
+            }
+        }
+
+        $this->info("[reminders:generate] {$pendingGenerated} pending appointment notifications generated.");
+
+        // 4. Generate unpaid alerts: confirmed >24h ago, not paid
         $this->info('[reminders:generate] Checking unpaid confirmed appointments...');
 
         $twentyFourHoursAgo = $now->copy()->subHours(24);
@@ -152,7 +322,7 @@ class GenerateReminders extends Command
 
         $this->info("[reminders:generate] {$unpaidGenerated} unpaid alert notifications generated.");
 
-        // 3. Low stock alerts
+        // 5. Low stock alerts
         $this->info('[reminders:generate] Checking low stock products...');
 
         $lowStockProducts = InventoryStock::with('product')
@@ -196,8 +366,9 @@ class GenerateReminders extends Command
 
         $this->info("[reminders:generate] {$lowStockGenerated} low stock notifications generated.");
 
-        $grandTotal = $totalGenerated + $unpaidGenerated + $lowStockGenerated;
-        $this->info("[reminders:generate] Done. Total: {$grandTotal}. WhatsApp: {$whatsappSent} sent.");
+        $grandTotal = $totalGenerated + $unpaidGenerated + $lowStockGenerated + $pendingGenerated;
+        $this->info("[reminders:generate] Done. Total: {$grandTotal} (24h+1h reminders: {$totalGenerated}, unpaid: {$unpaidGenerated}, pending: {$pendingGenerated}, low stock: {$lowStockGenerated}). WhatsApp: {$whatsappSent} sent.");
+        \Illuminate\Support\Facades\Log::info("[reminders:generate] DONE. Total: {$grandTotal} (24h+1h: {$totalGenerated}, unpaid: {$unpaidGenerated}, pending: {$pendingGenerated}, low stock: {$lowStockGenerated}), WhatsApp: {$whatsappSent}, affected businesses: " . implode(', ', array_keys($affectedBusinesses)));
 
         // Broadcast real-time event so frontend picks up new notifications
         $allAffectedBizIds = array_unique(array_merge(array_keys($affectedBusinesses), array_keys($whatsappBizIds)));
@@ -218,6 +389,14 @@ class GenerateReminders extends Command
         foreach ($appointments as $appt) {
             $business = Business::find($appt->business_id);
             if (!$business || !$business->whatsapp_enabled || !$business->whatsapp_instance_id) {
+                continue;
+            }
+
+            $features = $business->features ?? [];
+            if (!($features['whatsapp_available'] ?? false)) {
+                continue;
+            }
+            if (!($features['whatsapp_reminders_enabled'] ?? true)) {
                 continue;
             }
 

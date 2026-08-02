@@ -53,7 +53,7 @@ class WhatsAppService
      */
     public function getBaseUrl(Business $business): ?string
     {
-        return $business->whatsapp_base_url;
+        return $business->whatsapp_base_url ?: config('services.evolution.url');
     }
 
     /**
@@ -61,7 +61,7 @@ class WhatsAppService
      */
     public function getApiKey(Business $business): ?string
     {
-        return $business->whatsapp_api_key;
+        return $business->whatsapp_api_key ?: config('services.evolution.api_key');
     }
 
     /**
@@ -253,6 +253,23 @@ class WhatsAppService
             Log::error("[WhatsApp] Error disconnecting instance: {$e->getMessage()}");
             return false;
         }
+    }
+
+    /**
+     * Generate a WhatsApp chat link for a phone number.
+     * Returns a clickable link to start a conversation on WhatsApp.
+     */
+    public function generateWhatsAppLink(string $phone, string $message = ''): string
+    {
+        $number = $this->sanitizePhone($phone);
+        $base = "https://wa.me/{$number}";
+
+        if (!empty($message)) {
+            $encoded = urlencode($message);
+            return "{$base}?text={$encoded}";
+        }
+
+        return $base;
     }
 
     /**

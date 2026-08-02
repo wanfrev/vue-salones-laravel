@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\WhatsAppController;
+use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierPaymentController;
 use App\Http\Controllers\Api\SuperadminController;
@@ -218,6 +219,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'dismiss']);
+
+    // Reminders (admin-only manual trigger for testing)
+    Route::post('/reminders/trigger', [ReminderController::class, 'trigger']);
 
     // WhatsApp
     Route::get('/whatsapp/config', [WhatsAppController::class, 'config']);

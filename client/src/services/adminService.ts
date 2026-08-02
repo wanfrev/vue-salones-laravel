@@ -15,6 +15,7 @@ export interface EmployeeInput {
   disable_inventory_edit?: boolean
   can_create_appointments?: boolean
   can_create_clients?: boolean
+  can_access_consultorio?: boolean
   schedules?: Array<{
     branch_id?: string | null
     weekday: number

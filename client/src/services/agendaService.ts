@@ -18,9 +18,14 @@ function mapAgendaWriteError(error: unknown, action: 'guardar' | 'reagendar'): E
   const message = String(candidate.message ?? '')
   const isOverlap = message.includes('23P01') ||
     message.includes('El empleado ya tiene una cita en ese horario') ||
-    message.includes('El asistente ya tiene una cita')
+    message.includes('El asistente ya tiene una cita en ese horario') ||
+    message.includes('El empleado ya tiene una cita (') ||
+    message.includes('El asistente ya tiene una cita (')
   if (isOverlap) {
-    return new Error(`No se puede ${action} la cita: el empleado ya tiene otra cita en ese horario.`)
+    const detail = message.includes('(') ? message.match(/\((.+?)\)\s*en ese horario/)?.[1] ?? '' : ''
+    return new Error(detail
+      ? `No se puede ${action} la cita: conflicto con "${detail}"`
+      : `No se puede ${action} la cita: el empleado ya tiene otra cita en ese horario.`)
   }
   if (message.includes('23505') || message.includes('duplicad')) {
     return new Error(`No se puede ${action} la cita: registro duplicado.`)

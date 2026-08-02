@@ -52,7 +52,7 @@
                   :disabled="isLoading">
                   {{ cancelText }}
                 </button>
-                <button v-if="showConfirmButton" @click="handleConfirm"
+                <button v-if="showConfirmButton" type="button" @click="handleConfirm"
                   class="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium text-text-inverse transition-theme disabled:opacity-50"
                   :class="confirmButtonClass" :disabled="isLoading || isConfirmDisabled">
                   <svg v-if="isLoading" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">

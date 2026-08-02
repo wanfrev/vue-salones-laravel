@@ -11,7 +11,7 @@
     @close="close"
     @confirm="handleSubmit"
   >
-    <form @submit.prevent="handleSubmit" class="space-y-5">
+    <form @submit.prevent class="space-y-5">
       <!-- BLOQUE 1: DATOS DEL TUTOR Y MASCOTA -->
       <div class="space-y-3 rounded-xl border border-border bg-bg-secondary/20 p-4">
         <h3 class="text-xs font-bold uppercase tracking-wider text-primary">Datos del Tutor y Paciente</h3>

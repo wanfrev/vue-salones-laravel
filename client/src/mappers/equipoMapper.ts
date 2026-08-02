@@ -55,6 +55,9 @@ export const mapProfileToEmpleado = (
     payValueLabel,
     disableAgenda: profile.disable_agenda ?? false,
     disableInventoryEdit: profile.disable_inventory_edit ?? false,
+    canCreateAppointments: profile.can_create_appointments ?? true,
+    canCreateClients: profile.can_create_clients ?? true,
+    canAccessConsultorio: profile.can_access_consultorio ?? true,
   }
 }
 

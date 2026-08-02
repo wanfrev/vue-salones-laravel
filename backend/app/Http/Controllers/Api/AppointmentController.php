@@ -127,29 +127,42 @@ class AppointmentController
 
         $creatorProfileId = $request->user()?->profile?->id;
         $notifiedProfiles = $creatorProfileId ? [$creatorProfileId] : [];
-        
-        // Notify assigned employee
         $notifService = app(NotificationService::class);
         $clientName = $appointment->client?->full_name ?? 'Cliente';
         $serviceName = $appointment->service?->name ?? 'Servicio';
         $employeeName = $appointment->employeeProfile?->full_name ?? '';
         $startTime = $appointment->start_time;
 
-        $notifService->create([
-            'business_id' => $businessId,
-            'profile_id' => $appointment->employee_id,
-            'appointment_id' => $appointment->id,
-            'type' => 'new_appointment',
-            'title' => 'Nueva cita agendada',
-            'message' => "{$clientName} — {$serviceName}",
-            'client_name' => $clientName,
-            'service_name' => $serviceName,
-            'appointment_time' => $startTime,
-        ]);
-        $notifiedProfiles[] = $appointment->employee_id;
+        // Check if notifications already exist for this appointment
+        $existingNotifications = \App\Models\Notification::where('appointment_id', $appointment->id)
+            ->where('type', 'new_appointment')
+            ->pluck('profile_id')
+            ->toArray();
 
-        // Notify assistant if assigned
-        if ($appointment->assistant_employee_id) {
+        \Illuminate\Support\Facades\Log::info("[AppointmentController] Creating notifications for appointment {$appointment->id}. Existing: " . implode(', ', $existingNotifications ?: ['none']));
+
+        // Notify assigned employee (skip if already notified)
+        if ($appointment->employee_id && $appointment->employee_id !== $creatorProfileId && !in_array($appointment->employee_id, $existingNotifications)) {
+            $notifService->create([
+                'business_id' => $businessId,
+                'profile_id' => $appointment->employee_id,
+                'appointment_id' => $appointment->id,
+                'type' => 'new_appointment',
+                'title' => 'Nueva cita agendada',
+                'message' => "{$clientName} — {$serviceName}",
+                'client_name' => $clientName,
+                'service_name' => $serviceName,
+                'appointment_time' => $startTime,
+            ]);
+            \Illuminate\Support\Facades\Log::info("[AppointmentController] Created notification for employee {$appointment->employee_id} for appointment {$appointment->id}");
+            $notifiedProfiles[] = $appointment->employee_id;
+        } else if ($appointment->employee_id) {
+            \Illuminate\Support\Facades\Log::info("[AppointmentController] Skipped notification for employee {$appointment->employee_id} (creator or duplicate)");
+            $notifiedProfiles[] = $appointment->employee_id;
+        }
+
+        // Notify assistant if assigned (and different from creator)
+        if ($appointment->assistant_employee_id && $appointment->assistant_employee_id !== $creatorProfileId && !in_array($appointment->assistant_employee_id, $existingNotifications)) {
             $notifService->create([
                 'business_id' => $businessId,
                 'profile_id' => $appointment->assistant_employee_id,
@@ -164,11 +177,11 @@ class AppointmentController
             $notifiedProfiles[] = $appointment->assistant_employee_id;
         }
 
-        // Notify admins and encargados
+        // Notify admins and encargados (avoid duplicates)
         $admins = $this->getAdminsToNotify($businessId, $appointment->branch_id);
         foreach ($admins as $admin) {
-            if (in_array($admin->id, $notifiedProfiles)) continue;
-            
+            if (in_array($admin->id, $notifiedProfiles) || in_array($admin->id, $existingNotifications)) continue;
+
             $notifService->create([
                 'business_id' => $businessId,
                 'profile_id' => $admin->id,

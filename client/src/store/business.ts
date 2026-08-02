@@ -35,6 +35,9 @@ const DEFAULT_TERMINOLOGY: Terminology = {
     pos_direct_service_sale: false,
     enable_public_booking: true,
     hide_client_phone_from_employees: false,
+    whatsapp_available: false,
+    whatsapp_reminders_enabled: true,
+    reminder_24h_enabled: true,
   }
 
 export type FeatureKey = keyof typeof DEFAULT_FEATURES

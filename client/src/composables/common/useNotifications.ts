@@ -15,6 +15,7 @@ import type { NotificationRecord } from '../../services/notificationService'
 import { sanitizePhone } from '../../lib/formatters'
 import { subscribeToPush, isPushSupported } from '../../services/pushService'
 import { useNotificationPrefs } from './useNotificationPrefs'
+import { playSound } from '../../lib/audioPlayer'
 
 let permissionRequested = false
 
@@ -109,9 +110,7 @@ export function useNotifications() {
       shownNotificationIds.add(n.id)
       showBrowserNotification(n)
       const sound = getSoundForType(n.type)
-      if (sound) {
-        try { new Audio(sound).play().catch(() => {}) } catch { /* autoplay blocked */ }
-      }
+      if (sound) playSound(sound)
     }
   })
 

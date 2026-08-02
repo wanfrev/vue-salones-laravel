@@ -11,7 +11,7 @@
     @close="close"
     @confirm="handleSubmit"
   >
-    <form @submit.prevent="handleSubmit">
+    <form @submit.prevent>
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 min-w-0 overflow-hidden">
         <!-- COLUMNA IZQUIERDA: Contacto / Información básica -->
         <div class="space-y-4 min-w-0">

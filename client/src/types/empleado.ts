@@ -19,6 +19,9 @@ export interface Empleado {
   payValueLabel: string
   disableAgenda?: boolean
   disableInventoryEdit?: boolean
+  canCreateAppointments?: boolean
+  canCreateClients?: boolean
+  canAccessConsultorio?: boolean
 }
 
 export interface EmpleadoFormData {
@@ -41,4 +44,5 @@ export interface EmpleadoFormData {
   disableInventoryEdit: boolean
   canCreateAppointments: boolean
   canCreateClients: boolean
+  canAccessConsultorio: boolean
 }

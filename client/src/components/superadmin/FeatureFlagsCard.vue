@@ -52,6 +52,7 @@ const toggles = [
   { key: 'gift_cards', label: 'Gift Cards', description: 'Sistema de tarjetas de regalo' },
   { key: 'manual_reports', label: 'Módulo de Reporte Diario', description: 'Generación y control de reportes diarios' },
   { key: 'enable_public_booking', label: 'Reservas públicas / Invitaciones', description: 'Permite compartir links de reserva y gestionar invitaciones de clientes' },
+  { key: 'whatsapp_available', label: 'WhatsApp disponible', description: 'Permite que el negocio configure WhatsApp via Evolution API para enviar recordatorios. Si se desactiva, no verá ninguna opción de WhatsApp en su configuración.' },
   { key: 'hide_client_phone_from_employees', label: 'Ocultar teléfono a empleados', description: 'Los empleados no verán el teléfono ni email de los clientes en citas, búsqueda y listado' },
 ]
 </script>
