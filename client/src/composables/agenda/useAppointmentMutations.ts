@@ -289,18 +289,23 @@ export function useAppointmentMutations(options: {
   }
 
   const handleSaveCita = async (data: CitaFormData & { id?: string; clientPhone?: string; paymentData?: PaymentEditContext }) => {
+    if (saveCitaMutation.isPending.value) return
     try {
       await db.auth.getSession()
     } catch {
     }
-    const { paymentData, ...formData } = data
-    await saveCitaMutation.mutateAsync({
-      ...formData,
-      ...(paymentData ? { _paymentData: paymentData } : {}),
-    })
+    try {
+      const { paymentData, ...formData } = data
+      await saveCitaMutation.mutateAsync({
+        ...formData,
+        ...(paymentData ? { _paymentData: paymentData } : {}),
+      })
+    } catch {
+    }
   }
 
   const handleStatusChange = async ({ id, status }: { id: string; status: 'pending' | 'confirmed' | 'paid' }) => {
+    if (updateStatusMutation.isPending.value) return
     try {
       await updateStatusMutation.mutateAsync({ id, status })
     } catch {
@@ -310,6 +315,7 @@ export function useAppointmentMutations(options: {
   }
 
   const handleEventChange = async ({ id, start, end, employeeId }: { id: string; start: string; end: string; employeeId?: string }) => {
+    if (updateTimeMutation.isPending.value) return
     const newStart = new Date(start)
     const newEnd = new Date(end)
 
