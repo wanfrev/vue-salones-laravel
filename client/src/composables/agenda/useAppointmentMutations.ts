@@ -145,54 +145,14 @@ export function useAppointmentMutations(options: {
       return savedCita
     },
     onMutate: (input) => {
-      if (input.id) return
-      const tempId = `temp-${Date.now()}`
-      const tempStart = new Date(`${input.date}T${input.time}:00`).toISOString()
-      const optimistic: any = {
-        id: tempId, status: 'pending', payment_status: 'unpaid',
-        start_time: tempStart, end_time: tempStart,
-        service_id: input.service, employee_id: input.employee,
-        business_id: options.businessId.value, branch_id: businessStore.currentBranchId,
-        client: { full_name: input.clientName, phone: input.clientPhone },
-      }
-      const previousQueries = queryClient.getQueriesData({ queryKey: ['appointments'], exact: false })
-      for (const [key, old] of previousQueries) {
-        if (Array.isArray(old)) {
-          queryClient.setQueryData(key, [optimistic, ...old])
-        }
-      }
-      return { tempId, previousQueries }
+      return undefined
     },
-    onSuccess: (result, _input, context) => {
-      const saved = result as any
-      if (context?.previousQueries) {
-        for (const [key, oldData] of context.previousQueries) {
-          let updated: any[]
-          if (Array.isArray(oldData)) {
-            if (context.tempId) {
-              updated = oldData.map((c: any) => c.id === context.tempId ? { ...saved, ...c, id: saved.id ?? c.id } : c)
-              if (!updated.some((c: any) => c.id === saved.id)) {
-                updated = [saved, ...updated.filter((c: any) => c.id !== context.tempId)]
-              }
-            } else {
-              updated = [saved, ...oldData]
-            }
-          } else {
-            updated = [saved]
-          }
-          queryClient.setQueryData(key, updated)
-        }
-      }
+    onSuccess: (_result, _input, _context) => {
       options.modalRef?.value?.close()
       options.modalRef?.value?.onSaveComplete?.()
       success('Cita guardada correctamente')
     },
-    onError: (err, _input, context) => {
-      if (context?.previousQueries) {
-        for (const [key, data] of context.previousQueries) {
-          queryClient.setQueryData(key, data)
-        }
-      }
+    onError: (err, _input, _context) => {
       options.modalRef?.value?.onSaveComplete?.()
       showError(translateError(err))
     },
