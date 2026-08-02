@@ -325,73 +325,103 @@
       </div>
     </section>
 
-    <!-- ═══════════ SUCURSALES ═══════════ -->
-    <template v-if="businessStore.isMultiBranch">
-      <!-- ═══════════ NOTIFICACIONES (admin) ═══════════ -->
-      <section class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
-        <div class="flex items-center gap-3 mb-6">
-          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-          </div>
-          <div>
-            <h2 class="text-base font-semibold text-text">Notificaciones</h2>
-            <p class="text-xs text-text-muted">Configura cómo y cuándo recibir alertas de citas pendientes</p>
-          </div>
+    <!-- ═══════════ NOTIFICACIONES ═══════════ -->
+    <section class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
+      <div class="flex items-center gap-3 mb-6">
+        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
         </div>
+        <div>
+          <h2 class="text-base font-semibold text-text">Notificaciones y recordatorios</h2>
+          <p class="text-xs text-text-muted">Configura alertas, recordatorios automáticos y reservas públicas</p>
+        </div>
+      </div>
 
-        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-5 space-y-5">
-          <!-- Toggle para activar/desactivar notificaciones de citas pendientes -->
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <label class="text-sm font-semibold text-text">Notificaciones de citas pendientes</label>
-              <button
-                @click="togglePendingNotifications(!businessStore.features.pending_notifications_enabled)"
-                :disabled="updatingFeatures"
-                class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                :class="businessStore.features.pending_notifications_enabled ? 'bg-primary' : 'bg-border-subtle'"
-              >
-                <span
-                  class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                  :class="businessStore.features.pending_notifications_enabled ? 'translate-x-6' : 'translate-x-1'"
-                />
-              </button>
-            </div>
-            <p class="text-xs text-text-muted mb-3">Recibe alertas automáticas de las citas que aún no han sido confirmadas</p>
+      <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-5 space-y-1 divide-y divide-border-subtle">
+
+        <!-- Recordatorios de citas pendientes -->
+        <div class="py-4 first:pt-0 last:pb-0">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm font-semibold text-text">Recordatorio de citas sin confirmar</label>
+            <button
+              @click="togglePendingNotifications(!businessStore.features.pending_notifications_enabled)"
+              :disabled="updatingFeatures"
+              class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+              :class="businessStore.features.pending_notifications_enabled ? 'bg-primary' : 'bg-border-subtle'"
+            >
+              <span
+                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                :class="businessStore.features.pending_notifications_enabled ? 'translate-x-6' : 'translate-x-1'"
+              />
+            </button>
           </div>
+          <p class="text-xs text-text-muted mb-1">Recibe un resumen diario de las citas que aún no han sido confirmadas</p>
 
-          <!-- Hora configurable (solo si está activado) -->
-          <div v-if="businessStore.features.pending_notifications_enabled" class="pt-4 border-t border-border-subtle">
-            <label class="text-sm font-semibold text-text block mb-3 flex items-center gap-2">
-              <svg class="h-4 w-4 text-cyan-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Hora de notificación
-            </label>
-            <div class="flex items-center gap-3">
-              <div class="flex items-center border border-border rounded-lg bg-surface overflow-hidden">
-                <input
-                  type="number"
-                  min="0"
-                  max="23"
-                  v-model.number="pendingNotificationHour"
-                  @change="handlePendingNotificationHourChange"
-                  :disabled="updatingFeatures"
-                  class="w-16 px-3 py-2 text-sm text-text bg-transparent outline-none border-r border-border-subtle"
-                  placeholder="HH"
-                />
-                <span class="px-2 text-text">:00</span>
-              </div>
-              <p class="text-xs text-text-muted">Recibiras notificaciones de citas pendientes diariamente a esta hora</p>
+          <div v-if="businessStore.features.pending_notifications_enabled" class="mt-3 flex items-center gap-3">
+            <div class="flex items-center border border-border rounded-lg bg-surface overflow-hidden">
+              <input
+                type="number"
+                min="0" max="23"
+                v-model.number="pendingNotificationHour"
+                @change="handlePendingNotificationHourChange"
+                :disabled="updatingFeatures"
+                class="w-16 px-3 py-1.5 text-sm text-text bg-transparent outline-none border-r border-border-subtle"
+                placeholder="HH"
+              />
+              <span class="px-2 text-xs text-text-muted">:00</span>
             </div>
-            <p v-if="pendingNotificationHour !== null" class="text-xs text-success mt-2 flex items-center gap-1.5">
-              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
-              Notificación programada para las {{ String(pendingNotificationHour).padStart(2, '0') }}:00
+            <p class="text-[11px] text-text-muted flex items-center gap-1.5">
+              <svg class="h-3 w-3 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" stroke-width="2"/></svg>
+              Notificación diaria a las {{ String(pendingNotificationHour ?? 9).padStart(2, '0') }}:00
             </p>
           </div>
         </div>
-      </section>
+
+        <!-- Reservas públicas / Invitaciones -->
+        <div class="py-4 first:pt-0 last:pb-0">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm font-semibold text-text">Reservas públicas por link</label>
+            <button
+              @click="handleToggleFeature('enable_public_booking')"
+              :disabled="updatingFeatures"
+              class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+              :class="businessStore.features.enable_public_booking ? 'bg-primary' : 'bg-border-subtle'"
+            >
+              <span
+                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                :class="businessStore.features.enable_public_booking ? 'translate-x-6' : 'translate-x-1'"
+              />
+            </button>
+          </div>
+          <p class="text-xs text-text-muted">Permite que clientes agenden citas mediante un link compartible. Los empleados podrán enviar invitaciones desde su agenda.</p>
+        </div>
+
+        <!-- Recordatorios por WhatsApp -->
+        <div class="py-4 first:pt-0 last:pb-0">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm font-semibold text-text">Recordatorios por WhatsApp</label>
+            <button
+              @click="handleToggleFeature('whatsapp_reminders_enabled')"
+              :disabled="updatingFeatures"
+              class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+              :class="businessStore.features.whatsapp_reminders_enabled ? 'bg-primary' : 'bg-border-subtle'"
+            >
+              <span
+                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                :class="businessStore.features.whatsapp_reminders_enabled ? 'translate-x-6' : 'translate-x-1'"
+              />
+            </button>
+          </div>
+          <p class="text-xs text-text-muted">Envía automáticamente recordatorios por WhatsApp 24h y 1h antes de cada cita. Requiere WhatsApp configurado.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════════ SUCURSALES ═══════════ -->
+    <template v-if="businessStore.isMultiBranch">
 
       <section class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
         <div class="flex items-center gap-3 mb-6">
@@ -762,6 +792,25 @@ async function handlePendingNotificationHourChange() {
     success(`Hora de notificación actualizada a las ${String(hour).padStart(2, '0')}:00`)
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar la hora')
+  } finally {
+    updatingFeatures.value = false
+  }
+}
+
+async function handleToggleFeature(featureKey: string) {
+  if (!businessId.value) return
+  const current = businessStore.features[featureKey]
+  const newVal = !current
+  updatingFeatures.value = true
+  try {
+    const updatedFeatures = { ...businessStore.features, [featureKey]: newVal }
+    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    success(newVal ? 'Configuración activada' : 'Configuración desactivada')
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar la configuración')
   } finally {
     updatingFeatures.value = false
   }
