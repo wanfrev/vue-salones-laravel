@@ -274,6 +274,44 @@
 
       <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-5 space-y-1 divide-y divide-border-subtle">
 
+        <!-- Recordatorios internos 24h y 1h -->
+        <div class="py-4 first:pt-0 last:pb-0">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm font-semibold text-text">Recordatorios internos de cita</label>
+            <button
+              @click="handleToggleFeature('reminder_24h_enabled')"
+              :disabled="updatingFeatures"
+              class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+              :class="businessStore.features.reminder_24h_enabled ? 'bg-primary' : 'bg-border-subtle'"
+            >
+              <span
+                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                :class="businessStore.features.reminder_24h_enabled ? 'translate-x-6' : 'translate-x-1'"
+              />
+            </button>
+          </div>
+          <p class="text-xs text-text-muted">Notifica en la campanita 24h y 1h antes de cada cita. No requiere WhatsApp.</p>
+        </div>
+
+        <!-- Recordatorios por WhatsApp -->
+        <div class="py-4 first:pt-0 last:pb-0">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm font-semibold text-text">Recordatorios por WhatsApp</label>
+            <button
+              @click="handleToggleFeature('whatsapp_reminders_enabled')"
+              :disabled="updatingFeatures"
+              class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
+              :class="businessStore.features.whatsapp_reminders_enabled ? 'bg-primary' : 'bg-border-subtle'"
+            >
+              <span
+                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                :class="businessStore.features.whatsapp_reminders_enabled ? 'translate-x-6' : 'translate-x-1'"
+              />
+            </button>
+          </div>
+          <p class="text-xs text-text-muted">Envía recordatorios 24h y 1h antes por WhatsApp. Requiere conectar WhatsApp en la sección de abajo.</p>
+        </div>
+
         <!-- Recordatorios de citas pendientes -->
         <div class="py-4 first:pt-0 last:pb-0">
           <div class="flex items-center justify-between mb-2">
@@ -339,26 +377,7 @@
           <p class="text-xs text-text-muted">Permite que clientes agenden citas mediante un link compartible. Los empleados podrán enviar invitaciones desde su agenda.</p>
         </div>
 
-        <!-- Recordatorios por WhatsApp -->
-        <div class="py-4 first:pt-0 last:pb-0">
-          <div class="flex items-center justify-between mb-2">
-            <label class="text-sm font-semibold text-text">Recordatorios por WhatsApp</label>
-            <button
-              @click="handleToggleFeature('whatsapp_reminders_enabled')"
-              :disabled="updatingFeatures"
-              class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-              :class="businessStore.features.whatsapp_reminders_enabled ? 'bg-primary' : 'bg-border-subtle'"
-            >
-              <span
-                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                :class="businessStore.features.whatsapp_reminders_enabled ? 'translate-x-6' : 'translate-x-1'"
-              />
-            </button>
-          </div>
-          <p class="text-xs text-text-muted">Envía automáticamente recordatorios por WhatsApp 24h y 1h antes de cada cita. Requiere WhatsApp configurado.</p>
-        </div>
-
-      </div>
+        <!-- Recordatorio de citas pendientes -->
     </section>
 
     <!-- ═══════════ SUCURSALES ═══════════ -->

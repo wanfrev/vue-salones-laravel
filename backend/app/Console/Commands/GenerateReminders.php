@@ -71,6 +71,14 @@ class GenerateReminders extends Command
                     continue;
                 }
 
+                // Check if internal reminders are enabled for this business
+                $biz = Business::find($appt->business_id);
+                $bizFeatures = $biz?->features ?? [];
+                if (isset($bizFeatures['reminder_24h_enabled']) && !$bizFeatures['reminder_24h_enabled']) {
+                    \Illuminate\Support\Facades\Log::debug("[reminders:generate] 24h: Skipping appointment {$appt->id} — reminder_24h_enabled is false for business {$appt->business_id}");
+                    continue;
+                }
+
                 $notifications = [];
 
                 $baseData = [
@@ -143,6 +151,12 @@ class GenerateReminders extends Command
                 $service = $appt->service;
                 if (!$client || !$service) {
                     \Illuminate\Support\Facades\Log::warning("[reminders:generate] 1h: Skipping appointment {$appt->id} — missing client or service");
+                    continue;
+                }
+
+                $biz = Business::find($appt->business_id);
+                $bizFeatures = $biz?->features ?? [];
+                if (isset($bizFeatures['reminder_24h_enabled']) && !$bizFeatures['reminder_24h_enabled']) {
                     continue;
                 }
 
