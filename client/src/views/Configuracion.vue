@@ -133,8 +133,8 @@
       </div>
     </section>
 
-    <!-- ═══════════ WHATSAPP ═══════════ -->
-    <section v-if="businessStore.features.whatsapp_reminders_enabled" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
+    <!-- ═══════════ WHATSAPP (solo si superadmin lo habilitó) ═══════════ -->
+    <section v-if="businessStore.features.whatsapp_available" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
       <div class="flex items-center gap-3 mb-6">
         <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-100 dark:bg-green-900/30 text-green-600">
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -293,8 +293,8 @@
           <p class="text-xs text-text-muted">Notifica en la campanita 24h y 1h antes de cada cita. No requiere WhatsApp.</p>
         </div>
 
-        <!-- Recordatorios por WhatsApp -->
-        <div class="py-4 first:pt-0 last:pb-0">
+        <!-- Recordatorios por WhatsApp (solo si superadmin lo habilitó) -->
+        <div v-if="businessStore.features.whatsapp_available" class="py-4 first:pt-0 last:pb-0">
           <div class="flex items-center justify-between mb-2">
             <label class="text-sm font-semibold text-text">Recordatorios por WhatsApp</label>
             <button
@@ -377,7 +377,54 @@
           <p class="text-xs text-text-muted">Permite que clientes agenden citas mediante un link compartible. Los empleados podrán enviar invitaciones desde su agenda.</p>
         </div>
 
-        <!-- Recordatorio de citas pendientes -->
+        <!-- Notificaciones Push -->
+        <div v-if="pushSupported" class="py-4 first:pt-0 last:pb-0">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm font-semibold text-text">Notificaciones Push</label>
+            <div class="flex items-center gap-2">
+              <span
+                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                :class="pushPermission === 'granted' ? 'bg-success/10 text-success' : pushPermission === 'denied' ? 'bg-danger/10 text-danger' : 'bg-bg-secondary text-text-muted'"
+              >
+                {{ pushPermission === 'granted' ? 'Activadas' : pushPermission === 'denied' ? 'Bloqueadas' : 'No configuradas' }}
+              </span>
+              <button
+                v-if="pushPermission === 'granted'"
+                @click="handleDisablePush" :disabled="pushLoading"
+                class="rounded-lg border border-border px-2.5 py-1 text-[11px] font-medium text-text-secondary hover:bg-danger/10 hover:text-danger hover:border-danger/30 disabled:opacity-50 transition-colors"
+              >
+                <svg v-if="pushLoading" class="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                <span v-else>Desactivar</span>
+              </button>
+              <button
+                v-else-if="pushPermission === 'denied'"
+                disabled
+                class="rounded-lg border border-border px-2.5 py-1 text-[11px] font-medium text-text-muted cursor-not-allowed opacity-50"
+              >Bloqueado</button>
+              <button
+                v-else
+                @click="handleEnablePush" :disabled="pushLoading"
+                class="rounded-lg bg-primary px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors"
+              >
+                <svg v-if="pushLoading" class="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                <span v-else>Activar</span>
+              </button>
+            </div>
+          </div>
+          <p class="text-xs text-text-muted">
+            <template v-if="pushPermission === 'granted'">
+              Recibirás alertas de nuevas citas y recordatorios aunque tengas la app en segundo plano.
+            </template>
+            <template v-else-if="pushPermission === 'denied'">
+              Las notificaciones están bloqueadas. Ve a Ajustes del navegador para permitirlas.
+            </template>
+            <template v-else>
+              Recibe recordatorios y alertas directamente en tu pantalla, incluso con la app cerrada.
+            </template>
+          </p>
+        </div>
+
+      </div>
     </section>
 
     <!-- ═══════════ SUCURSALES ═══════════ -->
@@ -465,55 +512,9 @@
               </button>
             </div>
           </div>
-        <!-- Notificaciones Push -->
-        <div v-if="pushSupported" class="py-4 first:pt-0 last:pb-0">
-          <div class="flex items-center justify-between mb-2">
-            <label class="text-sm font-semibold text-text">Notificaciones Push</label>
-            <div class="flex items-center gap-2">
-              <span
-                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                :class="pushPermission === 'granted' ? 'bg-success/10 text-success' : pushPermission === 'denied' ? 'bg-danger/10 text-danger' : 'bg-bg-secondary text-text-muted'"
-              >
-                {{ pushPermission === 'granted' ? 'Activadas' : pushPermission === 'denied' ? 'Bloqueadas' : 'No configuradas' }}
-              </span>
-              <button
-                v-if="pushPermission === 'granted'"
-                @click="handleDisablePush" :disabled="pushLoading"
-                class="rounded-lg border border-border px-2.5 py-1 text-[11px] font-medium text-text-secondary hover:bg-danger/10 hover:text-danger hover:border-danger/30 disabled:opacity-50 transition-colors"
-              >
-                <svg v-if="pushLoading" class="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                <span v-else>Desactivar</span>
-              </button>
-              <button
-                v-else-if="pushPermission === 'denied'"
-                disabled
-                class="rounded-lg border border-border px-2.5 py-1 text-[11px] font-medium text-text-muted cursor-not-allowed opacity-50"
-              >Bloqueado</button>
-              <button
-                v-else
-                @click="handleEnablePush" :disabled="pushLoading"
-                class="rounded-lg bg-primary px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors"
-              >
-                <svg v-if="pushLoading" class="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                <span v-else>Activar</span>
-              </button>
-            </div>
-          </div>
-          <p class="text-xs text-text-muted">
-            <template v-if="pushPermission === 'granted'">
-              Recibirás alertas de nuevas citas y recordatorios aunque tengas la app en segundo plano.
-            </template>
-            <template v-else-if="pushPermission === 'denied'">
-              Las notificaciones están bloqueadas. Ve a Ajustes del navegador para permitirlas.
-            </template>
-            <template v-else>
-              Recibe recordatorios y alertas directamente en tu pantalla, incluso con la app cerrada.
-            </template>
-          </p>
         </div>
-
-      </div>
-    </section>
+      </section>
+    </template>
 
       <BranchFormModal
         :is-open="branchesCtx.showModal.value"

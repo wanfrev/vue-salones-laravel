@@ -34,7 +34,14 @@ class WhatsAppController extends Controller
         if (!$businessId) {
             abort(403, 'Sin negocio asignado.');
         }
-        return Business::findOrFail($businessId);
+        $business = Business::findOrFail($businessId);
+
+        $features = is_array($business->features) ? $business->features : json_decode($business->features ?? '[]', true);
+        if (!($features['whatsapp_available'] ?? false)) {
+            abort(403, 'WhatsApp no está disponible para este negocio.');
+        }
+
+        return $business;
     }
 
     /**
