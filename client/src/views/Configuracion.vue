@@ -334,8 +334,8 @@
             <label class="text-xs font-medium text-text-secondary mb-1.5 block">Recibir resumen de citas pendientes a las:</label>
             <div class="flex items-center gap-2">
               <select
-                v-model.number="pendingNotificationHour12"
-                @change="handlePendingHourSelect"
+                :value="pendingNotificationHour12"
+                @change="handlePendingHourSelect($event)"
                 :disabled="updatingFeatures"
                 class="rounded-lg border border-border bg-surface pl-3 pr-8 py-2 text-sm font-medium text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 appearance-none"
                 style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;12&quot; height=&quot;12&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;%236b7280&quot; stroke-width=&quot;2&quot;><path d=&quot;M6 9l6 6 6-6&quot;/></svg>'); background-repeat: no-repeat; background-position: right 8px center;"
@@ -697,13 +697,10 @@ const hours12 = Array.from({ length: 12 }, (_, i) => ({
 }))
 
 const isPM = computed(() => (pendingNotificationHour.value ?? 9) >= 12)
-const pendingNotificationHour12 = computed({
-  get: () => {
-    const h = pendingNotificationHour.value ?? 9
-    if (h === 0 || h === 12) return 12
-    return h > 12 ? h - 12 : h
-  },
-  set: (val: number) => { /* noop — synced via handlePendingHourSelect */ },
+const pendingNotificationHour12 = computed(() => {
+  const h = pendingNotificationHour.value ?? 9
+  if (h === 0 || h === 12) return 12
+  return h > 12 ? h - 12 : h
 })
 
 const displayNotificationHour = computed(() => {
@@ -724,8 +721,9 @@ function toggleAmPm() {
   handlePendingNotificationHourChange()
 }
 
-function handlePendingHourSelect() {
-  const hour12 = pendingNotificationHour12.value
+function handlePendingHourSelect(event: Event) {
+  const hour12 = parseInt((event.target as HTMLSelectElement).value, 10)
+  if (isNaN(hour12)) return
   const base = isPM.value ? 12 : 0
   if (hour12 === 12) {
     pendingNotificationHour.value = isPM.value ? 12 : 0
