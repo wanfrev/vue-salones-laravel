@@ -9,9 +9,9 @@
     :is-confirm-disabled="!isFormValid || saveInProgress"
     :confirm-text="confirmButtonLabel"
     @close="close"
-    @confirm="handleSubmit"
+    @confirm="formRef?.requestSubmit()"
   >
-    <form @submit.prevent class="space-y-5">
+    <form ref="formRef" @submit.prevent="handleSubmit" class="space-y-5">
       <!-- BLOQUE 1: DATOS GENERALES -->
       <div class="space-y-3">
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -267,6 +267,7 @@ const emit = defineEmits<{
 }>()
 
 const saveInProgress = ref(false)
+const formRef = ref<HTMLFormElement | null>(null)
 const { isOpen, modalData, close } = useModal(MODAL_ID)
 const { error: showError } = useNotification()
 const authStore = useAuthStore()
