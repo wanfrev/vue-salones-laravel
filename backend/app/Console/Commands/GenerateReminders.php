@@ -17,7 +17,7 @@ use Minishlink\WebPush\Subscription;
 
 class GenerateReminders extends Command
 {
-    protected $signature = 'reminders:generate';
+    protected $signature = 'reminders:generate {--debug : Show verbose debug output}';
     protected $description = 'Generate appointment reminders, unpaid alerts, and low stock notifications.';
 
     public function __construct(
@@ -38,6 +38,8 @@ class GenerateReminders extends Command
         $affectedBusinesses = [];
         $whatsappBizIds = [];
 
+        \Illuminate\Support\Facades\Log::info('[reminders:generate] STARTING at ' . $now->toIso8601String());
+
         // 1. Generate reminders: appointments starting in ~24h
         $this->info('[reminders:generate] Checking appointments in ~24h window...');
 
@@ -50,13 +52,24 @@ class GenerateReminders extends Command
             ->whereBetween('start_time', [$in22h, $in26h])
             ->get();
 
+        \Illuminate\Support\Facades\Log::info("[reminders:generate] 24h window ({$in22h->toIso8601String()} to {$in26h->toIso8601String()}): found {$appointments->count()} appointments");
+
+        if ($this->option('debug')) {
+            foreach ($appointments as $appt) {
+                $this->line("  - Appointment {$appt->id}: {$appt->client?->full_name} — {$appt->service?->name} at {$appt->start_time} (status: {$appt->status})");
+            }
+        }
+
         if ($appointments->isNotEmpty()) {
             $appointmentIds = [];
 
             foreach ($appointments as $appt) {
                 $client = $appt->client;
                 $service = $appt->service;
-                if (!$client || !$service) continue;
+                if (!$client || !$service) {
+                    \Illuminate\Support\Facades\Log::warning("[reminders:generate] 24h: Skipping appointment {$appt->id} — missing client or service");
+                    continue;
+                }
 
                 $notifications = [];
 
@@ -120,13 +133,18 @@ class GenerateReminders extends Command
             ->whereBetween('start_time', [$in50m, $in70m])
             ->get();
 
+        \Illuminate\Support\Facades\Log::info("[reminders:generate] 1h window ({$in50m->toIso8601String()} to {$in70m->toIso8601String()}): found {$appointmentsIn1h->count()} appointments");
+
         if ($appointmentsIn1h->isNotEmpty()) {
             $appointmentIds1h = [];
 
             foreach ($appointmentsIn1h as $appt) {
                 $client = $appt->client;
                 $service = $appt->service;
-                if (!$client || !$service) continue;
+                if (!$client || !$service) {
+                    \Illuminate\Support\Facades\Log::warning("[reminders:generate] 1h: Skipping appointment {$appt->id} — missing client or service");
+                    continue;
+                }
 
                 $notifications = [];
 
@@ -188,11 +206,16 @@ class GenerateReminders extends Command
             $pendingNotificationsEnabled = $business->features['pending_notifications_enabled'] ?? false;
 
             if (!$pendingNotificationsEnabled || $pendingNotificationHour === null) {
+                if ($this->option('debug')) {
+                    $this->line("  - Business {$business->id} ({$business->name}): pending_notifications_enabled=" . ($pendingNotificationsEnabled ? 'true' : 'false') . ", hour=" . ($pendingNotificationHour ?? 'null'));
+                }
                 continue;
             }
 
             $today = $now->copy()->startOfDay();
             $targetTime = $today->copy()->setHour((int)$pendingNotificationHour)->setMinute(0)->setSecond(0);
+
+            \Illuminate\Support\Facades\Log::info("[reminders:generate] Business {$business->id}: pending_notifications_hour={$pendingNotificationHour}, target_time={$targetTime->toIso8601String()}, now={$now->toIso8601String()}, diff_in_hours={$now->diffInHours($targetTime)}");
 
             if ($now->greaterThanOrEqualTo($targetTime) && $now->diffInHours($targetTime) < 1) {
                 $pendingAppts = Appointment::with(['client', 'service'])
@@ -331,6 +354,7 @@ class GenerateReminders extends Command
 
         $grandTotal = $totalGenerated + $unpaidGenerated + $lowStockGenerated + $pendingGenerated;
         $this->info("[reminders:generate] Done. Total: {$grandTotal} (24h+1h reminders: {$totalGenerated}, unpaid: {$unpaidGenerated}, pending: {$pendingGenerated}, low stock: {$lowStockGenerated}). WhatsApp: {$whatsappSent} sent.");
+        \Illuminate\Support\Facades\Log::info("[reminders:generate] DONE. Total: {$grandTotal} (24h+1h: {$totalGenerated}, unpaid: {$unpaidGenerated}, pending: {$pendingGenerated}, low stock: {$lowStockGenerated}), WhatsApp: {$whatsappSent}, affected businesses: " . implode(', ', array_keys($affectedBusinesses)));
 
         // Broadcast real-time event so frontend picks up new notifications
         $allAffectedBizIds = array_unique(array_merge(array_keys($affectedBusinesses), array_keys($whatsappBizIds)));

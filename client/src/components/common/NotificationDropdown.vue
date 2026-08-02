@@ -147,7 +147,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Bell, MessageCircle, Calendar, CheckCircle2, CalendarPlus, AlertTriangle, PackageOpen, Cake, Settings } from 'lucide-vue-next'
+import { Bell, MessageCircle, Calendar, CheckCircle2, CalendarPlus, AlertTriangle, PackageOpen, Cake, Settings, Clock } from 'lucide-vue-next'
 import { useNotifications } from '../../composables/common/useNotifications'
 import type { NotifType } from '../../composables/common/useNotificationPrefs'
 
@@ -164,6 +164,7 @@ const typeStyle: Record<string, { icon: typeof Bell; bg: string; color: string }
   unpaid_alert: { icon: AlertTriangle, bg: 'bg-warning/10', color: 'text-warning' },
   low_stock: { icon: PackageOpen, bg: 'bg-danger/10', color: 'text-danger' },
   pet_birthday: { icon: Cake, bg: 'bg-pink-500/10', color: 'text-pink-500' },
+  pending_appointments: { icon: Clock, bg: 'bg-amber-500/10', color: 'text-amber-500' },
 }
 
 const formatRelativeTime = (dateStr: string): string => {

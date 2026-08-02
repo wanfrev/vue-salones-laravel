@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Appointment;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -233,6 +234,8 @@ class AppointmentService
         ?string $excludeId = null,
         ?string $groupId = null,
     ): void {
+        Log::debug("[AppointmentService::checkOverlap] Checking overlap for employee_id={$employeeId}, assistant_id={$assistantId}, start={$startTime}, end={$endTime}, exclude_id={$excludeId}, group_id={$groupId}, business_id={$businessId}");
+
         $query = Appointment::where('business_id', $businessId)
             ->whereNotIn('status', ['cancelled', 'no_show'])
             ->whereNull('clinical_history')
@@ -261,12 +264,28 @@ class AppointmentService
             });
         }
 
-        $conflict = $query->first();
+        $conflicts = $query->take(3)->get(['id', 'employee_id', 'assistant_employee_id', 'start_time', 'end_time', 'status', 'service_id', 'group_id']);
 
-        if ($conflict) {
-            $conflictEmployee = $conflict->employee_id === $employeeId ? 'empleado' : 'asistente';
+        if ($conflicts->isNotEmpty()) {
+            // Show ALL conflicts for debugging
+            $conflictDetails = [];
+            foreach ($conflicts as $conflict) {
+                $conflictEmployee = $conflict->employee_id === $employeeId ? 'empleado' : 'asistente';
+                $conflictDetails[] = "{$conflict->id} ({$conflictEmployee}: {$conflict->start_time} - {$conflict->end_time}, status={$conflict->status}, group={$conflict->group_id})";
+            }
+            Log::warning("[AppointmentService::checkOverlap] Found " . count($conflicts) . " conflicts: " . implode('; ', $conflictDetails));
+
+            $conflict = $conflicts->first();
+            $conflictEmployee = $conflict->employee_id === $employeeId
+                ? ($conflict->assistant_employee_id === $employeeId ? 'empleado' : 'empleado')
+                : 'asistente';
+
+            $conflictSvcName = $conflict->service?->name ?? 'Servicio';
+            $existingStart = $conflict->start_time;
+            $conflictTimeStr = $existingStart ? $existingStart->format('H:i') : '';
+
             throw ValidationException::withMessages([
-                'start_time' => "El {$conflictEmployee} ya tiene una cita en ese horario.",
+                'start_time' => "El {$conflictEmployee} ya tiene una cita ({$conflictSvcName} a las {$conflictTimeStr}) en ese horario.",
             ]);
         }
     }
