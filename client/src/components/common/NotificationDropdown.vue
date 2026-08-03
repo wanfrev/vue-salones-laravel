@@ -14,63 +14,6 @@
           <span class="hidden sm:inline">Marcar todas</span>
           <span class="sm:hidden">Todas</span>
         </button>
-        <button @click="showPrefs = !showPrefs"
-          class="rounded-md p-1 text-text-muted transition-colors hover:bg-bg-secondary hover:text-text"
-          :class="showPrefs ? 'bg-bg-secondary text-text' : ''"
-          title="Preferencias">
-          <Settings :size="14" />
-        </button>
-      </div>
-    </div>
-
-    <!-- Preferences panel -->
-    <div v-if="showPrefs" class="border-b border-border px-3 py-2.5 space-y-2 bg-bg-secondary/30 sm:px-4 sm:py-3">
-      <p class="text-xs font-medium text-text-muted">Mostrar notificaciones de:</p>
-      <label
-        v-for="(label, type) in TYPE_LABELS"
-        :key="type"
-        class="flex items-center justify-between cursor-pointer"
-      >
-        <span class="text-xs text-text-secondary">{{ label }}</span>
-        <button
-          type="button"
-          role="switch"
-          :aria-checked="notifPrefs[type]"
-          @click="toggleNotifType(type)"
-          :class="[
-            'relative inline-flex h-4 w-7 shrink-0 rounded-full transition-colors',
-            notifPrefs[type] ? 'bg-primary' : 'bg-border'
-          ]"
-        >
-          <span
-            :class="[
-              'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform',
-              notifPrefs[type] ? 'translate-x-3' : 'translate-x-0.5'
-            ]"
-          />
-        </button>
-      </label>
-      <div class="border-t border-border/50 pt-2 mt-1">
-        <label class="flex items-center justify-between cursor-pointer">
-          <span class="text-xs font-medium text-text">Sonido</span>
-          <button
-            type="button"
-            role="switch"
-            :aria-checked="soundEnabled"
-            @click="toggleSound()"
-            :class="[
-              'relative inline-flex h-4 w-7 shrink-0 rounded-full transition-colors',
-              soundEnabled ? 'bg-primary' : 'bg-border'
-            ]"
-          >
-            <span
-              :class="[
-                'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform',
-                soundEnabled ? 'translate-x-3' : 'translate-x-0.5'
-              ]"
-            />
-          </button>
-        </label>
       </div>
     </div>
 
@@ -146,16 +89,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Bell, MessageCircle, Calendar, CheckCircle2, CalendarPlus, AlertTriangle, PackageOpen, Cake, Settings, Clock } from 'lucide-vue-next'
+import { Bell, MessageCircle, Calendar, CheckCircle2, CalendarPlus, AlertTriangle, PackageOpen, Cake, Clock } from 'lucide-vue-next'
 import { useNotifications } from '../../composables/common/useNotifications'
-import type { NotifType } from '../../composables/common/useNotificationPrefs'
 
 defineEmits<{ close: [] }>()
 
-const { notifications, unreadCount, notifPrefs, toggleNotifType, soundEnabled, toggleSound, TYPE_LABELS, handleMarkAllAsRead, handleDismiss, handleSendWhatsApp, handleNavigateToAppointment, handleNavigateToInventory } = useNotifications()
-
-const showPrefs = ref(false)
+const { notifications, unreadCount, handleMarkAllAsRead, handleDismiss, handleSendWhatsApp, handleNavigateToAppointment, handleNavigateToInventory } = useNotifications()
 
 const typeStyle: Record<string, { icon: typeof Bell; bg: string; color: string }> = {
   reminder: { icon: Bell, bg: 'bg-primary/10', color: 'text-primary' },
