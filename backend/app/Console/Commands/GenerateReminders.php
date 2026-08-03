@@ -81,7 +81,8 @@ class GenerateReminders extends Command
 
                 // Skip 24h reminder if a new_appointment notification already exists for this appointment
                 // (the user was already notified at creation time, avoid duplicate perception)
-                $existingNewApptNotif = \App\Models\Notification::where('appointment_id', $appt->id)
+                $existingNewApptNotif = \App\Models\Notification::where('business_id', $appt->business_id)
+                    ->where('appointment_id', $appt->id)
                     ->where('type', 'new_appointment')
                     ->exists();
 
@@ -96,6 +97,7 @@ class GenerateReminders extends Command
 
                 $baseData = [
                     'business_id' => $appt->business_id,
+                    'branch_id' => $appt->branch_id,
                     'appointment_id' => $appt->id,
                     'type' => 'reminder',
                     'title' => 'Recordatorio de cita (24 horas)',
@@ -174,7 +176,8 @@ class GenerateReminders extends Command
                 }
 
                 // Skip 1h reminder if a new_appointment notification already exists
-                $existingNewApptNotif = \App\Models\Notification::where('appointment_id', $appt->id)
+                $existingNewApptNotif = \App\Models\Notification::where('business_id', $appt->business_id)
+                    ->where('appointment_id', $appt->id)
                     ->where('type', 'new_appointment')
                     ->exists();
 
@@ -189,6 +192,7 @@ class GenerateReminders extends Command
 
                 $baseData = [
                     'business_id' => $appt->business_id,
+                    'branch_id' => $appt->branch_id,
                     'appointment_id' => $appt->id,
                     'type' => 'reminder',
                     'title' => 'Recordatorio de cita (1 hora)',
@@ -265,7 +269,7 @@ class GenerateReminders extends Command
 
             // Fire if we're within the 60-minute window after the target time
             if ($minutesSinceTarget >= 0 && $minutesSinceTarget < 60) {
-                $pendingAppts = Appointment::with(['client', 'service'])
+                $pendingAppts = Appointment::with(['client', 'service', 'branch'])
                     ->where('business_id', $business->id)
                     ->where('status', 'pending')
                     ->whereDate('start_time', '<=', $today)
@@ -278,17 +282,36 @@ class GenerateReminders extends Command
                 if ($pendingAppts->isNotEmpty()) {
                     $admins = $this->getAdminsToNotify($business->id, null);
 
-                    foreach ($admins as $admin) {
-                        $appointmentList = $pendingAppts->map(function ($appt) {
-                            return "{$appt->client?->full_name} - {$appt->service?->name} ({$appt->start_time->format('H:i')})";
-                        })->implode(', ');
+                    $isMultiBranch = $pendingAppts->pluck('branch_id')->unique()->count() > 1;
 
+                    if ($isMultiBranch) {
+                        $byBranch = $pendingAppts->groupBy('branch_id');
+                        $branchLines = [];
+                        foreach ($byBranch as $branchId => $appts) {
+                            $branchName = $appts->first()->branch?->name ?? 'General';
+                            $line = "{$branchName}: ";
+                            $line .= $appts->take(5)->map(fn($a) => "{$a->client?->full_name} - {$a->service?->name} ({$a->start_time->format('H:i')})")->implode(', ');
+                            if ($appts->count() > 5) {
+                                $line .= ' y ' . ($appts->count() - 5) . ' más';
+                            }
+                            $branchLines[] = $line;
+                        }
+                        $appointmentList = implode("\n", $branchLines);
+                    } else {
+                        $shown = $pendingAppts->take(10);
+                        $appointmentList = $shown->map(fn($a) => "{$a->client?->full_name} - {$a->service?->name} ({$a->start_time->format('H:i')})")->implode(', ');
+                        if ($pendingAppts->count() > 10) {
+                            $appointmentList .= ' y ' . ($pendingAppts->count() - 10) . ' más';
+                        }
+                    }
+
+                    foreach ($admins as $admin) {
                         $this->notificationService->create([
                             'business_id' => $business->id,
                             'profile_id' => $admin->id,
                             'type' => 'pending_appointments',
                             'title' => 'Citas pendientes de confirmación',
-                            'message' => "Tienes {$pendingAppts->count()} cita(s) sin confirmar: {$appointmentList}",
+                            'message' => "Tienes {$pendingAppts->count()} cita(s) sin confirmar:\n{$appointmentList}",
                             'metadata' => [
                                 'type' => 'pending_appointments',
                                 'pending_count' => $pendingAppts->count(),
@@ -325,7 +348,8 @@ class GenerateReminders extends Command
                 $service = $appt->service;
                 if (!$client || !$service) continue;
 
-                $existingAlert = \App\Models\Notification::where('appointment_id', $appt->id)
+                $existingAlert = \App\Models\Notification::where('business_id', $appt->business_id)
+                    ->where('appointment_id', $appt->id)
                     ->where('type', 'unpaid_alert')
                     ->exists();
 
@@ -336,6 +360,7 @@ class GenerateReminders extends Command
                 foreach ($admins as $admin) {
                     $this->notificationService->create([
                         'business_id' => $appt->business_id,
+                        'branch_id' => $appt->branch_id,
                         'profile_id' => $admin->id,
                         'appointment_id' => $appt->id,
                         'type' => 'unpaid_alert',

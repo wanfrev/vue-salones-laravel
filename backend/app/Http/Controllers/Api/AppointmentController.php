@@ -134,7 +134,8 @@ class AppointmentController
         $startTime = $appointment->start_time;
 
         // Check if notifications already exist for this appointment
-        $existingNotifications = \App\Models\Notification::where('appointment_id', $appointment->id)
+        $existingNotifications = \App\Models\Notification::where('business_id', $businessId)
+            ->where('appointment_id', $appointment->id)
             ->where('type', 'new_appointment')
             ->pluck('profile_id')
             ->toArray();
@@ -145,6 +146,7 @@ class AppointmentController
         if ($appointment->employee_id && $appointment->employee_id !== $creatorProfileId && !in_array($appointment->employee_id, $existingNotifications)) {
             $notifService->create([
                 'business_id' => $businessId,
+                'branch_id' => $appointment->branch_id,
                 'profile_id' => $appointment->employee_id,
                 'appointment_id' => $appointment->id,
                 'type' => 'new_appointment',
@@ -165,6 +167,7 @@ class AppointmentController
         if ($appointment->assistant_employee_id && $appointment->assistant_employee_id !== $creatorProfileId && !in_array($appointment->assistant_employee_id, $existingNotifications)) {
             $notifService->create([
                 'business_id' => $businessId,
+                'branch_id' => $appointment->branch_id,
                 'profile_id' => $appointment->assistant_employee_id,
                 'appointment_id' => $appointment->id,
                 'type' => 'new_appointment',
@@ -184,6 +187,7 @@ class AppointmentController
 
             $notifService->create([
                 'business_id' => $businessId,
+                'branch_id' => $appointment->branch_id,
                 'profile_id' => $admin->id,
                 'appointment_id' => $appointment->id,
                 'type' => 'new_appointment',
@@ -254,6 +258,7 @@ class AppointmentController
         // Notify assigned employee
         $notifService->create([
             'business_id' => $businessId,
+            'branch_id' => $appointment->branch_id,
             'profile_id' => $appointment->employee_id,
             'appointment_id' => $appointment->id,
             'type' => 'status_change',
@@ -271,6 +276,7 @@ class AppointmentController
             if (in_array($admin->id, $notifiedProfiles)) continue;
             $notifService->create([
                 'business_id' => $businessId,
+                'branch_id' => $appointment->branch_id,
                 'profile_id' => $admin->id,
                 'appointment_id' => $appointment->id,
                 'type' => 'status_change',

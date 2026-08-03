@@ -62,6 +62,11 @@ class Appointment extends Model
         return $this->belongsTo(Profile::class, 'assistant_employee_id');
     }
 
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     public function transactions(): HasMany
     {
         return $this->hasMany(Transaction::class);

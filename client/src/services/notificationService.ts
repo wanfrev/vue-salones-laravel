@@ -15,6 +15,7 @@ export interface NotificationRecord {
   service_name: string | null
   appointment_time: string | null
   metadata: Record<string, unknown>
+  branch_name: string | null
   is_read: boolean
   read_at: string | null
   created_at: string
