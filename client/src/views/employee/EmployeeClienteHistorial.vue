@@ -4,9 +4,7 @@
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div class="flex items-center gap-2 text-sm text-primary mb-0.5">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h10M7 16h6" />
-            </svg>
+            <DocumentIcon class="h-4 w-4" />
             <span class="font-medium uppercase tracking-wider">{{ t.client || 'Cliente' }}s</span>
           </div>
           <h1 class="text-xl font-bold text-text lg:text-2xl">Historial de {{ cliente?.name || t.client || 'Cliente' }}</h1>
@@ -17,9 +15,7 @@
             @click="goBack"
             class="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary transition-theme hover:bg-bg-secondary"
           >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
+            <ArrowLeftIcon class="h-4 w-4" />
             Volver
           </button>
           <button
@@ -27,9 +23,7 @@
             @click="handleWhatsApp"
             class="flex items-center gap-2 rounded-xl bg-success px-3 py-2 text-sm font-medium text-text-inverse shadow-lg shadow-success/25 transition-theme hover:bg-success/90"
           >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 10l2 2 7-7M12 21a9 9 0 10-9-9c0 1.6.42 3.1 1.16 4.4L3 21l4.7-1.16A8.94 8.94 0 0012 21z" />
-            </svg>
+            <CheckCircleIcon class="h-4 w-4" />
             WhatsApp
           </button>
           <button
@@ -37,9 +31,7 @@
             @click="goToConsultorio"
             class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
           >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-            </svg>
+            <DocumentIcon class="h-4 w-4" />
             Ver Historias Clínicas
           </button>
         </div>
@@ -132,6 +124,7 @@ import { getClienteById } from '../../services/clientesService'
 import { isPetNiche as checkPetNiche } from '../../config/nicheFields'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import type { Cliente } from '../../types/cliente'
+import { DocumentIcon, ArrowLeftIcon, CheckCircleIcon } from '@solar-icons/vue/linear'
 
 const authStore = useAuthStore()
 const businessStore = useBusinessStore()

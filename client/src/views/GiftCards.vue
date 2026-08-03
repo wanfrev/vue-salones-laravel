@@ -4,9 +4,7 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1.5">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-          </svg>
+          <TicketIcon class="h-3.5 w-3.5" />
           <span>Gift Cards</span>
         </div>
         <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Gestión de Gift Cards</h1>
@@ -25,9 +23,7 @@
           @click="ctx.openNew()"
           class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
         >
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
+          <AddCircleIcon class="h-4 w-4" />
           Nueva Gift Card
         </button>
       </div>
@@ -43,9 +39,7 @@
 
   <div v-else-if="currentGiftCards.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
     <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-secondary mb-4">
-      <svg class="h-7 w-7 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-      </svg>
+      <TicketIcon class="h-7 w-7 text-text-muted" />
     </div>
     <p class="text-lg font-semibold text-text">No hay gift cards {{ activeTab === 'active' ? 'activas' : 'en el historial' }}</p>
     <p class="mt-1 text-sm text-text-muted">{{ activeTab === 'active' ? 'Registra tu primera gift card para empezar.' : 'Las gift cards consumidas o expiradas aparecerán aquí.' }}</p>
@@ -100,14 +94,10 @@
 
         <div class="flex items-center gap-1">
           <button @click="ctx.openEdit(gc)" class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary" title="Editar">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
+            <PenIcon class="h-4 w-4" />
           </button>
           <button @click="ctx.handleDelete(gc.id)" class="rounded-lg p-2 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger" title="Eliminar">
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
+            <TrashBin2Icon class="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -126,7 +116,7 @@
             <p class="text-sm text-text-muted">{{ ctx.editingId.value ? 'Modifica los datos de la gift card' : 'Registra una nueva tarjeta de regalo' }}</p>
           </div>
           <button @click="ctx.closeModal" class="rounded-lg p-1 text-text-muted hover:text-text">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            <CloseCircleIcon class="h-5 w-5" />
           </button>
         </div>
 
@@ -297,6 +287,7 @@ import { useGiftCards, generateGiftCardCode } from '../composables/giftCards/use
 import { useCurrency } from '../composables/common/useCurrency'
 import { FeatureGate } from '../components/common'
 import { searchClients } from '../services/clientesService'
+import { TicketIcon, AddCircleIcon, PenIcon, TrashBin2Icon, CloseCircleIcon } from '@solar-icons/vue/linear'
 
 const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)

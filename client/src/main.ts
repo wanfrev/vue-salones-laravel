@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { VueQueryPlugin } from '@tanstack/vue-query'
+import { SolarIconsPlugin } from '@solar-icons/vue/lib'
 import './style.css'
 import App from './App.vue'
 import router from './router'
@@ -16,6 +17,12 @@ app.use(pinia)
 
 const themeStore = useThemeStore()
 themeStore.initialize()
+
+app.use(SolarIconsPlugin, {
+  color: 'currentColor',
+  size: 24,
+  strokeWidth: 2,
+})
 
 app.use(VueQueryPlugin, { queryClient })
 app.use(router)

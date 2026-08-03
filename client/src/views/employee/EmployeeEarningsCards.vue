@@ -31,12 +31,9 @@
           <div class="text-right shrink-0 ml-3">
             <p class="font-bold text-text">${{ group.totalBilled.toFixed(2) }}</p>
             <p class="text-xs font-medium text-primary">Ganancia: ${{ group.totalEarned.toFixed(2) }}</p>
-            <svg
+            <ArrowDownIcon
               :class="['h-4 w-4 text-text-muted ml-auto mt-1 transition-transform', expanded.has(group.key) ? 'rotate-180' : '']"
-              fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
+            />
           </div>
         </button>
 
@@ -74,6 +71,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { formatDate, getInitials } from '../../lib/formatters'
+import { ArrowDownIcon } from '@solar-icons/vue/linear'
 import type { EmployeeEarningRecord } from '../../services/employeeDashboardService'
 
 const props = defineProps<{

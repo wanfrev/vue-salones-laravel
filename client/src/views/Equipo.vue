@@ -3,9 +3,7 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1.5">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
+          <UsersGroupRoundedIcon class="h-3.5 w-3.5" />
           <span>{{ businessStore.terminology.employee || 'Empleado' }}s</span>
         </div>
         <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Gestión de {{ (businessStore.terminology.employee || 'Empleado').toLowerCase() }}s</h1>
@@ -13,13 +11,13 @@
       <div class="flex items-center gap-2">
         <button v-if="canEditEmployeeRate" @click="showEmployeeRateModal = true"
           class="flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-text shadow-sm transition-theme hover:bg-bg-secondary">
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          <DollarIcon class="h-4 w-4" />
           <span class="hidden sm:inline">Tasa empleados</span>
           <span v-if="businessStore.employeeExchangeRate" class="ml-1 rounded-md bg-warning/10 px-1.5 py-0.5 text-[10px] font-bold text-warning tabular-nums">{{ businessStore.employeeExchangeRate }}</span>
         </button>
         <button @click="handleNewEmpleado"
           class="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover">
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" /></svg>
+          <AddCircleIcon class="h-4 w-4" />
           <span>Nuevo {{ businessStore.terminology.employee || 'Empleado' }}</span>
         </button>
       </div>
@@ -111,6 +109,7 @@ import EmployeeReciboModal from '../components/equipo/EmployeeReciboModal.vue'
 import EmployeeRateModal from '../components/equipo/EmployeeRateModal.vue'
 import GestionTabs from '../components/equipo/GestionTabs.vue'
 import type { Empleado, EmpleadoFormData } from '../types/empleado'
+import { UsersGroupRoundedIcon, DollarIcon, AddCircleIcon } from '@solar-icons/vue/linear'
 
 const router = useRouter()
 const { authStore } = useAuth()

@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@solar-icons/vue": "^2.0.0-beta.0",
     "@tanstack/query-persist-client-core": "^5.90.2",
     "@tanstack/query-sync-storage-persister": "^5.90.2",
     "@tanstack/vue-query": "^5.90.2",

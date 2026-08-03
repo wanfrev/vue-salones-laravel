@@ -14,63 +14,6 @@
           <span class="hidden sm:inline">Marcar todas</span>
           <span class="sm:hidden">Todas</span>
         </button>
-        <button @click="showPrefs = !showPrefs"
-          class="rounded-md p-1 text-text-muted transition-colors hover:bg-bg-secondary hover:text-text"
-          :class="showPrefs ? 'bg-bg-secondary text-text' : ''"
-          title="Preferencias">
-          <Settings :size="14" />
-        </button>
-      </div>
-    </div>
-
-    <!-- Preferences panel -->
-    <div v-if="showPrefs" class="border-b border-border px-3 py-2.5 space-y-2 bg-bg-secondary/30 sm:px-4 sm:py-3">
-      <p class="text-xs font-medium text-text-muted">Mostrar notificaciones de:</p>
-      <label
-        v-for="(label, type) in TYPE_LABELS"
-        :key="type"
-        class="flex items-center justify-between cursor-pointer"
-      >
-        <span class="text-xs text-text-secondary">{{ label }}</span>
-        <button
-          type="button"
-          role="switch"
-          :aria-checked="notifPrefs[type]"
-          @click="toggleNotifType(type)"
-          :class="[
-            'relative inline-flex h-4 w-7 shrink-0 rounded-full transition-colors',
-            notifPrefs[type] ? 'bg-primary' : 'bg-border'
-          ]"
-        >
-          <span
-            :class="[
-              'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform',
-              notifPrefs[type] ? 'translate-x-3' : 'translate-x-0.5'
-            ]"
-          />
-        </button>
-      </label>
-      <div class="border-t border-border/50 pt-2 mt-1">
-        <label class="flex items-center justify-between cursor-pointer">
-          <span class="text-xs font-medium text-text">Sonido</span>
-          <button
-            type="button"
-            role="switch"
-            :aria-checked="soundEnabled"
-            @click="toggleSound()"
-            :class="[
-              'relative inline-flex h-4 w-7 shrink-0 rounded-full transition-colors',
-              soundEnabled ? 'bg-primary' : 'bg-border'
-            ]"
-          >
-            <span
-              :class="[
-                'inline-block h-3 w-3 rounded-full bg-white shadow-sm transition-transform',
-                soundEnabled ? 'translate-x-3' : 'translate-x-0.5'
-              ]"
-            />
-          </button>
-        </label>
       </div>
     </div>
 
@@ -86,7 +29,7 @@
             'flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full',
             typeStyle[notif.type]?.bg ?? 'bg-bg-secondary',
           ]">
-            <component :is="typeStyle[notif.type]?.icon ?? Bell" :size="14"
+            <component :is="typeStyle[notif.type]?.icon ?? BellIcon" :size="14"
               class="sm:h-4 sm:w-4"
               :class="typeStyle[notif.type]?.color ?? 'text-text-muted'" />
           </div>
@@ -102,12 +45,12 @@
           <template v-if="notif.type === 'reminder'">
             <button @click="handleSendWhatsApp(notif)"
               class="flex items-center gap-1 rounded-lg bg-success/10 px-2.5 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20 sm:px-3">
-              <MessageCircle :size="14" />
+            <ChatRoundDotsIcon :size="14" />
               WhatsApp
             </button>
             <button @click="handleNavigateToAppointment(notif)"
               class="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20 sm:px-3">
-              <Calendar :size="14" />
+              <CalendarIcon :size="14" />
               Ver cita
             </button>
             <button @click="handleDismiss(notif.id)"
@@ -119,7 +62,7 @@
           <template v-else-if="notif.type === 'low_stock'">
             <button @click="handleNavigateToInventory"
               class="flex items-center gap-1 rounded-lg bg-danger/10 px-2.5 py-1.5 text-xs font-medium text-danger transition-colors hover:bg-danger/20 sm:px-3">
-              <PackageOpen :size="14" />
+              <BoxIcon :size="14" />
               Ver inventario
             </button>
             <button @click="handleDismiss(notif.id)"
@@ -131,7 +74,7 @@
           <template v-else>
             <button @click="handleNavigateToAppointment(notif)"
               class="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20 sm:px-3">
-              <Calendar :size="14" />
+              <CalendarIcon :size="14" />
               Ver cita
             </button>
             <button @click="handleDismiss(notif.id)"
@@ -146,25 +89,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Bell, MessageCircle, Calendar, CheckCircle2, CalendarPlus, AlertTriangle, PackageOpen, Cake, Settings, Clock } from 'lucide-vue-next'
+import { BellIcon, ChatRoundDotsIcon, CalendarIcon, CheckCircleIcon, CalendarAddIcon, DangerTriangleIcon, BoxIcon, CupIcon, ClockCircleIcon } from '@solar-icons/vue/linear'
 import { useNotifications } from '../../composables/common/useNotifications'
-import type { NotifType } from '../../composables/common/useNotificationPrefs'
 
 defineEmits<{ close: [] }>()
 
-const { notifications, unreadCount, notifPrefs, toggleNotifType, soundEnabled, toggleSound, TYPE_LABELS, handleMarkAllAsRead, handleDismiss, handleSendWhatsApp, handleNavigateToAppointment, handleNavigateToInventory } = useNotifications()
+const { notifications, unreadCount, handleMarkAllAsRead, handleDismiss, handleSendWhatsApp, handleNavigateToAppointment, handleNavigateToInventory } = useNotifications()
 
-const showPrefs = ref(false)
-
-const typeStyle: Record<string, { icon: typeof Bell; bg: string; color: string }> = {
-  reminder: { icon: Bell, bg: 'bg-primary/10', color: 'text-primary' },
-  status_change: { icon: CheckCircle2, bg: 'bg-success/10', color: 'text-success' },
-  new_appointment: { icon: CalendarPlus, bg: 'bg-info/10', color: 'text-info' },
-  unpaid_alert: { icon: AlertTriangle, bg: 'bg-warning/10', color: 'text-warning' },
-  low_stock: { icon: PackageOpen, bg: 'bg-danger/10', color: 'text-danger' },
-  pet_birthday: { icon: Cake, bg: 'bg-pink-500/10', color: 'text-pink-500' },
-  pending_appointments: { icon: Clock, bg: 'bg-amber-500/10', color: 'text-amber-500' },
+const typeStyle: Record<string, { icon: typeof BellIcon; bg: string; color: string }> = {
+  reminder: { icon: BellIcon, bg: 'bg-primary/10', color: 'text-primary' },
+  status_change: { icon: CheckCircleIcon, bg: 'bg-success/10', color: 'text-success' },
+  new_appointment: { icon: CalendarAddIcon, bg: 'bg-info/10', color: 'text-info' },
+  unpaid_alert: { icon: DangerTriangleIcon, bg: 'bg-warning/10', color: 'text-warning' },
+  low_stock: { icon: BoxIcon, bg: 'bg-danger/10', color: 'text-danger' },
+  pet_birthday: { icon: CupIcon, bg: 'bg-pink-500/10', color: 'text-pink-500' },
+  pending_appointments: { icon: ClockCircleIcon, bg: 'bg-amber-500/10', color: 'text-amber-500' },
 }
 
 const formatRelativeTime = (dateStr: string): string => {
