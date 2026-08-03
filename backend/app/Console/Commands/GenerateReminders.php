@@ -79,6 +79,19 @@ class GenerateReminders extends Command
                     continue;
                 }
 
+                // Skip 24h reminder if a new_appointment notification already exists for this appointment
+                // (the user was already notified at creation time, avoid duplicate perception)
+                $existingNewApptNotif = \App\Models\Notification::where('appointment_id', $appt->id)
+                    ->where('type', 'new_appointment')
+                    ->exists();
+
+                if ($existingNewApptNotif) {
+                    \Illuminate\Support\Facades\Log::info("[reminders:generate] 24h: Skipping appointment {$appt->id} — already has a new_appointment notification");
+                    $appointmentIds[] = $appt->id;
+                    $affectedBusinesses[$appt->business_id] = true;
+                    continue;
+                }
+
                 $notifications = [];
 
                 $baseData = [
@@ -213,11 +226,13 @@ class GenerateReminders extends Command
         // 3. Generate pending appointments reminders (configurable hour)
         $this->info('[reminders:generate] Checking pending appointments for notifications...');
 
+        $dayAgo = $now->copy()->subDay();
         $businesses = Business::where('active', true)->get();
 
         foreach ($businesses as $business) {
-            $pendingNotificationHour = $business->features['pending_notifications_hour'] ?? null;
-            $pendingNotificationsEnabled = $business->features['pending_notifications_enabled'] ?? false;
+            $features = $business->features ?? [];
+            $pendingNotificationHour = $features['pending_notifications_hour'] ?? null;
+            $pendingNotificationsEnabled = $features['pending_notifications_enabled'] ?? false;
 
             if (!$pendingNotificationsEnabled || $pendingNotificationHour === null) {
                 if ($this->option('debug')) {
@@ -226,18 +241,25 @@ class GenerateReminders extends Command
                 continue;
             }
 
+            // Allow 0 (midnight) through 23 as valid hours
+            $hour = (int) $pendingNotificationHour;
+
             $today = $now->copy()->startOfDay();
-            $targetTime = $today->copy()->setHour((int)$pendingNotificationHour)->setMinute(0)->setSecond(0);
+            $targetTime = $today->copy()->setHour($hour)->setMinute(0)->setSecond(0);
 
-            \Illuminate\Support\Facades\Log::info("[reminders:generate] Business {$business->id}: pending_notifications_hour={$pendingNotificationHour}, target_time={$targetTime->toIso8601String()}, now={$now->toIso8601String()}, diff_in_hours={$now->diffInHours($targetTime)}");
+            $minutesSinceTarget = $now->diffInMinutes($targetTime, false);
 
-            if ($now->greaterThanOrEqualTo($targetTime) && $now->diffInHours($targetTime) < 1) {
+            \Illuminate\Support\Facades\Log::info("[reminders:generate] Business {$business->id}: pending_notifications_hour={$hour}, target_time={$targetTime->toIso8601String()}, now={$now->toIso8601String()}, minutes_since_target={$minutesSinceTarget}");
+
+            // Fire if we're within the 60-minute window after the target time
+            if ($minutesSinceTarget >= 0 && $minutesSinceTarget < 60) {
                 $pendingAppts = Appointment::with(['client', 'service'])
                     ->where('business_id', $business->id)
                     ->where('status', 'pending')
-                    ->where(function ($query) {
+                    ->whereDate('start_time', '<=', $today)
+                    ->where(function ($query) use ($dayAgo) {
                         $query->whereNull('pending_reminder_sent_at')
-                            ->orWhere('pending_reminder_sent_at', '<', now()->subDay());
+                            ->orWhere('pending_reminder_sent_at', '<', $dayAgo);
                     })
                     ->get();
 

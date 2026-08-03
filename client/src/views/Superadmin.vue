@@ -71,7 +71,7 @@
           </div>
 
           <p v-if="formError" class="text-xs text-danger flex items-center gap-1">
-            <svg class="h-3.5 w-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
+            <InfoCircleIcon class="h-3.5 w-3.5 shrink-0" />
             {{ formError }}
           </p>
 
@@ -116,14 +116,12 @@
                 <span>{{ formatDate(biz.created_at) }}</span>
               </div>
             </div>
-            <svg class="h-4 w-4 shrink-0 text-text-muted/40 group-hover:text-primary/60 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
+            <ArrowRightIcon class="h-4 w-4 shrink-0 text-text-muted/40 group-hover:text-primary/60 transition-colors" />
           </router-link>
 
           <div v-if="!filteredBusinesses.length && !businessesCount" class="py-12 text-center">
             <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-bg-secondary">
-              <svg class="h-6 w-6 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+              <BuildingsIcon class="h-6 w-6 text-text-muted" />
             </div>
             <p class="text-sm font-semibold text-text mb-1">Sin negocios</p>
             <p class="text-xs text-text-muted">Crea el primer negocio usando el formulario</p>
@@ -146,6 +144,7 @@ import { createBusinessWithOwner, listBusinesses, superadminKeys } from '../serv
 import { translateError } from '../lib/errors'
 import SuperadminLayout from '../components/layout/SuperadminLayout.vue'
 import type { Business } from '../types/database'
+import { InfoCircleIcon, ArrowRightIcon, BuildingsIcon } from '@solar-icons/vue/linear'
 
 const { success, error: showError } = useNotification()
 const queryClient = useQueryClient()

@@ -9,7 +9,7 @@
             @click="goBack"
             title="Volver"
           >
-            <IconArrowLeft class="h-5 w-5" />
+            <ArrowLeftIcon class="h-5 w-5" />
           </button>
           <div>
             <p class="text-xs font-medium uppercase tracking-wider text-primary">Comisiones</p>
@@ -79,7 +79,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { IconArrowLeft } from '@solar-icons/vue/linear'
+import { ArrowLeftIcon } from '@solar-icons/vue/linear'
 import { useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { formatMethod, formatDate } from '../../lib/formatters'

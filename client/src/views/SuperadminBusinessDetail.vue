@@ -5,7 +5,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div class="flex items-center gap-3">
           <router-link to="/superadmin" class="flex items-center gap-1 text-xs font-medium text-text-muted hover:text-text transition-colors">
-            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            <ArrowLeftIcon class="h-3.5 w-3.5" />
             Negocios
           </router-link>
           <span class="text-text-muted/40">/</span>
@@ -262,6 +262,7 @@ import { translateError } from '../lib/errors'
 import SuperadminLayout from '../components/layout/SuperadminLayout.vue'
 import type { AuthProfile } from '../types/auth'
 import type { Business } from '../types/database'
+import { ArrowLeftIcon } from '@solar-icons/vue/linear'
 
 const { success, error: showError } = useNotification()
 const queryClient = useQueryClient()

@@ -7,7 +7,7 @@
           :aria-label="`Nueva ${t.appointment?.toLowerCase() || 'cita'}`"
           class="flex items-center gap-1 rounded-lg bg-primary px-2 py-2 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover sm:gap-2 sm:px-4"
         >
-          <IconPlus class="h-4 w-4" />
+          <AddCircleIcon class="h-4 w-4" />
           <span class="hidden sm:inline">Nueva {{ t.appointment?.toLowerCase() || 'cita' }}</span>
         </button>
         <button
@@ -15,7 +15,7 @@
           @click="openInvitations"
           class="flex items-center gap-1.5 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-3 py-1.5 text-xs font-semibold text-orange-700 dark:text-orange-400 transition-colors hover:bg-orange-100 dark:hover:bg-orange-950/40"
         >
-          <IconBell class="h-3.5 w-3.5" />
+          <BellIcon class="h-3.5 w-3.5" />
           <span class="hidden sm:inline">Invitaciones</span>
         </button>
         <button
@@ -24,7 +24,7 @@
           class="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-light px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
           title="Compartir link de reserva"
         >
-          <IconLink class="h-3.5 w-3.5" />
+          <LinkIcon class="h-3.5 w-3.5" />
           <span class="hidden sm:inline">Link de reserva</span>
         </button>
       </div>
@@ -76,7 +76,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { IconPlus, IconBell, IconLink } from '@solar-icons/vue/linear'
+import { AddCircleIcon, BellIcon, LinkIcon } from '@solar-icons/vue/linear'
 import { useQuery } from '@tanstack/vue-query'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'

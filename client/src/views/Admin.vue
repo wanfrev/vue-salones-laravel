@@ -6,7 +6,7 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1">
-              <IconCalendar class="h-3.5 w-3.5" />
+              <CalendarIcon class="h-3.5 w-3.5" />
               {{ businessStore.terminology.appointment || 'Cita' }}s
             </div>
             <h1 class="text-xl font-bold tracking-tight text-text sm:text-2xl lg:text-3xl">
@@ -37,7 +37,7 @@
                   @click="shareDropdownOpen = !shareDropdownOpen"
                   class="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-light px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
                 >
-                  <IconLink class="h-3.5 w-3.5" />
+                  <LinkIcon class="h-3.5 w-3.5" />
                   <span class="hidden sm:inline">Link de reserva</span>
                 </button>
                 <Transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
@@ -66,7 +66,7 @@
               @click="openInvitations"
               class="flex items-center gap-1.5 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-3 py-2 text-xs font-semibold text-orange-700 dark:text-orange-400 transition-colors hover:bg-orange-100 dark:hover:bg-orange-950/40"
             >
-              <IconBell class="h-3.5 w-3.5" />
+              <BellIcon class="h-3.5 w-3.5" />
               <span class="hidden sm:inline">Invitaciones</span>
             </button>
             <button
@@ -74,7 +74,7 @@
               class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover sm:gap-2 sm:px-4"
               :aria-label="`Nueva ${(businessStore.terminology.appointment || 'cita').toLowerCase()}`"
             >
-              <IconPlus class="h-4 w-4" />
+              <AddCircleIcon class="h-4 w-4" />
               <span class="hidden sm:inline">Nueva {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}</span>
             </button>
           </div>
@@ -86,7 +86,7 @@
         <div class="rounded-lg border border-border bg-surface p-2.5 transition-theme hover:border-border-strong sm:rounded-xl sm:p-4">
           <div class="flex items-center gap-2">
             <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary sm:h-9 sm:w-9">
-              <IconClipboard class="h-3.5 w-3.5 sm:h-5 sm:w-5" />
+              <ClipboardIcon class="h-3.5 w-3.5 sm:h-5 sm:w-5" />
             </div>
             <div class="min-w-0">
               <p class="text-lg font-bold tabular-nums text-text sm:text-2xl">{{ stats.citasHoy }}</p>
@@ -98,7 +98,7 @@
         <div class="rounded-lg border border-border bg-surface p-2.5 transition-theme hover:border-border-strong sm:rounded-xl sm:p-4">
           <div class="flex items-center gap-2">
             <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-warning/10 text-warning sm:h-9 sm:w-9">
-              <IconClockCircle class="h-3.5 w-3.5 sm:h-5 sm:w-5" />
+              <ClockCircleIcon class="h-3.5 w-3.5 sm:h-5 sm:w-5" />
             </div>
             <div class="min-w-0">
               <p class="text-lg font-bold tabular-nums text-text sm:text-2xl">{{ stats.pendientes }}</p>
@@ -110,7 +110,7 @@
         <div class="rounded-lg border border-border bg-surface p-2.5 transition-theme hover:border-border-strong sm:rounded-xl sm:p-4">
           <div class="flex items-center gap-2">
             <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-success/10 text-success sm:h-9 sm:w-9">
-              <IconCheckCircle class="h-3.5 w-3.5 sm:h-5 sm:w-5" />
+              <CheckCircleIcon class="h-3.5 w-3.5 sm:h-5 sm:w-5" />
             </div>
             <div class="min-w-0">
               <p class="text-lg font-bold tabular-nums text-text sm:text-2xl">{{ stats.confirmadas }}</p>
@@ -122,7 +122,7 @@
         <div class="rounded-lg border border-border bg-surface p-2.5 transition-theme hover:border-border-strong sm:rounded-xl sm:p-4">
           <div class="flex items-center gap-2">
             <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-info/10 text-info sm:h-9 sm:w-9">
-              <IconCoin class="h-3.5 w-3.5 sm:h-5 sm:w-5" />
+              <DollarIcon class="h-3.5 w-3.5 sm:h-5 sm:w-5" />
             </div>
             <div class="min-w-0">
               <p class="text-lg font-bold tabular-nums text-text sm:text-2xl">${{ stats.estimadoHoy }}</p>
@@ -175,7 +175,7 @@
               @click="openInvitations"
               class="flex items-center gap-1.5 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-2.5 py-1.5 text-xs font-semibold text-orange-700 dark:text-orange-400 transition-colors hover:bg-orange-100 dark:hover:bg-orange-950/40"
             >
-              <IconBell class="h-3.5 w-3.5" />
+              <BellIcon class="h-3.5 w-3.5" />
               Invitaciones
             </button>
           </div>
@@ -215,7 +215,7 @@ import AgendaListView from '../components/agenda/AgendaListView.vue'
 import PendingInvitationsModal from '../components/agenda/PendingInvitationsModal.vue'
 import type { Cita, PaymentEditContext } from '../types/cita'
 import type { PaymentMethod } from '../types/database'
-import { IconCalendar, IconLink, IconBell, IconPlus, IconClipboard, IconClockCircle, IconCheckCircle, IconCoin } from '@solar-icons/vue/linear'
+import { CalendarIcon, LinkIcon, BellIcon, AddCircleIcon, ClipboardIcon, ClockCircleIcon, CheckCircleIcon, DollarIcon } from '@solar-icons/vue/linear'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()

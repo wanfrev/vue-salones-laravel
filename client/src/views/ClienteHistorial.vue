@@ -3,7 +3,7 @@
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div>
         <div class="flex items-center gap-2 text-sm text-primary mb-0.5">
-          <IconListUl class="h-4 w-4" />
+          <ListIcon class="h-4 w-4" />
           <span class="font-medium uppercase tracking-wider">{{ businessStore.terminology.client || 'Cliente' }}s</span>
         </div>
         <h1 class="text-xl font-bold text-text lg:text-2xl">Historial de {{ cliente?.name || businessStore.terminology.client || 'Cliente' }}</h1>
@@ -14,7 +14,7 @@
           @click="goBack"
           class="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary transition-theme hover:bg-bg-secondary"
         >
-          <IconArrowLeft class="h-4 w-4" />
+          <ArrowLeftIcon class="h-4 w-4" />
           Volver
         </button>
         <button
@@ -22,7 +22,7 @@
           @click="handleWhatsApp"
           class="flex items-center gap-2 rounded-xl bg-success px-3 py-2 text-sm font-medium text-text-inverse shadow-lg shadow-success/25 transition-theme hover:bg-success/90"
         >
-          <IconCheckCircle class="h-4 w-4" />
+          <CheckCircleIcon class="h-4 w-4" />
           WhatsApp
         </button>
         <button
@@ -30,7 +30,7 @@
           @click="goToConsultorio"
           class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
         >
-          <IconClipboard class="h-4 w-4" />
+          <ClipboardIcon class="h-4 w-4" />
           Ver Historias Clínicas
         </button>
       </div>
@@ -99,7 +99,7 @@ import { useBusinessStore } from '../store/business'
 import { listCitas } from '../services/agendaService'
 import { getClienteById } from '../services/clientesService'
 import { isPetNiche as checkPetNiche } from '../config/nicheFields'
-import { IconListUl, IconArrowLeft, IconCheckCircle, IconClipboard } from '@solar-icons/vue/linear'
+import { ListIcon, ArrowLeftIcon, CheckCircleIcon, ClipboardIcon } from '@solar-icons/vue/linear'
 import type { Cliente } from '../types/cliente'
 
 const { authStore } = useAuth()

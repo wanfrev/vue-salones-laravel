@@ -3,7 +3,7 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1">
-          <IconUsers class="h-3.5 w-3.5" />
+          <UserIcon class="h-3.5 w-3.5" />
           {{ businessStore.terminology.client || 'Cliente' }}s
         </div>
         <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">
@@ -15,7 +15,7 @@
           @click="clienteModalRef?.open()"
           class="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover"
         >
-          <IconUserAdd class="h-4 w-4" />
+          <AddCircleIcon class="h-4 w-4" />
           <span>Nuevo {{ label }}</span>
         </button>
       </div>
@@ -39,7 +39,7 @@
         class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
       />
       <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-        <IconSearch class="h-4 w-4" />
+        <MagnifierIcon class="h-4 w-4" />
       </div>
     </div>
     <div class="flex gap-2">
@@ -47,7 +47,7 @@
         @click="openFilterDrawer"
         class="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:border-border-strong"
       >
-        <IconFunnel class="h-4 w-4" />
+        <FilterIcon class="h-4 w-4" />
         Filtros
       </button>
     </div>
@@ -142,14 +142,14 @@
                   class="rounded-md p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
                   :title="`Editar ${label}`"
                 >
-                  <IconPencil class="h-4 w-4" />
+                  <PenIcon class="h-4 w-4" />
                 </button>
                 <button
                   @click.stop="handleWhatsApp(client)"
                   class="rounded-md p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-success"
                   title="Escribir por WhatsApp"
                 >
-                  <IconCheckCircle class="h-4 w-4" />
+                  <CheckCircleIcon class="h-4 w-4" />
                 </button>
               </div>
             </td>
@@ -200,7 +200,7 @@
           class="rounded-md p-1.5 transition-theme"
           :class="hasPreviousPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
         >
-          <IconArrowLeft class="h-4 w-4" />
+          <ArrowLeftIcon class="h-4 w-4" />
         </button>
         <span class="text-xs font-medium text-text px-1">{{ currentPage }} / {{ totalPages }}</span>
         <button
@@ -209,7 +209,7 @@
           class="rounded-md p-1.5 transition-theme"
           :class="hasNextPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
         >
-          <IconArrowRight class="h-4 w-4" />
+          <ArrowRightIcon class="h-4 w-4" />
         </button>
       </div>
     </div>
@@ -243,7 +243,7 @@ import { getInitials, sanitizePhone } from '../lib/formatters'
 import ClientStats from '../components/clientes/ClientStats.vue'
 import { ClienteFormModal } from '../components/modals'
 import { FilterDrawer } from '../components/filters'
-import { IconUsers, IconUserAdd, IconSearch, IconFunnel, IconPencil, IconCheckCircle, IconArrowLeft, IconArrowRight } from '@solar-icons/vue/linear'
+import { UserIcon, AddCircleIcon, MagnifierIcon, FilterIcon, PenIcon, CheckCircleIcon, ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
 
 import type { Cliente, ClienteFormData } from '../types/cliente'
 
