@@ -4,7 +4,7 @@
     <header class="fixed left-0 right-0 top-0 z-50 flex h-16 items-center justify-between bg-surface border-b border-border px-2 sm:px-4">
       <div class="flex items-center gap-1 sm:gap-2 min-w-0">
         <button @click="isSidebarOpen = !isSidebarOpen" class="rounded-lg p-2 text-text-secondary transition-theme hover:bg-bg-secondary shrink-0 lg:hidden">
-          <MenuHamburgerIcon :size="24" />
+          <HamburgerMenuIcon :size="24" />
         </button>
         <div class="flex flex-col shrink-0">
           <img :src="lumaLogo" alt="Luma" class="h-7 w-auto object-contain" />
@@ -56,7 +56,7 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../../composables/common/useAuth'
 import { useAuthStore } from '../../store/auth'
 import { useThemeStore } from '../../store/theme'
-import { MenuHamburgerIcon, RefreshIcon, LogoutIcon } from '@solar-icons/vue/linear'
+import { HamburgerMenuIcon, RefreshIcon, LogoutIcon } from '@solar-icons/vue/linear'
 import lumaLogoLight from '../../assets/Luma.svg'
 import lumaLogoDark from '../../assets/Luma blanco.svg'
 import Sidebar from './Sidebar.vue'

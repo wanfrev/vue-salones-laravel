@@ -4,7 +4,7 @@
     <header class="fixed left-0 right-0 top-0 z-50 flex h-16 items-center justify-between bg-surface border-b border-border px-2 sm:px-4">
       <div class="flex items-center gap-1 sm:gap-2 min-w-0">
         <button @click="isSidebarOpen = !isSidebarOpen" class="rounded-lg p-2 text-text-secondary transition-theme hover:bg-bg-secondary shrink-0 lg:hidden">
-          <MenuHamburgerIcon :size="24" />
+          <HamburgerMenuIcon :size="24" />
         </button>
         <img :src="lumaLogo" alt="Luma" class="-ml-1 h-7 w-auto object-contain shrink-0" />
         <div class="flex flex-col min-w-0">
@@ -60,7 +60,7 @@ import { useAuth } from '../../composables/common/useAuth'
 import { useAuthStore } from '../../store/auth'
 import { useThemeStore } from '../../store/theme'
 import { useBusinessStore } from '../../store/business'
-import { MenuHamburgerIcon, RefreshIcon, LogoutIcon } from '@solar-icons/vue/linear'
+import { HamburgerMenuIcon, RefreshIcon, LogoutIcon } from '@solar-icons/vue/linear'
 import { db } from '../../lib/api'
 import { useRealtime } from '../../composables/realtime/useRealtime'
 import lumaLogoLight from '../../assets/Luma.svg'

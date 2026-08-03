@@ -45,7 +45,7 @@
           <template v-if="notif.type === 'reminder'">
             <button @click="handleSendWhatsApp(notif)"
               class="flex items-center gap-1 rounded-lg bg-success/10 px-2.5 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20 sm:px-3">
-            <MessageCircleIcon :size="14" />
+            <ChatRoundDotsIcon :size="14" />
               WhatsApp
             </button>
             <button @click="handleNavigateToAppointment(notif)"
@@ -89,7 +89,7 @@
 </template>
 
 <script setup lang="ts">
-import { BellIcon, ChatRoundDotsIcon, CalendarIcon, CheckCircleIcon, CalendarAddIcon, DangerTriangleIcon, BoxIcon, CupIcon, ClockCircleIcon, MessageCircleIcon } from '@solar-icons/vue/linear'
+import { BellIcon, ChatRoundDotsIcon, CalendarIcon, CheckCircleIcon, CalendarAddIcon, DangerTriangleIcon, BoxIcon, CupIcon, ClockCircleIcon } from '@solar-icons/vue/linear'
 import { useNotifications } from '../../composables/common/useNotifications'
 
 defineEmits<{ close: [] }>()
