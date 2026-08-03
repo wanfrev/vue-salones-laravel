@@ -32,13 +32,19 @@
               </button>
             </div>
             <template v-if="businessStore.hasFeature('enable_public_booking')">
-              <div class="relative" v-click-outside="() => shareDropdownOpen = false">
+              <div class="relative flex" v-click-outside="() => shareDropdownOpen = false">
                 <button
-                  @click="shareDropdownOpen = !shareDropdownOpen"
-                  class="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-light px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+                  @click="copyDefaultShareLink"
+                  class="flex items-center gap-1.5 rounded-l-lg border border-primary/30 bg-primary-light px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 border-r-0"
                 >
                   <LinkIcon class="h-3.5 w-3.5" />
                   <span class="hidden sm:inline">Link de reserva</span>
+                </button>
+                <button
+                  @click="shareDropdownOpen = !shareDropdownOpen"
+                  class="rounded-r-lg border border-primary/30 bg-primary-light px-1.5 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 border-l border-primary/20"
+                >
+                  <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
                 </button>
                 <Transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
                   <div v-if="shareDropdownOpen" class="absolute right-0 top-full z-50 mt-1.5 w-56 rounded-xl border border-border bg-surface p-1.5 shadow-xl">
@@ -281,6 +287,13 @@ function copyShareLink(employeeId: string) {
   }).catch(() => {
     prompt('Copia este link:', link)
   })
+}
+
+function copyDefaultShareLink() {
+  const defaultEmpId = authStore.profile?.id || shareableEmployees.value[0]?.id
+  if (defaultEmpId) {
+    copyShareLink(defaultEmpId)
+  }
 }
 
 const {
