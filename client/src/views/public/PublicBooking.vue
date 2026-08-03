@@ -229,7 +229,6 @@
                     </div>
                     <div class="text-right flex-shrink-0">
                       <p class="text-lg font-extrabold text-text">${{ svc.price.toFixed(0) }}</p>
-                      <p class="text-[9px] text-text-muted font-medium">{{ svc.currency || 'USD' }}</p>
                     </div>
                   </div>
                 </button>
@@ -399,7 +398,7 @@ const totalHeight = (endHour - startHour) * slotHeight
 
 const hours = computed(() =>
   Array.from({ length: endHour - startHour }, (_, i) => {
-    const h24 = startHour + i; const ampm = h24 >= 12 ? 'PM' : 'AM'
+    const h24 = startHour + i
     const h12 = h24 % 12 || 12; return { hour: h24, label: `${h12}:00` }
   })
 )
@@ -417,7 +416,7 @@ const cssVars = computed(() => ({
   '--color-primary-hover': adjustHex(primaryColor.value, -8),
 }))
 
-function colored(token: string): string {
+function colored(_token: string): string {
   return primaryColor.value
 }
 
