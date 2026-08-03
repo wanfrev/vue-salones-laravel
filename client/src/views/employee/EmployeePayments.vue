@@ -9,9 +9,7 @@
             @click="goBack"
             title="Volver"
           >
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-            </svg>
+            <IconArrowLeft class="h-5 w-5" />
           </button>
           <div>
             <p class="text-xs font-medium uppercase tracking-wider text-primary">Comisiones</p>
@@ -81,6 +79,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { IconArrowLeft } from '@solar-icons/vue/linear'
 import { useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { formatMethod, formatDate } from '../../lib/formatters'

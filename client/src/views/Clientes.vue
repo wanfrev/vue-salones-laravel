@@ -3,9 +3,7 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div>
         <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
+          <IconUsers class="h-3.5 w-3.5" />
           {{ businessStore.terminology.client || 'Cliente' }}s
         </div>
         <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">
@@ -17,9 +15,7 @@
           @click="clienteModalRef?.open()"
           class="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover"
         >
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-          </svg>
+          <IconUserAdd class="h-4 w-4" />
           <span>Nuevo {{ label }}</span>
         </button>
       </div>
@@ -43,9 +39,7 @@
         class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
       />
       <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
+        <IconSearch class="h-4 w-4" />
       </div>
     </div>
     <div class="flex gap-2">
@@ -53,9 +47,7 @@
         @click="openFilterDrawer"
         class="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:border-border-strong"
       >
-        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-        </svg>
+        <IconFunnel class="h-4 w-4" />
         Filtros
       </button>
     </div>
@@ -150,18 +142,14 @@
                   class="rounded-md p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
                   :title="`Editar ${label}`"
                 >
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                  </svg>
+                  <IconPencil class="h-4 w-4" />
                 </button>
                 <button
                   @click.stop="handleWhatsApp(client)"
                   class="rounded-md p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-success"
                   title="Escribir por WhatsApp"
                 >
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 10l2 2 7-7M12 21a9 9 0 10-9-9c0 1.6.42 3.1 1.16 4.4L3 21l4.7-1.16A8.94 8.94 0 0012 21z" />
-                  </svg>
+                  <IconCheckCircle class="h-4 w-4" />
                 </button>
               </div>
             </td>
@@ -212,7 +200,7 @@
           class="rounded-md p-1.5 transition-theme"
           :class="hasPreviousPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
         >
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+          <IconArrowLeft class="h-4 w-4" />
         </button>
         <span class="text-xs font-medium text-text px-1">{{ currentPage }} / {{ totalPages }}</span>
         <button
@@ -221,7 +209,7 @@
           class="rounded-md p-1.5 transition-theme"
           :class="hasNextPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
         >
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+          <IconArrowRight class="h-4 w-4" />
         </button>
       </div>
     </div>
@@ -255,6 +243,7 @@ import { getInitials, sanitizePhone } from '../lib/formatters'
 import ClientStats from '../components/clientes/ClientStats.vue'
 import { ClienteFormModal } from '../components/modals'
 import { FilterDrawer } from '../components/filters'
+import { IconUsers, IconUserAdd, IconSearch, IconFunnel, IconPencil, IconCheckCircle, IconArrowLeft, IconArrowRight } from '@solar-icons/vue/linear'
 
 import type { Cliente, ClienteFormData } from '../types/cliente'
 

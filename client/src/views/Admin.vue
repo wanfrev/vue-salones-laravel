@@ -6,9 +6,7 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1">
-              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
+              <IconCalendar class="h-3.5 w-3.5" />
               {{ businessStore.terminology.appointment || 'Cita' }}s
             </div>
             <h1 class="text-xl font-bold tracking-tight text-text sm:text-2xl lg:text-3xl">
@@ -39,9 +37,7 @@
                   @click="shareDropdownOpen = !shareDropdownOpen"
                   class="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-light px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
                 >
-                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
+                  <IconLink class="h-3.5 w-3.5" />
                   <span class="hidden sm:inline">Link de reserva</span>
                 </button>
                 <Transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
@@ -70,7 +66,7 @@
               @click="openInvitations"
               class="flex items-center gap-1.5 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-3 py-2 text-xs font-semibold text-orange-700 dark:text-orange-400 transition-colors hover:bg-orange-100 dark:hover:bg-orange-950/40"
             >
-              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              <IconBell class="h-3.5 w-3.5" />
               <span class="hidden sm:inline">Invitaciones</span>
             </button>
             <button
@@ -78,9 +74,7 @@
               class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover sm:gap-2 sm:px-4"
               :aria-label="`Nueva ${(businessStore.terminology.appointment || 'cita').toLowerCase()}`"
             >
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-              </svg>
+              <IconPlus class="h-4 w-4" />
               <span class="hidden sm:inline">Nueva {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}</span>
             </button>
           </div>
@@ -92,9 +86,7 @@
         <div class="rounded-lg border border-border bg-surface p-2.5 transition-theme hover:border-border-strong sm:rounded-xl sm:p-4">
           <div class="flex items-center gap-2">
             <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary sm:h-9 sm:w-9">
-              <svg class="h-3.5 w-3.5 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
+              <IconClipboard class="h-3.5 w-3.5 sm:h-5 sm:w-5" />
             </div>
             <div class="min-w-0">
               <p class="text-lg font-bold tabular-nums text-text sm:text-2xl">{{ stats.citasHoy }}</p>
@@ -106,9 +98,7 @@
         <div class="rounded-lg border border-border bg-surface p-2.5 transition-theme hover:border-border-strong sm:rounded-xl sm:p-4">
           <div class="flex items-center gap-2">
             <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-warning/10 text-warning sm:h-9 sm:w-9">
-              <svg class="h-3.5 w-3.5 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <IconClockCircle class="h-3.5 w-3.5 sm:h-5 sm:w-5" />
             </div>
             <div class="min-w-0">
               <p class="text-lg font-bold tabular-nums text-text sm:text-2xl">{{ stats.pendientes }}</p>
@@ -120,9 +110,7 @@
         <div class="rounded-lg border border-border bg-surface p-2.5 transition-theme hover:border-border-strong sm:rounded-xl sm:p-4">
           <div class="flex items-center gap-2">
             <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-success/10 text-success sm:h-9 sm:w-9">
-              <svg class="h-3.5 w-3.5 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <IconCheckCircle class="h-3.5 w-3.5 sm:h-5 sm:w-5" />
             </div>
             <div class="min-w-0">
               <p class="text-lg font-bold tabular-nums text-text sm:text-2xl">{{ stats.confirmadas }}</p>
@@ -134,9 +122,7 @@
         <div class="rounded-lg border border-border bg-surface p-2.5 transition-theme hover:border-border-strong sm:rounded-xl sm:p-4">
           <div class="flex items-center gap-2">
             <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-info/10 text-info sm:h-9 sm:w-9">
-              <svg class="h-3.5 w-3.5 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <IconCoin class="h-3.5 w-3.5 sm:h-5 sm:w-5" />
             </div>
             <div class="min-w-0">
               <p class="text-lg font-bold tabular-nums text-text sm:text-2xl">${{ stats.estimadoHoy }}</p>
@@ -189,7 +175,7 @@
               @click="openInvitations"
               class="flex items-center gap-1.5 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-2.5 py-1.5 text-xs font-semibold text-orange-700 dark:text-orange-400 transition-colors hover:bg-orange-100 dark:hover:bg-orange-950/40"
             >
-              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+              <IconBell class="h-3.5 w-3.5" />
               Invitaciones
             </button>
           </div>
@@ -229,6 +215,7 @@ import AgendaListView from '../components/agenda/AgendaListView.vue'
 import PendingInvitationsModal from '../components/agenda/PendingInvitationsModal.vue'
 import type { Cita, PaymentEditContext } from '../types/cita'
 import type { PaymentMethod } from '../types/database'
+import { IconCalendar, IconLink, IconBell, IconPlus, IconClipboard, IconClockCircle, IconCheckCircle, IconCoin } from '@solar-icons/vue/linear'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()

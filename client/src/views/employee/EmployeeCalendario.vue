@@ -7,7 +7,7 @@
           @click="openInvitations"
           class="flex items-center gap-1.5 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-3 py-1.5 text-xs font-semibold text-orange-700 dark:text-orange-400 transition-colors hover:bg-orange-100 dark:hover:bg-orange-950/40"
         >
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+          <IconBell class="h-3.5 w-3.5" />
           <span class="hidden sm:inline">Invitaciones</span>
         </button>
         <button
@@ -16,9 +16,7 @@
           class="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-light px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
           title="Compartir link de reserva"
         >
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-          </svg>
+          <IconLink class="h-3.5 w-3.5" />
           <span class="hidden sm:inline">Compartir link</span>
         </button>
       </div>
@@ -58,6 +56,7 @@ import { listEquipo, equipoKeys } from '../../services/equipoService'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import AgendaCalendar from '../../components/agenda/AgendaCalendar.vue'
 import { toISODate, dateToHHmm } from '../../lib/formatters'
+import { IconBell, IconLink } from '@solar-icons/vue/linear'
 import { CitaFormModal } from '../../components/modals'
 import PendingInvitationsModal from '../../components/agenda/PendingInvitationsModal.vue'
 import type { Cita } from '../../types/cita'
