@@ -12,7 +12,7 @@
       style="background-image: radial-gradient(circle at 20% 30%, rgba(134,156,132,0.2), transparent 40%), radial-gradient(circle at 80% 70%, rgba(15,23,42,0.1), transparent 35%)"
     />
 
-    <div class="relative z-10 w-full max-w-xl rounded-3xl border border-white/20 dark:border-white/10 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-2xl shadow-2xl shadow-black/5 dark:shadow-black/30 overflow-hidden transition-shadow duration-500">
+    <div class="relative z-10 w-full max-w-4xl rounded-3xl border border-white/20 dark:border-white/10 bg-white/85 dark:bg-zinc-950/85 backdrop-blur-2xl shadow-2xl shadow-black/5 dark:shadow-black/30 overflow-hidden transition-shadow duration-500 max-h-[95dvh] flex flex-col">
       <!-- Card Header -->
       <div class="px-6 sm:px-8 pt-6 pb-4 flex items-center justify-between border-b border-black/5 dark:border-white/5">
         <div class="flex items-center gap-3">
@@ -46,7 +46,7 @@
       </div>
 
       <!-- Content -->
-      <div class="px-6 sm:px-8 pb-6 pt-4">
+      <div class="px-6 sm:px-10 pb-8 pt-4 flex-1 overflow-y-auto">
         <!-- LOADING / ERROR / DISABLED -->
         <div v-if="loadingBusiness" class="py-20 flex flex-col items-center gap-3">
           <div class="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -208,7 +208,7 @@
                 <button @click="currentStep = 0" class="text-primary font-medium hover:underline mt-1.5 text-sm inline-block">Elige un horario con más tiempo</button>
               </div>
 
-              <TransitionGroup v-else name="svc-list" tag="div" class="space-y-2.5">
+              <TransitionGroup v-else name="svc-list" tag="div" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <button v-for="(svc, idx) in filterableServices" :key="svc.id"
                   @click="selectService(svc)"
                   :style="{ animationDelay: `${idx * 50}ms` }"
@@ -342,11 +342,7 @@
                 </div>
               </div>
 
-              <button @click="resetAll"
-                class="rounded-xl px-8 py-3 text-sm font-bold text-white shadow-lg transition-all active:scale-[0.98]"
-                :style="{ background: `linear-gradient(135deg, ${colored('--color-primary')}, ${adjustHex(colored('--color-primary'), -12)})`, boxShadow: `0 8px 25px ${colored('--color-primary')}40` }">
-                Agendar otra cita
-              </button>
+              <p class="text-[11px] text-text-muted/50 mt-4">Gracias por tu reserva. Esta ventana ya cumplió su propósito.</p>
             </div>
           </Transition>
         </template>
@@ -595,14 +591,6 @@ async function submitRequest() {
   } finally {
     submitting.value = false
   }
-}
-
-function resetAll() {
-  currentStep.value = 0
-  chosenService.value = null
-  pendingSlot.value = null
-  clientName.value = ''
-  selectedDate.value = todayStr
 }
 
 function goToStep(step: number) { currentStep.value = step }
