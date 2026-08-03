@@ -104,7 +104,7 @@ export const useAgenda = () => {
         .select(APPOINTMENT_SELECT)
         .eq('business_id', bizId)
       if (branchId) {
-        query = query.eq('branch_id', branchId)
+        query = query.or(`branch_id.is.null,branch_id.eq.${branchId}`)
       }
       const startIso = start instanceof Date ? start.toISOString() : new Date(start).toISOString()
       const endIso = end instanceof Date ? end.toISOString() : new Date(end).toISOString()
