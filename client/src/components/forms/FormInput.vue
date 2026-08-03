@@ -5,10 +5,8 @@
       <span v-if="required" class="text-danger">*</span>
     </label>
     <div class="relative min-w-0 w-full">
-      <div v-if="prefixIcon" class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
-        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="prefixIcon" />
-        </svg>
+      <div v-if="prefixIconComponent" class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
+        <component :is="prefixIconComponent" :size="20" />
       </div>
       <input :id="inputId" :type="inputType" :value="modelValue" @input="handleInput" @blur="$emit('blur', $event)"
         @focus="$emit('focus', $event)" :placeholder="placeholder" :required="required" :disabled="disabled"
@@ -17,8 +15,8 @@
           'focus:border-primary focus:ring-2 focus:ring-primary/20',
           'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary',
           error ? 'border-danger focus:border-danger focus:ring-danger/20' : 'border-border hover:border-border-strong',
-          prefixIcon ? (inputType === 'date' ? 'pl-8' : 'pl-10') : 'pl-4',
-          suffixIcon || showPasswordToggle ? 'pr-10' : 'pr-4',
+          prefixIconComponent ? (inputType === 'date' ? 'pl-8' : 'pl-10') : 'pl-4',
+          suffixIconComponent || showPasswordToggle ? 'pr-10' : 'pr-4',
           sizeClasses[size],
         ]" />
       <button v-if="showPasswordToggle && type === 'password'" type="button"
@@ -27,10 +25,8 @@
         @click="passwordVisible = !passwordVisible">
         {{ passwordVisible ? 'Ocultar' : 'Ver' }}
       </button>
-      <div v-else-if="suffixIcon" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
-        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="suffixIcon" />
-        </svg>
+      <div v-else-if="suffixIconComponent" class="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
+        <component :is="suffixIconComponent" :size="20" />
       </div>
     </div>
     <p v-if="error" class="text-sm text-danger">{{ error }}</p>
@@ -39,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, type Component } from 'vue'
 
 let idCounter = 0
 
@@ -56,8 +52,8 @@ interface Props {
   readonly?: boolean
   error?: string
   hint?: string
-  prefixIcon?: string
-  suffixIcon?: string
+  prefixIcon?: string | Component
+  suffixIcon?: string | Component
   size?: InputSize
   id?: string
   autocomplete?: string
@@ -78,6 +74,16 @@ const emit = defineEmits<{
 const inputId = computed(() => props.id || `form-input-${++idCounter}`)
 
 const passwordVisible = ref(false)
+
+const prefixIconComponent = computed(() => {
+  if (typeof props.prefixIcon === 'string') return null
+  return props.prefixIcon as Component
+})
+
+const suffixIconComponent = computed(() => {
+  if (typeof props.suffixIcon === 'string') return null
+  return props.suffixIcon as Component
+})
 
 const inputType = computed(() => {
   if (props.type === 'password' && props.showPasswordToggle && passwordVisible.value) {

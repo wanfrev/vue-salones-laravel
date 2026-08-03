@@ -3,10 +3,7 @@
     :class="['mx-3 sm:mx-5 mt-3 sm:mt-4 mb-0 rounded-xl border border-border-subtle p-3 sm:p-4', variantBg[variant]]">
     <div class="flex items-center gap-3">
       <div :class="['p-2.5 rounded-lg border shrink-0', variantIconBg[variant], variantIconText[variant]]">
-        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path :d="icon" />
-        </svg>
+        <component :is="iconComponent" :size="20" />
       </div>
       <div>
         <span class="text-[10px] sm:text-[11px] text-text-muted uppercase tracking-wider font-semibold">{{ label
@@ -22,13 +19,19 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+import { computed, type Component } from 'vue'
+
+const props = defineProps<{
   variant: 'success' | 'danger' | 'warning' | 'primary'
-  icon: string
+  icon: Component | string
   label: string
   value: string | number
   sublabel: string
 }>()
+
+const iconComponent = computed(() => {
+  return typeof props.icon === 'string' ? null : props.icon
+})
 
 const variantBg: Record<string, string> = {
   success: 'bg-gradient-to-r from-success/[0.04] to-transparent',

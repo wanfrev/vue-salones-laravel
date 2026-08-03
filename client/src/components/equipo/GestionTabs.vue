@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { DollarIcon, CardIcon, ClipboardIcon, ClockCircleIcon, ArrowLeftIcon, ArrowRightIcon, AddCircleIcon, MinusCircleIcon, UsersGroupRoundedIcon, PenIcon, TrashBin2Icon, PrinterIcon } from '@solar-icons/vue/linear'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { formatDate, parseLocalDate } from '../../lib/formatters'
 import KpiBanner from '../finanzas/KpiBanner.vue'
@@ -168,11 +169,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
     <div class="flex flex-col gap-3 border-b border-border-subtle px-3 sm:px-5 py-3 sm:py-4">
       <div>
         <h3 class="text-sm sm:text-base font-semibold text-text flex items-center gap-2">
-          <svg class="h-4 w-4 sm:h-4.5 sm:w-4.5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-            stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
+          <UsersGroupRoundedIcon :size="18" class="text-text-muted" />
           Gestión de Pagos y Horarios
         </h3>
         <p class="text-xs text-text-muted mt-0.5">Comisiones, nómina, deuda y horarios del equipo</p>
@@ -196,28 +193,10 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
         class="bg-bg-secondary p-1 rounded-xl border border-border-subtle flex items-center gap-0.5 self-start sm:self-auto overflow-x-auto w-full sm:w-auto">
         <button v-for="tab in tabs" :key="tab.key" @click="activeTab = tab.key"
           :class="['px-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap shrink-0', activeTab === tab.key ? 'bg-surface text-text shadow-sm shadow-black/5 border border-border font-semibold' : 'text-text-secondary hover:text-text hover:bg-surface/40']">
-          <svg v-if="tab.key === 'pagos'" class="h-3.5 w-3.5" :class="activeTab === 'pagos' ? 'text-success' : ''"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round">
-            <path
-              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <svg v-else-if="tab.key === 'nomina'" class="h-3.5 w-3.5" :class="activeTab === 'nomina' ? 'text-danger' : ''"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round">
-            <path
-              d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-          <svg v-else-if="tab.key === 'deuda'" class="h-3.5 w-3.5" :class="activeTab === 'deuda' ? 'text-warning' : ''"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round">
-            <path
-              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-          </svg>
-          <svg v-else class="h-3.5 w-3.5" :class="activeTab === 'horarios' ? 'text-primary' : ''" fill="none"
-            viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
+          <DollarIcon v-if="tab.key === 'pagos'" :size="14" :class="activeTab === 'pagos' ? 'text-success' : ''" />
+          <CardIcon v-else-if="tab.key === 'nomina'" :size="14" :class="activeTab === 'nomina' ? 'text-danger' : ''" />
+          <ClipboardIcon v-else-if="tab.key === 'deuda'" :size="14" :class="activeTab === 'deuda' ? 'text-warning' : ''" />
+          <ClockCircleIcon v-else :size="14" :class="activeTab === 'horarios' ? 'text-primary' : ''" />
           <span class="hidden sm:inline">{{ tab.label }}</span><span class="sm:hidden">{{ tab.shortLabel }}</span>
         </button>
       </div>
@@ -233,11 +212,11 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
           </template>
           <template v-else>
             <button @click="nominaPrev" class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors">
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" /></svg>
+              <ArrowLeftIcon :size="16" />
             </button>
             <span class="text-xs font-semibold text-text min-w-[130px] text-center">{{ nominaPeriodLabel }}</span>
             <button @click="nominaNext" :disabled="isCurrentNominaPeriod" class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+              <ArrowRightIcon :size="16" />
             </button>
             <button v-if="!isCurrentNominaPeriod" @click="nominaGoToday" class="rounded-md border border-border px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors">Hoy</button>
           </template>
@@ -247,31 +226,25 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
 
     <!-- KPI Banners -->
     <KpiBanner v-if="activeTab === 'pagos'" variant="success"
-      icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+      :icon="DollarIcon"
       label="Total Comisiones" :value="formatUSD(totalComisiones)"
       :sublabel="`${summaryCtx.employeePayments.value.length} servicio(s)`"     />
     <KpiBanner v-if="activeTab === 'nomina'" variant="danger"
-      icon="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"
+      :icon="CreditCardIcon"
       label="Total Pagado + Consumido" :value="formatUSD(totalNominaPagada + totalConsumido)"
       :sublabel="`${filteredNomina.length} registro(s)`">
       <template #actions>
         <button @click="$emit('openPayment')"
-          class="ml-auto flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shrink-0"><svg
-            class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-          </svg><span class="hidden sm:inline">Registrar pago</span><span class="sm:hidden">+ Pago</span></button>
+          class="ml-auto flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shrink-0"><AddCircleIcon :size="14" /><span class="hidden sm:inline">Registrar pago</span><span class="sm:hidden">+ Pago</span></button>
         <button @click="$emit('openConsumption')"
-          class="flex items-center gap-1.5 rounded-lg bg-danger/10 px-3 py-2 text-xs font-semibold text-danger transition-theme hover:bg-danger/20 shrink-0 border border-danger/20"><svg
-            class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4" />
-          </svg><span class="hidden sm:inline">Debitar consumo</span><span class="sm:hidden">Debitar</span></button>
+          class="flex items-center gap-1.5 rounded-lg bg-danger/10 px-3 py-2 text-xs font-semibold text-danger transition-theme hover:bg-danger/20 shrink-0 border border-danger/20"><MinusCircleIcon :size="14" /><span class="hidden sm:inline">Debitar consumo</span><span class="sm:hidden">Debitar</span></button>
       </template>
     </KpiBanner>
     <KpiBanner v-if="activeTab === 'deuda'" variant="warning"
-      icon="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+      :icon="ClipboardIcon"
       label="Deuda Pendiente Total" :value="formatUSD(totalDeudaPendiente)"
       :sublabel="`${deudaConSaldo.length} empleado(s) con saldo`" />
-    <KpiBanner v-if="activeTab === 'horarios'" variant="primary" icon="M12 6v6m0 0v6m0-6h6m-6 0H6"
+    <KpiBanner v-if="activeTab === 'horarios'" variant="primary" :icon="ClockIcon"
       label="Horarios del Equipo" :value="teamSchedule.length" :sublabel="`empleado(s) con horario registrado`" />
 
     <!-- Tab Content -->
@@ -381,18 +354,10 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
                 <div class="flex items-center justify-center gap-1">
                   <button @click="$emit('openEditPayment', ep)"
                     class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-primary/10 hover:text-primary"
-                    title="Editar pago"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                      stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg></button>
+                    title="Editar pago"><PenIcon :size="14" /></button>
                   <button @click="$emit('deletePayment', ep.id)"
                     class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
-                    title="Eliminar pago"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                      stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg></button>
+                    title="Eliminar pago"><TrashBin2Icon :size="14" /></button>
                 </div>
               </td>
             </tr>
@@ -461,9 +426,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
                   }}</span></td>
               <td class="px-3 py-3 text-right">
                 <button @click="$emit('openRecibo', row)" class="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors" title="Imprimir Recibo de Pago">
-                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                  </svg>
+                  <PrinterIcon :size="14" />
                   Recibo
                 </button>
               </td>
