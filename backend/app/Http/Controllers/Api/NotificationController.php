@@ -19,10 +19,16 @@ class NotificationController
         return $user?->profile;
     }
 
-    private function isAdmin(?object $profile): bool
+    private function getRole(?object $profile): string
     {
-        if (!$profile) return false;
-        return in_array($profile->role, ['admin', 'superadmin', 'encargado']);
+        if (!$profile) return 'empleado';
+        return $profile->role;
+    }
+
+    private function getBranchId(?object $profile): ?string
+    {
+        if (!$profile) return null;
+        return $profile->branch_id ?? null;
     }
 
     public function index(Request $request): JsonResponse
@@ -31,7 +37,13 @@ class NotificationController
         if (!$p || !$p->business_id || !$p->id) return response()->json([]);
 
         return response()->json(
-            $this->notificationService->list($p->business_id, $p->id, $request->get('unread_only'), $this->isAdmin($p))
+            $this->notificationService->list(
+                $p->business_id,
+                $p->id,
+                $request->get('unread_only'),
+                $this->getRole($p),
+                $this->getBranchId($p),
+            )
         );
     }
 
@@ -40,7 +52,13 @@ class NotificationController
         $p = $this->resolve($request);
         if (!$p || !$p->business_id || !$p->id) return response()->json(['error' => ['message' => 'Sin acceso.']], 403);
 
-        $notification = $this->notificationService->markRead($id, $p->business_id, $p->id, $this->isAdmin($p));
+        $notification = $this->notificationService->markRead(
+            $id,
+            $p->business_id,
+            $p->id,
+            $this->getRole($p),
+            $this->getBranchId($p),
+        );
         EntityChanged::safe($p->business_id, 'notification', 'updated', $id);
 
         return response()->json($notification);
@@ -51,7 +69,12 @@ class NotificationController
         $p = $this->resolve($request);
         if (!$p || !$p->business_id || !$p->id) return response()->json(['error' => ['message' => 'Sin acceso.']], 403);
 
-        $this->notificationService->markAllRead($p->business_id, $p->id, $this->isAdmin($p));
+        $this->notificationService->markAllRead(
+            $p->business_id,
+            $p->id,
+            $this->getRole($p),
+            $this->getBranchId($p),
+        );
         EntityChanged::safe($p->business_id, 'notification', 'updated', 'all');
 
         return response()->json(['success' => true]);
@@ -62,7 +85,13 @@ class NotificationController
         $p = $this->resolve($request);
         if (!$p || !$p->business_id || !$p->id) return response()->json(['error' => ['message' => 'Sin acceso.']], 403);
 
-        $this->notificationService->dismiss($id, $p->business_id, $p->id, $this->isAdmin($p));
+        $this->notificationService->dismiss(
+            $id,
+            $p->business_id,
+            $p->id,
+            $this->getRole($p),
+            $this->getBranchId($p),
+        );
         EntityChanged::safe($p->business_id, 'notification', 'deleted', $id);
 
         return response()->json(null, 204);

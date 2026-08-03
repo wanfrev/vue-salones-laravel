@@ -54,7 +54,7 @@ export const listCitas = async (
     .eq('business_id', businessId)
 
   if (branchId) {
-    query = query.eq('branch_id', branchId)
+    query = query.or(`branch_id.is.null,branch_id.eq.${branchId}`)
   }
 
   query = query.order('start_time')

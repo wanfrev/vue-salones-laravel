@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use App\Models\Concerns\BelongsToBusiness;
 
 class Notification extends Model
@@ -15,7 +16,7 @@ class Notification extends Model
     public const UPDATED_AT = null;
 
     protected $fillable = [
-        'id', 'business_id', 'profile_id',
+        'id', 'business_id', 'branch_id', 'profile_id',
         'type', 'title', 'message',
         'appointment_id', 'client_name', 'client_phone',
         'service_name', 'appointment_time',
@@ -30,5 +31,10 @@ class Notification extends Model
             'appointment_time' => 'datetime',
             'read_at' => 'datetime',
         ];
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 }

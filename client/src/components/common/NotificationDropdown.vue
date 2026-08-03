@@ -35,7 +35,12 @@
           </div>
 
           <div class="min-w-0 flex-1">
-            <p class="text-sm font-medium text-text leading-tight">{{ notif.title }}</p>
+            <div class="flex items-center gap-2">
+              <p class="text-sm font-medium text-text leading-tight">{{ notif.title }}</p>
+              <span v-if="notif.branch_name" class="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                {{ notif.branch_name }}
+              </span>
+            </div>
             <p class="text-xs text-text-secondary mt-0.5 leading-snug">{{ notif.message }}</p>
             <p class="mt-1 text-[11px] text-text-muted">{{ formatRelativeTime(notif.created_at) }}</p>
           </div>
