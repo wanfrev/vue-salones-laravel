@@ -281,12 +281,12 @@
             <button
               @click="handleToggleFeature('reminder_24h_enabled')"
               :disabled="updatingFeatures"
-              class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-              :class="businessStore.features.reminder_24h_enabled ? 'bg-primary' : 'bg-border-subtle'"
+              class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200"
+              :class="businessStore.features.reminder_24h_enabled ? 'bg-primary shadow-sm' : 'bg-zinc-300 dark:bg-zinc-600'"
             >
               <span
-                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                :class="businessStore.features.reminder_24h_enabled ? 'translate-x-6' : 'translate-x-1'"
+                class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200"
+                :class="businessStore.features.reminder_24h_enabled ? 'translate-x-5' : 'translate-x-0.5'"
               />
             </button>
           </div>
@@ -301,11 +301,11 @@
               @click="handleToggleFeature('whatsapp_reminders_enabled')"
               :disabled="updatingFeatures"
               class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-              :class="businessStore.features.whatsapp_reminders_enabled ? 'bg-primary' : 'bg-border-subtle'"
+              :class="businessStore.features.whatsapp_reminders_enabled ? 'bg-primary shadow-sm' : 'bg-zinc-300 dark:bg-zinc-600'"
             >
               <span
-                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                :class="businessStore.features.whatsapp_reminders_enabled ? 'translate-x-6' : 'translate-x-1'"
+                class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200"
+                :class="businessStore.features.whatsapp_reminders_enabled ? 'translate-x-5' : 'translate-x-0.5'"
               />
             </button>
           </div>
@@ -320,11 +320,11 @@
               @click="togglePendingNotifications(!businessStore.features.pending_notifications_enabled)"
               :disabled="updatingFeatures"
               class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-              :class="businessStore.features.pending_notifications_enabled ? 'bg-primary' : 'bg-border-subtle'"
+              :class="businessStore.features.pending_notifications_enabled ? 'bg-primary shadow-sm' : 'bg-zinc-300 dark:bg-zinc-600'"
             >
               <span
-                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                :class="businessStore.features.pending_notifications_enabled ? 'translate-x-6' : 'translate-x-1'"
+                class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200"
+                :class="businessStore.features.pending_notifications_enabled ? 'translate-x-5' : 'translate-x-0.5'"
               />
             </button>
           </div>
@@ -366,11 +366,11 @@
               @click="handleToggleFeature('enable_public_booking')"
               :disabled="updatingFeatures"
               class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-              :class="businessStore.features.enable_public_booking ? 'bg-primary' : 'bg-border-subtle'"
+              :class="businessStore.features.enable_public_booking ? 'bg-primary shadow-sm' : 'bg-zinc-300 dark:bg-zinc-600'"
             >
               <span
-                class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                :class="businessStore.features.enable_public_booking ? 'translate-x-6' : 'translate-x-1'"
+                class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200"
+                :class="businessStore.features.enable_public_booking ? 'translate-x-5' : 'translate-x-0.5'"
               />
             </button>
           </div>
@@ -846,6 +846,12 @@ async function handlePendingNotificationHourChange() {
   }
 }
 
+const featureLabels: Record<string, string> = {
+  reminder_24h_enabled: 'Recordatorios internos',
+  whatsapp_reminders_enabled: 'Recordatorios por WhatsApp',
+  enable_public_booking: 'Reservas públicas',
+}
+
 async function handleToggleFeature(featureKey: string) {
   if (!businessId.value) return
   const current = businessStore.features[featureKey]
@@ -857,7 +863,8 @@ async function handleToggleFeature(featureKey: string) {
       features: updatedFeatures,
     })
     businessStore.updateBusiness({ features: updatedFeatures } as any)
-    success(newVal ? 'Configuración activada' : 'Configuración desactivada')
+    const label = featureLabels[featureKey] || featureKey
+    success(`${label}: ${newVal ? 'Activado' : 'Desactivado'}`)
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar la configuración')
   } finally {

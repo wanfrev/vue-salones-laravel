@@ -2,7 +2,7 @@
   <div ref="bellRef" class="relative">
     <button @click="isOpen = !isOpen"
       class="relative rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary">
-      <Bell :size="20" />
+      <BellIcon :size="20" />
       <span v-if="unreadCount > 0"
         class="absolute -right-0.5 -top-0.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">
         {{ unreadCount > 9 ? '9+' : unreadCount }}
@@ -14,7 +14,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { Bell } from 'lucide-vue-next'
+import { BellIcon } from '@solar-icons/vue/linear'
 import { useNotifications } from '../../composables/common/useNotifications'
 import NotificationDropdown from './NotificationDropdown.vue'
 

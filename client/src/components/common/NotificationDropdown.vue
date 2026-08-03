@@ -29,7 +29,7 @@
             'flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full',
             typeStyle[notif.type]?.bg ?? 'bg-bg-secondary',
           ]">
-            <component :is="typeStyle[notif.type]?.icon ?? Bell" :size="14"
+            <component :is="typeStyle[notif.type]?.icon ?? BellIcon" :size="14"
               class="sm:h-4 sm:w-4"
               :class="typeStyle[notif.type]?.color ?? 'text-text-muted'" />
           </div>
@@ -45,12 +45,12 @@
           <template v-if="notif.type === 'reminder'">
             <button @click="handleSendWhatsApp(notif)"
               class="flex items-center gap-1 rounded-lg bg-success/10 px-2.5 py-1.5 text-xs font-medium text-success transition-colors hover:bg-success/20 sm:px-3">
-              <MessageCircle :size="14" />
+            <MessageCircleIcon :size="14" />
               WhatsApp
             </button>
             <button @click="handleNavigateToAppointment(notif)"
               class="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20 sm:px-3">
-              <Calendar :size="14" />
+              <CalendarIcon :size="14" />
               Ver cita
             </button>
             <button @click="handleDismiss(notif.id)"
@@ -62,7 +62,7 @@
           <template v-else-if="notif.type === 'low_stock'">
             <button @click="handleNavigateToInventory"
               class="flex items-center gap-1 rounded-lg bg-danger/10 px-2.5 py-1.5 text-xs font-medium text-danger transition-colors hover:bg-danger/20 sm:px-3">
-              <PackageOpen :size="14" />
+              <BoxIcon :size="14" />
               Ver inventario
             </button>
             <button @click="handleDismiss(notif.id)"
@@ -74,7 +74,7 @@
           <template v-else>
             <button @click="handleNavigateToAppointment(notif)"
               class="flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-medium text-primary transition-colors hover:bg-primary/20 sm:px-3">
-              <Calendar :size="14" />
+              <CalendarIcon :size="14" />
               Ver cita
             </button>
             <button @click="handleDismiss(notif.id)"
@@ -89,21 +89,21 @@
 </template>
 
 <script setup lang="ts">
-import { Bell, MessageCircle, Calendar, CheckCircle2, CalendarPlus, AlertTriangle, PackageOpen, Cake, Clock } from 'lucide-vue-next'
+import { BellIcon, ChatRoundDotsIcon, CalendarIcon, CheckCircleIcon, CalendarAddIcon, DangerTriangleIcon, BoxIcon, CupIcon, ClockCircleIcon, MessageCircleIcon } from '@solar-icons/vue/linear'
 import { useNotifications } from '../../composables/common/useNotifications'
 
 defineEmits<{ close: [] }>()
 
 const { notifications, unreadCount, handleMarkAllAsRead, handleDismiss, handleSendWhatsApp, handleNavigateToAppointment, handleNavigateToInventory } = useNotifications()
 
-const typeStyle: Record<string, { icon: typeof Bell; bg: string; color: string }> = {
-  reminder: { icon: Bell, bg: 'bg-primary/10', color: 'text-primary' },
-  status_change: { icon: CheckCircle2, bg: 'bg-success/10', color: 'text-success' },
-  new_appointment: { icon: CalendarPlus, bg: 'bg-info/10', color: 'text-info' },
-  unpaid_alert: { icon: AlertTriangle, bg: 'bg-warning/10', color: 'text-warning' },
-  low_stock: { icon: PackageOpen, bg: 'bg-danger/10', color: 'text-danger' },
-  pet_birthday: { icon: Cake, bg: 'bg-pink-500/10', color: 'text-pink-500' },
-  pending_appointments: { icon: Clock, bg: 'bg-amber-500/10', color: 'text-amber-500' },
+const typeStyle: Record<string, { icon: typeof BellIcon; bg: string; color: string }> = {
+  reminder: { icon: BellIcon, bg: 'bg-primary/10', color: 'text-primary' },
+  status_change: { icon: CheckCircleIcon, bg: 'bg-success/10', color: 'text-success' },
+  new_appointment: { icon: CalendarAddIcon, bg: 'bg-info/10', color: 'text-info' },
+  unpaid_alert: { icon: DangerTriangleIcon, bg: 'bg-warning/10', color: 'text-warning' },
+  low_stock: { icon: BoxIcon, bg: 'bg-danger/10', color: 'text-danger' },
+  pet_birthday: { icon: CupIcon, bg: 'bg-pink-500/10', color: 'text-pink-500' },
+  pending_appointments: { icon: ClockCircleIcon, bg: 'bg-amber-500/10', color: 'text-amber-500' },
 }
 
 const formatRelativeTime = (dateStr: string): string => {
