@@ -4,7 +4,7 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1.5">
-          <IconTicket class="h-3.5 w-3.5" />
+          <TicketIcon class="h-3.5 w-3.5" />
           <span>Gift Cards</span>
         </div>
         <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Gestión de Gift Cards</h1>
@@ -23,7 +23,7 @@
           @click="ctx.openNew()"
           class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
         >
-          <IconPlus class="h-4 w-4" />
+          <AddCircleIcon class="h-4 w-4" />
           Nueva Gift Card
         </button>
       </div>
@@ -39,7 +39,7 @@
 
   <div v-else-if="currentGiftCards.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
     <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-secondary mb-4">
-      <IconTicket class="h-7 w-7 text-text-muted" />
+      <TicketIcon class="h-7 w-7 text-text-muted" />
     </div>
     <p class="text-lg font-semibold text-text">No hay gift cards {{ activeTab === 'active' ? 'activas' : 'en el historial' }}</p>
     <p class="mt-1 text-sm text-text-muted">{{ activeTab === 'active' ? 'Registra tu primera gift card para empezar.' : 'Las gift cards consumidas o expiradas aparecerán aquí.' }}</p>
@@ -94,10 +94,10 @@
 
         <div class="flex items-center gap-1">
           <button @click="ctx.openEdit(gc)" class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary" title="Editar">
-            <IconPen class="h-4 w-4" />
+            <PenIcon class="h-4 w-4" />
           </button>
           <button @click="ctx.handleDelete(gc.id)" class="rounded-lg p-2 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger" title="Eliminar">
-            <IconTrashBin class="h-4 w-4" />
+            <TrashBin2Icon class="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -116,7 +116,7 @@
             <p class="text-sm text-text-muted">{{ ctx.editingId.value ? 'Modifica los datos de la gift card' : 'Registra una nueva tarjeta de regalo' }}</p>
           </div>
           <button @click="ctx.closeModal" class="rounded-lg p-1 text-text-muted hover:text-text">
-            <IconCloseCircle class="h-5 w-5" />
+            <CloseCircleIcon class="h-5 w-5" />
           </button>
         </div>
 
@@ -287,7 +287,7 @@ import { useGiftCards, generateGiftCardCode } from '../composables/giftCards/use
 import { useCurrency } from '../composables/common/useCurrency'
 import { FeatureGate } from '../components/common'
 import { searchClients } from '../services/clientesService'
-import { IconTicket, IconPlus, IconPen, IconTrashBin, IconCloseCircle } from '@solar-icons/vue/linear'
+import { TicketIcon, AddCircleIcon, PenIcon, TrashBin2Icon, CloseCircleIcon } from '@solar-icons/vue/linear'
 
 const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)

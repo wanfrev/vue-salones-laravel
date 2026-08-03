@@ -3,7 +3,7 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1.5">
-          <IconSparkle class="h-3.5 w-3.5" />
+          <StarIcon class="h-3.5 w-3.5" />
           <span>Catálogo</span>
         </div>
         <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">{{ businessStore.terminology.service || 'Servicio' }}s</h1>
@@ -15,7 +15,7 @@
             class="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-text-secondary shadow-sm transition-theme hover:bg-bg-secondary hover:text-text"
             title="Gestionar categorías"
           >
-            <IconPen class="h-4 w-4" />
+            <PenIcon class="h-4 w-4" />
           </button>
           <div v-if="showCatMenu" class="absolute left-0 top-full mt-1 w-56 rounded-xl border border-border bg-surface shadow-lg z-50 overflow-hidden" style="overflow: clip;">
             <div class="px-3 py-2 border-b border-border-subtle">
@@ -44,7 +44,7 @@
               <button v-else
                 @click="addingCategory = true"
                 class="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-primary font-medium transition-colors hover:bg-primary/5 border-t border-border-subtle">
-                <IconPlus class="h-4 w-4" />
+                <AddCircleIcon class="h-4 w-4" />
                 Agregar categoría
               </button>
             </div>
@@ -115,7 +115,7 @@
   <!-- Search -->
   <div class="mb-4">
     <div class="relative">
-      <IconMagnifier class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+      <MagnifierIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
       <input
         v-model="searchQuery"
         type="text"
@@ -247,7 +247,7 @@ import { deleteServicio, listServicios, saveServicio, serviciosKeys } from '../s
 import { addBusinessCategory } from '../services/equipoService'
 import { addBranchCategory } from '../services/equipoService'
 import type { Servicio, ServicioFormData } from '../types/servicio'
-import { IconSparkle, IconPen, IconPlus, IconMagnifier } from '@solar-icons/vue/linear'
+import { StarIcon, PenIcon, AddCircleIcon, MagnifierIcon } from '@solar-icons/vue/linear'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()

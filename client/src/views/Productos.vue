@@ -4,7 +4,7 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <div class="flex items-center gap-2 text-xs text-primary mb-1">
-          <IconBox class="h-3.5 w-3.5" />
+          <BoxIcon class="h-3.5 w-3.5" />
           <span class="font-medium uppercase tracking-wider">Inventario</span>
         </div>
         <h1 class="text-2xl font-bold text-text lg:text-3xl">Inventario</h1>
@@ -14,7 +14,7 @@
         @click="safeOpenProductModal()"
         class="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover"
       >
-        <IconPlus class="h-4 w-4" />
+        <AddCircleIcon class="h-4 w-4" />
         <span class="hidden sm:inline">Nuevo producto</span>
       </button>
     </div>
@@ -37,7 +37,7 @@
         class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
       />
       <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-        <IconMagnifier class="h-4 w-4" />
+        <MagnifierIcon class="h-4 w-4" />
       </div>
     </div>
     <div v-else class="relative flex-1 max-w-md">
@@ -48,7 +48,7 @@
         class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
       />
       <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-        <IconMagnifier class="h-4 w-4" />
+        <MagnifierIcon class="h-4 w-4" />
       </div>
     </div>
     <div class="flex rounded-xl border border-border bg-surface p-1 shadow-sm">
@@ -110,7 +110,7 @@
       </div>
       <div v-if="filteredMovements.length === 0" class="py-16 text-center">
         <div class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-bg-secondary">
-          <IconWarehouse class="h-8 w-8 text-text-muted" />
+          <BoxIcon class="h-8 w-8 text-text-muted" />
         </div>
         <h3 class="mt-4 text-lg font-medium text-text">Sin movimientos</h3>
         <p class="mt-1 text-sm text-text-muted">No hay movimientos registrados.</p>
@@ -158,7 +158,7 @@
       </div>
       <div v-if="filteredMovements.length === 0" class="py-16 text-center">
         <div class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-bg-secondary">
-          <IconWarehouse class="h-8 w-8 text-text-muted" />
+          <BoxIcon class="h-8 w-8 text-text-muted" />
         </div>
         <h3 class="mt-4 text-lg font-medium text-text">Sin movimientos</h3>
         <p class="mt-1 text-sm text-text-muted">No hay movimientos registrados.</p>
@@ -244,7 +244,7 @@ import ProductoFormModal from '../components/modals/ProductoFormModal.vue'
 import ProductStockAdjustModal from '../components/productos/ProductStockAdjustModal.vue'
 import ProductGrid from '../components/productos/ProductGrid.vue'
 import { ModalBase, FeatureGate } from '../components/common'
-import { IconBox, IconPlus, IconMagnifier, IconWarehouse } from '@solar-icons/vue/linear'
+import { BoxIcon, AddCircleIcon, MagnifierIcon } from '@solar-icons/vue/linear'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()

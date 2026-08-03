@@ -4,7 +4,7 @@
       <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1">
-            <IconUsersGroupRounded class="h-3.5 w-3.5" />
+            <UsersGroupRoundedIcon class="h-3.5 w-3.5" />
             {{ t.client || 'Cliente' }}s
           </div>
           <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">
@@ -16,7 +16,7 @@
           @click="openNewClientModal"
           class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover"
         >
-          <IconAddCircle class="h-3.5 w-3.5" />
+          <AddCircleIcon class="h-3.5 w-3.5" />
           Nuevo {{ t.client || 'Cliente' }}
         </button>
       </header>
@@ -29,7 +29,7 @@
           class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
         />
         <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-          <IconMagnifier class="h-4 w-4" />
+          <MagnifierIcon class="h-4 w-4" />
         </div>
       </div>
 
@@ -80,7 +80,7 @@
                     class="rounded-md p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-success"
                     title="Escribir por WhatsApp"
                   >
-                    <IconCheckCircle class="h-4 w-4" />
+                    <CheckCircleIcon class="h-4 w-4" />
                   </button>
                 </td>
               </tr>
@@ -129,7 +129,7 @@
               class="rounded-md p-1.5 transition-theme"
               :class="hasPreviousPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
             >
-              <IconArrowLeft class="h-4 w-4" />
+              <ArrowLeftIcon class="h-4 w-4" />
             </button>
             <span class="text-xs font-medium text-text px-1">{{ currentPage }} / {{ totalPages }}</span>
             <button
@@ -138,7 +138,7 @@
               class="rounded-md p-1.5 transition-theme"
               :class="hasNextPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
             >
-              <IconArrowRight class="h-4 w-4" />
+              <ArrowRightIcon class="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -164,7 +164,7 @@ import AppLayout from '../../components/layout/AppLayout.vue'
 import ClienteFormModal from '../../components/modals/ClienteFormModal.vue'
 import type { Cliente } from '../../types/cliente'
 import type { ClienteFormData } from '../../types/cliente'
-import { IconUsersGroupRounded, IconAddCircle, IconMagnifier, IconCheckCircle, IconArrowLeft, IconArrowRight } from '@solar-icons/vue/linear'
+import { UsersGroupRoundedIcon, AddCircleIcon, MagnifierIcon, CheckCircleIcon, ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
 
 const router = useRouter()
 const authStore = useAuthStore()

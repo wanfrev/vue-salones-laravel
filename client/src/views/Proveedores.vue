@@ -4,7 +4,7 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1.5">
-          <IconShoppingBag class="h-3.5 w-3.5" />
+          <BagIcon class="h-3.5 w-3.5" />
           <span>Proveedores</span>
         </div>
         <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Gestión de Proveedores</h1>
@@ -13,7 +13,7 @@
         @click="suppliersCtx.openNew()"
         class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
       >
-        <IconPlus class="h-4 w-4" />
+        <AddCircleIcon class="h-4 w-4" />
         Nuevo proveedor
       </button>
     </div>
@@ -28,7 +28,7 @@
 
   <div v-else-if="suppliersCtx.suppliers.value.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
     <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-secondary mb-4">
-      <IconShoppingBag class="h-7 w-7 text-text-muted" />
+      <BagIcon class="h-7 w-7 text-text-muted" />
     </div>
     <p class="text-lg font-semibold text-text">No hay proveedores</p>
     <p class="mt-1 text-sm text-text-muted">Agrega tu primer proveedor para empezar.</p>
@@ -72,10 +72,10 @@
             <td class="px-4 py-3.5 text-center">
               <div class="flex items-center justify-center gap-1">
                 <button @click="suppliersCtx.openEdit(supplier)" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary" title="Editar">
-                  <IconPen class="h-4 w-4" />
+                  <PenIcon class="h-4 w-4" />
                 </button>
                 <button @click="suppliersCtx.handleDelete(supplier.id)" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger" title="Eliminar">
-                  <IconTrashBin class="h-4 w-4" />
+                  <TrashBin2Icon class="h-4 w-4" />
                 </button>
               </div>
             </td>
@@ -169,7 +169,7 @@ import { getInitials } from '../lib/formatters'
 import { useCurrency } from '../composables/common/useCurrency'
 import { FeatureGate } from '../components/common'
 import { FormDropdown } from '../components/forms'
-import { IconShoppingBag, IconPlus, IconPen, IconTrashBin } from '@solar-icons/vue/linear'
+import { BagIcon, AddCircleIcon, PenIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
 
 const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)

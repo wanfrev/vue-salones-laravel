@@ -49,7 +49,7 @@
                 class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors"
                 title="Anterior"
               >
-                <IconArrowLeft class="h-4 w-4" />
+                <ArrowLeftIcon class="h-4 w-4" />
               </button>
               <span class="text-sm font-semibold text-text min-w-[140px] text-center">{{ periodLabel }}</span>
               <button
@@ -58,7 +58,7 @@
                 class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Siguiente"
               >
-                <IconArrowRight class="h-4 w-4" />
+                <ArrowRightIcon class="h-4 w-4" />
               </button>
               <button
                 v-if="!isCurrentPeriod"
@@ -200,7 +200,7 @@
               <span class="text-xs font-semibold uppercase tracking-wider text-text-muted">
                 Historial de recibos
               </span>
-              <IconArrowDown
+              <ArrowDownIcon
                 :class="['h-4 w-4 text-text-muted transition-transform', showHistory ? 'rotate-180' : '']"
               />
             </button>
@@ -235,7 +235,7 @@
             @click="windowPrint"
             class="no-print mt-2 w-full rounded-lg border border-border bg-surface py-2.5 text-sm font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text flex items-center justify-center gap-2"
           >
-            <IconPrinter class="h-4 w-4" />
+            <PrinterIcon class="h-4 w-4" />
             Imprimir recibo
           </button>
         </template>
@@ -256,7 +256,7 @@ import AppLayout from '../../components/layout/AppLayout.vue'
 import SegmentedTabs from '../../components/common/SegmentedTabs.vue'
 import EmployeeEarningsCards from './EmployeeEarningsCards.vue'
 import EmployeePaymentsList from './EmployeePaymentsList.vue'
-import { IconArrowLeft, IconArrowRight, IconArrowDown, IconPrinter } from '@solar-icons/vue/linear'
+import { ArrowLeftIcon, ArrowRightIcon, ArrowDownIcon, PrinterIcon } from '@solar-icons/vue/linear'
 
 const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
