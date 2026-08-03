@@ -244,6 +244,7 @@ import ProductoFormModal from '../components/modals/ProductoFormModal.vue'
 import ProductStockAdjustModal from '../components/productos/ProductStockAdjustModal.vue'
 import ProductGrid from '../components/productos/ProductGrid.vue'
 import { ModalBase, FeatureGate } from '../components/common'
+import { IconBox, IconPlus, IconMagnifier, IconWarehouse } from '@solar-icons/vue/linear'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
