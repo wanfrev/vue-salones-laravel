@@ -173,6 +173,18 @@ class GenerateReminders extends Command
                     continue;
                 }
 
+                // Skip 1h reminder if a new_appointment notification already exists
+                $existingNewApptNotif = \App\Models\Notification::where('appointment_id', $appt->id)
+                    ->where('type', 'new_appointment')
+                    ->exists();
+
+                if ($existingNewApptNotif) {
+                    \Illuminate\Support\Facades\Log::info("[reminders:generate] 1h: Skipping appointment {$appt->id} — already has a new_appointment notification");
+                    $appointmentIds1h[] = $appt->id;
+                    $affectedBusinesses[$appt->business_id] = true;
+                    continue;
+                }
+
                 $notifications = [];
 
                 $baseData = [

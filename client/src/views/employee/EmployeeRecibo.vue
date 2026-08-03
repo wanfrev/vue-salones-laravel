@@ -49,9 +49,7 @@
                 class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors"
                 title="Anterior"
               >
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-                </svg>
+                <IconArrowLeft class="h-4 w-4" />
               </button>
               <span class="text-sm font-semibold text-text min-w-[140px] text-center">{{ periodLabel }}</span>
               <button
@@ -60,9 +58,7 @@
                 class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 title="Siguiente"
               >
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
+                <IconArrowRight class="h-4 w-4" />
               </button>
               <button
                 v-if="!isCurrentPeriod"
@@ -204,12 +200,9 @@
               <span class="text-xs font-semibold uppercase tracking-wider text-text-muted">
                 Historial de recibos
               </span>
-              <svg
+              <IconArrowDown
                 :class="['h-4 w-4 text-text-muted transition-transform', showHistory ? 'rotate-180' : '']"
-                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
-              >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
+              />
             </button>
 
             <div v-if="showHistory" class="mt-3 space-y-2">
@@ -242,9 +235,7 @@
             @click="windowPrint"
             class="no-print mt-2 w-full rounded-lg border border-border bg-surface py-2.5 text-sm font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text flex items-center justify-center gap-2"
           >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-            </svg>
+            <IconPrinter class="h-4 w-4" />
             Imprimir recibo
           </button>
         </template>
@@ -265,6 +256,7 @@ import AppLayout from '../../components/layout/AppLayout.vue'
 import SegmentedTabs from '../../components/common/SegmentedTabs.vue'
 import EmployeeEarningsCards from './EmployeeEarningsCards.vue'
 import EmployeePaymentsList from './EmployeePaymentsList.vue'
+import { IconArrowLeft, IconArrowRight, IconArrowDown, IconPrinter } from '@solar-icons/vue/linear'
 
 const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 

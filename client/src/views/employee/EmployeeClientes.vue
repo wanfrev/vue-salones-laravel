@@ -129,7 +129,7 @@
               class="rounded-md p-1.5 transition-theme"
               :class="hasPreviousPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
             >
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+              <IconArrowLeft class="h-4 w-4" />
             </button>
             <span class="text-xs font-medium text-text px-1">{{ currentPage }} / {{ totalPages }}</span>
             <button
@@ -138,7 +138,7 @@
               class="rounded-md p-1.5 transition-theme"
               :class="hasNextPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
             >
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+              <IconArrowRight class="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -164,6 +164,7 @@ import AppLayout from '../../components/layout/AppLayout.vue'
 import ClienteFormModal from '../../components/modals/ClienteFormModal.vue'
 import type { Cliente } from '../../types/cliente'
 import type { ClienteFormData } from '../../types/cliente'
+import { IconUsersGroupRounded, IconAddCircle, IconMagnifier, IconCheckCircle, IconArrowLeft, IconArrowRight } from '@solar-icons/vue/linear'
 
 const router = useRouter()
 const authStore = useAuthStore()
