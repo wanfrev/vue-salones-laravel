@@ -107,6 +107,7 @@ export const useAuthStore = defineStore('auth', () => {
       disable_agenda: (authProfile as any).disable_agenda ?? false,
       disable_inventory_edit: (authProfile as any).disable_inventory_edit ?? false,
       can_create_appointments: (authProfile as any).can_create_appointments ?? true,
+      can_create_clients: (authProfile as any).can_create_clients ?? true,
       can_access_consultorio: (authProfile as any).can_access_consultorio ?? true,
     }
   }

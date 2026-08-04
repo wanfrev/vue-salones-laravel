@@ -51,9 +51,9 @@
 
   <div v-if="queryError" class="mb-4 rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm text-danger">Error al cargar citas: {{ queryError }}</div>
 
-  <div class="grid grid-cols-1 gap-4 lg:grid-cols-[3fr_2fr]">
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_400px]">
     <!-- LEFT PANEL -->
-    <div>
+    <div class="min-w-0 space-y-4">
       <!-- DIRECT SERVICE PANEL -->
       <div v-if="activeSaleType === 'direct_service'" class="rounded-2xl border border-primary/30 bg-surface p-4 shadow-sm space-y-4 mb-4">
         <div class="flex items-center justify-between border-b border-border pb-3">
@@ -236,8 +236,8 @@
       />
     </div>
 
-    <!-- RIGHT PANEL (desktop only) -->
-    <div class="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden">
+    <!-- RIGHT PANEL (desktop & tablet landscape) -->
+    <div class="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden lg:min-w-[340px]">
       <POSPaymentPanel
         :selected-appointment="selectedAppointment"
         :cart="cartCtx.cart.value" :service-price="servicePrice"
@@ -271,7 +271,7 @@
     </div>
   </div>
 
-  <!-- MOBILE PAYMENT DRAWER -->
+  <!-- MOBILE / TABLET PAYMENT DRAWER -->
   <Teleport to="body">
     <Transition
       enter-active-class="transition ease-out duration-200"
@@ -296,7 +296,8 @@
             </svg>
           </button>
         </div>
-        <div class="flex-1 overflow-hidden p-4">
+        <div class="flex-1 overflow-hidden p-3 sm:p-4 flex justify-center">
+          <div class="w-full max-w-lg h-full flex flex-col min-w-0">
           <POSPaymentPanel
             :selected-appointment="selectedAppointment"
             :cart="cartCtx.cart.value" :service-price="servicePrice"
@@ -327,6 +328,7 @@
             @process-payment="handleMobileProcessPayment"
             @increment-qty="cartCtx.incrementQty" @decrement-qty="cartCtx.decrementQty" @remove-item="cartCtx.removeItem"
           />
+          </div>
         </div>
       </div>
     </Transition>

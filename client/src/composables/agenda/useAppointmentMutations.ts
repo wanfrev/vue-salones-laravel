@@ -26,7 +26,7 @@ export function useAppointmentMutations(options: {
   const isEmployee = computed(() => authStore.role === 'empleado')
 
   const allowCreateClient = computed(() =>
-    !isEmployee.value || businessStore.hasFeature('employees_create_clients')
+    !isEmployee.value || businessStore.hasFeature('employees_create_clients') || !!authStore.profile?.can_create_clients
   )
 
   const invalidate = async () => {

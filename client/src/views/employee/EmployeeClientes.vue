@@ -175,7 +175,13 @@ const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 const t = computed(() => businessStore.terminology)
 const label = computed(() => (t.value.client || 'cliente').toLowerCase())
-const hidePhoneFromEmployee = computed(() => authStore.role === 'empleado' && businessStore.hasFeature('hide_client_phone_from_employees'))
+const isEmployee = computed(() => authStore.role === 'empleado')
+const canCreateClients = computed(() =>
+  !isEmployee.value || businessStore.hasFeature('employees_create_clients') || !!authStore.profile?.can_create_clients
+)
+const hidePhoneFromEmployee = computed(() =>
+  isEmployee.value && businessStore.hasFeature('hide_client_phone_from_employees') && !canCreateClients.value
+)
 
 const { data: clientesData } = useQuery({
   queryKey: computed(() => clientesKeys.all(businessId.value, branchId.value)),
@@ -210,10 +216,6 @@ const handleWhatsApp = (cliente: Cliente) => {
   if (!phone) return
   window.open(`https://wa.me/${phone}`, '_blank')
 }
-
-const canCreateClients = computed(() =>
-  businessStore.hasFeature('employees_create_clients') && !businessStore.hasFeature('hide_client_phone_from_employees')
-)
 
 const newClientModalRef = ref<InstanceType<typeof ClienteFormModal> | null>(null)
 

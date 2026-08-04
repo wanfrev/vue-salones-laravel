@@ -274,8 +274,8 @@ const authStore = useAuthStore()
 const businessStore = useBusinessStore()
 const queryClient = useQueryClient()
 const isEmployee = computed(() => authStore.role === 'empleado')
-const hidePhoneFromEmployee = computed(() => isEmployee.value && businessStore.hasFeature('hide_client_phone_from_employees'))
-const canCreateClients = computed(() => !isEmployee.value || (businessStore.hasFeature('employees_create_clients') && !businessStore.hasFeature('hide_client_phone_from_employees')))
+const canCreateClients = computed(() => !isEmployee.value || businessStore.hasFeature('employees_create_clients') || !!authStore.profile?.can_create_clients)
+const hidePhoneFromEmployee = computed(() => isEmployee.value && businessStore.hasFeature('hide_client_phone_from_employees') && !canCreateClients.value)
 const disableCommissionEdit = computed(() => {
   const role = authStore.role
   if (role === 'admin' || role === 'superadmin') return false
