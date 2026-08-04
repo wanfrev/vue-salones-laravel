@@ -1,8 +1,34 @@
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
+import { registerRoute } from 'workbox-routing'
+import { StaleWhileRevalidate } from 'workbox-strategies'
+import { ExpirationPlugin } from 'workbox-expiration'
+import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 
 declare const self: ServiceWorkerGlobalScope
 
 precacheAndRoute(self.__WB_MANIFEST || [])
+
+registerRoute(
+  ({ url }) => /^https?:\/\/fonts\.(googleapis|gstatic)\.com\//i.test(url.href),
+  new StaleWhileRevalidate({
+    cacheName: 'google-fonts-cache',
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 30 }),
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+    ],
+  }),
+)
+
+registerRoute(
+  ({ url, sameOrigin }) => !url.pathname.startsWith('/api/') && /\.(png|jpg|jpeg|gif|webp|avif|ico|svg)$/i.test(url.pathname) && sameOrigin,
+  new StaleWhileRevalidate({
+    cacheName: 'image-assets-cache',
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 }),
+      new CacheableResponsePlugin({ statuses: [200] }),
+    ],
+  }),
+)
 
 self.addEventListener('install', () => {
   self.skipWaiting()

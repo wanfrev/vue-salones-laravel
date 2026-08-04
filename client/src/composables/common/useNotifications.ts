@@ -19,6 +19,11 @@ import { playSound } from '../../lib/audioPlayer'
 
 let permissionRequested = false
 
+// A nivel de módulo para que varios componentes que usen el composable a la vez
+// no muestren la misma notificación (ni repitan el sonido) dos veces.
+const shownNotificationIds = new Set<string>()
+let shownIdsSeeded = false
+
 export async function requestNotificationPermission() {
   if (permissionRequested) return
   permissionRequested = true
@@ -37,15 +42,35 @@ export async function requestNotificationPermission() {
   }
 }
 
-function showBrowserNotification(notification: NotificationRecord) {
+async function showBrowserNotification(notification: NotificationRecord) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return
+
+  const options: NotificationOptions = {
+    body: notification.message,
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
+    tag: notification.id,
+    data: {
+      id: notification.id,
+      type: notification.type,
+      url: notification.appointment_id
+        ? `/admin?appointment=${notification.appointment_id}`
+        : '/admin',
+    },
+  }
+
+  // En Android/Chrome el constructor `new Notification()` lanza "Illegal
+  // constructor": solo el service worker puede mostrar notificaciones.
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.ready
+      await registration.showNotification(notification.title, options)
+      return
+    } catch { /* sin SW disponible, se intenta el fallback de escritorio */ }
+  }
+
   try {
-    const n = new Notification(notification.title, {
-      body: notification.message,
-      icon: '/icon-192.png',
-      tag: notification.id,
-      data: { id: notification.id, appointment_id: notification.appointment_id, type: notification.type },
-    })
+    const n = new Notification(notification.title, options)
     n.onclick = () => {
       window.focus()
       if (notification.appointment_id) {
@@ -79,8 +104,6 @@ export function useNotifications() {
   )
   const unreadCount = computed(() => notifications.value.length)
 
-  const shownNotificationIds = new Set<string>()
-
   const invalidate = () => {
     queryClient.invalidateQueries({ exact: false, queryKey: ['notifications'] }).catch(() => {})
   }
@@ -103,9 +126,22 @@ export function useNotifications() {
     onError: (err) => { showError(translateError(err, 'Error al eliminar notificación')) },
   })
 
-  watch(notifications, (current, previous) => {
-    if (!previous || previous.length === 0) return
-    const newNotifs = current.filter(n => !previous.find(p => p.id === n.id) && !shownNotificationIds.has(n.id))
+  // La primera lista que llega son notificaciones ya existentes: se marcan como
+  // vistas sin avisar. A partir de ahí, cualquier id nuevo dispara aviso, incluso
+  // si la bandeja estaba vacía.
+  const seedShownIds = (list: NotificationRecord[]) => {
+    for (const n of list) shownNotificationIds.add(n.id)
+    shownIdsSeeded = true
+  }
+
+  if (unreadNotifications.value) seedShownIds(notifications.value)
+
+  watch(notifications, (current) => {
+    if (!shownIdsSeeded) {
+      seedShownIds(current)
+      return
+    }
+    const newNotifs = current.filter(n => !shownNotificationIds.has(n.id))
     for (const n of newNotifs) {
       shownNotificationIds.add(n.id)
       showBrowserNotification(n)
