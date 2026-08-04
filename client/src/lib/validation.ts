@@ -23,7 +23,7 @@ const citaAssociatedProductSchema = z.object({
 export const citaFormSchema = z.object({
   clientId: z.string().optional(),
   clientName: z.string().min(1, 'El nombre del cliente es requerido'),
-  clientPhone: z.string().min(1, 'El teléfono del cliente es requerido'),
+  clientPhone: z.string().default(''),
   petId: z.string().optional(),
   service: z.string().min(1, 'Selecciona un servicio'),
   employee: z.string().min(1, 'Selecciona un empleado'),

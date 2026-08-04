@@ -24,9 +24,9 @@ describe('citaFormSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('rejects empty client phone', () => {
+  it('accepts empty client phone (e.g. for employee profile or optional phone)', () => {
     const result = citaFormSchema.safeParse({ ...validCita, clientPhone: '' })
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
   })
 
   it('rejects empty service', () => {
