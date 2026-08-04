@@ -10,6 +10,7 @@
     </template>
   </RouterView>
   <NotificationToast />
+  <PwaUpdatePrompt />
 </template>
 
 <script setup lang="ts">
@@ -17,6 +18,7 @@ import { ref } from 'vue'
 import { RouterView } from 'vue-router'
 import NotificationToast from './components/common/NotificationToast.vue'
 import RouteLoader from './components/common/RouteLoader.vue'
+import PwaUpdatePrompt from './components/common/PwaUpdatePrompt.vue'
 
 const showLoader = ref(false)
 let timer: ReturnType<typeof setTimeout> | null = null

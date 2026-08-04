@@ -30,8 +30,12 @@ registerRoute(
   }),
 )
 
-self.addEventListener('install', () => {
-  self.skipWaiting()
+// Sin skipWaiting() automático: el SW nuevo espera a que el usuario pulse
+// "Actualizar" en el banner, que es lo que envía este mensaje.
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
 })
 
 self.addEventListener('activate', (event) => {
@@ -54,7 +58,9 @@ cleanupOutdatedCaches()
 self.addEventListener('push', (event) => {
   const payload = event.data?.json() ?? {}
   const title = payload.title ?? 'Salones'
-  const options: NotificationOptions = {
+  // `vibrate` no está en los tipos estándar (fuera de spec) pero Android sí lo
+  // aplica, así que se manda igual.
+  const options = {
     body: payload.body ?? '',
     icon: payload.icon ?? '/icon-192.png',
     badge: payload.badge ?? '/icon-192.png',
@@ -62,7 +68,7 @@ self.addEventListener('push', (event) => {
     tag: payload.tag ?? 'default',
     vibrate: [200, 100, 200],
     requireInteraction: payload.requireInteraction ?? false,
-  }
+  } as NotificationOptions
 
   event.waitUntil(self.registration.showNotification(title, options))
 })

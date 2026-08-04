@@ -14,7 +14,9 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
-      registerType: 'autoUpdate',
+      // 'prompt': el SW nuevo queda en espera y la app muestra el banner
+      // "Nueva versión disponible" en vez de recargar por su cuenta.
+      registerType: 'prompt',
       // Con strategies: 'injectManifest' solo se aplica este bloque; la clave
       // `workbox` se ignora, así que el globPatterns tiene que vivir aquí.
       injectManifest: {
