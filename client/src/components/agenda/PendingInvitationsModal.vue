@@ -99,6 +99,7 @@ const { data: rawInvitations, refetch } = useQuery({
       .eq('business_id', businessId.value)
       .eq('source', 'public')
       .is('client_id', null)
+      .in('status', ['pending', 'confirmed'])
       .order('start_time')
     if (branchId.value) query = query.eq('branch_id', branchId.value)
     const { data, error } = await query
