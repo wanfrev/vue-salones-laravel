@@ -176,9 +176,12 @@ const branchId = computed(() => businessStore.currentBranchId)
 const t = computed(() => businessStore.terminology)
 const label = computed(() => (t.value.client || 'cliente').toLowerCase())
 const isEmployee = computed(() => authStore.role === 'empleado')
-const canCreateClients = computed(() =>
-  !isEmployee.value || businessStore.hasFeature('employees_create_clients') || !!authStore.profile?.can_create_clients
-)
+const canCreateClients = computed(() => {
+  if (!isEmployee.value) return true
+  const profileCanCreate = authStore.profile?.can_create_clients ?? true
+  const businessCanCreate = businessStore.hasFeature('employees_create_clients')
+  return profileCanCreate && businessCanCreate
+})
 const hidePhoneFromEmployee = computed(() =>
   isEmployee.value && businessStore.hasFeature('hide_client_phone_from_employees') && !canCreateClients.value
 )

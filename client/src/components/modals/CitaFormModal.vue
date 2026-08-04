@@ -274,7 +274,12 @@ const authStore = useAuthStore()
 const businessStore = useBusinessStore()
 const queryClient = useQueryClient()
 const isEmployee = computed(() => authStore.role === 'empleado')
-const canCreateClients = computed(() => !isEmployee.value || businessStore.hasFeature('employees_create_clients') || !!authStore.profile?.can_create_clients)
+const canCreateClients = computed(() => {
+  if (!isEmployee.value) return true
+  const profileCanCreate = authStore.profile?.can_create_clients ?? true
+  const businessCanCreate = businessStore.hasFeature('employees_create_clients')
+  return profileCanCreate && businessCanCreate
+})
 const hidePhoneFromEmployee = computed(() => isEmployee.value && businessStore.hasFeature('hide_client_phone_from_employees') && !canCreateClients.value)
 const disableCommissionEdit = computed(() => {
   const role = authStore.role

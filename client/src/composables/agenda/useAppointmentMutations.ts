@@ -25,9 +25,12 @@ export function useAppointmentMutations(options: {
 
   const isEmployee = computed(() => authStore.role === 'empleado')
 
-  const allowCreateClient = computed(() =>
-    !isEmployee.value || businessStore.hasFeature('employees_create_clients') || !!authStore.profile?.can_create_clients
-  )
+  const allowCreateClient = computed(() => {
+    if (!isEmployee.value) return true
+    const profileCanCreate = authStore.profile?.can_create_clients ?? true
+    const businessCanCreate = businessStore.hasFeature('employees_create_clients')
+    return profileCanCreate && businessCanCreate
+  })
 
   const invalidate = async () => {
     const bid = options.businessId.value
