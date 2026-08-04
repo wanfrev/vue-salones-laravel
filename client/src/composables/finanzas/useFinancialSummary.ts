@@ -350,9 +350,7 @@ function useFinancialSummary(
         total,
         currency: isVES ? 'VES' as const : 'USD' as const,
         exchangeRateUsed: rate,
-        originalAmount: isVES
-          ? (breakdown ? breakdown.filter(b => b.currency === 'VES').reduce((s, b) => s + Number(b.inputAmount ?? 0), 0) : total * rate)
-          : total * rate,
+        originalAmount: total * rate,
         isAppointmentSale: r.is_appointment_sale ?? false,
         paymentMethod: r.payment_method ?? 'cash',
         breakdown: breakdown,
@@ -443,9 +441,7 @@ function useFinancialSummary(
       const isVES = breakdown && breakdown.length > 0
         ? breakdown[0].currency === 'VES'
         : false
-      const originalAmount = isVES
-        ? (breakdown ? breakdown.filter((b: any) => b.currency === 'VES').reduce((s: number, b: any) => s + Number(b.inputAmount ?? 0), 0) : total * exchangeRateUsed)
-        : total * exchangeRateUsed
+      const originalAmount = total * exchangeRateUsed
 
       result.push({
         id: 'ps-' + (ps as any).id,
