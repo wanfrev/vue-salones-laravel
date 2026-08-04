@@ -14,10 +14,22 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.ts',
-      registerType: 'autoUpdate',
+      // 'prompt': el SW nuevo queda en espera y la app muestra el banner
+      // "Nueva versión disponible" en vez de recargar por su cuenta.
+      registerType: 'prompt',
+      // Con strategies: 'injectManifest' solo se aplica este bloque; la clave
+      // `workbox` se ignora, así que el globPatterns tiene que vivir aquí.
       injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
       },
-      includeAssets: ['lumalogo.jpg', 'icon-192.png', 'icon-512.png', 'icon-180.png'],
+      includeAssets: [
+        'lumalogo.jpg',
+        'icon-192.png',
+        'icon-512.png',
+        'icon-180.png',
+        'icon-maskable-192.png',
+        'icon-maskable-512.png',
+      ],
       manifest: {
         name: 'Salones',
         short_name: 'Salones',
@@ -38,54 +50,20 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png',
           },
+          // Maskable aparte: Android recorta el icono en círculo/squircle y el
+          // wordmark a sangre se perdería. Estos llevan el logo dentro del 80%
+          // central (zona segura) sobre fondo opaco.
           {
-            src: '/icon-192.png',
+            src: '/icon-maskable-192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'maskable',
           },
           {
-            src: '/icon-512.png',
+            src: '/icon-maskable-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
-          },
-        ],
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /\/api\//i,
-            handler: 'NetworkOnly',
-          },
-          {
-            urlPattern: /^https?:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'google-fonts-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 30,
-              },
-              cacheableResponse: {
-                statuses: [200],
-              },
-            },
-          },
-          {
-            urlPattern: /\.(png|jpg|jpeg|gif|webp|avif|ico|svg)$/i,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'image-assets-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 30,
-              },
-              cacheableResponse: {
-                statuses: [200],
-              },
-            },
           },
         ],
       },

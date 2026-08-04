@@ -1,11 +1,50 @@
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
+import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching'
+import { NavigationRoute, registerRoute } from 'workbox-routing'
+import { StaleWhileRevalidate } from 'workbox-strategies'
+import { ExpirationPlugin } from 'workbox-expiration'
+import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 
 declare const self: ServiceWorkerGlobalScope
 
 precacheAndRoute(self.__WB_MANIFEST || [])
 
-self.addEventListener('install', () => {
-  self.skipWaiting()
+// SPA: cualquier navegación se resuelve con el index precacheado. Sin esto, un
+// deep link como /admin/inventario sin red no matchea nada y falla, porque el
+// precache solo cubre '/' vía directoryIndex.
+registerRoute(
+  new NavigationRoute(createHandlerBoundToURL('index.html'), {
+    denylist: [/^\/api\//, /^\/sanctum\//, /^\/storage\//],
+  }),
+)
+
+registerRoute(
+  ({ url }) => /^https?:\/\/fonts\.(googleapis|gstatic)\.com\//i.test(url.href),
+  new StaleWhileRevalidate({
+    cacheName: 'google-fonts-cache',
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 30 }),
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+    ],
+  }),
+)
+
+registerRoute(
+  ({ url, sameOrigin }) => !url.pathname.startsWith('/api/') && /\.(png|jpg|jpeg|gif|webp|avif|ico|svg)$/i.test(url.pathname) && sameOrigin,
+  new StaleWhileRevalidate({
+    cacheName: 'image-assets-cache',
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 * 30 }),
+      new CacheableResponsePlugin({ statuses: [200] }),
+    ],
+  }),
+)
+
+// Sin skipWaiting() automático: el SW nuevo espera a que el usuario pulse
+// "Actualizar" en el banner, que es lo que envía este mensaje.
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
 })
 
 self.addEventListener('activate', (event) => {
@@ -28,7 +67,9 @@ cleanupOutdatedCaches()
 self.addEventListener('push', (event) => {
   const payload = event.data?.json() ?? {}
   const title = payload.title ?? 'Salones'
-  const options: NotificationOptions = {
+  // `vibrate` no está en los tipos estándar (fuera de spec) pero Android sí lo
+  // aplica, así que se manda igual.
+  const options = {
     body: payload.body ?? '',
     icon: payload.icon ?? '/icon-192.png',
     badge: payload.badge ?? '/icon-192.png',
@@ -36,7 +77,7 @@ self.addEventListener('push', (event) => {
     tag: payload.tag ?? 'default',
     vibrate: [200, 100, 200],
     requireInteraction: payload.requireInteraction ?? false,
-  }
+  } as NotificationOptions
 
   event.waitUntil(self.registration.showNotification(title, options))
 })

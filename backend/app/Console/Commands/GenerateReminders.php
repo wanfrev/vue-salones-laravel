@@ -8,12 +8,9 @@ use App\Models\Business;
 use App\Models\InventoryStock;
 use App\Models\MessageTemplate;
 use App\Models\Profile;
-use App\Models\PushSubscription;
 use App\Services\NotificationService;
 use App\Services\WhatsAppService;
 use Illuminate\Console\Command;
-use Minishlink\WebPush\WebPush;
-use Minishlink\WebPush\Subscription;
 
 class GenerateReminders extends Command
 {
@@ -124,10 +121,7 @@ class GenerateReminders extends Command
                     ]);
                 }
 
-                foreach ($notifications as $n) {
-                    $this->notificationService->create($n);
-                    $totalGenerated++;
-                }
+                $totalGenerated += $this->notificationService->createMany($notifications)->count();
 
                 $appointmentIds[] = $appt->id;
                 $affectedBusinesses[$appt->business_id] = true;
@@ -219,10 +213,7 @@ class GenerateReminders extends Command
                     ]);
                 }
 
-                foreach ($notifications as $n) {
-                    $this->notificationService->create($n);
-                    $totalGenerated++;
-                }
+                $totalGenerated += $this->notificationService->createMany($notifications)->count();
 
                 $appointmentIds1h[] = $appt->id;
                 $affectedBusinesses[$appt->business_id] = true;
@@ -305,8 +296,9 @@ class GenerateReminders extends Command
                         }
                     }
 
+                    $pendingRows = [];
                     foreach ($admins as $admin) {
-                        $this->notificationService->create([
+                        $pendingRows[] = [
                             'business_id' => $business->id,
                             'profile_id' => $admin->id,
                             'type' => 'pending_appointments',
@@ -316,9 +308,9 @@ class GenerateReminders extends Command
                                 'type' => 'pending_appointments',
                                 'pending_count' => $pendingAppts->count(),
                             ],
-                        ]);
-                        $pendingGenerated++;
+                        ];
                     }
+                    $pendingGenerated += $this->notificationService->createMany($pendingRows)->count();
 
                     Appointment::whereIn('id', $pendingAppts->pluck('id'))->update([
                         'pending_reminder_sent_at' => now(),
@@ -357,8 +349,9 @@ class GenerateReminders extends Command
 
                 $admins = $this->getAdminsToNotify($appt->business_id, $appt->branch_id);
 
+                $unpaidRows = [];
                 foreach ($admins as $admin) {
-                    $this->notificationService->create([
+                    $unpaidRows[] = [
                         'business_id' => $appt->business_id,
                         'branch_id' => $appt->branch_id,
                         'profile_id' => $admin->id,
@@ -371,9 +364,9 @@ class GenerateReminders extends Command
                         'service_name' => $service->name,
                         'appointment_time' => $appt->start_time,
                         'metadata' => [],
-                    ]);
-                    $unpaidGenerated++;
+                    ];
                 }
+                $unpaidGenerated += $this->notificationService->createMany($unpaidRows)->count();
 
                 $affectedBusinesses[$appt->business_id] = true;
             }
@@ -407,17 +400,18 @@ class GenerateReminders extends Command
 
                 $admins = $this->getAdminsToNotify($bizId, null);
 
+                $lowStockRows = [];
                 foreach ($admins as $admin) {
-                    $this->notificationService->create([
+                    $lowStockRows[] = [
                         'business_id' => $bizId,
                         'profile_id' => $admin->id,
                         'type' => 'low_stock',
                         'title' => 'Stock bajo',
                         'message' => "{$count} producto(s) con stock bajo: " . implode(', ', $names) . $extra,
                         'metadata' => ['product_count' => $count],
-                    ]);
-                    $lowStockGenerated++;
+                    ];
                 }
+                $lowStockGenerated += $this->notificationService->createMany($lowStockRows)->count();
 
                 $affectedBusinesses[$bizId] = true;
             }
@@ -435,10 +429,8 @@ class GenerateReminders extends Command
             EntityChanged::safe($bizId, 'notification', 'created');
         }
 
-        // Send web push notifications to all subscribed devices
-        if ($grandTotal > 0 || $whatsappSent > 0) {
-            $this->sendPushNotifications($allAffectedBizIds);
-        }
+        // Las push ya salieron desde NotificationService::createMany(), una por
+        // notificación, al perfil destinatario y con su título/mensaje reales.
 
         return self::SUCCESS;
     }
@@ -499,55 +491,4 @@ class GenerateReminders extends Command
             ->get();
     }
 
-    private function sendPushNotifications(array $businessIds): void
-    {
-        try {
-            $auth = [
-                'VAPID' => [
-                    'subject' => config('services.vapid.subject', env('VAPID_SUBJECT', 'mailto:admin@luma.app')),
-                    'publicKey' => env('VAPID_PUBLIC_KEY'),
-                    'privateKey' => env('VAPID_PRIVATE_KEY'),
-                ],
-            ];
-
-            $webPush = new WebPush($auth);
-
-            $subscriptions = PushSubscription::whereIn('business_id', $businessIds)->get();
-
-            if ($subscriptions->isEmpty()) return;
-
-            foreach ($subscriptions as $sub) {
-                $pushSub = Subscription::create([
-                    'endpoint' => $sub->endpoint,
-                    'publicKey' => $sub->p256dh,
-                    'authToken' => $sub->auth,
-                ]);
-
-                $webPush->queueNotification(
-                    $pushSub,
-                    json_encode([
-                        'title' => 'Nuevas notificaciones',
-                        'body' => 'Tienes recordatorios o alertas pendientes.',
-                        'icon' => '/icon-192.png',
-                        'badge' => '/icon-192.png',
-                        'data' => ['url' => '/admin'],
-                    ])
-                );
-            }
-
-            foreach ($webPush->flush() as $report) {
-                if (!$report->isSuccess()) {
-                    \Illuminate\Support\Facades\Log::warning(
-                        "WebPush failed for {$report->getEndpoint()}: {$report->getReason()}"
-                    );
-
-                    if ($report->isSubscriptionExpired()) {
-                        PushSubscription::where('endpoint', $report->getEndpoint())->delete();
-                    }
-                }
-            }
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning("WebPush send failed: {$e->getMessage()}");
-        }
-    }
 }

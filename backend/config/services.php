@@ -40,4 +40,15 @@ return [
         'api_key' => env('EVOLUTION_API_KEY'),
     ],
 
+    /*
+     * Web Push (VAPID). Tiene que leerse desde acá y no con env() suelto: en
+     * producción, después de `php artisan config:cache`, env() devuelve null y
+     * las push se caen en silencio.
+     */
+    'vapid' => [
+        'public_key' => env('VAPID_PUBLIC_KEY'),
+        'private_key' => env('VAPID_PRIVATE_KEY'),
+        'subject' => env('VAPID_SUBJECT', 'mailto:admin@luma.app'),
+    ],
+
 ];

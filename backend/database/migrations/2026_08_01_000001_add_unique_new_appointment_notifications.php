@@ -9,6 +9,13 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // En una instalación limpia esta migración corre antes de la que crea
+        // la tabla (000001 de 08-01 vs 000000 de 08-02), así que sin este guard
+        // `migrate:fresh` revienta.
+        if (!Schema::hasTable('notifications')) {
+            return;
+        }
+
         // Delete duplicate new_appointment notifications (keep earliest one)
         $duplicateGroups = DB::table('notifications')
             ->where('type', 'new_appointment')

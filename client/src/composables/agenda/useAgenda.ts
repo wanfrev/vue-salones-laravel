@@ -103,8 +103,9 @@ export const useAgenda = () => {
         .from('appointments')
         .select(APPOINTMENT_SELECT)
         .eq('business_id', bizId)
+      // Ver nota en agendaService.listCitas: el `or` se descarta en el backend.
       if (branchId) {
-        query = query.or(`branch_id.is.null,branch_id.eq.${branchId}`)
+        query = query.eq('branch_id', branchId)
       }
       const startIso = start instanceof Date ? start.toISOString() : new Date(start).toISOString()
       const endIso = end instanceof Date ? end.toISOString() : new Date(end).toISOString()
