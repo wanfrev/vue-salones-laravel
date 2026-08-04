@@ -274,8 +274,13 @@ const authStore = useAuthStore()
 const businessStore = useBusinessStore()
 const queryClient = useQueryClient()
 const isEmployee = computed(() => authStore.role === 'empleado')
-const hidePhoneFromEmployee = computed(() => isEmployee.value && businessStore.hasFeature('hide_client_phone_from_employees'))
-const canCreateClients = computed(() => !isEmployee.value || (businessStore.hasFeature('employees_create_clients') && !businessStore.hasFeature('hide_client_phone_from_employees')))
+const canCreateClients = computed(() => {
+  if (!isEmployee.value) return true
+  const profileCanCreate = authStore.profile?.can_create_clients ?? true
+  const businessCanCreate = businessStore.hasFeature('employees_create_clients')
+  return profileCanCreate && businessCanCreate
+})
+const hidePhoneFromEmployee = computed(() => isEmployee.value && businessStore.hasFeature('hide_client_phone_from_employees') && !canCreateClients.value)
 const disableCommissionEdit = computed(() => {
   const role = authStore.role
   if (role === 'admin' || role === 'superadmin') return false
@@ -675,7 +680,7 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
 
     const incomingPetId: string | undefined = (cita as any).petId || (cita as any).pet_id || undefined
     const incomingClinicalHistory = (cita as any).clinicalHistory || (cita as any).clinical_history || {}
-    formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: cita.clientPhone || '', clientEmail: (cita as any).clientEmail || '', petId: incomingPetId, service: cita.serviceId || '', employee: cita.employeeId || '', assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), isFixedCommissionOverride: cita.isFixedCommissionOverride ?? false, employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, employeeAmountOverride: cita.employeeAmountOverride != null ? Number(cita.employeeAmountOverride) : undefined, assistantAmountOverride: cita.assistantAmountOverride != null ? Number(cita.assistantAmountOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '', diagnosis: (cita as any).diagnosis || '', treatment: (cita as any).treatment || '', associatedProducts: initialAssociated, clinicalHistory: JSON.parse(JSON.stringify(incomingClinicalHistory)) }
+    formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: cita.clientPhone || '', clientEmail: (cita as any).clientEmail || '', petId: incomingPetId, service: cita.serviceId || cita.service || '', employee: cita.employeeId || cita.employee || (isEmployee.value ? (authStore.profile?.id ?? '') : ''), assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), isFixedCommissionOverride: cita.isFixedCommissionOverride ?? false, employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, employeeAmountOverride: cita.employeeAmountOverride != null ? Number(cita.employeeAmountOverride) : undefined, assistantAmountOverride: cita.assistantAmountOverride != null ? Number(cita.assistantAmountOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '', diagnosis: (cita as any).diagnosis || '', treatment: (cita as any).treatment || '', associatedProducts: initialAssociated, clinicalHistory: JSON.parse(JSON.stringify(incomingClinicalHistory)) }
 
     if (cita.clientId && businessId.value) { try { const { searchClients } = await import('../../services/clientesService'); const r = await searchClients(businessId.value, cita.clientName, branchId.value); const m = r.find(c => c.id === cita.clientId); if (m) { formData.value.clientPhone = m.phone; formData.value.clientEmail = (m as any).email || '' } } catch {} }
     if (cita.groupId) {
@@ -751,6 +756,12 @@ const validateForm = (): boolean => {
   // Use Zod for top-level field validation
   const baseValid = validate()
 
+  let isPhoneValid = true
+  if (!isEmployee.value && formData.value.clientPhone.trim().length < 7) {
+    (errors as any).value.clientPhone = 'El teléfono del cliente debe tener al menos 7 dígitos'
+    isPhoneValid = false
+  }
+
   // Row-level validation (services table)
   if (!formData.value.service) rowErrors[0] = { ...rowErrors[0], serviceId: 'Selecciona un servicio' }
   if (!formData.value.employee) rowErrors[0] = { ...rowErrors[0], employeeId: 'Selecciona un empleado' }
@@ -800,7 +811,7 @@ const validateForm = (): boolean => {
   }
 
   if (Object.keys(rowErrors).length > 0) (errors as any).value.rowErrors = rowErrors
-  return baseValid && Object.keys(rowErrors).length === 0
+  return baseValid && isPhoneValid && Object.keys(rowErrors).length === 0
 }
 
 const handleSubmit = () => {

@@ -15,6 +15,7 @@ export interface AuthProfile {
   disable_agenda?: boolean
   disable_inventory_edit?: boolean
   can_create_appointments?: boolean
+  can_create_clients?: boolean
   can_access_consultorio?: boolean
 }
 

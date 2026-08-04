@@ -1,6 +1,6 @@
 <template>
-  <div class="flex flex-col h-full rounded-xl border border-border bg-surface p-4 lg:min-h-0">
-    <h3 class="text-base font-semibold text-text mb-4 shrink-0">Resumen de cobro</h3>
+  <div class="flex flex-col h-full rounded-xl border border-border bg-surface p-3.5 sm:p-4 lg:min-h-0 min-w-0">
+    <h3 class="text-base font-semibold text-text mb-3 sm:mb-4 shrink-0">Resumen de cobro</h3>
 
     <template v-if="selectedAppointment || isRetailOnly || isDirectService">
       <div class="flex-1 overflow-y-auto min-h-0 space-y-3 pr-1">
@@ -212,23 +212,23 @@
         </div>
 
         <div class="space-y-2">
-          <label class="block text-sm font-medium text-text">Método de pago</label>
+          <label class="block text-xs sm:text-sm font-medium text-text">Método de pago</label>
           <div class="grid grid-cols-2 gap-2">
             <button
               v-for="pm in paymentMethods"
               :key="pm.value"
               @click="$emit('select-method', pm.value)"
               :class="[
-                'rounded-lg border p-2 text-sm font-medium transition-theme text-center relative max-sm:min-h-[44px] max-sm:flex max-sm:items-center max-sm:justify-center',
+                'rounded-lg border p-2 text-xs sm:text-sm font-medium transition-theme text-center relative flex items-center justify-center min-h-[42px] gap-1 px-2.5',
                 paymentMethod === pm.value
-                  ? 'border-primary bg-primary/10 text-primary'
+                  ? 'border-primary bg-primary/10 text-primary font-semibold shadow-2xs'
                   : 'border-border text-text-secondary hover:bg-bg-secondary'
               ]"
             >
-              {{ pm.label }}
+              <span class="truncate">{{ pm.label }}</span>
               <span
                 v-if="(pm as any).currency"
-                class="ml-1 inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold"
+                class="shrink-0 inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-bold"
                 :class="(pm as any).currency === 'USD' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'"
               >{{ (pm as any).currency === 'USD' ? '$' : 'Bs' }}</span>
             </button>
@@ -236,7 +236,7 @@
         </div>
 
         <div v-if="paymentMethod === 'other'" class="space-y-2 mt-4">
-          <label class="block text-sm font-medium text-text">Moneda</label>
+          <label class="block text-xs sm:text-sm font-medium text-text">Moneda</label>
           <div class="flex rounded-lg border border-border bg-bg-secondary/50 p-0.5">
             <button
               @click="$emit('update:otherCurrency', 'USD')"
@@ -252,11 +252,11 @@
         </div>
 
         <div v-if="needsGiftCardSelect" class="space-y-2 mt-4">
-          <label class="block text-sm font-medium text-text">Gift Card a consumir</label>
+          <label class="block text-xs sm:text-sm font-medium text-text">Gift Card a consumir</label>
           <select
             :value="selectedGiftCardId"
             @change="$emit('update:selected-gift-card-id', ($event.target as HTMLSelectElement).value)"
-            class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-text outline-none focus:border-primary"
+            class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs sm:text-sm font-medium text-text outline-none focus:border-primary truncate"
           >
             <option value="">-- Selecciona una Gift Card --</option>
             <option v-for="gc in activeGiftCards" :key="gc.id" :value="gc.id">
@@ -267,7 +267,7 @@
           <div v-if="selectedGC" class="rounded-xl border border-primary/30 bg-primary/5 p-3 space-y-1">
             <div class="flex items-center justify-between text-xs">
               <span class="font-medium text-text-muted">Saldo disponible actual:</span>
-              <span class="font-bold text-success text-sm">{{ formatDual(selectedGC.amount) }}</span>
+              <span class="font-bold text-success text-sm tabular-nums">{{ formatDual(selectedGC.amount) }}</span>
             </div>
             <div v-if="selectedGC.amount < grandTotal" class="text-[11px] text-warning font-medium">
               ⚠️ El saldo de la gift card ({{ formatDual(selectedGC.amount) }}) es menor al total a cobrar ({{ formatDual(grandTotal) }}). Se consumirá el 100% de la gift card.
@@ -279,17 +279,17 @@
         </div>
 
         <div v-if="paymentMethod === 'mixed'" class="space-y-2 border-t border-border-subtle pt-3 mt-4">
-          <label class="block text-sm font-medium text-text">Distribución del pago</label>
-          <div v-for="(split, idx) in paymentsBreakdown" :key="idx" class="grid grid-cols-[1fr_3.5rem_1fr_auto] gap-1.5 items-center sm:flex sm:items-center sm:gap-2">
+          <label class="block text-xs sm:text-sm font-medium text-text">Distribución del pago</label>
+          <div v-for="(split, idx) in paymentsBreakdown" :key="idx" class="grid grid-cols-[1fr_3.8rem_1fr_auto] gap-1.5 items-center">
             <select
               v-model="split.method"
-              class="min-w-0 rounded-lg border border-border bg-surface px-2 py-2 text-xs text-text outline-none focus:border-primary sm:flex-1"
+              class="w-full min-w-0 rounded-lg border border-border bg-surface px-2 py-2 text-xs text-text outline-none focus:border-primary truncate"
             >
               <option v-for="m in mixedMethods" :key="m.value" :value="m.value">{{ m.label }}</option>
             </select>
             <select
               v-model="split.currency"
-              class="rounded-lg border border-border bg-surface px-1 py-2 text-xs text-text outline-none focus:border-primary text-center sm:w-16"
+              class="w-full rounded-lg border border-border bg-surface px-1 py-2 text-xs text-text outline-none focus:border-primary text-center font-medium"
             >
               <option value="USD">USD</option>
               <option value="VES">Bs</option>
@@ -298,23 +298,23 @@
               v-model.number="split.inputAmount"
               type="number" step="0.01" min="0"
               placeholder="0.00"
-              class="w-full rounded-lg border border-border bg-surface px-2 py-2 text-xs text-text outline-none placeholder:text-text-muted focus:border-primary text-right sm:flex-1"
+              class="w-full rounded-lg border border-border bg-surface px-2 py-2 text-xs text-text outline-none placeholder:text-text-muted focus:border-primary text-right font-medium tabular-nums min-w-0"
             />
             <button
               v-if="paymentsBreakdown.length > 1"
               @click="$emit('remove-split', idx)"
-              class="flex h-8 w-8 items-center justify-center rounded p-1 text-text-muted hover:text-danger hover:bg-danger/10"
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded p-1 text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
             >
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
-          <div class="flex items-center justify-between text-xs">
+          <div class="flex items-center justify-between text-xs pt-1">
             <button @click="$emit('add-split')" class="text-primary hover:text-primary-hover transition-theme font-medium">
               + Agregar método
             </button>
-            <span :class="splitRemaining === 0 ? 'text-success' : 'text-warning'">
+            <span :class="splitRemaining === 0 ? 'text-success font-medium' : 'text-warning font-medium'" class="tabular-nums">
               Restante: {{ formatDual(splitRemaining) }}
             </span>
           </div>
