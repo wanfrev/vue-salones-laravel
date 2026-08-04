@@ -22,7 +22,14 @@ export default defineConfig({
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
       },
-      includeAssets: ['lumalogo.jpg', 'icon-192.png', 'icon-512.png', 'icon-180.png'],
+      includeAssets: [
+        'lumalogo.jpg',
+        'icon-192.png',
+        'icon-512.png',
+        'icon-180.png',
+        'icon-maskable-192.png',
+        'icon-maskable-512.png',
+      ],
       manifest: {
         name: 'Salones',
         short_name: 'Salones',
@@ -43,14 +50,17 @@ export default defineConfig({
             sizes: '512x512',
             type: 'image/png',
           },
+          // Maskable aparte: Android recorta el icono en círculo/squircle y el
+          // wordmark a sangre se perdería. Estos llevan el logo dentro del 80%
+          // central (zona segura) sobre fondo opaco.
           {
-            src: '/icon-192.png',
+            src: '/icon-maskable-192.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'maskable',
           },
           {
-            src: '/icon-512.png',
+            src: '/icon-maskable-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',

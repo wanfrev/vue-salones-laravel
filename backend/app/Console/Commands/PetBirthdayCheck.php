@@ -58,8 +58,9 @@ class PetBirthdayCheck extends Command
                 }
                 $message .= ' hoy.';
 
+                $rows = [];
                 foreach ($admins as $admin) {
-                    $this->notificationService->create([
+                    $rows[] = [
                         'business_id' => $bizId,
                         'profile_id' => $admin->id,
                         'type' => 'pet_birthday',
@@ -73,9 +74,9 @@ class PetBirthdayCheck extends Command
                             'birthday' => $pet->birthday,
                             'age' => $age,
                         ],
-                    ]);
-                    $totalGenerated++;
+                    ];
                 }
+                $totalGenerated += $this->notificationService->createMany($rows)->count();
             }
 
             $affectedBusinesses[$bizId] = true;

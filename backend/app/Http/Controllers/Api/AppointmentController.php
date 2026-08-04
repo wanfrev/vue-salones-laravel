@@ -142,21 +142,25 @@ class AppointmentController
 
         \Illuminate\Support\Facades\Log::info("[AppointmentController] Creating notifications for appointment {$appointment->id}. Existing: " . implode(', ', $existingNotifications ?: ['none']));
 
+        $rows = [];
+
+        $base = [
+            'business_id' => $businessId,
+            'branch_id' => $appointment->branch_id,
+            'appointment_id' => $appointment->id,
+            'type' => 'new_appointment',
+            'client_name' => $clientName,
+            'service_name' => $serviceName,
+            'appointment_time' => $startTime,
+        ];
+
         // Notify assigned employee (skip if already notified)
         if ($appointment->employee_id && $appointment->employee_id !== $creatorProfileId && !in_array($appointment->employee_id, $existingNotifications)) {
-            $notifService->create([
-                'business_id' => $businessId,
-                'branch_id' => $appointment->branch_id,
+            $rows[] = $base + [
                 'profile_id' => $appointment->employee_id,
-                'appointment_id' => $appointment->id,
-                'type' => 'new_appointment',
                 'title' => 'Nueva cita agendada',
                 'message' => "{$clientName} — {$serviceName}",
-                'client_name' => $clientName,
-                'service_name' => $serviceName,
-                'appointment_time' => $startTime,
-            ]);
-            \Illuminate\Support\Facades\Log::info("[AppointmentController] Created notification for employee {$appointment->employee_id} for appointment {$appointment->id}");
+            ];
             $notifiedProfiles[] = $appointment->employee_id;
         } else if ($appointment->employee_id) {
             \Illuminate\Support\Facades\Log::info("[AppointmentController] Skipped notification for employee {$appointment->employee_id} (creator or duplicate)");
@@ -165,18 +169,11 @@ class AppointmentController
 
         // Notify assistant if assigned (and different from creator)
         if ($appointment->assistant_employee_id && $appointment->assistant_employee_id !== $creatorProfileId && !in_array($appointment->assistant_employee_id, $existingNotifications)) {
-            $notifService->create([
-                'business_id' => $businessId,
-                'branch_id' => $appointment->branch_id,
+            $rows[] = $base + [
                 'profile_id' => $appointment->assistant_employee_id,
-                'appointment_id' => $appointment->id,
-                'type' => 'new_appointment',
                 'title' => 'Nueva cita como asistente',
                 'message' => "{$clientName} — {$serviceName}",
-                'client_name' => $clientName,
-                'service_name' => $serviceName,
-                'appointment_time' => $startTime,
-            ]);
+            ];
             $notifiedProfiles[] = $appointment->assistant_employee_id;
         }
 
@@ -185,19 +182,15 @@ class AppointmentController
         foreach ($admins as $admin) {
             if (in_array($admin->id, $notifiedProfiles) || in_array($admin->id, $existingNotifications)) continue;
 
-            $notifService->create([
-                'business_id' => $businessId,
-                'branch_id' => $appointment->branch_id,
+            $rows[] = $base + [
                 'profile_id' => $admin->id,
-                'appointment_id' => $appointment->id,
-                'type' => 'new_appointment',
                 'title' => 'Nueva cita agendada',
                 'message' => "{$clientName} — {$serviceName}" . ($employeeName ? " con {$employeeName}" : ''),
-                'client_name' => $clientName,
-                'service_name' => $serviceName,
-                'appointment_time' => $startTime,
-            ]);
+            ];
         }
+
+        $created = $notifService->createMany($rows);
+        \Illuminate\Support\Facades\Log::info("[AppointmentController] {$created->count()} notifications created for appointment {$appointment->id}");
 
         EntityChanged::safe($businessId, 'notification', 'created', $appointment->id);
 
@@ -253,13 +246,9 @@ class AppointmentController
 
         $notifService = app(NotificationService::class);
 
-        $notifiedProfiles = [];
-
-        // Notify assigned employee
-        $notifService->create([
+        $base = [
             'business_id' => $businessId,
             'branch_id' => $appointment->branch_id,
-            'profile_id' => $appointment->employee_id,
             'appointment_id' => $appointment->id,
             'type' => 'status_change',
             'title' => "Cita {$statusLabel}",
@@ -267,26 +256,25 @@ class AppointmentController
             'client_name' => $clientName,
             'service_name' => $serviceName,
             'appointment_time' => $appointment->start_time,
-        ]);
-        $notifiedProfiles[] = $appointment->employee_id;
+        ];
+
+        $rows = [];
+        $notifiedProfiles = [];
+
+        // Notify assigned employee
+        if ($appointment->employee_id) {
+            $rows[] = $base + ['profile_id' => $appointment->employee_id];
+            $notifiedProfiles[] = $appointment->employee_id;
+        }
 
         // Notify admins and encargados
         $admins = $this->getAdminsToNotify($businessId, $appointment->branch_id);
         foreach ($admins as $admin) {
             if (in_array($admin->id, $notifiedProfiles)) continue;
-            $notifService->create([
-                'business_id' => $businessId,
-                'branch_id' => $appointment->branch_id,
-                'profile_id' => $admin->id,
-                'appointment_id' => $appointment->id,
-                'type' => 'status_change',
-                'title' => "Cita {$statusLabel}",
-                'message' => "{$clientName} — {$serviceName}",
-                'client_name' => $clientName,
-                'service_name' => $serviceName,
-                'appointment_time' => $appointment->start_time,
-            ]);
+            $rows[] = $base + ['profile_id' => $admin->id];
         }
+
+        $notifService->createMany($rows);
 
         EntityChanged::safe($businessId, 'notification', 'updated', $id);
 

@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useQuery, keepPreviousData } from '@tanstack/vue-query'
 import { db } from '../../lib/api'
 import { useAuthStore } from '../../store/auth'
@@ -120,6 +120,10 @@ export const useAgenda = () => {
     enabled: computed(() => !!businessId.value),
     staleTime: 0,
     placeholderData: keepPreviousData,
+  })
+
+  watch(currentBranchId, () => {
+    refetchAppointments()
   })
 
   return {

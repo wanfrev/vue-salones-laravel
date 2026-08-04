@@ -1,5 +1,5 @@
-import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching'
-import { registerRoute } from 'workbox-routing'
+import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching'
+import { NavigationRoute, registerRoute } from 'workbox-routing'
 import { StaleWhileRevalidate } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
 import { CacheableResponsePlugin } from 'workbox-cacheable-response'
@@ -7,6 +7,15 @@ import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 declare const self: ServiceWorkerGlobalScope
 
 precacheAndRoute(self.__WB_MANIFEST || [])
+
+// SPA: cualquier navegación se resuelve con el index precacheado. Sin esto, un
+// deep link como /admin/inventario sin red no matchea nada y falla, porque el
+// precache solo cubre '/' vía directoryIndex.
+registerRoute(
+  new NavigationRoute(createHandlerBoundToURL('index.html'), {
+    denylist: [/^\/api\//, /^\/sanctum\//, /^\/storage\//],
+  }),
+)
 
 registerRoute(
   ({ url }) => /^https?:\/\/fonts\.(googleapis|gstatic)\.com\//i.test(url.href),
