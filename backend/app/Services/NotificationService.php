@@ -46,8 +46,7 @@ class NotificationService
             if ($notification->branch) {
                 $notification->branch_name = $notification->branch->name;
             }
-            unset($notification->branch);
-            unset($notification->relations['branch']);
+            $notification->unsetRelation('branch');
             return $notification;
         });
     }
@@ -72,8 +71,7 @@ class NotificationService
         if ($notification->branch) {
             $notification->branch_name = $notification->branch->name;
         }
-        unset($notification->branch);
-        unset($notification->relations['branch']);
+        $notification->unsetRelation('branch');
 
         return $notification;
     }
