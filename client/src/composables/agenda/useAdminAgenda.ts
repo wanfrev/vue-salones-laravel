@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { toISODate, parseLocalDate } from '../../lib/formatters'
 import { listCitas, agendaKeys } from '../../services/agendaService'
@@ -46,7 +46,7 @@ export function useAdminAgenda(businessId: () => string | null) {
     return { start, end }
   })
 
-  const { data: citasData, isLoading, refetch: refetchCitas } = useQuery({
+  const { data: citasData, isLoading } = useQuery({
     queryKey: computed(() => [
       ...agendaKeys.appointments(businessId(), currentBranchId.value),
       dateFilterMode.value,
@@ -56,10 +56,6 @@ export function useAdminAgenda(businessId: () => string | null) {
     queryFn: () => listCitas(businessId()!, dateRange.value, undefined, currentBranchId.value),
     enabled: computed(() => !!businessId()),
     staleTime: 0,
-  })
-
-  watch(currentBranchId, () => {
-    refetchCitas()
   })
 
   const { data: serviciosData } = useQuery({

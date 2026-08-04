@@ -53,8 +53,12 @@ export const listCitas = async (
     .select(APPOINTMENT_SELECT)
     .eq('business_id', businessId)
 
+  // `.eq` y no `.or(branch_id.is.null,...)`: el middleware ParseApiFilters solo
+  // sabe extraer employee_id de un `or`, así que el filtro de sucursal se
+  // descartaba entero y la agenda devolvía las citas de todas las sucursales.
+  // El backend ya incluye por su cuenta las citas con branch_id NULL.
   if (branchId) {
-    query = query.or(`branch_id.is.null,branch_id.eq.${branchId}`)
+    query = query.eq('branch_id', branchId)
   }
 
   query = query.order('start_time')
