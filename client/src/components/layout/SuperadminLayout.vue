@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-bg">
-    <header class="sticky top-0 z-40 border-b border-border/50 bg-surface/80 backdrop-blur-xl">
+    <header class="sticky top-0 z-40 border-b border-border/50 bg-surface/80 backdrop-blur-xl pt-[var(--safe-top)]">
       <div class="mx-auto flex w-full max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         <router-link to="/superadmin" class="flex items-center gap-3">
           <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-extrabold text-white shadow-sm shadow-primary/20">
