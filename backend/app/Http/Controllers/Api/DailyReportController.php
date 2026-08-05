@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Business;
 use App\Models\DailyReport;
 use App\Services\DailyReportPosSummaryService;
+use App\Services\DailyReportSummaryService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
@@ -13,7 +14,29 @@ class DailyReportController extends Controller
 {
     public function __construct(
         private DailyReportPosSummaryService $posSummary,
+        private DailyReportSummaryService $summaryService,
     ) {}
+
+    /**
+     * Dashboard financiero del módulo de Reportes: ingresos por moneda y
+     * método, más créditos, agregados sobre un rango de fechas o un mes.
+     */
+    public function dashboardSummary(Request $request)
+    {
+        $validated = $request->validate([
+            'business_id' => 'required|string',
+            'branch_id' => 'nullable|string',
+            'start' => 'required|date',
+            'end' => 'required|date|after_or_equal:start',
+        ]);
+
+        return response()->json($this->summaryService->summarize(
+            $validated['business_id'],
+            $validated['start'],
+            $validated['end'],
+            $validated['branch_id'] ?? null,
+        ));
+    }
 
     /**
      * Totales cobrados en el punto de venta para una fecha, agrupados por

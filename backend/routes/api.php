@@ -196,6 +196,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Antes de la ruta con {id} no hace falta cuidado: no colisionan, pero se
     // deja agrupada con el resto del recurso.
     Route::get('/daily-reports/pos-summary', [DailyReportController::class, 'posSummary']);
+    Route::get('/daily-reports/dashboard-summary', [DailyReportController::class, 'dashboardSummary']);
     Route::post('/daily-reports', [DailyReportController::class, 'store']);
     Route::put('/daily-reports/{id}', [DailyReportController::class, 'update']);
     Route::delete('/daily-reports/{id}', [DailyReportController::class, 'destroy']);

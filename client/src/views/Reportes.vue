@@ -47,6 +47,12 @@
       </div>
     </div>
 
+    <!-- Dashboard Financiero -->
+    <div>
+      <h2 class="text-lg font-bold text-text mb-3">Dashboard Financiero</h2>
+      <ReportesFinancialDashboard />
+    </div>
+
     <!-- Data Table -->
     <div class="rounded-2xl border border-border bg-surface shadow-sm overflow-hidden flex-1 flex flex-col min-h-[400px]">
       <div v-if="isLoading" class="flex flex-1 items-center justify-center p-12">
@@ -170,6 +176,7 @@
 import { ref, computed } from 'vue'
 import type { DailyReport } from '../services/dailyReportService'
 import ReporteFormModal from '../components/reportes/ReporteFormModal.vue'
+import ReportesFinancialDashboard from '../components/reportes/ReportesFinancialDashboard.vue'
 import { useDailyReports } from '../composables/reportes/useDailyReports'
 
 const searchQuery = ref('')
