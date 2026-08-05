@@ -246,6 +246,14 @@
               :disabled="updatingFeatures"
               class="px-5 py-5"
             />
+            <FormToggle
+              :model-value="!!businessStore.features.daily_report_autofill_from_pos"
+              @update:model-value="handleToggleDailyReportAutofill"
+              label="Traer del POS en el Reporte Diario"
+              hint="Habilita el botón que llena los montos por método de pago del Reporte Diario con lo cobrado ese día en el POS"
+              :disabled="updatingFeatures"
+              class="px-5 py-5"
+            />
           </div>
         </div>
       </div>
@@ -607,6 +615,23 @@ async function handleToggleDirectServiceSale(val: boolean) {
     })
     businessStore.updateBusiness({ features: updatedFeatures } as any)
     success(val ? 'Permiso activado: Se permite el cobro directo de servicios en el POS' : 'Permiso desactivado: Cobro directo de servicios deshabilitado')
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar el permiso')
+  } finally {
+    updatingFeatures.value = false
+  }
+}
+
+async function handleToggleDailyReportAutofill(val: boolean) {
+  if (!businessId.value) return
+  updatingFeatures.value = true
+  try {
+    const updatedFeatures = { ...businessStore.features, daily_report_autofill_from_pos: val }
+    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    success(val ? 'Permiso activado: El Reporte Diario puede traer los montos del POS' : 'Permiso desactivado: Traer del POS deshabilitado')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
   } finally {

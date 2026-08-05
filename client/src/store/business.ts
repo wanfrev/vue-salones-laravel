@@ -32,6 +32,7 @@ const DEFAULT_TERMINOLOGY: Terminology = {
     encargados_change_employee_rate: false,
     disable_employee_commission_edit: false,
     manual_reports: false,
+    daily_report_autofill_from_pos: false,
     pos_direct_service_sale: false,
     enable_public_booking: true,
     hide_client_phone_from_employees: false,

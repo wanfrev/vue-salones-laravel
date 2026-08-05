@@ -3,12 +3,48 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Business;
 use App\Models\DailyReport;
+use App\Services\DailyReportPosSummaryService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 
 class DailyReportController extends Controller
 {
+    public function __construct(
+        private DailyReportPosSummaryService $posSummary,
+    ) {}
+
+    /**
+     * Totales cobrados en el punto de venta para una fecha, agrupados por
+     * método de pago con los nombres de campo del reporte diario. Alimenta el
+     * botón "Traer del POS" del formulario.
+     */
+    public function posSummary(Request $request)
+    {
+        $validated = $request->validate([
+            'business_id' => 'required|string',
+            'branch_id' => 'nullable|string',
+            'date' => 'required|date',
+        ]);
+
+        $business = Business::find($validated['business_id']);
+        $features = $business?->features ?? [];
+        $features = is_array($features) ? $features : (json_decode((string) $features, true) ?: []);
+
+        if (!($features['daily_report_autofill_from_pos'] ?? false)) {
+            return response()->json([
+                'error' => ['message' => 'El llenado automático desde el punto de venta está desactivado.'],
+            ], 403);
+        }
+
+        return response()->json($this->posSummary->summarize(
+            $validated['business_id'],
+            $validated['date'],
+            $validated['branch_id'] ?? null,
+        ));
+    }
+
     public function index(Request $request)
     {
         $request->validate([
@@ -54,6 +90,10 @@ class DailyReportController extends Controller
             'zelle_usd' => 'nullable|numeric|min:0',
             'binance_usd' => 'nullable|numeric|min:0',
             'cashea_usd' => 'nullable|numeric|min:0',
+            'card_usd' => 'nullable|numeric|min:0',
+            'gift_card_usd' => 'nullable|numeric|min:0',
+            'other_usd' => 'nullable|numeric|min:0',
+            'other_bs' => 'nullable|numeric|min:0',
             'credit_bs' => 'nullable|numeric|min:0',
             'credit_usd' => 'nullable|numeric|min:0',
             'credits_detail' => 'nullable|array',
@@ -66,8 +106,8 @@ class DailyReportController extends Controller
         $validated['user_id'] = $request->user()?->id;
 
         // Auto-calculate totals
-        $validated['total_bs'] = ($validated['pos_bs'] ?? 0) + ($validated['pago_movil_bs'] ?? 0) + ($validated['cash_bs'] ?? 0) + ($validated['transfer_bs'] ?? 0) + ($validated['credit_bs'] ?? 0);
-        $validated['total_usd'] = ($validated['cash_usd'] ?? 0) + ($validated['zelle_usd'] ?? 0) + ($validated['binance_usd'] ?? 0) + ($validated['cashea_usd'] ?? 0) + ($validated['credit_usd'] ?? 0);
+        $validated['total_bs'] = ($validated['pos_bs'] ?? 0) + ($validated['pago_movil_bs'] ?? 0) + ($validated['cash_bs'] ?? 0) + ($validated['transfer_bs'] ?? 0) + ($validated['other_bs'] ?? 0) + ($validated['credit_bs'] ?? 0);
+        $validated['total_usd'] = ($validated['cash_usd'] ?? 0) + ($validated['zelle_usd'] ?? 0) + ($validated['binance_usd'] ?? 0) + ($validated['cashea_usd'] ?? 0) + ($validated['card_usd'] ?? 0) + ($validated['gift_card_usd'] ?? 0) + ($validated['other_usd'] ?? 0) + ($validated['credit_usd'] ?? 0);
 
         $report = DailyReport::create($validated);
 
@@ -91,6 +131,10 @@ class DailyReportController extends Controller
             'zelle_usd' => 'nullable|numeric|min:0',
             'binance_usd' => 'nullable|numeric|min:0',
             'cashea_usd' => 'nullable|numeric|min:0',
+            'card_usd' => 'nullable|numeric|min:0',
+            'gift_card_usd' => 'nullable|numeric|min:0',
+            'other_usd' => 'nullable|numeric|min:0',
+            'other_bs' => 'nullable|numeric|min:0',
             'credit_bs' => 'nullable|numeric|min:0',
             'credit_usd' => 'nullable|numeric|min:0',
             'credits_detail' => 'nullable|array',
@@ -101,8 +145,8 @@ class DailyReportController extends Controller
         unset($validated['id']);
 
         // Auto-calculate totals
-        $validated['total_bs'] = ($validated['pos_bs'] ?? 0) + ($validated['pago_movil_bs'] ?? 0) + ($validated['cash_bs'] ?? 0) + ($validated['transfer_bs'] ?? 0) + ($validated['credit_bs'] ?? 0);
-        $validated['total_usd'] = ($validated['cash_usd'] ?? 0) + ($validated['zelle_usd'] ?? 0) + ($validated['binance_usd'] ?? 0) + ($validated['cashea_usd'] ?? 0) + ($validated['credit_usd'] ?? 0);
+        $validated['total_bs'] = ($validated['pos_bs'] ?? 0) + ($validated['pago_movil_bs'] ?? 0) + ($validated['cash_bs'] ?? 0) + ($validated['transfer_bs'] ?? 0) + ($validated['other_bs'] ?? 0) + ($validated['credit_bs'] ?? 0);
+        $validated['total_usd'] = ($validated['cash_usd'] ?? 0) + ($validated['zelle_usd'] ?? 0) + ($validated['binance_usd'] ?? 0) + ($validated['cashea_usd'] ?? 0) + ($validated['card_usd'] ?? 0) + ($validated['gift_card_usd'] ?? 0) + ($validated['other_usd'] ?? 0) + ($validated['credit_usd'] ?? 0);
 
         $report->update($validated);
 

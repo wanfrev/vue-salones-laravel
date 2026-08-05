@@ -9,10 +9,13 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   card: 'Tarjeta',
   transfer: 'Transferencia',
   zelle: 'Zelle',
+  binance: 'Binance',
+  cashea: 'Cashea',
   pago_movil: 'Pago Móvil',
   punto_venta: 'Punto de Venta (Bs)',
   mixed: 'Mixto',
   other: 'Otro',
+  gift_card: 'Gift Card',
 }
 
 export function formatMethod(method: string): string {

@@ -28,6 +28,8 @@ export function usePOSPayment() {
     { label: 'Tarjeta', value: 'card' as PaymentMethod, currency: 'USD' as const },
     { label: 'Transferencia', value: 'transfer' as PaymentMethod, currency: 'VES' as const },
     { label: 'Zelle', value: 'zelle' as PaymentMethod, currency: 'USD' as const },
+    { label: 'Binance', value: 'binance' as PaymentMethod, currency: 'USD' as const },
+    { label: 'Cashea', value: 'cashea' as PaymentMethod, currency: 'USD' as const },
     { label: 'Pago Móvil', value: 'pago_movil' as PaymentMethod, currency: 'VES' as const },
     { label: 'Gift Card', value: 'gift_card' as PaymentMethod, currency: 'USD' as const },
     { label: 'Mixto', value: 'mixed' as PaymentMethod, currency: null as null },
