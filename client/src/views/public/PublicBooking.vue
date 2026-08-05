@@ -1,5 +1,8 @@
 <template>
-  <div class="relative flex min-h-dvh items-center justify-center overflow-hidden px-0 sm:px-4 py-0 sm:py-6 bg-bg-secondary" :style="cssVars">
+  <!-- En móvil la página fluye y scrollea; el layout de altura fija (todo dentro
+       del viewport, sin scroll) solo aplica de `sm`/`md` en adelante. Forzarlo en
+       móvil hacía que el timeline de 14 h se pintara encima del resumen. -->
+  <div class="relative flex min-h-dvh items-start sm:items-center justify-center overflow-x-hidden sm:overflow-hidden px-0 sm:px-4 py-0 sm:py-6 bg-bg-secondary" :style="cssVars">
     <div
       class="absolute inset-0 bg-cover bg-center bg-no-repeat"
       :style="{ backgroundImage: `url('${leafBackground}')` }"
@@ -12,7 +15,7 @@
       style="background-image: radial-gradient(circle at 20% 30%, rgba(134,156,132,0.2), transparent 40%), radial-gradient(circle at 80% 70%, rgba(15,23,42,0.1), transparent 35%)"
     />
 
-    <div class="relative z-10 w-full sm:max-w-6xl sm:rounded-3xl border-0 sm:border border-white/20 dark:border-white/10 bg-white/85 dark:bg-zinc-950/85 sm:backdrop-blur-2xl shadow-2xl shadow-black/5 dark:shadow-black/30 overflow-hidden transition-shadow duration-500 max-h-dvh sm:max-h-[96dvh] flex flex-col">
+    <div class="relative z-10 w-full sm:max-w-6xl sm:rounded-3xl border-0 sm:border border-white/20 dark:border-white/10 bg-white/85 dark:bg-zinc-950/85 sm:backdrop-blur-2xl shadow-2xl shadow-black/5 dark:shadow-black/30 overflow-hidden transition-shadow duration-500 min-h-dvh sm:min-h-0 sm:max-h-[96dvh] flex flex-col">
       <!-- Header -->
       <div class="flex-shrink-0 px-4 sm:px-8 pt-3 sm:pt-5 pb-2 sm:pb-3 flex items-center justify-between border-b border-black/5 dark:border-white/5">
         <div class="flex items-center gap-2 sm:gap-3">
@@ -73,7 +76,7 @@
       </div>
 
       <!-- Content -->
-      <div class="flex-1 min-h-0 flex flex-col overflow-y-auto md:overflow-hidden">
+      <div class="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
         <!-- LOADING / ERROR / DISABLED -->
         <div v-if="loadingBusiness" class="flex-1 flex items-center justify-center">
           <div class="flex flex-col items-center gap-3">
@@ -102,7 +105,7 @@
 
         <template v-else>
           <!-- ============ STEP 0: DATE PICKER TOP, TIMELINE MIDDLE, SUMMARY BOTTOM ============ -->
-          <div v-if="currentStep === 0" class="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[1fr_1.5fr] gap-0 md:gap-0 px-3 sm:px-6 pb-3 sm:pb-5">
+          <div v-if="currentStep === 0" class="grid grid-cols-1 md:grid-cols-[1fr_1.5fr] md:flex-1 md:min-h-0 gap-0 md:gap-0 px-3 sm:px-6 pb-3 sm:pb-5">
             <!-- TOP: Date picker (mobile) / left-top (desktop) -->
             <div class="md:col-start-1 md:row-start-1 pt-1 md:pt-2 md:pl-2 flex flex-col gap-2 sm:gap-3">
               <div>
@@ -125,7 +128,7 @@
             </div>
 
             <!-- MIDDLE: Timeline (mobile) / right full-height (desktop) -->
-            <div class="md:col-start-2 md:row-start-1 md:row-span-2 pt-2 md:pt-2 md:pr-2 flex flex-col min-h-0">
+            <div class="md:col-start-2 md:row-start-1 md:row-span-2 pt-2 md:pt-2 md:pr-2 flex flex-col md:min-h-0">
               <div v-if="loadingCalendar" class="flex-1 flex items-center justify-center">
                 <div class="flex flex-col items-center gap-3">
                   <div class="h-7 w-7 rounded-full border-2 border-primary border-t-transparent animate-spin" />
@@ -141,7 +144,7 @@
                   <p class="text-[10px] sm:text-xs text-text-muted">{{ employeeName }} no atiende este día.</p>
                 </div>
               </div>
-              <div v-else class="flex-1 flex flex-col min-h-0">
+              <div v-else class="flex flex-col md:flex-1 md:min-h-0">
                 <p class="text-[9px] sm:text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1.5 sm:mb-2 flex-shrink-0 hidden md:block">Horarios</p>
                 <p class="text-[9px] font-semibold text-text-muted mb-1 flex-shrink-0 md:hidden">{{ formatDateLabel(selectedDate) }}</p>
                 <div class="flex-1 relative rounded-xl sm:rounded-2xl border border-black/5 dark:border-white/5 bg-black/[0.015] dark:bg-white/[0.015] p-2 sm:p-2.5" :style="{ minHeight: `${totalHeight + 4}px` }">

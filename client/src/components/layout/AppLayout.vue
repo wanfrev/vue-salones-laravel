@@ -1,7 +1,8 @@
 <template>
   <div class="min-h-screen bg-bg">
     <!-- Top Header -->
-    <header class="fixed left-0 right-0 top-0 z-50 flex h-16 items-center justify-between bg-surface border-b border-border px-2 sm:px-4">
+    <header class="fixed left-0 right-0 top-0 z-50 bg-surface border-b border-border pt-[var(--safe-top)]">
+      <div class="flex h-16 items-center justify-between px-2 sm:px-4">
       <div class="flex items-center gap-1 sm:gap-2 min-w-0">
         <button @click="isSidebarOpen = !isSidebarOpen" class="rounded-lg p-2 text-text-secondary transition-theme hover:bg-bg-secondary shrink-0 lg:hidden">
           <HamburgerMenuIcon :size="24" />
@@ -38,13 +39,14 @@
           <div v-if="profileOpen" class="fixed inset-0 z-40" @click="profileOpen = false" />
         </div>
       </div>
+      </div>
     </header>
 
     <Sidebar :is-open="isSidebarOpen" @close="isSidebarOpen = false" />
 
-    <div v-if="isSidebarOpen" @click="isSidebarOpen = false" class="fixed inset-0 top-16 z-30 bg-black/50 lg:hidden"></div>
+    <div v-if="isSidebarOpen" @click="isSidebarOpen = false" class="fixed inset-0 top-[var(--header-total)] z-30 bg-black/50 lg:hidden"></div>
 
-    <main class="ml-0 min-h-screen pt-16 lg:ml-64">
+    <main class="ml-0 min-h-screen pt-[var(--header-total)] lg:ml-64">
       <GlobalLoading />
       <div class="p-4 lg:p-6">
         <slot />
