@@ -17,6 +17,16 @@ let initialized = false
 
 const UPDATE_CHECK_MS = 60_000
 
+// Justo después de aplicar una actualización, el primer pedido de sw.js tras el
+// reload puede caer en un servidor/nodo de CDN que todavía no terminó de
+// propagar el deploy y devuelve otra build distinta a la que acabamos de
+// instalar. Eso dispara el aviso de nuevo un segundo después de haber
+// actualizado. Durante esta ventana, cualquier "hay actualización" se trata
+// como ruido de propagación: se reintenta más tarde en vez de molestar al
+// usuario con el mismo aviso dos veces seguidas.
+const JUST_UPDATED_KEY = 'luma_pwa_just_updated'
+const PROPAGATION_GRACE_MS = 20_000
+
 /** Se llama una sola vez desde main.ts, antes de montar la app. */
 export function initPwaUpdate(): void {
   if (initialized) return
@@ -25,6 +35,23 @@ export function initPwaUpdate(): void {
   try {
     updateSW = registerSW({
       onNeedRefresh() {
+        const justUpdatedAt = Number(sessionStorage.getItem(JUST_UPDATED_KEY) || 0)
+        const elapsed = Date.now() - justUpdatedAt
+        if (justUpdatedAt && elapsed < PROPAGATION_GRACE_MS) {
+          window.setTimeout(() => {
+            sessionStorage.removeItem(JUST_UPDATED_KEY)
+            // El worker ya quedó en estado "waiting" — ese evento no vuelve a
+            // dispararse solo porque se llame a update() de nuevo sobre el
+            // mismo worker sin cambios, así que se comprueba el registro
+            // directamente en vez de esperar un evento que no va a llegar.
+            if (registration?.waiting) {
+              needRefresh.value = true
+              dismissed.value = false
+            }
+          }, PROPAGATION_GRACE_MS - elapsed)
+          return
+        }
+        sessionStorage.removeItem(JUST_UPDATED_KEY)
         needRefresh.value = true
         dismissed.value = false
       },
@@ -66,6 +93,10 @@ export function initPwaUpdate(): void {
 export async function applyUpdate(): Promise<void> {
   if (updating.value) return
   updating.value = true
+
+  // sessionStorage (no una variable JS) porque el reload que sigue destruye
+  // este módulo entero; tiene que sobrevivir a la recarga en la misma pestaña.
+  sessionStorage.setItem(JUST_UPDATED_KEY, String(Date.now()))
 
   // Si el SW nuevo no llega a tomar el control, el evento `controlling` que
   // dispara la recarga nunca se emite. Recargamos igual para no dejar el botón
