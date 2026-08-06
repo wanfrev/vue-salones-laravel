@@ -4,6 +4,10 @@ import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { db } from '../lib/api'
 import { listBranches, branchesKeys } from '../services/branchesService'
 import type { Business, Terminology, Branch } from '../types/database'
+import type { FeatureKey } from '../config/features'
+import { resolveFeatures, getNiche, type Capability } from '../config/niches'
+
+export type { FeatureKey } from '../config/features'
 
 const DEFAULT_TERMINOLOGY: Terminology = {
   client: 'Cliente',
@@ -17,31 +21,6 @@ const DEFAULT_TERMINOLOGY: Terminology = {
   weight: 'Peso',
   vaccines: 'Vacunas',
 }
-
-  const DEFAULT_FEATURES = {
-    pos: true,
-    inventario: true,
-    productos: true,
-    proveedores: true,
-    multi_branch: false,
-    employees_create_clients: true,
-    employees_see_clients: true,
-    gift_cards: true,
-    disable_manager_inventory_edit: false,
-    encargados_change_exchange_rate: false,
-    encargados_change_employee_rate: false,
-    disable_employee_commission_edit: false,
-    manual_reports: false,
-    daily_report_autofill_from_pos: false,
-    pos_direct_service_sale: false,
-    enable_public_booking: true,
-    hide_client_phone_from_employees: false,
-    whatsapp_available: false,
-    whatsapp_reminders_enabled: true,
-    reminder_24h_enabled: true,
-  }
-
-export type FeatureKey = keyof typeof DEFAULT_FEATURES
 
 function branchStorageKey(businessId: string): string {
   return `luma_selected_branch_${businessId}`
@@ -61,8 +40,17 @@ export const useBusinessStore = defineStore('business', () => {
     if (!isMultiBranch.value || !currentBranch.value) return serviceCategories.value
     return (currentBranch.value as any).service_categories ?? []
   })
-  const features = computed(() => ({ ...DEFAULT_FEATURES, ...(business.value as any)?.features }))
+  // Typed loosely (index signature fallback) because a few ad-hoc, non-boolean settings
+  // (e.g. pending_notifications_hour) are historically stored in the same `features` JSON
+  // blob outside the FeatureKey union — preserving that pre-existing laxity rather than
+  // fixing an unrelated schema wart here.
+  const features = computed((): Record<FeatureKey, boolean> & Record<string, any> => {
+    const resolved = (business.value as any)?.resolved_features
+    if (resolved) return resolved
+    return resolveFeatures(nicheType.value, (business.value as any)?.features)
+  })
   const hasFeature = (key: FeatureKey): boolean => features.value[key]
+  const hasCapability = (capability: Capability): boolean => getNiche(nicheType.value).capabilities.includes(capability)
   const isMultiBranch = computed(() => features.value.multi_branch)
   const employeeExchangeRate = computed(() => {
     const r = (business.value as any)?.employee_ves_rate
@@ -217,6 +205,7 @@ export const useBusinessStore = defineStore('business', () => {
     employeeExchangeRate,
     features,
     hasFeature,
+    hasCapability,
     loadBusiness,
     loadBranches,
     setBranch,

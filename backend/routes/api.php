@@ -103,13 +103,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/employee-schedules/{id}', [EmployeeScheduleController::class, 'destroy']);
 
     // Services
-    Route::get('/services', [ServiceController::class, 'index']);
-    Route::post('/services', [ServiceController::class, 'store']);
-    Route::get('/services/{id}', [ServiceController::class, 'show']);
-    Route::post('/services/categories/rename', [ServiceController::class, 'renameCategory']);
-    Route::delete('/services/categories', [ServiceController::class, 'deleteCategory']);
-    Route::put('/services/{id}', [ServiceController::class, 'update']);
-    Route::delete('/services/{id}', [ServiceController::class, 'destroy']);
+    Route::middleware('feature:servicios')->group(function () {
+        Route::get('/services', [ServiceController::class, 'index']);
+        Route::post('/services', [ServiceController::class, 'store']);
+        Route::get('/services/{id}', [ServiceController::class, 'show']);
+        Route::post('/services/categories/rename', [ServiceController::class, 'renameCategory']);
+        Route::delete('/services/categories', [ServiceController::class, 'deleteCategory']);
+        Route::put('/services/{id}', [ServiceController::class, 'update']);
+        Route::delete('/services/{id}', [ServiceController::class, 'destroy']);
+    });
 
     // Clients
     Route::get('/clients', [ClientController::class, 'index']);
@@ -136,44 +138,50 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/appointments/{id}/time', [AppointmentController::class, 'updateTime']);
 
     // Products
-    Route::get('/products', [ProductController::class, 'index']);
-    Route::post('/products', [ProductController::class, 'store']);
-    Route::put('/products/{id}', [ProductController::class, 'update']);
-    Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+    Route::middleware('feature:productos')->group(function () {
+        Route::get('/products', [ProductController::class, 'index']);
+        Route::post('/products', [ProductController::class, 'store']);
+        Route::put('/products/{id}', [ProductController::class, 'update']);
+        Route::delete('/products/{id}', [ProductController::class, 'destroy']);
 
-    // Product categories
-    Route::get('/products/categories', [ProductCategoryController::class, 'index']);
-    Route::post('/products/categories', [ProductCategoryController::class, 'store']);
-    Route::get('/product-categories', [ProductCategoryController::class, 'index']);
-    Route::post('/product-categories', [ProductCategoryController::class, 'store']);
+        // Product categories
+        Route::get('/products/categories', [ProductCategoryController::class, 'index']);
+        Route::post('/products/categories', [ProductCategoryController::class, 'store']);
+        Route::get('/product-categories', [ProductCategoryController::class, 'index']);
+        Route::post('/product-categories', [ProductCategoryController::class, 'store']);
+    });
 
     // Inventory (with dashes aliases for frontend compat)
-    Route::get('/inventory', [InventoryController::class, 'index']);
-    Route::get('/inventory-stock', [InventoryController::class, 'index']);
-    Route::post('/inventory-stock', [InventoryController::class, 'storeStock']);
-    Route::put('/inventory-stock/{id}', [InventoryController::class, 'updateStock']);
-    Route::delete('/inventory-stock/{id}', [InventoryController::class, 'deleteStock']);
-    Route::get('/inventory/movements', [InventoryController::class, 'movements']);
-    Route::get('/inventory-movements', [InventoryController::class, 'movements']);
-    Route::post('/inventory-movements', [InventoryController::class, 'storeMovement']);
-    Route::delete('/inventory-movements/{id}', [InventoryController::class, 'destroyMovement']);
-    Route::post('/inventory/adjust', [InventoryController::class, 'adjust']);
-    Route::post('/inventory/sell', [InventoryController::class, 'sell']);
-    Route::get('/inventory-locations', [InventoryController::class, 'locations']);
-    Route::post('/inventory-locations', [InventoryController::class, 'storeLocation']);
-    Route::get('/product-variants', [InventoryController::class, 'variants']);
+    Route::middleware('feature:inventario')->group(function () {
+        Route::get('/inventory', [InventoryController::class, 'index']);
+        Route::get('/inventory-stock', [InventoryController::class, 'index']);
+        Route::post('/inventory-stock', [InventoryController::class, 'storeStock']);
+        Route::put('/inventory-stock/{id}', [InventoryController::class, 'updateStock']);
+        Route::delete('/inventory-stock/{id}', [InventoryController::class, 'deleteStock']);
+        Route::get('/inventory/movements', [InventoryController::class, 'movements']);
+        Route::get('/inventory-movements', [InventoryController::class, 'movements']);
+        Route::post('/inventory-movements', [InventoryController::class, 'storeMovement']);
+        Route::delete('/inventory-movements/{id}', [InventoryController::class, 'destroyMovement']);
+        Route::post('/inventory/adjust', [InventoryController::class, 'adjust']);
+        Route::post('/inventory/sell', [InventoryController::class, 'sell']);
+        Route::get('/inventory-locations', [InventoryController::class, 'locations']);
+        Route::post('/inventory-locations', [InventoryController::class, 'storeLocation']);
+        Route::get('/product-variants', [InventoryController::class, 'variants']);
+    });
 
     // Suppliers
-    Route::get('/suppliers', [SupplierController::class, 'index']);
-    Route::post('/suppliers', [SupplierController::class, 'store']);
-    Route::put('/suppliers/{id}', [SupplierController::class, 'update']);
-    Route::delete('/suppliers/{id}', [SupplierController::class, 'destroy']);
-    Route::get('/suppliers/balance/{id}', [SupplierController::class, 'balance']);
+    Route::middleware('feature:proveedores')->group(function () {
+        Route::get('/suppliers', [SupplierController::class, 'index']);
+        Route::post('/suppliers', [SupplierController::class, 'store']);
+        Route::put('/suppliers/{id}', [SupplierController::class, 'update']);
+        Route::delete('/suppliers/{id}', [SupplierController::class, 'destroy']);
+        Route::get('/suppliers/balance/{id}', [SupplierController::class, 'balance']);
 
-    // Supplier payments
-    Route::get('/supplier-payments', [SupplierPaymentController::class, 'index']);
-    Route::post('/supplier-payments', [SupplierPaymentController::class, 'store']);
-    Route::delete('/supplier-payments/{id}', [SupplierPaymentController::class, 'destroy']);
+        // Supplier payments
+        Route::get('/supplier-payments', [SupplierPaymentController::class, 'index']);
+        Route::post('/supplier-payments', [SupplierPaymentController::class, 'store']);
+        Route::delete('/supplier-payments/{id}', [SupplierPaymentController::class, 'destroy']);
+    });
 
     // Finanzas
     Route::get('/finanzas/summary', [FinancialSummaryController::class, 'summary']);
@@ -202,17 +210,21 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/daily-reports/{id}', [DailyReportController::class, 'destroy']);
 
     // POS
-    Route::get('/pos/pending', [PosController::class, 'pendingAppointments']);
-    Route::get('/pos/products', [PosController::class, 'saleableProducts']);
-    Route::post('/pos/sale', [PosController::class, 'recordSale']);
-    Route::post('/pos/direct-sale', [PosController::class, 'directSale']);
-    Route::post('/pos/direct-service-sale', [PosController::class, 'directServiceSale']);
+    Route::middleware('feature:pos')->group(function () {
+        Route::get('/pos/pending', [PosController::class, 'pendingAppointments']);
+        Route::get('/pos/products', [PosController::class, 'saleableProducts']);
+        Route::post('/pos/sale', [PosController::class, 'recordSale']);
+        Route::post('/pos/direct-sale', [PosController::class, 'directSale']);
+        Route::post('/pos/direct-service-sale', [PosController::class, 'directServiceSale']);
+    });
 
     // Gift Cards
-    Route::get('/gift-cards', [GiftCardController::class, 'index']);
-    Route::post('/gift-cards', [GiftCardController::class, 'store']);
-    Route::put('/gift-cards/{id}', [GiftCardController::class, 'update']);
-    Route::delete('/gift-cards/{id}', [GiftCardController::class, 'destroy']);
+    Route::middleware('feature:gift_cards')->group(function () {
+        Route::get('/gift-cards', [GiftCardController::class, 'index']);
+        Route::post('/gift-cards', [GiftCardController::class, 'store']);
+        Route::put('/gift-cards/{id}', [GiftCardController::class, 'update']);
+        Route::delete('/gift-cards/{id}', [GiftCardController::class, 'destroy']);
+    });
 
     // Push subscriptions
     Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store']);

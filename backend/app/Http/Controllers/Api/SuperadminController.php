@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\CreateBusinessRequest;
 use App\Http\Resources\BusinessResource;
+use App\Rules\AssignableNiche;
 use App\Services\BusinessService;
 use App\Services\SuperadminService;
 use Illuminate\Http\JsonResponse;
@@ -49,7 +50,7 @@ class SuperadminController
             'address' => ['nullable', 'string', 'max:500'],
             'timezone' => ['sometimes', 'string'],
             'currency' => ['sometimes', 'string'],
-            'niche_type' => ['sometimes', 'string'],
+            'niche_type' => ['sometimes', 'string', new AssignableNiche($id)],
             'active' => ['sometimes', 'boolean'],
             'ves_exchange_rate' => ['nullable', 'numeric', 'min:0'],
             'multi_branch_enabled' => ['sometimes', 'boolean'],

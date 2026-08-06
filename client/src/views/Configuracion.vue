@@ -833,7 +833,7 @@ async function togglePendingNotifications(val: boolean) {
     } else if (pendingNotificationHour.value === null) {
       pendingNotificationHour.value = 9
     }
-    updatedFeatures.pending_notifications_hour = pendingNotificationHour.value
+    ;(updatedFeatures as any).pending_notifications_hour = pendingNotificationHour.value
     await apiRequest('PUT', `/businesses/${businessId.value}`, {
       features: updatedFeatures,
     })

@@ -42,6 +42,8 @@ export interface Business {
   job_titles: string[]
   service_categories: string[]
   features: Record<string, boolean> | null
+  /** Server-resolved (DEFAULT_FEATURES -> niche defaults -> stored -> niche locks). See NicheRegistry::resolveFeatures. */
+  resolved_features?: Record<string, boolean>
   multi_branch_enabled: boolean
   active: boolean
   deleted_at: string | null

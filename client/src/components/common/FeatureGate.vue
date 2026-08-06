@@ -15,12 +15,25 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useAuth } from '../../composables/common/useAuth'
 import { useBusinessStore } from '../../store/business'
+import { evaluateGate, type RouteGate } from '../../router/gate'
 
 const props = defineProps<{
-  feature: string
+  /** @deprecated prefer `gate` — kept so the 4 existing call sites (feature="x") are unchanged */
+  feature?: string
+  gate?: RouteGate
 }>()
 
+const { authStore } = useAuth()
 const businessStore = useBusinessStore()
-const hasAccess = computed(() => businessStore.hasFeature(props.feature as any))
+
+const hasAccess = computed(() => {
+  const gate: RouteGate | undefined = props.gate ?? (props.feature ? { feature: props.feature as any } : undefined)
+  return evaluateGate(gate, {
+    profile: authStore.profile,
+    hasFeature: (key) => businessStore.hasFeature(key),
+    hasCapability: (capability) => businessStore.hasCapability(capability),
+  })
+})
 </script>

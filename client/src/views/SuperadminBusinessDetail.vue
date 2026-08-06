@@ -68,6 +68,23 @@
         <div class="rounded-2xl border border-border bg-surface p-5">
           <h2 class="text-base font-bold text-text mb-4">Funcionalidades</h2>
 
+          <!-- Agenda y catálogo -->
+          <div class="mb-4">
+            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Agenda y catálogo</p>
+            <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
+              <label v-for="ft in scheduleFlags" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer hover:bg-bg-secondary/30 transition-colors">
+                <div>
+                  <p class="text-sm font-medium text-text">{{ ft.label }}</p>
+                  <p class="text-[11px] text-text-muted">{{ ft.description }}</p>
+                </div>
+                <button type="button" :disabled="isTogglingFeature" @click="toggleFeature(ft.key)"
+                  :class="['relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors', features[ft.key] ? 'bg-primary' : 'bg-border']">
+                  <span :class="['inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform', features[ft.key] ? 'translate-x-4.5' : 'translate-x-0.5']" />
+                </button>
+              </label>
+            </div>
+          </div>
+
           <!-- Módulos principales -->
           <div class="mb-4">
             <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Módulos</p>
@@ -218,13 +235,8 @@
                 <div>
                   <label class="block text-xs font-semibold text-text mb-1">Nicho</label>
                   <select v-model="editForm.niche_type" class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
-                    <option value="salon">Salón de belleza</option>
-                    <option value="barberia">Barbería</option>
-                    <option value="spa">Spa</option>
-                    <option value="mixto">Mixto</option>
-                    <option value="dog_spa">Spa canino</option>
-                    <option value="nail_bar">Barra de uñas</option>
-                    <option value="centro_estetico">Centro estético</option>
+                    <option v-for="n in registeredNiches" :key="n.id" :value="n.id">{{ n.label }}</option>
+                    <option v-if="isUnregisteredNiche" :value="business?.niche_type" disabled>{{ business?.niche_type }} — sin configurar</option>
                   </select>
                 </div>
               </div>
@@ -262,6 +274,7 @@ import { translateError } from '../lib/errors'
 import SuperadminLayout from '../components/layout/SuperadminLayout.vue'
 import type { AuthProfile } from '../types/auth'
 import type { Business } from '../types/database'
+import { creatableNiches, resolveFeatures } from '../config/niches'
 import { ArrowLeftIcon } from '@solar-icons/vue/linear'
 
 const { success, error: showError } = useNotification()
@@ -279,7 +292,21 @@ const business = computed<Business | undefined>(() =>
   businessesData.value?.find((b: Business) => b.id === businessId.value)
 )
 
-const features = computed(() => (business.value as any)?.features ?? {})
+// Raw stored value — the sparse merge base for toggleFeature's PUT payload, so flipping one
+// switch only ever persists the keys already in the DB plus the one changed (no accidental
+// backfill of the other ~20 resolved keys).
+const rawFeatures = computed(() => (business.value as any)?.features ?? {})
+// Resolved (DEFAULT_FEATURES -> niche defaults -> stored -> niche locks) — what the toggles
+// should actually render as on/off, since most keys are never written to the DB at all.
+const features = computed(() =>
+  (business.value as any)?.resolved_features
+  ?? resolveFeatures(business.value?.niche_type, rawFeatures.value)
+)
+
+const registeredNiches = creatableNiches()
+const isUnregisteredNiche = computed(() =>
+  !!business.value?.niche_type && !registeredNiches.some(n => n.id === business.value!.niche_type)
+)
 
 const { data: adminsData } = useQuery({
   queryKey: computed(() => superadminKeys.businessAdmins(businessId.value)),
@@ -295,6 +322,9 @@ const { data: branchesData } = useQuery({
 const branches = computed(() => branchesData.value ?? [])
 
 const allFlags = [
+  { key: 'agenda', label: 'Agenda', description: 'Vista de agenda de citas del día' },
+  { key: 'calendario', label: 'Calendario', description: 'Vista de calendario de citas' },
+  { key: 'servicios', label: 'Servicios', description: 'Catálogo de servicios agendables' },
   { key: 'pos', label: 'Punto de Venta', description: 'Cobro de citas con productos y método de pago' },
   { key: 'inventario', label: 'Inventario', description: 'Control de stock, entradas y salidas' },
   { key: 'productos', label: 'Productos', description: 'Catálogo de productos vendibles' },
@@ -309,6 +339,7 @@ const allFlags = [
   { key: 'hide_client_phone_from_employees', label: 'Ocultar datos a empleados', description: 'Empleados no ven teléfono ni email de clientes' },
 ]
 
+const scheduleFlags = computed(() => allFlags.filter(f => ['agenda', 'calendario', 'servicios'].includes(f.key)))
 const coreModules = computed(() => allFlags.filter(f => ['pos', 'inventario', 'productos', 'proveedores'].includes(f.key)))
 const managementFlags = computed(() => allFlags.filter(f => ['employees_create_clients', 'employees_see_clients', 'gift_cards', 'manual_reports', 'multi_branch'].includes(f.key)))
 const commFlags = computed(() => allFlags.filter(f => ['enable_public_booking', 'whatsapp_available', 'hide_client_phone_from_employees'].includes(f.key)))
@@ -316,10 +347,14 @@ const commFlags = computed(() => allFlags.filter(f => ['enable_public_booking', 
 const isTogglingFeature = ref(false)
 const toggleFeature = async (key: string) => {
   if (!business.value) return
-  const current = features.value
+  // Merge base is the RAW stored object (sparse) — only the flipped key gets written on top
+  // of whatever was already explicitly persisted. The new value inverts the RESOLVED
+  // (effective) state, so a flag that's currently on via a niche default correctly flips off.
+  const stored = rawFeatures.value
+  const effective = features.value
   isTogglingFeature.value = true
   try {
-    await updateBusiness({ business_id: business.value.id, features: { ...current, [key]: !current[key] } })
+    await updateBusiness({ business_id: business.value.id, features: { ...stored, [key]: !effective[key] } })
     queryClient.invalidateQueries({ queryKey: superadminKeys.businesses() }).catch(() => {})
   } catch (err: unknown) {
     showError(translateError(err, 'Error al cambiar'))
