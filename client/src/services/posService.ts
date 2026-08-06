@@ -96,7 +96,7 @@ export const recordSale = async (params: {
     variant_id: p.variantId,
     quantity: p.quantity,
     location_id: locationId ?? (p as any).locationId,
-    unit_cost: p.unitCost,
+    unit_cost: Number(p.unitCost ?? (p as any).unit_cost ?? 0),
     name: p.productName,
   }))
 
@@ -148,6 +148,8 @@ export const recordDirectSale = async (params: {
   businessId: string
   branchId?: string | null
   clientId?: string | null
+  clientNameInput?: string | null
+  clientPhoneInput?: string | null
 }): Promise<string> => {
   let locationId: string | null = null
   if (params.products.length > 0) {
@@ -159,7 +161,7 @@ export const recordDirectSale = async (params: {
     variant_id: p.variantId,
     quantity: p.quantity,
     location_id: locationId ?? (p as any).locationId,
-    unit_cost: p.unitCost,
+    unit_cost: Number(p.unitCost ?? (p as any).unit_cost ?? 0),
     name: p.productName,
   }))
 
@@ -171,6 +173,8 @@ export const recordDirectSale = async (params: {
     exchange_rate_used: params.exchangeRate,
     payments_breakdown: params.paymentsBreakdown,
     client_id: params.clientId ?? null,
+    client_name: params.clientNameInput ?? null,
+    client_phone: params.clientPhoneInput ?? null,
     branch_id: params.branchId ?? null,
   })
 

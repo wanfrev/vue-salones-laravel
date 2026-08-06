@@ -175,6 +175,8 @@ export function usePOSPayment() {
       exchangeRate: number
       paymentsBreakdown: PaymentBreakdownItem[]
       clientId?: string | null
+      clientNameInput?: string | null
+      clientPhoneInput?: string | null
     }) => recordDirectSale({
       totalAmount: params.totalAmount,
       method: params.method,
@@ -183,6 +185,8 @@ export function usePOSPayment() {
       exchangeRate: params.exchangeRate,
       paymentsBreakdown: params.paymentsBreakdown,
       clientId: params.clientId,
+      clientNameInput: params.clientNameInput,
+      clientPhoneInput: params.clientPhoneInput,
       businessId: businessId.value!,
       branchId: branchId.value,
     }),
@@ -379,6 +383,8 @@ export function usePOSPayment() {
     products: POSProductItem[]
     exchangeRate: number
     clientId?: string | null
+    clientNameInput?: string | null
+    clientPhoneInput?: string | null
   }): Promise<boolean> => {
     const method = paymentMethod.value
     const notes = paymentNotes.value
@@ -412,6 +418,8 @@ export function usePOSPayment() {
         exchangeRate: params.exchangeRate,
         paymentsBreakdown: breakdown,
         clientId: params.clientId ?? null,
+        clientNameInput: params.clientNameInput ?? null,
+        clientPhoneInput: params.clientPhoneInput ?? null,
       })
       reset()
       return true
