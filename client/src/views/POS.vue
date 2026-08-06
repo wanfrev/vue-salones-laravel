@@ -233,7 +233,7 @@
         :total-count="filteredAppointments.length"
         :selected-id="selectedId"
         :products="products"
-        :cart="cartCtx.cart.value"
+        :cart="cart"
         :inline-product-search="inlineProductSearch"
         :show-inline-dropdown="showInlineDropdown"
         :show-go-to-calendar="!authStore.isCajeroProfile"
@@ -250,36 +250,36 @@
     <div class="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden lg:min-w-[340px]">
       <POSPaymentPanel
         :selected-appointment="selectedAppointment"
-        :cart="cartCtx.cart.value" :service-price="servicePrice"
-        :products-total="cartCtx.productsTotal.value" :cart-count="cartCtx.cart.value.length"
-        :grand-total="grandTotal" :payment-method="paymentCtx.paymentMethod.value"
-        :other-currency="paymentCtx.otherCurrency.value" :payment-methods="paymentCtx.paymentMethods"
-        :mixed-methods="paymentCtx.mixedMethods" :payments-breakdown="paymentCtx.paymentsBreakdown.value"
+        :cart="cart" :service-price="servicePrice"
+        :products-total="productsTotal" :cart-count="cart.length"
+        :grand-total="grandTotal" :payment-method="paymentMethod"
+        :other-currency="otherCurrency" :payment-methods="paymentMethods"
+        :mixed-methods="mixedMethods" :payments-breakdown="paymentsBreakdown"
         :split-remaining="splitRemaining" :is-processing="isProcessing" :can-pay="canPay"
-        :notes="paymentCtx.paymentNotes.value" :tip-amount="paymentCtx.tipAmount.value"
+        :notes="paymentNotes" :tip-amount="tipAmount"
         :tip-participants="tipParticipants" :tip-allocations="tipAllocations"
         :tip-allocated-total="tipAllocatedTotal" :tip-remaining="tipRemaining"
         :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
         :retail-client-name="activeSaleType === 'retail_only' ? retailClientSearch : directServiceClientSearch"
-        :selected-gift-card-id="paymentCtx.selectedGiftCardId.value"
+        :selected-gift-card-id="selectedGiftCardId"
         :custom-total-amount="customTotalAmount"
         :custom-total-currency="customTotalCurrency"
         :is-direct-service="activeSaleType === 'direct_service'"
         :direct-services-list="directServicesList"
         @update:custom-total-amount="customTotalAmount = $event"
         @update:custom-total-currency="customTotalCurrency = $event"
-        @update:selected-gift-card-id="paymentCtx.selectedGiftCardId.value = $event"
+        @update:selected-gift-card-id="selectedGiftCardId = $event"
         @update:are-products-included="areProductsIncluded = $event"
-        @select-method="paymentCtx.selectMethod"
-        @update:other-currency="paymentCtx.otherCurrency.value = $event"
-        @add-split="paymentCtx.addSplit" @remove-split="paymentCtx.removeSplit"
-        @update:notes="paymentCtx.paymentNotes.value = $event"
-        @update:tip-amount="paymentCtx.tipAmount.value = $event"
+        @select-method="selectMethod"
+        @update:other-currency="otherCurrency = $event"
+        @add-split="addSplit" @remove-split="removeSplit"
+        @update:notes="paymentNotes = $event"
+        @update:tip-amount="tipAmount = $event"
         @toggle-tip-adjust="showTipAdjust = !showTipAdjust"
         @set-equal-tip="setEqualTipAllocation"
         @update:tip-allocation="setTipAllocation"
         @process-payment="handleProcessPayment"
-        @increment-qty="cartCtx.incrementQty" @decrement-qty="cartCtx.decrementQty" @remove-item="cartCtx.removeItem"
+        @increment-qty="incrementQty" @decrement-qty="decrementQty" @remove-item="removeItem"
       />
     </div>
   </div>
@@ -313,36 +313,36 @@
           <div class="w-full max-w-lg h-full flex flex-col min-w-0">
           <POSPaymentPanel
             :selected-appointment="selectedAppointment"
-            :cart="cartCtx.cart.value" :service-price="servicePrice"
-            :products-total="cartCtx.productsTotal.value" :cart-count="cartCtx.cart.value.length"
-            :grand-total="grandTotal" :payment-method="paymentCtx.paymentMethod.value"
-            :other-currency="paymentCtx.otherCurrency.value" :payment-methods="paymentCtx.paymentMethods"
-            :mixed-methods="paymentCtx.mixedMethods" :payments-breakdown="paymentCtx.paymentsBreakdown.value"
+            :cart="cart" :service-price="servicePrice"
+            :products-total="productsTotal" :cart-count="cart.length"
+            :grand-total="grandTotal" :payment-method="paymentMethod"
+            :other-currency="otherCurrency" :payment-methods="paymentMethods"
+            :mixed-methods="mixedMethods" :payments-breakdown="paymentsBreakdown"
             :split-remaining="splitRemaining" :is-processing="isProcessing" :can-pay="canPay"
-            :notes="paymentCtx.paymentNotes.value" :tip-amount="paymentCtx.tipAmount.value"
+            :notes="paymentNotes" :tip-amount="tipAmount"
             :tip-participants="tipParticipants" :tip-allocations="tipAllocations"
             :tip-allocated-total="tipAllocatedTotal" :tip-remaining="tipRemaining"
             :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
             :retail-client-name="activeSaleType === 'retail_only' ? retailClientSearch : directServiceClientSearch"
-            :selected-gift-card-id="paymentCtx.selectedGiftCardId.value"
+            :selected-gift-card-id="selectedGiftCardId"
             :custom-total-amount="customTotalAmount"
             :custom-total-currency="customTotalCurrency"
             :is-direct-service="activeSaleType === 'direct_service'"
             :direct-services-list="directServicesList"
             @update:custom-total-amount="customTotalAmount = $event"
             @update:custom-total-currency="customTotalCurrency = $event"
-            @update:selected-gift-card-id="paymentCtx.selectedGiftCardId.value = $event"
+            @update:selected-gift-card-id="selectedGiftCardId = $event"
             @update:are-products-included="areProductsIncluded = $event"
-            @select-method="paymentCtx.selectMethod"
-            @update:other-currency="paymentCtx.otherCurrency.value = $event"
-            @add-split="paymentCtx.addSplit" @remove-split="paymentCtx.removeSplit"
-            @update:notes="paymentCtx.paymentNotes.value = $event"
-            @update:tip-amount="paymentCtx.tipAmount.value = $event"
+            @select-method="selectMethod"
+            @update:other-currency="otherCurrency = $event"
+            @add-split="addSplit" @remove-split="removeSplit"
+            @update:notes="paymentNotes = $event"
+            @update:tip-amount="tipAmount = $event"
             @toggle-tip-adjust="showTipAdjust = !showTipAdjust"
             @set-equal-tip="setEqualTipAllocation"
             @update:tip-allocation="setTipAllocation"
             @process-payment="handleMobileProcessPayment"
-            @increment-qty="cartCtx.incrementQty" @decrement-qty="cartCtx.decrementQty" @remove-item="cartCtx.removeItem"
+            @increment-qty="incrementQty" @decrement-qty="decrementQty" @remove-item="removeItem"
           />
           </div>
         </div>
@@ -420,8 +420,31 @@ const rateCtx = useExchangeRate()
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 
-const cartCtx = usePOSCart()
-const paymentCtx = usePOSPayment()
+const {
+  cart,
+  productsTotal,
+  addProduct,
+  incrementQty,
+  decrementQty,
+  removeItem,
+  clearCart
+} = usePOSCart()
+
+const {
+  paymentMethod,
+  otherCurrency,
+  paymentNotes,
+  tipAmount,
+  selectedGiftCardId,
+  isProcessing: paymentIsProcessing,
+  paymentMethods,
+  mixedMethods,
+  paymentsBreakdown,
+  selectMethod,
+  addSplit,
+  removeSplit,
+  reset: resetPayment
+} = usePOSPayment()
 
 const activeSaleType = ref<'appointment' | 'retail_only' | 'direct_service'>(businessStore.features.agenda ? 'appointment' : 'retail_only')
 const selectedAppointment = ref<any>(null)
@@ -622,11 +645,11 @@ const addRetailProduct = (product: any) => {
   if (product.override_price !== undefined) {
     product.unit_price = product.override_price; 
   }
-  cartCtx.addProduct(product); 
+  addProduct(product); 
   retailSearchRef.value?.reset() 
   if (isMobile.value) mobilePaymentOpen.value = true
 }
-const addInlineProduct = (product: any) => { cartCtx.addProduct(product); inlineProductSearch.value = ''; showInlineDropdown.value = false }
+const addInlineProduct = (product: any) => { addProduct(product); inlineProductSearch.value = ''; showInlineDropdown.value = false }
 const onInlineBlur = (e: FocusEvent) => {
   if (!e.relatedTarget) return
   setTimeout(() => { showInlineDropdown.value = false }, 150)
@@ -661,7 +684,7 @@ const servicePrice = computed(() => {
 })
 
 const areProductsIncluded = ref(false)
-const effectiveProductsTotal = computed(() => areProductsIncluded.value ? 0 : cartCtx.productsTotal.value)
+const effectiveProductsTotal = computed(() => areProductsIncluded.value ? 0 : productsTotal.value)
 
 const customTotalAmount = ref<number | null>(null)
 const customTotalCurrency = ref<'USD' | 'VES'>('USD')
@@ -675,7 +698,7 @@ const grandTotal = computed(() => {
     }
     return effectiveProductsTotal.value
   }
-  return servicePrice.value + effectiveProductsTotal.value + paymentCtx.tipAmount.value
+  return servicePrice.value + effectiveProductsTotal.value + tipAmount.value
 })
 
 const tipParticipants = computed<TipParticipant[]>(() => {
@@ -707,37 +730,37 @@ const distributeEqualTip = (total: number, participants: TipParticipant[]): Reco
   const next: Record<string, number> = {}; participants.forEach((p, i) => { next[p.employeeId] = (base + (i < rem ? 1 : 0)) / 100 })
   return next
 }
-const setEqualTipAllocation = () => { tipAllocations.value = distributeEqualTip(paymentCtx.tipAmount.value, tipParticipants.value); tipManual.value = false }
+const setEqualTipAllocation = () => { tipAllocations.value = distributeEqualTip(tipAmount.value, tipParticipants.value); tipManual.value = false }
 const tipAllocatedTotal = computed(() => tipParticipants.value.reduce((sum, p) => sum + Number(tipAllocations.value[p.employeeId] ?? 0), 0))
-const tipRemaining = computed(() => Number((paymentCtx.tipAmount.value - tipAllocatedTotal.value).toFixed(2)))
+const tipRemaining = computed(() => Number((tipAmount.value - tipAllocatedTotal.value).toFixed(2)))
 const normalizedTipAllocations = computed(() => tipParticipants.value.map(p => ({ employee_id: p.employeeId, amount: Number((tipAllocations.value[p.employeeId] ?? 0).toFixed(2)) })).filter(x => x.amount > 0))
 
 watch([tipParticipants, () => selectedId.value], () => { setEqualTipAllocation(); showTipAdjust.value = false }, { immediate: true })
-watch(() => paymentCtx.tipAmount.value, () => { if (!tipManual.value) setEqualTipAllocation() })
+watch(() => tipAmount.value, () => { if (!tipManual.value) setEqualTipAllocation() })
 
 const splitRemaining = computed(() =>
-  paymentCtx.paymentMethod.value === 'mixed'
-    ? Math.max(0, grandTotal.value - paymentCtx.paymentsBreakdown.value.reduce((sum: number, s: any) => sum + (s.currency === 'VES' ? (s.inputAmount || 0) / exchangeRate.value : (s.inputAmount || 0)), 0))
+  paymentMethod.value === 'mixed'
+    ? Math.max(0, grandTotal.value - paymentsBreakdown.value.reduce((sum: number, s: any) => sum + (s.currency === 'VES' ? (s.inputAmount || 0) / exchangeRate.value : (s.inputAmount || 0)), 0))
     : 0
 )
-const isProcessing = computed(() => paymentCtx.isProcessing.value)
+const isProcessing = computed(() => paymentIsProcessing.value)
 const canPay = computed(() => {
   if (grandTotal.value <= 0) return false
   if (activeSaleType.value === 'direct_service') {
     if (directServicesList.value.length === 0) return false
   }
-  if (activeSaleType.value !== 'retail_only' && paymentCtx.tipAmount.value > 0 && tipParticipants.value.length > 0 && Math.abs(tipRemaining.value) >= 0.01) return false
-  if (paymentCtx.paymentMethod.value === 'mixed') {
-    const total = paymentCtx.paymentsBreakdown.value.reduce((sum: number, s: any) => sum + (s.currency === 'VES' ? (s.inputAmount || 0) / exchangeRate.value : (s.inputAmount || 0)), 0)
-    return Math.abs(total - grandTotal.value) < 0.01 && paymentCtx.paymentsBreakdown.value.length > 0
+  if (activeSaleType.value !== 'retail_only' && tipAmount.value > 0 && tipParticipants.value.length > 0 && Math.abs(tipRemaining.value) >= 0.01) return false
+  if (paymentMethod.value === 'mixed') {
+    const total = paymentsBreakdown.value.reduce((sum: number, s: any) => sum + (s.currency === 'VES' ? (s.inputAmount || 0) / exchangeRate.value : (s.inputAmount || 0)), 0)
+    return Math.abs(total - grandTotal.value) < 0.01 && paymentsBreakdown.value.length > 0
   }
   return true
 })
 
 const selectAppointment = (appt: any) => {
-  if (selectedAppointment.value?.id === appt.id) { selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset(); areProductsIncluded.value = false; return }
+  if (selectedAppointment.value?.id === appt.id) { selectedAppointment.value = null; clearCart(); resetPayment(); areProductsIncluded.value = false; return }
   selectedAppointment.value = appt; activeSaleType.value = 'appointment'
-  cartCtx.clearCart()
+  clearCart()
   areProductsIncluded.value = false
 
   const rawProducts: any[] = []
@@ -758,12 +781,12 @@ const selectAppointment = (appt: any) => {
     const uCost = Number(item.unitCost ?? item.unit_cost ?? 0)
     const pName = item.productName || item.product_name || item.name || 'Producto'
 
-    const existing = cartCtx.cart.value.find(c => c.productId === pid)
+    const existing = cart.value.find(c => c.productId === pid)
     if (existing) {
       existing.quantity += qty
       existing.subtotal = existing.unitPrice * existing.quantity
     } else {
-      cartCtx.cart.value.push({
+      cart.value.push({
         productId: pid,
         productName: pName,
         availableQty: 999,
