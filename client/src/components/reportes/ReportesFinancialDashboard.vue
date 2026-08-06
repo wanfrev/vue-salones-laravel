@@ -125,7 +125,9 @@
 import { computed } from 'vue'
 import StatCard from '../common/StatCard.vue'
 import { useDailyReportDashboard } from '../../composables/reportes/useDailyReportDashboard'
+import { useBusinessStore } from '../../store/business'
 
+const businessStore = useBusinessStore()
 const {
   periods, selectedPeriod, selectedMonth, customFrom, customTo,
   goPrev, goNext, resetToCurrent,
@@ -149,18 +151,24 @@ const BS_LABELS: Record<string, string> = {
   other_bs: 'Otro',
 }
 
-const USD_LABELS: Record<string, string> = {
-  cash_usd: 'Efectivo USD',
-  zelle_usd: 'Zelle',
-  binance_usd: 'Binance',
-  cashea_usd: 'Cashea',
-  card_usd: 'Tarjeta',
-  gift_card_usd: 'Gift Card',
-  other_usd: 'Otro',
-}
+const USD_LABELS = computed(() => {
+  const labels: Record<string, string> = {
+    cash_usd: 'Efectivo USD',
+    zelle_usd: 'Zelle',
+    binance_usd: 'Binance',
+    cashea_usd: 'Cashea',
+    card_usd: 'Tarjeta',
+    other_usd: 'Otro',
+  }
+  if (businessStore.features.gift_cards) {
+    labels.gift_card_usd = 'Gift Card'
+  }
+  return labels
+})
 
-function buildBreakdown(labels: Record<string, string>) {
+function buildBreakdown(labelsRef: import('vue').ComputedRef<Record<string, string>> | Record<string, string>) {
   return computed(() => {
+    const labels = ('value' in labelsRef) ? labelsRef.value : labelsRef
     const fields = summary.value?.fields
     if (!fields) return []
     const rows = Object.entries(labels).map(([field, label]) => ({

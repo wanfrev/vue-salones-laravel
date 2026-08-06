@@ -166,6 +166,43 @@
               <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAccessConsultorio ? 'translate-x-4' : 'translate-x-0']" />
             </button>
           </label>
+
+          <!-- Store Permissions -->
+          <label v-if="formData.systemRole !== 'encargado' && businessStore.features.inventario" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-text">Puede acceder a Inventario</p>
+              <p class="text-xs text-text-muted">Permite ver y editar el inventario</p>
+            </div>
+            <button type="button" role="switch" :aria-checked="formData.canAccessInventory"
+              @click="formData.canAccessInventory = !formData.canAccessInventory"
+              :class="['relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2', formData.canAccessInventory ? 'bg-primary border-primary' : 'bg-border border-border']">
+              <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAccessInventory ? 'translate-x-4' : 'translate-x-0']" />
+            </button>
+          </label>
+
+          <label v-if="formData.systemRole !== 'encargado' && businessStore.features.pos" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-text">Puede acceder al POS</p>
+              <p class="text-xs text-text-muted">Permite procesar ventas en el Punto de Venta</p>
+            </div>
+            <button type="button" role="switch" :aria-checked="formData.canAccessPos"
+              @click="formData.canAccessPos = !formData.canAccessPos"
+              :class="['relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2', formData.canAccessPos ? 'bg-primary border-primary' : 'bg-border border-border']">
+              <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAccessPos ? 'translate-x-4' : 'translate-x-0']" />
+            </button>
+          </label>
+
+          <label v-if="formData.systemRole !== 'encargado' && businessStore.features.proveedores" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-text">Puede gestionar Proveedores</p>
+              <p class="text-xs text-text-muted">Permite ver y editar la lista de proveedores</p>
+            </div>
+            <button type="button" role="switch" :aria-checked="formData.canAccessSuppliers"
+              @click="formData.canAccessSuppliers = !formData.canAccessSuppliers"
+              :class="['relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2', formData.canAccessSuppliers ? 'bg-primary border-primary' : 'bg-border border-border']">
+              <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAccessSuppliers ? 'translate-x-4' : 'translate-x-0']" />
+            </button>
+          </label>
         </div>
 
         <!-- COLUMNA DERECHA: Contratación -->
@@ -245,7 +282,6 @@ const isEditing = computed(() => !!modalData.value?.empleado)
 const systemRoleOptions = [
   { value: 'empleado' as const, label: 'Empleado' },
   { value: 'encargado' as const, label: 'Encargado' },
-  { value: 'cajero' as const, label: 'Cajero (solo POS)' },
 ]
 
 const showingCustomRole = ref(false)
@@ -283,6 +319,9 @@ const defaultFormData: EmpleadoFormData = {
   canCreateAppointments: true,
   canCreateClients: true,
   canAccessConsultorio: true,
+  canAccessInventory: false,
+  canAccessPos: false,
+  canAccessSuppliers: false,
 }
 
 const formData = ref<EmpleadoFormData>({ ...defaultFormData })
@@ -326,6 +365,9 @@ watch(
         canCreateAppointments: empleado.canCreateAppointments ?? true,
         canCreateClients: empleado.canCreateClients ?? true,
         canAccessConsultorio: empleado.canAccessConsultorio ?? true,
+        canAccessInventory: empleado.canAccessInventory ?? false,
+        canAccessPos: empleado.canAccessPos ?? false,
+        canAccessSuppliers: empleado.canAccessSuppliers ?? false,
       }
     } else {
       formData.value = { ...defaultFormData }
@@ -356,6 +398,9 @@ watch(
       formData.value.canCreateAppointments = false
       formData.value.canCreateClients = false
       formData.value.canAccessConsultorio = false
+      formData.value.canAccessInventory = false
+      formData.value.canAccessPos = true
+      formData.value.canAccessSuppliers = false
     }
   }
 )

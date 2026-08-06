@@ -94,7 +94,7 @@
         description="Disponible para venta desde el punto de venta"
       />
 
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <FormInput
           v-model.number="formData.unitCost"
           label="Costo unitario ($)"
@@ -105,10 +105,16 @@
         />
         <FormInput
           v-model.number="formData.unitPrice"
-          :label="formData.isSellable ? 'Precio de venta ($)' : 'Precio de venta ($) — opcional'"
+          :label="formData.isSellable ? 'Precio de venta 1 ($)' : 'Precio de venta 1 ($) — opcional'"
           type="number"
           placeholder="0.00"
           :error="errors.unitPrice"
+        />
+        <FormInput
+          v-model.number="formData.unitPrice2"
+          label="Precio de venta 2 ($) — opcional"
+          type="number"
+          placeholder="0.00"
         />
         <FormInput
           v-model.number="formData.reorderPoint"
@@ -207,6 +213,7 @@ const defaultFormData: ProductoFormData = {
   unit: 'unidad',
   unitCost: 0,
   unitPrice: 0,
+  unitPrice2: null,
   reorderPoint: 0,
   active: 'Activo',
   isSellable: false,
@@ -232,6 +239,7 @@ watch(
         unit: producto.unit || 'unidad',
         unitCost: producto.unitCost || 0,
         unitPrice: producto.unitPrice || 0,
+        unitPrice2: producto.unitPrice2 || null,
         reorderPoint: producto.reorderPoint || 0,
         active: producto.status,
         isSellable: producto.isSellable ?? true,

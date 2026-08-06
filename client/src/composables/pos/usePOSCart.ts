@@ -9,16 +9,19 @@ export function usePOSCart() {
     cart.value.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
   )
 
-  const addProduct = (product: any) => {
+  const addProduct = (product: any, priceIndex: 1 | 2 = 1) => {
     const availableQty = Number(product.available_qty ?? 0)
     if (availableQty <= 0) return
 
-    const existing = cart.value.find(c => c.productId === product.id)
+    const existing = cart.value.find(c => c.productId === product.id && (c as any).priceIndex === priceIndex)
     if (existing) {
       if (existing.quantity >= availableQty) return
       existing.quantity++
       existing.subtotal = existing.unitPrice * existing.quantity
     } else {
+      const selectedPrice = priceIndex === 2 && product.unit_price_2 != null 
+        ? Number(product.unit_price_2) 
+        : Number(product.unit_price ?? product.price ?? 0)
       cart.value.push({
         productId: product.id,
         productName: product.name,
@@ -26,10 +29,11 @@ export function usePOSCart() {
         variantId: null,
         variantName: null,
         quantity: 1,
-        unitPrice: Number(product.unit_price ?? product.price ?? 0),
+        unitPrice: selectedPrice,
         unitCost: Number(product.unit_cost ?? 0),
-        subtotal: Number(product.unit_price ?? product.price ?? 0),
-      })
+        subtotal: selectedPrice,
+        priceIndex,
+      } as POSProductItem & { priceIndex: number })
     }
     productSearch.value = ''
   }

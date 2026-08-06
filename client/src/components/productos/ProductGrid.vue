@@ -40,7 +40,10 @@
         </div>
         <div class="text-right">
           <div class="text-xs font-medium uppercase tracking-wider text-text-muted mb-0.5">Precio</div>
-          <div class="text-text font-medium tabular-nums">${{ producto.unitPrice.toFixed(2) }}</div>
+          <div class="text-text font-medium tabular-nums">
+            ${{ producto.unitPrice.toFixed(2) }}
+            <template v-if="producto.unitPrice2"> | ${{ producto.unitPrice2.toFixed(2) }}</template>
+          </div>
           <div class="text-xs text-slate-400 tabular-nums">{{ formatVESInline(producto.unitPrice) }} Bs</div>
         </div>
       </div>
@@ -91,7 +94,10 @@
               <span class="block whitespace-nowrap text-xs text-slate-400">{{ formatVESInline(producto.unitCost) }} Bs</span>
             </td>
             <td class="px-4 py-3 text-right font-medium tabular-nums">
-              <span class="text-text">${{ producto.unitPrice.toFixed(2) }}</span>
+              <div class="text-text">
+                ${{ producto.unitPrice.toFixed(2) }}
+                <template v-if="producto.unitPrice2"> | ${{ producto.unitPrice2.toFixed(2) }}</template>
+              </div>
               <span class="block whitespace-nowrap text-xs text-slate-400">{{ formatVESInline(producto.unitPrice) }} Bs</span>
             </td>
             <td class="px-4 py-3 text-right tabular-nums">

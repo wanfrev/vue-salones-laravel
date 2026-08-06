@@ -134,7 +134,7 @@
               <FormInput v-model="formData.binance_usd" label="Binance" type="number" step="0.01" min="0" placeholder="0.00" />
               <FormInput v-model="formData.cashea_usd" label="Cashea" type="number" step="0.01" min="0" placeholder="0.00" />
               <FormInput v-model="formData.card_usd" label="Tarjeta" type="number" step="0.01" min="0" placeholder="0.00" />
-              <FormInput v-model="formData.gift_card_usd" label="Gift Card" type="number" step="0.01" min="0" placeholder="0.00" />
+              <FormInput v-if="businessStore.features.gift_cards" v-model="formData.gift_card_usd" label="Gift Card" type="number" step="0.01" min="0" placeholder="0.00" />
               <FormInput v-model="formData.other_usd" label="Otro" type="number" step="0.01" min="0" placeholder="0.00" />
             </div>
           </div>

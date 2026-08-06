@@ -58,6 +58,9 @@ export const mapProfileToEmpleado = (
     canCreateAppointments: profile.can_create_appointments ?? true,
     canCreateClients: profile.can_create_clients ?? true,
     canAccessConsultorio: profile.can_access_consultorio ?? true,
+    canAccessInventory: profile.can_access_inventory ?? false,
+    canAccessPos: profile.can_access_pos ?? false,
+    canAccessSuppliers: profile.can_access_suppliers ?? false,
   }
 }
 
@@ -71,6 +74,12 @@ export const mapEmpleadoFormToProfileUpdate = (data: EmpleadoFormData) => ({
   salary_frequency: data.salaryFrequency,
   disable_agenda: data.systemRole === 'cajero' ? true : data.disableAgenda,
   disable_inventory_edit: data.systemRole === 'cajero' ? true : data.disableInventoryEdit,
+  can_create_appointments: data.systemRole === 'cajero' ? false : data.canCreateAppointments,
+  can_create_clients: data.systemRole === 'cajero' ? false : data.canCreateClients,
+  can_access_consultorio: data.systemRole === 'cajero' ? false : data.canAccessConsultorio,
+  can_access_inventory: data.systemRole === 'cajero' ? false : data.canAccessInventory,
+  can_access_pos: data.systemRole === 'cajero' ? true : data.canAccessPos,
+  can_access_suppliers: data.systemRole === 'cajero' ? false : data.canAccessSuppliers,
   role: data.systemRole === 'cajero' ? 'empleado' : data.systemRole,
 })
 

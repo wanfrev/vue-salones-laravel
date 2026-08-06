@@ -29,7 +29,7 @@ export function useGiftCards(businessId: import('vue').Ref<string | null>) {
   const { data, isLoading } = useQuery({
     queryKey,
     queryFn: () => listGiftCards(businessId.value!, branchId.value),
-    enabled: computed(() => !!businessId.value),
+    enabled: computed(() => !!businessId.value && !!businessStore.features.gift_cards),
   })
 
   const giftCards = computed(() => data.value ?? [])

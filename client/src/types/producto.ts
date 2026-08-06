@@ -9,6 +9,7 @@ export interface Producto {
   unit: string
   unitCost: number
   unitPrice: number
+  unitPrice2?: number | null
   reorderPoint: number
   status: 'Activo' | 'Inactivo'
   isSellable: boolean
@@ -25,6 +26,7 @@ export interface ProductoFormData {
   unit: string
   unitCost: number
   unitPrice: number
+  unitPrice2?: number | null
   reorderPoint: number
   active: 'Activo' | 'Inactivo'
   isSellable: boolean

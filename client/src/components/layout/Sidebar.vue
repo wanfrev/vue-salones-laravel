@@ -66,17 +66,19 @@ const { authStore } = useAuth()
 const businessStore = useBusinessStore()
 
 const isAdmin = computed(() => isAdminPanelRole(authStore.role ?? undefined))
-const isCajeroRole = computed(() => authStore.isCajeroProfile)
 
 const visibleSections = computed(() =>
   sidebarSections
     .map(section => ({
       ...section,
       links: section.links.filter(link => {
-        if (isCajeroRole.value) {
-          return link.to === '/admin/pos'
+        if (link.adminOnly && !isAdmin.value) {
+          // Empleados de tienda con permisos
+          if (link.to === '/admin/pos' && authStore.profile?.can_access_pos) return true
+          if (link.to === '/admin/inventario' && authStore.profile?.can_access_inventory) return true
+          if (link.to === '/admin/proveedores' && authStore.profile?.can_access_suppliers) return true
+          return false
         }
-        if (link.adminOnly && !isAdmin.value) return false
         if (link.employeeOnly && isAdmin.value) return false
         return evaluateGate(link.gate, {
           profile: authStore.profile,
@@ -86,8 +88,9 @@ const visibleSections = computed(() =>
       }),
     }))
     .filter(section => {
-      if (isCajeroRole.value) return section.links.length > 0
-      return !section.adminOnly || isAdmin.value
+      return !section.adminOnly || isAdmin.value || section.links.some(l => 
+        ['/admin/pos', '/admin/inventario', '/admin/proveedores'].includes(l.to)
+      )
     })
     .filter(section => section.links.length > 0)
 )

@@ -21,7 +21,6 @@ export interface NavTarget {
 export interface NavContext {
   loading: boolean
   isAuthenticated: boolean
-  isCajeroProfile: boolean
   role: Role | null
   profile: AuthProfile | null
   hasFeature: (key: FeatureKey) => boolean
@@ -44,7 +43,6 @@ export function resolveNavigation(to: NavTarget, ctx: NavContext): string | unde
   }
 
   if (to.meta.public && ctx.isAuthenticated) {
-    if (ctx.isCajeroProfile) return '/admin/pos'
     return resolveHomeByRole(ctx.role ?? undefined, ctx.profile?.disable_agenda)
   }
 
@@ -56,16 +54,14 @@ export function resolveNavigation(to: NavTarget, ctx: NavContext): string | unde
     return resolveHomeByRole(ctx.role ?? undefined, ctx.profile?.disable_agenda)
   }
 
-  // ── CAJERO: solo puede acceder a /admin/pos ──
-  if (ctx.isCajeroProfile) {
-    if (to.path.startsWith('/dashboard/')) return '/admin/pos'
-    if (to.meta.superadminOnly) return '/admin/pos'
-    if (to.path.startsWith('/admin/') && to.path !== '/admin/pos') return '/admin/pos'
-    return undefined
-  }
-
   if (to.meta.adminOnly && !isAdminPanelRole(ctx.role ?? undefined)) {
-    return resolveHomeByRole(ctx.role ?? undefined, ctx.profile?.disable_agenda)
+    // Tienda employees can access specific admin routes if they have the permission
+    const isPos = to.path === '/admin/pos' && ctx.profile?.can_access_pos
+    const isInv = (to.path === '/admin/inventario' || to.path === '/admin/productos') && ctx.profile?.can_access_inventory
+    const isSupp = to.path === '/admin/proveedores' && ctx.profile?.can_access_suppliers
+    if (!isPos && !isInv && !isSupp) {
+      return resolveHomeByRole(ctx.role ?? undefined, ctx.profile?.disable_agenda)
+    }
   }
 
   if (to.path.startsWith('/dashboard/') && isAdminPanelRole(ctx.role ?? undefined)) {

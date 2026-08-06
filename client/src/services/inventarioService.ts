@@ -162,7 +162,7 @@ export const inventarioKeys = {
 export const listInventario = async (businessId: string, branchId?: string | null): Promise<InventarioItem[]> => {
   let stockQuery = db
     .from('inventory_stock')
-    .select('*, products(name, sku, unit_cost, unit_price, reorder_point), product_variants(name)')
+    .select('*, products(name, sku, unit_cost, unit_price, unit_price_2, reorder_point), product_variants(name)')
     .eq('business_id', businessId)
 
   if (branchId) {
@@ -178,7 +178,7 @@ export const listInventario = async (businessId: string, branchId?: string | nul
   if (raw.length === 0) {
     let productsQuery = db
       .from('products')
-      .select('id, name, sku, unit_cost, unit_price, reorder_point')
+      .select('id, name, sku, unit_cost, unit_price, unit_price_2, reorder_point')
       .eq('business_id', businessId)
       .eq('active', true)
 
@@ -188,7 +188,7 @@ export const listInventario = async (businessId: string, branchId?: string | nul
 
     const { data: products } = await productsQuery
 
-    type ProductRow = { id: string; name: string; sku: string | null; unit_cost: number; unit_price: number; reorder_point: number }
+    type ProductRow = { id: string; name: string; sku: string | null; unit_cost: number; unit_price: number; unit_price_2?: number | null; reorder_point: number }
     return ((products ?? []) as ProductRow[]).map(p => ({
       id: p.id,
       productId: p.id,
@@ -202,6 +202,7 @@ export const listInventario = async (businessId: string, branchId?: string | nul
       reorderPoint: Number(p.reorder_point ?? 0),
       unitCost: Number(p.unit_cost ?? 0),
       unitPrice: Number(p.unit_price ?? 0),
+      unitPrice2: p.unit_price_2 ? Number(p.unit_price_2) : null,
     }))
   }
 
@@ -217,6 +218,7 @@ export const listInventario = async (businessId: string, branchId?: string | nul
     reorderPoint: number
     unitCost: number
     unitPrice: number
+    unitPrice2: number | null
   }>()
 
   for (const row of raw) {
@@ -237,6 +239,7 @@ export const listInventario = async (businessId: string, branchId?: string | nul
         reorderPoint: Number(row.products?.reorder_point ?? 0),
         unitCost: Number(row.products?.unit_cost ?? 0),
         unitPrice: Number(row.products?.unit_price ?? 0),
+        unitPrice2: row.products?.unit_price_2 ? Number(row.products?.unit_price_2) : null,
       })
     }
     const g = grouped.get(key)!
@@ -258,6 +261,7 @@ export const listInventario = async (businessId: string, branchId?: string | nul
     reorderPoint: g.reorderPoint,
     unitCost: g.unitCost,
     unitPrice: g.unitPrice,
+    unitPrice2: g.unitPrice2,
   }))
 }
 

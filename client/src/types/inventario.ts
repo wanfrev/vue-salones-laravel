@@ -11,6 +11,7 @@ export interface InventarioItem {
   reorderPoint: number
   unitCost: number
   unitPrice: number
+  unitPrice2: number | null
 }
 
 export interface InventarioMovimiento {

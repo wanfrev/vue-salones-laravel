@@ -80,6 +80,9 @@ class ProfileService
                 'can_create_appointments' => $data['can_create_appointments'] ?? true,
                 'can_create_clients' => $data['can_create_clients'] ?? true,
                 'can_access_consultorio' => $data['can_access_consultorio'] ?? true,
+                'can_access_inventory' => $data['can_access_inventory'] ?? false,
+                'can_access_pos' => $data['can_access_pos'] ?? false,
+                'can_access_suppliers' => $data['can_access_suppliers'] ?? false,
                 'active' => true,
             ]);
 
@@ -139,6 +142,15 @@ class ProfileService
             }
             if (array_key_exists('can_access_consultorio', $data)) {
                 $profileFields['can_access_consultorio'] = $data['can_access_consultorio'];
+            }
+            if (array_key_exists('can_access_inventory', $data)) {
+                $profileFields['can_access_inventory'] = $data['can_access_inventory'];
+            }
+            if (array_key_exists('can_access_pos', $data)) {
+                $profileFields['can_access_pos'] = $data['can_access_pos'];
+            }
+            if (array_key_exists('can_access_suppliers', $data)) {
+                $profileFields['can_access_suppliers'] = $data['can_access_suppliers'];
             }
             if (array_key_exists('active', $data)) {
                 $profileFields['active'] = $data['active'];

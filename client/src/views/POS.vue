@@ -251,10 +251,13 @@
         :tip-allocated-total="tipAllocatedTotal" :tip-remaining="tipRemaining"
         :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
         :retail-client-name="activeSaleType === 'retail_only' ? (retailClientId ? retailClientSearch : null) : (directServiceClientId ? directServiceClientSearch : null)"
-        :are-products-included="areProductsIncluded"
         :selected-gift-card-id="paymentCtx.selectedGiftCardId.value"
+        :custom-total-amount="customTotalAmount"
+        :custom-total-currency="customTotalCurrency"
         :is-direct-service="activeSaleType === 'direct_service'"
         :direct-services-list="directServicesList"
+        @update:custom-total-amount="customTotalAmount = $event"
+        @update:custom-total-currency="customTotalCurrency = $event"
         @update:selected-gift-card-id="paymentCtx.selectedGiftCardId.value = $event"
         @update:are-products-included="areProductsIncluded = $event"
         @select-method="paymentCtx.selectMethod"
@@ -311,10 +314,13 @@
             :tip-allocated-total="tipAllocatedTotal" :tip-remaining="tipRemaining"
             :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
             :retail-client-name="activeSaleType === 'retail_only' ? (retailClientId ? retailClientSearch : null) : (directServiceClientId ? directServiceClientSearch : null)"
-            :are-products-included="areProductsIncluded"
             :selected-gift-card-id="paymentCtx.selectedGiftCardId.value"
+            :custom-total-amount="customTotalAmount"
+            :custom-total-currency="customTotalCurrency"
             :is-direct-service="activeSaleType === 'direct_service'"
             :direct-services-list="directServicesList"
+            @update:custom-total-amount="customTotalAmount = $event"
+            @update:custom-total-currency="customTotalCurrency = $event"
             @update:selected-gift-card-id="paymentCtx.selectedGiftCardId.value = $event"
             @update:are-products-included="areProductsIncluded = $event"
             @select-method="paymentCtx.selectMethod"
@@ -637,7 +643,20 @@ const servicePrice = computed(() => {
 const areProductsIncluded = ref(false)
 const effectiveProductsTotal = computed(() => areProductsIncluded.value ? 0 : cartCtx.productsTotal.value)
 
-const grandTotal = computed(() => activeSaleType.value === 'retail_only' ? effectiveProductsTotal.value : servicePrice.value + effectiveProductsTotal.value + paymentCtx.tipAmount.value)
+const customTotalAmount = ref<number | null>(null)
+const customTotalCurrency = ref<'USD' | 'VES'>('USD')
+
+const grandTotal = computed(() => {
+  if (activeSaleType.value === 'retail_only') {
+    if (customTotalAmount.value != null && customTotalAmount.value > 0) {
+      return customTotalCurrency.value === 'VES'
+        ? Number((customTotalAmount.value / exchangeRate.value).toFixed(2))
+        : customTotalAmount.value
+    }
+    return effectiveProductsTotal.value
+  }
+  return servicePrice.value + effectiveProductsTotal.value + paymentCtx.tipAmount.value
+})
 
 const tipParticipants = computed<TipParticipant[]>(() => {
   if (activeSaleType.value === 'retail_only') return []
@@ -765,23 +784,22 @@ const goToAppointmentInCalendar = (appt: any) => {
   posCitaModalRef.value?.open(cita)
 }
 const startRetailOnly = () => {
-  selectedAppointment.value = null; activeSaleType.value = 'retail_only'; cartCtx.clearCart(); paymentCtx.reset(); retailProductSearch.value = ''; retailClientSearch.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailSearchRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false; areProductsIncluded.value = false
+  selectedAppointment.value = null; activeSaleType.value = 'retail_only'; cartCtx.clearCart(); paymentCtx.reset(); retailClientSearch.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailSearchRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false; areProductsIncluded.value = false; customTotalAmount.value = null; customTotalCurrency.value = 'USD'
   if (isMobile.value) mobilePaymentOpen.value = true
 }
 const setTipAllocation = (employeeId: string, value: number) => { tipManual.value = true; tipAllocations.value = { ...tipAllocations.value, [employeeId]: Math.max(0, Number(value || 0)) } }
 
 const handleRetailPayment = async () => {
-  if (isProcessing.value || cartCtx.cart.value.length === 0) return
   const ok = await paymentCtx.processDirectSale({
-    totalAmount: cartCtx.productsTotal.value,
+    totalAmount: grandTotal.value,
     products: cartCtx.cart.value,
     exchangeRate: exchangeRate.value,
     clientId: retailClientId.value,
+    clientNameInput: !retailClientId.value ? retailClientSearch.value : undefined,
   })
   if (ok) {
     cartCtx.clearCart()
     paymentCtx.reset()
-    retailProductSearch.value = ''
     retailClientSearch.value = ''
     retailClientId.value = null
     retailClientSuggestions.value = []

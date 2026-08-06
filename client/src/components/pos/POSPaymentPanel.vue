@@ -205,7 +205,32 @@
               </div>
             </div>
           </div>
-          <div class="flex items-center justify-between border-t border-border pt-2">
+          <div v-if="isRetailOnly" class="flex flex-col gap-2 border-t border-border pt-3 mt-1">
+            <div class="flex items-center justify-between text-sm">
+              <span class="font-medium text-text">Total Calculado</span>
+              <span class="text-text-muted">{{ formatDual(productsTotal) }}</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-base font-bold text-text">Total a Cobrar</span>
+              <div class="flex items-center gap-2">
+                <select
+                  :value="customTotalCurrency"
+                  @change="$emit('update:custom-total-currency', ($event.target as HTMLSelectElement).value)"
+                  class="rounded-lg border border-border bg-surface px-2 py-1 text-sm font-bold text-text outline-none focus:border-primary w-16"
+                >
+                  <option value="USD">USD</option>
+                  <option value="VES">VES</option>
+                </select>
+                <input
+                  :value="customTotalAmount ?? ''"
+                  @input="$emit('update:custom-total-amount', ($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : null)"
+                  type="number" step="0.01" min="0" placeholder="Automático"
+                  class="w-28 rounded-lg border border-border bg-surface px-3 py-1.5 text-lg font-bold text-primary text-right outline-none focus:border-primary placeholder:text-text-muted/50"
+                />
+              </div>
+            </div>
+          </div>
+          <div v-else class="flex items-center justify-between border-t border-border pt-2 mt-1">
             <span class="text-base font-bold text-text">Total</span>
             <DualAmount :amount="grandTotal" orientation="stack" size="lg" primary-class="text-xl font-bold text-primary" />
           </div>
@@ -364,6 +389,7 @@ import { DualAmount } from '../common'
 import { formatDate } from '../../lib/formatters'
 import { useAuth } from '../../composables/common/useAuth'
 import { useGiftCards } from '../../composables/giftCards/useGiftCards'
+import { useBusinessStore } from '../../store/business'
 import type { PaymentMethod } from '../../types/database'
 import type { PaymentBreakdownItem, POSProductItem } from '../../types/pos'
 
@@ -396,8 +422,9 @@ const props = defineProps<{
   showTipAdjust: boolean
   isRetailOnly?: boolean
   retailClientName?: string | null
-  areProductsIncluded?: boolean
   selectedGiftCardId?: string | null
+  customTotalAmount?: number | null
+  customTotalCurrency?: 'USD' | 'VES'
   isDirectService?: boolean
   directServiceName?: string | null
   directServiceEmployeeName?: string | null
@@ -433,10 +460,12 @@ const { formatDual } = useCurrency()
 const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)
 const { activeGiftCards } = useGiftCards(businessId)
+const businessStore = useBusinessStore()
 
 const needsGiftCardSelect = computed(() =>
-  props.paymentMethod === 'gift_card' ||
-  (props.paymentMethod === 'mixed' && props.paymentsBreakdown.some(b => b.method === 'gift_card'))
+  businessStore.features.gift_cards &&
+  (props.paymentMethod === 'gift_card' ||
+  (props.paymentMethod === 'mixed' && props.paymentsBreakdown.some(b => b.method === 'gift_card')))
 )
 
 const selectedGC = computed(() =>
