@@ -19,20 +19,7 @@
           @update:edit-rate-value="rateCtx.editRateValue.value = $event"
           @update-rate="rateCtx.handleUpdate"
         />
-        <RetailProductSearch
-          v-if="activeSaleType === 'retail_only'"
-          ref="retailSearchRef"
-          :products="retailFilteredProducts"
-          :client-suggestions="retailClientSuggestions"
-          :business-id="businessId"
-          :branch-id="branchId"
-          @add-product="addRetailProduct"
-          @select-client="selectRetailClient"
-          @search-clients="onRetailSearchClients"
-          @update:client-name="retailClientSearch = $event; retailClientId = null"
-          @update:client-phone="retailClientPhone = $event"
-        />
-        <div v-else class="flex items-center gap-2">
+        <div class="flex items-center gap-2">
           <button
             v-if="businessStore.features.pos_direct_service_sale"
             @click="startDirectService"
@@ -219,6 +206,26 @@
         </div>
       </div>
 
+      <div v-if="activeSaleType === 'retail_only'" class="flex flex-col h-full space-y-4">
+        <RetailProductSearch
+          ref="retailSearchRef"
+          :products="retailFilteredProducts"
+          :client-suggestions="retailClientSuggestions"
+          :business-id="businessId"
+          :branch-id="branchId"
+          @add-product="addRetailProduct"
+          @select-client="selectRetailClient"
+          @search-clients="onRetailSearchClients"
+          @update:client-name="retailClientSearch = $event; retailClientId = null"
+          @update:client-phone="retailClientPhone = $event"
+        />
+        <RetailProductGrid
+          :products="products"
+          @add-product="addRetailProduct"
+          class="flex-1"
+        />
+      </div>
+
       <AppointmentList
         v-if="businessStore.features.agenda"
         :overdue="overdueAppointments"
@@ -390,6 +397,7 @@ import { CitaFormModal } from '../components/modals'
 import POSPaymentPanel from '../components/pos/POSPaymentPanel.vue'
 import POSConfirmModal from '../components/pos/POSConfirmModal.vue'
 import RetailProductSearch from '../components/pos/RetailProductSearch.vue'
+import RetailProductGrid from '../components/pos/RetailProductGrid.vue'
 import AppointmentList from '../components/pos/AppointmentList.vue'
 import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
 import { useExchangeRate } from '../composables/finanzas/useExchangeRate'
@@ -616,6 +624,7 @@ const addRetailProduct = (product: any) => {
   }
   cartCtx.addProduct(product); 
   retailSearchRef.value?.reset() 
+  if (isMobile.value) mobilePaymentOpen.value = true
 }
 const addInlineProduct = (product: any) => { cartCtx.addProduct(product); inlineProductSearch.value = ''; showInlineDropdown.value = false }
 const onInlineBlur = (e: FocusEvent) => {
