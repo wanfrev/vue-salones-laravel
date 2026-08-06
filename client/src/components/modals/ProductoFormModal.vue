@@ -105,12 +105,13 @@
         />
         <FormInput
           v-model.number="formData.unitPrice"
-          :label="formData.isSellable ? 'Precio de venta 1 ($)' : 'Precio de venta 1 ($) — opcional'"
+          :label="businessStore.features.agenda ? (formData.isSellable ? 'Precio de venta ($)' : 'Precio de venta ($) — opcional') : (formData.isSellable ? 'Precio de venta 1 ($)' : 'Precio de venta 1 ($) — opcional')"
           type="number"
           placeholder="0.00"
           :error="errors.unitPrice"
         />
         <FormInput
+          v-if="!businessStore.features.agenda"
           v-model.number="formData.unitPrice2"
           label="Precio de venta 2 ($) — opcional"
           type="number"

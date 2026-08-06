@@ -213,6 +213,7 @@
           :client-suggestions="retailClientSuggestions"
           :business-id="businessId"
           :branch-id="branchId"
+          :is-retail-only="!businessStore.features.agenda"
           @add-product="addRetailProduct"
           @select-client="selectRetailClient"
           @search-clients="onRetailSearchClients"
@@ -221,6 +222,7 @@
         />
         <RetailProductGrid
           :products="products"
+          :is-retail-only="!businessStore.features.agenda"
           @add-product="addRetailProduct"
           class="flex-1"
         />

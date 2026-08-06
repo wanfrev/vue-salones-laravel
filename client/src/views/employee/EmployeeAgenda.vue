@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <AppLayout>
     <template #header-actions>
       <div class="flex items-center gap-2">

@@ -1,10 +1,10 @@
-<template>
+﻿<template>
   <AppLayout>
     <div id="recibo-content" class="max-w-2xl mx-auto">
       <div class="rounded-xl border border-border bg-surface p-6 sm:p-8">
         <!-- Header -->
         <div class="text-center border-b border-border pb-6 mb-6">
-          <h2 class="text-xl font-bold text-text">{{ businessName || 'Salón' }}</h2>
+          <h2 class="text-xl font-bold text-text">{{ businessName || 'SalÃ³n' }}</h2>
           <p class="text-sm text-text-muted mt-1">Recibo de pago</p>
         </div>
 
@@ -17,9 +17,9 @@
             <p class="font-semibold text-text text-lg">{{ authStore.profile?.full_name }}</p>
             <p v-if="payInfo" class="text-sm text-text-muted">
               {{ payInfo.typeLabel }}
-              <template v-if="payInfo.type === 'percentage'"> · {{ payInfo.percentage }}% comisión</template>
-              <template v-else-if="payInfo.type === 'mixed'"> · {{ payInfo.percentage }}% comisión + ${{ payInfo.baseSalary.toFixed(2) }} base {{ payInfo.frequencyLabel }}</template>
-              <template v-else-if="payInfo.type === 'salary'"> · ${{ payInfo.baseSalary.toFixed(2) }} {{ payInfo.frequencyLabel }}</template>
+              <template v-if="payInfo.type === 'percentage'"> Â· {{ payInfo.percentage }}% comisiÃ³n</template>
+              <template v-else-if="payInfo.type === 'mixed'"> Â· {{ payInfo.percentage }}% comisiÃ³n + ${{ payInfo.baseSalary.toFixed(2) }} base {{ payInfo.frequencyLabel }}</template>
+              <template v-else-if="payInfo.type === 'salary'"> Â· ${{ payInfo.baseSalary.toFixed(2) }} {{ payInfo.frequencyLabel }}</template>
             </p>
           </div>
         </div>
@@ -118,11 +118,11 @@
               </div>
             </div>
             <div v-if="payInfo && payInfo.type !== 'salary'" class="flex justify-between py-2 text-sm">
-              <span class="text-text-muted">Comisión del empleado</span>
+              <span class="text-text-muted">ComisiÃ³n del empleado</span>
               <span class="font-medium text-text">{{ payInfo.percentage }}%</span>
             </div>
             <div v-if="payInfo && payInfo.type === 'percentage' && earningsWithVESComputed.length > 0" class="flex justify-between py-2 text-sm">
-              <span class="text-text-muted">Ganancia por comisión</span>
+              <span class="text-text-muted">Ganancia por comisiÃ³n</span>
               <div class="text-right">
                 <span class="font-medium text-text">${{ totalVariableEarned }}</span>
               </div>
@@ -217,7 +217,7 @@
               >
                 <div>
                   <p class="text-sm font-semibold text-text">{{ month.label }}</p>
-                  <p class="text-xs text-text-muted">{{ month.serviceCount }} servicios · Facturado ${{ month.billed.toFixed(2) }}</p>
+                  <p class="text-xs text-text-muted">{{ month.serviceCount }} servicios Â· Facturado ${{ month.billed.toFixed(2) }}</p>
                 </div>
                 <div class="text-right">
                   <p class="text-sm font-bold" :class="month.pending > 0 ? 'text-danger' : 'text-success'">
@@ -277,7 +277,7 @@ const VISIBLE_PAYMENTS = 5
 
 const periodTabs = [
   { key: 'all', label: 'Todo' },
-  { key: 'day', label: 'Día' },
+  { key: 'day', label: 'DÃ­a' },
   { key: 'week', label: 'Semana' },
   { key: 'month', label: 'Mes' },
 ]

@@ -20,7 +20,7 @@
             <button @mousedown.prevent="$emit('add-product', { ...product, override_price: product.unit_price })" :disabled="Number(product.available_qty ?? 0) <= 0" class="rounded border border-primary/30 bg-surface px-2 py-1 text-xs font-bold text-primary hover:bg-primary/10 transition-theme disabled:opacity-50">
               P1: {{ formatDual(product.unit_price) }}
             </button>
-            <button v-if="product.unit_price_2" @mousedown.prevent="$emit('add-product', { ...product, override_price: product.unit_price_2 })" :disabled="Number(product.available_qty ?? 0) <= 0" class="rounded border border-primary/30 bg-surface px-2 py-1 text-xs font-bold text-primary hover:bg-primary/10 transition-theme disabled:opacity-50">
+            <button v-if="isRetailOnly && product.unit_price_2" @mousedown.prevent="$emit('add-product', { ...product, override_price: product.unit_price_2 })" :disabled="Number(product.available_qty ?? 0) <= 0" class="rounded border border-primary/30 bg-surface px-2 py-1 text-xs font-bold text-primary hover:bg-primary/10 transition-theme disabled:opacity-50">
               P2: {{ formatDual(product.unit_price_2) }}
             </button>
           </div>
@@ -57,6 +57,7 @@ const props = defineProps<{
   clientSuggestions: { id: string; full_name: string; phone: string }[]
   businessId: string | null
   branchId: string | null
+  isRetailOnly?: boolean
 }>()
 
 const emit = defineEmits<{

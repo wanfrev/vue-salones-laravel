@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div ref="bellRef" class="relative">
     <button @click="isOpen = !isOpen"
       class="relative rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary">

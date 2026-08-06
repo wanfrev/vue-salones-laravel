@@ -58,7 +58,7 @@
             
             <div class="flex flex-col gap-1.5 w-full">
               <div 
-                v-if="!product.unit_price_2"
+                v-if="!isRetailOnly || !product.unit_price_2"
                 class="w-full flex items-center justify-between bg-primary/5 border border-primary/20 rounded-lg px-2 py-1.5 text-primary"
               >
                 <span class="text-[9px] font-bold uppercase">Precio</span>
@@ -97,6 +97,7 @@ import { useCurrency } from '../../composables/common/useCurrency'
 
 const props = defineProps<{
   products: any[]
+  isRetailOnly?: boolean
 }>()
 
 defineEmits<{

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <FeatureGate feature="gift_cards">
   <header class="mb-5 lg:mb-8">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -7,7 +7,7 @@
           <TicketIcon class="h-3.5 w-3.5" />
           <span>Gift Cards</span>
         </div>
-        <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Gestión de Gift Cards</h1>
+        <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">GestiÃ³n de Gift Cards</h1>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <div class="flex rounded-lg border border-border bg-bg-secondary p-1">
@@ -42,7 +42,7 @@
       <TicketIcon class="h-7 w-7 text-text-muted" />
     </div>
     <p class="text-lg font-semibold text-text">No hay gift cards {{ activeTab === 'active' ? 'activas' : 'en el historial' }}</p>
-    <p class="mt-1 text-sm text-text-muted">{{ activeTab === 'active' ? 'Registra tu primera gift card para empezar.' : 'Las gift cards consumidas o expiradas aparecerán aquí.' }}</p>
+    <p class="mt-1 text-sm text-text-muted">{{ activeTab === 'active' ? 'Registra tu primera gift card para empezar.' : 'Las gift cards consumidas o expiradas aparecerÃ¡n aquÃ­.' }}</p>
   </div>
 
   <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -55,7 +55,7 @@
         <div class="flex items-center justify-between gap-2 border-b border-border pb-3 mb-3">
           <div class="flex items-center gap-2">
             <span class="rounded-lg bg-primary/10 px-2.5 py-1 font-mono text-xs font-bold text-primary tracking-wider">
-              {{ gc.code || 'SIN CÓDIGO' }}
+              {{ gc.code || 'SIN CÃ“DIGO' }}
             </span>
           </div>
           <span :class="[
@@ -69,14 +69,14 @@
         <div class="space-y-2 mb-4">
           <div class="rounded-xl bg-bg-secondary p-2.5">
             <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted mb-0.5">Comprador</p>
-            <p class="text-sm font-semibold text-text truncate">{{ gc.buyerName || '—' }}</p>
-            <p class="text-xs text-text-muted">{{ gc.buyerPhone || 'Sin teléfono' }}</p>
+            <p class="text-sm font-semibold text-text truncate">{{ gc.buyerName || 'â€”' }}</p>
+            <p class="text-xs text-text-muted">{{ gc.buyerPhone || 'Sin telÃ©fono' }}</p>
           </div>
 
           <div class="rounded-xl bg-bg-secondary p-2.5">
             <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted mb-0.5">Beneficiario (Recibe)</p>
             <p class="text-sm font-semibold text-text truncate">{{ gc.recipientName }}</p>
-            <p class="text-xs text-text-muted">{{ gc.recipientPhone || 'Sin teléfono' }}</p>
+            <p class="text-xs text-text-muted">{{ gc.recipientPhone || 'Sin telÃ©fono' }}</p>
           </div>
         </div>
 
@@ -121,9 +121,9 @@
         </div>
 
         <form class="space-y-4" @submit.prevent="handleSave">
-          <!-- Código único -->
+          <!-- CÃ³digo Ãºnico -->
           <div>
-            <label class="mb-1 block text-sm font-medium text-text">Código único de Gift Card</label>
+            <label class="mb-1 block text-sm font-medium text-text">CÃ³digo Ãºnico de Gift Card</label>
             <div class="flex gap-2">
               <input
                 v-model="ctx.form.value.code"
@@ -137,7 +137,7 @@
                 @click="ctx.form.value.code = generateGiftCardCode()"
                 class="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/10"
               >
-                ⚡ Generar
+                âš¡ Generar
               </button>
             </div>
           </div>
@@ -173,13 +173,13 @@
                   class="w-full rounded-md px-3 py-2 text-left text-xs transition-colors hover:bg-bg-secondary flex items-center justify-between"
                 >
                   <span class="font-semibold text-text">{{ cli.full_name }}</span>
-                  <span class="text-text-muted">{{ cli.phone || 'Sin teléfono' }}</span>
+                  <span class="text-text-muted">{{ cli.phone || 'Sin telÃ©fono' }}</span>
                 </button>
               </div>
             </div>
 
             <div>
-              <label class="mb-1 block text-xs font-medium text-text">Teléfono del comprador (Opcional)</label>
+              <label class="mb-1 block text-xs font-medium text-text">TelÃ©fono del comprador (Opcional)</label>
               <input
                 v-model="ctx.form.value.buyerPhone"
                 type="text"
@@ -220,13 +220,13 @@
                   class="w-full rounded-md px-3 py-2 text-left text-xs transition-colors hover:bg-bg-secondary flex items-center justify-between"
                 >
                   <span class="font-semibold text-text">{{ cli.full_name }}</span>
-                  <span class="text-text-muted">{{ cli.phone || 'Sin teléfono' }}</span>
+                  <span class="text-text-muted">{{ cli.phone || 'Sin telÃ©fono' }}</span>
                 </button>
               </div>
             </div>
 
             <div>
-              <label class="mb-1 block text-xs font-medium text-text">Teléfono del beneficiario (Opcional)</label>
+              <label class="mb-1 block text-xs font-medium text-text">TelÃ©fono del beneficiario (Opcional)</label>
               <input
                 v-model="ctx.form.value.recipientPhone"
                 type="text"

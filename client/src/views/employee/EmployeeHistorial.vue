@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <AppLayout>
     <div class="space-y-4">
       <div class="flex items-center justify-between">
@@ -29,7 +29,7 @@
       </div>
 
       <div v-else-if="filteredAppointments.length === 0" class="rounded-lg border border-border bg-surface p-8 text-center">
-        <p class="text-sm text-text-muted">Aún no tienes servicios realizados.</p>
+        <p class="text-sm text-text-muted">AÃºn no tienes servicios realizados.</p>
       </div>
 
       <div v-else class="overflow-hidden rounded-xl border border-border bg-surface">
@@ -40,7 +40,7 @@
               <th class="px-4 py-3 text-left font-medium text-text-muted">Cliente</th>
               <th class="px-4 py-3 text-left font-medium text-text-muted">Servicio</th>
               <th class="px-4 py-3 text-right font-medium text-text-muted">Precio</th>
-              <th class="px-4 py-3 text-center font-medium text-text-muted">% Comisión</th>
+              <th class="px-4 py-3 text-center font-medium text-text-muted">% ComisiÃ³n</th>
               <th class="px-4 py-3 text-right font-medium text-text-muted">Ganancia</th>
               <th class="px-4 py-3 text-center font-medium text-text-muted">Estado</th>
             </tr>
@@ -55,7 +55,7 @@
               <td class="px-4 py-3 text-text-secondary">{{ appt.service_name }}</td>
               <td class="px-4 py-3 text-right text-text">${{ formatNum(appt.service_price) }}</td>
               <td class="px-4 py-3 text-center text-text-secondary">
-                <template v-if="payInfo?.type === 'salary'">—</template>
+                <template v-if="payInfo?.type === 'salary'">â€”</template>
                 <template v-else>{{ appt.percentage }}%</template>
               </td>
               <td class="px-4 py-3 text-right font-semibold" :class="appt.earnings > 0 ? 'text-success' : 'text-text-secondary'">
@@ -76,10 +76,10 @@
         <span class="font-medium text-text">Tipo de pago:</span>
         {{ payInfo.typeLabel }}
         <template v-if="payInfo.type !== 'salary'">
-          · <span class="font-medium text-text">Comisión:</span> {{ payInfo.percentage }}%
+          Â· <span class="font-medium text-text">ComisiÃ³n:</span> {{ payInfo.percentage }}%
         </template>
         <template v-if="payInfo.baseSalary > 0">
-          · <span class="font-medium text-text">Sueldo base:</span> ${{ payInfo.baseSalary.toFixed(2) }}
+          Â· <span class="font-medium text-text">Sueldo base:</span> ${{ payInfo.baseSalary.toFixed(2) }}
         </template>
       </div>
     </div>
@@ -133,12 +133,12 @@ const filteredAppointments = computed(() => {
 })
 
 function formatDate(d: string): string {
-  if (!d) return '—'
+  if (!d) return 'â€”'
   try { return new Date(d).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' }) } catch { return d.slice(0, 10) }
 }
 
 function formatTime(d: string): string {
-  if (!d) return '—'
+  if (!d) return 'â€”'
   try { return new Date(d).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: true }) } catch { return d.slice(11, 16) }
 }
 

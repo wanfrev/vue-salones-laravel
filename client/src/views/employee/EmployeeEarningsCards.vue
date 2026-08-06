@@ -1,8 +1,8 @@
-<template>
+﻿<template>
   <div v-if="groups.length > 0" class="mb-6">
     <div class="flex items-center justify-between border-b border-border pb-2 mb-3">
       <h3 class="text-sm font-semibold text-text">Citas realizadas</h3>
-      <span class="text-xs text-text-muted">{{ groups.length }} cita{{ groups.length !== 1 ? 's' : '' }} · {{ totalServices }} servicios</span>
+      <span class="text-xs text-text-muted">{{ groups.length }} cita{{ groups.length !== 1 ? 's' : '' }} Â· {{ totalServices }} servicios</span>
     </div>
 
     <div class="space-y-3">
@@ -64,7 +64,7 @@
   </div>
 
   <div v-else class="flex flex-col items-center justify-center py-8 text-center">
-    <p class="text-sm text-text-muted">No hay citas en este período.</p>
+    <p class="text-sm text-text-muted">No hay citas en este perÃ­odo.</p>
   </div>
 </template>
 
@@ -128,7 +128,7 @@ const groups = computed<AppointmentGroup[]>(() => {
     }
     if (existing) {
       existing.services.push(svc)
-      if (!existing.clientName || existing.clientName === '—') {
+      if (!existing.clientName || existing.clientName === 'â€”') {
         existing.clientName = r.clientName
       }
     } else {
