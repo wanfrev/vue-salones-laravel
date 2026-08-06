@@ -37,13 +37,15 @@ export interface NavContext {
  * Returns a redirect path, or undefined to allow navigation.
  */
 export function resolveNavigation(to: NavTarget, ctx: NavContext): string | undefined {
+  const resolveHome = () => resolveHomeByRole(ctx.role ?? undefined, ctx.profile?.disable_agenda, ctx.hasFeature('agenda'), ctx.hasFeature('pos'))
+
   if (ctx.loading) {
     if (to.meta.public) return undefined
     return '/'
   }
 
   if (to.meta.public && ctx.isAuthenticated) {
-    return resolveHomeByRole(ctx.role ?? undefined, ctx.profile?.disable_agenda)
+    return resolveHome()
   }
 
   if (to.meta.requiresAuth && !ctx.isAuthenticated) {
@@ -51,7 +53,7 @@ export function resolveNavigation(to: NavTarget, ctx: NavContext): string | unde
   }
 
   if (to.meta.superadminOnly && ctx.role !== 'superadmin') {
-    return resolveHomeByRole(ctx.role ?? undefined, ctx.profile?.disable_agenda)
+    return resolveHome()
   }
 
   if (to.meta.adminOnly && !isAdminPanelRole(ctx.role ?? undefined)) {
@@ -60,12 +62,12 @@ export function resolveNavigation(to: NavTarget, ctx: NavContext): string | unde
     const isInv = (to.path === '/admin/inventario' || to.path === '/admin/productos') && ctx.profile?.can_access_inventory
     const isSupp = to.path === '/admin/proveedores' && ctx.profile?.can_access_suppliers
     if (!isPos && !isInv && !isSupp) {
-      return resolveHomeByRole(ctx.role ?? undefined, ctx.profile?.disable_agenda)
+      return resolveHome()
     }
   }
 
   if (to.path.startsWith('/dashboard/') && isAdminPanelRole(ctx.role ?? undefined)) {
-    return resolveHomeByRole(ctx.role ?? undefined, ctx.profile?.disable_agenda)
+    return resolveHome()
   }
 
   // Replaces three previously-separate ad-hoc checks (disable_agenda hiding
@@ -73,7 +75,7 @@ export function resolveNavigation(to: NavTarget, ctx: NavContext): string | unde
   // /dashboard/clientes's employees_see_clients feature check) — each now expressed as
   // meta.gate on the corresponding route instead of a path-string match here.
   if (to.meta.gate && !evaluateGate(to.meta.gate, { profile: ctx.profile, hasFeature: ctx.hasFeature, hasCapability: ctx.hasCapability })) {
-    return resolveHomeByRole(ctx.role ?? undefined, ctx.profile?.disable_agenda)
+    return resolveHome()
   }
 
   return undefined

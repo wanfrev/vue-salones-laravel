@@ -27,13 +27,13 @@ const router = createRouter({
       path: '/dashboard/agenda',
       name: 'employee-agenda',
       component: () => import('../views/employee/EmployeeAgenda.vue'),
-      meta: { requiresAuth: true, gate: { hideIfAgendaDisabled: true } },
+      meta: { requiresAuth: true, gate: { hideIfAgendaDisabled: true, feature: 'agenda' } },
     },
     {
       path: '/dashboard/calendario',
       name: 'employee-calendario',
       component: () => import('../views/employee/EmployeeCalendario.vue'),
-      meta: { requiresAuth: true, gate: { hideIfAgendaDisabled: true } },
+      meta: { requiresAuth: true, gate: { hideIfAgendaDisabled: true, feature: 'calendario' } },
     },
     {
       path: '/dashboard/historial',
@@ -87,11 +87,13 @@ const router = createRouter({
           path: '',
           name: 'admin',
           component: () => import('../views/Admin.vue'),
+          meta: { gate: { feature: 'agenda' } },
         },
         {
           path: 'calendario',
           name: 'admin-calendario',
           component: () => import('../views/Calendario.vue'),
+          meta: { gate: { feature: 'calendario' } },
         },
         {
           path: 'clientes',
@@ -133,6 +135,7 @@ const router = createRouter({
           path: 'servicios',
           name: 'admin-servicios',
           component: () => import('../views/Servicios.vue'),
+          meta: { gate: { feature: 'servicios' } },
         },
         {
           path: 'inventario',
