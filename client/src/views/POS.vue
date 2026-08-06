@@ -40,7 +40,7 @@
 
   <div v-if="queryError" class="mb-4 rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm text-danger">Error al cargar citas: {{ queryError }}</div>
 
-  <div class="grid grid-cols-1 gap-4" :class="activeSaleType === 'retail_only' ? '' : 'lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_400px]'">
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_400px]">
     <!-- LEFT PANEL -->
     <div class="min-w-0 space-y-4">
       <!-- DIRECT SERVICE PANEL -->
@@ -247,7 +247,7 @@
     </div>
 
     <!-- RIGHT PANEL (desktop & tablet landscape) -->
-    <div v-if="activeSaleType !== 'retail_only'" class="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden lg:min-w-[340px]">
+    <div class="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden lg:min-w-[340px]">
       <POSPaymentPanel
         :selected-appointment="selectedAppointment"
         :cart="cartCtx.cart.value" :service-price="servicePrice"
@@ -295,9 +295,8 @@
       leave-to-class="opacity-0 translate-y-full"
     >
       <div
-        v-if="mobilePaymentOpen"
-        class="fixed inset-0 z-50 flex flex-col bg-bg"
-        :class="{ 'lg:hidden': activeSaleType !== 'retail_only' }"
+        v-if="isMobile && mobilePaymentOpen"
+        class="fixed inset-0 z-50 flex flex-col bg-bg lg:hidden"
       >
         <div class="flex items-center justify-between border-b border-border bg-surface px-4 py-3">
           <h2 class="text-base font-semibold text-text">Cobrar</h2>
@@ -353,10 +352,9 @@
 
   <!-- Mobile floating pay button when drawer is closed -->
   <button
-    v-if="((isMobile && activeSaleType !== 'retail_only') || activeSaleType === 'retail_only') && !mobilePaymentOpen && hasPaymentContext"
+    v-if="isMobile && !mobilePaymentOpen && hasPaymentContext"
     @click="mobilePaymentOpen = true"
-    class="fixed bottom-4 right-4 z-20 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-bold text-text-inverse shadow-lg shadow-primary/25 transition-theme hover:bg-primary-hover"
-    :class="{ 'lg:hidden': activeSaleType !== 'retail_only' }"
+    class="fixed bottom-4 right-4 z-20 flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-bold text-text-inverse shadow-lg shadow-primary/25 transition-theme hover:bg-primary-hover lg:hidden"
   >
     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -626,7 +624,7 @@ const addRetailProduct = (product: any) => {
   }
   cartCtx.addProduct(product); 
   retailSearchRef.value?.reset() 
-  mobilePaymentOpen.value = true
+  if (isMobile.value) mobilePaymentOpen.value = true
 }
 const addInlineProduct = (product: any) => { cartCtx.addProduct(product); inlineProductSearch.value = ''; showInlineDropdown.value = false }
 const onInlineBlur = (e: FocusEvent) => {
