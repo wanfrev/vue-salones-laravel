@@ -104,6 +104,7 @@ class PosController
 
             return response()->json(['id' => $txId], 201);
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('DirectSale error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json(['message' => $e->getMessage()], 400);
         }
     }

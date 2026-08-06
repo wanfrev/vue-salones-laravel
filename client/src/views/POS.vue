@@ -895,7 +895,10 @@ const cancelPayment = () => { showConfirmModal.value = false }
 
 const confirmPayment = async () => {
   showConfirmModal.value = false
-  if (activeSaleType.value === 'retail_only') { await handleRetailPayment(); return }
+  if (activeSaleType.value === 'retail_only' || (activeSaleType.value === 'appointment' && !selectedAppointment.value && cart.value.length > 0)) { 
+    await handleRetailPayment(); 
+    return 
+  }
   if (activeSaleType.value === 'direct_service') { await handleDirectServicePayment(); return }
   if (!selectedAppointment.value) return
   const appt = selectedAppointment.value
