@@ -98,6 +98,12 @@ return [
                 'productos' => true,
                 'proveedores' => true,
             ],
+            'feature_locks' => [
+                'agenda' => false,
+                'calendario' => false,
+                'servicios' => false,
+                'gift_cards' => false,
+            ],
         ],
         'staffing' => [
             'status' => 'creatable',

@@ -140,6 +140,12 @@ export const NICHES: Record<string, NicheDefinition> = {
       productos: true,
       proveedores: true,
     },
+    featureLocks: {
+      agenda: false,
+      calendario: false,
+      servicios: false,
+      gift_cards: false,
+    },
   },
   staffing: {
     id: 'staffing',
