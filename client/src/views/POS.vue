@@ -29,6 +29,8 @@
           @add-product="addRetailProduct"
           @select-client="selectRetailClient"
           @search-clients="onRetailSearchClients"
+          @update:client-name="retailClientSearch = $event; retailClientId = null"
+          @update:client-phone="retailClientPhone = $event"
         />
         <div v-else class="flex items-center gap-2">
           <button
@@ -42,7 +44,7 @@
           </button>
           <button @click="startRetailOnly" class="flex items-center justify-center gap-1.5 rounded-lg border border-primary/30 px-3 py-2 text-xs font-semibold text-primary shadow-sm transition-all duration-200 hover:bg-primary/5">
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-            Venta directa
+            {{ businessStore.features.agenda ? 'Venta directa' : 'Nueva factura' }}
           </button>
         </div>
       </div>
@@ -218,6 +220,7 @@
       </div>
 
       <AppointmentList
+        v-if="businessStore.features.agenda"
         :overdue="overdueAppointments"
         :upcoming="upcomingAppointments"
         :total-count="filteredAppointments.length"
@@ -250,7 +253,7 @@
         :tip-participants="tipParticipants" :tip-allocations="tipAllocations"
         :tip-allocated-total="tipAllocatedTotal" :tip-remaining="tipRemaining"
         :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
-        :retail-client-name="activeSaleType === 'retail_only' ? (retailClientId ? retailClientSearch : null) : (directServiceClientId ? directServiceClientSearch : null)"
+        :retail-client-name="activeSaleType === 'retail_only' ? retailClientSearch : directServiceClientSearch"
         :selected-gift-card-id="paymentCtx.selectedGiftCardId.value"
         :custom-total-amount="customTotalAmount"
         :custom-total-currency="customTotalCurrency"
@@ -313,7 +316,7 @@
             :tip-participants="tipParticipants" :tip-allocations="tipAllocations"
             :tip-allocated-total="tipAllocatedTotal" :tip-remaining="tipRemaining"
             :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
-            :retail-client-name="activeSaleType === 'retail_only' ? (retailClientId ? retailClientSearch : null) : (directServiceClientId ? directServiceClientSearch : null)"
+            :retail-client-name="activeSaleType === 'retail_only' ? retailClientSearch : directServiceClientSearch"
             :selected-gift-card-id="paymentCtx.selectedGiftCardId.value"
             :custom-total-amount="customTotalAmount"
             :custom-total-currency="customTotalCurrency"
@@ -412,7 +415,7 @@ const branchId = computed(() => businessStore.currentBranchId)
 const cartCtx = usePOSCart()
 const paymentCtx = usePOSPayment()
 
-const activeSaleType = ref<'appointment' | 'retail_only' | 'direct_service'>('appointment')
+const activeSaleType = ref<'appointment' | 'retail_only' | 'direct_service'>(businessStore.features.agenda ? 'appointment' : 'retail_only')
 const selectedAppointment = ref<any>(null)
 
 interface DirectServiceItem {
@@ -495,7 +498,7 @@ const startDirectService = () => {
 }
 
 const cancelDirectService = () => {
-  activeSaleType.value = 'appointment'
+  activeSaleType.value = businessStore.features.agenda ? 'appointment' : 'retail_only'
   directServicesList.value = []
   pendingServiceId.value = ''
   pendingServicePrice.value = 0
@@ -544,6 +547,7 @@ const tipManual = ref(false)
 
 const retailClientSearch = ref('')
 const retailClientId = ref<string | null>(null)
+const retailClientPhone = ref('')
 const retailClientSuggestions = ref<{ id: string; full_name: string; phone: string }[]>([])
 const retailSearchRef = ref<InstanceType<typeof RetailProductSearch> | null>(null)
 
@@ -606,7 +610,13 @@ const retailFilteredProducts = computed(() =>
   (products.value as any[]).filter((p: any) => Number(p.available_qty ?? 0) > 0)
 )
 
-const addRetailProduct = (product: any) => { cartCtx.addProduct(product); retailSearchRef.value?.reset() }
+const addRetailProduct = (product: any) => { 
+  if (product.override_price !== undefined) {
+    product.unit_price = product.override_price; 
+  }
+  cartCtx.addProduct(product); 
+  retailSearchRef.value?.reset() 
+}
 const addInlineProduct = (product: any) => { cartCtx.addProduct(product); inlineProductSearch.value = ''; showInlineDropdown.value = false }
 const onInlineBlur = (e: FocusEvent) => {
   if (!e.relatedTarget) return
@@ -616,6 +626,7 @@ const onInlineBlur = (e: FocusEvent) => {
 const selectRetailClient = (client: { id: string; full_name: string; phone: string }) => {
   retailClientId.value = client.id
   retailClientSearch.value = client.full_name
+  retailClientPhone.value = client.phone
   retailClientSuggestions.value = []
   retailSearchRef.value?.reset()
 }
@@ -784,7 +795,7 @@ const goToAppointmentInCalendar = (appt: any) => {
   posCitaModalRef.value?.open(cita)
 }
 const startRetailOnly = () => {
-  selectedAppointment.value = null; activeSaleType.value = 'retail_only'; cartCtx.clearCart(); paymentCtx.reset(); retailClientSearch.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailSearchRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false; areProductsIncluded.value = false; customTotalAmount.value = null; customTotalCurrency.value = 'USD'
+  selectedAppointment.value = null; activeSaleType.value = 'retail_only'; cartCtx.clearCart(); paymentCtx.reset(); retailClientSearch.value = ''; retailClientPhone.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailSearchRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false; areProductsIncluded.value = false; customTotalAmount.value = null; customTotalCurrency.value = 'USD'
   if (isMobile.value) mobilePaymentOpen.value = true
 }
 const setTipAllocation = (employeeId: string, value: number) => { tipManual.value = true; tipAllocations.value = { ...tipAllocations.value, [employeeId]: Math.max(0, Number(value || 0)) } }
@@ -796,11 +807,13 @@ const handleRetailPayment = async () => {
     exchangeRate: exchangeRate.value,
     clientId: retailClientId.value,
     clientNameInput: !retailClientId.value ? retailClientSearch.value : undefined,
+    clientPhoneInput: !retailClientId.value ? retailClientPhone.value : undefined,
   })
   if (ok) {
     cartCtx.clearCart()
     paymentCtx.reset()
     retailClientSearch.value = ''
+    retailClientPhone.value = ''
     retailClientId.value = null
     retailClientSuggestions.value = []
     retailSearchRef.value?.reset()
