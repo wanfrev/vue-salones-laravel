@@ -13,15 +13,24 @@ export function usePOSCart() {
     const availableQty = Number(product.available_qty ?? 0)
     if (availableQty <= 0) return
 
-    const existing = cart.value.find(c => c.productId === product.id && (c as any).priceIndex === priceIndex)
+    const effectivePriceIndex: 1 | 2 = product.override_price !== undefined
+      ? (product.unit_price_2 != null && Number(product.override_price) === Number(product.unit_price_2) ? 2 : 1)
+      : priceIndex
+
+    const uPrice1 = Number(product.unit_price ?? product.price ?? 0)
+    const uPrice2 = product.unit_price_2 != null ? Number(product.unit_price_2) : null
+
+    const existing = cart.value.find(c => c.productId === product.id)
     if (existing) {
       if (existing.quantity >= availableQty) return
       existing.quantity++
+      existing.priceIndex = effectivePriceIndex
+      existing.unitPrice = effectivePriceIndex === 2 && uPrice2 != null ? uPrice2 : uPrice1
+      existing.unitPrice1 = uPrice1
+      existing.unitPrice2 = uPrice2
       existing.subtotal = existing.unitPrice * existing.quantity
     } else {
-      const selectedPrice = priceIndex === 2 && product.unit_price_2 != null 
-        ? Number(product.unit_price_2) 
-        : Number(product.unit_price ?? product.price ?? 0)
+      const selectedPrice = effectivePriceIndex === 2 && uPrice2 != null ? uPrice2 : uPrice1
       cart.value.push({
         productId: product.id,
         productName: product.name,
@@ -30,12 +39,24 @@ export function usePOSCart() {
         variantName: null,
         quantity: 1,
         unitPrice: selectedPrice,
+        unitPrice1: uPrice1,
+        unitPrice2: uPrice2,
         unitCost: Number(product.unit_cost ?? 0),
         subtotal: selectedPrice,
-        priceIndex,
-      } as POSProductItem & { priceIndex: number })
+        priceIndex: effectivePriceIndex,
+      })
     }
     productSearch.value = ''
+  }
+
+  const setPriceIndex = (idx: number, pIndex: 1 | 2) => {
+    const item = cart.value[idx]
+    if (!item) return
+    item.priceIndex = pIndex
+    const p1 = item.unitPrice1 ?? item.unitPrice
+    const p2 = item.unitPrice2
+    item.unitPrice = pIndex === 2 && p2 != null ? p2 : p1
+    item.subtotal = item.unitPrice * item.quantity
   }
 
   const incrementQty = (idx: number) => {
@@ -65,6 +86,7 @@ export function usePOSCart() {
     productSearch,
     productsTotal,
     addProduct,
+    setPriceIndex,
     incrementQty,
     decrementQty,
     removeItem,

@@ -279,6 +279,7 @@
         @set-equal-tip="setEqualTipAllocation"
         @update:tip-allocation="setTipAllocation"
         @process-payment="handleProcessPayment"
+        @set-price-index="setPriceIndex"
         @increment-qty="incrementQty" @decrement-qty="decrementQty" @remove-item="removeItem"
       />
     </div>
@@ -342,6 +343,7 @@
             @set-equal-tip="setEqualTipAllocation"
             @update:tip-allocation="setTipAllocation"
             @process-payment="handleMobileProcessPayment"
+            @set-price-index="setPriceIndex"
             @increment-qty="incrementQty" @decrement-qty="decrementQty" @remove-item="removeItem"
           />
           </div>
@@ -430,6 +432,7 @@ const {
   cart,
   productsTotal,
   addProduct,
+  setPriceIndex,
   incrementQty,
   decrementQty,
   removeItem,

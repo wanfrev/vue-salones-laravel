@@ -106,7 +106,27 @@
             >
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-medium text-text truncate">{{ item.productName }}</p>
-                <p class="text-xs" :class="areProductsIncluded ? 'text-text-muted line-through opacity-70' : 'text-text-muted'">{{ formatDual(item.unitPrice) }} c/u</p>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <span class="text-xs" :class="areProductsIncluded ? 'text-text-muted line-through opacity-70' : 'text-text-muted'">{{ formatDual(item.unitPrice) }} c/u</span>
+                  <div v-if="item.unitPrice2 != null" class="inline-flex rounded border border-border p-0.5 bg-surface shrink-0">
+                    <button
+                      type="button"
+                      @click="$emit('set-price-index', idx, 1)"
+                      class="px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors"
+                      :class="item.priceIndex !== 2 ? 'bg-primary text-text-inverse shadow-2xs' : 'text-text-muted hover:text-text'"
+                    >
+                      P1
+                    </button>
+                    <button
+                      type="button"
+                      @click="$emit('set-price-index', idx, 2)"
+                      class="px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors"
+                      :class="item.priceIndex === 2 ? 'bg-primary text-text-inverse shadow-2xs' : 'text-text-muted hover:text-text'"
+                    >
+                      P2
+                    </button>
+                  </div>
+                </div>
               </div>
                 <div class="flex items-center gap-1">
                 <button
@@ -449,6 +469,7 @@ defineEmits<{
   'set-equal-tip': []
   'update:tip-allocation': [employeeId: string, value: number]
   'process-payment': []
+  'set-price-index': [idx: number, priceIndex: 1 | 2]
   'increment-qty': [idx: number]
   'decrement-qty': [idx: number]
   'remove-item': [idx: number]
