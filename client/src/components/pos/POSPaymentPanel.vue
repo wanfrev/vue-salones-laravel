@@ -108,7 +108,7 @@
                 <p class="text-sm font-medium text-text truncate">{{ item.productName }}</p>
                 <div class="flex items-center gap-1.5 mt-0.5">
                   <span class="text-xs" :class="areProductsIncluded ? 'text-text-muted line-through opacity-70' : 'text-text-muted'">{{ formatDual(item.unitPrice) }} c/u</span>
-                  <div v-if="isRetailOnly && item.unitPrice2 != null && Number(item.unitPrice2) > 0" class="inline-flex rounded border border-border p-0.5 bg-surface shrink-0">
+                  <div v-if="isRetailNiche && item.unitPrice2 != null && Number(item.unitPrice2) > 0" class="inline-flex rounded border border-border p-0.5 bg-surface shrink-0">
                     <button
                       type="button"
                       @click.stop.prevent="$emit('set-price-index', idx, 1)"
@@ -225,7 +225,7 @@
               </div>
             </div>
           </div>
-          <div v-if="isRetailOnly" class="flex flex-col gap-2 border-t border-border pt-3 mt-1">
+          <div v-if="isRetailNiche" class="flex flex-col gap-2 border-t border-border pt-3 mt-1">
             <div class="flex items-center justify-between text-sm">
               <span class="font-medium text-text">Total Calculado</span>
               <span class="text-text-muted">{{ formatDual(productsTotal) }}</span>
@@ -482,6 +482,7 @@ const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)
 const { activeGiftCards } = useGiftCards(businessId)
 const businessStore = useBusinessStore()
+const isRetailNiche = computed(() => !businessStore.features.agenda)
 
 const needsGiftCardSelect = computed(() =>
   businessStore.features.gift_cards &&

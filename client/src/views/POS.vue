@@ -698,7 +698,7 @@ const customTotalAmount = ref<number | null>(null)
 const customTotalCurrency = ref<'USD' | 'VES'>('USD')
 
 const grandTotal = computed(() => {
-  if (activeSaleType.value === 'retail_only') {
+  if (!businessStore.features.agenda && activeSaleType.value === 'retail_only') {
     if (customTotalAmount.value != null && customTotalAmount.value > 0) {
       return customTotalCurrency.value === 'VES'
         ? Number((customTotalAmount.value / exchangeRate.value).toFixed(2))
