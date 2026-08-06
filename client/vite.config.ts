@@ -10,9 +10,6 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: [
-        /^@solar-icons\/vue/
-      ]
     }
   },
   plugins: [
