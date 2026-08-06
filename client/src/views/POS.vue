@@ -12,12 +12,12 @@
       </div>
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
         <ExchangeRateCard
-          :is-editable="rateCtx.isEditable.value"
-          :edit-rate-value="rateCtx.editRateValue.value"
-          :updating-rate="rateCtx.updatingRate.value"
-          :display-rate="rateCtx.displayRate.value"
-          @update:edit-rate-value="rateCtx.editRateValue.value = $event"
-          @update-rate="rateCtx.handleUpdate"
+          :is-editable="isRateEditable"
+          :edit-rate-value="editRateValue"
+          :updating-rate="updatingRate"
+          :display-rate="displayRate"
+          @update:edit-rate-value="editRateValue = $event"
+          @update-rate="handleRateUpdate"
         />
         <div class="flex items-center gap-2">
           <button
@@ -365,7 +365,7 @@
 
   <POSConfirmModal
     :show="showConfirmModal" :grand-total="grandTotal"
-    :client-name="confirmClientName" :is-processing="paymentCtx.isProcessing.value"
+    :client-name="confirmClientName" :is-processing="isProcessing"
     @cancel="cancelPayment" @confirm="confirmPayment"
   />
 
@@ -416,7 +416,13 @@ const { exchangeRate, formatDual } = useCurrency()
 const { error: showError, success: showSuccess } = useNotification()
 const businessStore = useBusinessStore()
 const queryClient = useQueryClient()
-const rateCtx = useExchangeRate()
+const {
+  isEditable: isRateEditable,
+  editRateValue,
+  updatingRate,
+  displayRate,
+  handleUpdate: handleRateUpdate,
+} = useExchangeRate()
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 
@@ -511,8 +517,8 @@ const updateDirectServicePrice = (index: number, newPrice: number) => {
 const startDirectService = () => {
   selectedAppointment.value = null
   activeSaleType.value = 'direct_service'
-  cartCtx.clearCart()
-  paymentCtx.reset()
+  clearCart()
+  resetPayment()
   directServicesList.value = []
   pendingServiceId.value = ''
   pendingServicePrice.value = 0
@@ -538,8 +544,8 @@ const cancelDirectService = () => {
   directServiceClientId.value = null
   directServiceClientSearch.value = ''
   directServiceClientSuggestions.value = []
-  paymentCtx.reset()
-  cartCtx.clearCart()
+  resetPayment()
+  clearCart()
 }
 
 const selectDirectServiceClient = (client: { id: string; full_name: string; phone: string }) => {
@@ -941,26 +947,26 @@ const applyPrefill = () => {
   const method = prefill.paymentMethod as PaymentMethod
   const isMixed = method === 'mixed' || (prefill.breakdown && prefill.breakdown.length > 1)
 
-  paymentCtx.paymentMethod.value = isMixed ? 'mixed' : method
-  paymentCtx.otherCurrency.value = prefill.paymentCurrency
+  paymentMethod.value = isMixed ? 'mixed' : method
+  otherCurrency.value = prefill.paymentCurrency
 
   if (isMixed && prefill.breakdown && prefill.breakdown.length > 0) {
-    paymentCtx.paymentsBreakdown.value = [...prefill.breakdown]
+    paymentsBreakdown.value = [...prefill.breakdown]
   } else if (!isMixed && prefill.breakdown && prefill.breakdown.length === 1) {
     const b = prefill.breakdown[0]
-    paymentCtx.paymentMethod.value = b.method as PaymentMethod
-    paymentCtx.otherCurrency.value = b.currency
+    paymentMethod.value = b.method as PaymentMethod
+    otherCurrency.value = b.currency
   } else {
-    paymentCtx.paymentsBreakdown.value = []
+    paymentsBreakdown.value = []
   }
 
-  paymentCtx.tipAmount.value = prefill.tipAmount ?? 0
-  paymentCtx.paymentNotes.value = prefill.notes ?? ''
+  tipAmount.value = prefill.tipAmount ?? 0
+  paymentNotes.value = prefill.notes ?? ''
 
   if (prefill.products && prefill.products.length > 0) {
-    cartCtx.clearCart()
+    clearCart()
     for (const p of prefill.products) {
-      cartCtx.cart.value.push({
+      cart.value.push({
         productId: p.productId,
         productName: p.productName,
         variantId: null,
