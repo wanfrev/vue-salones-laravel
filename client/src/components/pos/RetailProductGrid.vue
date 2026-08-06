@@ -28,16 +28,18 @@
       </div>
       
       <div v-else class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-        <button
+        <div
           v-for="product in filteredProducts"
           :key="product.id"
-          @click.prevent="$emit('add-product', { ...product, override_price: product.unit_price })"
+          @click="$emit('add-product', { ...product, override_price: product.unit_price })"
           :disabled="Number(product.available_qty ?? 0) <= 0"
+          role="button"
+          tabindex="0"
           class="relative flex flex-col items-start p-3 sm:p-4 rounded-xl border transition-all duration-200 text-left bg-surface h-full group"
           :class="[
             Number(product.available_qty ?? 0) > 0 
-              ? 'border-border hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5' 
-              : 'border-border/50 opacity-60 cursor-not-allowed bg-bg-secondary'
+              ? 'border-border hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5 cursor-pointer' 
+              : 'border-border/50 opacity-60 cursor-not-allowed bg-bg-secondary pointer-events-none'
           ]"
         >
           <div class="mb-2 w-full">
@@ -83,7 +85,7 @@
               </template>
             </div>
           </div>
-        </button>
+        </div>
       </div>
     </div>
   </div>
