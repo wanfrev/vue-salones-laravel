@@ -436,7 +436,7 @@ const {
   paymentNotes,
   tipAmount,
   selectedGiftCardId,
-  isProcessing: paymentIsProcessing,
+  isProcessing: posIsProcessing,
   paymentMethods,
   mixedMethods,
   paymentsBreakdown,
@@ -743,7 +743,7 @@ const splitRemaining = computed(() =>
     ? Math.max(0, grandTotal.value - paymentsBreakdown.value.reduce((sum: number, s: any) => sum + (s.currency === 'VES' ? (s.inputAmount || 0) / exchangeRate.value : (s.inputAmount || 0)), 0))
     : 0
 )
-const isProcessing = computed(() => paymentIsProcessing.value)
+const isProcessing = computed(() => posIsProcessing.value)
 const canPay = computed(() => {
   if (grandTotal.value <= 0) return false
   if (activeSaleType.value === 'direct_service') {
@@ -827,23 +827,23 @@ const goToAppointmentInCalendar = (appt: any) => {
   posCitaModalRef.value?.open(cita)
 }
 const startRetailOnly = () => {
-  selectedAppointment.value = null; activeSaleType.value = 'retail_only'; cartCtx.clearCart(); paymentCtx.reset(); retailClientSearch.value = ''; retailClientPhone.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailSearchRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false; areProductsIncluded.value = false; customTotalAmount.value = null; customTotalCurrency.value = 'USD'
+  selectedAppointment.value = null; activeSaleType.value = 'retail_only'; clearCart(); resetPayment(); retailClientSearch.value = ''; retailClientPhone.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailSearchRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false; areProductsIncluded.value = false; customTotalAmount.value = null; customTotalCurrency.value = 'USD'
   if (isMobile.value) mobilePaymentOpen.value = true
 }
 const setTipAllocation = (employeeId: string, value: number) => { tipManual.value = true; tipAllocations.value = { ...tipAllocations.value, [employeeId]: Math.max(0, Number(value || 0)) } }
 
 const handleRetailPayment = async () => {
-  const ok = await paymentCtx.processDirectSale({
+  const ok = await processDirectSale({
     totalAmount: grandTotal.value,
-    products: cartCtx.cart.value,
+    products: cart.value,
     exchangeRate: exchangeRate.value,
     clientId: retailClientId.value,
     clientNameInput: !retailClientId.value ? retailClientSearch.value : undefined,
     clientPhoneInput: !retailClientId.value ? retailClientPhone.value : undefined,
   })
   if (ok) {
-    cartCtx.clearCart()
-    paymentCtx.reset()
+    clearCart()
+    resetPayment()
     retailClientSearch.value = ''
     retailClientPhone.value = ''
     retailClientId.value = null
@@ -855,7 +855,7 @@ const handleRetailPayment = async () => {
 
 const handleDirectServicePayment = async () => {
   if (isProcessing.value || directServicesList.value.length === 0) return
-  const ok = await paymentCtx.processDirectServiceSale({
+  const ok = await processDirectServiceSale({
     services: directServicesList.value.map(s => ({
       serviceId: s.serviceId,
       employeeId: s.employeeId,
@@ -865,14 +865,14 @@ const handleDirectServicePayment = async () => {
     clientId: directServiceClientId.value || null,
     serviceAmount: servicePrice.value,
     productsAmount: effectiveProductsTotal.value,
-    products: cartCtx.cart.value,
+    products: cart.value,
     exchangeRate: exchangeRate.value,
-    tipAmount: paymentCtx.tipAmount.value,
+    tipAmount: tipAmount.value,
   })
   if (ok) {
     selectedAppointment.value = null
-    cartCtx.clearCart()
-    paymentCtx.reset()
+    clearCart()
+    resetPayment()
     cancelDirectService()
     mobilePaymentOpen.value = false
   }
@@ -893,12 +893,12 @@ const confirmPayment = async () => {
   if (activeSaleType.value === 'direct_service') { await handleDirectServicePayment(); return }
   if (!selectedAppointment.value) return
   const appt = selectedAppointment.value
-  const ok = await paymentCtx.processPayment({
+  const ok = await processPayment({
     appointmentId: appt.id,
     serviceAmount: servicePrice.value,
-    products: cartCtx.cart.value,
+    products: cart.value,
     exchangeRate: exchangeRate.value,
-    tipAmount: paymentCtx.tipAmount.value,
+    tipAmount: tipAmount.value,
     productsAmount: effectiveProductsTotal.value,
     isGroup: !!(appt.isGroup && appt.groupIds?.length > 1),
     groupIds: appt.groupIds,
@@ -906,7 +906,7 @@ const confirmPayment = async () => {
     groupPrice: appt.groupPrice,
     tipAllocations: tipAllocations.value,
   })
-  if (ok) { selectedAppointment.value = null; cartCtx.clearCart(); paymentCtx.reset(); areProductsIncluded.value = false; mobilePaymentOpen.value = false }
+  if (ok) { selectedAppointment.value = null; clearCart(); resetPayment(); areProductsIncluded.value = false; mobilePaymentOpen.value = false }
 }
 
 const { handleSaveCita, handleDeleteCita } = useAppointmentMutations({
