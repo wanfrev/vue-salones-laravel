@@ -5,17 +5,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Permite nuevos métodos de cobro en la base de datos PostgreSQL.
- *
- * La columna `method` en `transactions` (y potencialmente `payment_method` en otras tablas)
- * proviene del esquema heredado de Supabase y en PostgreSQL puede estar configurada como
- * un ENUM nativo (`payment_method`) o tener restricciones CHECK.
- *
- * Esta migración:
- * 1. Desactiva la transacción automática (`$withinTransaction = false`) para que `ALTER TYPE ... ADD VALUE`
- *    pueda ejecutarse en PostgreSQL sin lanzar el error 25001.
- * 2. Agrega los valores del ENUM faltantes (`binance`, `cashea`, `zelle`, etc.).
- * 3. Convierte la columna `method` a `VARCHAR(50)` para que futuros métodos no rompan la DB.
+ * Garantiza que PostgreSQL reconozca binance, cashea y cualquier otro método de pago
+ * en el ENUM `payment_method` y convierte las columnas relativas a `VARCHAR(50)`.
  */
 return new class extends Migration
 {
@@ -54,7 +45,7 @@ return new class extends Migration
             }
         }
 
-        // 2. Convertir la columna `method` de `transactions` a VARCHAR(50) si existe la tabla
+        // 2. Convertir la columna `method` de `transactions` a VARCHAR(50)
         if (Schema::hasTable('transactions') && Schema::hasColumn('transactions', 'method')) {
             try {
                 foreach ($this->methodCheckConstraints() as $name) {
