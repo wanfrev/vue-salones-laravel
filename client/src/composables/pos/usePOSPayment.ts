@@ -184,11 +184,11 @@ export function usePOSPayment() {
       notes: params.notes,
       exchangeRate: params.exchangeRate,
       paymentsBreakdown: params.paymentsBreakdown,
-      clientId: params.clientId,
-      clientNameInput: params.clientNameInput,
-      clientPhoneInput: params.clientPhoneInput,
+      clientId: params.clientId || null,
+      clientNameInput: params.clientNameInput || null,
+      clientPhoneInput: params.clientPhoneInput || null,
       businessId: businessId.value!,
-      branchId: branchId.value,
+      branchId: branchId.value || null,
     }),
     onSuccess: () => {
       success('Venta directa registrada correctamente')
@@ -417,9 +417,9 @@ export function usePOSPayment() {
         notes,
         exchangeRate: params.exchangeRate,
         paymentsBreakdown: breakdown,
-        clientId: params.clientId ?? null,
-        clientNameInput: params.clientNameInput ?? null,
-        clientPhoneInput: params.clientPhoneInput ?? null,
+        clientId: params.clientId || null,
+        clientNameInput: params.clientNameInput || null,
+        clientPhoneInput: params.clientPhoneInput || null,
       })
       reset()
       return true
