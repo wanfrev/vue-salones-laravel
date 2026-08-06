@@ -651,9 +651,6 @@ const retailFilteredProducts = computed(() =>
 )
 
 const addRetailProduct = (product: any) => { 
-  if (product.override_price !== undefined) {
-    product.unit_price = product.override_price; 
-  }
   addProduct(product); 
   retailSearchRef.value?.reset() 
   if (isMobile.value) mobilePaymentOpen.value = true

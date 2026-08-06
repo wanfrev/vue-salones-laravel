@@ -108,7 +108,7 @@
                 <p class="text-sm font-medium text-text truncate">{{ item.productName }}</p>
                 <div class="flex items-center gap-1.5 mt-0.5">
                   <span class="text-xs" :class="areProductsIncluded ? 'text-text-muted line-through opacity-70' : 'text-text-muted'">{{ formatDual(item.unitPrice) }} c/u</span>
-                  <div v-if="item.unitPrice2 != null" class="inline-flex rounded border border-border p-0.5 bg-surface shrink-0">
+                  <div v-if="item.unitPrice2 != null && Number(item.unitPrice2) > 0" class="inline-flex rounded border border-border p-0.5 bg-surface shrink-0">
                     <button
                       type="button"
                       @click="$emit('set-price-index', idx, 1)"
