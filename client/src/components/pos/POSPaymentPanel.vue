@@ -111,16 +111,16 @@
                   <div v-if="item.unitPrice2 != null && Number(item.unitPrice2) > 0" class="inline-flex rounded border border-border p-0.5 bg-surface shrink-0">
                     <button
                       type="button"
-                      @click="$emit('set-price-index', idx, 1)"
-                      class="px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors"
+                      @click.stop.prevent="$emit('set-price-index', idx, 1)"
+                      class="px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors cursor-pointer"
                       :class="item.priceIndex !== 2 ? 'bg-primary text-text-inverse shadow-2xs' : 'text-text-muted hover:text-text'"
                     >
                       P1
                     </button>
                     <button
                       type="button"
-                      @click="$emit('set-price-index', idx, 2)"
-                      class="px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors"
+                      @click.stop.prevent="$emit('set-price-index', idx, 2)"
+                      class="px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors cursor-pointer"
                       :class="item.priceIndex === 2 ? 'bg-primary text-text-inverse shadow-2xs' : 'text-text-muted hover:text-text'"
                     >
                       P2

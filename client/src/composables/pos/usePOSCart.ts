@@ -52,23 +52,36 @@ export function usePOSCart() {
   const setPriceIndex = (idx: number, pIndex: 1 | 2) => {
     const item = cart.value[idx]
     if (!item) return
-    item.priceIndex = pIndex
     const p1 = item.unitPrice1 ?? item.unitPrice
     const p2 = item.unitPrice2
-    item.unitPrice = pIndex === 2 && p2 != null ? p2 : p1
-    item.subtotal = item.unitPrice * item.quantity
+    const newPrice = pIndex === 2 && p2 != null ? Number(p2) : Number(p1)
+    cart.value[idx] = {
+      ...item,
+      priceIndex: pIndex,
+      unitPrice: newPrice,
+      subtotal: newPrice * item.quantity
+    }
   }
 
   const incrementQty = (idx: number) => {
-    if (cart.value[idx].quantity >= cart.value[idx].availableQty) return
-    cart.value[idx].quantity++
-    cart.value[idx].subtotal = cart.value[idx].unitPrice * cart.value[idx].quantity
+    const item = cart.value[idx]
+    if (!item || item.quantity >= item.availableQty) return
+    const newQty = item.quantity + 1
+    cart.value[idx] = {
+      ...item,
+      quantity: newQty,
+      subtotal: item.unitPrice * newQty
+    }
   }
 
   const decrementQty = (idx: number) => {
-    if (cart.value[idx].quantity > 1) {
-      cart.value[idx].quantity--
-      cart.value[idx].subtotal = cart.value[idx].unitPrice * cart.value[idx].quantity
+    const item = cart.value[idx]
+    if (!item || item.quantity <= 1) return
+    const newQty = item.quantity - 1
+    cart.value[idx] = {
+      ...item,
+      quantity: newQty,
+      subtotal: item.unitPrice * newQty
     }
   }
 
