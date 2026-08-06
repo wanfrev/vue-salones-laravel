@@ -85,7 +85,7 @@ describe('resolveFeatures()', () => {
 
 describe('creatableIds()', () => {
   it('includes every niche offered in the superadmin selects today', () => {
-    for (const id of ['salon', 'barberia', 'spa', 'mixto', 'dog_spa', 'nail_bar', 'centro_estetico']) {
+    for (const id of ['salon', 'barberia', 'spa', 'mixto', 'dog_spa', 'nail_bar', 'centro_estetico', 'tienda', 'staffing']) {
       expect(creatableIds()).toContain(id)
     }
   })

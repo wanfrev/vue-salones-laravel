@@ -85,6 +85,39 @@ return [
             'capabilities' => [],
             'feature_defaults' => [],
         ],
+        'tienda' => [
+            'status' => 'creatable',
+            'capabilities' => ['catalog.products', 'commerce.pos'],
+            'feature_defaults' => [
+                'agenda' => false,
+                'calendario' => false,
+                'servicios' => false,
+                'gift_cards' => false,
+                'pos' => true,
+                'inventario' => true,
+                'productos' => true,
+                'proveedores' => true,
+            ],
+        ],
+        'staffing' => [
+            'status' => 'creatable',
+            'capabilities' => ['staffing.timesheets', 'staffing.billing'],
+            'feature_defaults' => [
+                'agenda' => false,
+                'calendario' => false,
+                'servicios' => false,
+                'gift_cards' => false,
+                'inventario' => false,
+                'productos' => false,
+                'proveedores' => false,
+                'pos' => false,
+            ],
+            'feature_locks' => [
+                'pos' => false,
+            ],
+            'locale' => 'en',
+            'currency_mode' => 'single',
+        ],
     ],
 
 ];

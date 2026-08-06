@@ -124,6 +124,45 @@ export const NICHES: Record<string, NicheDefinition> = {
     capabilities: [],
     featureDefaults: {},
   },
+  tienda: {
+    id: 'tienda',
+    label: 'Tienda',
+    status: 'creatable',
+    clientProfile: null,
+    capabilities: ['catalog.products', 'commerce.pos'],
+    featureDefaults: {
+      agenda: false,
+      calendario: false,
+      servicios: false,
+      gift_cards: false,
+      pos: true,
+      inventario: true,
+      productos: true,
+      proveedores: true,
+    },
+  },
+  staffing: {
+    id: 'staffing',
+    label: 'Staffing',
+    status: 'creatable',
+    clientProfile: null,
+    capabilities: ['staffing.timesheets', 'staffing.billing'],
+    featureDefaults: {
+      agenda: false,
+      calendario: false,
+      servicios: false,
+      gift_cards: false,
+      inventario: false,
+      productos: false,
+      proveedores: false,
+      pos: false,
+    },
+    featureLocks: {
+      pos: false,
+    },
+    locale: 'en',
+    currencyMode: 'single',
+  },
 }
 
 export const UNKNOWN_NICHE: NicheDefinition = {
