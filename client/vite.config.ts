@@ -8,6 +8,13 @@ export default defineConfig({
     environment: 'happy-dom',
     globals: true,
   },
+  build: {
+    rollupOptions: {
+      external: [
+        /^@solar-icons\/vue/
+      ]
+    }
+  },
   plugins: [
     vue(),
     VitePWA({

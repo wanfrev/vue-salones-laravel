@@ -85,17 +85,11 @@ export const recordSale = async (params: {
 }): Promise<string> => {
   const serviceAmount = params.serviceAmount ?? params.amount ?? 0
   const products = params.products ?? []
-  let locationId: string | null = null
-
-  if (products.length > 0) {
-    locationId = await getDefaultLocation(params.businessId, params.branchId)
-  }
-
   const productsPayload = products.map(p => ({
     product_id: p.productId,
     variant_id: p.variantId,
     quantity: p.quantity,
-    location_id: locationId ?? (p as any).locationId,
+    location_id: (p as any).locationId ?? null,
     unit_cost: Number(p.unitCost ?? (p as any).unit_cost ?? 0),
     name: p.productName,
   }))
