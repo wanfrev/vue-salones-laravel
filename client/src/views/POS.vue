@@ -227,6 +227,14 @@
           @add-product="addRetailProduct"
           class="flex-1"
         />
+        <div v-else class="flex-1 flex items-center justify-center bg-surface border border-border rounded-2xl">
+          <div class="text-center">
+            <svg class="h-12 w-12 mx-auto mb-2 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            <p class="text-sm font-medium text-text-muted">Usa la búsqueda arriba para agregar productos</p>
+          </div>
+        </div>
       </div>
 
       <AppointmentList
