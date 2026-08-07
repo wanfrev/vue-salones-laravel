@@ -20,6 +20,7 @@ export interface AuthProfile {
   can_access_inventory?: boolean
   can_access_pos?: boolean
   can_access_suppliers?: boolean
+  can_access_finanzas?: boolean
 }
 
 export interface LoginCredentials {

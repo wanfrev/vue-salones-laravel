@@ -25,6 +25,7 @@ export interface Empleado {
   canAccessInventory?: boolean
   canAccessPos?: boolean
   canAccessSuppliers?: boolean
+  canAccessFinanzas?: boolean
 }
 
 export interface EmpleadoFormData {
@@ -51,4 +52,5 @@ export interface EmpleadoFormData {
   canAccessInventory: boolean
   canAccessPos: boolean
   canAccessSuppliers: boolean
+  canAccessFinanzas: boolean
 }
