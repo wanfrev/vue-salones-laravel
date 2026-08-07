@@ -9,16 +9,21 @@ use Illuminate\Support\Facades\DB;
  * time perm:pos enforcement is switched on (config('niches.enforce') = true) every existing
  * cajero would be 403'd out of the POS screen they already use daily.
  *
- * Scoped to the literal role='cajero' only, never the synthetic empleado+disable_agenda+
- * disable_inventory_edit encoding — that combination doesn't by itself imply POS usage, and
- * guessing wrong there would grant POS access to employees who never had it.
+ * 'cajero' is NOT a member of the Postgres `app_role` enum backing profiles.role — it never
+ * has been, so no row can literally have role='cajero' (the frontend mapper already knows
+ * this and always writes role: 'empleado' for a cajero). "Cajero" only exists as the
+ * synthetic encoding the app treats as one everywhere else (store/auth.ts's isCajeroProfile,
+ * equipoMapper.ts's isCajero): role='empleado' AND disable_agenda AND disable_inventory_edit.
+ * That's what this backfill targets instead.
  */
 return new class extends Migration
 {
     public function up(): void
     {
         DB::table('profiles')
-            ->where('role', 'cajero')
+            ->where('role', 'empleado')
+            ->where('disable_agenda', true)
+            ->where('disable_inventory_edit', true)
             ->where('can_access_pos', false)
             ->update(['can_access_pos' => true]);
     }
