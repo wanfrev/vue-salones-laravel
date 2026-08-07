@@ -32,23 +32,113 @@
               <p class="text-xs text-text-muted">{{ admin.email }}</p>
             </div>
             <span class="rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-2 py-0.5 text-[10px] font-bold uppercase">{{ admin.role }}</span>
+            <button
+              type="button"
+              @click="openPasswordModal(admin)"
+              class="shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text"
+            >
+              Cambiar contraseña
+            </button>
           </div>
         </div>
       </div>
     </div>
+
+    <ModalBase
+      :is-open="showPasswordModal"
+      title="Cambiar contraseña"
+      :subtitle="targetAdmin ? `${targetAdmin.full_name} · ${targetAdmin.email}` : ''"
+      icon="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+      size="md"
+      variant="warning"
+      :is-loading="isSaving"
+      :is-confirm-disabled="!isPasswordValid"
+      confirm-text="Cambiar contraseña"
+      loading-text="Cambiando..."
+      @close="closePasswordModal"
+      @confirm="handleResetPassword"
+    >
+      <div class="space-y-4">
+        <div class="rounded-lg border border-warning/30 bg-warning/5 px-3 py-2.5">
+          <p class="text-xs text-text-secondary">
+            La contraseña actual no se puede consultar: se guarda cifrada en un solo sentido.
+            Al confirmar se reemplaza por la nueva y se cierran las sesiones abiertas de este
+            administrador.
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-text-secondary mb-1.5">Nueva contraseña</label>
+          <div class="flex gap-2">
+            <input
+              v-model="newPassword"
+              :type="showPassword ? 'text' : 'password'"
+              placeholder="Mínimo 6 caracteres"
+              autocomplete="new-password"
+              class="flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary"
+            />
+            <button
+              type="button"
+              @click="showPassword = !showPassword"
+              class="shrink-0 rounded-lg border border-border px-3 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary"
+            >
+              {{ showPassword ? 'Ocultar' : 'Ver' }}
+            </button>
+            <button
+              type="button"
+              @click="generatePassword"
+              class="shrink-0 rounded-lg border border-border px-3 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary"
+            >
+              Generar
+            </button>
+          </div>
+          <p v-if="newPassword && newPassword.length < 6" class="mt-1 text-xs text-danger">
+            Debe tener al menos 6 caracteres.
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-text-secondary mb-1.5">Confirmar contraseña</label>
+          <input
+            v-model="confirmPassword"
+            :type="showPassword ? 'text' : 'password'"
+            placeholder="Repite la contraseña"
+            autocomplete="new-password"
+            class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary"
+          />
+          <p v-if="confirmPassword && newPassword !== confirmPassword" class="mt-1 text-xs text-danger">
+            Las contraseñas no coinciden.
+          </p>
+        </div>
+
+        <p class="text-xs text-text-muted">
+          Anota o copia esta contraseña antes de confirmar — no podrás volver a verla después.
+          Pídele al administrador que la cambie tras iniciar sesión.
+        </p>
+      </div>
+    </ModalBase>
   </SuperadminLayout>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import SuperadminLayout from '../components/layout/SuperadminLayout.vue'
-import { listBusinessAdmins, listBusinesses, superadminKeys } from '../services/superadminService'
+import ModalBase from '../components/common/ModalBase.vue'
+import { useNotification } from '../composables/common/useNotification'
+import {
+  listBusinessAdmins,
+  listBusinesses,
+  resetBusinessAdminPassword,
+  superadminKeys,
+} from '../services/superadminService'
 import type { Business } from '../types/database'
+import type { AuthProfile } from '../types/auth'
 
 const route = useRoute()
 const businessId = computed(() => route.params.id as string)
+const { success: showSuccess, error: showError } = useNotification()
 
 const { data: businessesData } = useQuery({
   queryKey: superadminKeys.businesses(),
@@ -66,5 +156,60 @@ const admins = computed(() => adminsData.value ?? [])
 
 function getInitials(name: string): string {
   return name.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('')
+}
+
+// ── Password reset ──
+
+const showPasswordModal = ref(false)
+const targetAdmin = ref<AuthProfile | null>(null)
+const newPassword = ref('')
+const confirmPassword = ref('')
+const showPassword = ref(false)
+const isSaving = ref(false)
+
+const isPasswordValid = computed(() =>
+  newPassword.value.length >= 6 && newPassword.value === confirmPassword.value
+)
+
+const openPasswordModal = (admin: AuthProfile) => {
+  targetAdmin.value = admin
+  newPassword.value = ''
+  confirmPassword.value = ''
+  showPassword.value = false
+  showPasswordModal.value = true
+}
+
+const closePasswordModal = () => {
+  showPasswordModal.value = false
+  targetAdmin.value = null
+  newPassword.value = ''
+  confirmPassword.value = ''
+  showPassword.value = false
+}
+
+/** crypto.getRandomValues rather than Math.random — this value guards a live admin account. */
+const generatePassword = () => {
+  const alphabet = 'abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  const bytes = new Uint32Array(14)
+  crypto.getRandomValues(bytes)
+  const generated = Array.from(bytes, n => alphabet[n % alphabet.length]).join('')
+  newPassword.value = generated
+  confirmPassword.value = generated
+  showPassword.value = true
+}
+
+const handleResetPassword = async () => {
+  if (!targetAdmin.value || !isPasswordValid.value || isSaving.value) return
+
+  isSaving.value = true
+  try {
+    await resetBusinessAdminPassword(businessId.value, targetAdmin.value.id, newPassword.value)
+    showSuccess(`Contraseña actualizada para ${targetAdmin.value.full_name}.`)
+    closePasswordModal()
+  } catch (err) {
+    showError((err as Error)?.message || 'No fue posible cambiar la contraseña.')
+  } finally {
+    isSaving.value = false
+  }
 }
 </script>

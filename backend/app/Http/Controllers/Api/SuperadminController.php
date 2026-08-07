@@ -83,4 +83,30 @@ class SuperadminController
     {
         return response()->json($this->superadminService->admins($id));
     }
+
+    public function resetAdminPassword(Request $request, string $id, string $profileId): JsonResponse
+    {
+        $validated = $request->validate([
+            'password' => ['required', 'string', 'min:6', 'max:72'],
+        ]);
+
+        try {
+            $profile = $this->superadminService->resetAdminPassword($id, $profileId, $validated['password']);
+
+            \Illuminate\Support\Facades\Log::info('superadmin.admin_password_reset', [
+                'business_id' => $id,
+                'target_profile_id' => $profileId,
+                'actor_id' => $request->user()?->id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'id' => $profile->id,
+            ]);
+        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e) {
+            return response()->json(['error' => ['message' => $e->getMessage()]], 404);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => ['message' => 'No fue posible cambiar la contraseña.']], 500);
+        }
+    }
 }
