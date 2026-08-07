@@ -1,10 +1,10 @@
-﻿<template>
+<template>
   <header class="mb-6 lg:mb-8">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1.5">
           <SettingsIcon class="h-3.5 w-3.5" />
-          <span>ConfiguraciÃ³n</span>
+          <span>Configuración</span>
         </div>
         <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Ajustes del Negocio</h1>
         <p class="mt-1 text-sm text-text-muted">Personaliza la experiencia de tu equipo y clientes</p>
@@ -14,7 +14,7 @@
 
   <div class="space-y-5 lg:space-y-6">
 
-    <!-- â•â•â•â•â•â•â•â•â•â•â• GENERAL â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- ═══════════ GENERAL ═══════════ -->
     <section class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
       <div class="flex items-center gap-3 mb-6">
         <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-900/30 text-amber-600">
@@ -22,7 +22,7 @@
         </div>
         <div>
           <h2 class="text-base font-semibold text-text">General</h2>
-          <p class="text-xs text-text-muted">Apariencia, seguridad y preferencias bÃ¡sicas</p>
+          <p class="text-xs text-text-muted">Apariencia, seguridad y preferencias básicas</p>
         </div>
       </div>
 
@@ -63,7 +63,7 @@
                   v-model="passwordForm.currentPassword"
                   :type="showCurrentPassword ? 'text' : 'password'"
                   required
-                  placeholder="ContraseÃ±a actual"
+                  placeholder="Contraseña actual"
                   class="w-full rounded-lg border border-border bg-surface pl-9 pr-9 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-text-muted disabled:opacity-50"
                   :disabled="passwordLoading"
                 />
@@ -86,7 +86,7 @@
                   v-model="passwordForm.newPassword"
                   :type="showNewPassword ? 'text' : 'password'"
                   required minlength="6"
-                  placeholder="Nueva clave (mÃ­n. 6 caracteres)"
+                  placeholder="Nueva clave (mín. 6 caracteres)"
                   class="w-full rounded-lg border border-border bg-surface pl-9 pr-9 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-text-muted disabled:opacity-50"
                   :disabled="passwordLoading"
                 />
@@ -126,7 +126,7 @@
       </div>
     </section>
 
-    <!-- â•â•â•â•â•â•â•â•â•â•â• WHATSAPP (solo si superadmin lo habilitÃ³) â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- ═══════════ WHATSAPP (solo si superadmin lo habilitó) ═══════════ -->
     <section v-if="businessStore.features.whatsapp_available" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
       <div class="flex items-center gap-3 mb-6">
         <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-100 dark:bg-green-900/30 text-green-600">
@@ -136,13 +136,13 @@
         </div>
         <div>
           <h2 class="text-base font-semibold text-text">WhatsApp</h2>
-          <p class="text-xs text-text-muted">ConfiguraciÃ³n de WhatsApp para recordatorios automÃ¡ticos</p>
+          <p class="text-xs text-text-muted">Configuración de WhatsApp para recordatorios automáticos</p>
         </div>
       </div>
       <WhatsAppSettings />
     </section>
 
-    <!-- â•â•â•â•â•â•â•â•â•â•â• PERMISOS Y FUNCIONALIDADES (admin) â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- ═══════════ PERMISOS Y FUNCIONALIDADES (admin) ═══════════ -->
     <section v-if="isAdmin" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
       <div class="flex items-center gap-3 mb-6">
         <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600">
@@ -152,12 +152,12 @@
         </div>
         <div>
           <h2 class="text-base font-semibold text-text">Permisos y Funcionalidades</h2>
-          <p class="text-xs text-text-muted">Controla quÃ© pueden hacer tus encargados y empleados</p>
+          <p class="text-xs text-text-muted">Controla qué pueden hacer tus encargados y empleados</p>
         </div>
       </div>
 
       <div class="space-y-8">
-        <!-- SubcategorÃ­a: Encargados -->
+        <!-- Subcategoría: Encargados -->
         <div>
           <div class="flex items-center gap-2.5 mb-2 px-1">
             <svg class="h-4 w-4 text-purple-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -169,16 +169,16 @@
             <FormToggle
               :model-value="!!businessStore.features.disable_manager_inventory_edit"
               @update:model-value="toggleManagerInventoryEdit"
-              label="Desactivar ediciÃ³n de inventario"
-              hint="Los encargados solo podrÃ¡n ver el inventario y vender en el POS, sin ajustar cantidades ni costos."
+              label="Desactivar edición de inventario"
+              hint="Los encargados solo podrán ver el inventario y vender en el POS, sin ajustar cantidades ni costos."
               :disabled="updatingFeatures"
               class="px-5 py-5"
             />
             <FormToggle
               :model-value="!!businessStore.features.encargados_change_exchange_rate"
               @update:model-value="handleToggleEncargadoExchangeRate"
-              label="Permitir cambiar la tasa del dÃ­a"
-              hint="Los encargados podrÃ¡n modificar la tasa de cambio principal Bs/$"
+              label="Permitir cambiar la tasa del día"
+              hint="Los encargados podrán modificar la tasa de cambio principal Bs/$"
               :disabled="updatingFeatures"
               class="px-5 py-5"
             />
@@ -186,22 +186,22 @@
               :model-value="!!businessStore.features.encargados_change_employee_rate"
               @update:model-value="handleToggleEncargadoEmployeeRate"
               label="Permitir cambiar tasa de empleados"
-              hint="Los encargados podrÃ¡n modificar la tasa Bs asignada a cada empleado"
+              hint="Los encargados podrán modificar la tasa Bs asignada a cada empleado"
               :disabled="updatingFeatures"
               class="px-5 py-5"
             />
             <FormToggle
               :model-value="!!businessStore.features.disable_employee_commission_edit"
               @update:model-value="handleToggleDisableCommissionEdit"
-              label="Bloquear ediciÃ³n de comisiones"
-              hint="Encargados y empleados NO podrÃ¡n modificar porcentajes de ganancia en las citas"
+              label="Bloquear edición de comisiones"
+              hint="Encargados y empleados NO podrán modificar porcentajes de ganancia en las citas"
               :disabled="updatingFeatures"
               class="px-5 py-5"
             />
           </div>
         </div>
 
-        <!-- SubcategorÃ­a: Empleados -->
+        <!-- Subcategoría: Empleados -->
         <div>
           <div class="flex items-center gap-2.5 mb-2 px-1">
             <svg class="h-4 w-4 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -213,23 +213,23 @@
             <FormToggle
               :model-value="!!businessStore.features.employees_see_clients"
               @update:model-value="handleToggleEmployeesSeeClients"
-              label="Permitir mÃ³dulo de clientes"
-              hint="Los empleados tendrÃ¡n acceso al mÃ³dulo de Clientes en su menÃº lateral"
+              label="Permitir módulo de clientes"
+              hint="Los empleados tendrán acceso al módulo de Clientes en su menú lateral"
               :disabled="updatingFeatures"
               class="px-5 py-5"
             />
             <FormToggle
               :model-value="!!businessStore.features.hide_client_phone_from_employees"
               @update:model-value="handleToggleHideClientPhone"
-              label="Ocultar telÃ©fono y email de clientes"
-              hint="Los empleados no verÃ¡n datos de contacto de clientes. No impedirÃ¡ crear citas."
+              label="Ocultar teléfono y email de clientes"
+              hint="Los empleados no verán datos de contacto de clientes. No impedirá crear citas."
               :disabled="updatingFeatures"
               class="px-5 py-5"
             />
           </div>
         </div>
 
-        <!-- SubcategorÃ­a: POS y Ventas -->
+        <!-- Subcategoría: POS y Ventas -->
         <div>
           <div class="flex items-center gap-2.5 mb-2 px-1">
             <svg class="h-4 w-4 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -250,7 +250,7 @@
               :model-value="!!businessStore.features.daily_report_autofill_from_pos"
               @update:model-value="handleToggleDailyReportAutofill"
               label="Traer del POS en el Reporte Diario"
-              hint="Habilita el botÃ³n que llena los montos por mÃ©todo de pago del Reporte Diario con lo cobrado ese dÃ­a en el POS"
+              hint="Habilita el botón que llena los montos por método de pago del Reporte Diario con lo cobrado ese día en el POS"
               :disabled="updatingFeatures"
               class="px-5 py-5"
             />
@@ -259,7 +259,7 @@
       </div>
     </section>
 
-    <!-- â•â•â•â•â•â•â•â•â•â•â• NOTIFICACIONES â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- ═══════════ NOTIFICACIONES ═══════════ -->
     <section class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
       <div class="flex items-center gap-3 mb-6">
         <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600">
@@ -269,7 +269,7 @@
         </div>
         <div>
           <h2 class="text-base font-semibold text-text">Notificaciones y recordatorios</h2>
-          <p class="text-xs text-text-muted">Configura alertas, recordatorios automÃ¡ticos y reservas pÃºblicas</p>
+          <p class="text-xs text-text-muted">Configura alertas, recordatorios automáticos y reservas públicas</p>
         </div>
       </div>
 
@@ -294,7 +294,7 @@
           <p class="text-xs text-text-muted">Notifica en la campanita 24h y 1h antes de cada cita. No requiere WhatsApp.</p>
         </div>
 
-        <!-- Recordatorios por WhatsApp (solo si superadmin lo habilitÃ³) -->
+        <!-- Recordatorios por WhatsApp (solo si superadmin lo habilitó) -->
         <div v-if="businessStore.features.whatsapp_available" class="py-4 first:pt-0 last:pb-0">
           <div class="flex items-center justify-between mb-2">
             <label class="text-sm font-semibold text-text">Recordatorios por WhatsApp</label>
@@ -310,7 +310,7 @@
               />
             </button>
           </div>
-          <p class="text-xs text-text-muted">EnvÃ­a recordatorios 24h y 1h antes por WhatsApp. Requiere conectar WhatsApp en la secciÃ³n de abajo.</p>
+          <p class="text-xs text-text-muted">Envía recordatorios 24h y 1h antes por WhatsApp. Requiere conectar WhatsApp en la sección de abajo.</p>
         </div>
 
         <!-- Recordatorios de citas pendientes -->
@@ -329,7 +329,7 @@
               />
             </button>
           </div>
-          <p class="text-xs text-text-muted mb-1">Recibe un resumen diario de las citas que aÃºn no han sido confirmadas</p>
+          <p class="text-xs text-text-muted mb-1">Recibe un resumen diario de las citas que aún no han sido confirmadas</p>
 
           <div v-if="businessStore.features.pending_notifications_enabled" class="mt-3">
             <label class="text-xs font-medium text-text-secondary mb-1.5 block">Recibir resumen de citas pendientes a las:</label>
@@ -354,15 +354,15 @@
             </div>
             <p class="text-[11px] text-text-muted mt-1.5 flex items-center gap-1">
               <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              Todos los dÃ­as a las {{ displayNotificationHour }}
+              Todos los días a las {{ displayNotificationHour }}
             </p>
           </div>
         </div>
 
-        <!-- Reservas pÃºblicas / Invitaciones -->
+        <!-- Reservas públicas / Invitaciones -->
         <div class="py-4 first:pt-0 last:pb-0">
           <div class="flex items-center justify-between mb-2">
-            <label class="text-sm font-semibold text-text">Reservas pÃºblicas por link</label>
+            <label class="text-sm font-semibold text-text">Reservas públicas por link</label>
             <button
               @click="handleToggleFeature('enable_public_booking')"
               :disabled="updatingFeatures"
@@ -375,7 +375,7 @@
               />
             </button>
           </div>
-          <p class="text-xs text-text-muted">Permite que clientes agenden citas mediante un link compartible. Los empleados podrÃ¡n enviar invitaciones desde su agenda.</p>
+          <p class="text-xs text-text-muted">Permite que clientes agenden citas mediante un link compartible. Los empleados podrán enviar invitaciones desde su agenda.</p>
         </div>
 
         <!-- Notificaciones Push -->
@@ -414,10 +414,10 @@
           </div>
           <p class="text-xs text-text-muted">
             <template v-if="pushPermission === 'granted'">
-              RecibirÃ¡s alertas de nuevas citas y recordatorios aunque tengas la app en segundo plano.
+              Recibirás alertas de nuevas citas y recordatorios aunque tengas la app en segundo plano.
             </template>
             <template v-else-if="pushPermission === 'denied'">
-              Las notificaciones estÃ¡n bloqueadas. Ve a Ajustes del navegador para permitirlas.
+              Las notificaciones están bloqueadas. Ve a Ajustes del navegador para permitirlas.
             </template>
             <template v-else>
               Recibe recordatorios y alertas directamente en tu pantalla, incluso con la app cerrada.
@@ -428,7 +428,7 @@
       </div>
     </section>
 
-    <!-- â•â•â•â•â•â•â•â•â•â•â• SUCURSALES â•â•â•â•â•â•â•â•â•â•â• -->
+    <!-- ═══════════ SUCURSALES ═══════════ -->
     <template v-if="businessStore.isMultiBranch">
 
       <section class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
@@ -440,7 +440,7 @@
           </div>
           <div class="flex-1">
             <h2 class="text-base font-semibold text-text">Sucursales</h2>
-            <p class="text-xs text-text-muted">Gestiona las ubicaciones fÃ­sicas de tu negocio</p>
+            <p class="text-xs text-text-muted">Gestiona las ubicaciones físicas de tu negocio</p>
           </div>
           <button
             @click="branchesCtx.openNew()"
@@ -464,7 +464,7 @@
           <EmptyState
             icon="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
             title="No hay sucursales"
-            subtitle="Agrega tu primera ubicaciÃ³n fÃ­sica"
+            subtitle="Agrega tu primera ubicación física"
             action-label="Nueva sucursal"
             @action="branchesCtx.openNew()"
           />
@@ -563,7 +563,7 @@ async function handleToggleEncargadoExchangeRate(val: boolean) {
       features: updatedFeatures,
     })
     businessStore.updateBusiness({ features: updatedFeatures } as any)
-    success(val ? 'Permiso activado: Los encargados ya pueden modificar la tasa del dÃ­a' : 'Permiso desactivado')
+    success(val ? 'Permiso activado: Los encargados ya pueden modificar la tasa del día' : 'Permiso desactivado')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
   } finally {
@@ -648,7 +648,7 @@ async function handleToggleEmployeesSeeClients(val: boolean) {
       features: updatedFeatures,
     })
     businessStore.updateBusiness({ features: updatedFeatures } as any)
-    success(val ? 'MÃ³dulo de clientes activado para empleados' : 'MÃ³dulo de clientes desactivado para empleados (seguirÃ¡n viendo nombres en sus citas)')
+    success(val ? 'Módulo de clientes activado para empleados' : 'Módulo de clientes desactivado para empleados (seguirán viendo nombres en sus citas)')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
   } finally {
@@ -665,7 +665,7 @@ async function handleToggleHideClientPhone(val: boolean) {
       features: updatedFeatures,
     })
     businessStore.updateBusiness({ features: updatedFeatures } as any)
-    success(val ? 'TelÃ©fono y email ocultos para empleados' : 'TelÃ©fono y email visibles para empleados')
+    success(val ? 'Teléfono y email ocultos para empleados' : 'Teléfono y email visibles para empleados')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
   } finally {
@@ -767,14 +767,14 @@ async function handleChangePassword() {
       current_password: passwordForm.currentPassword,
       new_password: passwordForm.newPassword,
     })
-    passwordSuccess.value = 'ContraseÃ±a actualizada correctamente.'
+    passwordSuccess.value = 'Contraseña actualizada correctamente.'
     passwordForm.currentPassword = ''
     passwordForm.newPassword = ''
     showCurrentPassword.value = false
     showNewPassword.value = false
     setTimeout(() => { passwordSuccess.value = '' }, 4000)
   } catch (err: any) {
-    passwordError.value = err?.message ?? 'Error al cambiar la contraseÃ±a.'
+    passwordError.value = err?.message ?? 'Error al cambiar la contraseña.'
   } finally {
     passwordLoading.value = false
   }
@@ -815,7 +815,7 @@ async function toggleManagerInventoryEdit(val: boolean) {
       features: updatedFeatures,
     })
     businessStore.updateBusiness({ features: updatedFeatures } as any)
-    success(val ? 'Permiso activado: Desactivada ediciÃ³n de inventario para encargados' : 'Permiso desactivado: Permitida ediciÃ³n de inventario')
+    success(val ? 'Permiso activado: Desactivada edición de inventario para encargados' : 'Permiso desactivado: Permitida edición de inventario')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
   } finally {
@@ -857,7 +857,7 @@ async function handlePendingNotificationHourChange() {
       features: updatedFeatures,
     })
     businessStore.updateBusiness({ features: updatedFeatures } as any)
-    success(`Hora de notificaciÃ³n actualizada a las ${String(hour).padStart(2, '0')}:00`)
+    success(`Hora de notificación actualizada a las ${String(hour).padStart(2, '0')}:00`)
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar la hora')
   } finally {
@@ -868,7 +868,7 @@ async function handlePendingNotificationHourChange() {
 const featureLabels: Record<string, string> = {
   reminder_24h_enabled: 'Recordatorios internos',
   whatsapp_reminders_enabled: 'Recordatorios por WhatsApp',
-  enable_public_booking: 'Reservas pÃºblicas',
+  enable_public_booking: 'Reservas públicas',
 }
 
 async function handleToggleFeature(featureKey: string) {
@@ -885,7 +885,7 @@ async function handleToggleFeature(featureKey: string) {
     const label = featureLabels[featureKey] || featureKey
     success(`${label}: ${newVal ? 'Activado' : 'Desactivado'}`)
   } catch (err: any) {
-    showError(err?.message ?? 'Error al actualizar la configuraciÃ³n')
+    showError(err?.message ?? 'Error al actualizar la configuración')
   } finally {
     updatingFeatures.value = false
   }

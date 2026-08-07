@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { DollarIcon, CardIcon, ClipboardIcon, ClockCircleIcon, ArrowLeftIcon, ArrowRightIcon, AddCircleIcon, MinusCircleIcon, UsersGroupRoundedIcon, PenIcon, TrashBin2Icon, PrinterIcon } from '@solar-icons/vue/linear'
 import { useCurrency } from '../../composables/common/useCurrency'
@@ -19,13 +19,13 @@ function weekStart(d: Date): Date { const c = dayStart(d); const day = (c.getDay
 function monthStart(y: number, m: number): Date { return new Date(y, m, 1) }
 function monthEnd(y: number, m: number): Date { return new Date(y, m + 1, 0, 23, 59, 59, 999) }
 
-// â”€â”€ NÃ³mina period state â”€â”€
+// ── Nómina period state ──
 type Periodo = 'day' | 'week' | 'month'
 const nominaPeriod = ref<Periodo>('month')
 const nominaDate = ref(new Date())
 
 const nominaPeriodTabs = [
-  { key: 'day', label: 'DÃ­a' },
+  { key: 'day', label: 'Día' },
   { key: 'week', label: 'Semana' },
   { key: 'month', label: 'Mes' },
 ]
@@ -137,7 +137,7 @@ const emit = defineEmits<{
 
 const tabs = [
   { key: 'pagos' as const, label: 'Servicios Realizados', shortLabel: 'Servicios' },
-  { key: 'nomina' as const, label: 'Pago de NÃ³mina', shortLabel: 'NÃ³mina' },
+  { key: 'nomina' as const, label: 'Pago de Nómina', shortLabel: 'Nómina' },
   { key: 'deuda' as const, label: 'Deuda por Empleado', shortLabel: 'Deuda' },
   { key: 'horarios' as const, label: 'Horarios del Equipo', shortLabel: 'Horarios' },
 ]
@@ -170,9 +170,9 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
       <div>
         <h3 class="text-sm sm:text-base font-semibold text-text flex items-center gap-2">
           <UsersGroupRoundedIcon :size="18" class="text-text-muted" />
-          GestiÃ³n de Pagos y Horarios
+          Gestión de Pagos y Horarios
         </h3>
-        <p class="text-xs text-text-muted mt-0.5">Comisiones, nÃ³mina, deuda y horarios del equipo</p>
+        <p class="text-xs text-text-muted mt-0.5">Comisiones, nómina, deuda y horarios del equipo</p>
       </div>
 
       <!-- Month Selector -->
@@ -201,7 +201,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
         </button>
       </div>
 
-      <!-- NÃ³mina period selector -->
+      <!-- Nómina period selector -->
       <div v-if="activeTab === 'nomina'" class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
         <SegmentedTabs :tabs="nominaPeriodTabs" :model-value="nominaPeriod" @update:model-value="onNominaPeriodChange" />
         <div class="flex items-center gap-1.5">
@@ -267,14 +267,14 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
             <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">%
               {{ businessStore.terminology.employee || 'Empleado' }}</th>
             <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-              ComisiÃ³n</th>
+              Comisión</th>
             <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
               Propina</th>
           </template>
           <template #desktop-tbody="{ items }">
             <tr v-for="payment in items" :key="payment.id" class="text-xs transition-theme hover:bg-bg-secondary/40">
               <td class="px-3 py-3 font-medium text-text">{{ payment.employee }}</td>
-              <td class="px-3 py-3 text-text-secondary">{{ payment.client || 'â€”' }}</td>
+              <td class="px-3 py-3 text-text-secondary">{{ payment.client || '—' }}</td>
               <td class="px-3 py-3 text-text-secondary">{{ payment.service }}</td>
               <td class="px-3 py-3 text-right hidden sm:table-cell">
                 <div class="text-text">{{ formatUSD(payment.amount) }}</div>
@@ -287,7 +287,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
               </td>
               <td class="px-3 py-3 text-right">
                 <span v-if="(payment.tipAmount ?? 0) > 0" class="font-semibold text-primary">{{ formatUSD(payment.tipAmount) }}</span>
-                <span v-else class="text-text-muted">â€”</span>
+                <span v-else class="text-text-muted">—</span>
               </td>
             </tr>
           </template>
@@ -303,12 +303,12 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
                 <span class="text-text-muted">Costo</span><span class="text-right"><span class="text-text">{{
                   formatUSD(payment.amount) }}</span><span class="text-text-muted ml-1">{{
                       formatVESInline(payment.amount) }} Bs</span></span>
-                <span class="text-text-muted">ComisiÃ³n</span><span class="text-right"><span
+                <span class="text-text-muted">Comisión</span><span class="text-right"><span
                     class="font-semibold text-success">{{ formatUSD(payment.earnings) }}</span><span
                     class="text-text-muted ml-1">{{ formatVESInline(payment.earnings) }} Bs</span></span>
                 <span class="text-text-muted">Propina</span><span class="text-right">
                   <span v-if="(payment.tipAmount ?? 0) > 0" class="font-semibold text-primary">{{ formatUSD(payment.tipAmount) }}</span>
-                  <span v-else class="text-text-muted">â€”</span>
+                  <span v-else class="text-text-muted">—</span>
                 </span>
               </div>
             </div>
@@ -316,10 +316,10 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
         </RecordSection>
       </div>
 
-      <!-- NÃ³mina -->
+      <!-- Nómina -->
       <div v-if="activeTab === 'nomina'">
         <RecordSection title="" :items="paginatedNomina" :total-count="filteredNomina.length"
-          empty-message="No hay pagos de nÃ³mina registrados" :pages="nominaP" :page-size="pageSize" @prev="tabPage--"
+          empty-message="No hay pagos de nómina registrados" :pages="nominaP" :page-size="pageSize" @prev="tabPage--"
           @next="tabPage++">
           <template #desktop-thead>
             <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
@@ -328,11 +328,11 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
               businessStore.terminology.employee || 'Empleado' }}</th>
             <th
               class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
-              MÃ©todo</th>
+              Método</th>
             <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
               Monto</th>
             <th class="px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-              AcciÃ³n</th>
+              Acción</th>
           </template>
           <template #desktop-tbody="{ items }">
             <tr v-for="ep in items" :key="ep.id" class="text-xs transition-theme hover:bg-bg-secondary/40">
@@ -393,7 +393,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
               Tipo</th>
             <th
               class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
-              ComisiÃ³n</th>
+              Comisión</th>
             <th
               class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
               Sueldo base</th>
@@ -413,7 +413,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
               <td class="px-3 py-3 text-text-secondary text-xs hidden sm:table-cell"><span
                   v-if="row.payType === 'salary'">Sueldo base</span><span v-else-if="row.payType === 'mixed'">Sueldo +
                   {{ row.payPercentage }}%</span><span v-else-if="row.payType === 'percentage'">{{ row.payPercentage
-                  }}%</span><span v-else>â€”</span></td>
+                  }}%</span><span v-else>—</span></td>
               <td class="px-3 py-3 text-right text-text hidden sm:table-cell">{{ formatUSD(row.commissionTotal) }}</td>
               <td class="px-3 py-3 text-right text-text hidden sm:table-cell">{{ formatUSD(row.baseSalary) }}</td>
               <td class="px-3 py-3 text-right font-semibold text-text">{{ formatUSD(row.totalEarned) }}</td>

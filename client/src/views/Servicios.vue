@@ -1,10 +1,10 @@
-﻿<template>
+<template>
   <header class="mb-5 lg:mb-8">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
         <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1.5">
           <StarIcon class="h-3.5 w-3.5" />
-          <span>CatÃ¡logo</span>
+          <span>Catálogo</span>
         </div>
         <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">{{ businessStore.terminology.service || 'Servicio' }}s</h1>
       </div>
@@ -13,13 +13,13 @@
           <button
             @click="showCatMenu = !showCatMenu"
             class="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-text-secondary shadow-sm transition-theme hover:bg-bg-secondary hover:text-text"
-            title="Gestionar categorÃ­as"
+            title="Gestionar categorías"
           >
             <PenIcon class="h-4 w-4" />
           </button>
           <div v-if="showCatMenu" class="absolute left-0 top-full mt-1 w-56 rounded-xl border border-border bg-surface shadow-lg z-50 overflow-hidden" style="overflow: clip;">
             <div class="px-3 py-2 border-b border-border-subtle">
-              <p class="text-[10px] font-bold uppercase tracking-wider text-text-muted">Gestionar categorÃ­as</p>
+              <p class="text-[10px] font-bold uppercase tracking-wider text-text-muted">Gestionar categorías</p>
             </div>
             <div class="max-h-60 overflow-y-auto py-1 touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
               <button
@@ -35,17 +35,17 @@
                 </span>
               </button>
               <div v-if="addingCategory" class="flex items-center gap-1.5 px-3 py-2 border-t border-border-subtle">
-                <input v-model="newCatName" type="text" placeholder="Nombre de categorÃ­a..."
+                <input v-model="newCatName" type="text" placeholder="Nombre de categoría..."
                   class="flex-1 rounded border border-border bg-bg px-2 py-1 text-sm text-text outline-none focus:border-primary"
                   @keyup.enter="addCategory" />
                 <button @click="addCategory" class="rounded bg-primary px-2 py-1 text-xs font-semibold text-white">Agregar</button>
-                <button @click="addingCategory = false; newCatName = ''" class="rounded px-1.5 py-1 text-xs text-text-muted hover:text-text">âœ•</button>
+                <button @click="addingCategory = false; newCatName = ''" class="rounded px-1.5 py-1 text-xs text-text-muted hover:text-text">✕</button>
               </div>
               <button v-else
                 @click="addingCategory = true"
                 class="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm text-primary font-medium transition-colors hover:bg-primary/5 border-t border-border-subtle">
                 <AddCircleIcon class="h-4 w-4" />
-                Agregar categorÃ­a
+                Agregar categoría
               </button>
             </div>
           </div>
@@ -76,7 +76,7 @@
       icon="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
       icon-color="success"
       :value="totalCategorias"
-      label="CategorÃ­as"
+      label="Categorías"
     />
     <StatCard
       icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
@@ -119,7 +119,7 @@
       <input
         v-model="searchQuery"
         type="text"
-        placeholder="Buscar por nombre o categorÃ­a..."
+        placeholder="Buscar por nombre o categoría..."
         class="w-full rounded-xl border border-border bg-surface py-2.5 pl-10 pr-4 text-sm text-text placeholder:text-text-muted outline-none transition-theme focus:border-primary"
       />
     </div>
@@ -142,7 +142,7 @@
     v-if="filteredServices.length === 0"
     icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
     title="No hay servicios"
-    :subtitle="searchQuery ? 'No se encontraron servicios con ese criterio de bÃºsqueda.' : 'No se encontraron servicios en esta categorÃ­a.'"
+    :subtitle="searchQuery ? 'No se encontraron servicios con ese criterio de búsqueda.' : 'No se encontraron servicios en esta categoría.'"
   />
 
   <!-- Modals -->
@@ -155,7 +155,7 @@
   <ModalBase
     :is-open="isDeleteModalOpen"
     :title="`Eliminar ${businessStore.terminology.service || 'Servicio'}`"
-    subtitle="Esta acciÃ³n no se puede deshacer"
+    subtitle="Esta acción no se puede deshacer"
     icon="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
     variant="danger"
     size="sm"
@@ -167,15 +167,15 @@
     @cancel="isDeleteModalOpen = false"
   >
     <p class="text-sm text-text-secondary">
-      Â¿EstÃ¡s seguro de que deseas eliminar <strong>{{ servicioToDelete?.name }}</strong>?
-      Este servicio serÃ¡ eliminado permanentemente del catÃ¡logo.
+      ¿Estás seguro de que deseas eliminar <strong>{{ servicioToDelete?.name }}</strong>?
+      Este servicio será eliminado permanentemente del catálogo.
     </p>
   </ModalBase>
 
   <ModalBase
     :is-open="isRenameCategoryOpen"
-    title="Editar categorÃ­a"
-    subtitle="Actualiza el nombre de la categorÃ­a"
+    title="Editar categoría"
+    subtitle="Actualiza el nombre de la categoría"
     icon="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
     size="sm"
     confirm-text="Guardar"
@@ -191,14 +191,14 @@
       v-model="newCategoryName"
       type="text"
       class="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary"
-      placeholder="Nombre de la categorÃ­a"
+      placeholder="Nombre de la categoría"
     />
   </ModalBase>
 
   <ModalBase
     :is-open="isDeleteCategoryOpen"
-    title="Eliminar categorÃ­a"
-    subtitle="Los servicios quedarÃ¡n sin categorÃ­a o se moverÃ¡n a otra"
+    title="Eliminar categoría"
+    subtitle="Los servicios quedarán sin categoría o se moverán a otra"
     icon="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
     variant="danger"
     size="sm"
@@ -210,16 +210,16 @@
     @cancel="closeDeleteCategoryModal"
   >
     <p class="mb-3 text-sm text-text-secondary">
-      La categorÃ­a <strong>{{ categoryToDelete }}</strong> serÃ¡ eliminada.
-      Los servicios se mostrarÃ¡n en <strong>Todos</strong>.
+      La categoría <strong>{{ categoryToDelete }}</strong> será eliminada.
+      Los servicios se mostrarán en <strong>Todos</strong>.
     </p>
-    <label class="mb-2 block text-sm font-medium text-text" for="replacement-category">Mover a otra categorÃ­a (opcional)</label>
+    <label class="mb-2 block text-sm font-medium text-text" for="replacement-category">Mover a otra categoría (opcional)</label>
     <select
       id="replacement-category"
       v-model="replacementCategory"
       class="w-full rounded-lg border border-border bg-bg px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary"
     >
-      <option value="">Sin categorÃ­a</option>
+      <option value="">Sin categoría</option>
       <option
         v-for="cat in deleteCategoryOptions"
         :key="cat.id"
@@ -321,7 +321,7 @@ const addCategory = async () => {
   const name = newCatName.value.trim()
   if (!name || !businessId.value) return
   const exists = categories.value.some(c => c.name.toLowerCase() === name.toLowerCase())
-  if (exists) { showError('Esa categorÃ­a ya existe'); return }
+  if (exists) { showError('Esa categoría ya existe'); return }
   try {
     if (branchId.value) {
       const updated = await addBranchCategory(branchId.value, name)
@@ -332,7 +332,7 @@ const addCategory = async () => {
     }
     newCatName.value = ''
     addingCategory.value = false
-    success('CategorÃ­a agregada')
+    success('Categoría agregada')
     await Promise.allSettled([
       queryClient.invalidateQueries({ exact: false, queryKey: ['business', businessId.value] }),
       queryClient.invalidateQueries({ exact: false, queryKey: ['branches', businessId.value] }),
@@ -344,7 +344,7 @@ const addCategory = async () => {
       ...(branchId.value ? [queryClient.refetchQueries({ exact: false, queryKey: ['branches', businessId.value] })] : []),
     ])
   } catch (err) {
-    showError('Error al agregar categorÃ­a')
+    showError('Error al agregar categoría')
   }
 }
 

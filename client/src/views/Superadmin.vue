@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <SuperadminLayout>
     <!-- Stats -->
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-6">
@@ -35,13 +35,13 @@
 
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="block text-xs font-semibold text-text mb-1">Email del dueÃ±o</label>
+              <label class="block text-xs font-semibold text-text mb-1">Email del dueño</label>
               <input v-model="form.ownerEmail" type="email" placeholder="dueno@spa.com"
                 class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text placeholder:text-text-muted/50 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
             </div>
             <div>
-              <label class="block text-xs font-semibold text-text mb-1">ContraseÃ±a</label>
-              <input v-model="form.ownerPassword" type="password" placeholder="MÃ­nimo 6 caracteres"
+              <label class="block text-xs font-semibold text-text mb-1">Contraseña</label>
+              <input v-model="form.ownerPassword" type="password" placeholder="Mínimo 6 caracteres"
                 class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text placeholder:text-text-muted/50 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
             </div>
           </div>
@@ -95,9 +95,9 @@
               </div>
               <div class="flex items-center gap-2 mt-1 text-[11px] text-text-muted">
                 <span>{{ biz.slug }}</span>
-                <span>Â·</span>
+                <span>·</span>
                 <span class="capitalize">{{ biz.niche_type?.replace(/_/g, ' ') || 'Sin nicho' }}</span>
-                <span>Â·</span>
+                <span>·</span>
                 <span>{{ formatDate(biz.created_at) }}</span>
               </div>
             </div>
@@ -182,11 +182,11 @@ const handleSubmit = async () => {
     return
   }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.value.ownerEmail.trim())) {
-    formError.value = 'El formato del email no es vÃ¡lido.'
+    formError.value = 'El formato del email no es válido.'
     return
   }
   if (form.value.ownerPassword.trim().length < 6) {
-    formError.value = 'La contraseÃ±a debe tener al menos 6 caracteres.'
+    formError.value = 'La contraseña debe tener al menos 6 caracteres.'
     return
   }
   await createBusiness({

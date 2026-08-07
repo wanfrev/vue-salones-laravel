@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div
     class="fixed left-2 right-2 top-16 z-50 rounded-xl border border-border bg-surface shadow-lg sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-80 sm:max-w-none"
   >
@@ -10,7 +10,7 @@
         </span>
         <button v-if="notifications.length > 1" @click="handleMarkAllAsRead"
           class="rounded-md px-2 py-1 text-[11px] font-medium text-text-muted transition-colors hover:bg-bg-secondary hover:text-text sm:text-xs"
-          title="Marcar todas leÃ­das">
+          title="Marcar todas leídas">
           <span class="hidden sm:inline">Marcar todas</span>
           <span class="sm:hidden">Todas</span>
         </button>

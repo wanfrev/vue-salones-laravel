@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div class="min-h-screen bg-bg">
     <!-- Top Header -->
     <header class="fixed left-0 right-0 top-0 z-50 bg-surface border-b border-border pt-[var(--safe-top)]">
@@ -33,7 +33,7 @@
             </div>
             <button @click="logout" :disabled="loading" class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-secondary disabled:opacity-40 disabled:cursor-not-allowed">
               <LogoutIcon :size="16" />
-              Cerrar sesiÃ³n
+              Cerrar sesión
             </button>
           </div>
           <div v-if="profileOpen" class="fixed inset-0 z-40" @click="profileOpen = false" />

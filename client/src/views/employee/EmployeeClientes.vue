@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <AppLayout>
     <div class="space-y-4">
       <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -25,7 +25,7 @@
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Buscar por nombre, telÃ©fono o email..."
+          placeholder="Buscar por nombre, teléfono o email..."
           class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
         />
         <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
@@ -40,7 +40,7 @@
               <tr class="border-b border-border">
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">{{ t.client || 'Cliente' }}</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Contacto</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Ãšltima visita</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Última visita</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">{{ t.appointment || 'Cita' }}s</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Gasto</th>
                 <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-text-muted">WhatsApp</th>

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <header class="mb-4 lg:mb-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
@@ -36,7 +36,7 @@
               @change="onCustomFromChange"
               class="w-[120px] rounded-md border border-border bg-surface px-2 py-1 text-xs text-text text-center outline-none transition-theme focus:border-primary"
             />
-            <span class="text-xs text-text-muted">â€”</span>
+            <span class="text-xs text-text-muted">—</span>
             <input
               type="date"
               :value="customTo"
@@ -82,7 +82,7 @@
     <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :hide-tabs="['gastos', 'servicios']" :hide-total="isEncargadoRole" />
   </template>
 
-  <!-- TAB 3: Egresos, Proveedores y NÃ³mina -->
+  <!-- TAB 3: Egresos, Proveedores y Nómina -->
   <template v-if="activeTab === 'egresos'">
     <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :show-only="'gastos'" />
     <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -219,7 +219,7 @@ const incomeBreakdown = computed(() => {
     title: 'Desglose de Ingresos', usdTotal: totalUSD, vesTotal: totalVES,
     usdItems: Object.entries(usdByMethod).map(([method, amount]) => ({ label: formatMethod(method), amount })).sort((a, b) => b.amount - a.amount),
     vesItems: Object.entries(vesByMethod).map(([method, amount]) => ({ label: formatMethod(method), amount })).sort((a, b) => b.amount - a.amount),
-    usdLabel: 'MÃ©todo de pago', vesLabel: 'MÃ©todo de pago',
+    usdLabel: 'Método de pago', vesLabel: 'Método de pago',
   }
 })
 
@@ -249,16 +249,16 @@ const expenseBreakdown = computed(() => {
 
   if (opUSD > 0) usdItems.push({ label: 'Gastos Operativos (USD)', amount: opUSD })
   if (supUSD > 0) usdItems.push({ label: 'Abonos a Proveedores (USD)', amount: supUSD })
-  if (empUSD > 0) usdItems.push({ label: 'Pagos de NÃ³mina (USD)', amount: empUSD })
+  if (empUSD > 0) usdItems.push({ label: 'Pagos de Nómina (USD)', amount: empUSD })
 
   if (opVES > 0) vesItems.push({ label: 'Gastos Operativos (Bs)', amount: opVES })
   if (supVES > 0) vesItems.push({ label: 'Abonos a Proveedores (Bs)', amount: supVES })
-  if (empVES > 0) vesItems.push({ label: 'Pagos de NÃ³mina (Bs)', amount: empVES })
+  if (empVES > 0) vesItems.push({ label: 'Pagos de Nómina (Bs)', amount: empVES })
 
   return {
     title: 'Desglose de Gastos', usdTotal: totalUSD, vesTotal: totalVES,
     usdItems, vesItems,
-    usdLabel: 'CategorÃ­a de Egreso', vesLabel: 'CategorÃ­a de Egreso',
+    usdLabel: 'Categoría de Egreso', vesLabel: 'Categoría de Egreso',
   }
 })
 

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <FeatureGate feature="inventario">
   <header class="mb-4 lg:mb-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -105,7 +105,7 @@
             <span class="font-medium tabular-nums" :class="mov.quantity < 0 ? 'text-danger' : 'text-success'">{{ mov.quantity > 0 ? '+' : '' }}{{ mov.quantity }}</span>
             <span class="text-text-muted">Costo: <span class="text-text tabular-nums">${{ mov.unitCost.toFixed(2) }}</span></span>
           </div>
-          <span class="text-xs text-text-muted truncate max-w-28 text-right">{{ mov.notes || 'â€”' }}</span>
+          <span class="text-xs text-text-muted truncate max-w-28 text-right">{{ mov.notes || '—' }}</span>
         </div>
       </div>
       <div v-if="filteredMovements.length === 0" class="py-16 text-center">
@@ -151,7 +151,7 @@
               </td>
               <td class="px-4 py-3 text-right font-medium tabular-nums" :class="mov.quantity < 0 ? 'text-danger' : 'text-success'">{{ mov.quantity > 0 ? '+' : '' }}{{ mov.quantity }}</td>
               <td class="px-4 py-3 text-right tabular-nums text-text">${{ mov.unitCost.toFixed(2) }}</td>
-              <td class="px-4 py-3 text-text-muted max-w-40 truncate">{{ mov.notes || 'â€”' }}</td>
+              <td class="px-4 py-3 text-text-muted max-w-40 truncate">{{ mov.notes || '—' }}</td>
             </tr>
           </tbody>
         </table>
@@ -185,7 +185,7 @@
   <ModalBase
     :is-open="isDeleteModalOpen"
     title="Desactivar producto"
-    subtitle="Esta acciÃ³n no se puede deshacer"
+    subtitle="Esta acción no se puede deshacer"
     icon="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
     variant="danger"
     size="sm"
@@ -196,15 +196,15 @@
     @cancel="closeDeleteModal"
   >
     <p class="text-sm text-text-secondary">
-      Â¿EstÃ¡s seguro de que deseas desactivar <strong>{{ productoToDelete?.name }}</strong>?
-      El producto dejarÃ¡ de estar disponible en el inventario.
+      ¿Estás seguro de que deseas desactivar <strong>{{ productoToDelete?.name }}</strong>?
+      El producto dejará de estar disponible en el inventario.
     </p>
   </ModalBase>
 
   <ModalBase
     :is-open="isPermanentDeleteModalOpen"
     title="Eliminar producto"
-    subtitle="Esta acciÃ³n es irreversible"
+    subtitle="Esta acción es irreversible"
     icon="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
     variant="danger"
     size="sm"
@@ -216,10 +216,10 @@
   >
     <div class="space-y-3 text-sm">
       <p class="text-text-secondary">
-        Â¿EstÃ¡s seguro de que deseas eliminar permanentemente <strong>{{ productoToDeletePermanently?.name }}</strong>?
+        ¿Estás seguro de que deseas eliminar permanentemente <strong>{{ productoToDeletePermanently?.name }}</strong>?
       </p>
       <div class="rounded-lg border border-danger/30 bg-danger/5 p-3 text-danger">
-        <p class="font-medium">âš ï¸ Esta acciÃ³n eliminarÃ¡ el producto junto con:</p>
+        <p class="font-medium">⚠️ Esta acción eliminará el producto junto con:</p>
         <ul class="mt-1 list-inside list-disc space-y-0.5 text-xs">
           <li>Stock y movimientos de inventario</li>
           <li>Referencias en citas y ventas pasadas</li>

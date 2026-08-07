@@ -221,6 +221,7 @@
           @update:client-phone="retailClientPhone = $event"
         />
         <RetailProductGrid
+          v-if="showRetailCatalog"
           :products="products"
           :is-retail-only="!businessStore.features.agenda"
           @add-product="addRetailProduct"
@@ -454,6 +455,9 @@ const {
   selectMethod,
   addSplit,
   removeSplit,
+  processPayment,
+  processDirectSale,
+  processDirectServiceSale,
   reset: resetPayment
 } = usePOSPayment()
 
@@ -651,6 +655,10 @@ const upcomingAppointments = computed(() => filteredAppointments.value.filter(a 
 const retailFilteredProducts = computed(() =>
   (products.value as any[]).filter((p: any) => Number(p.available_qty ?? 0) > 0)
 )
+
+// The browsable product catalog is a retail-niche affordance — gated on the niche
+// registry's capability, not on a niche id, so it follows NICHES rather than a literal.
+const showRetailCatalog = computed(() => businessStore.hasCapability('catalog.products'))
 
 const addRetailProduct = (product: any) => { 
   addProduct(product); 

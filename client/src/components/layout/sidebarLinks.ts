@@ -1,4 +1,4 @@
-﻿import {
+import {
   CalendarIcon,
   ClockCircleIcon,
   DollarIcon,
@@ -63,7 +63,7 @@ export const sidebarSections: SidebarSection[] = [
     title: 'Ajustes',
     adminOnly: true,
     links: [
-      { to: '/admin/configuracion', label: 'ConfiguraciÃ³n', icon: SettingsIcon, adminOnly: true },
+      { to: '/admin/configuracion', label: 'Configuración', icon: SettingsIcon, adminOnly: true },
     ],
   },
 ]

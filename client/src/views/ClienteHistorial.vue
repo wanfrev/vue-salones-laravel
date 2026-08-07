@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <header class="mb-4 lg:mb-6">
     <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
       <div>
@@ -31,7 +31,7 @@
           class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
         >
           <ClipboardIcon class="h-4 w-4" />
-          Ver Historias ClÃ­nicas
+          Ver Historias Clínicas
         </button>
       </div>
     </div>
@@ -81,7 +81,7 @@
           <p class="text-lg font-bold text-text">${{ totalGasto }}</p>
         </div>
         <div class="rounded-lg bg-bg-secondary p-3">
-          <p class="text-xs text-text-muted">Ãšltima visita</p>
+          <p class="text-xs text-text-muted">Última visita</p>
           <p class="text-lg font-bold text-text">{{ ultimaVisita || 'Sin visitas' }}</p>
         </div>
       </div>

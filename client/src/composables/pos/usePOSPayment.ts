@@ -425,7 +425,6 @@ export function usePOSPayment() {
       return true
     } catch (err) {
       console.error('[POS Checkout Error]', err)
-      alert('Error en checkout: ' + ((err as Error)?.message || JSON.stringify(err)))
       return false
     }
   }
