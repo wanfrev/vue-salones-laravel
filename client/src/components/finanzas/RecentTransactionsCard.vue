@@ -61,7 +61,13 @@
               </svg>
             </div>
             <div class="mt-1 text-[11px] text-text-muted">{{ tx.sourceLabel }}</div>
-            <div v-if="tx.employee" class="mt-0.5 text-[11px] text-text-secondary">{{ tx.employee }}</div>
+            <div v-if="tx.employee" class="mt-0.5 text-[11px]">
+              <span v-if="tx.items || tx.source === 'product_sale'" class="text-primary font-medium flex items-center gap-1">
+                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                Vendido por: {{ tx.employee }}
+              </span>
+              <span v-else class="text-text-secondary">{{ tx.employee }}</span>
+            </div>
           </div>
           <span :class="['rounded-full px-2.5 py-0.5 text-xs font-semibold shrink-0',
             tx.type === 'ingreso' ? 'bg-success/10 text-success' :

@@ -89,6 +89,7 @@
         <template v-if="isTienda">
           <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Fecha</th>
           <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted hidden sm:table-cell">Cliente</th>
+          <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted hidden md:table-cell">Empleado</th>
           <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Factura</th>
           <th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Cant. Prod.</th>
           <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Método</th>
@@ -104,6 +105,13 @@
             <tr class="text-sm transition-theme hover:bg-bg-secondary/60 cursor-pointer" @click="toggleExpand(inv.id)">
               <td class="py-3 text-text-secondary whitespace-nowrap">{{ inv.date }}</td>
               <td class="py-3 text-text font-medium hidden sm:table-cell">{{ inv.clientName || 'Venta directa' }}</td>
+              <td class="py-3 text-text-secondary hidden md:table-cell font-medium">
+                <span v-if="inv.employeeName" class="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-primary text-xs">
+                  <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  {{ inv.employeeName }}
+                </span>
+                <span v-else class="text-text-muted">—</span>
+              </td>
               <td class="py-3 font-medium text-text">
                 <div class="flex items-center gap-1.5">
                   <span class="text-primary font-semibold">Factura</span>
@@ -116,10 +124,14 @@
               <td class="py-3 text-right font-semibold text-success whitespace-nowrap"><div>{{ inv.currency === 'VES' ? formatVESEs(inv.originalAmount) : formatUSD(inv.total) }}</div><div class="text-[10px] text-text-muted mt-0.5">{{ inv.currency === 'VES' ? formatUSD(inv.total) : formatVESInline(inv.total, inv.exchangeRateUsed) + ' Bs' }}</div></td>
             </tr>
             <tr v-if="expandedIds.has(inv.id)" :key="inv.id + '-expanded'" class="bg-bg-secondary/40">
-              <td colspan="6" class="px-6 py-3">
+              <td colspan="7" class="px-6 py-3">
                 <div class="rounded-lg border border-border-subtle bg-surface p-3 space-y-2">
-                  <div class="text-xs font-semibold text-text-secondary flex items-center justify-between">
-                    <span class="flex items-center gap-1.5"><svg class="h-3.5 w-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>Detalle de productos en esta factura</span>
+                  <div class="text-xs font-semibold text-text-secondary flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle pb-2">
+                    <span class="flex items-center gap-1.5">
+                      <svg class="h-3.5 w-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                      Factura · Cliente: <strong class="text-text">{{ inv.clientName || 'Venta directa' }}</strong>
+                      <span v-if="inv.employeeName" class="text-text-muted font-normal ml-2">(Vendido por: <strong class="text-primary font-medium">{{ inv.employeeName }}</strong>)</span>
+                    </span>
                     <span class="text-text-muted font-normal">{{ inv.items.length }} {{ inv.items.length === 1 ? 'ítem' : 'ítems' }}</span>
                   </div>
                   <div class="divide-y divide-border-subtle/50">
@@ -153,6 +165,10 @@
             <div class="font-medium text-text flex items-center justify-between">
               <span>{{ inv.clientName || 'Venta directa' }}</span>
               <span class="text-xs text-primary font-medium">Factura ({{ inv.items.length }} {{ inv.items.length === 1 ? 'prod.' : 'prods.' }})</span>
+            </div>
+            <div v-if="inv.employeeName" class="text-xs text-primary flex items-center gap-1 font-medium">
+              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+              Vendido por: {{ inv.employeeName }}
             </div>
             <div class="flex items-center justify-between text-xs">
               <span class="text-text-muted">Método: {{ formatMethod(inv.paymentMethod) }}</span>

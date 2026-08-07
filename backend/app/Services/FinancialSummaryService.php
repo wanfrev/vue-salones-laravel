@@ -257,6 +257,18 @@ class FinancialSummaryService
                     });
                 });
             })
+            ->leftJoin('appointments', function ($join) {
+                $join->on('inventory_movements.reference_id', '=', 'appointments.id')
+                     ->where('inventory_movements.reference_type', '=', 'appointment');
+            })
+            ->leftJoin('clients as appt_clients', 'appointments.client_id', '=', 'appt_clients.id')
+            ->leftJoin('profiles as appt_employees', 'appointments.employee_id', '=', 'appt_employees.id')
+            ->leftJoin('profiles as creator_profiles', function ($join) {
+                $join->on(DB::raw("COALESCE(inventory_movements.created_by, transactions.created_by)"), '=', 'creator_profiles.id');
+            })
+            ->leftJoin('users as creator_users', function ($join) {
+                $join->on(DB::raw("COALESCE(inventory_movements.created_by, transactions.created_by)"), '=', 'creator_users.id');
+            })
             ->where('inventory_movements.business_id', $businessId)
             ->where('inventory_movements.movement_type', 'sale')
             ->select(
@@ -270,7 +282,8 @@ class FinancialSummaryService
                 'inventory_movements.notes',
                 'products.name as product_name',
                 'products.unit_price as product_unit_price',
-                'clients.full_name as client_name',
+                DB::raw("COALESCE(clients.full_name, appt_clients.full_name) as client_name"),
+                DB::raw("COALESCE(appt_employees.full_name, creator_profiles.full_name, creator_users.name) as employee_name"),
                 'transactions.method as payment_method',
                 'transactions.payments_breakdown',
                 'transactions.total_amount as transaction_total_amount',
@@ -323,6 +336,7 @@ class FinancialSummaryService
                 'date' => $row->created_at,
                 'product' => $row->product_name ?? 'Sin producto',
                 'client_name' => $row->client_name,
+                'employee_name' => $row->employee_name,
                 'quantity' => $qty,
                 'unit_price' => round($effectiveUnitPrice, 2),
                 'total' => round($total, 2),

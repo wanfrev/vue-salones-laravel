@@ -53,6 +53,7 @@ export type ProductSaleDetail = {
   date: string
   product: string
   clientName?: string
+  employeeName?: string
   quantity: number
   unitPrice: number
   total: number
@@ -69,6 +70,7 @@ export type ProductSaleInvoice = {
   id: string
   date: string
   clientName?: string
+  employeeName?: string
   total: number
   currency: 'USD' | 'VES'
   exchangeRateUsed: number
@@ -367,7 +369,8 @@ function useFinancialSummary(
         id: r.id,
         date: formatDate(r.date),
         product: r.product ?? 'Sin producto',
-        clientName: r.client_name || undefined,
+        clientName: r.client_name || extractClientFromNotes(r.notes) || undefined,
+        employeeName: r.employee_name || undefined,
         quantity: Number(r.quantity ?? 0),
         unitPrice: Number(r.unit_price ?? 0),
         total,
@@ -394,6 +397,8 @@ function useFinancialSummary(
       const qty = Number((r as any).quantity ?? 0)
       const unitPrice = Number((r as any).unit_price ?? 0)
       const originalAmount = total * rate
+      const clientName = (r as any).client_name || extractClientFromNotes((r as any).notes) || undefined
+      const employeeName = (r as any).employee_name || undefined
 
       const itemObj = {
         id: (r as any).id,
@@ -410,11 +415,14 @@ function useFinancialSummary(
         existing.total += total
         existing.originalAmount += originalAmount
         existing.totalQuantity += qty
+        if (!existing.clientName && clientName) existing.clientName = clientName
+        if (!existing.employeeName && employeeName) existing.employeeName = employeeName
       } else {
         map.set(invId, {
           id: invId,
           date: formatDate((r as any).date ?? (r as any).created_at),
-          clientName: (r as any).client_name || undefined,
+          clientName,
+          employeeName,
           total,
           currency: isVES ? 'VES' as const : 'USD' as const,
           exchangeRateUsed: rate,
@@ -505,6 +513,7 @@ function useFinancialSummary(
         id: string
         date: string
         clientName?: string
+        employeeName?: string
         method: string
         breakdownLabel: string
         amount: number
@@ -518,7 +527,8 @@ function useFinancialSummary(
 
       for (const ps of (productSalesData.value ?? [])) {
         const invId = (ps as any).reference_id || ('ps-' + (ps as any).id)
-        const clientLabel = (ps as any).client_name as string | undefined
+        const clientLabel = (ps as any).client_name || extractClientFromNotes((ps as any).notes) || undefined
+        const employeeLabel = (ps as any).employee_name || undefined
         const productName = (ps as any).product ?? 'Producto'
         const method = (ps as any).payment_method ?? 'cash'
         const breakdown = (ps as any).payments_breakdown ?? null
@@ -537,11 +547,14 @@ function useFinancialSummary(
           existing.items.push(itemObj)
           existing.amount += total
           existing.originalAmount += originalAmount
+          if (!existing.clientName && clientLabel) existing.clientName = clientLabel
+          if (!existing.employeeName && employeeLabel) existing.employeeName = employeeLabel
         } else {
           psGroupMap.set(invId, {
             id: invId,
             date: formatDate(rawSortDate),
             clientName: clientLabel,
+            employeeName: employeeLabel,
             method: formatMethod(method),
             breakdownLabel: formatBreakdownLabel(breakdown),
             amount: total,
@@ -563,6 +576,7 @@ function useFinancialSummary(
           id: inv.id,
           date: inv.date,
           description: desc,
+          employee: inv.employeeName || undefined,
           method: inv.method,
           breakdownLabel: inv.breakdownLabel,
           amount: inv.amount,
