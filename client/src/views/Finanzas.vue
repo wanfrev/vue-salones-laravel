@@ -189,15 +189,6 @@ const supplierPaymentsCtx = useSupplierPayments(businessId, selectedPeriod, sele
 const employeePaymentsCtx = useEmployeePayments(businessId, periodDates)
 const summaryCtx = useFinancialSummary(businessId, selectedPeriod, expenses, selectedMonth, customTo)
 
-const originalStartEdit = summaryCtx.startEdit
-summaryCtx.startEdit = (tx: any) => {
-  if (tx.appointmentId || tx.appointment_id || tx.source === 'product_sale' || tx.items) {
-    openCobroActions(tx)
-  } else {
-    originalStartEdit(tx)
-  }
-}
-
 const incomeTotal = summaryCtx.incomeTotal
 const localIncomeTotal = summaryCtx.localIncomeTotal
 const vesIncomeTotal = summaryCtx.vesIncomeTotal
@@ -343,7 +334,7 @@ const handleExpenseSave = async () => {
 
 const originalStartEdit = summaryCtx.startEdit
 summaryCtx.startEdit = (tx: any) => {
-  if (tx.appointmentId || tx.appointment_id) {
+  if (tx.appointmentId || tx.appointment_id || tx.source === 'product_sale' || tx.items) {
     openCobroActions(tx)
   } else {
     originalStartEdit(tx)
