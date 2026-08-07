@@ -1,6 +1,25 @@
 import { db, apiRequest } from '../lib/api'
+import type { ApiUser } from '../lib/api'
 import type { Business } from '../types/database'
 import type { AuthProfile } from '../types/auth'
+
+export type ImpersonateResult = {
+  access_token: string
+  token_type: string
+  expires_at: string
+  user: ApiUser
+  business: Business | null
+}
+
+export type SuperadminAuditLogEntry = {
+  id: string
+  actor_id: string
+  action: string
+  business_id: string | null
+  target_profile_id: string | null
+  metadata: Record<string, unknown> | null
+  created_at: string
+}
 
 export type CreateBusinessInput = {
   businessName: string
@@ -111,6 +130,22 @@ export const resetBusinessAdminPassword = async (
   await apiRequest('PUT', `/admin/businesses/${businessId}/admins/${profileId}/password`, {
     password: newPassword,
   })
+}
+
+/**
+ * Requests a short-lived token to browse the app as this business admin. Does not touch
+ * the admin's password or revoke their own sessions — see useImpersonation.ts for the
+ * token-swap + audit-visible "volver a superadmin" flow built on top of this call.
+ */
+export const impersonateBusinessAdmin = async (
+  businessId: string,
+  profileId: string,
+): Promise<ImpersonateResult> => {
+  return apiRequest<ImpersonateResult>('POST', `/admin/businesses/${businessId}/admins/${profileId}/impersonate`)
+}
+
+export const listAuditLogs = async (businessId: string): Promise<SuperadminAuditLogEntry[]> => {
+  return apiRequest<SuperadminAuditLogEntry[]>('GET', `/admin/businesses/${businessId}/audit-logs`)
 }
 
 export const suspendBusiness = async (businessId: string): Promise<void> => {

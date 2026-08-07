@@ -4,6 +4,7 @@ import { db, getAuthToken } from '../lib/api'
 import type { ApiSession as Session, ApiUser as User } from '../lib/api'
 import { queryClient } from '../queryClient'
 import { useBusinessStore } from './business'
+import { clearImpersonationState } from '../composables/superadmin/useImpersonation'
 import type { Role } from '../constants/roles'
 import { isRole } from '../constants/roles'
 import type { AuthProfile } from '../types/auth'
@@ -292,6 +293,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   const signOut = async () => {
     loading.value = true
+
+    // An explicit logout ends the session outright — don't leave a stashed superadmin
+    // token behind for a future "volver a superadmin" to resurrect after this device logs
+    // in as someone else.
+    clearImpersonationState()
 
     clearAuthState()
     queryClient.clear()

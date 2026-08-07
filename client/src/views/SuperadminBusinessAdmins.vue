@@ -34,11 +34,36 @@
             <span class="rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-2 py-0.5 text-[10px] font-bold uppercase">{{ admin.role }}</span>
             <button
               type="button"
+              :disabled="isImpersonatingId === admin.id"
+              @click="handleImpersonate(admin)"
+              class="shrink-0 rounded-lg border border-primary/30 px-3 py-1.5 text-xs font-semibold text-primary transition-theme hover:bg-primary/10 disabled:opacity-60"
+            >
+              {{ isImpersonatingId === admin.id ? 'Entrando...' : 'Entrar como' }}
+            </button>
+            <button
+              type="button"
               @click="openPasswordModal(admin)"
               class="shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text"
             >
               Cambiar contraseña
             </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-border bg-surface p-5">
+        <h2 class="text-sm font-bold text-text mb-3">Actividad reciente</h2>
+        <div v-if="auditLogs.length === 0" class="py-6 text-center text-sm text-text-muted">
+          Sin actividad registrada para este negocio.
+        </div>
+        <div v-else class="space-y-2">
+          <div v-for="log in auditLogs" :key="log.id"
+            class="flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-bg-secondary/30 px-3 py-2">
+            <div class="min-w-0 flex-1">
+              <p class="text-xs font-semibold text-text">{{ describeAction(log) }}</p>
+              <p v-if="log.metadata?.admin_name" class="text-[11px] text-text-muted truncate">{{ log.metadata.admin_name }}</p>
+            </div>
+            <span class="shrink-0 text-[11px] text-text-muted whitespace-nowrap">{{ formatDate(log.created_at) }}</span>
           </div>
         </div>
       </div>
@@ -127,11 +152,15 @@ import { useQuery } from '@tanstack/vue-query'
 import SuperadminLayout from '../components/layout/SuperadminLayout.vue'
 import ModalBase from '../components/common/ModalBase.vue'
 import { useNotification } from '../composables/common/useNotification'
+import { formatDate } from '../lib/formatters'
+import { startImpersonation } from '../composables/superadmin/useImpersonation'
 import {
+  listAuditLogs,
   listBusinessAdmins,
   listBusinesses,
   resetBusinessAdminPassword,
   superadminKeys,
+  type SuperadminAuditLogEntry,
 } from '../services/superadminService'
 import type { Business } from '../types/database'
 import type { AuthProfile } from '../types/auth'
@@ -156,6 +185,45 @@ const admins = computed(() => adminsData.value ?? [])
 
 function getInitials(name: string): string {
   return name.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('')
+}
+
+// ── Impersonation ──
+
+const isImpersonatingId = ref<string | null>(null)
+
+const handleImpersonate = async (admin: AuthProfile) => {
+  if (isImpersonatingId.value) return
+  const ok = window.confirm(
+    `Vas a entrar como ${admin.full_name}. Podrás volver a tu sesión de superadmin en ` +
+    `cualquier momento desde el aviso que aparecerá arriba. ¿Continuar?`
+  )
+  if (!ok) return
+
+  isImpersonatingId.value = admin.id
+  try {
+    await startImpersonation(businessId.value, admin.id)
+    // startImpersonation navigates away (window.location.href) on success — nothing left to do here.
+  } catch (err) {
+    showError((err as Error)?.message || 'No fue posible iniciar la sesión de soporte.')
+    isImpersonatingId.value = null
+  }
+}
+
+// ── Audit log ──
+
+const { data: auditLogsData } = useQuery({
+  queryKey: computed(() => ['superadmin', 'audit-logs', businessId.value] as const),
+  queryFn: () => listAuditLogs(businessId.value),
+})
+const auditLogs = computed(() => auditLogsData.value ?? [])
+
+const actionLabels: Record<string, string> = {
+  impersonate_admin: 'Sesión de soporte iniciada',
+  reset_admin_password: 'Contraseña restablecida',
+}
+
+function describeAction(log: SuperadminAuditLogEntry): string {
+  return actionLabels[log.action] ?? log.action
 }
 
 // ── Password reset ──

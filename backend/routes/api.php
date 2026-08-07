@@ -271,5 +271,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/businesses/{id}/resume', [SuperadminController::class, 'resume']);
         Route::get('/businesses/{id}/admins', [SuperadminController::class, 'admins']);
         Route::put('/businesses/{id}/admins/{profileId}/password', [SuperadminController::class, 'resetAdminPassword']);
+        Route::post('/businesses/{id}/admins/{profileId}/impersonate', [SuperadminController::class, 'impersonate']);
+        Route::get('/businesses/{id}/audit-logs', [SuperadminController::class, 'auditLogs']);
     });
 });
