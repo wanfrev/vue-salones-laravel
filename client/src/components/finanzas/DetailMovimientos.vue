@@ -489,15 +489,24 @@ const confirmDeleteServicio = async () => {
                       <div class="text-[10px] text-text-muted mt-0.5">{{ inv.currency === 'VES' ? formatUSD(inv.total) : formatVESInline(inv.total, inv.exchangeRateUsed) + ' Bs' }}</div>
                     </td>
                     <td class="px-3 py-3 text-center">
-                      <button
-                        @click.stop="toggleInvoiceExpand(inv.id)"
-                        class="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-bg-secondary transition-colors"
-                        title="Ver detalle de factura"
-                      >
-                        <svg :class="['h-4 w-4 transition-transform duration-200', expandedInvoiceIds.has(inv.id) ? 'rotate-180 text-primary' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
+                      <div class="flex items-center justify-center gap-1">
+                        <button
+                          @click.stop="toggleInvoiceExpand(inv.id)"
+                          class="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-bg-secondary transition-colors"
+                          title="Ver detalle de factura"
+                        >
+                          <svg :class="['h-4 w-4 transition-transform duration-200', expandedInvoiceIds.has(inv.id) ? 'rotate-180 text-primary' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        <button @click.stop="summaryCtx.confirmDeleteTransaction(inv.id)"
+                          class="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-danger/10 hover:text-danger transition-colors"
+                          title="Eliminar factura">
+                          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
                     </td>
                   </tr>
 

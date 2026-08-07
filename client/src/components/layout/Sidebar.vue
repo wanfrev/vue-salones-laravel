@@ -77,7 +77,6 @@ const visibleSections = computed(() =>
           if (link.to === '/admin/pos' && authStore.profile?.can_access_pos) return true
           if (link.to === '/admin/inventario' && authStore.profile?.can_access_inventory) return true
           if (link.to === '/admin/proveedores' && authStore.profile?.can_access_suppliers) return true
-          if (link.to === '/admin/finanzas' && authStore.profile?.can_access_finanzas) return true
           return false
         }
         if (link.employeeOnly && isAdmin.value) return false
@@ -90,7 +89,7 @@ const visibleSections = computed(() =>
     }))
     .filter(section => {
       return !section.adminOnly || isAdmin.value || section.links.some(l => 
-        ['/admin/pos', '/admin/inventario', '/admin/proveedores', '/admin/finanzas'].includes(l.to)
+        ['/admin/pos', '/admin/inventario', '/admin/proveedores'].includes(l.to)
       )
     })
     .filter(section => section.links.length > 0)
