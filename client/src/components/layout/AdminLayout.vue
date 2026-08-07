@@ -39,13 +39,30 @@
       </div>
     </header>
 
+    <!-- Minimal Employee Header when hideHeaderAndSidebar is active -->
+    <header v-else class="fixed left-0 right-0 top-0 z-50 bg-surface/90 backdrop-blur-md border-b border-border pt-[var(--safe-top)] px-4 py-3">
+      <div class="flex items-center justify-between">
+        <button
+          @click="goBackToDashboard"
+          class="flex items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-text shadow-xs transition-theme hover:bg-bg-secondary hover:border-border-strong cursor-pointer"
+        >
+          <ArrowLeftIcon :size="16" />
+          <span>Volver al panel</span>
+        </button>
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-xs font-semibold text-text truncate max-w-[150px] sm:max-w-[300px]">{{ businessStore.business?.name }}</span>
+          <span class="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary uppercase tracking-wider shrink-0">Finanzas</span>
+        </div>
+      </div>
+    </header>
+
     <Sidebar v-if="!hideHeaderAndSidebar" :is-open="isSidebarOpen" @close="isSidebarOpen = false" />
 
     <div v-if="!hideHeaderAndSidebar && isSidebarOpen" @click="isSidebarOpen = false" class="fixed inset-0 top-[var(--header-total)] z-30 bg-black/50 lg:hidden"></div>
 
-    <main :class="['min-h-screen', hideHeaderAndSidebar ? 'ml-0 pt-0' : 'ml-0 pt-[var(--header-total)] lg:ml-64']">
+    <main :class="['min-h-screen', hideHeaderAndSidebar ? 'ml-0 pt-16' : 'ml-0 pt-[var(--header-total)] lg:ml-64']">
       <GlobalLoading />
-      <div :class="hideHeaderAndSidebar ? 'p-4 lg:p-6' : 'p-4 lg:p-6'">
+      <div class="p-4 lg:p-6">
         <router-view />
       </div>
     </main>
@@ -54,11 +71,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../../composables/common/useAuth'
 import { useThemeStore } from '../../store/theme'
-import { HamburgerMenuIcon, RefreshIcon, LogoutIcon } from '@solar-icons/vue/linear'
+import { HamburgerMenuIcon, RefreshIcon, LogoutIcon, ArrowLeftIcon } from '@solar-icons/vue/linear'
 import lumaLogoLight from '../../assets/Luma.svg'
 import lumaLogoDark from '../../assets/Luma blanco.svg'
 import Sidebar from './Sidebar.vue'
@@ -68,8 +85,10 @@ import GlobalLoading from '../common/GlobalLoading.vue'
 import { useBusinessStore } from '../../store/business'
 import { getInitials } from '../../lib/formatters'
 import { isTiendaNiche } from '../../config/niches'
+import { isAdminPanelRole, resolveHomeByRole } from '../../constants/roles'
 
 const route = useRoute()
+const router = useRouter()
 const { logout, loading, authStore } = useAuth()
 const themeStore = useThemeStore()
 const businessStore = useBusinessStore()
@@ -80,12 +99,17 @@ const profileOpen = ref(false)
 const isRefreshing = ref(false)
 const lumaLogo = computed(() => (themeStore.isDark ? lumaLogoDark : lumaLogoLight))
 const isEncargado = computed(() => authStore.role === 'encargado')
-const isEmployee = computed(() => authStore.role === 'empleado')
+const isEmployee = computed(() => !isAdminPanelRole(authStore.role ?? undefined))
 const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
 
 const hideHeaderAndSidebar = computed(() => {
   return isTienda.value && isEmployee.value && route.path.includes('/finanzas')
 })
+
+function goBackToDashboard() {
+  const home = resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda, businessStore.features.agenda, businessStore.features.pos)
+  router.push(home)
+}
 
 async function refresh() {
   isRefreshing.value = true
