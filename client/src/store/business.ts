@@ -45,8 +45,6 @@ export const useBusinessStore = defineStore('business', () => {
   // blob outside the FeatureKey union — preserving that pre-existing laxity rather than
   // fixing an unrelated schema wart here.
   const features = computed((): Record<FeatureKey, boolean> & Record<string, any> => {
-    const resolved = (business.value as any)?.resolved_features
-    if (resolved) return resolved
     return resolveFeatures(nicheType.value, (business.value as any)?.features)
   })
   const hasFeature = (key: FeatureKey): boolean => features.value[key]
@@ -178,7 +176,11 @@ export const useBusinessStore = defineStore('business', () => {
 
   const updateBusiness = (partial: Partial<Business>) => {
     if (business.value) {
-      business.value = { ...business.value, ...partial }
+      const merged = { ...business.value, ...partial }
+      if (merged.features) {
+        (merged as any).resolved_features = resolveFeatures(merged.niche_type, merged.features as any)
+      }
+      business.value = merged
     }
   }
 

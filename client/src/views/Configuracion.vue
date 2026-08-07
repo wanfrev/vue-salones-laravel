@@ -559,10 +559,10 @@ async function handleToggleEncargadoExchangeRate(val: boolean) {
   updatingFeatures.value = true
   try {
     const updatedFeatures = { ...businessStore.features, encargados_change_exchange_rate: val }
-    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+    const res = await apiRequest('PUT', `/businesses/${businessId.value}`, {
       features: updatedFeatures,
     })
-    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    businessStore.updateBusiness(res as any)
     success(val ? 'Permiso activado: Los encargados ya pueden modificar la tasa del día' : 'Permiso desactivado')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
@@ -576,10 +576,10 @@ async function handleToggleEncargadoEmployeeRate(val: boolean) {
   updatingFeatures.value = true
   try {
     const updatedFeatures = { ...businessStore.features, encargados_change_employee_rate: val }
-    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+    const res = await apiRequest('PUT', `/businesses/${businessId.value}`, {
       features: updatedFeatures,
     })
-    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    businessStore.updateBusiness(res as any)
     success(val ? 'Permiso activado: Los encargados ya pueden modificar la tasa de empleados' : 'Permiso desactivado')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
@@ -593,10 +593,10 @@ async function handleToggleDisableCommissionEdit(val: boolean) {
   updatingFeatures.value = true
   try {
     const updatedFeatures = { ...businessStore.features, disable_employee_commission_edit: val }
-    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+    const res = await apiRequest('PUT', `/businesses/${businessId.value}`, {
       features: updatedFeatures,
     })
-    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    businessStore.updateBusiness(res as any)
     success(val ? 'Permiso activado: encargados y empleados no pueden editar comisiones' : 'Permiso desactivado: pueden editar comisiones')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
@@ -610,10 +610,10 @@ async function handleToggleDirectServiceSale(val: boolean) {
   updatingFeatures.value = true
   try {
     const updatedFeatures = { ...businessStore.features, pos_direct_service_sale: val }
-    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+    const res = await apiRequest('PUT', `/businesses/${businessId.value}`, {
       features: updatedFeatures,
     })
-    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    businessStore.updateBusiness(res as any)
     success(val ? 'Permiso activado: Se permite el cobro directo de servicios en el POS' : 'Permiso desactivado: Cobro directo de servicios deshabilitado')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
@@ -627,10 +627,10 @@ async function handleToggleDailyReportAutofill(val: boolean) {
   updatingFeatures.value = true
   try {
     const updatedFeatures = { ...businessStore.features, daily_report_autofill_from_pos: val }
-    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+    const res = await apiRequest('PUT', `/businesses/${businessId.value}`, {
       features: updatedFeatures,
     })
-    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    businessStore.updateBusiness(res as any)
     success(val ? 'Permiso activado: El Reporte Diario puede traer los montos del POS' : 'Permiso desactivado: Traer del POS deshabilitado')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
@@ -644,10 +644,10 @@ async function handleToggleEmployeesSeeClients(val: boolean) {
   updatingFeatures.value = true
   try {
     const updatedFeatures = { ...businessStore.features, employees_see_clients: val }
-    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+    const res = await apiRequest('PUT', `/businesses/${businessId.value}`, {
       features: updatedFeatures,
     })
-    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    businessStore.updateBusiness(res as any)
     success(val ? 'Módulo de clientes activado para empleados' : 'Módulo de clientes desactivado para empleados (seguirán viendo nombres en sus citas)')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
@@ -661,10 +661,10 @@ async function handleToggleHideClientPhone(val: boolean) {
   updatingFeatures.value = true
   try {
     const updatedFeatures = { ...businessStore.features, hide_client_phone_from_employees: val }
-    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+    const res = await apiRequest('PUT', `/businesses/${businessId.value}`, {
       features: updatedFeatures,
     })
-    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    businessStore.updateBusiness(res as any)
     success(val ? 'Teléfono y email ocultos para empleados' : 'Teléfono y email visibles para empleados')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
@@ -811,10 +811,10 @@ async function toggleManagerInventoryEdit(val: boolean) {
   updatingFeatures.value = true
   try {
     const updatedFeatures = { ...businessStore.features, disable_manager_inventory_edit: val }
-    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+    const res = await apiRequest('PUT', `/businesses/${businessId.value}`, {
       features: updatedFeatures,
     })
-    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    businessStore.updateBusiness(res as any)
     success(val ? 'Permiso activado: Desactivada edición de inventario para encargados' : 'Permiso desactivado: Permitida edición de inventario')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
@@ -834,10 +834,10 @@ async function togglePendingNotifications(val: boolean) {
       pendingNotificationHour.value = 9
     }
     ;(updatedFeatures as any).pending_notifications_hour = pendingNotificationHour.value
-    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+    const res = await apiRequest('PUT', `/businesses/${businessId.value}`, {
       features: updatedFeatures,
     })
-    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    businessStore.updateBusiness(res as any)
     success(val ? 'Notificaciones de citas pendientes activadas' : 'Notificaciones de citas pendientes desactivadas')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar las notificaciones')
@@ -853,10 +853,10 @@ async function handlePendingNotificationHourChange() {
     const hour = Math.max(0, Math.min(23, pendingNotificationHour.value))
     pendingNotificationHour.value = hour
     const updatedFeatures = { ...businessStore.features, pending_notifications_hour: hour }
-    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+    const res = await apiRequest('PUT', `/businesses/${businessId.value}`, {
       features: updatedFeatures,
     })
-    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    businessStore.updateBusiness(res as any)
     success(`Hora de notificación actualizada a las ${String(hour).padStart(2, '0')}:00`)
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar la hora')
@@ -878,10 +878,10 @@ async function handleToggleFeature(featureKey: string) {
   updatingFeatures.value = true
   try {
     const updatedFeatures = { ...businessStore.features, [featureKey]: newVal }
-    await apiRequest('PUT', `/businesses/${businessId.value}`, {
+    const res = await apiRequest('PUT', `/businesses/${businessId.value}`, {
       features: updatedFeatures,
     })
-    businessStore.updateBusiness({ features: updatedFeatures } as any)
+    businessStore.updateBusiness(res as any)
     const label = featureLabels[featureKey] || featureKey
     success(`${label}: ${newVal ? 'Activado' : 'Desactivado'}`)
   } catch (err: any) {
