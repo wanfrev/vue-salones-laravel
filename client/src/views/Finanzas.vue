@@ -79,7 +79,7 @@
 
   <!-- TAB 2: Ingresos Detallados -->
   <template v-if="activeTab === 'ingresos'">
-    <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :hide-tabs="['gastos', 'servicios']" :hide-total="isEncargadoRole" />
+    <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :hide-tabs="ingresosHideTabs" :hide-total="isEncargadoRole" />
   </template>
 
   <!-- TAB 3: Egresos, Proveedores y Nómina -->
@@ -135,13 +135,26 @@ import { translateError } from '../lib/errors'
 import { formatMethod } from '../lib/formatters'
 import { useNotification } from '../composables/common/useNotification'
 import { isEncargado } from '../constants/roles'
+import { useBusinessStore } from '../store/business'
 import { DollarIcon, ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
 
 const { authStore } = useAuth()
 const { formatUSD, formatVESInline } = useCurrency()
 const router = useRouter()
 const rateCtx = useExchangeRate()
+const businessStore = useBusinessStore()
 const isEncargadoRole = computed(() => isEncargado(authStore.role ?? undefined))
+
+// Cobros de Citas has nothing to show when the business runs with agenda/calendario/
+// servicios all off (tienda niche) — there's no appointment flow to have collected income
+// from. Superadmin can re-enable any of the three independently, so all three are checked
+// rather than assuming they stay bundled.
+const ingresosHideTabs = computed(() => {
+  const tabs = ['gastos', 'servicios']
+  const { agenda, calendario, servicios } = businessStore.features
+  if (!agenda && !calendario && !servicios) tabs.push('cobros')
+  return tabs
+})
 
 const { selectedPeriod, selectedMonth, customFrom, customTo, resetToCurrent, goPrev, goNext, displayLabel, periods } = usePeriodSelection()
 const businessId = computed(() => authStore.businessId)

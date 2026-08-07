@@ -45,7 +45,7 @@ const detailTabs = computed(() => {
 })
 
 const activeDetailTab = ref<'cobros' | 'ventas' | 'gastos' | 'servicios'>(
-  props.showOnly ? (props.showOnly as any) : 'cobros',
+  props.showOnly ? (props.showOnly as any) : (detailTabs.value[0]?.key ?? 'ventas'),
 )
 
 const allCobrosRows = computed(() => props.summaryCtx.appointmentIncomeDetails.value)
