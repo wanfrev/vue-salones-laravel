@@ -400,7 +400,7 @@ class PosService
 
         return DB::transaction(function () use (
             $totalAmount, $method, $products, $notes, $rate,
-            $paymentsBreakdown, $clientId, $businessId, $branchId, $createdBy, $clientInfoStr
+            $paymentsBreakdown, $clientId, $businessId, $branchId, $createdBy, $clientInfoStr, $clientName
         ) {
             $tx = Transaction::create([
                 'id' => Str::uuid()->toString(),
