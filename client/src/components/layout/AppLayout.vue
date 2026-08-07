@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-bg">
     <!-- Top Header -->
-    <header v-if="!hideHeaderAndSidebar" class="fixed left-0 right-0 top-0 z-50 bg-surface border-b border-border pt-[var(--safe-top)]">
+    <header class="fixed left-0 right-0 top-0 z-50 bg-surface border-b border-border pt-[var(--safe-top)]">
       <div class="flex h-16 items-center justify-between px-2 sm:px-4">
       <div class="flex items-center gap-1 sm:gap-2 min-w-0">
         <button @click="isSidebarOpen = !isSidebarOpen" class="rounded-lg p-2 text-text-secondary transition-theme hover:bg-bg-secondary shrink-0 lg:hidden">
@@ -42,28 +42,11 @@
       </div>
     </header>
 
-    <!-- Minimal Employee Header when hideHeaderAndSidebar is active -->
-    <header v-else class="fixed left-0 right-0 top-0 z-50 bg-surface/90 backdrop-blur-md border-b border-border pt-[var(--safe-top)] px-4 py-3">
-      <div class="flex items-center justify-between">
-        <button
-          @click="goBackToDashboard"
-          class="flex items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-text shadow-xs transition-theme hover:bg-bg-secondary hover:border-border-strong cursor-pointer"
-        >
-          <ArrowLeftIcon :size="16" />
-          <span>Volver al panel</span>
-        </button>
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="text-xs font-semibold text-text truncate max-w-[150px] sm:max-w-[300px]">{{ businessName }}</span>
-          <span class="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary uppercase tracking-wider shrink-0">Finanzas</span>
-        </div>
-      </div>
-    </header>
+    <Sidebar :is-open="isSidebarOpen" @close="isSidebarOpen = false" />
 
-    <Sidebar v-if="!hideHeaderAndSidebar" :is-open="isSidebarOpen" @close="isSidebarOpen = false" />
+    <div v-if="isSidebarOpen" @click="isSidebarOpen = false" class="fixed inset-0 top-[var(--header-total)] z-30 bg-black/50 lg:hidden"></div>
 
-    <div v-if="!hideHeaderAndSidebar && isSidebarOpen" @click="isSidebarOpen = false" class="fixed inset-0 top-[var(--header-total)] z-30 bg-black/50 lg:hidden"></div>
-
-    <main :class="['min-h-screen', hideHeaderAndSidebar ? 'ml-0 pt-16' : 'ml-0 pt-[var(--header-total)] lg:ml-64']">
+    <main class="ml-0 min-h-screen pt-[var(--header-total)] lg:ml-64">
       <GlobalLoading />
       <div class="p-4 lg:p-6">
         <slot />
@@ -74,13 +57,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../../composables/common/useAuth'
 import { useAuthStore } from '../../store/auth'
 import { useThemeStore } from '../../store/theme'
 import { useBusinessStore } from '../../store/business'
-import { HamburgerMenuIcon, RefreshIcon, LogoutIcon, ArrowLeftIcon } from '@solar-icons/vue/linear'
+import { HamburgerMenuIcon, RefreshIcon, LogoutIcon } from '@solar-icons/vue/linear'
 import { db } from '../../lib/api'
 import { useRealtime } from '../../composables/realtime/useRealtime'
 import lumaLogoLight from '../../assets/Luma.svg'
@@ -90,11 +72,7 @@ import NotificationBell from '../common/NotificationBell.vue'
 import { BranchSwitcher } from '../common'
 import GlobalLoading from '../common/GlobalLoading.vue'
 import { getInitials } from '../../lib/formatters'
-import { isTiendaNiche } from '../../config/niches'
-import { isAdminPanelRole, resolveHomeByRole } from '../../constants/roles'
 
-const route = useRoute()
-const router = useRouter()
 const { logout, loading } = useAuth()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
@@ -110,18 +88,8 @@ const profileOpen = ref(false)
 
 const businessName = computed(() => businessStore.business?.name ?? '')
 
-const isEmployee = computed(() => !isAdminPanelRole(authStore.role ?? undefined))
+const isEmployee = computed(() => authStore.role === 'empleado')
 const isEncargado = computed(() => authStore.role === 'encargado')
-const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
-
-const hideHeaderAndSidebar = computed(() => {
-  return isTienda.value && isEmployee.value && route.path.includes('/finanzas')
-})
-
-function goBackToDashboard() {
-  const home = resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda, businessStore.features.agenda, businessStore.features.pos)
-  router.push(home)
-}
 
 const roleLabel = computed(() => {
   const role = authStore.role
