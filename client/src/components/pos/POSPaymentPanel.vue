@@ -102,10 +102,11 @@
             <div
               v-for="(item, idx) in cart"
               :key="item.productId"
-              class="flex items-center justify-between gap-2 rounded-lg bg-bg-secondary px-3 py-2"
+              class="flex items-center justify-between gap-2 rounded-lg bg-bg-secondary px-3 transition-theme"
+              :class="isRetailNiche ? 'py-2.5' : 'py-2'"
             >
               <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-text truncate">{{ item.productName }}</p>
+                <p class="font-medium text-text truncate" :class="isRetailNiche ? 'text-sm sm:text-[15px]' : 'text-sm'">{{ item.productName }}</p>
                 <div class="flex items-center gap-1.5 mt-0.5">
                   <span class="text-xs" :class="areProductsIncluded ? 'text-text-muted line-through opacity-70' : 'text-text-muted'">{{ formatDual(item.unitPrice) }} c/u</span>
                   <div v-if="isRetailNiche && item.unitPrice2 != null && Number(item.unitPrice2) > 0" class="inline-flex rounded border border-border p-0.5 bg-surface shrink-0">
@@ -128,7 +129,46 @@
                   </div>
                 </div>
               </div>
-                <div class="flex items-center gap-1">
+
+              <!-- Retail (tienda/no-agenda): bigger touch targets + tap-to-type exact quantity -->
+              <div v-if="isRetailNiche" class="flex items-center gap-1.5 shrink-0">
+                <button
+                  @click="$emit('decrement-qty', idx)"
+                  class="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-base font-bold text-text-muted hover:bg-surface hover:text-text active:scale-95 transition-theme"
+                >
+                  −
+                </button>
+                <input
+                  v-if="editingIdx === idx"
+                  :ref="(el) => setQtyInputRef(el, idx)"
+                  v-model="editingValue"
+                  type="number"
+                  inputmode="numeric"
+                  min="1"
+                  :max="item.availableQty"
+                  class="w-12 h-9 rounded-lg border border-primary bg-surface text-center text-sm font-bold text-text outline-none"
+                  @blur="commitQtyEdit(idx)"
+                  @keydown.enter.prevent="commitQtyEdit(idx)"
+                  @keydown.escape="cancelQtyEdit"
+                />
+                <button
+                  v-else
+                  @click="startQtyEdit(idx, item.quantity)"
+                  class="w-9 h-9 rounded-lg text-sm font-bold text-text hover:bg-surface transition-theme"
+                  title="Toca para escribir la cantidad exacta"
+                >
+                  {{ item.quantity }}
+                </button>
+                <button
+                  @click="$emit('increment-qty', idx)"
+                  class="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-base font-bold text-text-muted hover:bg-surface hover:text-text active:scale-95 transition-theme"
+                >
+                  +
+                </button>
+              </div>
+
+              <!-- Non-retail (appointment/service checkout): unchanged compact stepper -->
+              <div v-else class="flex items-center gap-1">
                 <button
                   @click="$emit('decrement-qty', idx)"
                   class="flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-text-muted hover:bg-surface hover:text-text transition-theme"
@@ -143,14 +183,16 @@
                   +
                 </button>
               </div>
+
               <div class="flex items-center gap-2">
-                <div class="text-right w-16">
+                <div class="text-right" :class="isRetailNiche ? 'w-20' : 'w-16'">
                   <span v-if="areProductsIncluded" class="block text-xs font-bold text-success">Exonerado</span>
-                  <span v-else class="text-sm font-semibold text-text">{{ formatDual(item.subtotal) }}</span>
+                  <span v-else class="font-semibold text-text" :class="isRetailNiche ? 'text-sm sm:text-base' : 'text-sm'">{{ formatDual(item.subtotal) }}</span>
                 </div>
                 <button
                   @click="$emit('remove-item', idx)"
-                  class="flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
+                  class="flex items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
+                  :class="isRetailNiche ? 'h-8 w-8' : 'h-5 w-5'"
                 >
                   <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -403,7 +445,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { DualAmount } from '../common'
 import { formatDate } from '../../lib/formatters'
@@ -458,7 +500,7 @@ const props = defineProps<{
   }>
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'select-method': [method: PaymentMethod]
   'update:otherCurrency': [currency: 'USD' | 'VES']
   'add-split': []
@@ -472,6 +514,7 @@ defineEmits<{
   'set-price-index': [idx: number, priceIndex: 1 | 2]
   'increment-qty': [idx: number]
   'decrement-qty': [idx: number]
+  'set-quantity': [idx: number, quantity: number]
   'remove-item': [idx: number]
   'update:are-products-included': [value: boolean]
   'update:selected-gift-card-id': [value: string | null]
@@ -493,4 +536,36 @@ const needsGiftCardSelect = computed(() =>
 const selectedGC = computed(() =>
   activeGiftCards.value.find(g => g.id === props.selectedGiftCardId)
 )
+
+// Tap-to-type exact quantity (retail cart rows). Tapping the qty number swaps it for a
+// numeric input; blur/Enter commits, Escape discards. One index editable at a time.
+const editingIdx = ref<number | null>(null)
+const editingValue = ref('')
+let qtyInputEl: HTMLInputElement | null = null
+
+const setQtyInputRef = (el: Element | { $el: Element } | null, idx: number) => {
+  if (editingIdx.value !== idx || !el) return
+  qtyInputEl = el as HTMLInputElement
+}
+
+const startQtyEdit = (idx: number, currentQty: number) => {
+  editingIdx.value = idx
+  editingValue.value = String(currentQty)
+  nextTick(() => { qtyInputEl?.focus(); qtyInputEl?.select() })
+}
+
+const commitQtyEdit = (idx: number) => {
+  if (editingIdx.value !== idx) return
+  const parsed = Number(editingValue.value)
+  if (Number.isFinite(parsed) && parsed > 0) {
+    emit('set-quantity', idx, parsed)
+  }
+  editingIdx.value = null
+  qtyInputEl = null
+}
+
+const cancelQtyEdit = () => {
+  editingIdx.value = null
+  qtyInputEl = null
+}
 </script>

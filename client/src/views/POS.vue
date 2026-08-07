@@ -223,6 +223,7 @@
         <RetailProductGrid
           :products="products"
           :is-retail-only="!businessStore.features.agenda"
+          :cart-quantities="cartQuantities"
           @add-product="addRetailProduct"
           class="flex-1"
         />
@@ -297,7 +298,7 @@
         @update:tip-allocation="setTipAllocation"
         @process-payment="handleProcessPayment"
         @set-price-index="setPriceIndex"
-        @increment-qty="incrementQty" @decrement-qty="decrementQty" @remove-item="removeItem"
+        @increment-qty="incrementQty" @decrement-qty="decrementQty" @set-quantity="setQuantity" @remove-item="removeItem"
       />
     </div>
   </div>
@@ -376,7 +377,7 @@
             @update:tip-allocation="setTipAllocation"
             @process-payment="handleMobileProcessPayment"
             @set-price-index="setPriceIndex"
-            @increment-qty="incrementQty" @decrement-qty="decrementQty" @remove-item="removeItem"
+            @increment-qty="incrementQty" @decrement-qty="decrementQty" @set-quantity="setQuantity" @remove-item="removeItem"
           />
           </div>
         </div>
@@ -467,6 +468,7 @@ const {
   setPriceIndex,
   incrementQty,
   decrementQty,
+  setQuantity,
   removeItem,
   clearCart
 } = usePOSCart()
@@ -665,6 +667,13 @@ const posEmpleadosList = computed(() => (posEmpleadosData.value ?? []).map((e: a
 const appointments = computed(() => groupPendingAppointments(appointmentsData.value ?? []))
 const products = computed(() => productsData.value ?? [])
 const selectedId = computed(() => selectedAppointment.value?.id ?? null)
+
+// Live "already in cart" badge for the retail grid — productId -> quantity.
+const cartQuantities = computed(() => {
+  const map: Record<string, number> = {}
+  for (const item of cart.value) map[item.productId] = (map[item.productId] ?? 0) + item.quantity
+  return map
+})
 
 const normalize = (s: string): string => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 const filteredAppointments = computed(() => {

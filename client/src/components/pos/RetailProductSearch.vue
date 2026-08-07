@@ -1,9 +1,9 @@
 <template>
   <div class="flex flex-col sm:flex-row gap-4 w-full">
     <div class="relative flex-1">
-      <input v-model="productSearch" type="text" placeholder="Buscar producto..."
+      <input v-model="productSearch" type="text" :placeholder="isRetailOnly ? 'Buscar por nombre, SKU o código de barras...' : 'Buscar producto...'"
         class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
-        @focus="showProductDropdown = true" @blur="onProductBlur" />
+        @focus="showProductDropdown = true" @blur="onProductBlur" @keydown.enter.prevent="onSearchEnter" />
       <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
       </div>
@@ -14,7 +14,10 @@
           class="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-bg-secondary border-b border-border last:border-b-0 disabled:opacity-50 disabled:cursor-not-allowed">
           <div class="flex-1 min-w-0">
             <span class="text-text block truncate font-medium">{{ product.name }}</span>
-            <span class="text-xs text-text-muted">Stock: {{ Number(product.available_qty ?? 0) }}</span>
+            <span class="text-xs text-text-muted">
+              Stock: {{ Number(product.available_qty ?? 0) }}
+              <span v-if="product.sku || product.barcode" class="ml-1.5 font-mono text-text-muted/80">· {{ product.sku || product.barcode }}</span>
+            </span>
           </div>
           <div class="flex items-center gap-1.5 shrink-0" @mousedown.stop>
             <button @mousedown.prevent="$emit('add-product', { ...product, override_price: product.unit_price })" :disabled="Number(product.available_qty ?? 0) <= 0" class="rounded border border-primary/30 bg-surface px-2 py-1 text-xs font-bold text-primary hover:bg-primary/10 transition-theme disabled:opacity-50">
@@ -76,9 +79,32 @@ const showProductDropdown = ref(false)
 const filteredProducts = computed(() => {
   const all = (props.products as any[])
   if (!productSearch.value) return all
-  const q = productSearch.value.toLowerCase()
-  return all.filter((p: any) => p.name.toLowerCase().includes(q)).slice(0, 8)
+  const q = productSearch.value.trim().toLowerCase()
+  return all.filter((p: any) =>
+    p.name.toLowerCase().includes(q) ||
+    (p.sku && String(p.sku).toLowerCase().includes(q)) ||
+    (p.barcode && String(p.barcode).toLowerCase().includes(q))
+  ).slice(0, 8)
 })
+
+/**
+ * Scanner-gun workflow: a barcode scanner types the code then sends Enter. An exact
+ * sku/barcode match adds and clears immediately so the next scan can start right away.
+ * Falls back to "add the only match" for keyboard-only exact-name entry.
+ */
+const onSearchEnter = () => {
+  const q = productSearch.value.trim().toLowerCase()
+  if (!q) return
+  const all = (props.products as any[])
+  const exact = all.find((p: any) =>
+    (p.barcode && String(p.barcode).toLowerCase() === q) ||
+    (p.sku && String(p.sku).toLowerCase() === q)
+  )
+  const target = exact ?? (filteredProducts.value.length === 1 ? filteredProducts.value[0] : null)
+  if (!target || Number(target.available_qty ?? 0) <= 0) return
+  emit('add-product', { ...target, override_price: target.unit_price })
+  productSearch.value = ''
+}
 
 const localClientSearch = ref('')
 const localClientPhone = ref('')
