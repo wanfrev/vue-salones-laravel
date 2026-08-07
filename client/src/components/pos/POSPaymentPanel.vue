@@ -88,12 +88,12 @@
               </span>
               <div
                 class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                :class="areProductsIncluded ? 'bg-primary' : 'bg-bg-secondary border border-border'"
-                @click="$emit('update:are-products-included', !areProductsIncluded)"
+                :class="props.areProductsIncluded ? 'bg-primary' : 'bg-bg-secondary border border-border'"
+                @click="$emit('update:are-products-included', !props.areProductsIncluded)"
               >
                 <span
                   class="inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                  :class="areProductsIncluded ? 'translate-x-3 bg-white' : 'translate-x-0.5 bg-border-strong'"
+                  :class="props.areProductsIncluded ? 'translate-x-3 bg-white' : 'translate-x-0.5 bg-border-strong'"
                 />
               </div>
             </label>
@@ -102,103 +102,132 @@
             <div
               v-for="(item, idx) in cart"
               :key="item.productId"
-              class="flex items-center justify-between gap-2 rounded-lg bg-bg-secondary px-3 transition-theme"
-              :class="isRetailNiche ? 'py-2.5' : 'py-2'"
+              class="rounded-lg bg-bg-secondary px-3"
+              :class="isRetailNiche ? 'py-2.5 space-y-2' : 'flex items-center justify-between gap-2 py-2'"
             >
-              <div class="flex-1 min-w-0">
-                <p class="font-medium text-text truncate" :class="isRetailNiche ? 'text-sm sm:text-[15px]' : 'text-sm'">{{ item.productName }}</p>
-                <div class="flex items-center gap-1.5 mt-0.5">
-                  <span class="text-xs" :class="areProductsIncluded ? 'text-text-muted line-through opacity-70' : 'text-text-muted'">{{ formatDual(item.unitPrice) }} c/u</span>
-                  <div v-if="isRetailNiche && item.unitPrice2 != null && Number(item.unitPrice2) > 0" class="inline-flex rounded border border-border p-0.5 bg-surface shrink-0">
+              <!-- Retail (tienda/no-agenda): two-row card — name/subtotal on top, price/qty below.
+                   Splitting into two rows gives each element real width instead of cramming
+                   name + price + bigger touch-target qty controls into one line, which used to
+                   force formatDual's combined "$X / Y Bs" string to wrap mid-number. -->
+              <template v-if="isRetailNiche">
+                <div class="flex items-center justify-between gap-2">
+                  <p class="flex-1 min-w-0 truncate text-sm sm:text-[15px] font-medium text-text">{{ item.productName }}</p>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <div class="text-right leading-tight">
+                      <span v-if="props.areProductsIncluded" class="block text-xs font-bold text-success">Exonerado</span>
+                      <template v-else>
+                        <span class="block text-sm sm:text-base font-bold text-text">{{ formatUSD(item.subtotal) }}</span>
+                        <span class="block text-[10px] text-text-muted">{{ formatVES(item.subtotal) }}</span>
+                      </template>
+                    </div>
                     <button
-                      type="button"
-                      @click.stop.prevent="$emit('set-price-index', idx, 1)"
-                      class="px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors cursor-pointer"
-                      :class="item.priceIndex !== 2 ? 'bg-primary text-text-inverse shadow-2xs' : 'text-text-muted hover:text-text'"
+                      @click="$emit('remove-item', idx)"
+                      class="flex h-8 w-8 items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
                     >
-                      P1
-                    </button>
-                    <button
-                      type="button"
-                      @click.stop.prevent="$emit('set-price-index', idx, 2)"
-                      class="px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors cursor-pointer"
-                      :class="item.priceIndex === 2 ? 'bg-primary text-text-inverse shadow-2xs' : 'text-text-muted hover:text-text'"
-                    >
-                      P2
+                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                     </button>
                   </div>
                 </div>
-              </div>
-
-              <!-- Retail (tienda/no-agenda): bigger touch targets + tap-to-type exact quantity -->
-              <div v-if="isRetailNiche" class="flex items-center gap-1.5 shrink-0">
-                <button
-                  @click="$emit('decrement-qty', idx)"
-                  class="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-base font-bold text-text-muted hover:bg-surface hover:text-text active:scale-95 transition-theme"
-                >
-                  −
-                </button>
-                <input
-                  v-if="editingIdx === idx"
-                  :ref="(el) => setQtyInputRef(el, idx)"
-                  v-model="editingValue"
-                  type="number"
-                  inputmode="numeric"
-                  min="1"
-                  :max="item.availableQty"
-                  class="w-12 h-9 rounded-lg border border-primary bg-surface text-center text-sm font-bold text-text outline-none"
-                  @blur="commitQtyEdit(idx)"
-                  @keydown.enter.prevent="commitQtyEdit(idx)"
-                  @keydown.escape="cancelQtyEdit"
-                />
-                <button
-                  v-else
-                  @click="startQtyEdit(idx, item.quantity)"
-                  class="w-9 h-9 rounded-lg text-sm font-bold text-text hover:bg-surface transition-theme"
-                  title="Toca para escribir la cantidad exacta"
-                >
-                  {{ item.quantity }}
-                </button>
-                <button
-                  @click="$emit('increment-qty', idx)"
-                  class="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-base font-bold text-text-muted hover:bg-surface hover:text-text active:scale-95 transition-theme"
-                >
-                  +
-                </button>
-              </div>
-
-              <!-- Non-retail (appointment/service checkout): unchanged compact stepper -->
-              <div v-else class="flex items-center gap-1">
-                <button
-                  @click="$emit('decrement-qty', idx)"
-                  class="flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-text-muted hover:bg-surface hover:text-text transition-theme"
-                >
-                  −
-                </button>
-                <span class="w-6 text-center text-sm font-semibold text-text">{{ item.quantity }}</span>
-                <button
-                  @click="$emit('increment-qty', idx)"
-                  class="flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-text-muted hover:bg-surface hover:text-text transition-theme"
-                >
-                  +
-                </button>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <div class="text-right" :class="isRetailNiche ? 'w-20' : 'w-16'">
-                  <span v-if="areProductsIncluded" class="block text-xs font-bold text-success">Exonerado</span>
-                  <span v-else class="font-semibold text-text" :class="isRetailNiche ? 'text-sm sm:text-base' : 'text-sm'">{{ formatDual(item.subtotal) }}</span>
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="text-xs truncate" :class="props.areProductsIncluded ? 'text-text-muted line-through opacity-70' : 'text-text-muted'">{{ formatUSD(item.unitPrice) }} c/u</span>
+                    <div v-if="item.unitPrice2 != null && Number(item.unitPrice2) > 0" class="inline-flex rounded border border-border p-0.5 bg-surface shrink-0">
+                      <button
+                        type="button"
+                        @click.stop.prevent="$emit('set-price-index', idx, 1)"
+                        class="px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors cursor-pointer"
+                        :class="item.priceIndex !== 2 ? 'bg-primary text-text-inverse shadow-2xs' : 'text-text-muted hover:text-text'"
+                      >
+                        P1
+                      </button>
+                      <button
+                        type="button"
+                        @click.stop.prevent="$emit('set-price-index', idx, 2)"
+                        class="px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors cursor-pointer"
+                        :class="item.priceIndex === 2 ? 'bg-primary text-text-inverse shadow-2xs' : 'text-text-muted hover:text-text'"
+                      >
+                        P2
+                      </button>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <button
+                      @click="$emit('decrement-qty', idx)"
+                      class="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-base font-bold text-text-muted hover:bg-surface hover:text-text active:scale-95 transition-theme"
+                    >
+                      −
+                    </button>
+                    <input
+                      v-if="editingIdx === idx"
+                      :ref="(el) => setQtyInputRef(el, idx)"
+                      v-model="editingValue"
+                      type="number"
+                      inputmode="numeric"
+                      min="1"
+                      :max="item.availableQty"
+                      class="w-12 h-9 rounded-lg border border-primary bg-surface text-center text-sm font-bold text-text outline-none"
+                      @blur="commitQtyEdit(idx)"
+                      @keydown.enter.prevent="commitQtyEdit(idx)"
+                      @keydown.escape="cancelQtyEdit"
+                    />
+                    <button
+                      v-else
+                      @click="startQtyEdit(idx, item.quantity)"
+                      class="w-9 h-9 rounded-lg text-sm font-bold text-text hover:bg-surface transition-theme"
+                      title="Toca para escribir la cantidad exacta"
+                    >
+                      {{ item.quantity }}
+                    </button>
+                    <button
+                      @click="$emit('increment-qty', idx)"
+                      class="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-base font-bold text-text-muted hover:bg-surface hover:text-text active:scale-95 transition-theme"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-                <button
-                  @click="$emit('remove-item', idx)"
-                  class="flex items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
-                  :class="isRetailNiche ? 'h-8 w-8' : 'h-5 w-5'"
-                >
-                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+              </template>
+
+              <!-- Non-retail (appointment/service checkout): unchanged single-row layout -->
+              <template v-else>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-text truncate">{{ item.productName }}</p>
+                  <div class="flex items-center gap-1.5 mt-0.5">
+                    <span class="text-xs" :class="props.areProductsIncluded ? 'text-text-muted line-through opacity-70' : 'text-text-muted'">{{ formatDual(item.unitPrice) }} c/u</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button
+                    @click="$emit('decrement-qty', idx)"
+                    class="flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-text-muted hover:bg-surface hover:text-text transition-theme"
+                  >
+                    −
+                  </button>
+                  <span class="w-6 text-center text-sm font-semibold text-text">{{ item.quantity }}</span>
+                  <button
+                    @click="$emit('increment-qty', idx)"
+                    class="flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-text-muted hover:bg-surface hover:text-text transition-theme"
+                  >
+                    +
+                  </button>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="text-right w-16">
+                    <span v-if="props.areProductsIncluded" class="block text-xs font-bold text-success">Exonerado</span>
+                    <span v-else class="text-sm font-semibold text-text">{{ formatDual(item.subtotal) }}</span>
+                  </div>
+                  <button
+                    @click="$emit('remove-item', idx)"
+                    class="flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
+                  >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -270,26 +299,27 @@
           <div v-if="isRetailNiche" class="flex flex-col gap-2 border-t border-border pt-3 mt-1">
             <div class="flex items-center justify-between text-sm">
               <span class="font-medium text-text">Total Calculado</span>
-              <span class="text-text-muted">{{ formatDual(productsTotal) }}</span>
-            </div>
-            <div class="flex items-center justify-between">
-              <span class="text-base font-bold text-text">Total a Cobrar</span>
-              <div class="flex items-center gap-2">
-                <select
-                  :value="customTotalCurrency"
-                  @change="$emit('update:custom-total-currency', ($event.target as HTMLSelectElement).value)"
-                  class="rounded-lg border border-border bg-surface px-2 py-1 text-sm font-bold text-text outline-none focus:border-primary w-16"
-                >
-                  <option value="USD">USD</option>
-                  <option value="VES">VES</option>
-                </select>
-                <input
-                  :value="customTotalAmount ?? ''"
-                  @input="$emit('update:custom-total-amount', ($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : null)"
-                  type="number" step="0.01" min="0" placeholder="Automático"
-                  class="w-28 rounded-lg border border-border bg-surface px-3 py-1.5 text-lg font-bold text-primary text-right outline-none focus:border-primary placeholder:text-text-muted/50"
-                />
+              <div class="text-right leading-tight">
+                <span class="block font-semibold text-text">{{ formatUSD(productsTotal) }}</span>
+                <span class="block text-[10px] text-text-muted">{{ formatVES(productsTotal) }}</span>
               </div>
+            </div>
+            <span class="text-base font-bold text-text">Total a Cobrar</span>
+            <div class="flex items-center gap-2">
+              <select
+                :value="customTotalCurrency"
+                @change="$emit('update:custom-total-currency', ($event.target as HTMLSelectElement).value)"
+                class="shrink-0 rounded-lg border border-border bg-surface px-2 py-2 text-sm font-bold text-text outline-none focus:border-primary w-20"
+              >
+                <option value="USD">USD</option>
+                <option value="VES">VES</option>
+              </select>
+              <input
+                :value="customTotalAmount ?? ''"
+                @input="$emit('update:custom-total-amount', ($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : null)"
+                type="number" step="0.01" min="0" placeholder="Automático"
+                class="min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-lg font-bold text-primary text-right outline-none focus:border-primary placeholder:text-text-muted/50 placeholder:text-sm"
+              />
             </div>
           </div>
           <div v-else class="flex items-center justify-between border-t border-border pt-2 mt-1">
@@ -467,6 +497,7 @@ const props = defineProps<{
   productsTotal: number
   cartCount: number
   grandTotal: number
+  areProductsIncluded?: boolean
   paymentMethod: PaymentMethod
   otherCurrency: 'USD' | 'VES'
   paymentMethods: { label: string; value: PaymentMethod }[]
@@ -520,7 +551,7 @@ const emit = defineEmits<{
   'update:selected-gift-card-id': [value: string | null]
 }>()
 
-const { formatDual } = useCurrency()
+const { formatDual, formatUSD, formatVES } = useCurrency()
 const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)
 const { activeGiftCards } = useGiftCards(businessId)

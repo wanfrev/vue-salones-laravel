@@ -74,27 +74,32 @@
             <div class="flex flex-col gap-1.5 w-full">
               <div
                 v-if="!isRetailOnly || !product.unit_price_2"
-                class="w-full flex items-center justify-between bg-primary/5 border border-primary/20 rounded-lg px-2.5 py-2 text-primary"
+                class="w-full flex items-center justify-between bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 text-primary"
               >
-                <span class="text-[9px] font-bold uppercase">Precio</span>
-                <span class="text-sm sm:text-base font-bold">{{ formatDual(product.unit_price) }}</span>
+                <span class="text-[9px] font-bold uppercase text-primary/60">Precio</span>
+                <div class="flex flex-col items-end leading-tight">
+                  <span class="text-sm sm:text-base font-bold">{{ formatUSD(product.unit_price) }}</span>
+                  <span class="text-[10px] text-primary/60">{{ formatVES(product.unit_price) }}</span>
+                </div>
               </div>
 
               <template v-else>
                 <div class="grid grid-cols-2 gap-1.5">
                   <div
-                    class="flex flex-col items-center justify-center bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-lg py-1.5 px-1 transition-colors"
+                    class="flex flex-col items-center justify-center gap-0.5 bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-lg py-2 px-1 transition-colors"
                   >
                     <span class="text-[9px] font-bold text-primary/70 uppercase">P1</span>
-                    <span class="text-xs sm:text-sm font-bold text-primary">{{ formatDual(product.unit_price) }}</span>
+                    <span class="text-xs sm:text-sm font-bold text-primary leading-tight">{{ formatUSD(product.unit_price) }}</span>
+                    <span class="text-[9px] text-primary/50 leading-tight">{{ formatVES(product.unit_price) }}</span>
                   </div>
                   <button
                     @click.stop="$emit('add-product', { ...product, override_price: product.unit_price_2 })"
                     :disabled="Number(product.available_qty ?? 0) <= 0"
-                    class="flex flex-col items-center justify-center bg-surface hover:bg-bg-secondary border border-border rounded-lg py-1.5 px-1 transition-colors disabled:opacity-50"
+                    class="flex flex-col items-center justify-center gap-0.5 bg-surface hover:bg-bg-secondary border border-border rounded-lg py-2 px-1 transition-colors disabled:opacity-50"
                   >
                     <span class="text-[9px] font-bold text-text-muted uppercase">P2</span>
-                    <span class="text-xs sm:text-sm font-bold text-text">{{ formatDual(product.unit_price_2) }}</span>
+                    <span class="text-xs sm:text-sm font-bold text-text leading-tight">{{ formatUSD(product.unit_price_2) }}</span>
+                    <span class="text-[9px] text-text-muted/70 leading-tight">{{ formatVES(product.unit_price_2) }}</span>
                   </button>
                 </div>
               </template>
@@ -121,7 +126,7 @@ defineEmits<{
   'add-product': [product: any]
 }>()
 
-const { formatDual } = useCurrency()
+const { formatUSD, formatVES } = useCurrency()
 
 const selectedCategory = ref('all')
 
