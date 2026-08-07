@@ -16,6 +16,10 @@ class BusinessContext
         public readonly string $role = 'admin',
         public readonly ?string $nicheType = null,
         ?array $rawFeatures = null,
+        public readonly bool $canAccessInventory = false,
+        public readonly bool $canAccessPos = false,
+        public readonly bool $canAccessSuppliers = false,
+        public readonly bool $disableInventoryEdit = false,
     ) {
         $this->features = NicheRegistry::resolveFeatures($this->nicheType, $rawFeatures);
     }
@@ -48,5 +52,25 @@ class BusinessContext
     public function hasCapability(string $capability): bool
     {
         return NicheRegistry::hasCapability($this->nicheType, $capability);
+    }
+
+    /**
+     * Per-employee module access (tienda niche: inventory/pos/suppliers). Admin-panel roles
+     * (admin/encargado/superadmin) are unrestricted — this only narrows what a plain
+     * 'empleado'/'cajero' profile can reach, mirroring the frontend router guard.
+     */
+    public function hasProfilePermission(string $key): bool
+    {
+        if ($this->isAdmin() || $this->isSuperadmin()) {
+            return true;
+        }
+
+        return match ($key) {
+            'inventory' => $this->canAccessInventory,
+            'inventory-edit' => $this->canAccessInventory && !$this->disableInventoryEdit,
+            'pos' => $this->canAccessPos,
+            'suppliers' => $this->canAccessSuppliers,
+            default => true,
+        };
     }
 }

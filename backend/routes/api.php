@@ -80,9 +80,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Profiles / Employees
     Route::get('/profiles', [ProfileController::class, 'index']);
     Route::get('/profiles/{id}', [ProfileController::class, 'show']);
-    Route::post('/profiles', [ProfileController::class, 'store']);
-    Route::put('/profiles/{id}', [ProfileController::class, 'update']);
-    Route::delete('/profiles/{id}', [ProfileController::class, 'destroy']);
+    Route::middleware('admin-panel')->group(function () {
+        Route::post('/profiles', [ProfileController::class, 'store']);
+        Route::put('/profiles/{id}', [ProfileController::class, 'update']);
+        Route::delete('/profiles/{id}', [ProfileController::class, 'destroy']);
+    });
 
     // Employee payments
     Route::get('/employee-payments', [EmployeePaymentController::class, 'index']);
@@ -137,40 +139,47 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/appointments/{id}/status', [AppointmentController::class, 'updateStatus']);
     Route::patch('/appointments/{id}/time', [AppointmentController::class, 'updateTime']);
 
-    // Products
+    // Products — read needs perm:inventory (tienda employee "acceso a inventario"),
+    // write additionally needs perm:inventory-edit (disable_inventory_edit governs this).
     Route::middleware('feature:productos')->group(function () {
-        Route::get('/products', [ProductController::class, 'index']);
-        Route::post('/products', [ProductController::class, 'store']);
-        Route::put('/products/{id}', [ProductController::class, 'update']);
-        Route::delete('/products/{id}', [ProductController::class, 'destroy']);
-
-        // Product categories
-        Route::get('/products/categories', [ProductCategoryController::class, 'index']);
-        Route::post('/products/categories', [ProductCategoryController::class, 'store']);
-        Route::get('/product-categories', [ProductCategoryController::class, 'index']);
-        Route::post('/product-categories', [ProductCategoryController::class, 'store']);
+        Route::middleware('perm:inventory')->group(function () {
+            Route::get('/products', [ProductController::class, 'index']);
+            Route::get('/products/categories', [ProductCategoryController::class, 'index']);
+            Route::get('/product-categories', [ProductCategoryController::class, 'index']);
+        });
+        Route::middleware('perm:inventory-edit')->group(function () {
+            Route::post('/products', [ProductController::class, 'store']);
+            Route::put('/products/{id}', [ProductController::class, 'update']);
+            Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+            Route::post('/products/categories', [ProductCategoryController::class, 'store']);
+            Route::post('/product-categories', [ProductCategoryController::class, 'store']);
+        });
     });
 
-    // Inventory (with dashes aliases for frontend compat)
+    // Inventory (with dashes aliases for frontend compat) — same read/write split as Products.
     Route::middleware('feature:inventario')->group(function () {
-        Route::get('/inventory', [InventoryController::class, 'index']);
-        Route::get('/inventory-stock', [InventoryController::class, 'index']);
-        Route::post('/inventory-stock', [InventoryController::class, 'storeStock']);
-        Route::put('/inventory-stock/{id}', [InventoryController::class, 'updateStock']);
-        Route::delete('/inventory-stock/{id}', [InventoryController::class, 'deleteStock']);
-        Route::get('/inventory/movements', [InventoryController::class, 'movements']);
-        Route::get('/inventory-movements', [InventoryController::class, 'movements']);
-        Route::post('/inventory-movements', [InventoryController::class, 'storeMovement']);
-        Route::delete('/inventory-movements/{id}', [InventoryController::class, 'destroyMovement']);
-        Route::post('/inventory/adjust', [InventoryController::class, 'adjust']);
-        Route::post('/inventory/sell', [InventoryController::class, 'sell']);
-        Route::get('/inventory-locations', [InventoryController::class, 'locations']);
-        Route::post('/inventory-locations', [InventoryController::class, 'storeLocation']);
-        Route::get('/product-variants', [InventoryController::class, 'variants']);
+        Route::middleware('perm:inventory')->group(function () {
+            Route::get('/inventory', [InventoryController::class, 'index']);
+            Route::get('/inventory-stock', [InventoryController::class, 'index']);
+            Route::get('/inventory/movements', [InventoryController::class, 'movements']);
+            Route::get('/inventory-movements', [InventoryController::class, 'movements']);
+            Route::get('/inventory-locations', [InventoryController::class, 'locations']);
+            Route::get('/product-variants', [InventoryController::class, 'variants']);
+        });
+        Route::middleware('perm:inventory-edit')->group(function () {
+            Route::post('/inventory-stock', [InventoryController::class, 'storeStock']);
+            Route::put('/inventory-stock/{id}', [InventoryController::class, 'updateStock']);
+            Route::delete('/inventory-stock/{id}', [InventoryController::class, 'deleteStock']);
+            Route::post('/inventory-movements', [InventoryController::class, 'storeMovement']);
+            Route::delete('/inventory-movements/{id}', [InventoryController::class, 'destroyMovement']);
+            Route::post('/inventory/adjust', [InventoryController::class, 'adjust']);
+            Route::post('/inventory/sell', [InventoryController::class, 'sell']);
+            Route::post('/inventory-locations', [InventoryController::class, 'storeLocation']);
+        });
     });
 
-    // Suppliers
-    Route::middleware('feature:proveedores')->group(function () {
+    // Suppliers — whole module gated on a single perm (no separate view/edit split requested).
+    Route::middleware(['feature:proveedores', 'perm:suppliers'])->group(function () {
         Route::get('/suppliers', [SupplierController::class, 'index']);
         Route::post('/suppliers', [SupplierController::class, 'store']);
         Route::put('/suppliers/{id}', [SupplierController::class, 'update']);
@@ -210,7 +219,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/daily-reports/{id}', [DailyReportController::class, 'destroy']);
 
     // POS
-    Route::middleware('feature:pos')->group(function () {
+    Route::middleware(['feature:pos', 'perm:pos'])->group(function () {
         Route::get('/pos/pending', [PosController::class, 'pendingAppointments']);
         Route::get('/pos/products', [PosController::class, 'saleableProducts']);
         Route::post('/pos/sale', [PosController::class, 'recordSale']);
