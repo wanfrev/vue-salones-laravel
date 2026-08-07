@@ -68,7 +68,7 @@
 
   <!-- TAB 1: Resumen -->
   <template v-if="activeTab === 'resumen'">
-    <div v-if="!isEncargadoRole" class="mb-4">
+    <div v-if="!hideFinancialDashboard" class="mb-4">
       <KpiCards :income-total="incomeTotal" :ves-income-total="vesIncomeTotal" :tips-total="summaryCtx.tipsTotal" :expense-total="expenseTotal" :net-total="netTotal" :margin="marginTotal" :active-card="activeCard" :is-loading="summaryCtx.isLoading.value" @click-income="toggleCard('income')" @click-expense="toggleCard('expense')" @click-net="toggleCard('net')" />
     </div>
     <Transition name="accordion">
@@ -79,7 +79,7 @@
 
   <!-- TAB 2: Ingresos Detallados -->
   <template v-if="activeTab === 'ingresos'">
-    <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :hide-tabs="ingresosHideTabs" :hide-total="isEncargadoRole" />
+    <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :hide-tabs="ingresosHideTabs" :hide-total="hideFinancialDashboard" />
   </template>
 
   <!-- TAB 3: Egresos, Proveedores y Nómina -->
@@ -143,7 +143,7 @@ const { formatUSD, formatVESInline } = useCurrency()
 const router = useRouter()
 const rateCtx = useExchangeRate()
 const businessStore = useBusinessStore()
-const isEncargadoRole = computed(() => isEncargado(authStore.role ?? undefined))
+const hideFinancialDashboard = computed(() => authStore.role !== 'superadmin')
 
 // Cobros de Citas has nothing to show when the business runs with agenda/calendario/
 // servicios all off (tienda niche) — there's no appointment flow to have collected income

@@ -273,6 +273,7 @@ import { addBusinessJobTitle } from '../../services/equipoService'
 import { useFormValidation } from '../../composables/common/useFormValidation'
 import { empleadoFormSchema } from '../../lib/validation'
 import { isPetNiche } from '../../config/nicheFields'
+import { isTiendaNiche } from '../../config/niches'
 import type { Empleado, EmpleadoFormData } from '../../types/empleado'
 import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormDropdown } from '../forms'
@@ -298,6 +299,7 @@ const businessStore = useBusinessStore()
 const t = computed(() => businessStore.terminology)
 
 const isPetNicheBusiness = computed(() => isPetNiche(businessStore.nicheType))
+const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
 
 const isSubmitting = ref(false)
 const isLoading = computed(() => isSubmitting.value || props.isSaving)
