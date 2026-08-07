@@ -362,7 +362,7 @@ const toggleExpand = (id: string) => {
 
 const originalStartEdit = summaryCtx.startEdit
 summaryCtx.startEdit = (tx: any) => {
-  if (tx.appointmentId || tx.appointment_id) {
+  if (tx.appointmentId || tx.appointment_id || tx.source === 'product_sale' || tx.items) {
     openCobroActions(tx)
   } else {
     originalStartEdit(tx)
@@ -379,14 +379,17 @@ const { success, error: showError } = useNotification()
 
 const openCobroActions = async (tx: any) => {
   const appointmentId = tx.appointmentId || tx.appointment_id
-  const { data: citaRaw } = await db
-    .from('appointments')
-    .select(APPOINTMENT_SELECT)
-    .eq('id', appointmentId)
-    .maybeSingle()
-  if (!citaRaw) return
-
-  const cita = mapAppointmentToCita(citaRaw)
+  let cita = null
+  if (appointmentId) {
+    const { data: citaRaw } = await db
+      .from('appointments')
+      .select(APPOINTMENT_SELECT)
+      .eq('id', appointmentId)
+      .maybeSingle()
+    if (citaRaw) {
+      cita = mapAppointmentToCita(citaRaw)
+    }
+  }
   const hasMixed = tx.breakdown && tx.breakdown.length > 1
   const paymentData: PaymentEditContext = {
     transactionId: tx.id,
@@ -406,7 +409,7 @@ const openCobroActions = async (tx: any) => {
   cobroActionsShow.value = true
 }
 
-const handleRollbackCobro = async (payload: { transactionIds: string[]; appointmentId: string; prefill: any }) => {
+const handleRollbackCobro = async (payload: { transactionIds: string[]; appointmentId?: string; prefill: any }) => {
   cobroActionsShow.value = false
   try {
     await Promise.all(payload.transactionIds.map(id =>
@@ -418,7 +421,9 @@ const handleRollbackCobro = async (payload: { transactionIds: string[]; appointm
     if (payload.prefill) {
       sessionStorage.setItem('posPrefill', JSON.stringify(payload.prefill))
     }
-    router.push({ name: 'admin-pos', query: { appointmentId: payload.appointmentId } })
+    const queryParams: any = {}
+    if (payload.appointmentId) queryParams.appointmentId = payload.appointmentId
+    router.push({ name: 'admin-pos', query: queryParams })
   } catch (err) {
     showError(translateError(err, 'Error al eliminar cobro'))
   }

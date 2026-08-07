@@ -974,7 +974,13 @@ const { handleSaveCita, handleDeleteCita } = useAppointmentMutations({
 
 const tryAutoSelect = () => {
   const id = route.query.appointmentId as string | undefined
-  if (!id) return
+  if (!id) {
+    if (sessionStorage.getItem('posPrefill')) {
+      startRetailOnly()
+      applyPrefill()
+    }
+    return
+  }
   if (appointments.value.length === 0) return
   const found = appointments.value.find((a: any) =>
     a.id === id || (a.groupIds && a.groupIds.includes(id)),

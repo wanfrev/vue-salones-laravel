@@ -21,7 +21,7 @@ const emit = defineEmits<{
   close: []
   rollback: [payload: {
     transactionIds: string[]
-    appointmentId: string
+    appointmentId?: string
     prefill: {
       paymentMethod: string
       paymentAmount: number
@@ -72,6 +72,25 @@ watch(() => props.paymentData, (data) => {
         })
       })
       .catch(() => { appointmentProducts.value = [] })
+  } else if (data?.transactionId) {
+    db
+      .from('inventory_movements')
+      .select('id, product_id, products(name, unit_price), quantity, unit_cost')
+      .in('reference_type', ['invoice', 'direct'])
+      .eq('reference_id', data.transactionId)
+      .then(({ data: items }: any) => {
+        appointmentProducts.value = (items ?? []).map((m: any) => {
+          const price = Number(m.products?.unit_price ?? 0)
+          return {
+            movementId: m.id,
+            productId: m.product_id,
+            productName: m.products?.name ?? m.product_id,
+            quantity: Math.abs(m.quantity),
+            unitCost: price > 0 ? price : Number(m.unit_cost ?? 0),
+          }
+        })
+      })
+      .catch(() => { appointmentProducts.value = [] })
   }
 }, { immediate: true, deep: true })
 
@@ -108,7 +127,6 @@ watch(() => mode.value, (m) => { if (m === 'factura') loadGroupMembers() })
 
 const onRollback = () => {
   const apptId = props.cita?.id
-  if (!apptId) return
   const pd = props.paymentData
   const prefill = pd ? {
     paymentMethod: pd.method,
@@ -204,7 +222,8 @@ const totalServicios = computed(() => allServices.value.reduce((s, svc) => s + s
         <div class="mb-5 text-center">
           <h2 class="text-lg font-bold text-text">Opciones del cobro</h2>
           <p class="mt-1 text-sm text-text-muted line-clamp-1">
-            {{ cita?.clientName }} · {{ cita?.service }}
+            <template v-if="cita">{{ cita.clientName }} · {{ cita.service }}</template>
+            <template v-else>Factura de Venta</template>
           </p>
         </div>
 
@@ -290,7 +309,10 @@ const totalServicios = computed(() => allServices.value.reduce((s, svc) => s + s
             </button>
             <div>
               <h2 class="text-lg font-bold text-text">Factura</h2>
-              <p class="text-xs text-text-muted">{{ cita?.date }} · {{ cita?.time }}</p>
+              <p class="text-xs text-text-muted">
+                <template v-if="cita">{{ cita.date }} · {{ cita.time }}</template>
+                <template v-else>Factura de Venta</template>
+              </p>
             </div>
           </div>
           <button
