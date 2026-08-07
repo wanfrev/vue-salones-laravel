@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <FeatureGate feature="proveedores">
   <header class="mb-5 lg:mb-8">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -7,7 +7,7 @@
           <BagIcon class="h-3.5 w-3.5" />
           <span>Proveedores</span>
         </div>
-        <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">GestiÃ³n de Proveedores</h1>
+        <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Gestión de Proveedores</h1>
       </div>
       <button
         @click="suppliersCtx.openNew()"
@@ -41,9 +41,9 @@
           <tr class="border-b border-border bg-bg-secondary">
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Nombre</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted hidden sm:table-cell">Empresa</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted hidden md:table-cell">TelÃ©fono</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted hidden md:table-cell">Teléfono</th>
             <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-text-muted">Deuda</th>
-            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-text-muted">AcciÃ³n</th>
+            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-text-muted">Acción</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-border">
@@ -59,8 +59,8 @@
                 </div>
               </div>
             </td>
-            <td class="px-4 py-3.5 text-sm text-text-secondary hidden sm:table-cell">{{ supplier.company || 'â€”' }}</td>
-            <td class="px-4 py-3.5 text-sm text-text-secondary hidden md:table-cell">{{ supplier.phone || 'â€”' }}</td>
+            <td class="px-4 py-3.5 text-sm text-text-secondary hidden sm:table-cell">{{ supplier.company || '—' }}</td>
+            <td class="px-4 py-3.5 text-sm text-text-secondary hidden md:table-cell">{{ supplier.phone || '—' }}</td>
             <td class="px-4 py-3.5 text-right">
               <div class="text-sm font-semibold text-text">
                 {{ supplier.debtCurrency === 'VES' ? formatVESEs(supplier.debtOriginalAmount) : formatUSD(supplier.totalDebt) }}
@@ -114,10 +114,10 @@
             <label class="mb-1 block text-sm font-medium text-text" for="sup-company">Empresa</label>
             <input id="sup-company" v-model="suppliersCtx.form.value.company" type="text"
               class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
-              placeholder="Ej: Distribuidora CosmÃ©tica, C.A." />
+              placeholder="Ej: Distribuidora Cosmética, C.A." />
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-text" for="sup-phone">TelÃ©fono</label>
+            <label class="mb-1 block text-sm font-medium text-text" for="sup-phone">Teléfono</label>
             <input id="sup-phone" v-model="suppliersCtx.form.value.phone" type="text"
               class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
               placeholder="+58 414-1234567" />

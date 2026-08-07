@@ -50,6 +50,10 @@ class SetBusinessContext
             role: $profile->role ?? 'admin',
             nicheType: $nicheType,
             rawFeatures: $rawFeatures,
+            canAccessInventory: (bool) $profile->can_access_inventory,
+            canAccessPos: (bool) $profile->can_access_pos,
+            canAccessSuppliers: (bool) $profile->can_access_suppliers,
+            disableInventoryEdit: (bool) $profile->disable_inventory_edit,
         );
 
         app()->instance(BusinessContext::class, $context);

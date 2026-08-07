@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <AppLayout>
     <div class="space-y-4">
       <header class="rounded-xl border border-border bg-surface p-4">
@@ -32,7 +32,7 @@
         </div>
 
         <div v-else-if="paymentsWithCurrency.length === 0" class="p-8 text-center text-sm text-text-muted">
-          AÃºn no tienes pagos registrados.
+          Aún no tienes pagos registrados.
         </div>
 
         <template v-else>
@@ -43,7 +43,7 @@
                 <tr class="border-b border-border bg-bg-secondary">
                   <th class="px-4 py-2.5 text-left font-medium text-text-muted">Fecha</th>
                   <th class="px-4 py-2.5 text-right font-medium text-text-muted">Monto</th>
-                  <th class="px-4 py-2.5 text-left font-medium text-text-muted">MÃ©todo</th>
+                  <th class="px-4 py-2.5 text-left font-medium text-text-muted">Método</th>
                   <th v-if="hasNotes" class="px-4 py-2.5 text-left font-medium text-text-muted">Notas</th>
                 </tr>
               </thead>

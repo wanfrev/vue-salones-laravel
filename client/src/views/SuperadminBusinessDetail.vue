@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <SuperadminLayout>
     <div v-if="business" class="space-y-6">
       <!-- Header -->
@@ -42,7 +42,7 @@
         </div>
         <div class="rounded-xl border border-border bg-surface p-3">
           <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">Nicho</p>
-          <p class="text-sm font-semibold text-text capitalize">{{ (business.niche_type || 'â€”').replace(/_/g, ' ') }}</p>
+          <p class="text-sm font-semibold text-text capitalize">{{ (business.niche_type || '—').replace(/_/g, ' ') }}</p>
         </div>
         <div class="rounded-xl border border-border bg-surface p-3">
           <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">Creado</p>
@@ -57,8 +57,8 @@
           <p class="text-sm font-semibold text-text">{{ business.currency }}</p>
         </div>
         <div class="rounded-xl border border-border bg-surface p-3">
-          <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">TelÃ©fono</p>
-          <p class="text-sm font-semibold text-text truncate">{{ business.phone || 'â€”' }}</p>
+          <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">Teléfono</p>
+          <p class="text-sm font-semibold text-text truncate">{{ business.phone || '—' }}</p>
         </div>
       </div>
 
@@ -68,9 +68,9 @@
         <div class="rounded-2xl border border-border bg-surface p-5">
           <h2 class="text-base font-bold text-text mb-4">Funcionalidades</h2>
 
-          <!-- Agenda y catÃ¡logo -->
+          <!-- Agenda y catálogo -->
           <div class="mb-4">
-            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Agenda y catÃ¡logo</p>
+            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Agenda y catálogo</p>
             <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
               <label v-for="ft in scheduleFlags" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer hover:bg-bg-secondary/30 transition-colors">
                 <div>
@@ -85,9 +85,9 @@
             </div>
           </div>
 
-          <!-- MÃ³dulos principales -->
+          <!-- Módulos principales -->
           <div class="mb-4">
-            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">MÃ³dulos</p>
+            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Módulos</p>
             <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
               <label v-for="ft in coreModules" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer hover:bg-bg-secondary/30 transition-colors">
                 <div>
@@ -102,9 +102,9 @@
             </div>
           </div>
 
-          <!-- GestiÃ³n y equipos -->
+          <!-- Gestión y equipos -->
           <div class="mb-4">
-            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">GestiÃ³n y equipos</p>
+            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Gestión y equipos</p>
             <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
               <label v-for="ft in managementFlags" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer hover:bg-bg-secondary/30 transition-colors">
                 <div>
@@ -119,9 +119,9 @@
             </div>
           </div>
 
-          <!-- ComunicaciÃ³n y reservas -->
+          <!-- Comunicación y reservas -->
           <div>
-            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">ComunicaciÃ³n y reservas</p>
+            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Comunicación y reservas</p>
             <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
               <label v-for="ft in commFlags" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer hover:bg-bg-secondary/30 transition-colors">
                 <div>
@@ -214,7 +214,7 @@
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-xs font-semibold text-text mb-1">TelÃ©fono</label>
+                  <label class="block text-xs font-semibold text-text mb-1">Teléfono</label>
                   <input v-model="editForm.phone" type="text" class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
                 </div>
                 <div>
@@ -236,12 +236,12 @@
                   <label class="block text-xs font-semibold text-text mb-1">Nicho</label>
                   <select v-model="editForm.niche_type" class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
                     <option v-for="n in registeredNiches" :key="n.id" :value="n.id">{{ n.label }}</option>
-                    <option v-if="isUnregisteredNiche" :value="business?.niche_type" disabled>{{ business?.niche_type }} â€” sin configurar</option>
+                    <option v-if="isUnregisteredNiche" :value="business?.niche_type" disabled>{{ business?.niche_type }} — sin configurar</option>
                   </select>
                 </div>
               </div>
               <div>
-                <label class="block text-xs font-semibold text-text mb-1">DirecciÃ³n</label>
+                <label class="block text-xs font-semibold text-text mb-1">Dirección</label>
                 <input v-model="editForm.address" type="text" class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
               </div>
               <p v-if="editFormError" class="text-xs text-danger">{{ editFormError }}</p>
@@ -292,11 +292,11 @@ const business = computed<Business | undefined>(() =>
   businessesData.value?.find((b: Business) => b.id === businessId.value)
 )
 
-// Raw stored value â€” the sparse merge base for toggleFeature's PUT payload, so flipping one
+// Raw stored value — the sparse merge base for toggleFeature's PUT payload, so flipping one
 // switch only ever persists the keys already in the DB plus the one changed (no accidental
 // backfill of the other ~20 resolved keys).
 const rawFeatures = computed(() => (business.value as any)?.features ?? {})
-// Resolved (DEFAULT_FEATURES -> niche defaults -> stored -> niche locks) â€” what the toggles
+// Resolved (DEFAULT_FEATURES -> niche defaults -> stored -> niche locks) — what the toggles
 // should actually render as on/off, since most keys are never written to the DB at all.
 const features = computed(() =>
   (business.value as any)?.resolved_features
@@ -322,21 +322,21 @@ const { data: branchesData } = useQuery({
 const branches = computed(() => branchesData.value ?? [])
 
 const allFlags = [
-  { key: 'agenda', label: 'Agenda', description: 'Vista de agenda de citas del dÃ­a' },
+  { key: 'agenda', label: 'Agenda', description: 'Vista de agenda de citas del día' },
   { key: 'calendario', label: 'Calendario', description: 'Vista de calendario de citas' },
-  { key: 'servicios', label: 'Servicios', description: 'CatÃ¡logo de servicios agendables' },
-  { key: 'pos', label: 'Punto de Venta', description: 'Cobro de citas con productos y mÃ©todo de pago' },
+  { key: 'servicios', label: 'Servicios', description: 'Catálogo de servicios agendables' },
+  { key: 'pos', label: 'Punto de Venta', description: 'Cobro de citas con productos y método de pago' },
   { key: 'inventario', label: 'Inventario', description: 'Control de stock, entradas y salidas' },
-  { key: 'productos', label: 'Productos', description: 'CatÃ¡logo de productos vendibles' },
-  { key: 'proveedores', label: 'Proveedores', description: 'GestiÃ³n de proveedores, deudas y pagos' },
+  { key: 'productos', label: 'Productos', description: 'Catálogo de productos vendibles' },
+  { key: 'proveedores', label: 'Proveedores', description: 'Gestión de proveedores, deudas y pagos' },
   { key: 'employees_create_clients', label: 'Empleados crean clientes', description: 'Los empleados pueden agregar clientes desde la agenda' },
-  { key: 'employees_see_clients', label: 'Empleados ven clientes', description: 'Acceso al mÃ³dulo de Clientes en el menÃº lateral' },
+  { key: 'employees_see_clients', label: 'Empleados ven clientes', description: 'Acceso al módulo de Clientes en el menú lateral' },
   { key: 'gift_cards', label: 'Gift Cards', description: 'Sistema de tarjetas de regalo' },
-  { key: 'manual_reports', label: 'Reporte Diario', description: 'GeneraciÃ³n y control de reportes diarios' },
-  { key: 'multi_branch', label: 'MÃºltiples sucursales', description: 'Gestionar varias ubicaciones fÃ­sicas' },
-  { key: 'enable_public_booking', label: 'Reservas pÃºblicas', description: 'Links de reserva e invitaciones para clientes' },
+  { key: 'manual_reports', label: 'Reporte Diario', description: 'Generación y control de reportes diarios' },
+  { key: 'multi_branch', label: 'Múltiples sucursales', description: 'Gestionar varias ubicaciones físicas' },
+  { key: 'enable_public_booking', label: 'Reservas públicas', description: 'Links de reserva e invitaciones para clientes' },
   { key: 'whatsapp_available', label: 'WhatsApp', description: 'Configurar WhatsApp via Evolution API con QR' },
-  { key: 'hide_client_phone_from_employees', label: 'Ocultar datos a empleados', description: 'Empleados no ven telÃ©fono ni email de clientes' },
+  { key: 'hide_client_phone_from_employees', label: 'Ocultar datos a empleados', description: 'Empleados no ven teléfono ni email de clientes' },
 ]
 
 const scheduleFlags = computed(() => allFlags.filter(f => ['agenda', 'calendario', 'servicios'].includes(f.key)))
@@ -347,7 +347,7 @@ const commFlags = computed(() => allFlags.filter(f => ['enable_public_booking', 
 const isTogglingFeature = ref(false)
 const toggleFeature = async (key: string) => {
   if (!business.value) return
-  // Merge base is the RAW stored object (sparse) â€” only the flipped key gets written on top
+  // Merge base is the RAW stored object (sparse) — only the flipped key gets written on top
   // of whatever was already explicitly persisted. The new value inverts the RESOLVED
   // (effective) state, so a flag that's currently on via a niche default correctly flips off.
   const stored = rawFeatures.value
@@ -406,9 +406,9 @@ const { mutateAsync: deleteBiz, isPending: isDeleting } = useMutation({
   onError: (err) => showError(translateError(err, 'Error al eliminar')),
 })
 
-const confirmSuspend = () => { if (business.value) window.confirm(`Â¿Suspender "${business.value.name}"?`) && suspendBiz(business.value.id) }
-const confirmResume = () => { if (business.value) window.confirm(`Â¿Reactivar "${business.value.name}"?`) && resumeBiz(business.value.id) }
-const confirmDelete = () => { if (business.value) window.confirm(`Â¿Eliminar "${business.value.name}"?\n\nSe borrarÃ¡ TODO. Esta acciÃ³n no se puede deshacer.`) && deleteBiz(business.value.id) }
+const confirmSuspend = () => { if (business.value) window.confirm(`¿Suspender "${business.value.name}"?`) && suspendBiz(business.value.id) }
+const confirmResume = () => { if (business.value) window.confirm(`¿Reactivar "${business.value.name}"?`) && resumeBiz(business.value.id) }
+const confirmDelete = () => { if (business.value) window.confirm(`¿Eliminar "${business.value.name}"?\n\nSe borrará TODO. Esta acción no se puede deshacer.`) && deleteBiz(business.value.id) }
 
 function getInitials(name: string): string {
   return name.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('')

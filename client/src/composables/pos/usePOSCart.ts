@@ -85,6 +85,18 @@ export function usePOSCart() {
     }
   }
 
+  /** Exact-entry quantity (typed via keyboard/numpad rather than +/- taps). Clamped to [1, availableQty]. */
+  const setQuantity = (idx: number, quantity: number) => {
+    const item = cart.value[idx]
+    if (!item) return
+    const clamped = Math.max(1, Math.min(Math.round(quantity) || 1, item.availableQty || 1))
+    cart.value[idx] = {
+      ...item,
+      quantity: clamped,
+      subtotal: item.unitPrice * clamped
+    }
+  }
+
   const removeItem = (idx: number) => {
     cart.value.splice(idx, 1)
   }
@@ -102,6 +114,7 @@ export function usePOSCart() {
     setPriceIndex,
     incrementQty,
     decrementQty,
+    setQuantity,
     removeItem,
     clearCart,
   }

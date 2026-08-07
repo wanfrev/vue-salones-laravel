@@ -208,6 +208,7 @@ router.beforeEach(async (to) => {
     {
       loading: authStore.loading,
       isAuthenticated: authStore.isAuthenticated,
+      isCajeroProfile: authStore.isCajeroProfile,
       role: authStore.role,
       profile: authStore.profile,
       hasFeature: (key) => businessStore.hasFeature(key),

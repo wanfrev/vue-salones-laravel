@@ -19,7 +19,7 @@ function makeCtx(overrides: Partial<NavContext> = {}): NavContext {
   return {
     loading: false,
     isAuthenticated: true,
-    isCajeroProfile: false,
+    isCajeroProfile: false as boolean,
     role: 'empleado',
     profile: makeProfile(),
     hasFeature: () => true,
@@ -203,12 +203,22 @@ describe('resolveNavigation — meta.gate: feature (replaces the /dashboard/clie
   const clientesTarget = target('/dashboard/clientes', { requiresAuth: true, gate: { feature: 'employees_see_clients' as any } })
 
   it('blocks when the feature is off', () => {
-    const result = resolveNavigation(clientesTarget, makeCtx({ hasFeature: () => false }))
+    // Stub only the feature under test — a blanket `() => false` would also turn `agenda`
+    // off, and the role home then correctly becomes /dashboard/historial rather than
+    // /dashboard/agenda, which is a different assertion than this test intends to make.
+    const result = resolveNavigation(clientesTarget, makeCtx({ hasFeature: (k) => k !== 'employees_see_clients' }))
     expect(result).toBe('/dashboard/agenda')
   })
 
   it('allows when the feature is on', () => {
     expect(resolveNavigation(clientesTarget, makeCtx({ hasFeature: () => true }))).toBeUndefined()
+  })
+
+  it('bounces to historial, not agenda, when the blocked employee also has no agenda feature', () => {
+    // Guards against a redirect loop: /dashboard/agenda is itself gated on `agenda`, so
+    // sending an agenda-less employee there would bounce a second time.
+    const result = resolveNavigation(clientesTarget, makeCtx({ hasFeature: () => false }))
+    expect(result).toBe('/dashboard/historial')
   })
 })
 

@@ -206,7 +206,7 @@
         </div>
       </div>
 
-      <div v-if="activeSaleType === 'retail_only'" class="flex flex-col h-full space-y-4">
+      <div v-if="activeSaleType === 'retail_only' && showRetailCatalog" class="flex flex-col h-full space-y-4">
         <RetailProductSearch
           ref="retailSearchRef"
           :products="retailFilteredProducts"
@@ -223,13 +223,14 @@
         <RetailProductGrid
           :products="products"
           :is-retail-only="!businessStore.features.agenda"
+          :cart-quantities="cartQuantities"
           @add-product="addRetailProduct"
           class="flex-1"
         />
       </div>
 
       <AppointmentList
-        v-if="businessStore.features.agenda"
+        v-if="businessStore.features.agenda && (activeSaleType === 'appointment' || !showRetailCatalog)"
         :overdue="overdueAppointments"
         :upcoming="upcomingAppointments"
         :total-count="filteredAppointments.length"
@@ -250,6 +251,21 @@
 
     <!-- RIGHT PANEL (desktop & tablet landscape) -->
     <div class="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden lg:min-w-[340px]">
+      <RetailProductSearch
+        v-if="activeSaleType === 'retail_only' && !showRetailCatalog"
+        ref="retailSearchRef"
+        :products="retailFilteredProducts"
+        :client-suggestions="retailClientSuggestions"
+        :business-id="businessId"
+        :branch-id="branchId"
+        :is-retail-only="!businessStore.features.agenda"
+        @add-product="addRetailProduct"
+        @select-client="selectRetailClient"
+        @search-clients="onRetailSearchClients"
+        @update:client-name="retailClientSearch = $event; retailClientId = null"
+        @update:client-phone="retailClientPhone = $event"
+        class="border-b border-border pb-4"
+      />
       <POSPaymentPanel
         :selected-appointment="selectedAppointment"
         :cart="cart" :service-price="servicePrice"
@@ -282,7 +298,7 @@
         @update:tip-allocation="setTipAllocation"
         @process-payment="handleProcessPayment"
         @set-price-index="setPriceIndex"
-        @increment-qty="incrementQty" @decrement-qty="decrementQty" @remove-item="removeItem"
+        @increment-qty="incrementQty" @decrement-qty="decrementQty" @set-quantity="setQuantity" @remove-item="removeItem"
       />
     </div>
   </div>
@@ -314,6 +330,21 @@
         </div>
         <div class="flex-1 overflow-hidden p-3 sm:p-4 flex justify-center">
           <div class="w-full max-w-lg h-full flex flex-col min-w-0">
+          <RetailProductSearch
+            v-if="activeSaleType === 'retail_only' && !showRetailCatalog"
+            ref="retailSearchRef"
+            :products="retailFilteredProducts"
+            :client-suggestions="retailClientSuggestions"
+            :business-id="businessId"
+            :branch-id="branchId"
+            :is-retail-only="!businessStore.features.agenda"
+            @add-product="addRetailProduct"
+            @select-client="selectRetailClient"
+            @search-clients="onRetailSearchClients"
+            @update:client-name="retailClientSearch = $event; retailClientId = null"
+            @update:client-phone="retailClientPhone = $event"
+            class="border-b border-border pb-4"
+          />
           <POSPaymentPanel
             :selected-appointment="selectedAppointment"
             :cart="cart" :service-price="servicePrice"
@@ -346,7 +377,7 @@
             @update:tip-allocation="setTipAllocation"
             @process-payment="handleMobileProcessPayment"
             @set-price-index="setPriceIndex"
-            @increment-qty="incrementQty" @decrement-qty="decrementQty" @remove-item="removeItem"
+            @increment-qty="incrementQty" @decrement-qty="decrementQty" @set-quantity="setQuantity" @remove-item="removeItem"
           />
           </div>
         </div>
@@ -437,6 +468,7 @@ const {
   setPriceIndex,
   incrementQty,
   decrementQty,
+  setQuantity,
   removeItem,
   clearCart
 } = usePOSCart()
@@ -454,6 +486,9 @@ const {
   selectMethod,
   addSplit,
   removeSplit,
+  processPayment,
+  processDirectSale,
+  processDirectServiceSale,
   reset: resetPayment
 } = usePOSPayment()
 
@@ -633,6 +668,13 @@ const appointments = computed(() => groupPendingAppointments(appointmentsData.va
 const products = computed(() => productsData.value ?? [])
 const selectedId = computed(() => selectedAppointment.value?.id ?? null)
 
+// Live "already in cart" badge for the retail grid — productId -> quantity.
+const cartQuantities = computed(() => {
+  const map: Record<string, number> = {}
+  for (const item of cart.value) map[item.productId] = (map[item.productId] ?? 0) + item.quantity
+  return map
+})
+
 const normalize = (s: string): string => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 const filteredAppointments = computed(() => {
   if (!appointmentSearch.value) return appointments.value
@@ -651,6 +693,10 @@ const upcomingAppointments = computed(() => filteredAppointments.value.filter(a 
 const retailFilteredProducts = computed(() =>
   (products.value as any[]).filter((p: any) => Number(p.available_qty ?? 0) > 0)
 )
+
+// The browsable product catalog is a retail-niche affordance — gated on the niche
+// registry's capability, not on a niche id, so it follows NICHES rather than a literal.
+const showRetailCatalog = computed(() => businessStore.hasCapability('catalog.products'))
 
 const addRetailProduct = (product: any) => { 
   addProduct(product); 

@@ -21,6 +21,8 @@ export interface NavTarget {
 export interface NavContext {
   loading: boolean
   isAuthenticated: boolean
+  /** Real 'cajero' role OR the synthetic encoding (empleado + disable_agenda + disable_inventory_edit). */
+  isCajeroProfile: boolean
   role: Role | null
   profile: AuthProfile | null
   hasFeature: (key: FeatureKey) => boolean
@@ -50,6 +52,19 @@ export function resolveNavigation(to: NavTarget, ctx: NavContext): string | unde
 
   if (to.meta.requiresAuth && !ctx.isAuthenticated) {
     return '/'
+  }
+
+  // Cajero is an allowlist role: /admin/pos is the only screen it may reach. This returns
+  // before the adminOnly, /dashboard/* and meta.gate checks below, all three of which would
+  // otherwise misroute it — the adminOnly branch reads can_access_pos, which the tienda
+  // permissions migration defaults to false, so it would bounce /admin/pos to
+  // resolveHomeByRole('cajero') === '/admin/pos', i.e. a redirect loop onto itself.
+  //
+  // Removing this block (planned once tienda employee permissions land) requires
+  // backfilling can_access_pos = true for existing cajero profiles first, and is gated on
+  // the 'cajero allowlist' cases in navigationGuard.test.ts staying green without it.
+  if (ctx.isCajeroProfile) {
+    return to.path === '/admin/pos' ? undefined : '/admin/pos'
   }
 
   if (to.meta.superadminOnly && ctx.role !== 'superadmin') {

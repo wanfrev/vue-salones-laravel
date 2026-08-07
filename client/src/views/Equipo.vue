@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <header class="mb-5 lg:mb-8">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
@@ -6,7 +6,7 @@
           <UsersGroupRoundedIcon class="h-3.5 w-3.5" />
           <span>{{ businessStore.terminology.employee || 'Empleado' }}s</span>
         </div>
-        <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">GestiÃ³n de {{ (businessStore.terminology.employee || 'Empleado').toLowerCase() }}s</h1>
+        <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Gestión de {{ (businessStore.terminology.employee || 'Empleado').toLowerCase() }}s</h1>
       </div>
       <div class="flex items-center gap-2">
         <button v-if="canEditEmployeeRate" @click="showEmployeeRateModal = true"
