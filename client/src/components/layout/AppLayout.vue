@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen bg-bg">
     <!-- Top Header -->
-    <header class="fixed left-0 right-0 top-0 z-50 bg-surface border-b border-border pt-[var(--safe-top)]">
+    <header v-if="!hideHeaderAndSidebar" class="fixed left-0 right-0 top-0 z-50 bg-surface border-b border-border pt-[var(--safe-top)]">
       <div class="flex h-16 items-center justify-between px-2 sm:px-4">
       <div class="flex items-center gap-1 sm:gap-2 min-w-0">
         <button @click="isSidebarOpen = !isSidebarOpen" class="rounded-lg p-2 text-text-secondary transition-theme hover:bg-bg-secondary shrink-0 lg:hidden">
@@ -42,13 +42,13 @@
       </div>
     </header>
 
-    <Sidebar :is-open="isSidebarOpen" @close="isSidebarOpen = false" />
+    <Sidebar v-if="!hideHeaderAndSidebar" :is-open="isSidebarOpen" @close="isSidebarOpen = false" />
 
-    <div v-if="isSidebarOpen" @click="isSidebarOpen = false" class="fixed inset-0 top-[var(--header-total)] z-30 bg-black/50 lg:hidden"></div>
+    <div v-if="!hideHeaderAndSidebar && isSidebarOpen" @click="isSidebarOpen = false" class="fixed inset-0 top-[var(--header-total)] z-30 bg-black/50 lg:hidden"></div>
 
-    <main class="ml-0 min-h-screen pt-[var(--header-total)] lg:ml-64">
+    <main :class="['min-h-screen', hideHeaderAndSidebar ? 'ml-0 pt-0' : 'ml-0 pt-[var(--header-total)] lg:ml-64']">
       <GlobalLoading />
-      <div class="p-4 lg:p-6">
+      <div :class="hideHeaderAndSidebar ? 'p-4 lg:p-6' : 'p-4 lg:p-6'">
         <slot />
       </div>
     </main>
@@ -57,6 +57,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../../composables/common/useAuth'
 import { useAuthStore } from '../../store/auth'
@@ -72,7 +73,9 @@ import NotificationBell from '../common/NotificationBell.vue'
 import { BranchSwitcher } from '../common'
 import GlobalLoading from '../common/GlobalLoading.vue'
 import { getInitials } from '../../lib/formatters'
+import { isTiendaNiche } from '../../config/niches'
 
+const route = useRoute()
 const { logout, loading } = useAuth()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
@@ -90,6 +93,11 @@ const businessName = computed(() => businessStore.business?.name ?? '')
 
 const isEmployee = computed(() => authStore.role === 'empleado')
 const isEncargado = computed(() => authStore.role === 'encargado')
+const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
+
+const hideHeaderAndSidebar = computed(() => {
+  return isTienda.value && isEmployee.value && route.path.includes('/finanzas')
+})
 
 const roleLabel = computed(() => {
   const role = authStore.role
