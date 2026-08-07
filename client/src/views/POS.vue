@@ -206,7 +206,7 @@
         </div>
       </div>
 
-      <div v-if="activeSaleType === 'retail_only'" class="flex flex-col h-full space-y-4">
+      <div v-if="activeSaleType === 'retail_only' && showRetailCatalog" class="flex flex-col h-full space-y-4">
         <RetailProductSearch
           ref="retailSearchRef"
           :products="retailFilteredProducts"
@@ -221,24 +221,15 @@
           @update:client-phone="retailClientPhone = $event"
         />
         <RetailProductGrid
-          v-if="showRetailCatalog"
           :products="products"
           :is-retail-only="!businessStore.features.agenda"
           @add-product="addRetailProduct"
           class="flex-1"
         />
-        <div v-else class="flex-1 flex items-center justify-center bg-surface border border-border rounded-2xl">
-          <div class="text-center">
-            <svg class="h-12 w-12 mx-auto mb-2 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
-            <p class="text-sm font-medium text-text-muted">Usa la búsqueda arriba para agregar productos</p>
-          </div>
-        </div>
       </div>
 
       <AppointmentList
-        v-if="businessStore.features.agenda"
+        v-if="businessStore.features.agenda && (activeSaleType === 'appointment' || !showRetailCatalog)"
         :overdue="overdueAppointments"
         :upcoming="upcomingAppointments"
         :total-count="filteredAppointments.length"
@@ -259,6 +250,21 @@
 
     <!-- RIGHT PANEL (desktop & tablet landscape) -->
     <div class="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden lg:min-w-[340px]">
+      <RetailProductSearch
+        v-if="activeSaleType === 'retail_only' && !showRetailCatalog"
+        ref="retailSearchRef"
+        :products="retailFilteredProducts"
+        :client-suggestions="retailClientSuggestions"
+        :business-id="businessId"
+        :branch-id="branchId"
+        :is-retail-only="!businessStore.features.agenda"
+        @add-product="addRetailProduct"
+        @select-client="selectRetailClient"
+        @search-clients="onRetailSearchClients"
+        @update:client-name="retailClientSearch = $event; retailClientId = null"
+        @update:client-phone="retailClientPhone = $event"
+        class="border-b border-border pb-4"
+      />
       <POSPaymentPanel
         :selected-appointment="selectedAppointment"
         :cart="cart" :service-price="servicePrice"
@@ -323,6 +329,21 @@
         </div>
         <div class="flex-1 overflow-hidden p-3 sm:p-4 flex justify-center">
           <div class="w-full max-w-lg h-full flex flex-col min-w-0">
+          <RetailProductSearch
+            v-if="activeSaleType === 'retail_only' && !showRetailCatalog"
+            ref="retailSearchRef"
+            :products="retailFilteredProducts"
+            :client-suggestions="retailClientSuggestions"
+            :business-id="businessId"
+            :branch-id="branchId"
+            :is-retail-only="!businessStore.features.agenda"
+            @add-product="addRetailProduct"
+            @select-client="selectRetailClient"
+            @search-clients="onRetailSearchClients"
+            @update:client-name="retailClientSearch = $event; retailClientId = null"
+            @update:client-phone="retailClientPhone = $event"
+            class="border-b border-border pb-4"
+          />
           <POSPaymentPanel
             :selected-appointment="selectedAppointment"
             :cart="cart" :service-price="servicePrice"
