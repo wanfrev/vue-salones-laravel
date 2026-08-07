@@ -19,6 +19,7 @@ export interface EmployeeInput {
   can_access_inventory?: boolean
   can_access_pos?: boolean
   can_access_suppliers?: boolean
+  can_access_finanzas?: boolean
   schedules?: Array<{
     branch_id?: string | null
     weekday: number
@@ -52,6 +53,7 @@ export const adminCreateEmployee = async (input: EmployeeInput): Promise<{ id: s
       can_access_inventory: input.can_access_inventory ?? false,
       can_access_pos: input.can_access_pos ?? false,
       can_access_suppliers: input.can_access_suppliers ?? false,
+      can_access_finanzas: input.can_access_finanzas ?? false,
       schedules: input.schedules || [],
     })
     .select('id')

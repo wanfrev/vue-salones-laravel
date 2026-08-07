@@ -61,6 +61,7 @@ export const mapProfileToEmpleado = (
     canAccessInventory: profile.can_access_inventory ?? false,
     canAccessPos: profile.can_access_pos ?? false,
     canAccessSuppliers: profile.can_access_suppliers ?? false,
+    canAccessFinanzas: profile.can_access_finanzas ?? false,
   }
 }
 
@@ -80,6 +81,7 @@ export const mapEmpleadoFormToProfileUpdate = (data: EmpleadoFormData) => ({
   can_access_inventory: data.systemRole === 'cajero' ? false : data.canAccessInventory,
   can_access_pos: data.systemRole === 'cajero' ? true : data.canAccessPos,
   can_access_suppliers: data.systemRole === 'cajero' ? false : data.canAccessSuppliers,
+  can_access_finanzas: data.systemRole === 'cajero' ? false : data.canAccessFinanzas,
   role: data.systemRole === 'cajero' ? 'empleado' : data.systemRole,
 })
 

@@ -68,6 +68,7 @@ export interface Profile {
   salary_frequency?: 'weekly' | 'biweekly' | 'monthly' | null
   disable_agenda?: boolean
   disable_inventory_edit?: boolean
+  can_access_finanzas?: boolean
   created_at: string
   updated_at: string
 }

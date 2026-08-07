@@ -6,7 +6,9 @@
           <DollarIcon class="h-3.5 w-3.5" />
           <span>Finanzas</span>
         </div>
-        <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Dashboard Financiero</h1>
+        <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">
+          {{ hideFinancialDashboard ? 'Movimientos y Registros' : 'Dashboard Financiero' }}
+        </h1>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <div class="flex rounded-xl border border-border bg-surface p-0.5 sm:p-1 shadow-sm w-full sm:w-auto">
@@ -143,7 +145,7 @@ const { formatUSD, formatVESInline } = useCurrency()
 const router = useRouter()
 const rateCtx = useExchangeRate()
 const businessStore = useBusinessStore()
-const hideFinancialDashboard = computed(() => authStore.role !== 'superadmin')
+const hideFinancialDashboard = computed(() => authStore.role !== 'superadmin' && authStore.role !== 'admin')
 
 // Cobros de Citas has nothing to show when the business runs with agenda/calendario/
 // servicios all off (tienda niche) — there's no appointment flow to have collected income

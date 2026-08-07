@@ -52,6 +52,7 @@ export const sidebarSections: SidebarSection[] = [
       { to: '/dashboard/consultorio', label: 'Consultorio', icon: HeartPulseIcon, employeeOnly: true, gate: { capability: 'clients.pets', profileFlag: 'can_access_consultorio' } },
       { to: '/admin/equipo', label: 'Equipo', labelKey: 'employee', icon: BagIcon, adminOnly: true },
       { to: '/admin/finanzas', label: 'Finanzas', icon: GraphIcon, adminOnly: true, badge: 'Nuevo' },
+      { to: '/dashboard/finanzas', label: 'Finanzas', icon: GraphIcon, employeeOnly: true, badge: 'Nuevo', gate: { profileFlag: 'can_access_finanzas' } },
       { to: '/admin/servicios', label: 'Servicios', labelKey: 'service', icon: StarsIcon, adminOnly: true, gate: { feature: 'servicios' } },
       { to: '/admin/inventario', label: 'Inventario', icon: BoxIcon, adminOnly: true, gate: { feature: 'inventario' } },
       { to: '/admin/proveedores', label: 'Proveedores', icon: DeliveryIcon, adminOnly: true, gate: { feature: 'proveedores' } },

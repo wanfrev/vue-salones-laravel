@@ -77,6 +77,18 @@ const router = createRouter({
       component: () => import('../views/employee/EmployeePayments.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/dashboard/finanzas',
+      name: 'employee-finanzas',
+      component: () => import('../views/Finanzas.vue'),
+      meta: { requiresAuth: true, gate: { profileFlag: 'can_access_finanzas' } },
+    },
+    {
+      path: '/dashboard/finanzas/registros/:tipo',
+      name: 'employee-finanzas-registros',
+      component: () => import('../views/FinanzasRegistros.vue'),
+      meta: { requiresAuth: true, gate: { profileFlag: 'can_access_finanzas' } },
+    },
     // Admin routes — lazy loaded layout + children
     {
       path: '/admin',
