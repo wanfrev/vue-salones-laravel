@@ -9,16 +9,28 @@ export function usePOSCart() {
     cart.value.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0)
   )
 
-  const addProduct = (product: any) => {
+  const addProduct = (product: any, priceIndex: 1 | 2 = 1) => {
     const availableQty = Number(product.available_qty ?? 0)
     if (availableQty <= 0) return
+
+    const effectivePriceIndex: 1 | 2 = product.override_price !== undefined
+      ? (product.unit_price_2 != null && Number(product.override_price) === Number(product.unit_price_2) ? 2 : 1)
+      : priceIndex
+
+    const uPrice1 = Number(product.unit_price ?? product.price ?? 0)
+    const uPrice2 = product.unit_price_2 != null ? Number(product.unit_price_2) : null
 
     const existing = cart.value.find(c => c.productId === product.id)
     if (existing) {
       if (existing.quantity >= availableQty) return
       existing.quantity++
+      existing.priceIndex = effectivePriceIndex
+      existing.unitPrice = effectivePriceIndex === 2 && uPrice2 != null ? uPrice2 : uPrice1
+      existing.unitPrice1 = uPrice1
+      existing.unitPrice2 = uPrice2
       existing.subtotal = existing.unitPrice * existing.quantity
     } else {
+      const selectedPrice = effectivePriceIndex === 2 && uPrice2 != null ? uPrice2 : uPrice1
       cart.value.push({
         productId: product.id,
         productName: product.name,
@@ -26,24 +38,62 @@ export function usePOSCart() {
         variantId: null,
         variantName: null,
         quantity: 1,
-        unitPrice: Number(product.unit_price ?? product.price ?? 0),
+        unitPrice: selectedPrice,
+        unitPrice1: uPrice1,
+        unitPrice2: uPrice2,
         unitCost: Number(product.unit_cost ?? 0),
-        subtotal: Number(product.unit_price ?? product.price ?? 0),
+        subtotal: selectedPrice,
+        priceIndex: effectivePriceIndex,
       })
     }
     productSearch.value = ''
   }
 
+  const setPriceIndex = (idx: number, pIndex: 1 | 2) => {
+    const item = cart.value[idx]
+    if (!item) return
+    const p1 = item.unitPrice1 ?? item.unitPrice
+    const p2 = item.unitPrice2
+    const newPrice = pIndex === 2 && p2 != null ? Number(p2) : Number(p1)
+    cart.value[idx] = {
+      ...item,
+      priceIndex: pIndex,
+      unitPrice: newPrice,
+      subtotal: newPrice * item.quantity
+    }
+  }
+
   const incrementQty = (idx: number) => {
-    if (cart.value[idx].quantity >= cart.value[idx].availableQty) return
-    cart.value[idx].quantity++
-    cart.value[idx].subtotal = cart.value[idx].unitPrice * cart.value[idx].quantity
+    const item = cart.value[idx]
+    if (!item || item.quantity >= item.availableQty) return
+    const newQty = item.quantity + 1
+    cart.value[idx] = {
+      ...item,
+      quantity: newQty,
+      subtotal: item.unitPrice * newQty
+    }
   }
 
   const decrementQty = (idx: number) => {
-    if (cart.value[idx].quantity > 1) {
-      cart.value[idx].quantity--
-      cart.value[idx].subtotal = cart.value[idx].unitPrice * cart.value[idx].quantity
+    const item = cart.value[idx]
+    if (!item || item.quantity <= 1) return
+    const newQty = item.quantity - 1
+    cart.value[idx] = {
+      ...item,
+      quantity: newQty,
+      subtotal: item.unitPrice * newQty
+    }
+  }
+
+  /** Exact-entry quantity (typed via keyboard/numpad rather than +/- taps). Clamped to [1, availableQty]. */
+  const setQuantity = (idx: number, quantity: number) => {
+    const item = cart.value[idx]
+    if (!item) return
+    const clamped = Math.max(1, Math.min(Math.round(quantity) || 1, item.availableQty || 1))
+    cart.value[idx] = {
+      ...item,
+      quantity: clamped,
+      subtotal: item.unitPrice * clamped
     }
   }
 
@@ -61,8 +111,10 @@ export function usePOSCart() {
     productSearch,
     productsTotal,
     addProduct,
+    setPriceIndex,
     incrementQty,
     decrementQty,
+    setQuantity,
     removeItem,
     clearCart,
   }

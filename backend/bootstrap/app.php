@@ -21,7 +21,10 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->alias([
             'superadmin' => \App\Http\Middleware\EnsureSuperadmin::class,
+            'admin-panel' => \App\Http\Middleware\EnsureAdminPanelRole::class,
             'business-context' => \App\Http\Middleware\SetBusinessContext::class,
+            'feature' => \App\Http\Middleware\EnsureBusinessFeature::class,
+            'perm' => \App\Http\Middleware\EnsureProfilePermission::class,
         ]);
         $middleware->throttleApi();
     })

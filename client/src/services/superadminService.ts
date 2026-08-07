@@ -98,6 +98,21 @@ export const deleteBusiness = async (businessId: string): Promise<void> => {
   await apiRequest<void>('DELETE', `/admin/businesses/${businessId}`)
 }
 
+/**
+ * Sets a new password for a business admin. Write-only by nature — passwords are stored
+ * one-way hashed (bcrypt), so there is no counterpart function to read one back.
+ * Revokes the target's active sessions server-side, forcing them to log in again.
+ */
+export const resetBusinessAdminPassword = async (
+  businessId: string,
+  profileId: string,
+  newPassword: string,
+): Promise<void> => {
+  await apiRequest('PUT', `/admin/businesses/${businessId}/admins/${profileId}/password`, {
+    password: newPassword,
+  })
+}
+
 export const suspendBusiness = async (businessId: string): Promise<void> => {
   await apiRequest('POST', `/admin/businesses/${businessId}/suspend`)
 }

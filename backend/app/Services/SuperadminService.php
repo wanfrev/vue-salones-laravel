@@ -142,10 +142,52 @@ class SuperadminService
 
     public function admins(string $businessId): Collection
     {
+        // 'email' is required by the UI to tell two admins apart — especially before a
+        // password reset, where picking the wrong row changes the wrong person's credentials.
         return Profile::where('business_id', $businessId)
             ->where('role', 'admin')
-            ->select('id', 'business_id', 'full_name', 'role', 'phone', 'avatar_url')
+            ->select('id', 'business_id', 'full_name', 'email', 'role', 'phone', 'avatar_url')
             ->orderBy('full_name')
             ->get();
+    }
+
+    /**
+     * Set a new password for a business admin.
+     *
+     * Scoped deliberately to role='admin' within the given business: the superadmin route
+     * prefix already restricts who can call this, but pinning the target to the business's
+     * own admins keeps a mistyped/tampered profile id from reaching an unrelated account
+     * (another business's owner, or a superadmin).
+     *
+     * The password is hashed on write by User's 'password' => 'hashed' cast — it is stored
+     * one-way and cannot be read back, by this app or anyone else.
+     */
+    public function resetAdminPassword(string $businessId, string $profileId, string $newPassword): Profile
+    {
+        $profile = Profile::where('id', $profileId)
+            ->where('business_id', $businessId)
+            ->where('role', 'admin')
+            ->first();
+
+        if (!$profile) {
+            throw new NotFoundHttpException('Administrador no encontrado en este negocio.');
+        }
+
+        $user = User::find($profileId);
+        if (!$user) {
+            throw new NotFoundHttpException('El usuario asociado a este administrador no existe.');
+        }
+
+        $user->password = $newPassword;
+        $user->save();
+
+        // Existing sessions keep working on a password change unless the tokens are dropped.
+        // For a superadmin-initiated reset the intent is almost always to cut off access
+        // (lost device, staff change), so revoke them and force a fresh login.
+        $user->tokens()->delete();
+
+        $profile->update(['updated_at' => now()]);
+
+        return $profile;
     }
 }

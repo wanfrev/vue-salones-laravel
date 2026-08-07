@@ -6,6 +6,7 @@ export interface AuthProfile {
   branch_id: string | null
   full_name: string
   role: Role
+  email?: string | null
   phone: string | null
   avatar_url: string | null
   job_title?: string | null
@@ -17,6 +18,10 @@ export interface AuthProfile {
   can_create_appointments?: boolean
   can_create_clients?: boolean
   can_access_consultorio?: boolean
+  can_access_inventory?: boolean
+  can_access_pos?: boolean
+  can_access_suppliers?: boolean
+  can_access_finanzas?: boolean
 }
 
 export interface LoginCredentials {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\NicheRegistry;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -28,6 +29,7 @@ class BusinessResource extends JsonResource
                 $this->service_categories ?? []
             ))),
             'features' => $this->features,
+            'resolved_features' => NicheRegistry::resolveFeatures($this->niche_type, $this->features),
             'multi_branch_enabled' => $this->multi_branch_enabled,
             'active' => $this->active,
             'created_at' => $this->created_at,

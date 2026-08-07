@@ -93,6 +93,8 @@ class PosController
                 exchangeRate: $data['exchange_rate_used'] ?? null,
                 paymentsBreakdown: $data['payments_breakdown'] ?? [],
                 clientId: $data['client_id'] ?? null,
+                clientNameInput: $data['client_name'] ?? null,
+                clientPhoneInput: $data['client_phone'] ?? null,
                 businessId: $businessId,
                 branchId: $data['branch_id'] ?? null,
                 createdBy: $request->user()->id,
@@ -102,6 +104,7 @@ class PosController
 
             return response()->json(['id' => $txId], 201);
         } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('DirectSale error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json(['message' => $e->getMessage()], 400);
         }
     }

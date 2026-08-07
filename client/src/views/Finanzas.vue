@@ -6,7 +6,9 @@
           <DollarIcon class="h-3.5 w-3.5" />
           <span>Finanzas</span>
         </div>
-        <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Dashboard Financiero</h1>
+        <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">
+          {{ hideFinancialDashboard ? 'Movimientos y Registros' : 'Dashboard Financiero' }}
+        </h1>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <div class="flex rounded-xl border border-border bg-surface p-0.5 sm:p-1 shadow-sm w-full sm:w-auto">
@@ -68,7 +70,7 @@
 
   <!-- TAB 1: Resumen -->
   <template v-if="activeTab === 'resumen'">
-    <div v-if="!isEncargadoRole" class="mb-4">
+    <div v-if="!hideFinancialDashboard" class="mb-4">
       <KpiCards :income-total="incomeTotal" :ves-income-total="vesIncomeTotal" :tips-total="summaryCtx.tipsTotal" :expense-total="expenseTotal" :net-total="netTotal" :margin="marginTotal" :active-card="activeCard" :is-loading="summaryCtx.isLoading.value" @click-income="toggleCard('income')" @click-expense="toggleCard('expense')" @click-net="toggleCard('net')" />
     </div>
     <Transition name="accordion">
@@ -79,7 +81,7 @@
 
   <!-- TAB 2: Ingresos Detallados -->
   <template v-if="activeTab === 'ingresos'">
-    <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :hide-tabs="['gastos', 'servicios']" :hide-total="isEncargadoRole" />
+    <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :hide-tabs="ingresosHideTabs" :hide-total="hideFinancialDashboard" />
   </template>
 
   <!-- TAB 3: Egresos, Proveedores y Nómina -->
@@ -135,13 +137,26 @@ import { translateError } from '../lib/errors'
 import { formatMethod } from '../lib/formatters'
 import { useNotification } from '../composables/common/useNotification'
 import { isEncargado } from '../constants/roles'
+import { useBusinessStore } from '../store/business'
 import { DollarIcon, ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
 
 const { authStore } = useAuth()
 const { formatUSD, formatVESInline } = useCurrency()
 const router = useRouter()
 const rateCtx = useExchangeRate()
-const isEncargadoRole = computed(() => isEncargado(authStore.role ?? undefined))
+const businessStore = useBusinessStore()
+const hideFinancialDashboard = computed(() => authStore.role !== 'superadmin' && authStore.role !== 'admin')
+
+// Cobros de Citas has nothing to show when the business runs with agenda/calendario/
+// servicios all off (tienda niche) — there's no appointment flow to have collected income
+// from. Superadmin can re-enable any of the three independently, so all three are checked
+// rather than assuming they stay bundled.
+const ingresosHideTabs = computed(() => {
+  const tabs = ['gastos', 'servicios']
+  const { agenda, calendario, servicios } = businessStore.features
+  if (!agenda && !calendario && !servicios) tabs.push('cobros')
+  return tabs
+})
 
 const { selectedPeriod, selectedMonth, customFrom, customTo, resetToCurrent, goPrev, goNext, displayLabel, periods } = usePeriodSelection()
 const businessId = computed(() => authStore.businessId)
@@ -319,7 +334,7 @@ const handleExpenseSave = async () => {
 
 const originalStartEdit = summaryCtx.startEdit
 summaryCtx.startEdit = (tx: any) => {
-  if (tx.appointmentId || tx.appointment_id) {
+  if (tx.appointmentId || tx.appointment_id || tx.source === 'product_sale' || tx.items) {
     openCobroActions(tx)
   } else {
     originalStartEdit(tx)
@@ -336,14 +351,17 @@ const { success: successFin, error: showErrorFin } = useNotification()
 
 const openCobroActions = async (tx: any) => {
   const appointmentId = tx.appointmentId || tx.appointment_id
-  const { data: citaRaw } = await db
-    .from('appointments')
-    .select(APPOINTMENT_SELECT)
-    .eq('id', appointmentId)
-    .maybeSingle()
-  if (!citaRaw) return
-
-  const cita = mapAppointmentToCita(citaRaw)
+  let cita = null
+  if (appointmentId) {
+    const { data: citaRaw } = await db
+      .from('appointments')
+      .select(APPOINTMENT_SELECT)
+      .eq('id', appointmentId)
+      .maybeSingle()
+    if (citaRaw) {
+      cita = mapAppointmentToCita(citaRaw)
+    }
+  }
   const hasMixed = tx.breakdown && tx.breakdown.length > 1
   const paymentData: PaymentEditContext = {
     transactionId: tx.id,
@@ -363,7 +381,7 @@ const openCobroActions = async (tx: any) => {
   cobroActionsShow.value = true
 }
 
-const handleRollbackCobro = async (payload: { transactionIds: string[]; appointmentId: string; prefill: any }) => {
+const handleRollbackCobro = async (payload: { transactionIds: string[]; appointmentId?: string; prefill: any }) => {
   cobroActionsShow.value = false
   try {
     await Promise.all(payload.transactionIds.map(id =>
@@ -375,7 +393,9 @@ const handleRollbackCobro = async (payload: { transactionIds: string[]; appointm
     if (payload.prefill) {
       sessionStorage.setItem('posPrefill', JSON.stringify(payload.prefill))
     }
-    router.push({ name: 'admin-pos', query: { appointmentId: payload.appointmentId } })
+    const queryParams: any = {}
+    if (payload.appointmentId) queryParams.appointmentId = payload.appointmentId
+    router.push({ name: 'admin-pos', query: queryParams })
   } catch (err) {
     showErrorFin(translateError(err, 'Error al eliminar cobro'))
   }

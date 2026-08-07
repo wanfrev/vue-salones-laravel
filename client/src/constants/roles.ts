@@ -28,9 +28,14 @@ export const isCajero = (value?: string): boolean => value === ROLES.CAJERO
 
 export const isEncargado = (value?: string): boolean => value === ROLES.ENCARGADO
 
-export const resolveHomeByRole = (role?: string, disableAgenda?: boolean): string => {
-  if (role === ROLES.EMPLEADO && disableAgenda) {
+export const resolveHomeByRole = (role?: string, disableAgenda?: boolean, hasAgendaFeature: boolean = true, hasPosFeature: boolean = false): string => {
+  if (role === ROLES.EMPLEADO && (disableAgenda || !hasAgendaFeature)) {
     return '/dashboard/historial'
+  }
+  if (isAdminPanelRole(role)) {
+    if (!hasAgendaFeature) {
+      return hasPosFeature ? '/admin/pos' : '/admin/clientes'
+    }
   }
   if (role && isRole(role)) {
     return DEFAULT_HOME_BY_ROLE[role]

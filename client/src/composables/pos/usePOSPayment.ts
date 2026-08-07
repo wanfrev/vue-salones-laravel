@@ -22,23 +22,35 @@ export function usePOSPayment() {
   const paymentsBreakdown = ref<PaymentBreakdownItem[]>([])
   const selectedGiftCardId = ref<string | null>(null)
 
-  const paymentMethods = [
-    { label: 'Efectivo ($)', value: 'cash' as PaymentMethod, currency: 'USD' as const },
-    { label: 'Efectivo (Bs)', value: 'cash_ves' as PaymentMethod, currency: 'VES' as const },
-    { label: 'Tarjeta', value: 'card' as PaymentMethod, currency: 'USD' as const },
-    { label: 'Transferencia', value: 'transfer' as PaymentMethod, currency: 'VES' as const },
-    { label: 'Zelle', value: 'zelle' as PaymentMethod, currency: 'USD' as const },
-    { label: 'Pago Móvil', value: 'pago_movil' as PaymentMethod, currency: 'VES' as const },
-    { label: 'Gift Card', value: 'gift_card' as PaymentMethod, currency: 'USD' as const },
-    { label: 'Mixto', value: 'mixed' as PaymentMethod, currency: null as null },
-    { label: 'Punto de Vta (Bs)', value: 'punto_venta' as PaymentMethod, currency: 'VES' as const },
-    { label: 'Otro', value: 'other' as PaymentMethod, currency: null as null },
-  ]
+  const paymentMethods = computed(() => {
+    const methods = [
+      { label: 'Efectivo ($)', value: 'cash' as PaymentMethod, currency: 'USD' as const },
+      { label: 'Efectivo (Bs)', value: 'cash_ves' as PaymentMethod, currency: 'VES' as const },
+      { label: 'Tarjeta', value: 'card' as PaymentMethod, currency: 'USD' as const },
+      { label: 'Transferencia', value: 'transfer' as PaymentMethod, currency: 'VES' as const },
+      { label: 'Zelle', value: 'zelle' as PaymentMethod, currency: 'USD' as const },
+      { label: 'Binance', value: 'binance' as PaymentMethod, currency: 'USD' as const },
+      { label: 'Cashea', value: 'cashea' as PaymentMethod, currency: 'USD' as const },
+      { label: 'Pago Móvil', value: 'pago_movil' as PaymentMethod, currency: 'VES' as const },
+    ]
+    
+    if (businessStore.features.gift_cards) {
+      methods.push({ label: 'Gift Card', value: 'gift_card' as PaymentMethod, currency: 'USD' as const })
+    }
+    
+    methods.push(
+      { label: 'Mixto', value: 'mixed' as PaymentMethod, currency: null as null },
+      { label: 'Punto de Vta (Bs)', value: 'punto_venta' as PaymentMethod, currency: 'VES' as const },
+      { label: 'Otro', value: 'other' as PaymentMethod, currency: null as null }
+    )
+    
+    return methods
+  })
 
-  const mixedMethods = paymentMethods.filter(m => m.value !== 'mixed')
+  const mixedMethods = computed(() => paymentMethods.value.filter(m => m.value !== 'mixed'))
 
   const methodCurrency = (method: PaymentMethod): 'USD' | 'VES' | null => {
-    return paymentMethods.find(m => m.value === method)?.currency ?? null
+    return paymentMethods.value.find(m => m.value === method)?.currency ?? null
   }
 
   const selectMethod = (method: PaymentMethod) => {
@@ -163,6 +175,8 @@ export function usePOSPayment() {
       exchangeRate: number
       paymentsBreakdown: PaymentBreakdownItem[]
       clientId?: string | null
+      clientNameInput?: string | null
+      clientPhoneInput?: string | null
     }) => recordDirectSale({
       totalAmount: params.totalAmount,
       method: params.method,
@@ -170,9 +184,11 @@ export function usePOSPayment() {
       notes: params.notes,
       exchangeRate: params.exchangeRate,
       paymentsBreakdown: params.paymentsBreakdown,
-      clientId: params.clientId,
+      clientId: params.clientId || null,
+      clientNameInput: params.clientNameInput || null,
+      clientPhoneInput: params.clientPhoneInput || null,
       businessId: businessId.value!,
-      branchId: branchId.value,
+      branchId: branchId.value || null,
     }),
     onSuccess: () => {
       success('Venta directa registrada correctamente')
@@ -251,7 +267,7 @@ export function usePOSPayment() {
     const notes = paymentNotes.value
     const exchangeRt = params.exchangeRate
     const breakdownSource = paymentsBreakdown.value
-    const pMethodObj = paymentMethods.find(m => m.value === method)
+    const pMethodObj = paymentMethods.value.find(m => m.value === method)
     const paymentCurrency = pMethodObj?.currency ?? otherCurrency.value
 
     let payloads: Array<{
@@ -367,10 +383,12 @@ export function usePOSPayment() {
     products: POSProductItem[]
     exchangeRate: number
     clientId?: string | null
+    clientNameInput?: string | null
+    clientPhoneInput?: string | null
   }): Promise<boolean> => {
     const method = paymentMethod.value
     const notes = paymentNotes.value
-    const pMethodObj = paymentMethods.find(m => m.value === method)
+    const pMethodObj = paymentMethods.value.find(m => m.value === method)
     const paymentCurrency = pMethodObj?.currency ?? otherCurrency.value
 
     let breakdown: PaymentBreakdownItem[]
@@ -399,11 +417,14 @@ export function usePOSPayment() {
         notes,
         exchangeRate: params.exchangeRate,
         paymentsBreakdown: breakdown,
-        clientId: params.clientId ?? null,
+        clientId: params.clientId || null,
+        clientNameInput: params.clientNameInput || null,
+        clientPhoneInput: params.clientPhoneInput || null,
       })
       reset()
       return true
-    } catch {
+    } catch (err) {
+      console.error('[POS Checkout Error]', err)
       return false
     }
   }
@@ -427,7 +448,7 @@ export function usePOSPayment() {
   }): Promise<boolean> => {
     const method = paymentMethod.value
     const notes = paymentNotes.value
-    const pMethodObj = paymentMethods.find(m => m.value === method)
+    const pMethodObj = paymentMethods.value.find(m => m.value === method)
     const paymentCurrency = pMethodObj?.currency ?? otherCurrency.value
     const totalAmount = params.serviceAmount + (params.productsAmount ?? 0)
 

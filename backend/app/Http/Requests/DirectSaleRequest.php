@@ -28,6 +28,8 @@ class DirectSaleRequest extends FormRequest
             'payments_breakdown.*.gift_card_id' => 'nullable|string',
             'payments_breakdown.*.giftCardId' => 'nullable|string',
             'client_id' => 'nullable|uuid',
+            'client_name' => 'nullable|string|max:255',
+            'client_phone' => 'nullable|string|max:50',
             'branch_id' => 'nullable|uuid',
         ];
     }

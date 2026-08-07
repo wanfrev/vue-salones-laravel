@@ -257,6 +257,18 @@ class FinancialSummaryService
                     });
                 });
             })
+            ->leftJoin('appointments', function ($join) {
+                $join->on('inventory_movements.reference_id', '=', 'appointments.id')
+                     ->where('inventory_movements.reference_type', '=', 'appointment');
+            })
+            ->leftJoin('clients as appt_clients', 'appointments.client_id', '=', 'appt_clients.id')
+            ->leftJoin('profiles as appt_employees', 'appointments.employee_id', '=', 'appt_employees.id')
+            ->leftJoin('profiles as creator_profiles', function ($join) {
+                $join->on(DB::raw("COALESCE(inventory_movements.created_by, transactions.created_by)"), '=', 'creator_profiles.id');
+            })
+            ->leftJoin('users as creator_users', function ($join) {
+                $join->on(DB::raw("COALESCE(inventory_movements.created_by, transactions.created_by)"), '=', 'creator_users.id');
+            })
             ->where('inventory_movements.business_id', $businessId)
             ->where('inventory_movements.movement_type', 'sale')
             ->select(
@@ -270,9 +282,11 @@ class FinancialSummaryService
                 'inventory_movements.notes',
                 'products.name as product_name',
                 'products.unit_price as product_unit_price',
-                'clients.full_name as client_name',
+                DB::raw("COALESCE(clients.full_name, appt_clients.full_name) as client_name"),
+                DB::raw("COALESCE(appt_employees.full_name, creator_profiles.full_name, creator_users.name) as employee_name"),
                 'transactions.method as payment_method',
                 'transactions.payments_breakdown',
+                'transactions.total_amount as transaction_total_amount',
             )
             ->orderByDesc('inventory_movements.created_at');
 
@@ -288,10 +302,33 @@ class FinancialSummaryService
             });
         }
 
-        return $query->get()->map(function ($row) {
+        $rows = $query->get();
+
+        // A direct sale's "Total a Cobrar" can be overridden in POS independently of the
+        // cart's line prices (client/src/views/POS.vue's customTotalAmount). Left as
+        // qty * today's catalog price, this report would show what the cart would have cost
+        // at today's prices — not what was actually charged. Rescale each direct sale's line
+        // totals so they sum to transactions.total_amount, the amount actually collected.
+        // Appointment-attached product sales don't have this override, so they're untouched.
+        $directSaleScale = $rows
+            ->where('reference_type', 'direct')
+            ->groupBy('reference_id')
+            ->map(function ($group) {
+                $natural = $group->sum(fn ($row) => abs((float) $row->quantity) * (float) ($row->product_unit_price ?? $row->unit_cost));
+                $charged = (float) ($group->first()->transaction_total_amount ?? 0);
+                // Falls back to no rescaling (1.0) whenever either side is unusable, so a
+                // data gap can only leave this report as it was, never zero it out.
+                return ($natural > 0.0001 && $charged > 0) ? $charged / $natural : 1.0;
+            });
+
+        return $rows->map(function ($row) use ($directSaleScale) {
             $qty = abs((float) $row->quantity);
             $unitPrice = (float) ($row->product_unit_price ?? $row->unit_cost);
-            $total = $qty * $unitPrice;
+            $scale = $row->reference_type === 'direct' ? ($directSaleScale[$row->reference_id] ?? 1.0) : 1.0;
+            // Scale unit_price too, not just total — the UI shows both in the same row
+            // (Precio × Cant. next to Total), so qty * unit_price must still equal total.
+            $effectiveUnitPrice = $unitPrice * $scale;
+            $total = $qty * $effectiveUnitPrice;
             $rate = (float) ($row->exchange_rate_used ?? 1);
 
             return [
@@ -299,8 +336,9 @@ class FinancialSummaryService
                 'date' => $row->created_at,
                 'product' => $row->product_name ?? 'Sin producto',
                 'client_name' => $row->client_name,
+                'employee_name' => $row->employee_name,
                 'quantity' => $qty,
-                'unit_price' => $unitPrice,
+                'unit_price' => round($effectiveUnitPrice, 2),
                 'total' => round($total, 2),
                 'exchange_rate_used' => $rate,
                 'reference_type' => $row->reference_type,

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\CreateBusinessRequest;
 use App\Http\Resources\BusinessResource;
+use App\Rules\AssignableNiche;
 use App\Services\BusinessService;
 use App\Services\SuperadminService;
 use Illuminate\Http\JsonResponse;
@@ -49,7 +50,7 @@ class SuperadminController
             'address' => ['nullable', 'string', 'max:500'],
             'timezone' => ['sometimes', 'string'],
             'currency' => ['sometimes', 'string'],
-            'niche_type' => ['sometimes', 'string'],
+            'niche_type' => ['sometimes', 'string', new AssignableNiche($id)],
             'active' => ['sometimes', 'boolean'],
             'ves_exchange_rate' => ['nullable', 'numeric', 'min:0'],
             'multi_branch_enabled' => ['sometimes', 'boolean'],
@@ -81,5 +82,31 @@ class SuperadminController
     public function admins(string $id): JsonResponse
     {
         return response()->json($this->superadminService->admins($id));
+    }
+
+    public function resetAdminPassword(Request $request, string $id, string $profileId): JsonResponse
+    {
+        $validated = $request->validate([
+            'password' => ['required', 'string', 'min:6', 'max:72'],
+        ]);
+
+        try {
+            $profile = $this->superadminService->resetAdminPassword($id, $profileId, $validated['password']);
+
+            \Illuminate\Support\Facades\Log::info('superadmin.admin_password_reset', [
+                'business_id' => $id,
+                'target_profile_id' => $profileId,
+                'actor_id' => $request->user()?->id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'id' => $profile->id,
+            ]);
+        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e) {
+            return response()->json(['error' => ['message' => $e->getMessage()]], 404);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => ['message' => 'No fue posible cambiar la contraseña.']], 500);
+        }
     }
 }

@@ -6,7 +6,7 @@
 export type AppRole = 'superadmin' | 'admin' | 'empleado' | 'encargado' | 'cajero'
 export type AppointmentStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid'
-export type PaymentMethod = 'cash' | 'cash_ves' | 'card' | 'transfer' | 'other' | 'zelle' | 'pago_movil' | 'punto_venta' | 'mixed' | 'gift_card'
+export type PaymentMethod = 'cash' | 'cash_ves' | 'card' | 'transfer' | 'other' | 'zelle' | 'binance' | 'cashea' | 'pago_movil' | 'punto_venta' | 'mixed' | 'gift_card'
 export type AppointmentSource = 'internal' | 'public'
 export type EmployeeAbsenceType = 'break' | 'vacation' | 'sick_leave' | 'personal' | 'blocked'
 export type InventoryMovementType =
@@ -42,6 +42,8 @@ export interface Business {
   job_titles: string[]
   service_categories: string[]
   features: Record<string, boolean> | null
+  /** Server-resolved (DEFAULT_FEATURES -> niche defaults -> stored -> niche locks). See NicheRegistry::resolveFeatures. */
+  resolved_features?: Record<string, boolean>
   multi_branch_enabled: boolean
   active: boolean
   deleted_at: string | null
@@ -66,6 +68,7 @@ export interface Profile {
   salary_frequency?: 'weekly' | 'biweekly' | 'monthly' | null
   disable_agenda?: boolean
   disable_inventory_edit?: boolean
+  can_access_finanzas?: boolean
   created_at: string
   updated_at: string
 }

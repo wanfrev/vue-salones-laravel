@@ -10,6 +10,9 @@ export interface POSProductItem {
   unitPrice: number
   unitCost: number
   subtotal: number
+  unitPrice1?: number
+  unitPrice2?: number | null
+  priceIndex?: 1 | 2
 }
 
 export interface POSTransaction {

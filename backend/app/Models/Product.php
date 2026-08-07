@@ -20,7 +20,7 @@ class Product extends Model
     protected $fillable = [
         'id', 'business_id', 'branch_id', 'category_id',
         'name', 'description', 'sku', 'barcode', 'unit',
-        'unit_cost', 'unit_price', 'reorder_point',
+        'unit_cost', 'unit_price', 'unit_price_2', 'reorder_point',
         'active', 'is_sellable', 'metadata',
     ];
 
@@ -31,6 +31,7 @@ class Product extends Model
             'is_sellable' => 'boolean',
             'unit_cost' => 'float',
             'unit_price' => 'float',
+            'unit_price_2' => 'float',
             'reorder_point' => 'float',
             'metadata' => 'json',
         ];

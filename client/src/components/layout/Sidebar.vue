@@ -47,7 +47,7 @@ import { useRoute } from 'vue-router'
 import { useAuth } from '../../composables/common/useAuth'
 import { useBusinessStore } from '../../store/business'
 import { isAdminPanelRole } from '../../constants/roles'
-import { isPetNiche } from '../../config/nicheFields'
+import { evaluateGate } from '../../router/gate'
 import { sidebarSections } from './sidebarLinks'
 import type { SidebarLink } from './sidebarLinks'
 
@@ -66,31 +66,31 @@ const { authStore } = useAuth()
 const businessStore = useBusinessStore()
 
 const isAdmin = computed(() => isAdminPanelRole(authStore.role ?? undefined))
-const isCajeroRole = computed(() => authStore.isCajeroProfile)
-const agendaDisabled = computed(() => authStore.profile?.disable_agenda ?? false)
-const canAccessConsultorio = computed(() => authStore.profile?.can_access_consultorio ?? true)
-const isPetNicheBusiness = computed(() => isPetNiche(businessStore.nicheType))
 
 const visibleSections = computed(() =>
   sidebarSections
     .map(section => ({
       ...section,
       links: section.links.filter(link => {
-        if (isCajeroRole.value) {
-          return link.to === '/admin/pos'
+        if (link.adminOnly && !isAdmin.value) {
+          // Empleados de tienda con permisos
+          if (link.to === '/admin/pos' && authStore.profile?.can_access_pos) return true
+          if (link.to === '/admin/inventario' && authStore.profile?.can_access_inventory) return true
+          if (link.to === '/admin/proveedores' && authStore.profile?.can_access_suppliers) return true
+          return false
         }
-        if (link.adminOnly && !isAdmin.value) return false
         if (link.employeeOnly && isAdmin.value) return false
-        if (link.requiresFeature && !businessStore.hasFeature(link.requiresFeature as any)) return false
-        if (link.requiresPetNiche && !isPetNicheBusiness.value) return false
-        if (link.hideIfAgendaDisabled && agendaDisabled.value) return false
-        if (link.requireCanAccessConsultorio && !canAccessConsultorio.value) return false
-        return true
+        return evaluateGate(link.gate, {
+          profile: authStore.profile,
+          hasFeature: (key) => businessStore.hasFeature(key),
+          hasCapability: (capability) => businessStore.hasCapability(capability),
+        })
       }),
     }))
     .filter(section => {
-      if (isCajeroRole.value) return section.links.length > 0
-      return !section.adminOnly || isAdmin.value
+      return !section.adminOnly || isAdmin.value || section.links.some(l => 
+        ['/admin/pos', '/admin/inventario', '/admin/proveedores'].includes(l.to)
+      )
     })
     .filter(section => section.links.length > 0)
 )

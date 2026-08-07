@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
+import { isTiendaNiche } from '../../config/niches'
 import { formatMethod } from '../../lib/formatters'
 import { useCrud } from '../../composables/empleados/useCrud'
 import { useCategoryCRUD } from '../../composables/common/useCategoryCRUD'
@@ -30,6 +31,8 @@ const props = defineProps<{
 
 const { formatUSD, formatVESInline, formatVESEs } = useCurrency()
 const router = useRouter()
+const detailBusinessStore = useBusinessStore()
+const isTienda = computed(() => isTiendaNiche(detailBusinessStore.nicheType))
 
 const allTabs = [
   { key: 'cobros' as const, label: 'Cobros de Citas', shortLabel: 'Cobros' },
@@ -45,12 +48,21 @@ const detailTabs = computed(() => {
 })
 
 const activeDetailTab = ref<'cobros' | 'ventas' | 'gastos' | 'servicios'>(
-  props.showOnly ? (props.showOnly as any) : 'cobros',
+  props.showOnly ? (props.showOnly as any) : (detailTabs.value[0]?.key ?? 'ventas'),
 )
 
 const allCobrosRows = computed(() => props.summaryCtx.appointmentIncomeDetails.value)
 const allVentasRows = computed(() => props.summaryCtx.productSalesDetails.value)
+const allVentasInvoices = computed(() => props.summaryCtx.productSalesInvoices.value)
 const allGastosRows = computed(() => props.expensesCtx.expenses.value as any[])
+
+const expandedInvoiceIds = ref<Set<string>>(new Set())
+const toggleInvoiceExpand = (id: string) => {
+  const s = new Set(expandedInvoiceIds.value)
+  if (s.has(id)) s.delete(id)
+  else s.add(id)
+  expandedInvoiceIds.value = s
+}
 
 const cobrosSearch = ref('')
 const normalize = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -85,14 +97,14 @@ const detailTabVesTotal = computed(() => {
 
 const detailTabCount = computed(() => {
   if (activeDetailTab.value === 'cobros') return filteredCobrosRows.value.length
-  if (activeDetailTab.value === 'ventas') return allVentasRows.value.length
+  if (activeDetailTab.value === 'ventas') return isTienda.value ? allVentasInvoices.value.length : allVentasRows.value.length
   if (activeDetailTab.value === 'servicios') return servicios.value.length
   return allGastosRows.value.length
 })
 
 const canViewDetailTab = computed(() => {
   if (activeDetailTab.value === 'cobros') return allCobrosRows.value.length > 5
-  if (activeDetailTab.value === 'ventas') return allVentasRows.value.length > 5
+  if (activeDetailTab.value === 'ventas') return isTienda.value ? allVentasInvoices.value.length > 5 : allVentasRows.value.length > 5
   if (activeDetailTab.value === 'servicios') return false
   return allGastosRows.value.length > 5
 })
@@ -424,94 +436,235 @@ const confirmDeleteServicio = async () => {
 
       <!-- Tab: Ventas de Productos -->
       <div v-else-if="activeDetailTab === 'ventas'">
-        <div v-if="allVentasRows.length" class="overflow-x-auto">
-          <table class="w-full">
-            <thead>
-              <tr class="border-b border-border-subtle">
-                <th
-                  class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-                  Fecha</th>
-                <th
-                  class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
-                  Cliente</th>
-                <th
-                  class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-                  Producto</th>
-                <th
-                  class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-                  Cant.</th>
-                <th
-                  class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
-                  Precio</th>
-                <th
-                  class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
-                  Método</th>
-                <th
-                  class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-                  Total</th>
-                <th
-                  class="px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-text-secondary w-10">
-                </th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border-subtle">
-              <tr v-for="row in allVentasRows.slice(0, canViewDetailTab ? 5 : Infinity)" :key="row.id"
-                class="text-xs transition-theme hover:bg-bg-secondary/40">
-                <td class="px-3 py-3 whitespace-nowrap text-text-secondary">{{ row.date }}</td>
-                <td class="px-3 py-3 text-text-secondary hidden sm:table-cell">{{ row.clientName || '—' }}</td>
-                <td class="px-3 py-3 font-medium text-text">{{ row.product }}</td>
-                <td class="px-3 py-3 text-right tabular-nums text-text-secondary">{{ row.quantity }}</td>
-                <td
-                  class="px-3 py-3 text-right tabular-nums text-text-secondary whitespace-nowrap hidden sm:table-cell">
-                  {{ formatUSD(row.unitPrice) }}</td>
-                <td
-                  class="px-3 py-3 text-text-secondary hidden sm:table-cell">
-                  <span v-if="row.paymentMethod === 'cash'">Efectivo ($)</span>
-                  <span v-else-if="row.paymentMethod === 'cash_ves'">Efectivo (Bs)</span>
-                  <span v-else-if="row.paymentMethod === 'card'">Tarjeta</span>
-                  <span v-else-if="row.paymentMethod === 'transfer'">Transferencia</span>
-                  <span v-else-if="row.paymentMethod === 'zelle'">Zelle</span>
-                  <span v-else-if="row.paymentMethod === 'pago_movil'">Pago Móvil</span>
-                  <span v-else-if="row.paymentMethod === 'punto_venta'">Punto de Venta (Bs)</span>
-                  <span v-else-if="row.paymentMethod === 'mixed'">
-                    <span class="font-medium text-warning">Mixto</span>
-                    <div v-if="row.breakdown && row.breakdown.length > 1" class="text-[10px] text-text-muted mt-0.5">
-                      <span v-for="(b, bi) in row.breakdown" :key="bi">
-                        {{ formatMethod(b.method) }} {{ b.currency === 'VES' ? b.inputAmount.toLocaleString('es-VE', { minimumFractionDigits: 2 }) + ' Bs' : '$' + b.inputAmount.toFixed(2) }}<span v-if="bi < row.breakdown.length - 1"> / </span>
+        <!-- Tienda Niche: Grouped by Invoice -->
+        <template v-if="isTienda">
+          <div v-if="allVentasInvoices.length" class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b border-border-subtle">
+                  <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">Fecha</th>
+                  <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">Cliente</th>
+                  <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden md:table-cell">Empleado</th>
+                  <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">Factura / Resumen</th>
+                  <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">Cant. Prod.</th>
+                  <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">Método</th>
+                  <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">Total</th>
+                  <th class="px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-text-secondary w-10"></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border-subtle">
+                <template v-for="inv in allVentasInvoices.slice(0, canViewDetailTab ? 5 : Infinity)" :key="inv.id">
+                  <tr
+                    class="text-xs transition-theme hover:bg-bg-secondary/60 cursor-pointer"
+                    @click="toggleInvoiceExpand(inv.id)"
+                  >
+                    <td class="px-3 py-3 whitespace-nowrap text-text-secondary">{{ inv.date }}</td>
+                    <td class="px-3 py-3 text-text-secondary hidden sm:table-cell font-medium">{{ inv.clientName || 'Venta directa' }}</td>
+                    <td class="px-3 py-3 text-text-secondary hidden md:table-cell font-medium">
+                      <span v-if="inv.employeeName" class="inline-flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-primary text-[11px]">
+                        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                        {{ inv.employeeName }}
                       </span>
-                    </div>
-                  </span>
-                  <span v-else>{{ formatMethod(row.paymentMethod) }}</span>
-                </td>
-                <td class="px-3 py-3 text-right font-semibold text-info tabular-nums whitespace-nowrap">
-                  <div>{{ row.currency === 'VES' ? formatVESEs(row.originalAmount) : formatUSD(row.total) }}</div>
-                  <div class="text-[10px] text-text-muted mt-0.5">{{ row.currency === 'VES' ? formatUSD(row.total) :
-                    formatVESInline(row.total, row.exchangeRateUsed) + ' Bs' }}</div>
-                </td>
-                <td class="px-3 py-3 text-center">
-                  <button @click="summaryCtx.handleDeleteProductSale(row.id, row.product)"
-                    class="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-danger/10 hover:text-danger transition-colors"
-                    title="Eliminar venta">
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div v-else class="flex flex-col items-center justify-center py-12 text-center">
-          <div class="flex h-10 w-10 items-center justify-center rounded-full bg-bg-secondary mb-2">
-            <svg class="h-5 w-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor"
-              stroke-width="1.5">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-            </svg>
+                      <span v-else class="text-text-muted">—</span>
+                    </td>
+                    <td class="px-3 py-3 font-medium text-text">
+                      <div class="flex items-center gap-1.5">
+                        <span class="text-primary font-semibold">Factura</span>
+                        <span class="text-text-muted">({{ inv.items.length }} {{ inv.items.length === 1 ? 'producto' : 'productos' }})</span>
+                        <svg
+                          :class="['h-3.5 w-3.5 text-text-muted transition-transform duration-200 ml-1', expandedInvoiceIds.has(inv.id) ? 'rotate-180 text-primary' : '']"
+                          fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+                        >
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </td>
+                    <td class="px-3 py-3 text-right tabular-nums text-text font-medium">{{ inv.totalQuantity }}</td>
+                    <td class="px-3 py-3 text-text-secondary hidden sm:table-cell">
+                      <span v-if="inv.paymentMethod === 'mixed'" class="font-medium text-warning">Mixto</span>
+                      <span v-else>{{ formatMethod(inv.paymentMethod) }}</span>
+                    </td>
+                    <td class="px-3 py-3 text-right font-semibold text-info tabular-nums whitespace-nowrap">
+                      <div>{{ inv.currency === 'VES' ? formatVESEs(inv.originalAmount) : formatUSD(inv.total) }}</div>
+                      <div class="text-[10px] text-text-muted mt-0.5">{{ inv.currency === 'VES' ? formatUSD(inv.total) : formatVESInline(inv.total, inv.exchangeRateUsed) + ' Bs' }}</div>
+                    </td>
+                    <td class="px-3 py-3 text-center">
+                      <div class="flex items-center justify-center gap-1">
+                        <button
+                          @click.stop="toggleInvoiceExpand(inv.id)"
+                          class="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-bg-secondary transition-colors"
+                          title="Ver detalle de factura"
+                        >
+                          <svg :class="['h-4 w-4 transition-transform duration-200', expandedInvoiceIds.has(inv.id) ? 'rotate-180 text-primary' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        <button @click.stop="summaryCtx.startEdit(inv)"
+                          :disabled="summaryCtx.editTransactionMutation.isPending.value || summaryCtx.deleteTransactionMutation.isPending.value"
+                          class="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-bg-secondary hover:text-primary transition-colors disabled:opacity-50"
+                          title="Opciones de factura">
+                          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                          </svg>
+                        </button>
+                        <button @click.stop="summaryCtx.confirmDeleteTransaction(inv.id)"
+                          class="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-danger/10 hover:text-danger transition-colors disabled:opacity-50"
+                          :disabled="summaryCtx.deleteTransactionMutation.isPending.value"
+                          title="Eliminar factura">
+                          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <!-- Expanded invoice products breakdown -->
+                  <tr v-if="expandedInvoiceIds.has(inv.id)" :key="inv.id + '-expanded'" class="bg-bg-secondary/40">
+                    <td colspan="8" class="px-4 py-3">
+                      <div class="rounded-lg border border-border-subtle bg-surface p-3 space-y-2">
+                        <div class="text-xs font-semibold text-text-secondary flex flex-wrap items-center justify-between gap-2 border-b border-border-subtle pb-2">
+                          <span class="flex items-center gap-1.5">
+                            <svg class="h-3.5 w-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                            Factura · Cliente: <strong class="text-text">{{ inv.clientName || 'Venta directa' }}</strong>
+                            <span v-if="inv.employeeName" class="text-text-muted font-normal ml-2">
+                              (Vendido por: <strong class="text-primary font-medium">{{ inv.employeeName }}</strong>)
+                            </span>
+                          </span>
+                          <span class="text-text-muted font-normal">{{ inv.items.length }} {{ inv.items.length === 1 ? 'ítem' : 'ítems' }}</span>
+                        </div>
+                        <div class="divide-y divide-border-subtle/50">
+                          <div v-for="item in inv.items" :key="item.id" class="flex items-center justify-between py-2 text-xs">
+                            <div class="min-w-0 flex-1">
+                              <span class="font-medium text-text block truncate">{{ item.product }}</span>
+                              <span v-if="item.notes" class="text-[10px] text-text-muted">{{ item.notes }}</span>
+                            </div>
+                            <div class="flex items-center gap-4 text-text-secondary tabular-nums ml-4 shrink-0">
+                              <span>Cant: <strong class="text-text">{{ item.quantity }}</strong></span>
+                              <span>Precio unit: <strong class="text-text">{{ formatUSD(item.unitPrice) }}</strong></span>
+                              <span>Subtotal: <strong class="text-info font-semibold">{{ formatUSD(item.total) }}</strong></span>
+                              <button
+                                @click="summaryCtx.handleDeleteProductSale(item.id, item.product)"
+                                class="flex h-5 w-5 items-center justify-center rounded text-text-muted hover:bg-danger/10 hover:text-danger transition-colors ml-2"
+                                title="Eliminar producto de factura"
+                              >
+                                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
           </div>
-          <p class="text-sm text-text-muted">No hay ventas en este período</p>
-        </div>
+          <div v-else class="flex flex-col items-center justify-center py-12 text-center">
+            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-bg-secondary mb-2">
+              <svg class="h-5 w-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            </div>
+            <p class="text-sm text-text-muted">No hay ventas en este período</p>
+          </div>
+        </template>
+
+        <!-- Standard Non-Tienda Flat Product Rows -->
+        <template v-else>
+          <div v-if="allVentasRows.length" class="overflow-x-auto">
+            <table class="w-full">
+              <thead>
+                <tr class="border-b border-border-subtle">
+                  <th
+                    class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+                    Fecha</th>
+                  <th
+                    class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
+                    Cliente</th>
+                  <th
+                    class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+                    Producto</th>
+                  <th
+                    class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+                    Cant.</th>
+                  <th
+                    class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
+                    Precio</th>
+                  <th
+                    class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
+                    Método</th>
+                  <th
+                    class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+                    Total</th>
+                  <th
+                    class="px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-text-secondary w-10">
+                  </th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border-subtle">
+                <tr v-for="row in allVentasRows.slice(0, canViewDetailTab ? 5 : Infinity)" :key="row.id"
+                  class="text-xs transition-theme hover:bg-bg-secondary/40">
+                  <td class="px-3 py-3 whitespace-nowrap text-text-secondary">{{ row.date }}</td>
+                  <td class="px-3 py-3 text-text-secondary hidden sm:table-cell">{{ row.clientName || '—' }}</td>
+                  <td class="px-3 py-3 font-medium text-text">{{ row.product }}</td>
+                  <td class="px-3 py-3 text-right tabular-nums text-text-secondary">{{ row.quantity }}</td>
+                  <td
+                    class="px-3 py-3 text-right tabular-nums text-text-secondary whitespace-nowrap hidden sm:table-cell">
+                    {{ formatUSD(row.unitPrice) }}</td>
+                  <td
+                    class="px-3 py-3 text-text-secondary hidden sm:table-cell">
+                    <span v-if="row.paymentMethod === 'cash'">Efectivo ($)</span>
+                    <span v-else-if="row.paymentMethod === 'cash_ves'">Efectivo (Bs)</span>
+                    <span v-else-if="row.paymentMethod === 'card'">Tarjeta</span>
+                    <span v-else-if="row.paymentMethod === 'transfer'">Transferencia</span>
+                    <span v-else-if="row.paymentMethod === 'zelle'">Zelle</span>
+                    <span v-else-if="row.paymentMethod === 'pago_movil'">Pago Móvil</span>
+                    <span v-else-if="row.paymentMethod === 'punto_venta'">Punto de Venta (Bs)</span>
+                    <span v-else-if="row.paymentMethod === 'mixed'">
+                      <span class="font-medium text-warning">Mixto</span>
+                      <div v-if="row.breakdown && row.breakdown.length > 1" class="text-[10px] text-text-muted mt-0.5">
+                        <span v-for="(b, bi) in row.breakdown" :key="bi">
+                          {{ formatMethod(b.method) }} {{ b.currency === 'VES' ? b.inputAmount.toLocaleString('es-VE', { minimumFractionDigits: 2 }) + ' Bs' : '$' + b.inputAmount.toFixed(2) }}<span v-if="bi < row.breakdown.length - 1"> / </span>
+                        </span>
+                      </div>
+                    </span>
+                    <span v-else>{{ formatMethod(row.paymentMethod) }}</span>
+                  </td>
+                  <td class="px-3 py-3 text-right font-semibold text-info tabular-nums whitespace-nowrap">
+                    <div>{{ row.currency === 'VES' ? formatVESEs(row.originalAmount) : formatUSD(row.total) }}</div>
+                    <div class="text-[10px] text-text-muted mt-0.5">{{ row.currency === 'VES' ? formatUSD(row.total) :
+                      formatVESInline(row.total, row.exchangeRateUsed) + ' Bs' }}</div>
+                  </td>
+                  <td class="px-3 py-3 text-center">
+                    <button @click="summaryCtx.handleDeleteProductSale(row.id, row.product)"
+                      class="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-danger/10 hover:text-danger transition-colors"
+                      title="Eliminar venta">
+                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div v-else class="flex flex-col items-center justify-center py-12 text-center">
+            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-bg-secondary mb-2">
+              <svg class="h-5 w-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            </div>
+            <p class="text-sm text-text-muted">No hay ventas en este período</p>
+          </div>
+        </template>
         <div v-if="productSalesBreakdown.length" class="mt-4 rounded-lg bg-bg-secondary p-3">
           <p class="text-xs font-medium text-text-secondary mb-1.5">Productos principales</p>
           <div class="space-y-1">

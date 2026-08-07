@@ -1,8 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../store/auth'
 import { useBusinessStore } from '../store/business'
-import { isRole, isAdminPanelRole, isEncargado, isCajero, resolveHomeByRole, ROLES } from '../constants/roles'
-import { isPetNiche } from '../config/nicheFields'
+import { resolveNavigation } from './navigationGuard'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -28,13 +27,13 @@ const router = createRouter({
       path: '/dashboard/agenda',
       name: 'employee-agenda',
       component: () => import('../views/employee/EmployeeAgenda.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, gate: { hideIfAgendaDisabled: true, feature: 'agenda' } },
     },
     {
       path: '/dashboard/calendario',
       name: 'employee-calendario',
       component: () => import('../views/employee/EmployeeCalendario.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, gate: { hideIfAgendaDisabled: true, feature: 'calendario' } },
     },
     {
       path: '/dashboard/historial',
@@ -58,19 +57,19 @@ const router = createRouter({
       path: '/dashboard/clientes',
       name: 'employee-clientes',
       component: () => import('../views/employee/EmployeeClientes.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, gate: { feature: 'employees_see_clients' } },
     },
     {
       path: '/dashboard/clientes/:id',
       name: 'employee-cliente-historial',
       component: () => import('../views/employee/EmployeeClienteHistorial.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, gate: { feature: 'employees_see_clients' } },
     },
     {
       path: '/dashboard/consultorio',
       name: 'employee-consultorio',
       component: () => import('../views/employee/EmployeeConsultorio.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, gate: { capability: 'clients.pets', profileFlag: 'can_access_consultorio' } },
     },
     {
       path: '/dashboard/pagos',
@@ -78,6 +77,8 @@ const router = createRouter({
       component: () => import('../views/employee/EmployeePayments.vue'),
       meta: { requiresAuth: true },
     },
+    { path: '/dashboard/finanzas', redirect: '/admin/finanzas' },
+    { path: '/dashboard/finanzas/registros/:tipo', redirect: to => `/admin/finanzas/registros/${to.params.tipo}` },
     // Admin routes — lazy loaded layout + children
     {
       path: '/admin',
@@ -88,11 +89,13 @@ const router = createRouter({
           path: '',
           name: 'admin',
           component: () => import('../views/Admin.vue'),
+          meta: { gate: { feature: 'agenda' } },
         },
         {
           path: 'calendario',
           name: 'admin-calendario',
           component: () => import('../views/Calendario.vue'),
+          meta: { gate: { feature: 'calendario' } },
         },
         {
           path: 'clientes',
@@ -108,6 +111,7 @@ const router = createRouter({
           path: 'consultorio',
           name: 'admin-consultorio',
           component: () => import('../views/Consultorio.vue'),
+          meta: { gate: { capability: 'clients.pets' } },
         },
         {
           path: 'finanzas',
@@ -133,6 +137,7 @@ const router = createRouter({
           path: 'servicios',
           name: 'admin-servicios',
           component: () => import('../views/Servicios.vue'),
+          meta: { gate: { feature: 'servicios' } },
         },
         {
           path: 'inventario',
@@ -196,76 +201,22 @@ const router = createRouter({
 
 router.beforeEach(async (to) => {
   const authStore = useAuthStore()
-
   await authStore.initialize()
 
-  if (authStore.loading) {
-    if (to.meta.public) return
-    return '/'
-  }
+  const businessStore = useBusinessStore()
 
-  if (to.meta.public && authStore.isAuthenticated) {
-    if (authStore.isCajeroProfile) {
-      return '/admin/pos'
-    }
-    return resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda)
-  }
-
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    return '/'
-  }
-
-  if (to.meta.superadminOnly && authStore.role !== 'superadmin') {
-    return resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda)
-  }
-
-  // ── CAJERO: solo puede acceder a /admin/pos ──
-  const isCajeroUser = authStore.isCajeroProfile
-
-  if (isCajeroUser) {
-    // Redirigir dashboard a POS
-    if (to.path.startsWith('/dashboard/')) {
-      return '/admin/pos'
-    }
-    // Bloquear superadmin
-    if (to.meta.superadminOnly) {
-      return '/admin/pos'
-    }
-    // Permitir solo /admin/pos, redirigir cualquier otra ruta admin
-    if (to.path.startsWith('/admin/') && to.path !== '/admin/pos') {
-      return '/admin/pos'
-    }
-    return
-  }
-
-  if (to.meta.adminOnly && !isAdminPanelRole(authStore.role ?? undefined)) {
-    return resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda)
-  }
-
-  if (to.path.startsWith('/dashboard/') && isAdminPanelRole(authStore.role ?? undefined)) {
-    return resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda)
-  }
-
-  if (authStore.role === 'empleado' && authStore.profile?.disable_agenda && (to.path === '/dashboard/agenda' || to.path === '/dashboard/calendario')) {
-    return resolveHomeByRole(authStore.role, true)
-  }
-
-  if (to.path.includes('/consultorio')) {
-    const businessStore = useBusinessStore()
-    if (!isPetNiche(businessStore.nicheType)) {
-      return resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda)
-    }
-    if (authStore.role === 'empleado' && !(authStore.profile?.can_access_consultorio ?? true)) {
-      return resolveHomeByRole(authStore.role, authStore.profile?.disable_agenda)
-    }
-  }
-
-  if (authStore.role === 'empleado' && to.path.startsWith('/dashboard/clientes')) {
-    const businessStore = useBusinessStore()
-    if (!businessStore.hasFeature('employees_see_clients')) {
-      return resolveHomeByRole(authStore.role, authStore.profile?.disable_agenda)
-    }
-  }
+  return resolveNavigation(
+    { path: to.path, meta: to.meta as any },
+    {
+      loading: authStore.loading,
+      isAuthenticated: authStore.isAuthenticated,
+      isCajeroProfile: authStore.isCajeroProfile,
+      role: authStore.role,
+      profile: authStore.profile,
+      hasFeature: (key) => businessStore.hasFeature(key),
+      hasCapability: (capability) => businessStore.hasCapability(capability),
+    },
+  )
 })
 
 export default router

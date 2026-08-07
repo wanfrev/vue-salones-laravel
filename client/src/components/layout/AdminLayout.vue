@@ -56,7 +56,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../../composables/common/useAuth'
-import { useAuthStore } from '../../store/auth'
 import { useThemeStore } from '../../store/theme'
 import { HamburgerMenuIcon, RefreshIcon, LogoutIcon } from '@solar-icons/vue/linear'
 import lumaLogoLight from '../../assets/Luma.svg'

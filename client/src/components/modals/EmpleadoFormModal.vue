@@ -166,6 +166,67 @@
               <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAccessConsultorio ? 'translate-x-4' : 'translate-x-0']" />
             </button>
           </label>
+
+          <!-- Store Permissions -->
+          <label v-if="formData.systemRole !== 'encargado' && businessStore.features.inventario" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-text">Puede acceder a Inventario</p>
+              <p class="text-xs text-text-muted">Permite consultar el inventario (solo lectura)</p>
+            </div>
+            <button type="button" role="switch" :aria-checked="formData.canAccessInventory"
+              @click="formData.canAccessInventory = !formData.canAccessInventory"
+              :class="['relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2', formData.canAccessInventory ? 'bg-primary border-primary' : 'bg-border border-border']">
+              <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAccessInventory ? 'translate-x-4' : 'translate-x-0']" />
+            </button>
+          </label>
+
+          <label v-if="formData.systemRole !== 'encargado' && businessStore.features.inventario && formData.canAccessInventory" class="ml-4 flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-text">Puede editar inventario</p>
+              <p class="text-xs text-text-muted">Si está apagado, solo puede consultar — no crear, editar ni ajustar stock</p>
+            </div>
+            <button type="button" role="switch" :aria-checked="!formData.disableInventoryEdit"
+              @click="formData.disableInventoryEdit = !formData.disableInventoryEdit"
+              :class="['relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2', !formData.disableInventoryEdit ? 'bg-primary border-primary' : 'bg-border border-border']">
+              <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', !formData.disableInventoryEdit ? 'translate-x-4' : 'translate-x-0']" />
+            </button>
+          </label>
+
+          <label v-if="formData.systemRole !== 'encargado' && businessStore.features.pos" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-text">Puede acceder al POS</p>
+              <p class="text-xs text-text-muted">Permite procesar ventas en el Punto de Venta</p>
+            </div>
+            <button type="button" role="switch" :aria-checked="formData.canAccessPos"
+              @click="formData.canAccessPos = !formData.canAccessPos"
+              :class="['relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2', formData.canAccessPos ? 'bg-primary border-primary' : 'bg-border border-border']">
+              <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAccessPos ? 'translate-x-4' : 'translate-x-0']" />
+            </button>
+          </label>
+
+          <label v-if="formData.systemRole !== 'encargado' && businessStore.features.proveedores" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-text">Puede gestionar Proveedores</p>
+              <p class="text-xs text-text-muted">Permite ver y editar la lista de proveedores</p>
+            </div>
+            <button type="button" role="switch" :aria-checked="formData.canAccessSuppliers"
+              @click="formData.canAccessSuppliers = !formData.canAccessSuppliers"
+              :class="['relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2', formData.canAccessSuppliers ? 'bg-primary border-primary' : 'bg-border border-border']">
+              <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAccessSuppliers ? 'translate-x-4' : 'translate-x-0']" />
+            </button>
+          </label>
+
+          <label v-if="formData.systemRole !== 'encargado' && isTienda" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-text">Puede acceder a Finanzas</p>
+              <p class="text-xs text-text-muted">Permite ver el módulo de finanzas de la tienda</p>
+            </div>
+            <button type="button" role="switch" :aria-checked="formData.canAccessFinanzas"
+              @click="formData.canAccessFinanzas = !formData.canAccessFinanzas"
+              :class="['relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2', formData.canAccessFinanzas ? 'bg-primary border-primary' : 'bg-border border-border']">
+              <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAccessFinanzas ? 'translate-x-4' : 'translate-x-0']" />
+            </button>
+          </label>
         </div>
 
         <!-- COLUMNA DERECHA: Contratación -->
@@ -212,6 +273,7 @@ import { addBusinessJobTitle } from '../../services/equipoService'
 import { useFormValidation } from '../../composables/common/useFormValidation'
 import { empleadoFormSchema } from '../../lib/validation'
 import { isPetNiche } from '../../config/nicheFields'
+import { isTiendaNiche } from '../../config/niches'
 import type { Empleado, EmpleadoFormData } from '../../types/empleado'
 import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormDropdown } from '../forms'
@@ -237,6 +299,7 @@ const businessStore = useBusinessStore()
 const t = computed(() => businessStore.terminology)
 
 const isPetNicheBusiness = computed(() => isPetNiche(businessStore.nicheType))
+const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
 
 const isSubmitting = ref(false)
 const isLoading = computed(() => isSubmitting.value || props.isSaving)
@@ -245,7 +308,6 @@ const isEditing = computed(() => !!modalData.value?.empleado)
 const systemRoleOptions = [
   { value: 'empleado' as const, label: 'Empleado' },
   { value: 'encargado' as const, label: 'Encargado' },
-  { value: 'cajero' as const, label: 'Cajero (solo POS)' },
 ]
 
 const showingCustomRole = ref(false)
@@ -279,10 +341,16 @@ const defaultFormData: EmpleadoFormData = {
   salaryFrequency: 'monthly',
   activeDays: [1, 2, 3, 4, 5, 6],
   disableAgenda: false,
-  disableInventoryEdit: false,
+  // Read-only by default: a newly granted canAccessInventory shouldn't silently come with
+  // write access — edit is a separate, explicit toggle (see the canAccessInventory watcher).
+  disableInventoryEdit: true,
   canCreateAppointments: true,
   canCreateClients: true,
   canAccessConsultorio: true,
+  canAccessInventory: false,
+  canAccessPos: false,
+  canAccessSuppliers: false,
+  canAccessFinanzas: false,
 }
 
 const formData = ref<EmpleadoFormData>({ ...defaultFormData })
@@ -326,6 +394,10 @@ watch(
         canCreateAppointments: empleado.canCreateAppointments ?? true,
         canCreateClients: empleado.canCreateClients ?? true,
         canAccessConsultorio: empleado.canAccessConsultorio ?? true,
+        canAccessInventory: empleado.canAccessInventory ?? false,
+        canAccessPos: empleado.canAccessPos ?? false,
+        canAccessSuppliers: empleado.canAccessSuppliers ?? false,
+        canAccessFinanzas: empleado.canAccessFinanzas ?? false,
       }
     } else {
       formData.value = { ...defaultFormData }
@@ -356,7 +428,22 @@ watch(
       formData.value.canCreateAppointments = false
       formData.value.canCreateClients = false
       formData.value.canAccessConsultorio = false
+      formData.value.canAccessInventory = false
+      formData.value.canAccessPos = true
+      formData.value.canAccessSuppliers = false
+      formData.value.canAccessFinanzas = false
     }
+  }
+)
+
+// Turning inventory access ON must not silently grant write access — edit is a separate,
+// explicit admin decision. Also keeps the stored disableInventoryEdit value honest while
+// access is off, even though the backend permission check already short-circuits on
+// canAccessInventory alone in that case.
+watch(
+  () => formData.value.canAccessInventory,
+  (canAccess) => {
+    if (!canAccess) formData.value.disableInventoryEdit = true
   }
 )
 

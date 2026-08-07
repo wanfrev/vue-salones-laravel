@@ -8,6 +8,10 @@ export default defineConfig({
     environment: 'happy-dom',
     globals: true,
   },
+  build: {
+    rollupOptions: {
+    }
+  },
   plugins: [
     vue(),
     VitePWA({

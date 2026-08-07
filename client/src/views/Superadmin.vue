@@ -48,26 +48,11 @@
 
           <div>
             <label class="block text-xs font-semibold text-text mb-1">Nicho</label>
-            <select v-if="!showingCustomNiche" :value="form.nicheType" @change="onNicheSelect"
+            <select v-model="form.nicheType"
               class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
               <option value="" disabled selected>Selecciona un nicho</option>
-              <option value="salon">Salón de belleza</option>
-              <option value="barberia">Barbería</option>
-              <option value="spa">Spa</option>
-              <option value="mixto">Mixto (Barbería + Salón + Spa)</option>
-              <option value="dog_spa">Spa canino / Veterinaria</option>
-              <option value="nail_bar">Barra de uñas</option>
-              <option value="centro_estetico">Centro estético</option>
-              <option value="__new__">+ Otro (personalizado)</option>
+              <option v-for="n in registeredNiches" :key="n.id" :value="n.id">{{ n.label }}</option>
             </select>
-            <div v-else class="flex gap-2">
-              <input v-model="form.nicheType" type="text" placeholder="Escribe el nicho..."
-                class="flex-1 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
-              <button type="button" @click="cancelCustomNiche"
-                class="rounded-xl border border-border px-3 py-2.5 text-xs text-text-secondary hover:bg-bg-secondary transition-colors">
-                Volver
-              </button>
-            </div>
           </div>
 
           <p v-if="formError" class="text-xs text-danger flex items-center gap-1">
@@ -144,13 +129,15 @@ import { createBusinessWithOwner, listBusinesses, superadminKeys } from '../serv
 import { translateError } from '../lib/errors'
 import SuperadminLayout from '../components/layout/SuperadminLayout.vue'
 import type { Business } from '../types/database'
+import { creatableNiches } from '../config/niches'
 import { InfoCircleIcon, ArrowRightIcon, BuildingsIcon } from '@solar-icons/vue/linear'
 
 const { success, error: showError } = useNotification()
 const queryClient = useQueryClient()
 
+const registeredNiches = creatableNiches()
+
 const form = ref({ businessName: '', ownerEmail: '', ownerPassword: '', nicheType: '' })
-const showingCustomNiche = ref(false)
 const search = ref('')
 const formError = ref('')
 
@@ -187,13 +174,6 @@ const filteredBusinesses = computed(() => {
     (b.niche_type || '').toLowerCase().includes(term)
   )
 })
-
-const onNicheSelect = (e: Event) => {
-  const val = (e.target as HTMLSelectElement).value
-  if (val === '__new__') { showingCustomNiche.value = true; form.value.nicheType = ''; return }
-  form.value.nicheType = val
-}
-const cancelCustomNiche = () => { showingCustomNiche.value = false; form.value.nicheType = '' }
 
 const handleSubmit = async () => {
   formError.value = ''

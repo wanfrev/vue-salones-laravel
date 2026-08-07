@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\Business;
 use App\Services\BusinessContext;
 use Closure;
 use Illuminate\Http\Request;
@@ -32,11 +33,27 @@ class SetBusinessContext
             }
         }
 
+        $resolvedBusinessId = $businessId ?? $profile->business_id ?? '';
+        $nicheType = null;
+        $rawFeatures = null;
+
+        if ($resolvedBusinessId) {
+            $business = Business::find($resolvedBusinessId);
+            $nicheType = $business?->niche_type;
+            $rawFeatures = $business?->features;
+        }
+
         $context = new BusinessContext(
-            businessId: $businessId ?? $profile->business_id ?? '',
+            businessId: $resolvedBusinessId,
             branchId: $branchId,
             profileId: $profile->id,
             role: $profile->role ?? 'admin',
+            nicheType: $nicheType,
+            rawFeatures: $rawFeatures,
+            canAccessInventory: (bool) $profile->can_access_inventory,
+            canAccessPos: (bool) $profile->can_access_pos,
+            canAccessSuppliers: (bool) $profile->can_access_suppliers,
+            disableInventoryEdit: (bool) $profile->disable_inventory_edit,
         );
 
         app()->instance(BusinessContext::class, $context);

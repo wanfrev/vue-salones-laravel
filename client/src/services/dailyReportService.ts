@@ -24,6 +24,10 @@ export interface DailyReport {
   zelle_usd: number
   binance_usd: number
   cashea_usd: number
+  card_usd: number
+  gift_card_usd: number
+  other_usd: number
+  other_bs: number
   credit_bs?: number
   credit_usd?: number
   credits_detail?: CreditItem[]
@@ -34,8 +38,61 @@ export interface DailyReport {
   user?: { id: string; name: string }
 }
 
+export interface DailyReportPosSummary {
+  fields: {
+    pos_bs: number
+    pago_movil_bs: number
+    cash_bs: number
+    transfer_bs: number
+    other_bs: number
+    cash_usd: number
+    zelle_usd: number
+    binance_usd: number
+    cashea_usd: number
+    card_usd: number
+    gift_card_usd: number
+    other_usd: number
+  }
+  meta: {
+    transactions: number
+    exchange_rate: number | null
+    unmapped_methods: string[]
+  }
+}
+
+export interface DailyReportDashboardSummary {
+  fields: {
+    pos_bs: number
+    pago_movil_bs: number
+    cash_bs: number
+    transfer_bs: number
+    other_bs: number
+    cash_usd: number
+    zelle_usd: number
+    binance_usd: number
+    cashea_usd: number
+    card_usd: number
+    gift_card_usd: number
+    other_usd: number
+  }
+  totals: {
+    total_bs: number
+    total_usd: number
+    grand_total_bs: number
+    grand_total_usd: number
+    credit_bs: number
+    credit_usd: number
+  }
+  meta: {
+    reports_count: number
+    avg_exchange_rate: number | null
+  }
+}
+
 export const dailyReportsKeys = {
   all: (businessId?: string | null, branchId?: string | null) => ['daily-reports', businessId, branchId] as const,
+  dashboard: (businessId?: string | null, branchId?: string | null, start?: string, end?: string) =>
+    ['daily-reports-dashboard', businessId, branchId, start, end] as const,
 }
 
 export const listDailyReports = async (businessId: string, branchId?: string | null, month?: string) => {
@@ -65,4 +122,25 @@ export const saveDailyReport = async (data: Partial<DailyReport>) => {
 
 export const deleteDailyReport = async (id: string) => {
   return await apiRequest('DELETE', `/daily-reports/${id}`)
+}
+
+export const getDailyReportPosSummary = async (
+  businessId: string,
+  date: string,
+  branchId?: string | null,
+) => {
+  const params = new URLSearchParams({ business_id: businessId, date })
+  if (branchId) params.set('branch_id', branchId)
+  return await apiRequest<DailyReportPosSummary>('GET', `/daily-reports/pos-summary?${params.toString()}`)
+}
+
+export const getDailyReportDashboardSummary = async (
+  businessId: string,
+  start: string,
+  end: string,
+  branchId?: string | null,
+) => {
+  const params = new URLSearchParams({ business_id: businessId, start, end })
+  if (branchId) params.set('branch_id', branchId)
+  return await apiRequest<DailyReportDashboardSummary>('GET', `/daily-reports/dashboard-summary?${params.toString()}`)
 }

@@ -378,6 +378,8 @@ class PosService
         ?float $exchangeRate,
         array $paymentsBreakdown,
         ?string $clientId,
+        ?string $clientNameInput,
+        ?string $clientPhoneInput,
         string $businessId,
         ?string $branchId,
         string $createdBy,
@@ -388,15 +390,17 @@ class PosService
 
         $rate = $exchangeRate ?: 1;
 
-        $clientName = null;
-        if ($clientId) {
+        $clientName = $clientNameInput;
+        if (!$clientName && $clientId) {
             $client = Client::where('business_id', $businessId)->find($clientId);
             $clientName = $client?->full_name;
         }
+        
+        $clientInfoStr = $clientName ? ($clientPhoneInput ? "{$clientName} ({$clientPhoneInput})" : $clientName) : null;
 
         return DB::transaction(function () use (
             $totalAmount, $method, $products, $notes, $rate,
-            $paymentsBreakdown, $clientId, $businessId, $branchId, $createdBy, $clientName
+            $paymentsBreakdown, $clientId, $businessId, $branchId, $createdBy, $clientInfoStr, $clientName
         ) {
             $tx = Transaction::create([
                 'id' => Str::uuid()->toString(),
@@ -414,7 +418,7 @@ class PosService
                 'exchange_rate_used' => $rate,
                 'payments_breakdown' => $paymentsBreakdown,
                 'created_by' => $createdBy,
-                'notes' => $notes ?? ($clientName ? "Venta directa — {$clientName}" : 'Venta directa'),
+                'notes' => $notes ?? ($clientInfoStr ? "Venta directa — {$clientInfoStr}" : 'Venta directa'),
                 'tip_amount' => 0,
                 'paid_at' => now(),
             ]);
@@ -661,21 +665,27 @@ class PosService
         string $businessId,
         string $productId,
         ?string $variantId,
-        int $quantity,
+        float|int $quantity,
         string $productName,
         ?string $branchId,
         string $defaultLocation,
     ): void {
-        $stock = \App\Models\InventoryStock::where('business_id', $businessId)
+        $stockQuery = \App\Models\InventoryStock::where('business_id', $businessId)
             ->where('product_id', $productId)
-            ->where('location_id', $defaultLocation)
-            ->when($variantId, fn($q) => $q->where('variant_id', $variantId), fn($q) => $q->whereNull('variant_id'))
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->lockForUpdate()
-            ->first();
+            ->when($variantId, fn($q) => $q->where('variant_id', $variantId), fn($q) => $q->whereNull('variant_id'));
+
+        if ($branchId) {
+            $stockQuery->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
+
+        $stock = (clone $stockQuery)->where('location_id', $defaultLocation)->lockForUpdate()->first()
+            ?? $stockQuery->lockForUpdate()->first();
 
         if (!$stock || $stock->quantity < $quantity) {
-            throw new RuntimeException("Stock insuficiente para {$productName}. Disponible: " . ($stock->quantity ?? 0));
+            $avail = $stock ? $stock->quantity : 0;
+            throw new RuntimeException("Stock insuficiente para {$productName}. Disponible: {$avail}");
         }
 
         $stock->quantity -= $quantity;

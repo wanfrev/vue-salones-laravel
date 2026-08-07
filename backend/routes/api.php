@@ -80,9 +80,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Profiles / Employees
     Route::get('/profiles', [ProfileController::class, 'index']);
     Route::get('/profiles/{id}', [ProfileController::class, 'show']);
-    Route::post('/profiles', [ProfileController::class, 'store']);
-    Route::put('/profiles/{id}', [ProfileController::class, 'update']);
-    Route::delete('/profiles/{id}', [ProfileController::class, 'destroy']);
+    Route::middleware('admin-panel')->group(function () {
+        Route::post('/profiles', [ProfileController::class, 'store']);
+        Route::put('/profiles/{id}', [ProfileController::class, 'update']);
+        Route::delete('/profiles/{id}', [ProfileController::class, 'destroy']);
+    });
 
     // Employee payments
     Route::get('/employee-payments', [EmployeePaymentController::class, 'index']);
@@ -103,13 +105,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/employee-schedules/{id}', [EmployeeScheduleController::class, 'destroy']);
 
     // Services
-    Route::get('/services', [ServiceController::class, 'index']);
-    Route::post('/services', [ServiceController::class, 'store']);
-    Route::get('/services/{id}', [ServiceController::class, 'show']);
-    Route::post('/services/categories/rename', [ServiceController::class, 'renameCategory']);
-    Route::delete('/services/categories', [ServiceController::class, 'deleteCategory']);
-    Route::put('/services/{id}', [ServiceController::class, 'update']);
-    Route::delete('/services/{id}', [ServiceController::class, 'destroy']);
+    Route::middleware('feature:servicios')->group(function () {
+        Route::get('/services', [ServiceController::class, 'index']);
+        Route::post('/services', [ServiceController::class, 'store']);
+        Route::get('/services/{id}', [ServiceController::class, 'show']);
+        Route::post('/services/categories/rename', [ServiceController::class, 'renameCategory']);
+        Route::delete('/services/categories', [ServiceController::class, 'deleteCategory']);
+        Route::put('/services/{id}', [ServiceController::class, 'update']);
+        Route::delete('/services/{id}', [ServiceController::class, 'destroy']);
+    });
 
     // Clients
     Route::get('/clients', [ClientController::class, 'index']);
@@ -135,45 +139,58 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/appointments/{id}/status', [AppointmentController::class, 'updateStatus']);
     Route::patch('/appointments/{id}/time', [AppointmentController::class, 'updateTime']);
 
-    // Products
-    Route::get('/products', [ProductController::class, 'index']);
-    Route::post('/products', [ProductController::class, 'store']);
-    Route::put('/products/{id}', [ProductController::class, 'update']);
-    Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+    // Products — read needs perm:inventory (tienda employee "acceso a inventario"),
+    // write additionally needs perm:inventory-edit (disable_inventory_edit governs this).
+    Route::middleware('feature:productos')->group(function () {
+        Route::middleware('perm:inventory')->group(function () {
+            Route::get('/products', [ProductController::class, 'index']);
+            Route::get('/products/categories', [ProductCategoryController::class, 'index']);
+            Route::get('/product-categories', [ProductCategoryController::class, 'index']);
+        });
+        Route::middleware('perm:inventory-edit')->group(function () {
+            Route::post('/products', [ProductController::class, 'store']);
+            Route::put('/products/{id}', [ProductController::class, 'update']);
+            Route::delete('/products/{id}', [ProductController::class, 'destroy']);
+            Route::post('/products/categories', [ProductCategoryController::class, 'store']);
+            Route::post('/product-categories', [ProductCategoryController::class, 'store']);
+        });
+    });
 
-    // Product categories
-    Route::get('/products/categories', [ProductCategoryController::class, 'index']);
-    Route::post('/products/categories', [ProductCategoryController::class, 'store']);
-    Route::get('/product-categories', [ProductCategoryController::class, 'index']);
-    Route::post('/product-categories', [ProductCategoryController::class, 'store']);
+    // Inventory (with dashes aliases for frontend compat) — same read/write split as Products.
+    Route::middleware('feature:inventario')->group(function () {
+        Route::middleware('perm:inventory')->group(function () {
+            Route::get('/inventory', [InventoryController::class, 'index']);
+            Route::get('/inventory-stock', [InventoryController::class, 'index']);
+            Route::get('/inventory/movements', [InventoryController::class, 'movements']);
+            Route::get('/inventory-movements', [InventoryController::class, 'movements']);
+            Route::get('/inventory-locations', [InventoryController::class, 'locations']);
+            Route::get('/product-variants', [InventoryController::class, 'variants']);
+        });
+        Route::middleware('perm:inventory-edit')->group(function () {
+            Route::post('/inventory-stock', [InventoryController::class, 'storeStock']);
+            Route::put('/inventory-stock/{id}', [InventoryController::class, 'updateStock']);
+            Route::delete('/inventory-stock/{id}', [InventoryController::class, 'deleteStock']);
+            Route::post('/inventory-movements', [InventoryController::class, 'storeMovement']);
+            Route::delete('/inventory-movements/{id}', [InventoryController::class, 'destroyMovement']);
+            Route::post('/inventory/adjust', [InventoryController::class, 'adjust']);
+            Route::post('/inventory/sell', [InventoryController::class, 'sell']);
+            Route::post('/inventory-locations', [InventoryController::class, 'storeLocation']);
+        });
+    });
 
-    // Inventory (with dashes aliases for frontend compat)
-    Route::get('/inventory', [InventoryController::class, 'index']);
-    Route::get('/inventory-stock', [InventoryController::class, 'index']);
-    Route::post('/inventory-stock', [InventoryController::class, 'storeStock']);
-    Route::put('/inventory-stock/{id}', [InventoryController::class, 'updateStock']);
-    Route::delete('/inventory-stock/{id}', [InventoryController::class, 'deleteStock']);
-    Route::get('/inventory/movements', [InventoryController::class, 'movements']);
-    Route::get('/inventory-movements', [InventoryController::class, 'movements']);
-    Route::post('/inventory-movements', [InventoryController::class, 'storeMovement']);
-    Route::delete('/inventory-movements/{id}', [InventoryController::class, 'destroyMovement']);
-    Route::post('/inventory/adjust', [InventoryController::class, 'adjust']);
-    Route::post('/inventory/sell', [InventoryController::class, 'sell']);
-    Route::get('/inventory-locations', [InventoryController::class, 'locations']);
-    Route::post('/inventory-locations', [InventoryController::class, 'storeLocation']);
-    Route::get('/product-variants', [InventoryController::class, 'variants']);
+    // Suppliers — whole module gated on a single perm (no separate view/edit split requested).
+    Route::middleware(['feature:proveedores', 'perm:suppliers'])->group(function () {
+        Route::get('/suppliers', [SupplierController::class, 'index']);
+        Route::post('/suppliers', [SupplierController::class, 'store']);
+        Route::put('/suppliers/{id}', [SupplierController::class, 'update']);
+        Route::delete('/suppliers/{id}', [SupplierController::class, 'destroy']);
+        Route::get('/suppliers/balance/{id}', [SupplierController::class, 'balance']);
 
-    // Suppliers
-    Route::get('/suppliers', [SupplierController::class, 'index']);
-    Route::post('/suppliers', [SupplierController::class, 'store']);
-    Route::put('/suppliers/{id}', [SupplierController::class, 'update']);
-    Route::delete('/suppliers/{id}', [SupplierController::class, 'destroy']);
-    Route::get('/suppliers/balance/{id}', [SupplierController::class, 'balance']);
-
-    // Supplier payments
-    Route::get('/supplier-payments', [SupplierPaymentController::class, 'index']);
-    Route::post('/supplier-payments', [SupplierPaymentController::class, 'store']);
-    Route::delete('/supplier-payments/{id}', [SupplierPaymentController::class, 'destroy']);
+        // Supplier payments
+        Route::get('/supplier-payments', [SupplierPaymentController::class, 'index']);
+        Route::post('/supplier-payments', [SupplierPaymentController::class, 'store']);
+        Route::delete('/supplier-payments/{id}', [SupplierPaymentController::class, 'destroy']);
+    });
 
     // Finanzas
     Route::get('/finanzas/summary', [FinancialSummaryController::class, 'summary']);
@@ -193,22 +210,30 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Daily Reports
     Route::get('/daily-reports', [DailyReportController::class, 'index']);
+    // Antes de la ruta con {id} no hace falta cuidado: no colisionan, pero se
+    // deja agrupada con el resto del recurso.
+    Route::get('/daily-reports/pos-summary', [DailyReportController::class, 'posSummary']);
+    Route::get('/daily-reports/dashboard-summary', [DailyReportController::class, 'dashboardSummary']);
     Route::post('/daily-reports', [DailyReportController::class, 'store']);
     Route::put('/daily-reports/{id}', [DailyReportController::class, 'update']);
     Route::delete('/daily-reports/{id}', [DailyReportController::class, 'destroy']);
 
     // POS
-    Route::get('/pos/pending', [PosController::class, 'pendingAppointments']);
-    Route::get('/pos/products', [PosController::class, 'saleableProducts']);
-    Route::post('/pos/sale', [PosController::class, 'recordSale']);
-    Route::post('/pos/direct-sale', [PosController::class, 'directSale']);
-    Route::post('/pos/direct-service-sale', [PosController::class, 'directServiceSale']);
+    Route::middleware(['feature:pos', 'perm:pos'])->group(function () {
+        Route::get('/pos/pending', [PosController::class, 'pendingAppointments']);
+        Route::get('/pos/products', [PosController::class, 'saleableProducts']);
+        Route::post('/pos/sale', [PosController::class, 'recordSale']);
+        Route::post('/pos/direct-sale', [PosController::class, 'directSale']);
+        Route::post('/pos/direct-service-sale', [PosController::class, 'directServiceSale']);
+    });
 
     // Gift Cards
-    Route::get('/gift-cards', [GiftCardController::class, 'index']);
-    Route::post('/gift-cards', [GiftCardController::class, 'store']);
-    Route::put('/gift-cards/{id}', [GiftCardController::class, 'update']);
-    Route::delete('/gift-cards/{id}', [GiftCardController::class, 'destroy']);
+    Route::middleware('feature:gift_cards')->group(function () {
+        Route::get('/gift-cards', [GiftCardController::class, 'index']);
+        Route::post('/gift-cards', [GiftCardController::class, 'store']);
+        Route::put('/gift-cards/{id}', [GiftCardController::class, 'update']);
+        Route::delete('/gift-cards/{id}', [GiftCardController::class, 'destroy']);
+    });
 
     // Push subscriptions
     Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store']);
@@ -245,5 +270,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/businesses/{id}/suspend', [SuperadminController::class, 'suspend']);
         Route::post('/businesses/{id}/resume', [SuperadminController::class, 'resume']);
         Route::get('/businesses/{id}/admins', [SuperadminController::class, 'admins']);
+        Route::put('/businesses/{id}/admins/{profileId}/password', [SuperadminController::class, 'resetAdminPassword']);
     });
 });

@@ -1,6 +1,30 @@
 <template>
   <ModalBase :is-open="isOpen" :title="isEditing ? 'Editar Reporte Diario' : 'Nuevo Reporte Diario'" size="xl" @close="close">
     <div class="space-y-6">
+      <div v-if="businessStore.features.daily_report_autofill_from_pos" class="flex items-center justify-between gap-3 rounded-xl border border-primary/20 bg-primary-light/10 px-4 py-3">
+        <div class="text-xs text-text-secondary">
+          <span class="font-semibold text-text">Traer del POS</span>
+          <span class="block text-text-muted">Llena los montos por método con lo cobrado ese día. No pisa lo que ya hayas escrito hasta que confirmes.</span>
+        </div>
+        <button
+          type="button"
+          @click="fetchFromPos"
+          :disabled="fetchingPos || !formData.date"
+          class="inline-flex items-center gap-1.5 shrink-0 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <svg v-if="fetchingPos" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          <svg v-else class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v16h16M8 12l3 3 5-6" />
+          </svg>
+          Traer del POS
+        </button>
+      </div>
+      <div v-if="posFetchNotice" class="rounded-xl border border-primary/20 bg-primary-light/10 px-4 py-2.5 text-xs text-text-secondary">
+        {{ posFetchNotice }}
+      </div>
+
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <FormInput v-model="formData.date" label="Fecha" type="date" required :error="errors.date" />
         <FormInput v-model="formData.exchange_rate" label="Tasa del Día (Bs/$)" type="number" step="0.01" min="0" required :error="errors.exchange_rate" />
@@ -80,6 +104,7 @@
               <FormInput v-model="formData.pago_movil_bs" label="Pago Móvil" type="number" step="0.01" min="0" placeholder="0.00" />
               <FormInput v-model="formData.cash_bs" label="Efectivo Bs" type="number" step="0.01" min="0" placeholder="0.00" />
               <FormInput v-model="formData.transfer_bs" label="Transferencia" type="number" step="0.01" min="0" placeholder="0.00" />
+              <FormInput v-model="formData.other_bs" label="Otro" type="number" step="0.01" min="0" placeholder="0.00" />
             </div>
           </div>
           <div class="pt-3 mt-3 border-t border-border space-y-1">
@@ -108,6 +133,9 @@
               <FormInput v-model="formData.zelle_usd" label="Zelle" type="number" step="0.01" min="0" placeholder="0.00" />
               <FormInput v-model="formData.binance_usd" label="Binance" type="number" step="0.01" min="0" placeholder="0.00" />
               <FormInput v-model="formData.cashea_usd" label="Cashea" type="number" step="0.01" min="0" placeholder="0.00" />
+              <FormInput v-model="formData.card_usd" label="Tarjeta" type="number" step="0.01" min="0" placeholder="0.00" />
+              <FormInput v-if="businessStore.features.gift_cards" v-model="formData.gift_card_usd" label="Gift Card" type="number" step="0.01" min="0" placeholder="0.00" />
+              <FormInput v-model="formData.other_usd" label="Otro" type="number" step="0.01" min="0" placeholder="0.00" />
             </div>
           </div>
           <div class="pt-3 mt-3 border-t border-border space-y-1">
@@ -263,6 +291,7 @@ import FormInput from '../forms/FormInput.vue'
 import { useBusinessStore } from '../../store/business'
 import { useAuthStore } from '../../store/auth'
 import { useDailyReports } from '../../composables/reportes/useDailyReports'
+import { getDailyReportPosSummary } from '../../services/dailyReportService'
 import type { DailyReport, CreditItem } from '../../services/dailyReportService'
 import { useNotification } from '../../composables/common/useNotification'
 import { useModal } from '../../composables/common/useModal'
@@ -277,6 +306,8 @@ const { saveMutation, activeBusinessId } = useDailyReports()
 
 const isEditing = ref(false)
 const isSaving = computed(() => saveMutation.isPending.value)
+const fetchingPos = ref(false)
+const posFetchNotice = ref('')
 
 const errors = ref<Record<string, string>>({})
 
@@ -317,6 +348,10 @@ const defaultForm = () => ({
   zelle_usd: '',
   binance_usd: '',
   cashea_usd: '',
+  card_usd: '',
+  gift_card_usd: '',
+  other_usd: '',
+  other_bs: '',
 })
 
 const formData = ref(defaultForm())
@@ -378,6 +413,10 @@ watch(modalData, (data) => {
       zelle_usd: String(report.zelle_usd ?? ''),
       binance_usd: String(report.binance_usd ?? ''),
       cashea_usd: String(report.cashea_usd ?? ''),
+      card_usd: String(report.card_usd ?? ''),
+      gift_card_usd: String(report.gift_card_usd ?? ''),
+      other_usd: String(report.other_usd ?? ''),
+      other_bs: String(report.other_bs ?? ''),
     }
 
     if (report.z_report_usd && !report.z_report_bs) {
@@ -458,6 +497,7 @@ const totalBs = computed(() => {
          parseNum(formData.value.pago_movil_bs) +
          parseNum(formData.value.cash_bs) +
          parseNum(formData.value.transfer_bs) +
+         parseNum(formData.value.other_bs) +
          totalCreditBs.value
 })
 
@@ -467,6 +507,9 @@ const totalUsd = computed(() => {
          parseNum(formData.value.zelle_usd) +
          parseNum(formData.value.binance_usd) +
          parseNum(formData.value.cashea_usd) +
+         parseNum(formData.value.card_usd) +
+         parseNum(formData.value.gift_card_usd) +
+         parseNum(formData.value.other_usd) +
          totalCreditUsd.value
 })
 
@@ -527,6 +570,44 @@ const validate = () => {
   return Object.keys(errors.value).length === 0
 }
 
+// Solo pisa los campos por método de pago (POS_FIELDS). Deja intactos la
+// tasa, el Reporte Z y los créditos por persona: eso el negocio lo carga a
+// mano y no tiene equivalente en el POS.
+const POS_FIELDS = [
+  'pos_bs', 'pago_movil_bs', 'cash_bs', 'transfer_bs', 'other_bs',
+  'cash_usd', 'zelle_usd', 'binance_usd', 'cashea_usd', 'card_usd', 'gift_card_usd', 'other_usd',
+] as const
+
+const fetchFromPos = async () => {
+  const bizId = activeBusinessId.value
+  if (!bizId || !formData.value.date) return
+
+  fetchingPos.value = true
+  posFetchNotice.value = ''
+  try {
+    const branchId = businessStore.selectedBranchId || authStore.profile?.branch_id || null
+    const summary = await getDailyReportPosSummary(bizId, formData.value.date, branchId)
+
+    for (const field of POS_FIELDS) {
+      formData.value[field] = String(summary.fields[field] ?? 0)
+    }
+
+    if (summary.meta.exchange_rate && !parseNum(formData.value.exchange_rate)) {
+      formData.value.exchange_rate = String(summary.meta.exchange_rate)
+    }
+
+    if (summary.meta.transactions === 0) {
+      posFetchNotice.value = 'No hay cobros registrados en el POS para esa fecha.'
+    } else {
+      posFetchNotice.value = `Se trajeron ${summary.meta.transactions} cobro(s) del POS. Revisá los montos antes de guardar.`
+    }
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al traer los montos del POS.')
+  } finally {
+    fetchingPos.value = false
+  }
+}
+
 const handleSubmit = async () => {
   if (!validate()) return
   
@@ -551,6 +632,10 @@ const handleSubmit = async () => {
     zelle_usd: parseNum(formData.value.zelle_usd),
     binance_usd: parseNum(formData.value.binance_usd),
     cashea_usd: parseNum(formData.value.cashea_usd),
+    card_usd: parseNum(formData.value.card_usd),
+    gift_card_usd: parseNum(formData.value.gift_card_usd),
+    other_usd: parseNum(formData.value.other_usd),
+    other_bs: parseNum(formData.value.other_bs),
     credit_usd: totalCreditUsd.value,
     credit_bs: totalCreditBs.value,
     credits_detail: creditsList.value

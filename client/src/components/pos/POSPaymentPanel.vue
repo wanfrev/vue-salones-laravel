@@ -88,12 +88,12 @@
               </span>
               <div
                 class="relative inline-flex h-4 w-7 shrink-0 cursor-pointer items-center rounded-full transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                :class="areProductsIncluded ? 'bg-primary' : 'bg-bg-secondary border border-border'"
-                @click="$emit('update:are-products-included', !areProductsIncluded)"
+                :class="props.areProductsIncluded ? 'bg-primary' : 'bg-bg-secondary border border-border'"
+                @click="$emit('update:are-products-included', !props.areProductsIncluded)"
               >
                 <span
                   class="inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
-                  :class="areProductsIncluded ? 'translate-x-3 bg-white' : 'translate-x-0.5 bg-border-strong'"
+                  :class="props.areProductsIncluded ? 'translate-x-3 bg-white' : 'translate-x-0.5 bg-border-strong'"
                 />
               </div>
             </label>
@@ -102,41 +102,132 @@
             <div
               v-for="(item, idx) in cart"
               :key="item.productId"
-              class="flex items-center justify-between gap-2 rounded-lg bg-bg-secondary px-3 py-2"
+              class="rounded-lg bg-bg-secondary px-3"
+              :class="isRetailNiche ? 'py-2.5 space-y-2' : 'flex items-center justify-between gap-2 py-2'"
             >
-              <div class="flex-1 min-w-0">
-                <p class="text-sm font-medium text-text truncate">{{ item.productName }}</p>
-                <p class="text-xs" :class="areProductsIncluded ? 'text-text-muted line-through opacity-70' : 'text-text-muted'">{{ formatDual(item.unitPrice) }} c/u</p>
-              </div>
-                <div class="flex items-center gap-1">
-                <button
-                  @click="$emit('decrement-qty', idx)"
-                  class="flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-text-muted hover:bg-surface hover:text-text transition-theme"
-                >
-                  −
-                </button>
-                <span class="w-6 text-center text-sm font-semibold text-text">{{ item.quantity }}</span>
-                <button
-                  @click="$emit('increment-qty', idx)"
-                  class="flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-text-muted hover:bg-surface hover:text-text transition-theme"
-                >
-                  +
-                </button>
-              </div>
-              <div class="flex items-center gap-2">
-                <div class="text-right w-16">
-                  <span v-if="areProductsIncluded" class="block text-xs font-bold text-success">Exonerado</span>
-                  <span v-else class="text-sm font-semibold text-text">{{ formatDual(item.subtotal) }}</span>
+              <!-- Retail (tienda/no-agenda): two-row card — name/subtotal on top, price/qty below.
+                   Splitting into two rows gives each element real width instead of cramming
+                   name + price + bigger touch-target qty controls into one line, which used to
+                   force formatDual's combined "$X / Y Bs" string to wrap mid-number. -->
+              <template v-if="isRetailNiche">
+                <div class="flex items-center justify-between gap-2">
+                  <p class="flex-1 min-w-0 truncate text-sm sm:text-[15px] font-medium text-text">{{ item.productName }}</p>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <div class="text-right leading-tight">
+                      <span v-if="props.areProductsIncluded" class="block text-xs font-bold text-success">Exonerado</span>
+                      <template v-else>
+                        <span class="block text-sm sm:text-base font-bold text-text">{{ formatUSD(item.subtotal) }}</span>
+                        <span class="block text-[10px] text-text-muted">{{ formatVES(item.subtotal) }}</span>
+                      </template>
+                    </div>
+                    <button
+                      @click="$emit('remove-item', idx)"
+                      class="flex h-8 w-8 items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
+                    >
+                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
-                <button
-                  @click="$emit('remove-item', idx)"
-                  class="flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
-                >
-                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-1.5 min-w-0">
+                    <span class="text-xs truncate" :class="props.areProductsIncluded ? 'text-text-muted line-through opacity-70' : 'text-text-muted'">{{ formatUSD(item.unitPrice) }} c/u</span>
+                    <div v-if="item.unitPrice2 != null && Number(item.unitPrice2) > 0" class="inline-flex rounded border border-border p-0.5 bg-surface shrink-0">
+                      <button
+                        type="button"
+                        @click.stop.prevent="$emit('set-price-index', idx, 1)"
+                        class="px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors cursor-pointer"
+                        :class="item.priceIndex !== 2 ? 'bg-primary text-text-inverse shadow-2xs' : 'text-text-muted hover:text-text'"
+                      >
+                        P1
+                      </button>
+                      <button
+                        type="button"
+                        @click.stop.prevent="$emit('set-price-index', idx, 2)"
+                        class="px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors cursor-pointer"
+                        :class="item.priceIndex === 2 ? 'bg-primary text-text-inverse shadow-2xs' : 'text-text-muted hover:text-text'"
+                      >
+                        P2
+                      </button>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <button
+                      @click="$emit('decrement-qty', idx)"
+                      class="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-base font-bold text-text-muted hover:bg-surface hover:text-text active:scale-95 transition-theme"
+                    >
+                      −
+                    </button>
+                    <input
+                      v-if="editingIdx === idx"
+                      :ref="(el) => setQtyInputRef(el, idx)"
+                      v-model="editingValue"
+                      type="number"
+                      inputmode="numeric"
+                      min="1"
+                      :max="item.availableQty"
+                      class="w-12 h-9 rounded-lg border border-primary bg-surface text-center text-sm font-bold text-text outline-none"
+                      @blur="commitQtyEdit(idx)"
+                      @keydown.enter.prevent="commitQtyEdit(idx)"
+                      @keydown.escape="cancelQtyEdit"
+                    />
+                    <button
+                      v-else
+                      @click="startQtyEdit(idx, item.quantity)"
+                      class="w-9 h-9 rounded-lg text-sm font-bold text-text hover:bg-surface transition-theme"
+                      title="Toca para escribir la cantidad exacta"
+                    >
+                      {{ item.quantity }}
+                    </button>
+                    <button
+                      @click="$emit('increment-qty', idx)"
+                      class="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-base font-bold text-text-muted hover:bg-surface hover:text-text active:scale-95 transition-theme"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </template>
+
+              <!-- Non-retail (appointment/service checkout): unchanged single-row layout -->
+              <template v-else>
+                <div class="flex-1 min-w-0">
+                  <p class="text-sm font-medium text-text truncate">{{ item.productName }}</p>
+                  <div class="flex items-center gap-1.5 mt-0.5">
+                    <span class="text-xs" :class="props.areProductsIncluded ? 'text-text-muted line-through opacity-70' : 'text-text-muted'">{{ formatDual(item.unitPrice) }} c/u</span>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1">
+                  <button
+                    @click="$emit('decrement-qty', idx)"
+                    class="flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-text-muted hover:bg-surface hover:text-text transition-theme"
+                  >
+                    −
+                  </button>
+                  <span class="w-6 text-center text-sm font-semibold text-text">{{ item.quantity }}</span>
+                  <button
+                    @click="$emit('increment-qty', idx)"
+                    class="flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-text-muted hover:bg-surface hover:text-text transition-theme"
+                  >
+                    +
+                  </button>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="text-right w-16">
+                    <span v-if="props.areProductsIncluded" class="block text-xs font-bold text-success">Exonerado</span>
+                    <span v-else class="text-sm font-semibold text-text">{{ formatDual(item.subtotal) }}</span>
+                  </div>
+                  <button
+                    @click="$emit('remove-item', idx)"
+                    class="flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
+                  >
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </template>
             </div>
           </div>
         </div>
@@ -205,7 +296,33 @@
               </div>
             </div>
           </div>
-          <div class="flex items-center justify-between border-t border-border pt-2">
+          <div v-if="isRetailNiche" class="flex flex-col gap-2 border-t border-border pt-3 mt-1">
+            <div class="flex items-center justify-between text-sm">
+              <span class="font-medium text-text">Total Calculado</span>
+              <div class="text-right leading-tight">
+                <span class="block font-semibold text-text">{{ formatUSD(productsTotal) }}</span>
+                <span class="block text-[10px] text-text-muted">{{ formatVES(productsTotal) }}</span>
+              </div>
+            </div>
+            <span class="text-base font-bold text-text">Total a Cobrar</span>
+            <div class="flex items-center gap-2">
+              <select
+                :value="customTotalCurrency"
+                @change="$emit('update:custom-total-currency', ($event.target as HTMLSelectElement).value)"
+                class="shrink-0 rounded-lg border border-border bg-surface px-2 py-2 text-sm font-bold text-text outline-none focus:border-primary w-20"
+              >
+                <option value="USD">USD</option>
+                <option value="VES">VES</option>
+              </select>
+              <input
+                :value="customTotalAmount ?? ''"
+                @input="$emit('update:custom-total-amount', ($event.target as HTMLInputElement).value ? Number(($event.target as HTMLInputElement).value) : null)"
+                type="number" step="0.01" min="0" placeholder="Automático"
+                class="min-w-0 flex-1 rounded-lg border border-border bg-surface px-3 py-2 text-lg font-bold text-primary text-right outline-none focus:border-primary placeholder:text-text-muted/50 placeholder:text-sm"
+              />
+            </div>
+          </div>
+          <div v-else class="flex items-center justify-between border-t border-border pt-2 mt-1">
             <span class="text-base font-bold text-text">Total</span>
             <DualAmount :amount="grandTotal" orientation="stack" size="lg" primary-class="text-xl font-bold text-primary" />
           </div>
@@ -358,12 +475,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { DualAmount } from '../common'
 import { formatDate } from '../../lib/formatters'
 import { useAuth } from '../../composables/common/useAuth'
 import { useGiftCards } from '../../composables/giftCards/useGiftCards'
+import { useBusinessStore } from '../../store/business'
 import type { PaymentMethod } from '../../types/database'
 import type { PaymentBreakdownItem, POSProductItem } from '../../types/pos'
 
@@ -379,6 +497,7 @@ const props = defineProps<{
   productsTotal: number
   cartCount: number
   grandTotal: number
+  areProductsIncluded?: boolean
   paymentMethod: PaymentMethod
   otherCurrency: 'USD' | 'VES'
   paymentMethods: { label: string; value: PaymentMethod }[]
@@ -396,8 +515,9 @@ const props = defineProps<{
   showTipAdjust: boolean
   isRetailOnly?: boolean
   retailClientName?: string | null
-  areProductsIncluded?: boolean
   selectedGiftCardId?: string | null
+  customTotalAmount?: number | null
+  customTotalCurrency?: 'USD' | 'VES'
   isDirectService?: boolean
   directServiceName?: string | null
   directServiceEmployeeName?: string | null
@@ -411,7 +531,7 @@ const props = defineProps<{
   }>
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'select-method': [method: PaymentMethod]
   'update:otherCurrency': [currency: 'USD' | 'VES']
   'add-split': []
@@ -422,24 +542,61 @@ defineEmits<{
   'set-equal-tip': []
   'update:tip-allocation': [employeeId: string, value: number]
   'process-payment': []
+  'set-price-index': [idx: number, priceIndex: 1 | 2]
   'increment-qty': [idx: number]
   'decrement-qty': [idx: number]
+  'set-quantity': [idx: number, quantity: number]
   'remove-item': [idx: number]
   'update:are-products-included': [value: boolean]
   'update:selected-gift-card-id': [value: string | null]
 }>()
 
-const { formatDual } = useCurrency()
+const { formatDual, formatUSD, formatVES } = useCurrency()
 const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)
 const { activeGiftCards } = useGiftCards(businessId)
+const businessStore = useBusinessStore()
+const isRetailNiche = computed(() => !businessStore.features.agenda)
 
 const needsGiftCardSelect = computed(() =>
-  props.paymentMethod === 'gift_card' ||
-  (props.paymentMethod === 'mixed' && props.paymentsBreakdown.some(b => b.method === 'gift_card'))
+  businessStore.features.gift_cards &&
+  (props.paymentMethod === 'gift_card' ||
+  (props.paymentMethod === 'mixed' && props.paymentsBreakdown.some(b => b.method === 'gift_card')))
 )
 
 const selectedGC = computed(() =>
   activeGiftCards.value.find(g => g.id === props.selectedGiftCardId)
 )
+
+// Tap-to-type exact quantity (retail cart rows). Tapping the qty number swaps it for a
+// numeric input; blur/Enter commits, Escape discards. One index editable at a time.
+const editingIdx = ref<number | null>(null)
+const editingValue = ref('')
+let qtyInputEl: HTMLInputElement | null = null
+
+const setQtyInputRef = (el: Element | { $el: Element } | null, idx: number) => {
+  if (editingIdx.value !== idx || !el) return
+  qtyInputEl = el as HTMLInputElement
+}
+
+const startQtyEdit = (idx: number, currentQty: number) => {
+  editingIdx.value = idx
+  editingValue.value = String(currentQty)
+  nextTick(() => { qtyInputEl?.focus(); qtyInputEl?.select() })
+}
+
+const commitQtyEdit = (idx: number) => {
+  if (editingIdx.value !== idx) return
+  const parsed = Number(editingValue.value)
+  if (Number.isFinite(parsed) && parsed > 0) {
+    emit('set-quantity', idx, parsed)
+  }
+  editingIdx.value = null
+  qtyInputEl = null
+}
+
+const cancelQtyEdit = () => {
+  editingIdx.value = null
+  qtyInputEl = null
+}
 </script>
