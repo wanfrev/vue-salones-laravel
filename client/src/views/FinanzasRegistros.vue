@@ -84,21 +84,101 @@
     </RecordSection>
 
     <!-- Ventas productos -->
-    <RecordSection v-else-if="tipo === 'ventas-productos'" title="Ventas de productos del periodo" :items="paginatedVentas" :total-count="summaryCtx.productSalesDetails.value.length" empty-message="No hay ventas de productos en este periodo." :pages="ventasPages" :page-size="pageSize" @prev="prevPage" @next="nextPage">
-      <template #desktop-thead><th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Fecha</th><th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted hidden sm:table-cell">Cliente</th><th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Producto</th><th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Cantidad</th><th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Precio unit.</th><th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Método</th><th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Total</th><th class="pb-3 text-center text-xs font-semibold uppercase text-text-muted w-10"></th></template>
+    <RecordSection v-else-if="tipo === 'ventas-productos'" title="Ventas de productos del periodo" :items="paginatedVentas" :total-count="activeVentasData.length" empty-message="No hay ventas de productos en este periodo." :pages="ventasPages" :page-size="pageSize" @prev="prevPage" @next="nextPage">
+      <template #desktop-thead>
+        <template v-if="isTienda">
+          <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Fecha</th>
+          <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted hidden sm:table-cell">Cliente</th>
+          <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Factura</th>
+          <th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Cant. Prod.</th>
+          <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Método</th>
+          <th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Total</th>
+        </template>
+        <template v-else>
+          <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Fecha</th><th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted hidden sm:table-cell">Cliente</th><th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Producto</th><th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Cantidad</th><th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Precio unit.</th><th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Método</th><th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Total</th><th class="pb-3 text-center text-xs font-semibold uppercase text-text-muted w-10"></th>
+        </template>
+      </template>
       <template #desktop-tbody="{ items }">
-        <tr v-for="row in items" :key="row.id" class="text-sm transition-theme hover:bg-bg-secondary/50"><td class="py-3 text-text-secondary whitespace-nowrap">{{ row.date }}</td><td class="py-3 text-text-secondary hidden sm:table-cell">{{ row.clientName || '—' }}</td><td class="py-3 font-medium text-text">{{ row.product }}</td><td class="py-3 text-right text-text">{{ row.quantity }}</td><td class="py-3 text-right text-text whitespace-nowrap">{{ formatUSD(row.unitPrice) }}</td><td class="py-3 text-text-secondary"><span v-if="row.paymentMethod === 'mixed'" class="font-medium text-warning">Mixto</span><span v-else>{{ formatMethod(row.paymentMethod) }}</span><div v-if="row.paymentMethod === 'mixed' && row.breakdown && row.breakdown.length > 1" class="text-[10px] text-text-muted mt-0.5"><span v-for="(b, bi) in row.breakdown" :key="bi">{{ formatMethod(b.method) }} {{ b.currency === 'VES' ? b.inputAmount.toLocaleString('es-VE', { minimumFractionDigits: 2 }) + ' Bs' : '$' + b.inputAmount.toFixed(2) }}<span v-if="bi < row.breakdown.length - 1"> / </span></span></div></td><td class="py-3 text-right font-medium text-success whitespace-nowrap"><div>{{ row.currency === 'VES' ? formatVESEs(row.originalAmount) : formatUSD(row.total) }}</div><div class="text-[10px] text-text-muted mt-0.5">{{ row.currency === 'VES' ? formatUSD(row.total) : formatVESInline(row.total, row.exchangeRateUsed) + ' Bs' }}</div></td>
-        <td class="py-3 text-center"><button @click="summaryCtx.handleDeleteProductSale(row.id, row.product)" class="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-danger/10 hover:text-danger transition-colors" title="Eliminar venta"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></td></tr>
+        <template v-if="isTienda">
+          <template v-for="inv in items" :key="inv.id">
+            <tr class="text-sm transition-theme hover:bg-bg-secondary/60 cursor-pointer" @click="toggleExpand(inv.id)">
+              <td class="py-3 text-text-secondary whitespace-nowrap">{{ inv.date }}</td>
+              <td class="py-3 text-text font-medium hidden sm:table-cell">{{ inv.clientName || 'Venta directa' }}</td>
+              <td class="py-3 font-medium text-text">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-primary font-semibold">Factura</span>
+                  <span class="text-text-muted text-xs">({{ inv.items.length }} {{ inv.items.length === 1 ? 'prod.' : 'prods.' }})</span>
+                  <svg :class="['h-4 w-4 text-text-muted transition-transform duration-200 ml-1', expandedIds.has(inv.id) ? 'rotate-180 text-primary' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                </div>
+              </td>
+              <td class="py-3 text-right text-text font-medium">{{ inv.totalQuantity }}</td>
+              <td class="py-3 text-text-secondary"><span v-if="inv.paymentMethod === 'mixed'" class="font-medium text-warning">Mixto</span><span v-else>{{ formatMethod(inv.paymentMethod) }}</span></td>
+              <td class="py-3 text-right font-semibold text-success whitespace-nowrap"><div>{{ inv.currency === 'VES' ? formatVESEs(inv.originalAmount) : formatUSD(inv.total) }}</div><div class="text-[10px] text-text-muted mt-0.5">{{ inv.currency === 'VES' ? formatUSD(inv.total) : formatVESInline(inv.total, inv.exchangeRateUsed) + ' Bs' }}</div></td>
+            </tr>
+            <tr v-if="expandedIds.has(inv.id)" :key="inv.id + '-expanded'" class="bg-bg-secondary/40">
+              <td colspan="6" class="px-6 py-3">
+                <div class="rounded-lg border border-border-subtle bg-surface p-3 space-y-2">
+                  <div class="text-xs font-semibold text-text-secondary flex items-center justify-between">
+                    <span class="flex items-center gap-1.5"><svg class="h-3.5 w-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>Detalle de productos en esta factura</span>
+                    <span class="text-text-muted font-normal">{{ inv.items.length }} {{ inv.items.length === 1 ? 'ítem' : 'ítems' }}</span>
+                  </div>
+                  <div class="divide-y divide-border-subtle/50">
+                    <div v-for="item in inv.items" :key="item.id" class="flex items-center justify-between py-1.5 text-xs">
+                      <span class="font-medium text-text">{{ item.product }}</span>
+                      <div class="flex items-center gap-4 text-text-secondary tabular-nums">
+                        <span>Cant: <strong class="text-text">{{ item.quantity }}</strong></span>
+                        <span>Precio unit: <strong class="text-text">{{ formatUSD(item.unitPrice) }}</strong></span>
+                        <span>Subtotal: <strong class="text-success font-semibold">{{ formatUSD(item.total) }}</strong></span>
+                        <button @click.stop="summaryCtx.handleDeleteProductSale(item.id, item.product)" class="flex h-5 w-5 items-center justify-center rounded text-text-muted hover:bg-danger/10 hover:text-danger transition-colors ml-2" title="Eliminar producto"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </template>
+        </template>
+        <template v-else>
+          <tr v-for="row in items" :key="row.id" class="text-sm transition-theme hover:bg-bg-secondary/50"><td class="py-3 text-text-secondary whitespace-nowrap">{{ row.date }}</td><td class="py-3 text-text-secondary hidden sm:table-cell">{{ row.clientName || '—' }}</td><td class="py-3 font-medium text-text">{{ row.product }}</td><td class="py-3 text-right text-text">{{ row.quantity }}</td><td class="py-3 text-right text-text whitespace-nowrap">{{ formatUSD(row.unitPrice) }}</td><td class="py-3 text-text-secondary"><span v-if="row.paymentMethod === 'mixed'" class="font-medium text-warning">Mixto</span><span v-else>{{ formatMethod(row.paymentMethod) }}</span><div v-if="row.paymentMethod === 'mixed' && row.breakdown && row.breakdown.length > 1" class="text-[10px] text-text-muted mt-0.5"><span v-for="(b, bi) in row.breakdown" :key="bi">{{ formatMethod(b.method) }} {{ b.currency === 'VES' ? b.inputAmount.toLocaleString('es-VE', { minimumFractionDigits: 2 }) + ' Bs' : '$' + b.inputAmount.toFixed(2) }}<span v-if="bi < row.breakdown.length - 1"> / </span></span></div></td><td class="py-3 text-right font-medium text-success whitespace-nowrap"><div>{{ row.currency === 'VES' ? formatVESEs(row.originalAmount) : formatUSD(row.total) }}</div><div class="text-[10px] text-text-muted mt-0.5">{{ row.currency === 'VES' ? formatUSD(row.total) : formatVESInline(row.total, row.exchangeRateUsed) + ' Bs' }}</div></td>
+          <td class="py-3 text-center"><button @click="summaryCtx.handleDeleteProductSale(row.id, row.product)" class="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-danger/10 hover:text-danger transition-colors" title="Eliminar venta"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></td></tr>
+        </template>
       </template>
       <template #mobile-cards="{ items }">
-        <div v-for="row in items" :key="row.id" class="rounded-lg border border-border-subtle bg-bg-secondary/30 p-3 space-y-2 text-sm">
-          <div class="flex items-center justify-between"><span class="text-xs text-text-muted">{{ row.date }}</span><span class="rounded-full bg-success/10 px-2 py-0.5 text-xs font-semibold text-success">{{ row.currency === 'VES' ? formatVESEs(row.originalAmount) : formatUSD(row.total) }}</span></div>
-          <div v-if="row.clientName" class="text-xs text-text-muted">{{ row.clientName }}</div>
-          <div class="font-medium text-text">{{ row.product }}</div>
-          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs"><span class="text-text-muted">Cantidad</span><span class="text-text text-right">{{ row.quantity }}</span><span class="text-text-muted">Precio unit.</span><span class="text-text text-right">{{ formatUSD(row.unitPrice) }}</span><span class="text-text-muted">Método</span><span class="text-text text-right"><span v-if="row.paymentMethod === 'mixed'" class="font-medium text-warning">Mixto</span><span v-else>{{ formatMethod(row.paymentMethod) }}</span></span></div>
-          <div v-if="row.paymentMethod === 'mixed' && row.breakdown && row.breakdown.length > 1" class="text-[10px] text-text-muted"><span v-for="(b, bi) in row.breakdown" :key="bi">{{ formatMethod(b.method) }} {{ b.currency === 'VES' ? b.inputAmount.toLocaleString('es-VE', { minimumFractionDigits: 2 }) + ' Bs' : '$' + b.inputAmount.toFixed(2) }}<span v-if="bi < row.breakdown.length - 1"> / </span></span></div>
-          <button @click="summaryCtx.handleDeleteProductSale(row.id, row.product)" class="flex items-center justify-center gap-1 w-full rounded-lg py-1.5 text-xs text-danger hover:bg-danger/10 transition-colors mt-1"><svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>Eliminar venta</button>
-        </div>
+        <template v-if="isTienda">
+          <div v-for="inv in items" :key="inv.id" class="rounded-lg border border-border-subtle bg-bg-secondary/30 p-3 space-y-2 text-sm cursor-pointer hover:border-primary/40" @click="toggleExpand(inv.id)">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-text-muted">{{ inv.date }}</span>
+              <span class="rounded-full bg-success/10 px-2 py-0.5 text-xs font-semibold text-success">{{ inv.currency === 'VES' ? formatVESEs(inv.originalAmount) : formatUSD(inv.total) }}</span>
+            </div>
+            <div class="font-medium text-text flex items-center justify-between">
+              <span>{{ inv.clientName || 'Venta directa' }}</span>
+              <span class="text-xs text-primary font-medium">Factura ({{ inv.items.length }} {{ inv.items.length === 1 ? 'prod.' : 'prods.' }})</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-text-muted">Método: {{ formatMethod(inv.paymentMethod) }}</span>
+              <span class="text-text-muted flex items-center gap-1">Ver productos <svg :class="['h-3.5 w-3.5 transition-transform duration-200', expandedIds.has(inv.id) ? 'rotate-180 text-primary' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg></span>
+            </div>
+            <div v-if="expandedIds.has(inv.id)" class="mt-2 pt-2 border-t border-border-subtle space-y-1.5 bg-surface/50 p-2 rounded-lg">
+              <div v-for="item in inv.items" :key="item.id" class="flex items-center justify-between text-xs py-1 border-b border-border-subtle/30 last:border-0">
+                <span class="font-medium text-text">{{ item.product }}</span>
+                <div class="text-right">
+                  <span class="text-text-muted mr-2">{{ item.quantity }} x {{ formatUSD(item.unitPrice) }}</span>
+                  <span class="font-semibold text-success tabular-nums">{{ formatUSD(item.total) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template v-else>
+          <div v-for="row in items" :key="row.id" class="rounded-lg border border-border-subtle bg-bg-secondary/30 p-3 space-y-2 text-sm">
+            <div class="flex items-center justify-between"><span class="text-xs text-text-muted">{{ row.date }}</span><span class="rounded-full bg-success/10 px-2 py-0.5 text-xs font-semibold text-success">{{ row.currency === 'VES' ? formatVESEs(row.originalAmount) : formatUSD(row.total) }}</span></div>
+            <div v-if="row.clientName" class="text-xs text-text-muted">{{ row.clientName }}</div>
+            <div class="font-medium text-text">{{ row.product }}</div>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs"><span class="text-text-muted">Cantidad</span><span class="text-text text-right">{{ row.quantity }}</span><span class="text-text-muted">Precio unit.</span><span class="text-text text-right">{{ formatUSD(row.unitPrice) }}</span><span class="text-text-muted">Método</span><span class="text-text text-right"><span v-if="row.paymentMethod === 'mixed'" class="font-medium text-warning">Mixto</span><span v-else>{{ formatMethod(row.paymentMethod) }}</span></span></div>
+            <div v-if="row.paymentMethod === 'mixed' && row.breakdown && row.breakdown.length > 1" class="text-[10px] text-text-muted"><span v-for="(b, bi) in row.breakdown" :key="bi">{{ formatMethod(b.method) }} {{ b.currency === 'VES' ? b.inputAmount.toLocaleString('es-VE', { minimumFractionDigits: 2 }) + ' Bs' : '$' + b.inputAmount.toFixed(2) }}<span v-if="bi < row.breakdown.length - 1"> / </span></span></div>
+            <button @click="summaryCtx.handleDeleteProductSale(row.id, row.product)" class="flex items-center justify-center gap-1 w-full rounded-lg py-1.5 text-xs text-danger hover:bg-danger/10 transition-colors mt-1"><svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>Eliminar venta</button>
+          </div>
+        </template>
       </template>
     </RecordSection>
 
@@ -106,17 +186,69 @@
     <RecordSection v-else title="Transacciones del periodo" :items="paginatedTransacciones" :total-count="summaryCtx.allTransactions.value.length" empty-message="No hay transacciones en este periodo." :pages="transaccionesPages" :page-size="pageSize" @prev="prevPage" @next="nextPage">
       <template #desktop-thead><th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Fecha</th><th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Descripción</th><th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Empleado</th><th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Tipo</th><th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Método</th><th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Monto</th><th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Acciones</th></template>
       <template #desktop-tbody="{ items }">
-        <tr v-for="tx in items" :key="tx.id" class="text-sm transition-theme hover:bg-bg-secondary/50"><td class="py-3 text-text-secondary whitespace-nowrap">{{ tx.date }}</td><td class="py-3 font-medium text-text"><div>{{ tx.description }}</div><div class="text-[11px] text-text-muted mt-0.5">{{ tx.sourceLabel }}</div></td><td class="py-3 text-text-secondary">{{ tx.employee || '—' }}</td><td class="py-3"><span :class="['rounded-full px-2 py-0.5 text-xs font-semibold', tx.type === 'ingreso' ? 'bg-success/10 text-success' : tx.type === 'nomina' ? 'bg-warning/10 text-warning' : 'bg-danger/10 text-danger']">{{ tx.type === 'ingreso' ? (tx.source === 'product_sale' ? 'Venta' : 'Ingreso') : tx.type === 'nomina' ? 'Nomina' : 'Gasto' }}</span></td><td class="py-3 text-text-secondary">{{ tx.method }}</td><td class="py-3 text-right" :class="tx.type === 'ingreso' ? 'text-success' : 'text-danger'"><div class="font-medium">{{ tx.type === 'ingreso' ? '' : '-' }}{{ tx._currency === 'VES' ? formatVESEs(tx._originalAmount ?? tx.amount) : formatUSD(tx.amount) }}</div><div class="text-[10px] text-text-muted mt-0.5">{{ tx._currency === 'VES' ? formatUSD(tx.amount) : formatVESInline(tx.amount, tx.exchangeRateUsed) + ' Bs' }}</div><span v-if="tx.type === 'ingreso' && (tx.tipAmount ?? 0) > 0" class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary mt-1">+${{ (tx.tipAmount ?? 0).toFixed(2) }} propina</span></td>
-        <td class="py-3 text-right"><div v-if="tx.type === 'ingreso'" class="flex items-center gap-1 justify-end"><button @click="editCobroFromTx(tx)" class="rounded-md bg-primary/10 p-1.5 text-primary transition-theme hover:bg-primary/20"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button><button @click="summaryCtx.confirmDeleteTransaction(tx.id)" class="rounded-md bg-danger/10 p-1.5 text-danger transition-theme hover:bg-danger/20"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div><span v-else class="text-xs text-text-muted">—</span></td></tr>
+        <template v-for="tx in items" :key="tx.id">
+          <tr
+            :class="[
+              'text-sm transition-theme',
+              tx.items && tx.items.length > 0 ? 'cursor-pointer hover:bg-bg-secondary/60' : 'hover:bg-bg-secondary/50'
+            ]"
+            @click="tx.items && tx.items.length > 0 && toggleExpand(tx.id)"
+          >
+            <td class="py-3 text-text-secondary whitespace-nowrap">{{ tx.date }}</td>
+            <td class="py-3 font-medium text-text">
+              <div class="flex items-center gap-1.5">
+                <span>{{ tx.description }}</span>
+                <svg v-if="tx.items && tx.items.length > 0" :class="['h-3.5 w-3.5 text-text-muted transition-transform duration-200 ml-1', expandedIds.has(tx.id) ? 'rotate-180 text-primary' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+              </div>
+              <div class="text-[11px] text-text-muted mt-0.5">{{ tx.sourceLabel }}</div>
+            </td>
+            <td class="py-3 text-text-secondary">{{ tx.employee || '—' }}</td>
+            <td class="py-3"><span :class="['rounded-full px-2 py-0.5 text-xs font-semibold', tx.type === 'ingreso' ? 'bg-success/10 text-success' : tx.type === 'nomina' ? 'bg-warning/10 text-warning' : 'bg-danger/10 text-danger']">{{ tx.type === 'ingreso' ? (tx.items ? 'Factura' : tx.source === 'product_sale' ? 'Venta' : 'Ingreso') : tx.type === 'nomina' ? 'Nomina' : 'Gasto' }}</span></td>
+            <td class="py-3 text-text-secondary">{{ tx.method }}</td>
+            <td class="py-3 text-right" :class="tx.type === 'ingreso' ? 'text-success' : 'text-danger'"><div class="font-medium">{{ tx.type === 'ingreso' ? '' : '-' }}{{ tx._currency === 'VES' ? formatVESEs(tx._originalAmount ?? tx.amount) : formatUSD(tx.amount) }}</div><div class="text-[10px] text-text-muted mt-0.5">{{ tx._currency === 'VES' ? formatUSD(tx.amount) : formatVESInline(tx.amount, tx.exchangeRateUsed) + ' Bs' }}</div><span v-if="tx.type === 'ingreso' && (tx.tipAmount ?? 0) > 0" class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary mt-1">+${{ (tx.tipAmount ?? 0).toFixed(2) }} propina</span></td>
+            <td class="py-3 text-right"><div v-if="tx.type === 'ingreso' && !tx.items" class="flex items-center gap-1 justify-end"><button @click="editCobroFromTx(tx)" class="rounded-md bg-primary/10 p-1.5 text-primary transition-theme hover:bg-primary/20"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button><button @click="summaryCtx.confirmDeleteTransaction(tx.id)" class="rounded-md bg-danger/10 p-1.5 text-danger transition-theme hover:bg-danger/20"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div><span v-else class="text-xs text-text-muted">—</span></td>
+          </tr>
+          <tr v-if="tx.items && tx.items.length > 0 && expandedIds.has(tx.id)" :key="tx.id + '-expanded'" class="bg-bg-secondary/40">
+            <td colspan="7" class="px-6 py-3">
+              <div class="rounded-lg border border-border-subtle bg-surface p-3 space-y-2">
+                <div class="text-xs font-semibold text-text-secondary flex items-center justify-between">
+                  <span class="flex items-center gap-1.5"><svg class="h-3.5 w-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>Productos incluidos en la factura</span>
+                  <span class="text-text-muted font-normal">{{ tx.items.length }} {{ tx.items.length === 1 ? 'producto' : 'productos' }}</span>
+                </div>
+                <div class="divide-y divide-border-subtle/50">
+                  <div v-for="item in tx.items" :key="item.id" class="flex items-center justify-between py-1.5 text-xs">
+                    <span class="font-medium text-text">{{ item.product }}</span>
+                    <div class="flex items-center gap-5 text-text-secondary tabular-nums">
+                      <span>Cantidad: <strong class="text-text">{{ item.quantity }}</strong></span>
+                      <span>Precio unit.: <strong class="text-text">{{ formatUSD(item.unitPrice) }}</strong></span>
+                      <span>Total: <strong class="text-success font-semibold">{{ formatUSD(item.total) }}</strong></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </template>
       </template>
       <template #mobile-cards="{ items }">
-        <div v-for="tx in items" :key="tx.id" class="rounded-lg border border-border-subtle bg-bg-secondary/30 p-3 space-y-2 text-sm">
-          <div class="flex items-center justify-between"><span class="text-xs text-text-muted">{{ tx.date }}</span><span :class="['rounded-full px-2 py-0.5 text-xs font-semibold', tx.type === 'ingreso' ? 'bg-success/10 text-success' : tx.type === 'nomina' ? 'bg-warning/10 text-warning' : 'bg-danger/10 text-danger']">{{ tx.type === 'ingreso' ? 'Ingreso' : tx.type === 'nomina' ? 'Nomina' : 'Gasto' }}</span></div>
-          <div class="font-medium text-text">{{ tx.description }}</div>
+        <div v-for="tx in items" :key="tx.id" class="rounded-lg border border-border-subtle bg-bg-secondary/30 p-3 space-y-2 text-sm" @click="tx.items && tx.items.length > 0 && toggleExpand(tx.id)">
+          <div class="flex items-center justify-between"><span class="text-xs text-text-muted">{{ tx.date }}</span><span :class="['rounded-full px-2 py-0.5 text-xs font-semibold', tx.type === 'ingreso' ? 'bg-success/10 text-success' : tx.type === 'nomina' ? 'bg-warning/10 text-warning' : 'bg-danger/10 text-danger']">{{ tx.type === 'ingreso' ? (tx.items ? 'Factura' : 'Ingreso') : tx.type === 'nomina' ? 'Nomina' : 'Gasto' }}</span></div>
+          <div class="font-medium text-text flex items-center justify-between">
+            <span>{{ tx.description }}</span>
+            <svg v-if="tx.items && tx.items.length > 0" :class="['h-3.5 w-3.5 text-text-muted transition-transform duration-200', expandedIds.has(tx.id) ? 'rotate-180 text-primary' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+          </div>
           <div class="text-[11px] text-text-muted">{{ tx.sourceLabel }}</div>
           <div class="flex items-center justify-between text-xs"><span class="text-text-muted">{{ tx.method }}</span><div class="text-right"><span class="font-semibold" :class="tx.type === 'ingreso' ? 'text-success' : 'text-danger'">{{ tx.type === 'ingreso' ? '' : '-' }}{{ tx._currency === 'VES' ? formatVESEs(tx._originalAmount ?? tx.amount) : formatUSD(tx.amount) }}</span><span class="text-text-muted ml-1">{{ tx._currency === 'VES' ? formatUSD(tx.amount) : formatVESInline(tx.amount, tx.exchangeRateUsed) + ' Bs' }}</span></div></div>
-          <div v-if="tx.type === 'ingreso' && (tx.tipAmount ?? 0) > 0" class="text-right"><span class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">+${{ (tx.tipAmount ?? 0).toFixed(2) }} propina</span></div>
-          <div v-if="tx.type === 'ingreso'" class="flex items-center justify-end gap-1 pt-1 border-t border-border-subtle"><button @click="editCobroFromTx(tx)" class="rounded-md bg-primary/10 px-2 py-1 text-xs text-primary">Editar</button><button @click="summaryCtx.confirmDeleteTransaction(tx.id)" class="rounded-md bg-danger/10 px-2 py-1 text-xs text-danger">Eliminar</button></div>
+          <div v-if="tx.items && tx.items.length > 0 && expandedIds.has(tx.id)" class="mt-2 pt-2 border-t border-border-subtle space-y-1.5 bg-surface/50 p-2 rounded-lg">
+            <div v-for="item in tx.items" :key="item.id" class="flex items-center justify-between text-xs py-1 border-b border-border-subtle/30 last:border-0">
+              <span class="font-medium text-text">{{ item.product }}</span>
+              <div class="text-right">
+                <span class="text-text-muted mr-2">{{ item.quantity }} x {{ formatUSD(item.unitPrice) }}</span>
+                <span class="font-semibold text-success tabular-nums">{{ formatUSD(item.total) }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-if="tx.type === 'ingreso' && !tx.items" class="flex items-center justify-end gap-1 pt-1 border-t border-border-subtle"><button @click="editCobroFromTx(tx)" class="rounded-md bg-primary/10 px-2 py-1 text-xs text-primary">Editar</button><button @click="summaryCtx.confirmDeleteTransaction(tx.id)" class="rounded-md bg-danger/10 px-2 py-1 text-xs text-danger">Eliminar</button></div>
         </div>
       </template>
     </RecordSection>
@@ -141,6 +273,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
 import { useBusinessStore } from '../store/business'
+import { isTiendaNiche } from '../config/niches'
 import { useFinancialSummary } from '../composables/finanzas/useFinancialSummary'
 import { db } from '../lib/api'
 import { APPOINTMENT_SELECT } from '../services/agendaService'
@@ -167,6 +300,7 @@ const { authStore } = useAuth()
 const businessStore = useBusinessStore()
 const { formatUSD, formatVESInline, formatVESEs, formatEmployeeVESInline } = useCurrency()
 const terminology = businessStore.terminology
+const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
 
 const selectedPeriod = ref<PeriodValue>('month')
 const selectedMonth = ref<string>(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`)
@@ -187,6 +321,14 @@ const periodDates = computed(() => {
 
 const expensesCtx = useExpenses(businessId, selectedPeriod, selectedMonth)
 const summaryCtx = useFinancialSummary(businessId, selectedPeriod, expensesCtx.expenses, selectedMonth)
+
+const expandedIds = ref<Set<string>>(new Set())
+const toggleExpand = (id: string) => {
+  const s = new Set(expandedIds.value)
+  if (s.has(id)) s.delete(id)
+  else s.add(id)
+  expandedIds.value = s
+}
 
 const originalStartEdit = summaryCtx.startEdit
 summaryCtx.startEdit = (tx: any) => {
@@ -275,20 +417,23 @@ const periodLabel = computed(() => {
 })
 const goBack = () => router.push({ name: 'admin-finanzas', query: { period: selectedPeriod.value, month: selectedMonth.value } })
 
+const activeVentasData = computed(() => isTienda.value ? summaryCtx.productSalesInvoices.value : summaryCtx.productSalesDetails.value)
+
 const pageSize = 10; const currentPage = ref(1)
 watch(tipo, () => { currentPage.value = 1 })
 const paginate = <T>(data: T[]): T[] => data.slice((currentPage.value - 1) * pageSize, currentPage.value * pageSize)
 const paginateProps = <T>(data: T[]) => { const t = data.length; const tp = Math.ceil(t / pageSize); return { total: t, totalPages: tp, start: t ? (currentPage.value - 1) * pageSize + 1 : 0, end: Math.min(currentPage.value * pageSize, t), hasPrev: currentPage.value > 1, hasNext: currentPage.value < tp } }
 const nextPage = () => { if (currentPage.value < Math.ceil(getActiveData().length / pageSize)) currentPage.value++ }
 const prevPage = () => { if (currentPage.value > 1) currentPage.value-- }
-const getActiveData = (): any[] => { if (tipo.value === 'gastos') return expensesCtx.expenses.value; if (tipo.value === 'cobros') return summaryCtx.appointmentIncomeDetails.value; if (tipo.value === 'ventas-productos') return summaryCtx.productSalesDetails.value; if (tipo.value === 'pagos') return summaryCtx.employeePayments.value; return summaryCtx.allTransactions.value }
+const getActiveData = (): any[] => { if (tipo.value === 'gastos') return expensesCtx.expenses.value; if (tipo.value === 'cobros') return summaryCtx.appointmentIncomeDetails.value; if (tipo.value === 'ventas-productos') return activeVentasData.value; if (tipo.value === 'pagos') return summaryCtx.employeePayments.value; return summaryCtx.allTransactions.value }
 
 const paginatedGastos = computed(() => paginate(expensesCtx.expenses.value)); const paginatedCobros = computed(() => paginate(summaryCtx.appointmentIncomeDetails.value))
-const paginatedVentas = computed(() => paginate(summaryCtx.productSalesDetails.value)); const paginatedTransacciones = computed(() => paginate(summaryCtx.allTransactions.value))
+const paginatedVentas = computed(() => paginate(activeVentasData.value)); const paginatedTransacciones = computed(() => paginate(summaryCtx.allTransactions.value))
 const gastosPages = computed(() => paginateProps(expensesCtx.expenses.value)); const cobrosPages = computed(() => paginateProps(summaryCtx.appointmentIncomeDetails.value))
-const ventasPages = computed(() => paginateProps(summaryCtx.productSalesDetails.value)); const transaccionesPages = computed(() => paginateProps(summaryCtx.allTransactions.value))
+const ventasPages = computed(() => paginateProps(activeVentasData.value)); const transaccionesPages = computed(() => paginateProps(summaryCtx.allTransactions.value))
 
 const handleDeletePayment = (_id: string) => {}
 const openEditPayment = (_p: any) => {}
 const editCobroFromTx = (_tx: any) => { summaryCtx.startEdit(_tx) }
 </script>
+
