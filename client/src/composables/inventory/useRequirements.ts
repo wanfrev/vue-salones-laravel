@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { api } from '../../lib/api'
+import { apiRequest } from '../../lib/api'
 import { useAuthStore } from '../../store/auth'
 import type { Requirement } from '../../types/database'
 
@@ -17,8 +17,7 @@ export function useRequirements() {
     queryKey: ['requirements', authStore.businessId],
     queryFn: async () => {
       getBusinessId()
-      const { data } = await api.get<Requirement[]>('/requirements')
-      return data
+      return await apiRequest<Requirement[]>('GET', '/requirements')
     },
     enabled: () => !!authStore.businessId && authStore.profile?.can_access_requirements !== false,
   })
@@ -26,8 +25,7 @@ export function useRequirements() {
   const createRequirement = useMutation({
     mutationFn: async (payload: Partial<Requirement>) => {
       getBusinessId()
-      const { data } = await api.post<Requirement>('/requirements', payload)
-      return data
+      return await apiRequest<Requirement>('POST', '/requirements', payload)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['requirements'], exact: false })
@@ -37,8 +35,7 @@ export function useRequirements() {
   const updateRequirement = useMutation({
     mutationFn: async ({ id, payload }: { id: string; payload: Partial<Requirement> }) => {
       getBusinessId()
-      const { data } = await api.put<Requirement>(`/requirements/${id}`, payload)
-      return data
+      return await apiRequest<Requirement>('PUT', `/requirements/${id}`, payload)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['requirements'], exact: false })
@@ -48,8 +45,7 @@ export function useRequirements() {
   const updateRequirementStatus = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: Requirement['status'] }) => {
       getBusinessId()
-      const { data } = await api.patch<Requirement>(`/requirements/${id}/status`, { status })
-      return data
+      return await apiRequest<Requirement>('PATCH', `/requirements/${id}/status`, { status })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['requirements'], exact: false })
@@ -59,7 +55,7 @@ export function useRequirements() {
   const deleteRequirement = useMutation({
     mutationFn: async (id: string) => {
       getBusinessId()
-      await api.delete(`/requirements/${id}`)
+      await apiRequest<void>('DELETE', `/requirements/${id}`)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['requirements'], exact: false })
