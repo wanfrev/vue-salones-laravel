@@ -71,10 +71,10 @@
   <!-- TAB 1: Resumen -->
   <template v-if="activeTab === 'resumen'">
     <div v-if="!hideFinancialDashboard" class="mb-4">
-        <KpiCards :income-total="incomeTotal" :ves-income-total="vesIncomeTotal" :tips-total="summaryCtx.tipsTotal.value"
+        <KpiCards :income-total="incomeTotal" :ves-income-total="vesIncomeTotal" :tips-total="summaryCtx.tipsTotal"
           :expense-total="expenseTotal" :net-total="netTotal" :profit-total="profitTotal" :margin="marginTotal" :profit-margin="profitMargin"
           :is-tienda="isTienda"
-          :active-card="activeCard" :is-loading="summaryCtx.isSummaryLoading.value" @click-income="toggleCard('income')"
+          :active-card="activeCard" :is-loading="summaryCtx.isLoading.value" @click-income="toggleCard('income')"
           @click-expense="toggleCard('expense')" @click-net="toggleCard('net')" @click-profit="toggleCard('profit')" />
     </div>
     <Transition name="accordion">
