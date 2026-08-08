@@ -72,7 +72,7 @@
   <template v-if="activeTab === 'resumen'">
     <div v-if="!hideFinancialDashboard" class="mb-4">
         <KpiCards :income-total="incomeTotal" :ves-income-total="vesIncomeTotal" :tips-total="summaryCtx.tipsTotal"
-          :expense-total="expenseTotal" :net-total="netTotal" :profit-total="profitTotal" :margin="marginTotal" :profit-margin="profitMargin"
+          :expense-total="expenseTotal" :net-total="netTotal" :profit-total="profitTotal" :margin="marginTotal"
           :is-tienda="isTienda"
           :active-card="activeCard" :is-loading="summaryCtx.isLoading.value" @click-income="toggleCard('income')"
           @click-expense="toggleCard('expense')" @click-net="toggleCard('net')" @click-profit="toggleCard('profit')" />
@@ -208,7 +208,6 @@ const isTienda = computed(() => !businessStore.features.agenda && !businessStore
 const profitTotal = computed(() => incomeTotal.value - (expenseTotal.value + consumptionsTotal.value))
 const netTotal = computed(() => isTienda.value ? profitTotal.value - cogsTotal.value : incomeTotal.value - expenseTotal.value)
 const marginTotal = computed(() => (incomeTotal.value > 0 ? (netTotal.value / incomeTotal.value) * 100 : 0))
-const profitMargin = computed(() => (incomeTotal.value > 0 ? (profitTotal.value / incomeTotal.value) * 100 : 0))
 
 const activeCard = ref<'income' | 'expense' | 'net' | 'profit' | null>(null)
 const toggleCard = (card: 'income' | 'expense' | 'net' | 'profit') => { activeCard.value = activeCard.value === card ? null : card }

@@ -119,24 +119,7 @@
       </div>
     </div>
 
-    <!-- Tarjeta de Margen de Ganancia (Para la ganancia sin costo, sólo Tienda) -->
-    <div v-if="isTienda"
-      class="group rounded-xl border border-border bg-surface p-2.5 shadow-sm transition-theme hover:shadow-md hover:border-indigo-500/30 sm:p-4">
-      <div class="flex items-center gap-2 sm:gap-3">
-        <div
-          class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500 shrink-0 sm:h-10 sm:w-10 transition-theme group-hover:bg-indigo-500/15 group-hover:scale-105">
-          <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-          </svg>
-        </div>
-        <div class="min-w-0 flex-1 text-center">
-          <p class="text-[10px] font-medium uppercase tracking-wider text-text-secondary sm:text-xs">Margen Ganancia</p>
-          <p class="text-lg font-bold leading-tight text-text tabular-nums sm:text-2xl lg:text-xl xl:text-2xl">{{
-            formatPercentage(profitMargin ?? 0) }}</p>
-        </div>
-      </div>
-    </div>
+<!-- Tarjeta eliminada según solicitud del usuario -->
 
     <slot name="exchange-rate" />
   </div>
@@ -154,7 +137,6 @@ defineProps<{
   netTotal: number
   profitTotal?: number
   margin: number
-  profitMargin?: number
   isTienda?: boolean
   activeCard?: 'income' | 'expense' | 'net' | 'profit' | null
   isLoading?: boolean

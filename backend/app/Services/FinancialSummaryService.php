@@ -177,7 +177,7 @@ class FinancialSummaryService
             });
         }
 
-        $totalCogs = (float) $cogsQuery->sum(DB::raw('ABS(quantity) * unit_cost'));
+        $totalCogs = (float) $cogsQuery->selectRaw('COALESCE(SUM(ABS(quantity) * unit_cost), 0) as total')->value('total');
 
         return [
             'total_income' => round($totalIncome, 2),
