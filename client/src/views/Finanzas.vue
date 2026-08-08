@@ -207,7 +207,7 @@ const expenseTotal = computed(() => expensesCtx.expenseTotal.value + supplierPay
 
 const isTienda = computed(() => isTiendaNiche(businessStore.nicheType) || (!businessStore.features.agenda && !businessStore.features.calendario && !businessStore.features.servicios))
 const profitTotal = computed(() => incomeTotal.value - (expenseTotal.value + consumptionsTotal.value))
-const netTotal = computed(() => isTienda.value ? profitTotal.value - cogsTotal.value : incomeTotal.value - expenseTotal.value)
+const netTotal = computed(() => isTienda.value ? profitTotal.value - cogsTotal.value : profitTotal.value)
 const marginTotal = computed(() => (incomeTotal.value > 0 ? (netTotal.value / incomeTotal.value) * 100 : 0))
 
 const activeCard = ref<'income' | 'expense' | 'net' | 'profit' | null>(null)
@@ -288,37 +288,63 @@ const expenseBreakdown = computed(() => {
   }
 })
 
+const profitBreakdown = computed(() => {
+  const usdItems: { label: string; amount: number }[] = []
+  const vesItems: { label: string; amount: number }[] = []
+
+  const incUsd = incomeBreakdown.value.usdTotal
+  const incVes = incomeBreakdown.value.vesTotal
+  if (incUsd > 0) usdItems.push({ label: 'Ingresos (+)', amount: incUsd })
+  if (incVes > 0) vesItems.push({ label: 'Ingresos (+)', amount: incVes })
+
+  const expUsd = expenseBreakdown.value.usdTotal
+  const expVes = expenseBreakdown.value.vesTotal
+  if (expUsd > 0) usdItems.push({ label: 'Egresos (Nómina, Gastos, Proveedores) (-)', amount: -expUsd })
+  if (expVes > 0) vesItems.push({ label: 'Egresos (Nómina, Gastos, Proveedores) (-)', amount: -expVes })
+
+  if (consumptionsTotal.value > 0) {
+    usdItems.push({ label: 'Consumos de Empleados (-)', amount: -consumptionsTotal.value })
+  }
+
+  return {
+    title: 'Desglose de Ganancia',
+    usdTotal: Math.max(0, profitTotal.value),
+    vesTotal: 0,
+    usdItems,
+    vesItems,
+    usdLabel: 'Concepto',
+    vesLabel: 'Concepto',
+  }
+})
+
 const netBreakdown = computed(() => {
-  const usdNetByMethod: Record<string, number> = {}
-  const vesNetByMethod: Record<string, number> = {}
+  const usdItems: { label: string; amount: number }[] = []
+  const vesItems: { label: string; amount: number }[] = []
 
-  for (const item of incomeBreakdown.value.usdItems) {
-    usdNetByMethod[item.label] = (usdNetByMethod[item.label] ?? 0) + item.amount
+  const incUsd = incomeBreakdown.value.usdTotal
+  const incVes = incomeBreakdown.value.vesTotal
+  if (incUsd > 0) usdItems.push({ label: 'Ingresos (+)', amount: incUsd })
+  if (incVes > 0) vesItems.push({ label: 'Ingresos (+)', amount: incVes })
+
+  const expUsd = expenseBreakdown.value.usdTotal
+  const expVes = expenseBreakdown.value.vesTotal
+  if (expUsd > 0) usdItems.push({ label: 'Egresos (Nómina, Gastos, Proveedores) (-)', amount: -expUsd })
+  if (expVes > 0) vesItems.push({ label: 'Egresos (Nómina, Gastos, Proveedores) (-)', amount: -expVes })
+
+  if (consumptionsTotal.value > 0) {
+    usdItems.push({ label: 'Consumos de Empleados (-)', amount: -consumptionsTotal.value })
   }
-  for (const item of incomeBreakdown.value.vesItems) {
-    vesNetByMethod[item.label] = (vesNetByMethod[item.label] ?? 0) + item.amount
+
+  if (isTienda.value && cogsTotal.value > 0) {
+    usdItems.push({ label: 'Costo de Productos Vendidos (COGS) (-)', amount: -cogsTotal.value })
   }
-
-  const usdExpense = expenseBreakdown.value.usdTotal
-  const vesExpense = expenseBreakdown.value.vesTotal
-  if (usdExpense > 0) usdNetByMethod['Gastos'] = (usdNetByMethod['Gastos'] ?? 0) - usdExpense
-  if (vesExpense > 0) vesNetByMethod['Gastos'] = (vesNetByMethod['Gastos'] ?? 0) - vesExpense
-
-  const usdTotal = Object.values(usdNetByMethod).reduce((s, v) => s + v, 0)
-  const vesTotal = Object.values(vesNetByMethod).reduce((s, v) => s + v, 0)
 
   return {
     title: 'Desglose de Ganancia Neta',
-    usdTotal: Math.max(0, usdTotal),
-    vesTotal: Math.max(0, vesTotal),
-    usdItems: Object.entries(usdNetByMethod)
-      .filter(([, a]) => a !== 0)
-      .map(([label, amount]) => ({ label, amount }))
-      .sort((a, b) => b.amount - a.amount),
-    vesItems: Object.entries(vesNetByMethod)
-      .filter(([, a]) => a !== 0)
-      .map(([label, amount]) => ({ label, amount }))
-      .sort((a, b) => b.amount - a.amount),
+    usdTotal: Math.max(0, netTotal.value),
+    vesTotal: 0,
+    usdItems,
+    vesItems,
     usdLabel: 'Concepto',
     vesLabel: 'Concepto',
   }
@@ -327,6 +353,7 @@ const netBreakdown = computed(() => {
 const activeBreakdown = computed(() => {
   if (activeCard.value === 'income') return incomeBreakdown.value
   if (activeCard.value === 'expense') return expenseBreakdown.value
+  if (activeCard.value === 'profit') return profitBreakdown.value
   if (activeCard.value === 'net') return netBreakdown.value
   return null
 })
