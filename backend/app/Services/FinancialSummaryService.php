@@ -161,8 +161,6 @@ class FinancialSummaryService
 
         $employeeCommissions = round($totalIncome - $localIncome, 2);
 
-        $netProfit = $totalIncome - $totalExpenses;
-
         // Cost of Goods Sold (COGS): sólo movimientos de venta/consumo real de producto.
         // Los ajustes manuales de stock (mermas, correcciones de conteo) no son ventas
         // y no deben contarse como costo de venta.
@@ -170,8 +168,7 @@ class FinancialSummaryService
             ->leftJoin('products', 'inventory_movements.product_id', '=', 'products.id')
             ->leftJoin('product_variants', 'inventory_movements.variant_id', '=', 'product_variants.id')
             ->where('inventory_movements.business_id', $businessId)
-            ->where('inventory_movements.quantity', '<', 0)
-            ->whereIn('inventory_movements.movement_type', ['sale', 'consumption']);
+            ->whereIn('inventory_movements.movement_type', ['sale', 'consumption', 'direct_sale', 'out']);
 
         if ($start && $end) {
             $cogsQuery->whereBetween('inventory_movements.created_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
@@ -186,6 +183,11 @@ class FinancialSummaryService
             'COALESCE(SUM(ABS(inventory_movements.quantity) * COALESCE(NULLIF(inventory_movements.unit_cost, 0), product_variants.unit_cost, products.unit_cost, 0)), 0) as total'
         )->value('total');
 
+        // Ganancia = ingresos - (nomina + consumos + gastos operativos + abono a proveedores)
+        $profit = $totalIncome - ($totalExpenses + $totalConsumptions);
+        // Ganancia Neta = Ganancia - costo de los productos vendidos
+        $netProfit = $profit - $totalCogs;
+
         return [
             'total_income' => round($totalIncome, 2),
             'local_income' => round($localIncome, 2),
@@ -198,6 +200,7 @@ class FinancialSummaryService
             'total_supplier_payments' => round($totalSupplierPayments, 2),
             'total_consumptions' => round($totalConsumptions, 2),
             'total_cogs' => round($totalCogs, 2),
+            'profit' => round($profit, 2),
             'net_profit' => round($netProfit, 2),
             'total_transactions' => $transactionCount,
         ];
