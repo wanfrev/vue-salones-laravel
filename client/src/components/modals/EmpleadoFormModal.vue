@@ -227,6 +227,18 @@
               <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAccessFinanzas ? 'translate-x-4' : 'translate-x-0']" />
             </button>
           </label>
+
+          <label v-if="formData.systemRole !== 'encargado' && isTienda" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-text">Puede acceder a Requerimientos</p>
+              <p class="text-xs text-text-muted">Permite ver y registrar productos faltantes</p>
+            </div>
+            <button type="button" role="switch" :aria-checked="formData.canAccessRequirements"
+              @click="formData.canAccessRequirements = !formData.canAccessRequirements"
+              :class="['relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2', formData.canAccessRequirements ? 'bg-primary border-primary' : 'bg-border border-border']">
+              <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAccessRequirements ? 'translate-x-4' : 'translate-x-0']" />
+            </button>
+          </label>
         </div>
 
         <!-- COLUMNA DERECHA: Contratación -->
@@ -351,6 +363,7 @@ const defaultFormData: EmpleadoFormData = {
   canAccessPos: false,
   canAccessSuppliers: false,
   canAccessFinanzas: false,
+  canAccessRequirements: false,
 }
 
 const formData = ref<EmpleadoFormData>({ ...defaultFormData })
@@ -398,6 +411,7 @@ watch(
         canAccessPos: empleado.canAccessPos ?? false,
         canAccessSuppliers: empleado.canAccessSuppliers ?? false,
         canAccessFinanzas: empleado.canAccessFinanzas ?? false,
+        canAccessRequirements: empleado.canAccessRequirements ?? false,
       }
     } else {
       formData.value = { ...defaultFormData }
@@ -432,6 +446,7 @@ watch(
       formData.value.canAccessPos = true
       formData.value.canAccessSuppliers = false
       formData.value.canAccessFinanzas = false
+      formData.value.canAccessRequirements = false
     }
   }
 )

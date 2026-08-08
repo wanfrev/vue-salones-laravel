@@ -129,7 +129,7 @@ export const NICHES: Record<string, NicheDefinition> = {
     label: 'Tienda',
     status: 'creatable',
     clientProfile: null,
-    capabilities: ['catalog.products', 'commerce.pos'],
+    capabilities: ['catalog.products', 'commerce.pos', 'catalog.requirements'],
     featureDefaults: {
       agenda: false,
       calendario: false,

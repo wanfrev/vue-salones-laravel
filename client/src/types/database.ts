@@ -69,6 +69,7 @@ export interface Profile {
   disable_agenda?: boolean
   disable_inventory_edit?: boolean
   can_access_finanzas?: boolean
+  can_access_requirements?: boolean
   created_at: string
   updated_at: string
 }
@@ -388,6 +389,18 @@ export interface Branch {
   active: boolean
   ves_exchange_rate: number | null
   service_categories: string[]
+  updated_at: string
+}
+
+export interface Requirement {
+  id: string
+  business_id: string
+  name: string
+  recommended_quantity: string
+  recommended_brands: string | null
+  guide_price: number | null
+  status: 'pending' | 'purchased' | 'cancelled'
+  created_by_profile_id: string | null
   created_at: string
   updated_at: string
 }
@@ -438,6 +451,7 @@ export interface Database {
       employee_payments: TableShape<EmployeePayment>
       suppliers: TableShape<Supplier>
       supplier_payments: TableShape<SupplierPayment>
+      requirements: TableShape<Requirement>
     }
     Views: Record<string, never>
     Functions: {

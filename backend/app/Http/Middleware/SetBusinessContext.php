@@ -53,6 +53,7 @@ class SetBusinessContext
             canAccessInventory: (bool) $profile->can_access_inventory,
             canAccessPos: (bool) $profile->can_access_pos,
             canAccessSuppliers: (bool) $profile->can_access_suppliers,
+            canAccessRequirements: (bool) $profile->can_access_requirements,
             disableInventoryEdit: (bool) $profile->disable_inventory_edit,
         );
 

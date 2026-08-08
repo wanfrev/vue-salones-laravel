@@ -19,6 +19,7 @@ class BusinessContext
         public readonly bool $canAccessInventory = false,
         public readonly bool $canAccessPos = false,
         public readonly bool $canAccessSuppliers = false,
+        public readonly bool $canAccessRequirements = false,
         public readonly bool $disableInventoryEdit = false,
     ) {
         $this->features = NicheRegistry::resolveFeatures($this->nicheType, $rawFeatures);
@@ -70,6 +71,7 @@ class BusinessContext
             'inventory-edit' => $this->canAccessInventory && !$this->disableInventoryEdit,
             'pos' => $this->canAccessPos,
             'suppliers' => $this->canAccessSuppliers,
+            'requirements' => $this->canAccessRequirements,
             default => true,
         };
     }

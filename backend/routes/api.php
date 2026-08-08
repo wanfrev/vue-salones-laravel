@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\ProductCategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\RequirementController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\WhatsAppController;
 use App\Http\Controllers\Api\ReminderController;
@@ -176,6 +177,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/inventory/sell', [InventoryController::class, 'sell']);
             Route::post('/inventory-locations', [InventoryController::class, 'storeLocation']);
         });
+    });
+
+    // Requirements (Fallas/Faltantes)
+    Route::middleware('perm:requirements')->group(function () {
+        Route::get('/requirements', [RequirementController::class, 'index']);
+        Route::post('/requirements', [RequirementController::class, 'store']);
+        Route::put('/requirements/{id}', [RequirementController::class, 'update']);
+        Route::patch('/requirements/{id}/status', [RequirementController::class, 'updateStatus']);
+        Route::delete('/requirements/{id}', [RequirementController::class, 'destroy']);
     });
 
     // Suppliers — whole module gated on a single perm (no separate view/edit split requested).
