@@ -119,6 +119,7 @@ import { usePeriodSelection } from '../composables/finanzas/usePeriodSelection'
 import { resolvePeriodDates } from '../lib/periodUtils'
 import { useFinancialSummary } from '../composables/finanzas/useFinancialSummary'
 import { useExpenses } from '../composables/finanzas/useExpenses'
+import { isTiendaNiche } from '../config/niches'
 import { useSupplierPayments } from '../composables/suppliers/useSuppliers'
 import { useEmployeePayments } from '../composables/empleados/useEmployeePayments'
 import KpiCards from '../components/finanzas/KpiCards.vue'
@@ -204,7 +205,7 @@ const employeePaymentTotal = computed(() => {
 })
 const expenseTotal = computed(() => expensesCtx.expenseTotal.value + supplierPaymentsCtx.paymentTotal.value + employeePaymentTotal.value)
 
-const isTienda = computed(() => !businessStore.features.agenda && !businessStore.features.calendario && !businessStore.features.servicios)
+const isTienda = computed(() => isTiendaNiche(businessStore.nicheType) || (!businessStore.features.agenda && !businessStore.features.calendario && !businessStore.features.servicios))
 const profitTotal = computed(() => incomeTotal.value - (expenseTotal.value + consumptionsTotal.value))
 const netTotal = computed(() => isTienda.value ? profitTotal.value - cogsTotal.value : incomeTotal.value - expenseTotal.value)
 const marginTotal = computed(() => (incomeTotal.value > 0 ? (netTotal.value / incomeTotal.value) * 100 : 0))

@@ -165,19 +165,23 @@ class FinancialSummaryService
 
         // Cost of Goods Sold (COGS)
         $cogsQuery = DB::table('inventory_movements')
-            ->where('business_id', $businessId)
-            ->whereIn('movement_type', ['sale', 'appointment_use']);
+            ->leftJoin('products', 'inventory_movements.product_id', '=', 'products.id')
+            ->leftJoin('product_variants', 'inventory_movements.variant_id', '=', 'product_variants.id')
+            ->where('inventory_movements.business_id', $businessId)
+            ->where('inventory_movements.quantity', '<', 0);
 
         if ($start && $end) {
-            $cogsQuery->whereBetween('created_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
+            $cogsQuery->whereBetween('inventory_movements.created_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
         }
         if ($branchId) {
             $cogsQuery->where(function ($q) use ($branchId) {
-                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+                $q->whereNull('inventory_movements.branch_id')->orWhere('inventory_movements.branch_id', $branchId);
             });
         }
 
-        $totalCogs = (float) $cogsQuery->selectRaw('COALESCE(SUM(ABS(quantity) * unit_cost), 0) as total')->value('total');
+        $totalCogs = (float) $cogsQuery->selectRaw(
+            'COALESCE(SUM(ABS(inventory_movements.quantity) * COALESCE(NULLIF(inventory_movements.unit_cost, 0), product_variants.unit_cost, products.unit_cost, 0)), 0) as total'
+        )->value('total');
 
         return [
             'total_income' => round($totalIncome, 2),
