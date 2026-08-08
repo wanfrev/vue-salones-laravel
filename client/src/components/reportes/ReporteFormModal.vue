@@ -607,9 +607,14 @@ const fetchFromPos = async () => {
       formData.value[field] = String(summary.fields[field] ?? 0)
     }
 
-    // Tasa actual del día (tasa del POS o tasa actual del negocio)
-    const currentRate = summary.meta.exchange_rate || businessStore.business?.ves_exchange_rate || parseNum(formData.value.exchange_rate)
-    if (currentRate > 0) {
+    // Tasa actual del día (tasa del POS o tasa actual del negocio). No pisa una
+    // tasa que el negocio ya haya cargado a mano.
+    const hadManualRate = parseNum(formData.value.exchange_rate) > 0
+    const currentRate = (hadManualRate ? parseNum(formData.value.exchange_rate) : null)
+      || summary.meta.exchange_rate
+      || businessStore.business?.ves_exchange_rate
+      || 0
+    if (!hadManualRate && currentRate > 0) {
       formData.value.exchange_rate = String(currentRate)
     }
 
@@ -637,10 +642,13 @@ const fetchFromPos = async () => {
     const calcGrandTotalBs = posBs + usdInBs
     const calcGrandTotalUsd = posUsd + bsInUsd
 
-    if (zReportCurrency.value === 'VES') {
-      zReportAmount.value = calcGrandTotalBs.toFixed(2)
-    } else {
-      zReportAmount.value = calcGrandTotalUsd.toFixed(2)
+    // No pisa un Reporte Z que el negocio ya haya cargado a mano.
+    if (parseNum(zReportAmount.value) <= 0) {
+      if (zReportCurrency.value === 'VES') {
+        zReportAmount.value = calcGrandTotalBs.toFixed(2)
+      } else {
+        zReportAmount.value = calcGrandTotalUsd.toFixed(2)
+      }
     }
 
     if (summary.meta.transactions === 0) {

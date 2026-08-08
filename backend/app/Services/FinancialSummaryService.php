@@ -163,12 +163,15 @@ class FinancialSummaryService
 
         $netProfit = $totalIncome - $totalExpenses;
 
-        // Cost of Goods Sold (COGS)
+        // Cost of Goods Sold (COGS): sólo movimientos de venta/consumo real de producto.
+        // Los ajustes manuales de stock (mermas, correcciones de conteo) no son ventas
+        // y no deben contarse como costo de venta.
         $cogsQuery = DB::table('inventory_movements')
             ->leftJoin('products', 'inventory_movements.product_id', '=', 'products.id')
             ->leftJoin('product_variants', 'inventory_movements.variant_id', '=', 'product_variants.id')
             ->where('inventory_movements.business_id', $businessId)
-            ->where('inventory_movements.quantity', '<', 0);
+            ->where('inventory_movements.quantity', '<', 0)
+            ->whereIn('inventory_movements.movement_type', ['sale', 'consumption']);
 
         if ($start && $end) {
             $cogsQuery->whereBetween('inventory_movements.created_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
