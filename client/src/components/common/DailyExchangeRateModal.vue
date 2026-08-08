@@ -65,6 +65,10 @@ import { isTiendaNiche } from '../../config/niches'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useExchangeRate } from '../../composables/finanzas/useExchangeRate'
 
+import { useAuthStore } from '../../store/auth'
+import { isAdminPanelRole } from '../../constants/roles'
+
+const authStore = useAuthStore()
 const businessStore = useBusinessStore()
 const { exchangeRate } = useCurrency()
 const { handleUpdate, editRateValue } = useExchangeRate()
@@ -74,6 +78,7 @@ const isSubmitting = ref(false)
 const newRate = ref(0)
 
 const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
+const isAllowedRole = computed(() => isAdminPanelRole(authStore.role ?? undefined))
 const currentRate = computed(() => exchangeRate.value || 1)
 
 function getTodayKey() {
@@ -83,7 +88,7 @@ function getTodayKey() {
 }
 
 function checkNoticeStatus() {
-  if (!isTienda.value) {
+  if (!isTienda.value || !isAllowedRole.value) {
     showModal.value = false
     return
   }
@@ -98,7 +103,7 @@ function checkNoticeStatus() {
 }
 
 watch(
-  [() => businessStore.business?.id, isTienda],
+  [() => businessStore.business?.id, () => authStore.role, isTienda, isAllowedRole],
   () => {
     checkNoticeStatus()
   },
