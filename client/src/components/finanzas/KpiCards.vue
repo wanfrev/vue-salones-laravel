@@ -52,6 +52,31 @@
       </div>
     </div>
 
+    <!-- Nueva Tarjeta de Ganancia Bruta (Sólo para Tienda) -->
+    <div v-if="isTienda" :class="[
+      'group rounded-xl border bg-surface p-2.5 shadow-sm transition-theme sm:p-4',
+      'cursor-pointer select-none',
+      activeCard === 'profit'
+        ? 'border-indigo-500/40 shadow-md ring-2 ring-indigo-500/20'
+        : 'border-border hover:shadow-md hover:border-indigo-500/30',
+    ]" @click="$emit('click-profit')">
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div
+          class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500 shrink-0 sm:h-10 sm:w-10 transition-theme group-hover:bg-indigo-500/15 group-hover:scale-105">
+          <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div class="min-w-0 flex-1 text-center">
+          <p class="text-[10px] font-medium uppercase tracking-wider text-text-secondary sm:text-xs">Ganancia</p>
+          <p v-if="isLoading" class="h-5 w-16 mx-auto mt-1 rounded bg-bg-secondary animate-pulse sm:h-7 sm:w-20" />
+          <p v-else class="text-lg font-bold leading-tight text-text tabular-nums sm:text-2xl lg:text-xl xl:text-2xl">{{
+            formatUSD(profitTotal ?? 0) }}</p>
+        </div>
+        <svg :class="['h-4 w-4 text-text-muted/50 shrink-0 transition-transform duration-300', activeCard === 'profit' && 'rotate-180 text-indigo-500']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+      </div>
+    </div>
+
     <div :class="[
       'group rounded-xl border bg-surface p-2.5 shadow-sm transition-theme sm:p-4',
       'cursor-pointer select-none',
@@ -94,6 +119,25 @@
       </div>
     </div>
 
+    <!-- Tarjeta de Margen de Ganancia (Para la ganancia sin costo, sólo Tienda) -->
+    <div v-if="isTienda"
+      class="group rounded-xl border border-border bg-surface p-2.5 shadow-sm transition-theme hover:shadow-md hover:border-indigo-500/30 sm:p-4">
+      <div class="flex items-center gap-2 sm:gap-3">
+        <div
+          class="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500 shrink-0 sm:h-10 sm:w-10 transition-theme group-hover:bg-indigo-500/15 group-hover:scale-105">
+          <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        </div>
+        <div class="min-w-0 flex-1 text-center">
+          <p class="text-[10px] font-medium uppercase tracking-wider text-text-secondary sm:text-xs">Margen Ganancia</p>
+          <p class="text-lg font-bold leading-tight text-text tabular-nums sm:text-2xl lg:text-xl xl:text-2xl">{{
+            formatPercentage(profitMargin ?? 0) }}</p>
+        </div>
+      </div>
+    </div>
+
     <slot name="exchange-rate" />
   </div>
 </template>
@@ -108,8 +152,11 @@ defineProps<{
   tipsTotal?: number
   expenseTotal: number
   netTotal: number
+  profitTotal?: number
   margin: number
-  activeCard?: 'income' | 'expense' | 'net' | null
+  profitMargin?: number
+  isTienda?: boolean
+  activeCard?: 'income' | 'expense' | 'net' | 'profit' | null
   isLoading?: boolean
 }>()
 
@@ -117,6 +164,7 @@ defineEmits<{
   'click-income': []
   'click-expense': []
   'click-net': []
+  'click-profit': []
 }>()
 
 const slots = useSlots()

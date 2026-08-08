@@ -169,6 +169,8 @@ function useFinancialSummary(
   const netProfitTotal = computed(() => kpis.value.net_profit ?? 0)
   const tipsTotal = computed(() => kpis.value.tips ?? 0)
   const employeePaymentsTotal = computed(() => kpis.value.total_employee_payments ?? 0)
+  const consumptionsTotal = computed(() => kpis.value.total_consumptions ?? 0)
+  const cogsTotal = computed(() => kpis.value.total_cogs ?? 0)
   const vesIncomeTotal = computed(() => {
     let total = 0
     for (const tx of (transactionsData.value ?? [])) {
@@ -873,6 +875,8 @@ function useFinancialSummary(
     netProfitTotal,
     tipsTotal,
     employeePaymentsTotal,
+    consumptionsTotal,
+    cogsTotal,
     vesIncomeTotal,
     servicesRevenue,
     chartData,

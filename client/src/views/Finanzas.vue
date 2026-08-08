@@ -71,7 +71,11 @@
   <!-- TAB 1: Resumen -->
   <template v-if="activeTab === 'resumen'">
     <div v-if="!hideFinancialDashboard" class="mb-4">
-      <KpiCards :income-total="incomeTotal" :ves-income-total="vesIncomeTotal" :tips-total="summaryCtx.tipsTotal" :expense-total="expenseTotal" :net-total="netTotal" :margin="marginTotal" :active-card="activeCard" :is-loading="summaryCtx.isLoading.value" @click-income="toggleCard('income')" @click-expense="toggleCard('expense')" @click-net="toggleCard('net')" />
+        <KpiCards :income-total="incomeTotal" :ves-income-total="vesIncomeTotal" :tips-total="summaryCtx.tipsTotal.value"
+          :expense-total="expenseTotal" :net-total="netTotal" :profit-total="profitTotal" :margin="marginTotal" :profit-margin="profitMargin"
+          :is-tienda="isTienda"
+          :active-card="activeCard" :is-loading="summaryCtx.isSummaryLoading.value" @click-income="toggleCard('income')"
+          @click-expense="toggleCard('expense')" @click-net="toggleCard('net')" @click-profit="toggleCard('profit')" />
     </div>
     <Transition name="accordion">
       <CurrencyBreakdown v-if="activeBreakdown" :data="activeBreakdown" class="mb-4" @close="activeCard = null" />
@@ -185,22 +189,29 @@ const periodDates = computed(() => {
 
 const expensesCtx = useExpenses(businessId, selectedPeriod, selectedMonth, customFrom, customTo)
 const expenses = expensesCtx.expenses
-const supplierPaymentsCtx = useSupplierPayments(businessId, selectedPeriod, selectedMonth, customFrom, customTo)
+const supplierPaymentsCtx = useSupplierPayments(businessId, selectedPeriod, selectedMonth, customTo)
 const employeePaymentsCtx = useEmployeePayments(businessId, periodDates)
 const summaryCtx = useFinancialSummary(businessId, selectedPeriod, expenses, selectedMonth, customTo)
 
 const incomeTotal = summaryCtx.incomeTotal
 const localIncomeTotal = summaryCtx.localIncomeTotal
 const vesIncomeTotal = summaryCtx.vesIncomeTotal
+const consumptionsTotal = summaryCtx.consumptionsTotal
+const cogsTotal = summaryCtx.cogsTotal
+
 const employeePaymentTotal = computed(() => {
   return (employeePaymentsCtx.paymentsMade.value ?? []).reduce((sum, p) => sum + Number(p.amount ?? 0), 0)
 })
 const expenseTotal = computed(() => expensesCtx.expenseTotal.value + supplierPaymentsCtx.paymentTotal.value + employeePaymentTotal.value)
-const netTotal = computed(() => incomeTotal.value - expenseTotal.value)
-const marginTotal = computed(() => (incomeTotal.value > 0 ? (netTotal.value / incomeTotal.value) * 100 : 0))
 
-const activeCard = ref<'income' | 'expense' | 'net' | null>(null)
-const toggleCard = (card: 'income' | 'expense' | 'net') => { activeCard.value = activeCard.value === card ? null : card }
+const isTienda = computed(() => !businessStore.features.agenda && !businessStore.features.calendario && !businessStore.features.servicios)
+const profitTotal = computed(() => incomeTotal.value - (expenseTotal.value + consumptionsTotal.value))
+const netTotal = computed(() => isTienda.value ? profitTotal.value - cogsTotal.value : incomeTotal.value - expenseTotal.value)
+const marginTotal = computed(() => (incomeTotal.value > 0 ? (netTotal.value / incomeTotal.value) * 100 : 0))
+const profitMargin = computed(() => (incomeTotal.value > 0 ? (profitTotal.value / incomeTotal.value) * 100 : 0))
+
+const activeCard = ref<'income' | 'expense' | 'net' | 'profit' | null>(null)
+const toggleCard = (card: 'income' | 'expense' | 'net' | 'profit') => { activeCard.value = activeCard.value === card ? null : card }
 
 const incomeBreakdown = computed(() => {
   const usdByMethod: Record<string, number> = {}

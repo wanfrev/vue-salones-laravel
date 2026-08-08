@@ -115,10 +115,9 @@ class FinancialSummaryService
 
         $operationalExpenses = (float) $expQuery->sum('amount');
 
-        // Employee payments
+        // Employee payments & consumptions
         $empQuery = DB::table('employee_payments')
-            ->where('business_id', $businessId)
-            ->where('type', 'payment');
+            ->where('business_id', $businessId);
 
         if ($start && $end) {
             $empQuery->whereBetween('payment_date', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
@@ -129,7 +128,13 @@ class FinancialSummaryService
             });
         }
 
-        $totalEmployeePayments = (float) $empQuery->sum('amount');
+        $empTotals = $empQuery->select(
+            DB::raw("COALESCE(SUM(CASE WHEN type = 'payment' THEN amount ELSE 0 END), 0) as total_payment"),
+            DB::raw("COALESCE(SUM(CASE WHEN type = 'consumption' THEN amount ELSE 0 END), 0) as total_consumption")
+        )->first();
+
+        $totalEmployeePayments = (float) ($empTotals->total_payment ?? 0);
+        $totalConsumptions = (float) ($empTotals->total_consumption ?? 0);
 
         // Supplier payments
         $supQuery = DB::table('supplier_payments')
@@ -158,6 +163,22 @@ class FinancialSummaryService
 
         $netProfit = $totalIncome - $totalExpenses;
 
+        // Cost of Goods Sold (COGS)
+        $cogsQuery = DB::table('inventory_movements')
+            ->where('business_id', $businessId)
+            ->whereIn('movement_type', ['sale', 'appointment_use']);
+
+        if ($start && $end) {
+            $cogsQuery->whereBetween('created_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
+        }
+        if ($branchId) {
+            $cogsQuery->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
+
+        $totalCogs = (float) $cogsQuery->sum(DB::raw('ABS(quantity) * unit_cost'));
+
         return [
             'total_income' => round($totalIncome, 2),
             'local_income' => round($localIncome, 2),
@@ -168,6 +189,8 @@ class FinancialSummaryService
             'total_expenses' => round($totalExpenses, 2),
             'total_employee_payments' => round($totalEmployeePayments, 2),
             'total_supplier_payments' => round($totalSupplierPayments, 2),
+            'total_consumptions' => round($totalConsumptions, 2),
+            'total_cogs' => round($totalCogs, 2),
             'net_profit' => round($netProfit, 2),
             'total_transactions' => $transactionCount,
         ];
