@@ -189,6 +189,7 @@ class FinancialSummaryService
         )->get();
 
         $totalCogs = 0.0;
+        $debugLog = "START COGS DEBUG\n";
         foreach ($movements as $row) {
             $qty = abs((float) $row->quantity);
             $cost = 0;
@@ -206,7 +207,10 @@ class FinancialSummaryService
             }
 
             $totalCogs += $qty * $cost;
+            $debugLog .= "Row QTY: $qty, COST: $cost (im: {$row->im_cost}, pv_c: {$row->pv_cost}, p_c: {$row->p_cost}, pv_p: {$row->pv_price}, p_p: {$row->p_price})\n";
         }
+        $debugLog .= "TOTAL COGS: $totalCogs\n";
+        @file_put_contents(storage_path('logs/cogs_debug.txt'), $debugLog, FILE_APPEND);
 
         // Ganancia = ingresos - (nomina + consumos + gastos operativos + abono a proveedores)
         $profit = $totalIncome - ($totalExpenses + $totalConsumptions);
