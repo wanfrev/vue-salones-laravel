@@ -304,6 +304,7 @@ import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
 import { useBusinessStore } from '../store/business'
 import { isTiendaNiche } from '../config/niches'
+import { isAdminPanelRole } from '../constants/roles'
 import { useFinancialSummary } from '../composables/finanzas/useFinancialSummary'
 import { db } from '../lib/api'
 import { APPOINTMENT_SELECT } from '../services/agendaService'
@@ -331,6 +332,7 @@ const businessStore = useBusinessStore()
 const { formatUSD, formatVESInline, formatVESEs, formatEmployeeVESInline } = useCurrency()
 const terminology = businessStore.terminology
 const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
+const isTiendaEmployee = computed(() => isTienda.value && !isAdminPanelRole(authStore.role ?? undefined))
 
 const selectedPeriod = ref<PeriodValue>('month')
 const selectedMonth = ref<string>(`${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`)
@@ -341,6 +343,16 @@ watch(() => route.query.month, (value) => { if (typeof value === 'string' && /^\
 const tipo = computed<TipoRegistros>(() => {
   const raw = route.params.tipo; if (raw === 'gastos' || raw === 'pagos' || raw === 'transacciones' || raw === 'cobros' || raw === 'ventas-productos') return raw; return 'transacciones'
 })
+
+watch(
+  [tipo, isTiendaEmployee],
+  ([currentTipo, hideEgresos]) => {
+    if (hideEgresos && (currentTipo === 'gastos' || currentTipo === 'pagos')) {
+      router.replace({ name: 'admin-finanzas' })
+    }
+  },
+  { immediate: true },
+)
 
 const businessId = computed(() => authStore.businessId)
 const periodDates = computed(() => {
