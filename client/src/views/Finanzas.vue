@@ -111,7 +111,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
@@ -141,7 +141,7 @@ import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import { translateError } from '../lib/errors'
 import { formatMethod } from '../lib/formatters'
 import { useNotification } from '../composables/common/useNotification'
-import { isEncargado } from '../constants/roles'
+import { isAdminPanelRole } from '../constants/roles'
 import { useBusinessStore } from '../store/business'
 import { DollarIcon, ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
 
@@ -176,12 +176,30 @@ function onCustomToChange(e: Event) {
   customTo.value = (e.target as HTMLInputElement).value
 }
 
+const isTienda = computed(() => isTiendaNiche(businessStore.nicheType) || (!businessStore.features.agenda && !businessStore.features.calendario && !businessStore.features.servicios))
+const isTiendaEmployee = computed(() => isTienda.value && !isAdminPanelRole(authStore.role ?? undefined))
+
 const activeTab = ref<'resumen' | 'ingresos' | 'egresos'>('resumen')
-const mainTabs = [
-  { key: 'resumen' as const, label: 'Resumen' },
-  { key: 'ingresos' as const, label: 'Ingresos' },
-  { key: 'egresos' as const, label: 'Egresos' },
-]
+const mainTabs = computed<{ key: 'resumen' | 'ingresos' | 'egresos'; label: string }[]>(() => {
+  const tabs: { key: 'resumen' | 'ingresos' | 'egresos'; label: string }[] = [
+    { key: 'resumen', label: 'Resumen' },
+    { key: 'ingresos', label: 'Ingresos' },
+  ]
+  if (!isTiendaEmployee.value) {
+    tabs.push({ key: 'egresos', label: 'Egresos' })
+  }
+  return tabs
+})
+
+watch(
+  [activeTab, isTiendaEmployee],
+  ([tab, hideEgresos]) => {
+    if (hideEgresos && tab === 'egresos') {
+      activeTab.value = 'resumen'
+    }
+  },
+  { immediate: true },
+)
 
 const periodDates = computed(() => {
   const key = selectedPeriod.value === 'custom' ? customFrom.value : selectedMonth.value
@@ -205,7 +223,6 @@ const employeePaymentTotal = computed(() => {
 })
 const expenseTotal = computed(() => expensesCtx.expenseTotal.value + supplierPaymentsCtx.paymentTotal.value + employeePaymentTotal.value)
 
-const isTienda = computed(() => isTiendaNiche(businessStore.nicheType) || (!businessStore.features.agenda && !businessStore.features.calendario && !businessStore.features.servicios))
 const profitTotal = computed(() => incomeTotal.value - (expenseTotal.value + consumptionsTotal.value))
 const netTotal = computed(() => profitTotal.value - cogsTotal.value)
 const marginTotal = computed(() => (incomeTotal.value > 0 ? (netTotal.value / incomeTotal.value) * 100 : 0))
