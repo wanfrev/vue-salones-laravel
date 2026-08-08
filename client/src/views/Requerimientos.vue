@@ -19,13 +19,15 @@
     </div>
 
     <!-- Filters -->
-    <div class="flex gap-2 border-b border-border">
+    <div class="flex flex-wrap gap-2 border-b border-border pb-3">
       <button
         v-for="f in ['all', 'pending', 'purchased', 'cancelled']"
         :key="f"
         @click="filter = f"
-        class="px-4 py-2 text-sm font-medium transition-theme border-b-2"
-        :class="filter === f ? 'border-primary text-primary' : 'border-transparent text-text-muted hover:border-border-strong'"
+        class="rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-all border"
+        :class="filter === f
+          ? 'border-primary bg-primary text-white shadow-sm'
+          : 'border-border bg-bg-secondary text-text hover:border-border-strong hover:bg-bg-secondary/80'"
       >
         {{ filterLabel(f) }}
       </button>
@@ -166,10 +168,10 @@ const statusLabel = (s: string) => filterLabel(s)
 
 const statusColor = (status: string) => {
   switch (status) {
-    case 'pending': return 'bg-warning/10 text-warning'
-    case 'purchased': return 'bg-success/10 text-success'
-    case 'cancelled': return 'bg-danger/10 text-danger'
-    default: return 'bg-border text-text-muted'
+    case 'pending': return 'bg-warning/20 text-warning border border-warning/30 font-semibold'
+    case 'purchased': return 'bg-success/20 text-success border border-success/30 font-semibold'
+    case 'cancelled': return 'bg-danger/20 text-danger border border-danger/30 font-semibold'
+    default: return 'bg-bg-secondary text-text border border-border font-semibold'
   }
 }
 

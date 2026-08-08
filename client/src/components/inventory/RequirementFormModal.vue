@@ -37,12 +37,39 @@
         placeholder="Ej. 15.50"
       />
       <div v-if="isEditing">
-        <label class="block text-sm font-medium text-text-secondary mb-1">Estado</label>
-        <select v-model="formData.status" class="w-full rounded-lg border border-border bg-bg-primary px-3 py-2 text-sm text-text focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary">
-          <option value="pending">Pendiente</option>
-          <option value="purchased">Comprado</option>
-          <option value="cancelled">Cancelado</option>
-        </select>
+        <label class="block text-sm font-medium text-text-secondary mb-2">Estado</label>
+        <div class="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            @click="formData.status = 'pending'"
+            class="rounded-lg border px-3 py-2 text-sm font-semibold transition-all"
+            :class="formData.status === 'pending' 
+              ? 'border-warning bg-warning/20 text-warning shadow-sm' 
+              : 'border-border bg-bg-secondary text-text hover:border-border-strong hover:bg-bg-secondary/80'"
+          >
+            Pendiente
+          </button>
+          <button
+            type="button"
+            @click="formData.status = 'purchased'"
+            class="rounded-lg border px-3 py-2 text-sm font-semibold transition-all"
+            :class="formData.status === 'purchased' 
+              ? 'border-success bg-success/20 text-success shadow-sm' 
+              : 'border-border bg-bg-secondary text-text hover:border-border-strong hover:bg-bg-secondary/80'"
+          >
+            Comprado
+          </button>
+          <button
+            type="button"
+            @click="formData.status = 'cancelled'"
+            class="rounded-lg border px-3 py-2 text-sm font-semibold transition-all"
+            :class="formData.status === 'cancelled' 
+              ? 'border-danger bg-danger/20 text-danger shadow-sm' 
+              : 'border-border bg-bg-secondary text-text hover:border-border-strong hover:bg-bg-secondary/80'"
+          >
+            Cancelado
+          </button>
+        </div>
       </div>
     </form>
   </ModalBase>
