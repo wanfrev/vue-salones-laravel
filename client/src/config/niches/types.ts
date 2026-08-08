@@ -28,6 +28,7 @@ export type Capability =
   | 'clients.medical'
   | 'catalog.services'
   | 'catalog.products'
+  | 'catalog.requirements'
   | 'scheduling.appointments'
   | 'commerce.pos'
   | 'staffing.timesheets'
