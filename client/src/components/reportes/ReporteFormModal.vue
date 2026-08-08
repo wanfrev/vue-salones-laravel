@@ -46,7 +46,7 @@
             <div class="flex items-center border-l border-border bg-bg-secondary/60 p-1 shrink-0 gap-1">
               <button
                 type="button"
-                @click="zReportCurrency = 'VES'"
+                @click="setZReportCurrency('VES')"
                 class="px-2.5 py-1 text-xs font-bold rounded-lg transition-all"
                 :class="zReportCurrency === 'VES' ? 'bg-primary text-text-inverse shadow-xs' : 'text-text-muted hover:text-text hover:bg-surface/50'"
               >
@@ -54,7 +54,7 @@
               </button>
               <button
                 type="button"
-                @click="zReportCurrency = 'USD'"
+                @click="setZReportCurrency('USD')"
                 class="px-2.5 py-1 text-xs font-bold rounded-lg transition-all"
                 :class="zReportCurrency === 'USD' ? 'bg-primary text-text-inverse shadow-xs' : 'text-text-muted hover:text-text hover:bg-surface/50'"
               >
@@ -363,6 +363,21 @@ const emit = defineEmits<{
 const parseNum = (val: string | number) => Number(val) || 0
 
 // Computados para Reporte Z
+const setZReportCurrency = (targetCurrency: 'VES' | 'USD') => {
+  if (zReportCurrency.value === targetCurrency) return
+  const currentAmount = parseNum(zReportAmount.value)
+  const rate = parseNum(formData.value.exchange_rate)
+
+  if (currentAmount > 0 && rate > 0) {
+    if (targetCurrency === 'VES') {
+      zReportAmount.value = (currentAmount * rate).toFixed(2)
+    } else {
+      zReportAmount.value = (currentAmount / rate).toFixed(2)
+    }
+  }
+  zReportCurrency.value = targetCurrency
+}
+
 const computedZReportBs = computed(() => {
   const amount = parseNum(zReportAmount.value)
   const rate = parseNum(formData.value.exchange_rate)
@@ -592,14 +607,46 @@ const fetchFromPos = async () => {
       formData.value[field] = String(summary.fields[field] ?? 0)
     }
 
-    if (summary.meta.exchange_rate && !parseNum(formData.value.exchange_rate)) {
-      formData.value.exchange_rate = String(summary.meta.exchange_rate)
+    // Tasa actual del día (tasa del POS o tasa actual del negocio)
+    const currentRate = summary.meta.exchange_rate || businessStore.business?.ves_exchange_rate || parseNum(formData.value.exchange_rate)
+    if (currentRate > 0) {
+      formData.value.exchange_rate = String(currentRate)
+    }
+
+    // Calcular montos acumulados para autollenar Reporte Z en $ o Bs
+    const posBs = parseNum(summary.fields.pos_bs) +
+                  parseNum(summary.fields.pago_movil_bs) +
+                  parseNum(summary.fields.cash_bs) +
+                  parseNum(summary.fields.transfer_bs) +
+                  parseNum(summary.fields.other_bs) +
+                  totalCreditBs.value
+
+    const posUsd = parseNum(summary.fields.cash_usd) +
+                   parseNum(summary.fields.zelle_usd) +
+                   parseNum(summary.fields.binance_usd) +
+                   parseNum(summary.fields.cashea_usd) +
+                   parseNum(summary.fields.card_usd) +
+                   parseNum(summary.fields.gift_card_usd) +
+                   parseNum(summary.fields.other_usd) +
+                   totalCreditUsd.value
+
+    const rate = currentRate > 0 ? currentRate : 0
+    const usdInBs = posUsd * rate
+    const bsInUsd = rate > 0 ? posBs / rate : 0
+
+    const calcGrandTotalBs = posBs + usdInBs
+    const calcGrandTotalUsd = posUsd + bsInUsd
+
+    if (zReportCurrency.value === 'VES') {
+      zReportAmount.value = calcGrandTotalBs.toFixed(2)
+    } else {
+      zReportAmount.value = calcGrandTotalUsd.toFixed(2)
     }
 
     if (summary.meta.transactions === 0) {
       posFetchNotice.value = 'No hay cobros registrados en el POS para esa fecha.'
     } else {
-      posFetchNotice.value = `Se trajeron ${summary.meta.transactions} cobro(s) del POS. Revisá los montos antes de guardar.`
+      posFetchNotice.value = `Se trajeron ${summary.meta.transactions} cobro(s) del POS para la fecha seleccionada. Tasa: ${currentRate ? currentRate + ' Bs/$' : 'N/A'}. Reporte Z cargado.`
     }
   } catch (err: any) {
     showError(err?.message ?? 'Error al traer los montos del POS.')
