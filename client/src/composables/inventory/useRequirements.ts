@@ -1,6 +1,8 @@
+import { computed } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { apiRequest } from '../../lib/api'
 import { useAuthStore } from '../../store/auth'
+import { isAdminPanelRole } from '../../constants/roles'
 import type { Requirement } from '../../types/database'
 
 export function useRequirements() {
@@ -14,12 +16,17 @@ export function useRequirements() {
   }
 
   const requirementsQuery = useQuery({
-    queryKey: ['requirements', authStore.businessId],
+    queryKey: computed(() => ['requirements', authStore.businessId]),
     queryFn: async () => {
       getBusinessId()
       return await apiRequest<Requirement[]>('GET', '/requirements')
     },
-    enabled: () => !!authStore.businessId && authStore.profile?.can_access_requirements !== false,
+    enabled: computed(() => {
+      if (!authStore.businessId) return false
+      if (isAdminPanelRole(authStore.role ?? undefined)) return true
+      return authStore.profile?.can_access_requirements ?? false
+    }),
+    staleTime: 0,
   })
 
   const createRequirement = useMutation({
@@ -52,21 +59,19 @@ export function useRequirements() {
     },
   })
 
-  const deleteRequirement = useMutation({
-    mutationFn: async (id: string) => {
-      getBusinessId()
-      await apiRequest<void>('DELETE', `/requirements/${id}`)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['requirements'], exact: false })
-    },
-  })
-
   return {
     requirementsQuery,
     createRequirement,
     updateRequirement,
     updateRequirementStatus,
-    deleteRequirement,
+    deleteRequirement: useMutation({
+      mutationFn: async (id: string) => {
+        getBusinessId()
+        await apiRequest<void>('DELETE', `/requirements/${id}`)
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['requirements'], exact: false })
+      },
+    }),
   }
 }
