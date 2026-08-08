@@ -56,7 +56,6 @@ export const sidebarSections: SidebarSection[] = [
       { to: '/admin/servicios', label: 'Servicios', labelKey: 'service', icon: StarsIcon, adminOnly: true, gate: { feature: 'servicios' } },
       { to: '/admin/inventario', label: 'Inventario', icon: BoxIcon, adminOnly: true, gate: { feature: 'inventario' } },
       { to: '/admin/requerimientos', label: 'Requerimientos', icon: DocumentIcon, adminOnly: true, gate: { capability: 'catalog.requirements' } },
-      { to: '/admin/requerimientos', label: 'Requerimientos', icon: DocumentIcon, employeeOnly: true, gate: { capability: 'catalog.requirements', profileFlag: 'can_access_requirements' } },
       { to: '/admin/proveedores', label: 'Proveedores', icon: DeliveryIcon, adminOnly: true, gate: { feature: 'proveedores' } },
       { to: '/admin/gift-cards', label: 'Gift Cards', icon: GiftIcon, adminOnly: true, gate: { feature: 'gift_cards' } },
       { to: '/admin/reportes', label: 'Reporte', icon: DocumentIcon, adminOnly: true, gate: { feature: 'manual_reports' }, badge: 'Nuevo' },
