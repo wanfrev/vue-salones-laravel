@@ -168,8 +168,7 @@ class FinancialSummaryService
             ->leftJoin('products', 'inventory_movements.product_id', '=', 'products.id')
             ->leftJoin('product_variants', 'inventory_movements.variant_id', '=', 'product_variants.id')
             ->where('inventory_movements.business_id', $businessId)
-            ->where('inventory_movements.quantity', '<', 0)
-            ->whereIn('inventory_movements.movement_type', ['sale', 'consumption']);
+            ->whereIn('inventory_movements.movement_type', ['sale', 'consumption', 'direct_sale', 'out']);
 
         if ($start && $end) {
             $cogsQuery->whereBetween('inventory_movements.created_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);

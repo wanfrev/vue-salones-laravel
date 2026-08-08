@@ -207,7 +207,7 @@ const expenseTotal = computed(() => expensesCtx.expenseTotal.value + supplierPay
 
 const isTienda = computed(() => isTiendaNiche(businessStore.nicheType) || (!businessStore.features.agenda && !businessStore.features.calendario && !businessStore.features.servicios))
 const profitTotal = computed(() => incomeTotal.value - (expenseTotal.value + consumptionsTotal.value))
-const netTotal = computed(() => isTienda.value ? profitTotal.value - cogsTotal.value : profitTotal.value)
+const netTotal = computed(() => profitTotal.value - cogsTotal.value)
 const marginTotal = computed(() => (incomeTotal.value > 0 ? (netTotal.value / incomeTotal.value) * 100 : 0))
 
 const activeCard = ref<'income' | 'expense' | 'net' | 'profit' | null>(null)
@@ -335,7 +335,7 @@ const netBreakdown = computed(() => {
     usdItems.push({ label: 'Consumos de Empleados (-)', amount: -consumptionsTotal.value })
   }
 
-  if (isTienda.value && cogsTotal.value > 0) {
+  if (cogsTotal.value > 0) {
     usdItems.push({ label: 'Costo de Productos Vendidos (COGS) (-)', amount: -cogsTotal.value })
   }
 
