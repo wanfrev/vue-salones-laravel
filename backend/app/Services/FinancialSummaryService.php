@@ -163,12 +163,14 @@ class FinancialSummaryService
 
         // Cost of Goods Sold (COGS): sólo movimientos de venta/consumo real de producto.
         // Los ajustes manuales de stock (mermas, correcciones de conteo) no son ventas
-        // y no deben contarse como costo de venta.
+        // y no deben contarse como costo de venta. 'sale' y 'consumption' son los únicos
+        // movement_type que la app escribe para ventas reales (ver PosService); no incluir
+        // aquí tipos que no se generan realmente en el código.
         $cogsQuery = DB::table('inventory_movements')
             ->leftJoin('products', 'inventory_movements.product_id', '=', 'products.id')
             ->leftJoin('product_variants', 'inventory_movements.variant_id', '=', 'product_variants.id')
             ->where('inventory_movements.business_id', $businessId)
-            ->whereIn('inventory_movements.movement_type', ['sale', 'consumption', 'direct_sale', 'out']);
+            ->whereIn('inventory_movements.movement_type', ['sale', 'consumption']);
 
         if ($start && $end) {
             $cogsQuery->whereBetween('inventory_movements.created_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
@@ -179,38 +181,21 @@ class FinancialSummaryService
             });
         }
 
-        $movements = $cogsQuery->select(
-            'inventory_movements.quantity',
-            'inventory_movements.unit_cost as im_cost',
-            'product_variants.unit_cost as pv_cost',
-            'products.unit_cost as p_cost',
-            'product_variants.unit_price as pv_price',
-            'products.unit_price as p_price'
-        )->get();
-
-        $totalCogs = 0.0;
-        $debugLog = "START COGS DEBUG\n";
-        foreach ($movements as $row) {
-            $qty = abs((float) $row->quantity);
-            $cost = 0;
-            
-            if ((float)$row->im_cost > 0) {
-                $cost = (float)$row->im_cost;
-            } elseif ((float)$row->pv_cost > 0) {
-                $cost = (float)$row->pv_cost;
-            } elseif ((float)$row->p_cost > 0) {
-                $cost = (float)$row->p_cost;
-            } elseif ((float)$row->pv_price > 0) {
-                $cost = (float)$row->pv_price;
-            } elseif ((float)$row->p_price > 0) {
-                $cost = (float)$row->p_price;
-            }
-
-            $totalCogs += $qty * $cost;
-            $debugLog .= "Row QTY: $qty, COST: $cost (im: {$row->im_cost}, pv_c: {$row->pv_cost}, p_c: {$row->p_cost}, pv_p: {$row->pv_price}, p_p: {$row->p_price})\n";
-        }
-        $debugLog .= "TOTAL COGS: $totalCogs\n";
-        @file_put_contents(storage_path('logs/cogs_debug.txt'), $debugLog, FILE_APPEND);
+        // Costo por unidad: costo del propio movimiento si se guardó, si no el costo
+        // vigente de la variante/producto, y como último recurso su precio de venta
+        // (mejor una aproximación que contar $0 por falta de dato de costo).
+        $totalCogs = (float) $cogsQuery->selectRaw('
+            COALESCE(SUM(
+                ABS(inventory_movements.quantity) * COALESCE(
+                    NULLIF(inventory_movements.unit_cost, 0),
+                    NULLIF(product_variants.unit_cost, 0),
+                    NULLIF(products.unit_cost, 0),
+                    NULLIF(product_variants.unit_price, 0),
+                    NULLIF(products.unit_price, 0),
+                    0
+                )
+            ), 0) as total
+        ')->value('total');
 
         // Ganancia = ingresos - (nomina + consumos + gastos operativos + abono a proveedores)
         $profit = $totalIncome - ($totalExpenses + $totalConsumptions);
