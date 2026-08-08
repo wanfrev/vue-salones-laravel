@@ -84,6 +84,7 @@ class ProfileService
                 'can_access_pos' => $data['can_access_pos'] ?? false,
                 'can_access_suppliers' => $data['can_access_suppliers'] ?? false,
                 'can_access_finanzas' => $data['can_access_finanzas'] ?? false,
+                'can_access_requirements' => $data['can_access_requirements'] ?? false,
                 'active' => true,
             ]);
 
@@ -155,6 +156,9 @@ class ProfileService
             }
             if (array_key_exists('can_access_suppliers', $data)) {
                 $profileFields['can_access_suppliers'] = $data['can_access_suppliers'];
+            }
+            if (array_key_exists('can_access_requirements', $data)) {
+                $profileFields['can_access_requirements'] = $data['can_access_requirements'];
             }
             if (array_key_exists('active', $data)) {
                 $profileFields['active'] = $data['active'];
