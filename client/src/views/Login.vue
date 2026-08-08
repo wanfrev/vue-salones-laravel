@@ -7,11 +7,12 @@
       aria-hidden="true"
     ></div>
 
-    <!-- Form -->
-    <div class="relative z-10 flex w-full flex-col px-6 py-10 sm:px-12 sm:py-14 md:w-[560px] lg:w-[600px] lg:px-20">
-      <img :src="lumaLogo" alt="Luma" class="h-12 w-auto self-start object-contain sm:h-14" />
+    <!-- Form — nudged off the left edge from lg up, so the image/blend reads
+         as roughly half the screen instead of a thin right-hand strip. -->
+    <div class="login-form relative z-10 flex w-full flex-col px-5 py-8 sm:px-10 sm:py-12 md:px-14 lg:w-[420px] lg:px-0 lg:py-14 lg:ml-[6vw] xl:w-[480px] xl:ml-[8vw] 2xl:w-[560px] 2xl:ml-[10vw]">
+      <img :src="lumaLogo" alt="Luma" class="h-10 w-auto self-start object-contain sm:h-12 lg:h-14" />
 
-      <div class="flex flex-1 flex-col justify-center py-10 lg:py-8">
+      <div class="flex flex-1 flex-col justify-center py-8 sm:py-10 lg:py-8">
         <h1 class="font-luxe text-[1.75rem] leading-tight text-text sm:text-[2rem]">Bienvenido</h1>
         <p class="mt-1.5 text-sm text-text-muted">Inicia sesión para gestionar tu negocio.</p>
 
@@ -141,8 +142,9 @@ const submitLogin = async () => {
 /*
  * Full-bleed background, masked (not overlaid) so it dissolves straight into
  * bg-bg-secondary behind the form — no color to keep in sync across themes.
- * The opaque end sits under the far right of the screen; the transparent end
- * reaches past the form column so text always sits on the flat page color.
+ * Stops are tuned so the image reaches full presence by the horizontal
+ * midpoint of the screen (a ~50/50 balance) instead of living only in a
+ * narrow strip on the far right.
  */
 .login-image {
   background-image: var(--login-image);
@@ -151,28 +153,35 @@ const submitLogin = async () => {
   -webkit-mask-image: linear-gradient(
     to right,
     transparent 0%,
-    transparent 30%,
-    rgba(0, 0, 0, 0.35) 45%,
-    rgba(0, 0, 0, 0.85) 58%,
-    #000 72%
+    transparent 12%,
+    rgba(0, 0, 0, 0.4) 28%,
+    rgba(0, 0, 0, 0.85) 42%,
+    #000 50%
   );
   mask-image: linear-gradient(
     to right,
     transparent 0%,
-    transparent 30%,
-    rgba(0, 0, 0, 0.35) 45%,
-    rgba(0, 0, 0, 0.85) 58%,
-    #000 72%
+    transparent 12%,
+    rgba(0, 0, 0, 0.4) 28%,
+    rgba(0, 0, 0, 0.85) 42%,
+    #000 50%
   );
 }
 
-/* Below md the form takes the full width, so the image should fade out
- * completely instead of fighting the inputs for contrast. */
-@media (max-width: 767px) {
+/* Below lg the two-column balance has no room to work with, so the form
+ * takes the full width and the image drops to a faint full-width backdrop
+ * instead of fighting the inputs for contrast. */
+@media (max-width: 1023px) {
   .login-image {
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 55%, rgba(0, 0, 0, 0.6) 80%, #000 100%);
-    mask-image: linear-gradient(to right, transparent 0%, transparent 55%, rgba(0, 0, 0, 0.6) 80%, #000 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.55) 70%, #000 100%);
+    mask-image: linear-gradient(to right, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.55) 70%, #000 100%);
     opacity: 0.5;
+  }
+}
+
+@media (max-width: 639px) {
+  .login-image {
+    opacity: 0.35;
   }
 }
 
@@ -181,5 +190,19 @@ const submitLogin = async () => {
  * of the selector and leaks the filter onto the whole page. */
 .dark .login-image {
   filter: brightness(0.4) saturate(0.7);
+}
+
+/* Landscape phones / short viewports: min-h-screen + centered content can
+ * push the footer line off-screen before the user scrolls. Tighten vertical
+ * rhythm instead of relying on scroll alone. */
+@media (max-height: 640px) {
+  .login-form {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+  }
+  .login-form > div:nth-child(2) {
+    padding-top: 1.25rem;
+    padding-bottom: 1.25rem;
+  }
 }
 </style>
