@@ -64,6 +64,8 @@ export const saveEmpleado = async (
       can_access_inventory: profileUpdate.can_access_inventory,
       can_access_pos: profileUpdate.can_access_pos,
       can_access_suppliers: profileUpdate.can_access_suppliers,
+      can_access_finanzas: profileUpdate.can_access_finanzas,
+      can_access_requirements: profileUpdate.can_access_requirements,
       branch_id: branchId ?? null,
       schedules: scheduleBlocks,
     })
