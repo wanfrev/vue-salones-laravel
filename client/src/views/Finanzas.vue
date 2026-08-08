@@ -53,6 +53,7 @@
           <button type="button" class="rounded-md border border-border px-2 py-1 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text whitespace-nowrap ml-0.5" @click="resetToCurrent">{{ selectedPeriod === 'custom' ? 'Hoy' : 'Ahora' }}</button>
         </div>
         <ExchangeRateCard
+          v-if="!businessStore.isSingleCurrency"
           :is-editable="rateCtx.isEditable.value"
           :edit-rate-value="rateCtx.editRateValue.value"
           :updating-rate="rateCtx.updatingRate.value"

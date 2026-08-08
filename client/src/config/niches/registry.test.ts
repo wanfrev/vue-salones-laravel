@@ -90,3 +90,19 @@ describe('creatableIds()', () => {
     }
   })
 })
+
+describe('currencyMode', () => {
+  // Staffing bills US clients in dollars and has no exchange rate to speak of. Every other
+  // niche keeps the dual USD/VES display, so this must stay a single-niche opt-in.
+  it('is single only for staffing', () => {
+    expect(getNiche('staffing').currencyMode).toBe('single')
+
+    for (const id of creatableIds().filter(id => id !== 'staffing')) {
+      expect(getNiche(id).currencyMode).not.toBe('single')
+    }
+  })
+
+  it('an unregistered niche is not single-currency', () => {
+    expect(getNiche('Negocios').currencyMode).not.toBe('single')
+  })
+})

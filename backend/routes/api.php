@@ -26,6 +26,8 @@ use App\Http\Controllers\Api\RequirementController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\WhatsAppController;
 use App\Http\Controllers\Api\ReminderController;
+use App\Http\Controllers\Api\StaffingCompanyController;
+use App\Http\Controllers\Api\StaffingCompanyRateController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierPaymentController;
 use App\Http\Controllers\Api\SuperadminController;
@@ -200,6 +202,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/supplier-payments', [SupplierPaymentController::class, 'index']);
         Route::post('/supplier-payments', [SupplierPaymentController::class, 'store']);
         Route::delete('/supplier-payments/{id}', [SupplierPaymentController::class, 'destroy']);
+    });
+
+    // Staffing — client companies and their per-role rate card.
+    // `capability:` (unlike feature:/perm:) blocks for real regardless of FEATURE_GATE_ENFORCE,
+    // so these endpoints are unreachable from any niche other than staffing. `admin-panel`
+    // keeps them out of employee hands — staffing workers have no login at all.
+    Route::middleware(['capability:staffing.timesheets', 'admin-panel'])->group(function () {
+        Route::get('/staffing-companies', [StaffingCompanyController::class, 'index']);
+        Route::post('/staffing-companies', [StaffingCompanyController::class, 'store']);
+        Route::put('/staffing-companies/{id}', [StaffingCompanyController::class, 'update']);
+        Route::delete('/staffing-companies/{id}', [StaffingCompanyController::class, 'destroy']);
+
+        Route::get('/staffing-company-rates', [StaffingCompanyRateController::class, 'index']);
+        Route::post('/staffing-company-rates', [StaffingCompanyRateController::class, 'store']);
+        Route::put('/staffing-company-rates/{id}', [StaffingCompanyRateController::class, 'update']);
+        Route::delete('/staffing-company-rates/{id}', [StaffingCompanyRateController::class, 'destroy']);
     });
 
     // Finanzas

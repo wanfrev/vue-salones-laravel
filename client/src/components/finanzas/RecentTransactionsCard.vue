@@ -86,7 +86,7 @@
                 tx.amount) : formatUSD(tx.amount) }}
             </div>
             <div class="text-xs text-text-muted tabular-nums whitespace-nowrap">
-              {{ tx._currency === 'VES' ? formatUSD(tx.amount) : formatVESInline(tx.amount, tx.exchangeRateUsed) + ' Bs'
+              {{ tx._currency === 'VES' ? formatUSD(tx.amount) : formatSecondary(tx.amount, tx.exchangeRateUsed)
               }}
             </div>
             <span v-if="tx.type === 'ingreso' && (tx.tipAmount ?? 0) > 0"
@@ -185,7 +185,7 @@
                     tx.amount) : formatUSD(tx.amount) }}
                 </div>
                 <div class="text-xs text-text-muted tabular-nums whitespace-nowrap">
-                  {{ tx._currency === 'VES' ? formatUSD(tx.amount) : formatVESInline(tx.amount, tx.exchangeRateUsed) + ' Bs' }}
+                  {{ tx._currency === 'VES' ? formatUSD(tx.amount) : formatSecondary(tx.amount, tx.exchangeRateUsed) }}
                 </div>
                 <span v-if="tx.type === 'ingreso' && (tx.tipAmount ?? 0) > 0"
                   class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary mt-1">
@@ -239,7 +239,7 @@ defineEmits<{
   viewAll: []
 }>()
 
-const { formatUSD, formatVESInline, formatVESEs } = useCurrency()
+const { formatUSD, formatSecondary, formatVESEs } = useCurrency()
 
 const expandedTxIds = ref<Set<string>>(new Set())
 

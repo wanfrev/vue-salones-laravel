@@ -4,7 +4,7 @@
       <template v-if="showSign">{{ sign || (isNegative ? '-' : '') }}</template>
       {{ displayPrimary }}
     </span>
-    <span :class="['tabular-nums whitespace-nowrap', secondaryClass, secondarySizeClass]">
+    <span v-if="displaySecondary" :class="['tabular-nums whitespace-nowrap', secondaryClass, secondarySizeClass]">
       {{ displaySecondary }}
     </span>
   </div>
@@ -37,7 +37,7 @@ const props = withDefaults(defineProps<{
   sign: undefined,
 })
 
-const { formatUSD, formatVESEs, formatVESInline, exchangeRate: currentRate } = useCurrency()
+const { formatUSD, formatVESEs, formatSecondary, exchangeRate: currentRate } = useCurrency()
 
 const effectiveRate = computed(() => props.exchangeRate ?? currentRate.value)
 
@@ -50,11 +50,12 @@ const displayPrimary = computed(() => {
 
 const isNegative = computed(() => props.amount < 0)
 
+// Empty in single-currency mode, which collapses the secondary line entirely (v-if above).
 const displaySecondary = computed(() => {
   if (props.primaryCurrency === 'VES') {
     return formatUSD(props.amount)
   }
-  return formatVESInline(props.amount, effectiveRate.value) + ' Bs'
+  return formatSecondary(props.amount, effectiveRate.value)
 })
 
 const amountSizeClass = computed(() => {

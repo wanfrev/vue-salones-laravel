@@ -365,6 +365,57 @@ export interface Supplier {
   updated_at: string
 }
 
+/**
+ * One tier of the payroll withholding. `threshold` is an exclusive upper bound and the matched
+ * rate applies to the whole base, not marginally — a null threshold is the catch-all tier.
+ */
+export interface StaffingTaxBracket {
+  threshold: number | null
+  rate: number
+}
+
+/** A client company the agency places workers into — the "BILL TO" of the payroll sheets. */
+export interface StaffingCompany {
+  id: string
+  business_id: string
+  branch_id: string | null
+  name: string
+  legal_name: string | null
+  address: string | null
+  city: string | null
+  state: string | null
+  zip: string | null
+  work_site: string | null
+  contact_name: string | null
+  contact_phone: string | null
+  contact_email: string | null
+  payment_terms_days: number
+  overtime_threshold_hours: number
+  overtime_multiplier: number
+  tax_brackets: StaffingTaxBracket[] | null
+  /** 'remitted' = paid onward (a cost); 'retained' = kept by the agency (margin). */
+  tax_destination: string
+  /** 'floor' | 'cent' | 'exact' */
+  payout_rounding: string
+  active: boolean
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** Per-role rate card: what the worker earns vs what the client is billed, for the same hour. */
+export interface StaffingCompanyRate {
+  id: string
+  business_id: string
+  company_id: string
+  role: string
+  pay_rate: number
+  bill_rate: number
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export interface SupplierPayment {
   id: string
   business_id: string
@@ -452,6 +503,8 @@ export interface Database {
       employee_payments: TableShape<EmployeePayment>
       suppliers: TableShape<Supplier>
       supplier_payments: TableShape<SupplierPayment>
+      staffing_companies: TableShape<StaffingCompany>
+      staffing_company_rates: TableShape<StaffingCompanyRate>
       requirements: TableShape<Requirement>
     }
     Views: Record<string, never>

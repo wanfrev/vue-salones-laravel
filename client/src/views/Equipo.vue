@@ -9,7 +9,7 @@
         <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Gestión de {{ (businessStore.terminology.employee || 'Empleado').toLowerCase() }}s</h1>
       </div>
       <div class="flex items-center gap-2">
-        <button v-if="canEditEmployeeRate" @click="showEmployeeRateModal = true"
+        <button v-if="canEditEmployeeRate && !businessStore.isSingleCurrency" @click="showEmployeeRateModal = true"
           class="flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-text shadow-sm transition-theme hover:bg-bg-secondary">
           <DollarIcon class="h-4 w-4" />
           <span class="hidden sm:inline">Tasa empleados</span>
@@ -43,7 +43,7 @@
     :total-comisiones="totalComisiones" :total-nomina-pagada="totalNominaPagada"
     :total-consumido="totalConsumido" :total-deuda-pendiente="totalDeudaPendiente"
     :deuda-con-saldo="deudaConSaldo"
-    :format-u-s-d="formatUSD" :format-v-e-s-inline="formatVESInline" :format-v-e-s-es="formatVESEs"
+    :format-u-s-d="formatUSD" :format-secondary="formatSecondary" :format-v-e-s-es="formatVESEs"
     :format-method="formatMethod"
     :format-time24to12="formatTime24to12"
     :selected-month="selectedMonth" :selected-period="selectedPeriod"
@@ -194,7 +194,7 @@ const handleNewEmpleado = () => empleadoModalRef.value?.open()
 const handleEditEmpleado = (e: Empleado) => empleadoModalRef.value?.open(e)
 const handleViewAgenda = (e: Empleado) => { router.push('/admin?employee=' + e.id) }
 
-const { formatUSD, formatVESInline, formatVESEs } = useCurrency()
+const { formatUSD, formatSecondary, formatVESEs } = useCurrency()
 const employeeDebtSummary = computed(() => {
   return (paymentsCtx.debt.value ?? []).map((d: any) => ({
     employeeId: d.employee_id,

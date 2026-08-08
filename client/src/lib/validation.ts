@@ -120,6 +120,43 @@ export const supplierPaymentFormSchema = z.object({
   notes: z.string().default(''),
 })
 
+/** One withholding tier. A null threshold marks the catch-all — see StaffingTaxBracket. */
+export const staffingTaxBracketSchema = z.object({
+  threshold: z.number().min(0).nullable(),
+  rate: z.number().min(0, 'El porcentaje no puede ser negativo').max(1, 'Usa una fracción: 0.07 = 7%'),
+})
+
+export const staffingCompanyFormSchema = z.object({
+  name: z.string().min(1, 'El nombre es requerido'),
+  legalName: z.string().default(''),
+  address: z.string().default(''),
+  city: z.string().default(''),
+  state: z.string().default(''),
+  zip: z.string().default(''),
+  workSite: z.string().default(''),
+  contactName: z.string().default(''),
+  contactPhone: z.string().default(''),
+  contactEmail: z.string().email('El email no es válido').or(z.literal('')).default(''),
+  paymentTermsDays: z.number().int().min(0).max(365).default(15),
+  overtimeThresholdHours: z.number().min(0).max(168).default(40),
+  overtimeMultiplier: z.number().min(1, 'El recargo no puede ser menor a 1').max(5).default(1.5),
+  taxBrackets: z.array(staffingTaxBracketSchema).default([]),
+  taxDestination: z.enum(['remitted', 'retained']).default('remitted'),
+  payoutRounding: z.enum(['floor', 'cent', 'exact']).default('cent'),
+  notes: z.string().default(''),
+})
+
+export const staffingRateFormSchema = z.object({
+  companyId: z.string().min(1, 'Selecciona una empresa'),
+  role: z.string().min(1, 'El rol es requerido'),
+  payRate: z.number().min(0, 'La tarifa no puede ser negativa'),
+  billRate: z.number().min(0, 'La tarifa no puede ser negativa'),
+}).refine(r => r.billRate >= r.payRate, {
+  // Billing below cost is almost always a typo, and it silently inverts the margin.
+  message: 'Lo que cobras a la empresa no puede ser menor a lo que le pagas al empleado',
+  path: ['billRate'],
+})
+
 export const empleadoFormSchema = z.object({
   name: z.string().min(1, 'El nombre es obligatorio').min(2, 'El nombre debe tener al menos 2 caracteres'),
   email: z.string().min(1, 'El email es obligatorio').email('El email no es válido'),

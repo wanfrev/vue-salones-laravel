@@ -7,7 +7,7 @@ import KpiBanner from '../finanzas/KpiBanner.vue'
 import RecordSection from '../finanzas/RecordSection.vue'
 import SegmentedTabs from '../common/SegmentedTabs.vue'
 
-const { formatEmployeeVESInline } = useCurrency()
+const { formatEmployeeSecondary } = useCurrency()
 
 const fmtDate = (d: string) => formatDate(d)
 
@@ -116,7 +116,7 @@ const props = defineProps<{
   totalDeudaPendiente: number
   deudaConSaldo: any[]
   formatUSD: (n: number) => string
-  formatVESInline: (n: number, r?: number) => string
+  formatSecondary: (n: number, r?: number) => string
   formatVESEs: (n: number) => string
   formatMethod: (m: string) => string
   formatTime24to12: (t: string) => string
@@ -278,12 +278,12 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
               <td class="px-3 py-3 text-text-secondary">{{ payment.service }}</td>
               <td class="px-3 py-3 text-right hidden sm:table-cell">
                 <div class="text-text">{{ formatUSD(payment.amount) }}</div>
-                <div class="text-[10px] text-text-muted">{{ formatVESInline(payment.amount) }} Bs</div>
+                <div class="text-[10px] text-text-muted">{{ formatSecondary(payment.amount) }}</div>
               </td>
               <td class="px-3 py-3 text-right text-text-secondary">{{ payment.percentage }}%</td>
               <td class="px-3 py-3 text-right">
                 <div class="font-semibold text-success">{{ formatUSD(payment.earnings) }}</div>
-                <div class="text-[10px] text-text-muted">{{ formatVESInline(payment.earnings) }} Bs</div>
+                <div class="text-[10px] text-text-muted">{{ formatSecondary(payment.earnings) }}</div>
               </td>
               <td class="px-3 py-3 text-right">
                 <span v-if="(payment.tipAmount ?? 0) > 0" class="font-semibold text-primary">{{ formatUSD(payment.tipAmount) }}</span>
@@ -302,10 +302,10 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
               <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                 <span class="text-text-muted">Costo</span><span class="text-right"><span class="text-text">{{
                   formatUSD(payment.amount) }}</span><span class="text-text-muted ml-1">{{
-                      formatVESInline(payment.amount) }} Bs</span></span>
+                      formatSecondary(payment.amount) }}</span></span>
                 <span class="text-text-muted">Comisión</span><span class="text-right"><span
                     class="font-semibold text-success">{{ formatUSD(payment.earnings) }}</span><span
-                    class="text-text-muted ml-1">{{ formatVESInline(payment.earnings) }} Bs</span></span>
+                    class="text-text-muted ml-1">{{ formatSecondary(payment.earnings) }}</span></span>
                 <span class="text-text-muted">Propina</span><span class="text-right">
                   <span v-if="(payment.tipAmount ?? 0) > 0" class="font-semibold text-primary">{{ formatUSD(payment.tipAmount) }}</span>
                   <span v-else class="text-text-muted">—</span>
@@ -348,7 +348,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
                 <div :class="['font-medium', ep.type === 'consumption' ? 'text-danger' : 'text-danger']">{{ ep.currency
                   === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</div>
                 <div class="text-[10px] text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) :
-                  formatEmployeeVESInline(ep.amount, ep.employeeVesRate) + ' Bs' }}</div>
+                  formatEmployeeSecondary(ep.amount, ep.employeeVesRate) }}</div>
               </td>
               <td class="px-3 py-3 text-center">
                 <div class="flex items-center justify-center gap-1">
@@ -369,7 +369,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
                   }}</span><span class="text-xs text-text-muted">{{ fmtDate(ep.paymentDate) }}</span></div>
               <div class="flex items-center justify-between text-xs"><span class="text-text-muted">{{ ep.type ===
                 'consumption' ? (ep.concept || 'Consumo') : formatMethod(ep.paymentMethod) }}</span><span
-                  class="text-right"><span class="font-semibold text-danger">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</span><span class="text-text-muted ml-1">{{ ep.currency === 'VES' ? formatUSD(ep.amount) : formatEmployeeVESInline(ep.amount, ep.employeeVesRate) + ' Bs' }}</span></span></div>
+                  class="text-right"><span class="font-semibold text-danger">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</span><span class="text-text-muted ml-1">{{ ep.currency === 'VES' ? formatUSD(ep.amount) : formatEmployeeSecondary(ep.amount, ep.employeeVesRate) }}</span></span></div>
               <div class="flex items-center justify-end gap-1 pt-1 border-t border-border-subtle"><button
                   @click="$emit('openEditPayment', ep)"
                   class="rounded-md bg-primary/10 px-2 py-1 text-xs text-primary">Editar</button><button
@@ -419,7 +419,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
               <td class="px-3 py-3 text-right font-semibold text-text">{{ formatUSD(row.totalEarned) }}</td>
               <td class="px-3 py-3 text-right hidden sm:table-cell">
                 <div class="font-medium text-danger">{{ formatUSD(row.totalPaid) }}</div>
-                <div class="text-[10px] text-text-muted">{{ formatEmployeeVESInline(row.totalPaid) }} Bs</div>
+                <div class="text-[10px] text-text-muted">{{ formatEmployeeSecondary(row.totalPaid) }}</div>
               </td>
               <td class="px-3 py-3 text-right"><span class="font-bold"
                   :class="row.pendingBalance > 0 ? 'text-primary' : 'text-text-muted'">{{ formatUSD(row.pendingBalance)
@@ -443,10 +443,10 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
               <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                 <span class="text-text-muted">Total Ganado</span><span class="text-right"><span class="text-text">{{
                   formatUSD(row.totalEarned) }}</span><span class="text-text-muted ml-1">{{
-                      formatEmployeeVESInline(row.totalEarned) }} Bs</span></span>
+                      formatEmployeeSecondary(row.totalEarned) }}</span></span>
                 <span class="text-text-muted">Pagado</span><span class="text-right"><span class="text-danger">{{
                   formatUSD(row.totalPaid) }}</span><span class="text-text-muted ml-1">{{
-                      formatEmployeeVESInline(row.totalPaid) }} Bs</span></span>
+                      formatEmployeeSecondary(row.totalPaid) }}</span></span>
                 <span class="text-text-muted">Pendiente</span><span class="text-right font-bold"
                   :class="row.pendingBalance > 0 ? 'text-primary' : 'text-text-muted'">{{ formatUSD(row.pendingBalance)
                   }}</span>

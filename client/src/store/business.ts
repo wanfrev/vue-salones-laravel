@@ -50,6 +50,11 @@ export const useBusinessStore = defineStore('business', () => {
   const hasFeature = (key: FeatureKey): boolean => features.value[key]
   const hasCapability = (capability: Capability): boolean => getNiche(nicheType.value).capabilities.includes(capability)
   const isMultiBranch = computed(() => features.value.multi_branch)
+  /**
+   * Niches that operate in one currency (staffing bills in USD only). When true there is no
+   * exchange rate to set and no secondary amount to render — see useCurrency's formatSecondary.
+   */
+  const isSingleCurrency = computed(() => getNiche(nicheType.value).currencyMode === 'single')
   const employeeExchangeRate = computed(() => {
     const r = (business.value as any)?.employee_ves_rate
     return r != null && r > 0 ? Number(r) : null
@@ -204,6 +209,7 @@ export const useBusinessStore = defineStore('business', () => {
     serviceCategories,
     branchServiceCategories,
     isMultiBranch,
+    isSingleCurrency,
     employeeExchangeRate,
     features,
     hasFeature,

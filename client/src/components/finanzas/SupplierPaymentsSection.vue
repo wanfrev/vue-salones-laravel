@@ -47,7 +47,7 @@
                 {{ p.currency === 'VES' ? formatVESEs(p.originalAmount) : formatUSD(p.amount) }}
               </div>
               <div class="text-xs text-text-muted">
-                {{ p.currency === 'VES' ? formatUSD(p.amount) : formatVESInline(p.amount, p.exchangeRateUsed) + ' Bs' }}
+                {{ p.currency === 'VES' ? formatUSD(p.amount) : formatSecondary(p.amount, p.exchangeRateUsed) }}
               </div>
             </td>
             <td class="px-4 py-2.5 text-text-secondary hidden sm:table-cell">{{ formatMethod(p.paymentMethod) }}</td>
@@ -166,7 +166,7 @@ const props = defineProps<{
   ctx: ReturnType<typeof import('../../composables/suppliers/useSuppliers').useSupplierPayments>
 }>()
 
-const { formatUSD, formatVESEs, formatVESInline } = useCurrency()
+const { formatUSD, formatVESEs, formatSecondary } = useCurrency()
 
 const handleSave = async () => {
   try {

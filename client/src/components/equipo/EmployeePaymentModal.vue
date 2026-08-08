@@ -13,7 +13,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['close', 'payment-saved'])
-const { formatUSD, formatVESInline, employeeRate } = useCurrency()
+const { formatUSD, formatSecondary, employeeRate } = useCurrency()
 const businessStore = useBusinessStore()
 
 const ctx = reactive(props.paymentsCtx)
@@ -73,7 +73,7 @@ const convertedAmount = computed(() => {
   const amount = ctx.paymentForm.amount
   if (!amount || amount <= 0) return ''
   if (ctx.paymentForm.currency === 'USD') {
-    return `${formatVESInline(amount, effectiveRate.value)} Bs`
+    return `${formatSecondary(amount, effectiveRate.value)}`
   }
   return `${formatUSD(amount / effectiveRate.value)}`
 })
@@ -133,7 +133,7 @@ const consumptionConvertedAmount = computed(() => {
   const amount = consumptionForm.amount
   if (!amount || amount <= 0) return ''
   if (consumptionForm.currency === 'USD') {
-    return `${formatVESInline(amount, effectiveRate.value)} Bs`
+    return `${formatSecondary(amount, effectiveRate.value)}`
   }
   return `${formatUSD(amount / effectiveRate.value)}`
 })
