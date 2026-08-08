@@ -167,11 +167,27 @@ class FinancialSummaryService
         $cogsQuery = DB::table('inventory_movements')
             ->leftJoin('products', 'inventory_movements.product_id', '=', 'products.id')
             ->leftJoin('product_variants', 'inventory_movements.variant_id', '=', 'product_variants.id')
+            ->leftJoin('transactions', function ($join) {
+                $join->where(function ($q) {
+                    $q->where(function ($sq) {
+                        $sq->on('inventory_movements.reference_id', '=', 'transactions.id')
+                           ->where('inventory_movements.reference_type', '=', 'direct');
+                    })->orWhere(function ($sq) {
+                        $sq->on('inventory_movements.reference_id', '=', 'transactions.appointment_id')
+                           ->where('inventory_movements.reference_type', '=', 'appointment');
+                    });
+                });
+            })
             ->where('inventory_movements.business_id', $businessId)
             ->whereIn('inventory_movements.movement_type', ['sale', 'consumption', 'direct_sale', 'out']);
 
         if ($start && $end) {
-            $cogsQuery->whereBetween('inventory_movements.created_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
+            $startUtc = $this->toUtc($start, $tz);
+            $endUtc = $this->toUtc($end, $tz);
+            $cogsQuery->where(function ($q) use ($startUtc, $endUtc) {
+                $q->whereBetween(DB::raw('COALESCE(transactions.paid_at, inventory_movements.created_at)'), [$startUtc, $endUtc])
+                  ->orWhereBetween('inventory_movements.created_at', [$startUtc, $endUtc]);
+            });
         }
         if ($branchId) {
             $cogsQuery->where(function ($q) use ($branchId) {
@@ -180,7 +196,7 @@ class FinancialSummaryService
         }
 
         $totalCogs = (float) $cogsQuery->selectRaw(
-            'COALESCE(SUM(ABS(inventory_movements.quantity) * COALESCE(NULLIF(inventory_movements.unit_cost, 0), product_variants.unit_cost, products.unit_cost, 0)), 0) as total'
+            'COALESCE(SUM(ABS(inventory_movements.quantity) * COALESCE(NULLIF(inventory_movements.unit_cost, 0), NULLIF(product_variants.unit_cost, 0), NULLIF(products.unit_cost, 0), NULLIF(product_variants.unit_price, 0), NULLIF(products.unit_price, 0), 0)), 0) as total'
         )->value('total');
 
         // Ganancia = ingresos - (nomina + consumos + gastos operativos + abono a proveedores)
