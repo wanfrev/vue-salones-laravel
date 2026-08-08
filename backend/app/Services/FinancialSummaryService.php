@@ -179,20 +179,34 @@ class FinancialSummaryService
             });
         }
 
-        $totalCogs = (float) $cogsQuery->selectRaw('
-            COALESCE(SUM(
-                ABS(inventory_movements.quantity) * (
-                    CASE 
-                        WHEN COALESCE(inventory_movements.unit_cost, 0) > 0 THEN inventory_movements.unit_cost
-                        WHEN COALESCE(product_variants.unit_cost, 0) > 0 THEN product_variants.unit_cost
-                        WHEN COALESCE(products.unit_cost, 0) > 0 THEN products.unit_cost
-                        WHEN COALESCE(product_variants.unit_price, 0) > 0 THEN product_variants.unit_price
-                        WHEN COALESCE(products.unit_price, 0) > 0 THEN products.unit_price
-                        ELSE 0
-                    END
-                )
-            ), 0) as total
-        ')->value('total');
+        $movements = $cogsQuery->select(
+            'inventory_movements.quantity',
+            'inventory_movements.unit_cost as im_cost',
+            'product_variants.unit_cost as pv_cost',
+            'products.unit_cost as p_cost',
+            'product_variants.unit_price as pv_price',
+            'products.unit_price as p_price'
+        )->get();
+
+        $totalCogs = 0.0;
+        foreach ($movements as $row) {
+            $qty = abs((float) $row->quantity);
+            $cost = 0;
+            
+            if ((float)$row->im_cost > 0) {
+                $cost = (float)$row->im_cost;
+            } elseif ((float)$row->pv_cost > 0) {
+                $cost = (float)$row->pv_cost;
+            } elseif ((float)$row->p_cost > 0) {
+                $cost = (float)$row->p_cost;
+            } elseif ((float)$row->pv_price > 0) {
+                $cost = (float)$row->pv_price;
+            } elseif ((float)$row->p_price > 0) {
+                $cost = (float)$row->p_price;
+            }
+
+            $totalCogs += $qty * $cost;
+        }
 
         // Ganancia = ingresos - (nomina + consumos + gastos operativos + abono a proveedores)
         $profit = $totalIncome - ($totalExpenses + $totalConsumptions);
