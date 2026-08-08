@@ -163,7 +163,11 @@ function useFinancialSummary(
   const summaryBuckets = computed(() => summaryData.value?.buckets ?? [])
   const kpis = computed(() => summaryData.value?.kpis ?? {})
 
-  const incomeTotal = computed(() => kpis.value.total_income ?? 0)
+  const incomeTotal = computed(() => {
+    const fromKpi = Number(kpis.value.total_income ?? 0)
+    if (fromKpi > 0) return fromKpi
+    return (allTransactionsRaw.value ?? []).reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0)
+  })
   const localIncomeTotal = computed(() => kpis.value.local_income ?? 0)
   const employeeCommissionsTotal = computed(() => kpis.value.employee_commissions ?? (kpis.value.total_income - kpis.value.local_income) ?? 0)
   const netProfitTotal = computed(() => kpis.value.net_profit ?? 0)

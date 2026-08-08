@@ -44,20 +44,20 @@ class FinancialSummaryService
             ->leftJoin('appointments', 'transactions.appointment_id', '=', 'appointments.id')
             ->where('transactions.business_id', $businessId)
             ->select(
-                DB::raw("to_char(transactions.paid_at, 'YYYY-MM-DD') as bucket"),
+                DB::raw("to_char(COALESCE(transactions.paid_at, transactions.created_at), 'YYYY-MM-DD') as bucket"),
                 DB::raw('count(distinct transactions.id) as transaction_count'),
                 DB::raw('coalesce(sum(transactions.total_amount), 0) as total_amount'),
                 DB::raw('coalesce(sum(transactions.local_amount), 0) as local_amount'),
                 DB::raw('coalesce(sum(transactions.employee_amount), 0) as employee_amount'),
                 DB::raw('coalesce(sum(transactions.tip_amount), 0) as tip_amount'),
             )
-            ->groupBy(DB::raw("to_char(transactions.paid_at, 'YYYY-MM-DD')"))
+            ->groupBy(DB::raw("to_char(COALESCE(transactions.paid_at, transactions.created_at), 'YYYY-MM-DD')"))
             ->orderBy('bucket');
 
         $tz = $this->resolveTimezone($businessId);
 
         if ($start && $end) {
-            $query->whereBetween('transactions.paid_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
+            $query->whereBetween(DB::raw('COALESCE(transactions.paid_at, transactions.created_at)'), [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
         }
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
@@ -84,7 +84,7 @@ class FinancialSummaryService
         $tz = $this->resolveTimezone($businessId);
 
         if ($start && $end) {
-            $txQuery->whereBetween('paid_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
+            $txQuery->whereBetween(DB::raw('COALESCE(paid_at, created_at)'), [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
         }
         if ($branchId) {
             $txQuery->where(function ($q) use ($branchId) {
@@ -211,15 +211,15 @@ class FinancialSummaryService
             },
         ])
             ->where('business_id', $businessId)
-            ->orderByDesc('paid_at');
+            ->orderByRaw('COALESCE(paid_at, created_at) DESC');
 
         $tz = $this->resolveTimezone($businessId);
 
         if ($start) {
-            $query->where('paid_at', '>=', $this->toUtc($start, $tz));
+            $query->where(DB::raw('COALESCE(paid_at, created_at)'), '>=', $this->toUtc($start, $tz));
         }
         if ($end) {
-            $query->where('paid_at', '<=', $this->toUtc($end, $tz));
+            $query->where(DB::raw('COALESCE(paid_at, created_at)'), '<=', $this->toUtc($end, $tz));
         }
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
