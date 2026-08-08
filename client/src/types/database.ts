@@ -401,6 +401,7 @@ export interface Requirement {
   guide_price: number | null
   status: 'pending' | 'purchased' | 'cancelled'
   created_by_profile_id: string | null
+  creator?: { id: string; full_name: string } | null
   created_at: string
   updated_at: string
 }

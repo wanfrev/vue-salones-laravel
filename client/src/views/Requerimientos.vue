@@ -76,7 +76,7 @@
               </span>
             </td>
             <td class="px-4 py-3 text-sm text-text-muted">
-              {{ req.creator ? `${req.creator.first_name} ${req.creator.last_name}` : '-' }}
+              {{ req.creator ? req.creator.full_name : '-' }}
             </td>
             <td class="px-4 py-3 text-right">
               <div class="flex items-center justify-end gap-2">

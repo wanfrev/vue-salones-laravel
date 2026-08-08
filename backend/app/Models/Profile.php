@@ -21,7 +21,7 @@ class Profile extends Model
         'disable_agenda', 'disable_inventory_edit',
         'can_create_appointments', 'can_create_clients',
         'can_access_consultorio',
-        'can_access_inventory', 'can_access_pos', 'can_access_suppliers', 'can_access_finanzas',
+        'can_access_inventory', 'can_access_pos', 'can_access_suppliers', 'can_access_finanzas', 'can_access_requirements',
     ];
 
     protected function casts(): array
@@ -37,6 +37,7 @@ class Profile extends Model
             'can_access_pos' => 'boolean',
             'can_access_suppliers' => 'boolean',
             'can_access_finanzas' => 'boolean',
+            'can_access_requirements' => 'boolean',
             'pay_percentage' => 'float',
             'base_salary' => 'float',
             'employee_ves_rate' => 'float',

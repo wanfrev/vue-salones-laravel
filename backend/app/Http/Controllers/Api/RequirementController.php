@@ -15,7 +15,7 @@ class RequirementController extends Controller
             return response()->json([]);
         }
 
-        $query = Requirement::where('business_id', $businessId)->with('creator:id,first_name,last_name');
+        $query = Requirement::where('business_id', $businessId)->with('creator:id,full_name');
 
         if ($request->has('status')) {
             $query->where('status', $request->query('status'));
@@ -46,7 +46,7 @@ class RequirementController extends Controller
         }
 
         $requirement = Requirement::create($data);
-        $requirement->load('creator:id,first_name,last_name');
+        $requirement->load('creator:id,full_name');
 
         return response()->json($requirement, 201);
     }
@@ -69,7 +69,7 @@ class RequirementController extends Controller
         ]);
 
         $requirement->update($data);
-        $requirement->load('creator:id,first_name,last_name');
+        $requirement->load('creator:id,full_name');
 
         return response()->json($requirement);
     }

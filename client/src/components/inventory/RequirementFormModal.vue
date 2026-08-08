@@ -105,7 +105,9 @@ const handleSubmit = async () => {
   
   try {
     const payload = { ...formData.value }
-    if (!payload.guide_price) payload.guide_price = null
+    if (payload.guide_price === null || payload.guide_price === undefined || (payload.guide_price as any) === '') {
+      payload.guide_price = null
+    }
 
     if (isEditing.value) {
       await updateRequirement.mutateAsync({ id: modalData.value.requirement.id, payload })
