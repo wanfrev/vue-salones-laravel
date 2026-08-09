@@ -92,9 +92,13 @@ class DailyReportPosSummaryService
             $fields[$key] = round($value, 2);
         }
 
+        $branch = $branchId ? \App\Models\Branch::find($branchId) : null;
+        $branchRate = (float) ($branch?->ves_exchange_rate ?: 0);
         $businessRate = (float) ($business?->ves_exchange_rate ?: 0);
+        $fallbackRate = $branchRate > 0 ? $branchRate : ($businessRate > 0 ? $businessRate : null);
+
         $dominantRate = $this->dominantRate($rates);
-        $finalRate = $dominantRate ?: ($businessRate > 0 ? $businessRate : null);
+        $finalRate = $dominantRate ?: $fallbackRate;
 
         return [
             'fields' => $fields,

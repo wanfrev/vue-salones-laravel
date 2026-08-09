@@ -295,9 +295,11 @@ import { getDailyReportPosSummary } from '../../services/dailyReportService'
 import type { DailyReport, CreditItem } from '../../services/dailyReportService'
 import { useNotification } from '../../composables/common/useNotification'
 import { useModal } from '../../composables/common/useModal'
+import { useCurrency } from '../../composables/common/useCurrency'
 
 const MODAL_ID = 'reporte-form-modal'
 const { isOpen, modalData, close } = useModal(MODAL_ID)
+const { exchangeRate } = useCurrency()
 
 const businessStore = useBusinessStore()
 const authStore = useAuthStore()
@@ -479,7 +481,7 @@ watch(modalData, (data) => {
   } else {
     isEditing.value = false
     formData.value = defaultForm()
-    formData.value.exchange_rate = String(businessStore.business?.ves_exchange_rate || '')
+    formData.value.exchange_rate = String(exchangeRate.value || businessStore.business?.ves_exchange_rate || '')
     zReportCurrency.value = 'VES'
     zReportAmount.value = ''
     creditsList.value = []
@@ -608,8 +610,9 @@ const fetchFromPos = async () => {
     }
 
     // Tasa actual del día (traída preferentemente de las transacciones del POS en esa fecha,
-    // o como fallback la tasa del negocio / valor actual del formulario).
+    // o como fallback la tasa activa de la sucursal / negocio / valor del formulario).
     const currentRate = summary.meta.exchange_rate
+      || exchangeRate.value
       || businessStore.business?.ves_exchange_rate
       || parseNum(formData.value.exchange_rate)
       || 0
