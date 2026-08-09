@@ -795,6 +795,16 @@ const canPay = computed(() => {
     if (directServicesList.value.length === 0) return false
   }
   if (activeSaleType.value !== 'retail_only' && tipAmount.value > 0 && tipParticipants.value.length > 0 && Math.abs(tipRemaining.value) >= 0.01) return false
+  if (paymentMethod.value === 'credito') {
+    if (activeSaleType.value === 'retail_only') {
+      if (!retailClientId.value && (!retailClientSearch.value || !retailClientPhone.value)) return false
+    } else if (activeSaleType.value === 'direct_service') {
+      if (!directServiceClientId.value && (!directServiceClientSearch.value)) return false
+    } else {
+      if (!selectedAppointment.value) return false
+    }
+  }
+
   if (paymentMethod.value === 'mixed') {
     const total = paymentsBreakdown.value.reduce((sum: number, s: any) => sum + (s.currency === 'VES' ? (s.inputAmount || 0) / exchangeRate.value : (s.inputAmount || 0)), 0)
     return Math.abs(total - grandTotal.value) < 0.01 && paymentsBreakdown.value.length > 0

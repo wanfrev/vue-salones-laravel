@@ -515,17 +515,16 @@ const totalCreditBs = computed(() => {
   }, 0)
 })
 
-// Total Bolívares (incluye Créditos en Bs)
+// Total Bolívares (NO incluye Créditos en Bs)
 const totalBs = computed(() => {
   return parseNum(formData.value.pos_bs) +
          parseNum(formData.value.pago_movil_bs) +
          parseNum(formData.value.cash_bs) +
          parseNum(formData.value.transfer_bs) +
-         parseNum(formData.value.other_bs) +
-         totalCreditBs.value
+         parseNum(formData.value.other_bs)
 })
 
-// Total Dólares (incluye Créditos en USD)
+// Total Dólares (NO incluye Créditos en USD)
 const totalUsd = computed(() => {
   return parseNum(formData.value.cash_usd) +
          parseNum(formData.value.zelle_usd) +
@@ -533,8 +532,7 @@ const totalUsd = computed(() => {
          parseNum(formData.value.cashea_usd) +
          parseNum(formData.value.card_usd) +
          parseNum(formData.value.gift_card_usd) +
-         parseNum(formData.value.other_usd) +
-         totalCreditUsd.value
+         parseNum(formData.value.other_usd)
 })
 
 // Total Bs al cambio en USD
@@ -636,13 +634,11 @@ const fetchFromPos = async () => {
       }))
     }
 
-    // Calcular montos acumulados para autollenar Reporte Z en $ o Bs
     const posBs = parseNum(summary.fields.pos_bs) +
                   parseNum(summary.fields.pago_movil_bs) +
                   parseNum(summary.fields.cash_bs) +
                   parseNum(summary.fields.transfer_bs) +
-                  parseNum(summary.fields.other_bs) +
-                  totalCreditBs.value
+                  parseNum(summary.fields.other_bs)
 
     const posUsd = parseNum(summary.fields.cash_usd) +
                    parseNum(summary.fields.zelle_usd) +
@@ -650,8 +646,7 @@ const fetchFromPos = async () => {
                    parseNum(summary.fields.cashea_usd) +
                    parseNum(summary.fields.card_usd) +
                    parseNum(summary.fields.gift_card_usd) +
-                   parseNum(summary.fields.other_usd) +
-                   totalCreditUsd.value
+                   parseNum(summary.fields.other_usd)
 
     const rate = currentRate > 0 ? currentRate : 0
     const usdInBs = posUsd * rate

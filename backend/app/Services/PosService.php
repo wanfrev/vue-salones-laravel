@@ -392,8 +392,20 @@ class PosService
 
         $clientName = $clientNameInput;
         if (!$clientName && $clientId) {
-            $client = Client::where('business_id', $businessId)->find($clientId);
+            $client = \App\Models\Client::where('business_id', $businessId)->find($clientId);
             $clientName = $client?->full_name;
+        }
+
+        if (!$clientId && !empty($clientNameInput) && !empty($clientPhoneInput)) {
+            $client = \App\Models\Client::create([
+                'id' => \Illuminate\Support\Str::uuid()->toString(),
+                'business_id' => $businessId,
+                'branch_id' => $branchId,
+                'full_name' => $clientNameInput,
+                'phone' => $clientPhoneInput,
+            ]);
+            $clientId = $client->id;
+            $clientName = $client->full_name;
         }
         
         $clientInfoStr = $clientName ? ($clientPhoneInput ? "{$clientName} ({$clientPhoneInput})" : $clientName) : null;
