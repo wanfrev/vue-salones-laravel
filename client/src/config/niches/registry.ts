@@ -144,7 +144,6 @@ export const NICHES: Record<string, NicheDefinition> = {
       agenda: false,
       calendario: false,
       servicios: false,
-      gift_cards: false,
     },
   },
   staffing: {
