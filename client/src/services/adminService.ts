@@ -2,6 +2,8 @@ import { db } from '../lib/api'
 
 export interface EmployeeInput {
   full_name: string
+  // Blank for staffing workers, who have no login — see adminCreateEmployee, which sends null
+  // rather than '' so Laravel's `nullable|email` rule actually treats it as absent.
   email: string
   password?: string
   phone?: string | null
@@ -21,6 +23,16 @@ export interface EmployeeInput {
   can_access_suppliers?: boolean
   can_access_finanzas?: boolean
   can_access_requirements?: boolean
+  staffing_company_id?: string | null
+  staffing_role?: string | null
+  bank_name?: string | null
+  bank_account_holder?: string | null
+  bank_account_type?: string | null
+  payment_method?: string | null
+  /** Write-only — omit the key entirely to leave what's on file unchanged (see saveEmpleado). */
+  bank_routing_number?: string | null
+  bank_account_number?: string | null
+  payroll_card_number?: string | null
   schedules?: Array<{
     branch_id?: string | null
     weekday: number
@@ -31,14 +43,15 @@ export interface EmployeeInput {
 
 /** Create employee: user + profile + schedules in one call */
 export const adminCreateEmployee = async (input: EmployeeInput): Promise<{ id: string }> => {
-  const email = input.email.trim().toLowerCase()
+  const trimmedEmail = input.email.trim()
+  const email = trimmedEmail ? trimmedEmail.toLowerCase() : null
 
   const { data, error } = await db
     .from('profiles')
     .insert({
       full_name: input.full_name,
       email,
-      password: input.password,
+      password: input.password || null,
       phone: input.phone || null,
       job_title: input.job_title || null,
       role: input.role ?? 'empleado',
@@ -56,6 +69,15 @@ export const adminCreateEmployee = async (input: EmployeeInput): Promise<{ id: s
       can_access_suppliers: input.can_access_suppliers ?? false,
       can_access_finanzas: input.can_access_finanzas ?? false,
       can_access_requirements: input.can_access_requirements ?? false,
+      staffing_company_id: input.staffing_company_id || null,
+      staffing_role: input.staffing_role || null,
+      bank_name: input.bank_name || null,
+      bank_account_holder: input.bank_account_holder || null,
+      bank_account_type: input.bank_account_type || null,
+      payment_method: input.payment_method || null,
+      bank_routing_number: input.bank_routing_number || null,
+      bank_account_number: input.bank_account_number || null,
+      payroll_card_number: input.payroll_card_number || null,
       schedules: input.schedules || [],
     })
     .select('id')

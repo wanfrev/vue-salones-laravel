@@ -79,7 +79,24 @@
           </div>
         </div>
 
-        <RateCardEditor v-if="expandedId === company.id" :business-id="businessId" :company-id="company.id" />
+        <template v-if="expandedId === company.id">
+          <div class="flex gap-1 border-t border-border bg-bg-secondary/40 px-4 pt-3">
+            <button type="button"
+              class="rounded-t-lg px-3 py-1.5 text-xs font-semibold transition-theme"
+              :class="expandedTab === 'rates' ? 'bg-surface text-primary' : 'text-text-muted hover:text-text'"
+              @click="expandedTab = 'rates'">
+              Tarifas
+            </button>
+            <button type="button"
+              class="rounded-t-lg px-3 py-1.5 text-xs font-semibold transition-theme"
+              :class="expandedTab === 'billing' ? 'bg-surface text-primary' : 'text-text-muted hover:text-text'"
+              @click="expandedTab = 'billing'">
+              Facturación
+            </button>
+          </div>
+          <RateCardEditor v-if="expandedTab === 'rates'" :business-id="businessId" :company-id="company.id" />
+          <BillingPanel v-else :business-id="businessId" :company-id="company.id" />
+        </template>
       </div>
     </div>
 
@@ -244,6 +261,7 @@ import { getInitials } from '../lib/formatters'
 import { FeatureGate } from '../components/common'
 import { FormDropdown } from '../components/forms'
 import RateCardEditor from '../components/staffing/RateCardEditor.vue'
+import BillingPanel from '../components/staffing/BillingPanel.vue'
 import type { StaffingCompanyRow } from '../services/staffingService'
 import type { StaffingTaxBracket } from '../types/database'
 import { BuildingsIcon, AddCircleIcon, PenIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
@@ -276,8 +294,10 @@ const businessId = computed(() => authStore.businessId)
 const ctx = useEmpresas(businessId)
 
 const expandedId = ref<string | null>(null)
+const expandedTab = ref<'rates' | 'billing'>('rates')
 const toggle = (id: string) => {
   expandedId.value = expandedId.value === id ? null : id
+  expandedTab.value = 'rates'
 }
 
 const confirmDelete = (company: StaffingCompanyRow) => {

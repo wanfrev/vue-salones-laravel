@@ -1,11 +1,33 @@
-import { db } from '../lib/api'
+import { apiRequest, db } from '../lib/api'
 import { handleDbError } from '../lib/errors'
-import { staffingCompanyFormSchema, staffingRateFormSchema } from '../lib/validation'
-import type { StaffingCompany, StaffingCompanyRate, StaffingTaxBracket } from '../types/database'
+import { staffingCompanyFormSchema, staffingCompanyPaymentFormSchema, staffingRateFormSchema } from '../lib/validation'
+import type {
+  Profile, StaffingCompany, StaffingCompanyBalance, StaffingCompanyPayment, StaffingCompanyRate,
+  StaffingInvoice, StaffingTaxBracket, StaffingTimesheet,
+} from '../types/database'
 
 export const staffingCompanyKeys = {
   all: (businessId?: string | null, branchId?: string | null) =>
     ['staffing-companies', businessId, branchId] as const,
+}
+
+export const staffingInvoiceKeys = {
+  byCompany: (businessId?: string | null, companyId?: string | null) =>
+    ['staffing-invoices', businessId, companyId] as const,
+  balance: (businessId?: string | null, companyId?: string | null) =>
+    ['staffing-company-balance', businessId, companyId] as const,
+}
+
+export const staffingCompanyPaymentKeys = {
+  byCompany: (businessId?: string | null, companyId?: string | null) =>
+    ['staffing-company-payments', businessId, companyId] as const,
+}
+
+export const staffingTimesheetKeys = {
+  byCompany: (businessId?: string | null, companyId?: string | null) =>
+    ['staffing-timesheets', businessId, companyId] as const,
+  employees: (businessId?: string | null, companyId?: string | null) =>
+    ['staffing-company-employees', businessId, companyId] as const,
 }
 
 export const staffingRateKeys = {
@@ -232,4 +254,150 @@ export const saveStaffingRate = async (
 export const deleteStaffingRate = async (id: string): Promise<void> => {
   const { error } = await db.from('staffing_company_rates').delete().eq('id', id)
   if (error) handleDbError(error, 'Error al eliminar la tarifa')
+}
+
+/** Input for one employee's hours on a week — mirrors App\Services\Staffing\TimesheetEntry. */
+export interface TimesheetEntryInput {
+  employeeId: string
+  totalHours: number
+  preTaxDeduction?: number
+  fixedFees?: number
+  adjustment?: number
+}
+
+/**
+ * The employees assigned to a company (profile.staffing_company_id) — who the hours grid lists.
+ * businessId isn't part of the URL — the backend resolves it from the authenticated profile —
+ * but stays a parameter so the call site reads the same as every other staffing service function.
+ */
+export const listCompanyEmployees = (_businessId: string, companyId: string): Promise<Profile[]> =>
+  apiRequest<Profile[]>('GET', `/staffing-companies/${companyId}/employees`)
+
+export const listStaffingTimesheets = async (
+  businessId: string,
+  companyId?: string | null,
+): Promise<StaffingTimesheet[]> => {
+  let query = db.from('staffing_timesheets').select('*').eq('business_id', businessId)
+  if (companyId) query = query.eq('company_id', companyId)
+
+  const { data, error } = await query
+  if (error) handleDbError(error, 'Error al cargar las semanas')
+
+  return (data ?? []) as StaffingTimesheet[]
+}
+
+/**
+ * Creates the draft for (company, week) if it doesn't exist yet, or replaces its entries if it
+ * does — the caller always sends the full set of hours for the week, same as re-saving the sheet.
+ * Runs the same calculator that reproduces the DYKE/HILTON/CWT spreadsheets exactly; the response
+ * carries the computed regular/OT/gross/tax/net/payout/margin per employee.
+ */
+export const saveTimesheetWeek = async (
+  companyId: string,
+  weekStart: string,
+  weekEnd: string,
+  entries: TimesheetEntryInput[],
+): Promise<StaffingTimesheet> => {
+  const payload = {
+    company_id: companyId,
+    week_start: weekStart,
+    week_end: weekEnd,
+    entries: entries.map(e => ({
+      employee_id: e.employeeId,
+      total_hours: e.totalHours,
+      pre_tax_deduction: e.preTaxDeduction ?? 0,
+      fixed_fees: e.fixedFees ?? 0,
+      adjustment: e.adjustment ?? 0,
+    })),
+  }
+
+  const { data, error } = await db.from('staffing_timesheets').insert(payload).select('*').single()
+  if (error) handleDbError(error, 'Error al guardar las horas')
+
+  return data as StaffingTimesheet
+}
+
+/** Freezes the company's current overtime/tax/rounding rules onto the week — see the model docblock. */
+export const approveTimesheet = (id: string): Promise<StaffingTimesheet> =>
+  apiRequest<StaffingTimesheet>('POST', `/staffing-timesheets/${id}/approve`)
+
+/** Only a draft can be deleted — an approved week is payroll history. */
+export const deleteTimesheet = async (id: string): Promise<void> => {
+  const { error } = await db.from('staffing_timesheets').delete().eq('id', id)
+  if (error) handleDbError(error, 'Error al eliminar la semana')
+}
+
+export const listStaffingInvoices = async (
+  businessId: string,
+  companyId?: string | null,
+): Promise<StaffingInvoice[]> => {
+  let query = db.from('staffing_invoices').select('*').eq('business_id', businessId)
+  if (companyId) query = query.eq('company_id', companyId)
+
+  const { data, error } = await query
+  if (error) handleDbError(error, 'Error al cargar las facturas')
+
+  return (data ?? []) as StaffingInvoice[]
+}
+
+export const getStaffingInvoice = (id: string): Promise<StaffingInvoice> =>
+  apiRequest<StaffingInvoice>('GET', `/staffing-invoices/${id}`)
+
+/** One invoice per approved week — the total is whatever that week's entries already billed. */
+export const generateStaffingInvoice = (timesheetId: string): Promise<StaffingInvoice> =>
+  apiRequest<StaffingInvoice>('POST', '/staffing-invoices/generate', { timesheet_id: timesheetId })
+
+export const getCompanyBalance = (companyId: string): Promise<StaffingCompanyBalance> =>
+  apiRequest<StaffingCompanyBalance>('GET', `/staffing-companies/${companyId}/balance`)
+
+export interface StaffingCompanyPaymentFormData {
+  companyId: string
+  invoiceId: string
+  amount: number
+  paymentMethod: string
+  paymentDate: string
+  reference: string
+  notes: string
+}
+
+export const listCompanyPayments = async (
+  businessId: string,
+  companyId?: string | null,
+): Promise<StaffingCompanyPayment[]> => {
+  let query = db.from('staffing_company_payments').select('*').eq('business_id', businessId)
+  if (companyId) query = query.eq('company_id', companyId)
+
+  const { data, error } = await query
+  if (error) handleDbError(error, 'Error al cargar los abonos')
+
+  return (data ?? []) as StaffingCompanyPayment[]
+}
+
+export const createCompanyPayment = async (
+  data: StaffingCompanyPaymentFormData,
+): Promise<StaffingCompanyPayment> => {
+  const parsed = staffingCompanyPaymentFormSchema.safeParse(data)
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues.map(e => e.message).join('. '))
+  }
+
+  const payload = {
+    company_id: parsed.data.companyId,
+    invoice_id: parsed.data.invoiceId || null,
+    amount: parsed.data.amount,
+    payment_method: parsed.data.paymentMethod || null,
+    payment_date: parsed.data.paymentDate,
+    reference: parsed.data.reference || null,
+    notes: parsed.data.notes || null,
+  }
+
+  const { data: saved, error } = await db.from('staffing_company_payments').insert(payload).select('*').single()
+  if (error) handleDbError(error, 'Error al registrar el abono')
+
+  return saved as StaffingCompanyPayment
+}
+
+export const deleteCompanyPayment = async (id: string): Promise<void> => {
+  const { error } = await db.from('staffing_company_payments').delete().eq('id', id)
+  if (error) handleDbError(error, 'Error al eliminar el abono')
 }

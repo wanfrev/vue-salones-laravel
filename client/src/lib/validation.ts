@@ -157,9 +157,22 @@ export const staffingRateFormSchema = z.object({
   path: ['billRate'],
 })
 
+export const staffingCompanyPaymentFormSchema = z.object({
+  companyId: z.string().min(1, 'Selecciona una empresa'),
+  invoiceId: z.string().default(''),
+  amount: z.number().positive('El monto debe ser mayor a 0'),
+  paymentMethod: z.string().default(''),
+  paymentDate: z.string().min(1, 'Selecciona una fecha'),
+  reference: z.string().default(''),
+  notes: z.string().default(''),
+})
+
 export const empleadoFormSchema = z.object({
   name: z.string().min(1, 'El nombre es obligatorio').min(2, 'El nombre debe tener al menos 2 caracteres'),
-  email: z.string().min(1, 'El email es obligatorio').email('El email no es válido'),
+  // Required for every niche except staffing (no login there) — enforced by isFormValid in
+  // EmpleadoFormModal.vue, same pattern already used for `role` below. Blank must still parse
+  // as valid email syntax if present, so `.email()` stays but requiredness is not schema-level.
+  email: z.string().email('El email no es válido').or(z.literal('')).default(''),
   password: z.string().default(''),
   role: z.string().default(''),
   systemRole: z.string().default(''),

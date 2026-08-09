@@ -70,6 +70,16 @@ export interface Profile {
   disable_inventory_edit?: boolean
   can_access_finanzas?: boolean
   can_access_requirements?: boolean
+  staffing_company_id?: string | null
+  staffing_role?: string | null
+  bank_name?: string | null
+  bank_account_holder?: string | null
+  bank_account_type?: string | null
+  payment_method?: string | null
+  // The raw numbers are never present in an API response — Profile::$hidden strips them
+  // server-side. Only the masked last-4 accessors below ever reach the client.
+  bank_account_last4?: string | null
+  payroll_card_last4?: string | null
   created_at: string
   updated_at: string
 }
@@ -416,6 +426,92 @@ export interface StaffingCompanyRate {
   updated_at: string
 }
 
+/** One employee's row on one week's timesheet — a single line of the NOMINA sheet. */
+export interface StaffingTimesheetEntry {
+  id: string
+  business_id: string
+  timesheet_id: string
+  employee_id: string
+  total_hours: number
+  pre_tax_deduction: number
+  fixed_fees: number
+  adjustment: number
+  /** Snapshot from the rate card at the moment these hours were entered — not a live join. */
+  pay_rate: number
+  bill_rate: number
+  regular_hours: number
+  overtime_hours: number
+  gross: number
+  tax_withheld: number
+  net: number
+  payout: number
+  carried: number
+  invoice_total: number
+  employer_cost: number
+  margin: number
+  created_at: string
+  updated_at: string
+  employee?: Profile
+}
+
+/** One company's one week. `draft` is editable and recomputed live; `approved` is frozen. */
+export interface StaffingTimesheet {
+  id: string
+  business_id: string
+  company_id: string
+  week_start: string
+  week_end: string
+  status: 'draft' | 'approved' | 'paid'
+  terms_snapshot: Record<string, unknown> | null
+  notes: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+  entries: StaffingTimesheetEntry[]
+}
+
+/** The document Delta sends a client company — generated from one approved timesheet week. */
+export interface StaffingInvoice {
+  id: string
+  business_id: string
+  company_id: string
+  timesheet_id: string
+  invoice_number: string
+  issue_date: string
+  due_date: string
+  terms_days: number
+  work_site: string | null
+  subtotal: number
+  total: number
+  status: 'sent' | 'partial' | 'paid'
+  created_at: string
+  updated_at: string
+  company?: StaffingCompany
+  timesheet?: StaffingTimesheet
+}
+
+/** An abono against a company's balance — optionally tied to one invoice. */
+export interface StaffingCompanyPayment {
+  id: string
+  business_id: string
+  company_id: string
+  invoice_id: string | null
+  amount: number
+  payment_method: string | null
+  payment_date: string
+  reference: string | null
+  notes: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface StaffingCompanyBalance {
+  invoiced: number
+  paid: number
+  pending: number
+}
+
 export interface SupplierPayment {
   id: string
   business_id: string
@@ -505,6 +601,10 @@ export interface Database {
       supplier_payments: TableShape<SupplierPayment>
       staffing_companies: TableShape<StaffingCompany>
       staffing_company_rates: TableShape<StaffingCompanyRate>
+      staffing_timesheets: TableShape<StaffingTimesheet>
+      staffing_timesheet_entries: TableShape<StaffingTimesheetEntry>
+      staffing_invoices: TableShape<StaffingInvoice>
+      staffing_company_payments: TableShape<StaffingCompanyPayment>
       requirements: TableShape<Requirement>
     }
     Views: Record<string, never>

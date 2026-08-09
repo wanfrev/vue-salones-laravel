@@ -27,7 +27,10 @@ use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\WhatsAppController;
 use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\StaffingCompanyController;
+use App\Http\Controllers\Api\StaffingCompanyPaymentController;
 use App\Http\Controllers\Api\StaffingCompanyRateController;
+use App\Http\Controllers\Api\StaffingInvoiceController;
+use App\Http\Controllers\Api\StaffingTimesheetController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierPaymentController;
 use App\Http\Controllers\Api\SuperadminController;
@@ -218,6 +221,24 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/staffing-company-rates', [StaffingCompanyRateController::class, 'store']);
         Route::put('/staffing-company-rates/{id}', [StaffingCompanyRateController::class, 'update']);
         Route::delete('/staffing-company-rates/{id}', [StaffingCompanyRateController::class, 'destroy']);
+
+        Route::get('/staffing-companies/{companyId}/employees', [StaffingTimesheetController::class, 'employeesForCompany']);
+        Route::get('/staffing-timesheets', [StaffingTimesheetController::class, 'index']);
+        Route::post('/staffing-timesheets', [StaffingTimesheetController::class, 'store']);
+        Route::post('/staffing-timesheets/{id}/approve', [StaffingTimesheetController::class, 'approve']);
+        Route::delete('/staffing-timesheets/{id}', [StaffingTimesheetController::class, 'destroy']);
+    });
+
+    // Staffing — invoices billed to client companies and the payments (abonos) against them.
+    Route::middleware(['capability:staffing.billing', 'admin-panel'])->group(function () {
+        Route::get('/staffing-invoices', [StaffingInvoiceController::class, 'index']);
+        Route::get('/staffing-invoices/{id}', [StaffingInvoiceController::class, 'show']);
+        Route::post('/staffing-invoices/generate', [StaffingInvoiceController::class, 'generate']);
+        Route::get('/staffing-companies/{companyId}/balance', [StaffingInvoiceController::class, 'balance']);
+
+        Route::get('/staffing-company-payments', [StaffingCompanyPaymentController::class, 'index']);
+        Route::post('/staffing-company-payments', [StaffingCompanyPaymentController::class, 'store']);
+        Route::delete('/staffing-company-payments/{id}', [StaffingCompanyPaymentController::class, 'destroy']);
     });
 
     // Finanzas
