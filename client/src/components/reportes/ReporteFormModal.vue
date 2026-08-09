@@ -607,14 +607,13 @@ const fetchFromPos = async () => {
       formData.value[field] = String(summary.fields[field] ?? 0)
     }
 
-    // Tasa actual del día (tasa del POS o tasa actual del negocio). No pisa una
-    // tasa que el negocio ya haya cargado a mano.
-    const hadManualRate = parseNum(formData.value.exchange_rate) > 0
-    const currentRate = (hadManualRate ? parseNum(formData.value.exchange_rate) : null)
-      || summary.meta.exchange_rate
+    // Tasa actual del día (traída preferentemente de las transacciones del POS en esa fecha,
+    // o como fallback la tasa del negocio / valor actual del formulario).
+    const currentRate = summary.meta.exchange_rate
       || businessStore.business?.ves_exchange_rate
+      || parseNum(formData.value.exchange_rate)
       || 0
-    if (!hadManualRate && currentRate > 0) {
+    if (currentRate > 0) {
       formData.value.exchange_rate = String(currentRate)
     }
 
