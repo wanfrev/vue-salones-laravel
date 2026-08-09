@@ -44,14 +44,7 @@
       </div>
     </header>
 
-    <!-- Dashboard Financiero -->
-    <div>
-      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-3">
-        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3v18h18" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16l4-4 4 4 4-8" /></svg>
-        <span>Dashboard Financiero</span>
-      </div>
-      <ReportesFinancialDashboard />
-    </div>
+    <ReportesFinancialDashboard />
 
     <!-- Data Table -->
     <div class="rounded-2xl border border-border bg-surface shadow-sm overflow-hidden flex-1 flex flex-col min-h-[400px]">
