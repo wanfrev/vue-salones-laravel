@@ -336,13 +336,14 @@ class FinancialSummaryService
                 'transactions.method as payment_method',
                 'transactions.payments_breakdown',
                 'transactions.total_amount as transaction_total_amount',
+                'transactions.paid_at as transaction_paid_at',
             )
-            ->orderByDesc('inventory_movements.created_at');
+            ->orderByDesc(DB::raw('COALESCE(transactions.paid_at, inventory_movements.created_at)'));
 
         $tz = $this->resolveTimezone($businessId);
 
         if ($start && $end) {
-            $query->whereBetween('inventory_movements.created_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
+            $query->whereBetween(DB::raw('COALESCE(transactions.paid_at, inventory_movements.created_at)'), [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
         }
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
@@ -382,7 +383,7 @@ class FinancialSummaryService
 
             return [
                 'id' => $row->id,
-                'date' => $row->created_at,
+                'date' => $row->transaction_paid_at ?? $row->created_at,
                 'product' => $row->product_name ?? 'Sin producto',
                 'client_name' => $row->client_name,
                 'employee_name' => $row->employee_name,

@@ -464,6 +464,7 @@ function useFinancialSummary(
 
     // Appointment payments (skip direct sales that have product sales entries)
     for (const tx of (transactionsData.value ?? [])) {
+      if (tx.method === 'credito' || tx.method === 'crédito') continue
       const isDirectSale = !tx.appointment_id
       if (isDirectSale && directSaleTxIds.has(tx.id)) continue
 
@@ -577,6 +578,7 @@ function useFinancialSummary(
       }
 
       for (const inv of psGroupMap.values()) {
+        if (inv.method.toLowerCase() === 'crédito' || inv.method.toLowerCase() === 'credito') continue
         const prodCount = inv.items.reduce((s, i) => s + i.quantity, 0)
         const prodCountLabel = prodCount === 1 ? '1 producto' : `${prodCount} productos`
         const desc = inv.clientName ? `${inv.clientName} · ${prodCountLabel}` : `Venta · ${prodCountLabel}`
@@ -602,9 +604,10 @@ function useFinancialSummary(
     } else {
       // Non-tienda niche (product sales per item line)
       for (const ps of (productSalesData.value ?? [])) {
+        const method = (ps as any).payment_method ?? 'cash'
+        if (method === 'credito' || method === 'crédito') continue
         const clientLabel = (ps as any).client_name as string | undefined
         const productName = (ps as any).product ?? 'Producto'
-        const method = (ps as any).payment_method ?? 'cash'
         const breakdown = (ps as any).payments_breakdown ?? null
         const isAppointmentSale = (ps as any).is_appointment_sale ?? false
         const exchangeRateUsed = Number((ps as any).exchange_rate_used ?? 1)
