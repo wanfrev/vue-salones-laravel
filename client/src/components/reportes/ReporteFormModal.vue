@@ -289,6 +289,8 @@ import { ref, computed, watch } from 'vue'
 import ModalBase from '../common/ModalBase.vue'
 import FormInput from '../forms/FormInput.vue'
 import { useBusinessStore } from '../../store/business'
+import { apiRequest } from '../../lib/api'
+import type { PaymentMethod } from '../../types/database'
 import { useAuthStore } from '../../store/auth'
 import { useDailyReports } from '../../composables/reportes/useDailyReports'
 import { getDailyReportPosSummary } from '../../services/dailyReportService'
@@ -318,6 +320,7 @@ const zReportCurrency = ref<'VES' | 'USD'>('VES')
 
 interface CreditItemForm {
   id: string
+  transaction_id?: string
   name: string
   amount: string | number
   currency: 'USD' | 'Bs'
@@ -334,13 +337,32 @@ const addCreditRow = () => {
   })
 }
 
-const removeCreditRow = (index: number) => {
+const removeCreditRow = async (index: number) => {
   const removed = creditsList.value.splice(index, 1)[0]
   if (removed && parseNum(removed.amount) > 0) {
     if (removed.currency === 'USD') {
       formData.value.cash_usd = (parseNum(formData.value.cash_usd) + parseNum(removed.amount)).toFixed(2)
     } else {
       formData.value.cash_bs = (parseNum(formData.value.cash_bs) + parseNum(removed.amount)).toFixed(2)
+    }
+
+    if (removed.transaction_id) {
+      try {
+        const amt = parseNum(removed.amount)
+        const method = removed.currency === 'USD' ? 'cash' : 'cash_ves'
+        await apiRequest('PUT', `/transactions/${removed.transaction_id}`, {
+          total_amount: amt,
+          method: method,
+          payments_breakdown: [{
+             method: method,
+             amount: amt,
+             currency: removed.currency === 'USD' ? 'USD' : 'VES',
+             inputAmount: amt
+          }]
+        })
+      } catch (err) {
+        console.error('Error marcando crédito como pagado:', err)
+      }
     }
   }
 }
@@ -628,6 +650,7 @@ const fetchFromPos = async () => {
     if (summary.meta.credits_issued && summary.meta.credits_issued.length > 0) {
       creditsList.value = summary.meta.credits_issued.map((c: any) => ({
         id: String(Date.now() + Math.random()),
+        transaction_id: c.transaction_id,
         name: c.client_name,
         amount: String(c.amount),
         currency: c.currency === 'VES' ? 'Bs' : 'USD'

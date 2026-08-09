@@ -79,7 +79,16 @@ class DailyReportPosSummaryService
 
             foreach ($this->splitsFor($tx, $rate) as $split) {
                 if ($split['method'] === 'credito') {
-                    $clientName = $tx->appointment?->client?->full_name ?? 'Cliente Desconocido';
+                    $clientName = $tx->appointment?->client?->full_name;
+                    if (!$clientName && $tx->notes && str_starts_with($tx->notes, 'Venta directa — ')) {
+                        $extracted = str_replace('Venta directa — ', '', $tx->notes);
+                        $extracted = preg_replace('/\s*\([\d\+\-\s]+\)$/', '', $extracted);
+                        $clientName = trim($extracted);
+                    }
+                    if (!$clientName) {
+                        $clientName = 'Cliente Desconocido';
+                    }
+
                     $creditsIssued[] = [
                         'client_name' => $clientName,
                         'amount' => $split['amount'],
