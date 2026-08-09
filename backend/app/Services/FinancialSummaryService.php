@@ -42,6 +42,7 @@ class FinancialSummaryService
     ): Collection {
         $query = DB::table('transactions')
             ->leftJoin('appointments', 'transactions.appointment_id', '=', 'appointments.id')
+            ->where('transactions.method', '!=', 'credito')
             ->where('transactions.business_id', $businessId)
             ->select(
                 DB::raw("to_char(COALESCE(transactions.paid_at, transactions.created_at), 'YYYY-MM-DD') as bucket"),
@@ -79,7 +80,8 @@ class FinancialSummaryService
     ): array {
         // Income from transactions
         $txQuery = DB::table('transactions')
-            ->where('business_id', $businessId);
+            ->where('business_id', $businessId)
+            ->where('method', '!=', 'credito');
 
         $tz = $this->resolveTimezone($businessId);
 

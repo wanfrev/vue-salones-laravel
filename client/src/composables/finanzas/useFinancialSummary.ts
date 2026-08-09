@@ -179,6 +179,7 @@ function useFinancialSummary(
   const vesIncomeTotal = computed(() => {
     let total = 0
     for (const tx of (transactionsData.value ?? [])) {
+      if (tx.method === 'credito') continue
       const breakdown = tx.payments_breakdown as PaymentBreakdownItem[] | null
       const exchangeRateUsed = Number(tx.exchange_rate_used ?? 1)
       const amount = Number(tx.total_amount ?? 0)

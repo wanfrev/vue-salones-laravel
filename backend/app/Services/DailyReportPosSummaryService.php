@@ -64,11 +64,12 @@ class DailyReportPosSummaryService
             });
         }
 
-        $transactions = $query->get();
+        $transactions = $query->with('appointment.client')->get();
 
         $fields = array_fill_keys(self::FIELDS, 0.0);
         $rates = [];
         $unmapped = [];
+        $creditsIssued = [];
 
         foreach ($transactions as $tx) {
             $rate = (float) ($tx->exchange_rate_used ?: 0);
@@ -77,6 +78,17 @@ class DailyReportPosSummaryService
             }
 
             foreach ($this->splitsFor($tx, $rate) as $split) {
+                if ($split['method'] === 'credito') {
+                    $clientName = $tx->appointment?->client?->full_name ?? 'Cliente Desconocido';
+                    $creditsIssued[] = [
+                        'client_name' => $clientName,
+                        'amount' => $split['amount'],
+                        'currency' => $split['currency'],
+                        'transaction_id' => $tx->id
+                    ];
+                    continue;
+                }
+
                 $field = self::METHOD_MAP[$split['method']][$split['currency']] ?? null;
 
                 if ($field === null) {
@@ -107,6 +119,7 @@ class DailyReportPosSummaryService
                 // Tasa más usada del día o tasa actual del negocio
                 'exchange_rate' => $finalRate ? round((float) $finalRate, 2) : null,
                 'unmapped_methods' => array_keys($unmapped),
+                'credits_issued' => $creditsIssued,
             ],
         ];
     }

@@ -38,6 +38,10 @@ export function usePOSPayment() {
       methods.push({ label: 'Gift Card', value: 'gift_card' as PaymentMethod, currency: 'USD' as const })
     }
     
+    if (businessStore.business?.niche_type === 'tienda') {
+      methods.push({ label: 'Crédito', value: 'credito' as PaymentMethod, currency: 'USD' as const })
+    }
+    
     methods.push(
       { label: 'Mixto', value: 'mixed' as PaymentMethod, currency: null as null },
       { label: 'Punto de Vta (Bs)', value: 'punto_venta' as PaymentMethod, currency: 'VES' as const },

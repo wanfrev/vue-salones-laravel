@@ -335,7 +335,14 @@ const addCreditRow = () => {
 }
 
 const removeCreditRow = (index: number) => {
-  creditsList.value.splice(index, 1)
+  const removed = creditsList.value.splice(index, 1)[0]
+  if (removed && parseNum(removed.amount) > 0) {
+    if (removed.currency === 'USD') {
+      formData.value.cash_usd = (parseNum(formData.value.cash_usd) + parseNum(removed.amount)).toFixed(2)
+    } else {
+      formData.value.cash_bs = (parseNum(formData.value.cash_bs) + parseNum(removed.amount)).toFixed(2)
+    }
+  }
 }
 
 const defaultForm = () => ({
@@ -618,6 +625,15 @@ const fetchFromPos = async () => {
       || 0
     if (currentRate > 0) {
       formData.value.exchange_rate = String(currentRate)
+    }
+
+    if (summary.meta.credits_issued && summary.meta.credits_issued.length > 0) {
+      creditsList.value = summary.meta.credits_issued.map((c: any) => ({
+        id: String(Date.now() + Math.random()),
+        name: c.client_name,
+        amount: String(c.amount),
+        currency: c.currency === 'VES' ? 'Bs' : 'USD'
+      }))
     }
 
     // Calcular montos acumulados para autollenar Reporte Z en $ o Bs

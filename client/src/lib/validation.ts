@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const paymentMethodSchema = z.enum(['cash', 'cash_ves', 'card', 'transfer', 'other', 'zelle', 'binance', 'cashea', 'pago_movil', 'punto_venta', 'mixed', 'gift_card'])
+const paymentMethodSchema = z.enum(['cash', 'cash_ves', 'card', 'transfer', 'other', 'zelle', 'binance', 'cashea', 'pago_movil', 'punto_venta', 'mixed', 'gift_card', 'credito'])
 
 export const serviceItemSchema = z.object({
   serviceId: z.string().min(1, 'Selecciona un servicio'),
