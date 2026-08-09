@@ -352,6 +352,7 @@ const removeCreditRow = async (index: number) => {
       try {
         const amt = parseNum(removed.amount)
         const method = removed.currency === 'USD' ? 'cash' : 'cash_ves'
+        const paidAt = new Date(`${formData.value.date}T12:00:00Z`).toISOString()
         await apiRequest('PUT', `/transactions/${removed.transaction_id}`, {
           total_amount: amt,
           method: method,
@@ -360,7 +361,8 @@ const removeCreditRow = async (index: number) => {
              amount: amt,
              currency: removed.currency === 'USD' ? 'USD' : 'VES',
              inputAmount: amt
-          }]
+          }],
+          paid_at: paidAt
         })
         await Promise.allSettled([
           queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
