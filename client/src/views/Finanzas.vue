@@ -1,6 +1,6 @@
 <template>
   <header class="mb-4 lg:mb-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
         <DollarIcon class="h-3.5 w-3.5" />
         <span>Finanzas</span>
