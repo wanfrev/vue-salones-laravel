@@ -1,7 +1,7 @@
 <template>
   <FeatureGate feature="pos">
   <header class="mb-4 lg:mb-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div class="grid grid-cols-1 items-center gap-3 lg:grid-cols-[1fr_auto_1fr]">
       <div>
         <div class="flex items-center gap-2 text-xs text-primary mb-1">
           <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
@@ -10,20 +10,13 @@
         <h1 class="text-xl font-bold text-text sm:text-2xl lg:text-3xl">Punto de Venta</h1>
         <p class="hidden text-sm text-text-muted sm:block">Registra pagos de servicios y productos</p>
       </div>
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <ExchangeRateCard
-          :is-editable="isRateEditable"
-          :edit-rate-value="editRateValue"
-          :updating-rate="updatingRate"
-          :display-rate="displayRate"
-          @update:edit-rate-value="editRateValue = $event"
-          @update-rate="handleRateUpdate"
-        />
-        <div class="flex items-center gap-2">
+
+      <div class="flex justify-center">
+        <div class="flex rounded-xl border border-border bg-surface p-0.5 shadow-sm w-fit">
           <button
             v-if="businessStore.features.agenda"
             @click="showAppointmentsTab"
-            class="flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200"
+            class="flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200"
             :class="tabButtonClass('appointment')"
           >
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -32,7 +25,7 @@
           <button
             v-if="businessStore.features.pos_direct_service_sale"
             @click="startDirectService"
-            class="flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200"
+            class="flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200"
             :class="tabButtonClass('direct_service')"
           >
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
@@ -40,13 +33,24 @@
           </button>
           <button
             @click="startRetailOnly"
-            class="flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200"
+            class="flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200"
             :class="tabButtonClass('retail_only')"
           >
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
             {{ businessStore.features.agenda ? 'Venta directa' : 'Nueva factura' }}
           </button>
         </div>
+      </div>
+
+      <div class="flex justify-start lg:justify-end">
+        <ExchangeRateCard
+          :is-editable="isRateEditable"
+          :edit-rate-value="editRateValue"
+          :updating-rate="updatingRate"
+          :display-rate="displayRate"
+          @update:edit-rate-value="editRateValue = $event"
+          @update-rate="handleRateUpdate"
+        />
       </div>
     </div>
   </header>
@@ -679,8 +683,8 @@ const retailFilteredProducts = computed(() =>
 
 const tabButtonClass = (tab: typeof activeSaleType.value) =>
   activeSaleType.value === tab
-    ? 'bg-primary text-text-inverse border-primary'
-    : 'border-primary/30 text-primary hover:bg-primary/5'
+    ? 'bg-primary text-text-inverse shadow-sm'
+    : 'text-text-secondary hover:text-text hover:bg-bg-secondary'
 
 const showAppointmentsTab = () => {
   selectedAppointment.value = null
