@@ -69,12 +69,8 @@
                 <button type="button" @click="showCurrentPassword = !showCurrentPassword"
                   class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted hover:text-text transition-colors"
                   :disabled="passwordLoading" tabindex="-1">
-                  <svg v-if="!showCurrentPassword" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <!-- EyeIcon -->
-                  </svg>
-                  <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                  </svg>
+                  <EyeIcon v-if="!showCurrentPassword" class="h-4 w-4" />
+                  <EyeClosedIcon v-else class="h-4 w-4" />
                 </button>
               </div>
               <div class="relative">
@@ -92,12 +88,8 @@
                 <button type="button" @click="showNewPassword = !showNewPassword"
                   class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted hover:text-text transition-colors"
                   :disabled="passwordLoading" tabindex="-1">
-                  <svg v-if="!showNewPassword" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <!-- EyeIcon -->
-                  </svg>
-                  <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                  </svg>
+                  <EyeIcon v-if="!showNewPassword" class="h-4 w-4" />
+                  <EyeClosedIcon v-else class="h-4 w-4" />
                 </button>
               </div>
             </div>
@@ -122,8 +114,8 @@
       </div>
     </section>
 
-    <!-- ═══════════ WHATSAPP (solo si superadmin lo habilitó) ═══════════ -->
-    <section v-if="businessStore.features.whatsapp_available" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
+    <!-- ═══════════ WHATSAPP (solo si superadmin lo habilitó y el nicho maneja citas) ═══════════ -->
+    <section v-if="businessStore.features.whatsapp_available && businessStore.features.agenda" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
       <div class="flex items-center gap-3 mb-6">
         <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-100 dark:bg-green-900/30 text-green-600">
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -153,8 +145,8 @@
       </div>
 
       <div class="space-y-8">
-        <!-- Subcategoría: Encargados -->
-        <div>
+        <!-- Subcategoría: Encargados (solo si hay algo de esto que aplique al nicho) -->
+        <div v-if="showEncargadosSection">
           <div class="flex items-center gap-2.5 mb-2 px-1">
             <svg class="h-4 w-4 text-purple-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -163,6 +155,7 @@
           </div>
           <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
             <FormToggle
+              v-if="businessStore.features.inventario"
               :model-value="!!businessStore.features.disable_manager_inventory_edit"
               @update:model-value="toggleManagerInventoryEdit"
               label="Desactivar edición de inventario"
@@ -171,6 +164,7 @@
               class="px-5 py-5"
             />
             <FormToggle
+              v-if="!businessStore.isSingleCurrency"
               :model-value="!!businessStore.features.encargados_change_exchange_rate"
               @update:model-value="handleToggleEncargadoExchangeRate"
               label="Permitir cambiar la tasa del día"
@@ -179,6 +173,7 @@
               class="px-5 py-5"
             />
             <FormToggle
+              v-if="!businessStore.isSingleCurrency"
               :model-value="!!businessStore.features.encargados_change_employee_rate"
               @update:model-value="handleToggleEncargadoEmployeeRate"
               label="Permitir cambiar tasa de empleados"
@@ -187,6 +182,7 @@
               class="px-5 py-5"
             />
             <FormToggle
+              v-if="businessStore.features.agenda"
               :model-value="!!businessStore.features.disable_employee_commission_edit"
               @update:model-value="handleToggleDisableCommissionEdit"
               label="Bloquear edición de comisiones"
@@ -225,8 +221,8 @@
           </div>
         </div>
 
-        <!-- Subcategoría: POS y Ventas -->
-        <div>
+        <!-- Subcategoría: POS y Ventas (solo si hay algo de esto que aplique al nicho) -->
+        <div v-if="showPosVentasSection">
           <div class="flex items-center gap-2.5 mb-2 px-1">
             <svg class="h-4 w-4 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
@@ -235,6 +231,7 @@
           </div>
           <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
             <FormToggle
+              v-if="businessStore.features.agenda"
               :model-value="!!businessStore.features.pos_direct_service_sale"
               @update:model-value="handleToggleDirectServiceSale"
               label="Cobro directo de servicios en POS"
@@ -243,6 +240,7 @@
               class="px-5 py-5"
             />
             <FormToggle
+              v-if="businessStore.features.manual_reports && businessStore.features.pos"
               :model-value="!!businessStore.features.daily_report_autofill_from_pos"
               @update:model-value="handleToggleDailyReportAutofill"
               label="Traer del POS en el Reporte Diario"
@@ -255,8 +253,8 @@
       </div>
     </section>
 
-    <!-- ═══════════ NOTIFICACIONES ═══════════ -->
-    <section class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
+    <!-- ═══════════ NOTIFICACIONES (solo si el nicho maneja citas/agenda) ═══════════ -->
+    <section v-if="businessStore.features.agenda" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
       <div class="flex items-center gap-3 mb-6">
         <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600">
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -549,6 +547,16 @@ const businessId = computed(() => authStore.businessId)
 const isAdmin = computed(() => authStore.role === 'admin' || authStore.role === 'superadmin')
 const branchesCtx = useBranches(businessId)
 const updatingFeatures = ref(false)
+
+// Each toggle below only means something for niches with the matching capability — a
+// tienda/staffing business has no agenda, no dual currency, etc. Hiding the whole
+// subcategory (not just the individual toggles) avoids leaving an empty bordered box.
+const showEncargadosSection = computed(() =>
+  businessStore.features.inventario || !businessStore.isSingleCurrency || businessStore.features.agenda
+)
+const showPosVentasSection = computed(() =>
+  businessStore.features.agenda || (businessStore.features.manual_reports && businessStore.features.pos)
+)
 
 async function handleToggleEncargadoExchangeRate(val: boolean) {
   if (!businessId.value) return
