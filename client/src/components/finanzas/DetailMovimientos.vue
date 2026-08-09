@@ -29,7 +29,7 @@ const props = defineProps<{
   hideTotal?: boolean
 }>()
 
-const { formatUSD, formatVESInline, formatVESEs } = useCurrency()
+const { formatUSD, formatSecondary, formatVESEs } = useCurrency()
 const router = useRouter()
 const detailBusinessStore = useBusinessStore()
 const isTienda = computed(() => isTiendaNiche(detailBusinessStore.nicheType))
@@ -390,7 +390,7 @@ const confirmDeleteServicio = async () => {
                   <div class="font-semibold text-success">{{ item.primaryCurrency === 'VES' ?
                     formatVESEs(item.primaryAmount) : formatUSD(item.amount) }}</div>
                   <div class="text-[10px] text-text-muted mt-0.5">{{ item.primaryCurrency === 'VES' ?
-                    formatUSD(item.amount) : formatVESInline(item.amount, item.exchangeRateUsed) + ' Bs' }}</div>
+                    formatUSD(item.amount) : formatSecondary(item.amount, item.exchangeRateUsed) }}</div>
                   <span v-if="(item.tipAmount ?? 0) > 0"
                     class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary mt-1">+${{
                       (item.tipAmount ?? 0).toFixed(2) }} propina</span>
@@ -486,7 +486,7 @@ const confirmDeleteServicio = async () => {
                     </td>
                     <td class="px-3 py-3 text-right font-semibold text-info tabular-nums whitespace-nowrap">
                       <div>{{ inv.currency === 'VES' ? formatVESEs(inv.originalAmount) : formatUSD(inv.total) }}</div>
-                      <div class="text-[10px] text-text-muted mt-0.5">{{ inv.currency === 'VES' ? formatUSD(inv.total) : formatVESInline(inv.total, inv.exchangeRateUsed) + ' Bs' }}</div>
+                      <div class="text-[10px] text-text-muted mt-0.5">{{ inv.currency === 'VES' ? formatUSD(inv.total) : formatSecondary(inv.total, inv.exchangeRateUsed) }}</div>
                     </td>
                     <td class="px-3 py-3 text-center">
                       <div class="flex items-center justify-center gap-1">
@@ -638,7 +638,7 @@ const confirmDeleteServicio = async () => {
                   <td class="px-3 py-3 text-right font-semibold text-info tabular-nums whitespace-nowrap">
                     <div>{{ row.currency === 'VES' ? formatVESEs(row.originalAmount) : formatUSD(row.total) }}</div>
                     <div class="text-[10px] text-text-muted mt-0.5">{{ row.currency === 'VES' ? formatUSD(row.total) :
-                      formatVESInline(row.total, row.exchangeRateUsed) + ' Bs' }}</div>
+                      formatSecondary(row.total, row.exchangeRateUsed) }}</div>
                   </td>
                   <td class="px-3 py-3 text-center">
                     <button @click="summaryCtx.handleDeleteProductSale(row.id, row.product)"
@@ -674,7 +674,7 @@ const confirmDeleteServicio = async () => {
                 {{ p.name }}</span>
               <span class="font-medium text-info tabular-nums shrink-0 ml-2">
                 <span>{{ formatUSD(p.amount) }}</span>
-                <span class="text-text-muted ml-1">{{ formatVESInline(p.amount) + ' Bs' }}</span>
+                <span class="text-text-muted ml-1">{{ formatSecondary(p.amount) }}</span>
               </span>
             </div>
           </div>
@@ -751,7 +751,7 @@ const confirmDeleteServicio = async () => {
                 </td>
                 <td class="px-3 py-3 text-right">
                   <div class="font-semibold text-success tabular-nums">{{ formatUSD(svc.price) }}</div>
-                  <div class="text-[10px] text-text-muted">{{ formatVESInline(svc.price) }} Bs</div>
+                  <div class="text-[10px] text-text-muted">{{ formatSecondary(svc.price) }}</div>
                 </td>
                 <td class="px-3 py-3 text-right text-text-secondary hidden sm:table-cell">{{ svc.duration }} min</td>
                 <td class="px-3 py-3 text-center"><span
@@ -843,7 +843,7 @@ const confirmDeleteServicio = async () => {
                   <div class="font-medium text-text whitespace-nowrap">{{ expense.currency === 'VES' ?
                     formatVESEs(expense.originalAmount) : formatUSD(expense.amount) }}</div>
                   <div class="text-[11px] text-text-muted whitespace-nowrap">{{ expense.currency === 'VES' ?
-                    formatUSD(expense.amount) : formatVESInline(expense.amount, expense.exchangeRateUsed) + ' Bs' }}
+                    formatUSD(expense.amount) : formatSecondary(expense.amount, expense.exchangeRateUsed) }}
                   </div>
                 </td>
                 <td class="px-3 py-3 text-center">

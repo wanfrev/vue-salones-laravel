@@ -7,8 +7,7 @@
             <DocumentIcon class="h-4 w-4" />
             <span class="font-medium uppercase tracking-wider">{{ t.client || 'Cliente' }}s</span>
           </div>
-          <h1 class="text-xl font-bold text-text lg:text-2xl">Historial de {{ cliente?.name || t.client || 'Cliente' }}</h1>
-          <p class="text-sm text-text-muted">Servicios y visitas anteriores</p>
+          <p class="text-sm font-semibold text-text sm:text-base">{{ cliente?.name || t.client || 'Cliente' }}</p>
         </div>
         <div class="flex gap-2">
           <button

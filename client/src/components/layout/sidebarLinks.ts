@@ -14,6 +14,7 @@ import {
   GiftIcon,
   DocumentIcon,
   HeartPulseIcon,
+  BuildingsIcon,
 } from '@solar-icons/vue/linear'
 import type { Component } from 'vue'
 import type { RouteGate } from '../../router/gate'
@@ -51,10 +52,12 @@ export const sidebarSections: SidebarSection[] = [
       { to: '/admin/consultorio', label: 'Consultorio', icon: HeartPulseIcon, adminOnly: true, gate: { capability: 'clients.pets' } },
       { to: '/dashboard/consultorio', label: 'Consultorio', icon: HeartPulseIcon, employeeOnly: true, gate: { capability: 'clients.pets', profileFlag: 'can_access_consultorio' } },
       { to: '/admin/equipo', label: 'Equipo', labelKey: 'employee', icon: BagIcon, adminOnly: true },
+      { to: '/admin/empresas', label: 'Empresas', icon: BuildingsIcon, adminOnly: true, gate: { capability: 'staffing.timesheets' } },
       { to: '/admin/finanzas', label: 'Finanzas', icon: GraphIcon, adminOnly: true, badge: 'Nuevo' },
       { to: '/admin/finanzas', label: 'Finanzas', icon: GraphIcon, employeeOnly: true, badge: 'Nuevo', gate: { profileFlag: 'can_access_finanzas' } },
       { to: '/admin/servicios', label: 'Servicios', labelKey: 'service', icon: StarsIcon, adminOnly: true, gate: { feature: 'servicios' } },
       { to: '/admin/inventario', label: 'Inventario', icon: BoxIcon, adminOnly: true, gate: { feature: 'inventario' } },
+      { to: '/admin/requerimientos', label: 'Requerimientos', icon: DocumentIcon, adminOnly: true, gate: { capability: 'catalog.requirements' } },
       { to: '/admin/proveedores', label: 'Proveedores', icon: DeliveryIcon, adminOnly: true, gate: { feature: 'proveedores' } },
       { to: '/admin/gift-cards', label: 'Gift Cards', icon: GiftIcon, adminOnly: true, gate: { feature: 'gift_cards' } },
       { to: '/admin/reportes', label: 'Reporte', icon: DocumentIcon, adminOnly: true, gate: { feature: 'manual_reports' }, badge: 'Nuevo' },

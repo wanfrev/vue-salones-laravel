@@ -82,7 +82,7 @@
               <span class="font-medium text-text whitespace-nowrap">{{ expense.currency === 'VES' ?
                 formatVESEs(expense.originalAmount) : formatUSD(expense.amount) }}</span>
               <div class="text-xs text-text-muted whitespace-nowrap">{{ expense.currency === 'VES' ?
-                formatUSD(expense.amount) : formatVESInline(expense.amount, expense.exchangeRateUsed) + ' Bs' }}</div>
+                formatUSD(expense.amount) : formatSecondary(expense.amount, expense.exchangeRateUsed) }}</div>
             </div>
             <div class="flex items-center gap-1">
               <button @click="expensesCtx.openEdit(expense)"
@@ -133,7 +133,7 @@
                 <div class="font-medium text-text whitespace-nowrap">{{ expense.currency === 'VES' ?
                   formatVESEs(expense.originalAmount) : formatUSD(expense.amount) }}</div>
                 <div class="text-xs text-text-muted whitespace-nowrap">{{ expense.currency === 'VES' ?
-                  formatUSD(expense.amount) : formatVESInline(expense.amount, expense.exchangeRateUsed) + ' Bs' }}</div>
+                  formatUSD(expense.amount) : formatSecondary(expense.amount, expense.exchangeRateUsed) }}</div>
               </td>
               <td class="py-3 text-center">
                 <div class="flex items-center justify-center gap-1">
@@ -249,7 +249,7 @@ const emit = defineEmits<{
   'view-all': []
 }>()
 
-const { formatUSD, formatVESInline, formatVESEs } = useCurrency()
+const { formatUSD, formatSecondary, formatVESEs } = useCurrency()
 
 const expensesCtx = useExpenses(computed(() => props.businessId))
 

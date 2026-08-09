@@ -13,8 +13,7 @@
           </button>
           <div>
             <p class="text-xs font-medium uppercase tracking-wider text-primary">Comisiones</p>
-            <h1 class="text-xl font-bold text-text">Pagos recibidos</h1>
-            <p class="text-sm text-text-muted">Historial completo de tus pagos</p>
+            <p class="text-sm font-semibold text-text sm:text-base">Pagos recibidos</p>
           </div>
         </div>
       </header>

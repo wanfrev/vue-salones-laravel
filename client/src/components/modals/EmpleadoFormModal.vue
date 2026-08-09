@@ -27,7 +27,7 @@
             @blur="handleBlur('name')"
           />
 
-          <div>
+          <div v-if="!isStaffing">
             <label class="block text-sm font-medium text-text-secondary mb-2">Nivel de acceso</label>
             <div class="flex gap-2">
               <button v-for="opt in systemRoleOptions" :key="opt.value" type="button"
@@ -69,7 +69,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div class="grid grid-cols-1 gap-3" :class="isStaffing ? '' : 'sm:grid-cols-2'">
             <FormInput
               v-model="formData.phone"
               label="Teléfono"
@@ -80,6 +80,7 @@
             />
 
             <FormInput
+              v-if="!isStaffing"
               v-model="formData.email"
               label="Email"
               type="email"
@@ -92,6 +93,7 @@
           </div>
 
           <FormInput
+            v-if="!isStaffing"
             v-model="formData.password"
             label="Contraseña"
             type="password"
@@ -105,6 +107,16 @@
             autocomplete="new-password"
           />
 
+          <p v-if="isStaffing" class="rounded-lg bg-bg-secondary/60 px-3 py-2 text-xs text-text-muted">
+            Este empleado no tiene acceso al sistema — no necesita email ni contraseña.
+          </p>
+
+          <!--
+            Every toggle below governs access to a module a staffing worker never opens (no
+            login at all), so the whole block is gated on !isStaffing rather than threading the
+            condition into each one.
+          -->
+          <template v-if="!isStaffing">
           <label v-if="formData.systemRole !== 'cajero'" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
               <p class="text-sm font-medium text-text">Desactivar agenda</p>
@@ -227,26 +239,51 @@
               <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAccessFinanzas ? 'translate-x-4' : 'translate-x-0']" />
             </button>
           </label>
+
+          <label v-if="formData.systemRole !== 'encargado' && isTienda" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-text">Puede acceder a Requerimientos</p>
+              <p class="text-xs text-text-muted">Permite ver y registrar productos faltantes</p>
+            </div>
+            <button type="button" role="switch" :aria-checked="formData.canAccessRequirements"
+              @click="formData.canAccessRequirements = !formData.canAccessRequirements"
+              :class="['relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2', formData.canAccessRequirements ? 'bg-primary border-primary' : 'bg-border border-border']">
+              <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAccessRequirements ? 'translate-x-4' : 'translate-x-0']" />
+            </button>
+          </label>
+          </template>
         </div>
 
         <!-- COLUMNA DERECHA: Contratación -->
         <div class="space-y-4 lg:border-l lg:border-border lg:pl-6">
-          <p class="text-xs font-semibold uppercase tracking-wider text-primary">Contratación</p>
+          <template v-if="isStaffing">
+            <StaffingEmployeeFields
+              :form-data="formData"
+              :business-id="authStore.businessId"
+              :is-editing="isEditing"
+              :bank-account-last4="editingBankAccountLast4"
+              :payroll-card-last4="editingPayrollCardLast4"
+              @update:model-value="formData = $event"
+            />
+          </template>
+          <template v-else>
+            <p class="text-xs font-semibold uppercase tracking-wider text-primary">Contratación</p>
 
-          <!-- Tipo de pago -->
-          <SalaryConfig
-            :formData="formData"
-            :terminology="t"
-            :errors="errors as any"
-            @update:model-value="formData = $event"
-          />
+            <!-- Tipo de pago -->
+            <SalaryConfig
+              :formData="formData"
+              :terminology="t"
+              :errors="errors as any"
+              @update:model-value="formData = $event"
+            />
 
-          <!-- Horario -->
-          <ScheduleEditor
-            :formData="formData"
-            :errors="errors as any"
-            @update:model-value="formData = $event"
-          />
+            <!-- Horario -->
+            <ScheduleEditor
+              :formData="formData"
+              :errors="errors as any"
+              @update:model-value="formData = $event"
+            />
+          </template>
         </div>
       </div>
 
@@ -279,6 +316,7 @@ import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormDropdown } from '../forms'
 import SalaryConfig from '../equipo/SalaryConfig.vue'
 import ScheduleEditor from '../equipo/ScheduleEditor.vue'
+import StaffingEmployeeFields from '../equipo/StaffingEmployeeFields.vue'
 
 const MODAL_ID = 'empleado-form-modal'
 
@@ -300,6 +338,9 @@ const t = computed(() => businessStore.terminology)
 
 const isPetNicheBusiness = computed(() => isPetNiche(businessStore.nicheType))
 const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
+// Staffing workers have no login — email/password/permission toggles/schedule/commission
+// config are all replaced by the company + rate-card assignment (see StaffingEmployeeFields).
+const isStaffing = computed(() => businessStore.hasCapability('staffing.timesheets'))
 
 const isSubmitting = ref(false)
 const isLoading = computed(() => isSubmitting.value || props.isSaving)
@@ -351,14 +392,31 @@ const defaultFormData: EmpleadoFormData = {
   canAccessPos: false,
   canAccessSuppliers: false,
   canAccessFinanzas: false,
+  canAccessRequirements: false,
+  staffingCompanyId: '',
+  bankName: '',
+  bankAccountHolder: '',
+  bankAccountType: '',
+  paymentMethod: '',
+  bankRoutingNumber: '',
+  bankAccountNumber: '',
+  payrollCardNumber: '',
 }
 
 const formData = ref<EmpleadoFormData>({ ...defaultFormData })
 const { errors, isValid, validate, clearErrors, handleBlur } = useFormValidation(empleadoFormSchema as any, formData) as any as ReturnType<typeof useFormValidation>
 
+// Populated from the saved record on edit — masked hints only, the modal never sees the
+// full number. See Profile::$hidden / bank_account_last4 / payroll_card_last4.
+const editingBankAccountLast4 = ref<string | null>(null)
+const editingPayrollCardLast4 = ref<string | null>(null)
+
 const isFormValid = computed(() => {
   const nameValid = formData.value.name.trim().length >= 2
   const roleValid = formData.value.systemRole === 'encargado' ? true : formData.value.role !== ''
+  if (isStaffing.value) {
+    return nameValid && roleValid && formData.value.staffingCompanyId !== ''
+  }
   const emailValid = formData.value.email.trim().length >= 5
   const pwd = formData.value.password
   const passwordValid = pwd.length === 0 ? isEditing.value : pwd.length >= 6
@@ -398,9 +456,23 @@ watch(
         canAccessPos: empleado.canAccessPos ?? false,
         canAccessSuppliers: empleado.canAccessSuppliers ?? false,
         canAccessFinanzas: empleado.canAccessFinanzas ?? false,
+        canAccessRequirements: empleado.canAccessRequirements ?? false,
+        staffingCompanyId: empleado.staffingCompanyId ?? '',
+        bankName: empleado.bankName ?? '',
+        bankAccountHolder: empleado.bankAccountHolder ?? '',
+        bankAccountType: empleado.bankAccountType ?? '',
+        paymentMethod: empleado.paymentMethod ?? '',
+        // Write-only — never prefilled from the saved record, only the masked hints below are.
+        bankRoutingNumber: '',
+        bankAccountNumber: '',
+        payrollCardNumber: '',
       }
+      editingBankAccountLast4.value = empleado.bankAccountLast4 ?? null
+      editingPayrollCardLast4.value = empleado.payrollCardLast4 ?? null
     } else {
       formData.value = { ...defaultFormData }
+      editingBankAccountLast4.value = null
+      editingPayrollCardLast4.value = null
     }
     clearErrors()
   },
@@ -432,6 +504,7 @@ watch(
       formData.value.canAccessPos = true
       formData.value.canAccessSuppliers = false
       formData.value.canAccessFinanzas = false
+      formData.value.canAccessRequirements = false
     }
   }
 )

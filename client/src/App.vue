@@ -1,4 +1,5 @@
 <template>
+  <ImpersonationBanner />
   <RouterView v-slot="{ Component }">
     <template v-if="Component">
       <Suspense @pending="onPending" @resolve="onResolve">
@@ -19,6 +20,7 @@ import { RouterView } from 'vue-router'
 import NotificationToast from './components/common/NotificationToast.vue'
 import RouteLoader from './components/common/RouteLoader.vue'
 import PwaUpdatePrompt from './components/common/PwaUpdatePrompt.vue'
+import ImpersonationBanner from './components/common/ImpersonationBanner.vue'
 
 const showLoader = ref(false)
 let timer: ReturnType<typeof setTimeout> | null = null

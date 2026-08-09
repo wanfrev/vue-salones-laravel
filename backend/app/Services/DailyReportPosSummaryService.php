@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Business;
 use App\Models\Transaction;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Agrupa lo cobrado en el punto de venta por método de pago, con el formato que
@@ -40,10 +42,18 @@ class DailyReportPosSummaryService
      */
     public function summarize(string $businessId, string $date, ?string $branchId = null): array
     {
-        $day = Carbon::parse($date);
+        $business = Business::find($businessId);
+        $timezone = $business?->timezone ?: 'America/Caracas';
+
+        $cleanDate = explode('T', $date)[0];
+        $startOfDay = Carbon::parse($cleanDate, $timezone)->startOfDay()->setTimezone('UTC');
+        $endOfDay = Carbon::parse($cleanDate, $timezone)->endOfDay()->setTimezone('UTC');
 
         $query = Transaction::where('business_id', $businessId)
-            ->whereDate('paid_at', $day->toDateString());
+            ->whereBetween(
+                DB::raw('COALESCE(paid_at, created_at)'),
+                [$startOfDay, $endOfDay]
+            );
 
         // Sin sucursal seleccionada se toma todo el negocio; con sucursal se
         // incluyen también las transacciones sin sucursal asignada, igual que
@@ -82,12 +92,16 @@ class DailyReportPosSummaryService
             $fields[$key] = round($value, 2);
         }
 
+        $businessRate = (float) ($business?->ves_exchange_rate ?: 0);
+        $dominantRate = $this->dominantRate($rates);
+        $finalRate = $dominantRate ?: ($businessRate > 0 ? $businessRate : null);
+
         return [
             'fields' => $fields,
             'meta' => [
                 'transactions' => $transactions->count(),
-                // Tasa más usada del día: sirve para prellenar "Tasa del Día".
-                'exchange_rate' => $this->dominantRate($rates),
+                // Tasa más usada del día o tasa actual del negocio
+                'exchange_rate' => $finalRate ? round((float) $finalRate, 2) : null,
                 'unmapped_methods' => array_keys($unmapped),
             ],
         ];

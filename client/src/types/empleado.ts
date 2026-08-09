@@ -26,6 +26,18 @@ export interface Empleado {
   canAccessPos?: boolean
   canAccessSuppliers?: boolean
   canAccessFinanzas?: boolean
+  canAccessRequirements?: boolean
+  // Staffing niche only. The employee has no login — pay comes from the company + role
+  // assignment below, resolved against that company's rate card.
+  staffingCompanyId?: string | null
+  staffingRole?: string
+  bankName?: string
+  bankAccountHolder?: string
+  bankAccountType?: 'checking' | 'savings' | ''
+  paymentMethod?: 'direct_deposit' | 'payroll_card' | ''
+  /** Last 4 digits only — the full number never leaves the server. See Profile::$hidden. */
+  bankAccountLast4?: string | null
+  payrollCardLast4?: string | null
 }
 
 export interface EmpleadoFormData {
@@ -53,4 +65,17 @@ export interface EmpleadoFormData {
   canAccessPos: boolean
   canAccessSuppliers: boolean
   canAccessFinanzas: boolean
+  canAccessRequirements: boolean
+  // Staffing niche only. No separate "staffing role" input — `role` above (the existing
+  // Rol/Puesto field, backed by businessStore.jobTitles) doubles as the rate-card role.
+  staffingCompanyId: string
+  bankName: string
+  bankAccountHolder: string
+  bankAccountType: 'checking' | 'savings' | ''
+  paymentMethod: 'direct_deposit' | 'payroll_card' | ''
+  // Write-only: typing a value here changes what's on file, leaving it blank on an edit
+  // preserves whatever is already stored — see saveEmpleado in equipoService.ts.
+  bankRoutingNumber: string
+  bankAccountNumber: string
+  payrollCardNumber: string
 }

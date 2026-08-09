@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
+use App\Services\BusinessContext;
 use App\Services\ProfileService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,6 +27,37 @@ class ProfileController
         return $raw ?: null;
     }
 
+    /**
+     * Staffing workers have no login at all — the form never asks for email/password, so those
+     * fields must not be required. Every other niche keeps today's behaviour unchanged.
+     */
+    private function isStaffingBusiness(): bool
+    {
+        if (!app()->bound(BusinessContext::class)) {
+            return false;
+        }
+
+        return app(BusinessContext::class)->hasCapability('staffing.timesheets');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function staffingFieldRules(): array
+    {
+        return [
+            'staffing_company_id' => 'nullable|uuid|exists:staffing_companies,id',
+            'staffing_role' => 'nullable|string|max:120',
+            'bank_name' => 'nullable|string|max:255',
+            'bank_account_holder' => 'nullable|string|max:255',
+            'bank_account_type' => 'nullable|in:checking,savings',
+            'payment_method' => 'nullable|in:direct_deposit,payroll_card',
+            'bank_routing_number' => 'nullable|string|max:34',
+            'bank_account_number' => 'nullable|string|max:34',
+            'payroll_card_number' => 'nullable|string|max:34',
+        ];
+    }
+
     public function index(Request $request): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
@@ -45,14 +77,16 @@ class ProfileController
             return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
         }
 
-        $data = $request->validate([
+        $isStaffing = $this->isStaffingBusiness();
+
+        $data = $request->validate(array_merge([
             'full_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6',
+            'email' => ($isStaffing ? 'nullable' : 'required') . '|email|unique:users,email',
+            'password' => ($isStaffing ? 'nullable' : 'required') . '|string|min:6',
             'phone' => 'nullable|string|max:50',
             'job_title' => 'nullable|string|max:100',
             'role' => 'nullable|in:empleado,encargado',
-            'pay_type' => 'required|in:salary,percentage,mixed',
+            'pay_type' => ($isStaffing ? 'nullable' : 'required') . '|in:salary,percentage,mixed',
             'pay_percentage' => 'nullable|numeric|min:0|max:100',
             'base_salary' => 'nullable|numeric|min:0',
             'salary_frequency' => 'nullable|in:weekly,biweekly,monthly',
@@ -65,13 +99,14 @@ class ProfileController
             'can_access_pos' => 'boolean',
             'can_access_suppliers' => 'boolean',
             'can_access_finanzas' => 'boolean',
+            'can_access_requirements' => 'boolean',
             'branch_id' => 'nullable|uuid',
             'schedules' => 'nullable|array',
             'schedules.*.branch_id' => 'nullable|uuid',
             'schedules.*.weekday' => 'required|integer|min:0|max:6',
             'schedules.*.start_time' => 'required|date_format:H:i',
             'schedules.*.end_time' => 'required|date_format:H:i',
-        ]);
+        ], $this->staffingFieldRules()));
 
         try {
             $profile = $this->profileService->store($data, $businessId);
@@ -89,7 +124,7 @@ class ProfileController
             return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
         }
 
-        $data = $request->validate([
+        $data = $request->validate(array_merge([
             'full_name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:users,email,' . $id,
             'password' => 'nullable|string|min:6',
@@ -109,6 +144,7 @@ class ProfileController
             'can_access_pos' => 'boolean',
             'can_access_suppliers' => 'boolean',
             'can_access_finanzas' => 'boolean',
+            'can_access_requirements' => 'boolean',
             'active' => 'boolean',
             'branch_id' => 'nullable|uuid',
             'schedules' => 'nullable|array',
@@ -116,7 +152,7 @@ class ProfileController
             'schedules.*.weekday' => 'required|integer|min:0|max:6',
             'schedules.*.start_time' => 'required|date_format:H:i',
             'schedules.*.end_time' => 'required|date_format:H:i',
-        ]);
+        ], $this->staffingFieldRules()));
 
         $profile = $this->profileService->update($id, $data, $businessId);
         EntityChanged::safe($businessId, 'profile', 'updated', $id);

@@ -62,6 +62,15 @@ export const mapProfileToEmpleado = (
     canAccessPos: profile.can_access_pos ?? false,
     canAccessSuppliers: profile.can_access_suppliers ?? false,
     canAccessFinanzas: profile.can_access_finanzas ?? false,
+    canAccessRequirements: profile.can_access_requirements ?? false,
+    staffingCompanyId: profile.staffing_company_id ?? null,
+    staffingRole: profile.staffing_role ?? '',
+    bankName: profile.bank_name ?? '',
+    bankAccountHolder: profile.bank_account_holder ?? '',
+    bankAccountType: (profile.bank_account_type as Empleado['bankAccountType']) ?? '',
+    paymentMethod: (profile.payment_method as Empleado['paymentMethod']) ?? '',
+    bankAccountLast4: profile.bank_account_last4 ?? null,
+    payrollCardLast4: profile.payroll_card_last4 ?? null,
   }
 }
 
@@ -82,7 +91,17 @@ export const mapEmpleadoFormToProfileUpdate = (data: EmpleadoFormData) => ({
   can_access_pos: data.systemRole === 'cajero' ? true : data.canAccessPos,
   can_access_suppliers: data.systemRole === 'cajero' ? false : data.canAccessSuppliers,
   can_access_finanzas: data.systemRole === 'cajero' ? false : data.canAccessFinanzas,
+  can_access_requirements: data.systemRole === 'cajero' ? false : data.canAccessRequirements,
   role: data.systemRole === 'cajero' ? 'empleado' : data.systemRole,
+  // Staffing niche only. Safe to always overwrite — unlike the raw bank/card numbers below,
+  // these are plain fields the admin can see and re-edit, so there's nothing to preserve.
+  staffing_company_id: data.staffingCompanyId || null,
+  // No separate staffing-role input — the existing Rol/Puesto field is the rate-card role.
+  staffing_role: data.role?.trim() || null,
+  bank_name: data.bankName?.trim() || null,
+  bank_account_holder: data.bankAccountHolder?.trim() || null,
+  bank_account_type: data.bankAccountType || null,
+  payment_method: data.paymentMethod || null,
 })
 
 export const mapEmpleadoFormToScheduleBlocks = (employeeId: string, data: EmpleadoFormData & { branchId?: string | null }) => {

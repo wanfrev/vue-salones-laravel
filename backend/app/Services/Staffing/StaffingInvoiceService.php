@@ -1,0 +1,119 @@
+<?php
+
+namespace App\Services\Staffing;
+
+use App\Models\StaffingCompanyPayment;
+use App\Models\StaffingInvoice;
+use App\Models\StaffingTimesheet;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use RuntimeException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
+/**
+ * Generates the document Delta sends the client — one invoice per approved week, its total
+ * always equal to the sum of that week's entries.invoice_total (which already bills overtime,
+ * unlike the HILTON (2) sheet). Never hand-entered: the numbers come straight from the
+ * timesheet a StaffingTimesheetService run already computed and persisted.
+ */
+class StaffingInvoiceService
+{
+    public function __construct(private StaffingCompanyService $companies) {}
+
+    public function list(string $businessId, ?string $companyId = null): Collection
+    {
+        $query = StaffingInvoice::with('company')
+            ->where('business_id', $businessId)
+            ->orderByDesc('issue_date');
+
+        if ($companyId) {
+            $query->where('company_id', $companyId);
+        }
+
+        return $query->get();
+    }
+
+    public function generateFromTimesheet(string $businessId, string $timesheetId): StaffingInvoice
+    {
+        return DB::transaction(function () use ($businessId, $timesheetId) {
+            $timesheet = StaffingTimesheet::with('entries')->find($timesheetId);
+            if (!$timesheet || $timesheet->business_id !== $businessId) {
+                throw new NotFoundHttpException('Semana no encontrada.');
+            }
+            if ($timesheet->status === StaffingTimesheet::STATUS_DRAFT) {
+                throw new RuntimeException('Aprueba la semana antes de facturarla.');
+            }
+            if (StaffingInvoice::where('timesheet_id', $timesheetId)->exists()) {
+                throw new RuntimeException('Esta semana ya tiene una factura.');
+            }
+
+            $company = $this->companies->findForBusiness($timesheet->company_id, $businessId);
+            $total = round((float) $timesheet->entries->sum('invoice_total'), 2);
+            $issueDate = now()->toDateString();
+            $termsDays = $company->payment_terms_days ?: 15;
+
+            return StaffingInvoice::create([
+                'id' => Str::uuid()->toString(),
+                'business_id' => $businessId,
+                'company_id' => $company->id,
+                'timesheet_id' => $timesheet->id,
+                'invoice_number' => $this->nextInvoiceNumber($businessId),
+                'issue_date' => $issueDate,
+                'due_date' => now()->addDays($termsDays)->toDateString(),
+                'terms_days' => $termsDays,
+                'work_site' => $company->work_site,
+                'subtotal' => $total,
+                'total' => $total,
+                'status' => StaffingInvoice::STATUS_SENT,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+    }
+
+    /**
+     * Sequential and scoped to one agency's own invoices — not globally unique, matching how
+     * the sheets number them. Good enough for a low-traffic, admin-triggered action; a genuine
+     * race would only ever produce a friendly "already taken" 422 on the unique index, not
+     * corrupt data.
+     */
+    private function nextInvoiceNumber(string $businessId): string
+    {
+        $count = StaffingInvoice::where('business_id', $businessId)->count();
+
+        return (string) (1000 + $count + 1);
+    }
+
+    /**
+     * Money owed by one company, aggregated in the database rather than summed in a PHP loop —
+     * two SUM queries, not N+1. Unlike the supplier-debt calculation elsewhere in this app, this
+     * number does not depend on whatever date range happens to be selected in the UI.
+     */
+    public function balanceForCompany(string $businessId, string $companyId): array
+    {
+        $invoiced = (float) StaffingInvoice::where('business_id', $businessId)
+            ->where('company_id', $companyId)
+            ->sum('total');
+
+        $paid = (float) StaffingCompanyPayment::where('business_id', $businessId)
+            ->where('company_id', $companyId)
+            ->sum('amount');
+
+        return [
+            'invoiced' => $invoiced,
+            'paid' => $paid,
+            'pending' => max(0.0, $invoiced - $paid),
+        ];
+    }
+
+    public function findForBusiness(string $id, string $businessId): StaffingInvoice
+    {
+        $invoice = StaffingInvoice::with(['company', 'timesheet.entries.employee'])->find($id);
+        if (!$invoice || $invoice->business_id !== $businessId) {
+            throw new NotFoundHttpException('Factura no encontrada.');
+        }
+
+        return $invoice;
+    }
+}

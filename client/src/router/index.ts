@@ -134,6 +134,19 @@ const router = createRouter({
           component: () => import('../views/Equipo.vue'),
         },
         {
+          path: 'empresas',
+          name: 'admin-empresas',
+          component: () => import('../views/Empresas.vue'),
+          meta: { gate: { capability: 'staffing.timesheets' } },
+        },
+        {
+          // Staffing-only. The capability gate blocks every other niche here and in the API.
+          path: 'empresas',
+          name: 'admin-empresas',
+          component: () => import('../views/Empresas.vue'),
+          meta: { gate: { capability: 'staffing.timesheets' } },
+        },
+        {
           path: 'servicios',
           name: 'admin-servicios',
           component: () => import('../views/Servicios.vue'),
@@ -143,6 +156,11 @@ const router = createRouter({
           path: 'inventario',
           name: 'admin-inventario',
           component: () => import('../views/Productos.vue'),
+        },
+        {
+          path: 'requerimientos',
+          name: 'admin-requerimientos',
+          component: () => import('../views/Requerimientos.vue'),
         },
         {
           path: 'pos',

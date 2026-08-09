@@ -21,7 +21,19 @@ class Profile extends Model
         'disable_agenda', 'disable_inventory_edit',
         'can_create_appointments', 'can_create_clients',
         'can_access_consultorio',
-        'can_access_inventory', 'can_access_pos', 'can_access_suppliers', 'can_access_finanzas',
+        'can_access_inventory', 'can_access_pos', 'can_access_suppliers', 'can_access_finanzas', 'can_access_requirements',
+        'staffing_company_id', 'staffing_role',
+        'bank_name', 'bank_account_holder', 'bank_account_type', 'payment_method',
+        'bank_routing_number', 'bank_account_number', 'payroll_card_number',
+    ];
+
+    // Never serialized in full — see the *Last4 accessors below for what the API exposes instead.
+    protected $hidden = [
+        'bank_routing_number', 'bank_account_number', 'payroll_card_number',
+    ];
+
+    protected $appends = [
+        'bank_account_last4', 'payroll_card_last4',
     ];
 
     protected function casts(): array
@@ -37,9 +49,13 @@ class Profile extends Model
             'can_access_pos' => 'boolean',
             'can_access_suppliers' => 'boolean',
             'can_access_finanzas' => 'boolean',
+            'can_access_requirements' => 'boolean',
             'pay_percentage' => 'float',
             'base_salary' => 'float',
             'employee_ves_rate' => 'float',
+            'bank_routing_number' => 'encrypted',
+            'bank_account_number' => 'encrypted',
+            'payroll_card_number' => 'encrypted',
         ];
     }
 
@@ -51,5 +67,39 @@ class Profile extends Model
     public function schedules(): HasMany
     {
         return $this->hasMany(EmployeeSchedule::class, 'employee_id');
+    }
+
+    public function staffingCompany(): BelongsTo
+    {
+        return $this->belongsTo(StaffingCompany::class, 'staffing_company_id');
+    }
+
+    /**
+     * Last 4 digits only — the full number is in $hidden and never leaves the server. Swallows
+     * decryption failures instead of 500ing a list endpoint over one corrupted/legacy row.
+     */
+    protected function getBankAccountLast4Attribute(): ?string
+    {
+        return $this->last4Of('bank_account_number');
+    }
+
+    protected function getPayrollCardLast4Attribute(): ?string
+    {
+        return $this->last4Of('payroll_card_number');
+    }
+
+    private function last4Of(string $attribute): ?string
+    {
+        try {
+            $value = $this->{$attribute};
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (!$value) {
+            return null;
+        }
+
+        return substr($value, -4);
     }
 }

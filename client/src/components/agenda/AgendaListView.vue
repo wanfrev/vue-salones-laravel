@@ -59,7 +59,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
-            <tr v-for="cita in citas" :key="cita.id" class="group transition-theme hover:bg-bg-secondary/30">
+            <tr v-for="cita in paginatedData" :key="cita.id" class="group transition-theme hover:bg-bg-secondary/30">
               <td class="px-4 py-3">
                 <div class="flex items-center gap-2.5">
                   <div
@@ -120,7 +120,7 @@
 
       <!-- Mobile Cards -->
       <div class="sm:hidden space-y-2">
-        <div v-for="cita in citas" :key="cita.id"
+        <div v-for="cita in paginatedData" :key="cita.id"
           class="rounded-xl border border-border bg-surface p-3 transition-theme active:bg-bg-secondary/50">
           <div class="flex items-start gap-3">
             <div
@@ -172,12 +172,47 @@
           </div>
         </div>
       </div>
+
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
+        <p class="text-xs text-text-muted tabular-nums">
+          Mostrando {{ paginationStart }}–{{ paginationEnd }} de {{ totalItems }}
+        </p>
+        <div class="flex items-center gap-1">
+          <button
+            :disabled="!hasPreviousPage"
+            @click="previousPage"
+            class="rounded-lg px-2 py-1.5 text-xs font-medium text-text-muted transition-theme hover:bg-bg-secondary hover:text-text disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Anterior
+          </button>
+          <template v-for="pn in pageNumbers" :key="pn">
+            <span v-if="pn === '...'" class="px-1 text-xs text-text-muted">...</span>
+            <button
+              v-else
+              @click="goToPage(Number(pn))"
+              :class="['rounded-lg px-2.5 py-1.5 text-xs font-medium transition-theme', currentPage === pn ? 'bg-primary text-text-inverse shadow-sm' : 'text-text-muted hover:bg-bg-secondary hover:text-text']"
+            >
+              {{ pn }}
+            </button>
+          </template>
+          <button
+            :disabled="!hasNextPage"
+            @click="nextPage"
+            class="rounded-lg px-2 py-1.5 text-xs font-medium text-text-muted transition-theme hover:bg-bg-secondary hover:text-text disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Siguiente
+          </button>
+        </div>
+      </div>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
+import { toRef, watch } from 'vue'
 import { getInitials, getStatusColor, formatTime24to12, parseLocalDate } from '../../lib/formatters'
+import { usePagination } from '../../composables/common/usePagination'
 import type { Cita } from '../../types/cita'
 
 const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
@@ -190,15 +225,40 @@ function formatDateLabel(dateStr: string): string {
   return `${DAY_NAMES[d.getDay()]} ${dd}/${mm}`
 }
 
-defineProps<{
+const props = defineProps<{
   citas: Cita[]
   loading?: boolean
   error?: unknown
   t?: string
+  pageSize?: number
 }>()
 
 defineEmits<{
   edit: [cita: Cita]
   delete: [id: string]
 }>()
+
+const citasRef = toRef(props, 'citas')
+
+const {
+  paginatedData,
+  currentPage,
+  totalPages,
+  totalItems,
+  paginationStart,
+  paginationEnd,
+  hasNextPage,
+  hasPreviousPage,
+  nextPage,
+  previousPage,
+  goToPage,
+  pageNumbers,
+} = usePagination({
+  data: citasRef,
+  pageSize: props.pageSize ?? 25,
+})
+
+watch(() => props.citas, () => {
+  goToPage(1)
+})
 </script>

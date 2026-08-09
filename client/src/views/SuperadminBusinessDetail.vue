@@ -72,13 +72,14 @@
           <div class="mb-4">
             <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Agenda y catálogo</p>
             <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
-              <label v-for="ft in scheduleFlags" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer hover:bg-bg-secondary/30 transition-colors">
+              <label v-for="ft in scheduleFlags" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-bg-secondary/30 transition-colors" :class="isLocked(ft.key) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'">
                 <div>
                   <p class="text-sm font-medium text-text">{{ ft.label }}</p>
                   <p class="text-[11px] text-text-muted">{{ ft.description }}</p>
+                  <p v-if="isLocked(ft.key)" class="text-[10px] font-semibold text-warning mt-0.5">No disponible para el nicho "{{ business.niche_type }}"</p>
                 </div>
-                <button type="button" :disabled="isTogglingFeature" @click="toggleFeature(ft.key)"
-                  :class="['relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors', features[ft.key] ? 'bg-primary' : 'bg-border']">
+                <button type="button" :disabled="isTogglingFeature || isLocked(ft.key)" :title="isLocked(ft.key) ? `No disponible para el nicho ${business.niche_type}` : undefined" @click="toggleFeature(ft.key)"
+                  :class="['relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors', isLocked(ft.key) ? 'cursor-not-allowed' : '', features[ft.key] ? 'bg-primary' : 'bg-border']">
                   <span :class="['inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform', features[ft.key] ? 'translate-x-4.5' : 'translate-x-0.5']" />
                 </button>
               </label>
@@ -89,13 +90,14 @@
           <div class="mb-4">
             <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Módulos</p>
             <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
-              <label v-for="ft in coreModules" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer hover:bg-bg-secondary/30 transition-colors">
+              <label v-for="ft in coreModules" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-bg-secondary/30 transition-colors" :class="isLocked(ft.key) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'">
                 <div>
                   <p class="text-sm font-medium text-text">{{ ft.label }}</p>
                   <p class="text-[11px] text-text-muted">{{ ft.description }}</p>
+                  <p v-if="isLocked(ft.key)" class="text-[10px] font-semibold text-warning mt-0.5">No disponible para el nicho "{{ business.niche_type }}"</p>
                 </div>
-                <button type="button" :disabled="isTogglingFeature" @click="toggleFeature(ft.key)"
-                  :class="['relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors', features[ft.key] ? 'bg-primary' : 'bg-border']">
+                <button type="button" :disabled="isTogglingFeature || isLocked(ft.key)" :title="isLocked(ft.key) ? `No disponible para el nicho ${business.niche_type}` : undefined" @click="toggleFeature(ft.key)"
+                  :class="['relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors', isLocked(ft.key) ? 'cursor-not-allowed' : '', features[ft.key] ? 'bg-primary' : 'bg-border']">
                   <span :class="['inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform', features[ft.key] ? 'translate-x-4.5' : 'translate-x-0.5']" />
                 </button>
               </label>
@@ -106,14 +108,15 @@
           <div class="mb-4">
             <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Gestión y equipos</p>
             <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
-              <label v-for="ft in managementFlags" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer hover:bg-bg-secondary/30 transition-colors">
+              <label v-for="ft in managementFlags" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-bg-secondary/30 transition-colors" :class="isLocked(ft.key) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'">
                 <div>
                   <p class="text-sm font-medium text-text">{{ ft.label }}</p>
                   <p class="text-[11px] text-text-muted">{{ ft.description }}</p>
+                  <p v-if="isLocked(ft.key)" class="text-[10px] font-semibold text-warning mt-0.5">No disponible para el nicho "{{ business.niche_type }}"</p>
                 </div>
-                <button type="button" :disabled="isTogglingFeature" @click="toggleFeature(ft.key)"
-                  :class="['relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors', features[ft.key] ? 'bg-primary' : 'bg-border']">
-                  <span :class="['inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform', 'ml-0.5', features[ft.key] ? 'translate-x-3.5' : '']" />
+                <button type="button" :disabled="isTogglingFeature || isLocked(ft.key)" :title="isLocked(ft.key) ? `No disponible para el nicho ${business.niche_type}` : undefined" @click="toggleFeature(ft.key)"
+                  :class="['relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors', isLocked(ft.key) ? 'cursor-not-allowed' : '', features[ft.key] ? 'bg-primary' : 'bg-border']">
+                  <span :class="['inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform', features[ft.key] ? 'translate-x-4.5' : 'translate-x-0.5']" />
                 </button>
               </label>
             </div>
@@ -123,14 +126,15 @@
           <div>
             <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Comunicación y reservas</p>
             <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
-              <label v-for="ft in commFlags" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 cursor-pointer hover:bg-bg-secondary/30 transition-colors">
+              <label v-for="ft in commFlags" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-bg-secondary/30 transition-colors" :class="isLocked(ft.key) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'">
                 <div>
                   <p class="text-sm font-medium text-text">{{ ft.label }}</p>
                   <p class="text-[11px] text-text-muted">{{ ft.description }}</p>
+                  <p v-if="isLocked(ft.key)" class="text-[10px] font-semibold text-warning mt-0.5">No disponible para el nicho "{{ business.niche_type }}"</p>
                 </div>
-                <button type="button" :disabled="isTogglingFeature" @click="toggleFeature(ft.key)"
-                  :class="['relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors', features[ft.key] ? 'bg-primary' : 'bg-border']">
-                  <span :class="['inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform', 'ml-0.5', features[ft.key] ? 'translate-x-3.5' : '']" />
+                <button type="button" :disabled="isTogglingFeature || isLocked(ft.key)" :title="isLocked(ft.key) ? `No disponible para el nicho ${business.niche_type}` : undefined" @click="toggleFeature(ft.key)"
+                  :class="['relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors', isLocked(ft.key) ? 'cursor-not-allowed' : '', features[ft.key] ? 'bg-primary' : 'bg-border']">
+                  <span :class="['inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform', features[ft.key] ? 'translate-x-4.5' : 'translate-x-0.5']" />
                 </button>
               </label>
             </div>
@@ -274,7 +278,7 @@ import { translateError } from '../lib/errors'
 import SuperadminLayout from '../components/layout/SuperadminLayout.vue'
 import type { AuthProfile } from '../types/auth'
 import type { Business } from '../types/database'
-import { creatableNiches, resolveFeatures } from '../config/niches'
+import { creatableNiches, resolveFeatures, getNiche } from '../config/niches'
 import { ArrowLeftIcon } from '@solar-icons/vue/linear'
 
 const { success, error: showError } = useNotification()
@@ -302,6 +306,11 @@ const features = computed(() =>
   (business.value as any)?.resolved_features
   ?? resolveFeatures(business.value?.niche_type, rawFeatures.value)
 )
+
+// Locked keys win over any stored/superadmin choice in resolveFeatures — toggling them
+// silently reverts, which reads as "broken" unless the UI explains why up front.
+const lockedFeatureKeys = computed(() => new Set(Object.keys(getNiche(business.value?.niche_type).featureLocks ?? {})))
+const isLocked = (key: string) => lockedFeatureKeys.value.has(key)
 
 const registeredNiches = creatableNiches()
 const isUnregisteredNiche = computed(() =>
@@ -346,7 +355,7 @@ const commFlags = computed(() => allFlags.filter(f => ['enable_public_booking', 
 
 const isTogglingFeature = ref(false)
 const toggleFeature = async (key: string) => {
-  if (!business.value) return
+  if (!business.value || isLocked(key)) return
   // Merge base is the RAW stored object (sparse) — only the flipped key gets written on top
   // of whatever was already explicitly persisted. The new value inverts the RESOLVED
   // (effective) state, so a flag that's currently on via a niche default correctly flips off.
@@ -355,6 +364,7 @@ const toggleFeature = async (key: string) => {
   isTogglingFeature.value = true
   try {
     await updateBusiness({ business_id: business.value.id, features: { ...stored, [key]: !effective[key] } })
+    success(effective[key] ? 'Función desactivada' : 'Función activada')
     queryClient.invalidateQueries({ queryKey: superadminKeys.businesses() }).catch(() => {})
   } catch (err: unknown) {
     showError(translateError(err, 'Error al cambiar'))

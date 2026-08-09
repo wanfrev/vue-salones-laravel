@@ -52,14 +52,19 @@ class ProfileService
 
     public function store(array $data, string $businessId): Profile
     {
-        $email = strtolower($data['email']);
+        // Staffing workers get no login at all: the controller makes email/password optional
+        // for that niche, and a real users row still has to exist (profiles.id = users.id,
+        // and users.email/password are NOT NULL) so this fills in credentials nobody is ever
+        // given — a random password and an email address that resolves nowhere.
+        $email = !empty($data['email']) ? strtolower($data['email']) : $this->generateNoLoginEmail();
+        $password = !empty($data['password']) ? $data['password'] : Str::random(40);
 
         DB::beginTransaction();
         try {
             $user = User::create([
                 'name' => $data['full_name'],
                 'email' => $email,
-                'password' => $data['password'],
+                'password' => $password,
             ]);
 
             Profile::create([
@@ -71,7 +76,7 @@ class ProfileService
                 'phone' => $data['phone'] ?? null,
                 'email' => $email,
                 'job_title' => $data['job_title'] ?? null,
-                'pay_type' => $data['pay_type'],
+                'pay_type' => $data['pay_type'] ?? 'percentage',
                 'pay_percentage' => $data['pay_percentage'] ?? 50,
                 'base_salary' => $data['base_salary'] ?? 0,
                 'salary_frequency' => $data['salary_frequency'] ?? null,
@@ -84,6 +89,16 @@ class ProfileService
                 'can_access_pos' => $data['can_access_pos'] ?? false,
                 'can_access_suppliers' => $data['can_access_suppliers'] ?? false,
                 'can_access_finanzas' => $data['can_access_finanzas'] ?? false,
+                'can_access_requirements' => $data['can_access_requirements'] ?? false,
+                'staffing_company_id' => $data['staffing_company_id'] ?? null,
+                'staffing_role' => $data['staffing_role'] ?? null,
+                'bank_name' => $data['bank_name'] ?? null,
+                'bank_account_holder' => $data['bank_account_holder'] ?? null,
+                'bank_account_type' => $data['bank_account_type'] ?? null,
+                'payment_method' => $data['payment_method'] ?? null,
+                'bank_routing_number' => $data['bank_routing_number'] ?? null,
+                'bank_account_number' => $data['bank_account_number'] ?? null,
+                'payroll_card_number' => $data['payroll_card_number'] ?? null,
                 'active' => true,
             ]);
 
@@ -96,6 +111,11 @@ class ProfileService
         }
 
         return Profile::with('schedules')->find($user->id);
+    }
+
+    private function generateNoLoginEmail(): string
+    {
+        return 'staffing-' . Str::uuid()->toString() . '@no-login.internal';
     }
 
     public function update(string $id, array $data, string $businessId): Profile
@@ -155,6 +175,18 @@ class ProfileService
             }
             if (array_key_exists('can_access_suppliers', $data)) {
                 $profileFields['can_access_suppliers'] = $data['can_access_suppliers'];
+            }
+            if (array_key_exists('can_access_requirements', $data)) {
+                $profileFields['can_access_requirements'] = $data['can_access_requirements'];
+            }
+            foreach ([
+                'staffing_company_id', 'staffing_role',
+                'bank_name', 'bank_account_holder', 'bank_account_type', 'payment_method',
+                'bank_routing_number', 'bank_account_number', 'payroll_card_number',
+            ] as $staffingField) {
+                if (array_key_exists($staffingField, $data)) {
+                    $profileFields[$staffingField] = $data[$staffingField];
+                }
             }
             if (array_key_exists('active', $data)) {
                 $profileFields['active'] = $data['active'];

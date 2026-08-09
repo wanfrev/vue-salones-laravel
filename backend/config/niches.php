@@ -102,7 +102,6 @@ return [
                 'agenda' => false,
                 'calendario' => false,
                 'servicios' => false,
-                'gift_cards' => false,
             ],
         ],
         'staffing' => [

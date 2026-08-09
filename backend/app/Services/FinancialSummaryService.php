@@ -44,20 +44,20 @@ class FinancialSummaryService
             ->leftJoin('appointments', 'transactions.appointment_id', '=', 'appointments.id')
             ->where('transactions.business_id', $businessId)
             ->select(
-                DB::raw("to_char(transactions.paid_at, 'YYYY-MM-DD') as bucket"),
+                DB::raw("to_char(COALESCE(transactions.paid_at, transactions.created_at), 'YYYY-MM-DD') as bucket"),
                 DB::raw('count(distinct transactions.id) as transaction_count'),
                 DB::raw('coalesce(sum(transactions.total_amount), 0) as total_amount'),
                 DB::raw('coalesce(sum(transactions.local_amount), 0) as local_amount'),
                 DB::raw('coalesce(sum(transactions.employee_amount), 0) as employee_amount'),
                 DB::raw('coalesce(sum(transactions.tip_amount), 0) as tip_amount'),
             )
-            ->groupBy(DB::raw("to_char(transactions.paid_at, 'YYYY-MM-DD')"))
+            ->groupBy(DB::raw("to_char(COALESCE(transactions.paid_at, transactions.created_at), 'YYYY-MM-DD')"))
             ->orderBy('bucket');
 
         $tz = $this->resolveTimezone($businessId);
 
         if ($start && $end) {
-            $query->whereBetween('transactions.paid_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
+            $query->whereBetween(DB::raw('COALESCE(transactions.paid_at, transactions.created_at)'), [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
         }
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
@@ -84,7 +84,7 @@ class FinancialSummaryService
         $tz = $this->resolveTimezone($businessId);
 
         if ($start && $end) {
-            $txQuery->whereBetween('paid_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
+            $txQuery->whereBetween(DB::raw('COALESCE(paid_at, created_at)'), [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
         }
         if ($branchId) {
             $txQuery->where(function ($q) use ($branchId) {
@@ -115,10 +115,9 @@ class FinancialSummaryService
 
         $operationalExpenses = (float) $expQuery->sum('amount');
 
-        // Employee payments
+        // Employee payments & consumptions
         $empQuery = DB::table('employee_payments')
-            ->where('business_id', $businessId)
-            ->where('type', 'payment');
+            ->where('business_id', $businessId);
 
         if ($start && $end) {
             $empQuery->whereBetween('payment_date', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
@@ -129,7 +128,13 @@ class FinancialSummaryService
             });
         }
 
-        $totalEmployeePayments = (float) $empQuery->sum('amount');
+        $empTotals = $empQuery->select(
+            DB::raw("COALESCE(SUM(CASE WHEN type = 'payment' THEN amount ELSE 0 END), 0) as total_payment"),
+            DB::raw("COALESCE(SUM(CASE WHEN type = 'consumption' THEN amount ELSE 0 END), 0) as total_consumption")
+        )->first();
+
+        $totalEmployeePayments = (float) ($empTotals->total_payment ?? 0);
+        $totalConsumptions = (float) ($empTotals->total_consumption ?? 0);
 
         // Supplier payments
         $supQuery = DB::table('supplier_payments')
@@ -156,7 +161,46 @@ class FinancialSummaryService
 
         $employeeCommissions = round($totalIncome - $localIncome, 2);
 
-        $netProfit = $totalIncome - $totalExpenses;
+        // Cost of Goods Sold (COGS): sólo movimientos de venta/consumo real de producto.
+        // Los ajustes manuales de stock (mermas, correcciones de conteo) no son ventas
+        // y no deben contarse como costo de venta. 'sale' y 'consumption' son los únicos
+        // movement_type que la app escribe para ventas reales (ver PosService); no incluir
+        // aquí tipos que no se generan realmente en el código.
+        $cogsQuery = DB::table('inventory_movements')
+            ->leftJoin('products', 'inventory_movements.product_id', '=', 'products.id')
+            ->leftJoin('product_variants', 'inventory_movements.variant_id', '=', 'product_variants.id')
+            ->where('inventory_movements.business_id', $businessId)
+            ->whereIn('inventory_movements.movement_type', ['sale', 'consumption']);
+
+        if ($start && $end) {
+            $cogsQuery->whereBetween('inventory_movements.created_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
+        }
+        if ($branchId) {
+            $cogsQuery->where(function ($q) use ($branchId) {
+                $q->whereNull('inventory_movements.branch_id')->orWhere('inventory_movements.branch_id', $branchId);
+            });
+        }
+
+        // Costo por unidad: costo del propio movimiento si se guardó, si no el costo
+        // vigente de la variante/producto, y como último recurso su precio de venta
+        // (mejor una aproximación que contar $0 por falta de dato de costo).
+        $totalCogs = (float) $cogsQuery->selectRaw('
+            COALESCE(SUM(
+                ABS(inventory_movements.quantity) * COALESCE(
+                    NULLIF(inventory_movements.unit_cost, 0),
+                    NULLIF(product_variants.unit_cost, 0),
+                    NULLIF(products.unit_cost, 0),
+                    NULLIF(product_variants.unit_price, 0),
+                    NULLIF(products.unit_price, 0),
+                    0
+                )
+            ), 0) as total
+        ')->value('total');
+
+        // Ganancia = ingresos - (nomina + consumos + gastos operativos + abono a proveedores)
+        $profit = $totalIncome - ($totalExpenses + $totalConsumptions);
+        // Ganancia Neta = Ganancia - costo de los productos vendidos
+        $netProfit = $profit - $totalCogs;
 
         return [
             'total_income' => round($totalIncome, 2),
@@ -168,6 +212,9 @@ class FinancialSummaryService
             'total_expenses' => round($totalExpenses, 2),
             'total_employee_payments' => round($totalEmployeePayments, 2),
             'total_supplier_payments' => round($totalSupplierPayments, 2),
+            'total_consumptions' => round($totalConsumptions, 2),
+            'total_cogs' => round($totalCogs, 2),
+            'profit' => round($profit, 2),
             'net_profit' => round($netProfit, 2),
             'total_transactions' => $transactionCount,
         ];
@@ -188,15 +235,15 @@ class FinancialSummaryService
             },
         ])
             ->where('business_id', $businessId)
-            ->orderByDesc('paid_at');
+            ->orderByRaw('COALESCE(paid_at, created_at) DESC');
 
         $tz = $this->resolveTimezone($businessId);
 
         if ($start) {
-            $query->where('paid_at', '>=', $this->toUtc($start, $tz));
+            $query->where(DB::raw('COALESCE(paid_at, created_at)'), '>=', $this->toUtc($start, $tz));
         }
         if ($end) {
-            $query->where('paid_at', '<=', $this->toUtc($end, $tz));
+            $query->where(DB::raw('COALESCE(paid_at, created_at)'), '<=', $this->toUtc($end, $tz));
         }
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {

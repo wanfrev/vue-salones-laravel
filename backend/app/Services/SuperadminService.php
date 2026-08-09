@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Business;
 use App\Models\Profile;
+use App\Models\SuperadminAuditLog;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -162,7 +163,7 @@ class SuperadminService
      * The password is hashed on write by User's 'password' => 'hashed' cast — it is stored
      * one-way and cannot be read back, by this app or anyone else.
      */
-    public function resetAdminPassword(string $businessId, string $profileId, string $newPassword): Profile
+    public function resetAdminPassword(string $businessId, string $profileId, string $newPassword, string $actorId): Profile
     {
         $profile = Profile::where('id', $profileId)
             ->where('business_id', $businessId)
@@ -188,6 +189,82 @@ class SuperadminService
 
         $profile->update(['updated_at' => now()]);
 
+        $this->logAudit($actorId, 'reset_admin_password', $businessId, $profileId, [
+            'admin_name' => $profile->full_name,
+            'admin_email' => $profile->email,
+        ]);
+
         return $profile;
+    }
+
+    /**
+     * Issue a short-lived Sanctum token for a business admin so the superadmin can debug
+     * as them without touching their password or their own active sessions.
+     *
+     * The token is separate from the target's own tokens (createToken() only adds a row;
+     * it never invalidates existing ones), so this is non-destructive by construction —
+     * unlike resetAdminPassword, the admin's own login keeps working throughout.
+     *
+     * Scoped to role='admin' + active, same reasoning as resetAdminPassword: only a real,
+     * currently-usable admin account of THIS business can be impersonated.
+     */
+    public function impersonate(string $businessId, string $profileId, string $actorId): array
+    {
+        $profile = Profile::where('id', $profileId)
+            ->where('business_id', $businessId)
+            ->where('role', 'admin')
+            ->first();
+
+        if (!$profile) {
+            throw new NotFoundHttpException('Administrador no encontrado en este negocio.');
+        }
+        if (!$profile->active) {
+            throw new HttpException(403, 'Este administrador está inactivo.');
+        }
+
+        $user = User::with('profile')->find($profileId);
+        if (!$user) {
+            throw new NotFoundHttpException('El usuario asociado a este administrador no existe.');
+        }
+
+        $expiresAt = now()->addHours(2);
+        $token = $user->createToken("impersonation:by:{$actorId}", ['*'], $expiresAt)->plainTextToken;
+        $business = Business::find($businessId);
+
+        $this->logAudit($actorId, 'impersonate_admin', $businessId, $profileId, [
+            'admin_name' => $profile->full_name,
+            'admin_email' => $profile->email,
+            'business_name' => $business?->name,
+        ]);
+
+        return [
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'user' => $user,
+            'business' => $business,
+            'expires_at' => $expiresAt->toIso8601String(),
+        ];
+    }
+
+    /** Most recent superadmin actions, optionally scoped to one business. */
+    public function auditLogs(?string $businessId = null, int $limit = 50): Collection
+    {
+        $query = SuperadminAuditLog::query()->orderByDesc('created_at')->limit($limit);
+        if ($businessId) {
+            $query->where('business_id', $businessId);
+        }
+        return $query->get();
+    }
+
+    private function logAudit(string $actorId, string $action, ?string $businessId, ?string $targetProfileId, array $metadata = []): void
+    {
+        SuperadminAuditLog::create([
+            'id' => Str::uuid()->toString(),
+            'actor_id' => $actorId,
+            'action' => $action,
+            'business_id' => $businessId,
+            'target_profile_id' => $targetProfileId,
+            'metadata' => $metadata,
+        ]);
     }
 }

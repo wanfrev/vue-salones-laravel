@@ -1,14 +1,9 @@
 <template>
   <header class="mb-4 lg:mb-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1.5">
-          <DollarIcon class="h-3.5 w-3.5" />
-          <span>Finanzas</span>
-        </div>
-        <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">
-          {{ hideFinancialDashboard ? 'Movimientos y Registros' : 'Dashboard Financiero' }}
-        </h1>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
+        <DollarIcon class="h-3.5 w-3.5" />
+        <span>Finanzas</span>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <div class="flex rounded-xl border border-border bg-surface p-0.5 sm:p-1 shadow-sm w-full sm:w-auto">
@@ -53,6 +48,7 @@
           <button type="button" class="rounded-md border border-border px-2 py-1 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text whitespace-nowrap ml-0.5" @click="resetToCurrent">{{ selectedPeriod === 'custom' ? 'Hoy' : 'Ahora' }}</button>
         </div>
         <ExchangeRateCard
+          v-if="!businessStore.isSingleCurrency"
           :is-editable="rateCtx.isEditable.value"
           :edit-rate-value="rateCtx.editRateValue.value"
           :updating-rate="rateCtx.updatingRate.value"
@@ -71,7 +67,11 @@
   <!-- TAB 1: Resumen -->
   <template v-if="activeTab === 'resumen'">
     <div v-if="!hideFinancialDashboard" class="mb-4">
-      <KpiCards :income-total="incomeTotal" :ves-income-total="vesIncomeTotal" :tips-total="summaryCtx.tipsTotal" :expense-total="expenseTotal" :net-total="netTotal" :margin="marginTotal" :active-card="activeCard" :is-loading="summaryCtx.isLoading.value" @click-income="toggleCard('income')" @click-expense="toggleCard('expense')" @click-net="toggleCard('net')" />
+        <KpiCards :income-total="incomeTotal" :ves-income-total="vesIncomeTotal" :tips-total="summaryCtx.tipsTotal"
+          :expense-total="expenseTotal" :net-total="netTotal" :profit-total="profitTotal" :margin="marginTotal"
+          :is-tienda="isTienda"
+          :active-card="activeCard" :is-loading="summaryCtx.isLoading.value" @click-income="toggleCard('income')"
+          @click-expense="toggleCard('expense')" @click-net="toggleCard('net')" @click-profit="toggleCard('profit')" />
     </div>
     <Transition name="accordion">
       <CurrencyBreakdown v-if="activeBreakdown" :data="activeBreakdown" class="mb-4" @close="activeCard = null" />
@@ -107,7 +107,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
@@ -115,6 +115,7 @@ import { usePeriodSelection } from '../composables/finanzas/usePeriodSelection'
 import { resolvePeriodDates } from '../lib/periodUtils'
 import { useFinancialSummary } from '../composables/finanzas/useFinancialSummary'
 import { useExpenses } from '../composables/finanzas/useExpenses'
+import { isTiendaNiche } from '../config/niches'
 import { useSupplierPayments } from '../composables/suppliers/useSuppliers'
 import { useEmployeePayments } from '../composables/empleados/useEmployeePayments'
 import KpiCards from '../components/finanzas/KpiCards.vue'
@@ -136,7 +137,7 @@ import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import { translateError } from '../lib/errors'
 import { formatMethod } from '../lib/formatters'
 import { useNotification } from '../composables/common/useNotification'
-import { isEncargado } from '../constants/roles'
+import { isAdminPanelRole } from '../constants/roles'
 import { useBusinessStore } from '../store/business'
 import { DollarIcon, ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
 
@@ -171,12 +172,30 @@ function onCustomToChange(e: Event) {
   customTo.value = (e.target as HTMLInputElement).value
 }
 
+const isTienda = computed(() => isTiendaNiche(businessStore.nicheType) || (!businessStore.features.agenda && !businessStore.features.calendario && !businessStore.features.servicios))
+const isTiendaEmployee = computed(() => isTienda.value && !isAdminPanelRole(authStore.role ?? undefined))
+
 const activeTab = ref<'resumen' | 'ingresos' | 'egresos'>('resumen')
-const mainTabs = [
-  { key: 'resumen' as const, label: 'Resumen' },
-  { key: 'ingresos' as const, label: 'Ingresos' },
-  { key: 'egresos' as const, label: 'Egresos' },
-]
+const mainTabs = computed<{ key: 'resumen' | 'ingresos' | 'egresos'; label: string }[]>(() => {
+  const tabs: { key: 'resumen' | 'ingresos' | 'egresos'; label: string }[] = [
+    { key: 'resumen', label: 'Resumen' },
+    { key: 'ingresos', label: 'Ingresos' },
+  ]
+  if (!isTiendaEmployee.value) {
+    tabs.push({ key: 'egresos', label: 'Egresos' })
+  }
+  return tabs
+})
+
+watch(
+  [activeTab, isTiendaEmployee],
+  ([tab, hideEgresos]) => {
+    if (hideEgresos && tab === 'egresos') {
+      activeTab.value = 'resumen'
+    }
+  },
+  { immediate: true },
+)
 
 const periodDates = computed(() => {
   const key = selectedPeriod.value === 'custom' ? customFrom.value : selectedMonth.value
@@ -185,22 +204,27 @@ const periodDates = computed(() => {
 
 const expensesCtx = useExpenses(businessId, selectedPeriod, selectedMonth, customFrom, customTo)
 const expenses = expensesCtx.expenses
-const supplierPaymentsCtx = useSupplierPayments(businessId, selectedPeriod, selectedMonth, customFrom, customTo)
+const supplierPaymentsCtx = useSupplierPayments(businessId, selectedPeriod, selectedMonth, customTo)
 const employeePaymentsCtx = useEmployeePayments(businessId, periodDates)
 const summaryCtx = useFinancialSummary(businessId, selectedPeriod, expenses, selectedMonth, customTo)
 
 const incomeTotal = summaryCtx.incomeTotal
 const localIncomeTotal = summaryCtx.localIncomeTotal
 const vesIncomeTotal = summaryCtx.vesIncomeTotal
+const consumptionsTotal = summaryCtx.consumptionsTotal
+const cogsTotal = summaryCtx.cogsTotal
+
 const employeePaymentTotal = computed(() => {
   return (employeePaymentsCtx.paymentsMade.value ?? []).reduce((sum, p) => sum + Number(p.amount ?? 0), 0)
 })
 const expenseTotal = computed(() => expensesCtx.expenseTotal.value + supplierPaymentsCtx.paymentTotal.value + employeePaymentTotal.value)
-const netTotal = computed(() => incomeTotal.value - expenseTotal.value)
+
+const profitTotal = computed(() => incomeTotal.value - (expenseTotal.value + consumptionsTotal.value))
+const netTotal = computed(() => profitTotal.value - cogsTotal.value)
 const marginTotal = computed(() => (incomeTotal.value > 0 ? (netTotal.value / incomeTotal.value) * 100 : 0))
 
-const activeCard = ref<'income' | 'expense' | 'net' | null>(null)
-const toggleCard = (card: 'income' | 'expense' | 'net') => { activeCard.value = activeCard.value === card ? null : card }
+const activeCard = ref<'income' | 'expense' | 'net' | 'profit' | null>(null)
+const toggleCard = (card: 'income' | 'expense' | 'net' | 'profit') => { activeCard.value = activeCard.value === card ? null : card }
 
 const incomeBreakdown = computed(() => {
   const usdByMethod: Record<string, number> = {}
@@ -277,37 +301,63 @@ const expenseBreakdown = computed(() => {
   }
 })
 
+const profitBreakdown = computed(() => {
+  const usdItems: { label: string; amount: number }[] = []
+  const vesItems: { label: string; amount: number }[] = []
+
+  const incUsd = incomeBreakdown.value.usdTotal
+  const incVes = incomeBreakdown.value.vesTotal
+  if (incUsd > 0) usdItems.push({ label: 'Ingresos (+)', amount: incUsd })
+  if (incVes > 0) vesItems.push({ label: 'Ingresos (+)', amount: incVes })
+
+  const expUsd = expenseBreakdown.value.usdTotal
+  const expVes = expenseBreakdown.value.vesTotal
+  if (expUsd > 0) usdItems.push({ label: 'Egresos (Nómina, Gastos, Proveedores) (-)', amount: -expUsd })
+  if (expVes > 0) vesItems.push({ label: 'Egresos (Nómina, Gastos, Proveedores) (-)', amount: -expVes })
+
+  if (consumptionsTotal.value > 0) {
+    usdItems.push({ label: 'Consumos de Empleados (-)', amount: -consumptionsTotal.value })
+  }
+
+  return {
+    title: 'Desglose de Ganancia',
+    usdTotal: Math.max(0, profitTotal.value),
+    vesTotal: 0,
+    usdItems,
+    vesItems,
+    usdLabel: 'Concepto',
+    vesLabel: 'Concepto',
+  }
+})
+
 const netBreakdown = computed(() => {
-  const usdNetByMethod: Record<string, number> = {}
-  const vesNetByMethod: Record<string, number> = {}
+  const usdItems: { label: string; amount: number }[] = []
+  const vesItems: { label: string; amount: number }[] = []
 
-  for (const item of incomeBreakdown.value.usdItems) {
-    usdNetByMethod[item.label] = (usdNetByMethod[item.label] ?? 0) + item.amount
+  const incUsd = incomeBreakdown.value.usdTotal
+  const incVes = incomeBreakdown.value.vesTotal
+  if (incUsd > 0) usdItems.push({ label: 'Ingresos (+)', amount: incUsd })
+  if (incVes > 0) vesItems.push({ label: 'Ingresos (+)', amount: incVes })
+
+  const expUsd = expenseBreakdown.value.usdTotal
+  const expVes = expenseBreakdown.value.vesTotal
+  if (expUsd > 0) usdItems.push({ label: 'Egresos (Nómina, Gastos, Proveedores) (-)', amount: -expUsd })
+  if (expVes > 0) vesItems.push({ label: 'Egresos (Nómina, Gastos, Proveedores) (-)', amount: -expVes })
+
+  if (consumptionsTotal.value > 0) {
+    usdItems.push({ label: 'Consumos de Empleados (-)', amount: -consumptionsTotal.value })
   }
-  for (const item of incomeBreakdown.value.vesItems) {
-    vesNetByMethod[item.label] = (vesNetByMethod[item.label] ?? 0) + item.amount
+
+  if (cogsTotal.value > 0) {
+    usdItems.push({ label: 'Costo de Productos Vendidos (COGS) (-)', amount: -cogsTotal.value })
   }
-
-  const usdExpense = expenseBreakdown.value.usdTotal
-  const vesExpense = expenseBreakdown.value.vesTotal
-  if (usdExpense > 0) usdNetByMethod['Gastos'] = (usdNetByMethod['Gastos'] ?? 0) - usdExpense
-  if (vesExpense > 0) vesNetByMethod['Gastos'] = (vesNetByMethod['Gastos'] ?? 0) - vesExpense
-
-  const usdTotal = Object.values(usdNetByMethod).reduce((s, v) => s + v, 0)
-  const vesTotal = Object.values(vesNetByMethod).reduce((s, v) => s + v, 0)
 
   return {
     title: 'Desglose de Ganancia Neta',
-    usdTotal: Math.max(0, usdTotal),
-    vesTotal: Math.max(0, vesTotal),
-    usdItems: Object.entries(usdNetByMethod)
-      .filter(([, a]) => a !== 0)
-      .map(([label, amount]) => ({ label, amount }))
-      .sort((a, b) => b.amount - a.amount),
-    vesItems: Object.entries(vesNetByMethod)
-      .filter(([, a]) => a !== 0)
-      .map(([label, amount]) => ({ label, amount }))
-      .sort((a, b) => b.amount - a.amount),
+    usdTotal: Math.max(0, netTotal.value),
+    vesTotal: 0,
+    usdItems,
+    vesItems,
     usdLabel: 'Concepto',
     vesLabel: 'Concepto',
   }
@@ -316,6 +366,7 @@ const netBreakdown = computed(() => {
 const activeBreakdown = computed(() => {
   if (activeCard.value === 'income') return incomeBreakdown.value
   if (activeCard.value === 'expense') return expenseBreakdown.value
+  if (activeCard.value === 'profit') return profitBreakdown.value
   if (activeCard.value === 'net') return netBreakdown.value
   return null
 })

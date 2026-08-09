@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\CreateBusinessRequest;
+use App\Http\Resources\AuthResource;
 use App\Http\Resources\BusinessResource;
 use App\Rules\AssignableNiche;
 use App\Services\BusinessService;
@@ -91,13 +92,12 @@ class SuperadminController
         ]);
 
         try {
-            $profile = $this->superadminService->resetAdminPassword($id, $profileId, $validated['password']);
-
-            \Illuminate\Support\Facades\Log::info('superadmin.admin_password_reset', [
-                'business_id' => $id,
-                'target_profile_id' => $profileId,
-                'actor_id' => $request->user()?->id,
-            ]);
+            $profile = $this->superadminService->resetAdminPassword(
+                $id,
+                $profileId,
+                $validated['password'],
+                $request->user()->id,
+            );
 
             return response()->json([
                 'success' => true,
@@ -108,5 +108,36 @@ class SuperadminController
         } catch (\Throwable $e) {
             return response()->json(['error' => ['message' => 'No fue posible cambiar la contraseña.']], 500);
         }
+    }
+
+    /**
+     * Issues a short-lived token that logs the caller in AS the given business admin,
+     * without touching the admin's password or their own active sessions. The frontend
+     * swaps its bearer token for this one and stashes the superadmin's original token so
+     * "volver a superadmin" can restore it without a fresh login.
+     */
+    public function impersonate(Request $request, string $id, string $profileId): JsonResponse
+    {
+        try {
+            $result = $this->superadminService->impersonate($id, $profileId, $request->user()->id);
+
+            return response()->json([
+                'access_token' => $result['access_token'],
+                'token_type' => $result['token_type'],
+                'expires_at' => $result['expires_at'],
+                'user' => new AuthResource($result['user']),
+                'business' => $result['business'] ? new BusinessResource($result['business']) : null,
+            ]);
+        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e) {
+            return response()->json(['error' => ['message' => $e->getMessage()]], 404);
+        } catch (\Throwable $e) {
+            $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+            return response()->json(['error' => ['message' => $e->getMessage() ?: 'No fue posible iniciar la sesión de soporte.']], $status ?: 500);
+        }
+    }
+
+    public function auditLogs(string $id): JsonResponse
+    {
+        return response()->json($this->superadminService->auditLogs($id));
     }
 }

@@ -163,12 +163,19 @@ function useFinancialSummary(
   const summaryBuckets = computed(() => summaryData.value?.buckets ?? [])
   const kpis = computed(() => summaryData.value?.kpis ?? {})
 
-  const incomeTotal = computed(() => kpis.value.total_income ?? 0)
+  const incomeTotal = computed(() => {
+    const fromKpi = Number(kpis.value.total_income ?? 0)
+    if (fromKpi > 0) return fromKpi
+    return (allTransactionsRaw.value ?? []).reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0)
+  })
   const localIncomeTotal = computed(() => kpis.value.local_income ?? 0)
   const employeeCommissionsTotal = computed(() => kpis.value.employee_commissions ?? (kpis.value.total_income - kpis.value.local_income) ?? 0)
-  const netProfitTotal = computed(() => kpis.value.net_profit ?? 0)
-  const tipsTotal = computed(() => kpis.value.tips ?? 0)
   const employeePaymentsTotal = computed(() => kpis.value.total_employee_payments ?? 0)
+  const consumptionsTotal = computed(() => kpis.value.total_consumptions ?? 0)
+  const cogsTotal = computed(() => kpis.value.total_cogs ?? 0)
+  const profitTotal = computed(() => kpis.value.profit ?? (incomeTotal.value - (employeePaymentsTotal.value + consumptionsTotal.value + Number(kpis.value.operational_expenses ?? 0) + Number(kpis.value.total_supplier_payments ?? 0))))
+  const netProfitTotal = computed(() => kpis.value.net_profit ?? (profitTotal.value - cogsTotal.value))
+  const tipsTotal = computed(() => kpis.value.tips ?? 0)
   const vesIncomeTotal = computed(() => {
     let total = 0
     for (const tx of (transactionsData.value ?? [])) {
@@ -871,8 +878,11 @@ function useFinancialSummary(
     localIncomeTotal,
     employeeCommissionsTotal,
     netProfitTotal,
+    profitTotal,
     tipsTotal,
     employeePaymentsTotal,
+    consumptionsTotal,
+    cogsTotal,
     vesIncomeTotal,
     servicesRevenue,
     chartData,

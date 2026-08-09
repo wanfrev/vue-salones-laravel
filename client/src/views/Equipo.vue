@@ -1,15 +1,12 @@
 <template>
   <header class="mb-5 lg:mb-8">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1.5">
-          <UsersGroupRoundedIcon class="h-3.5 w-3.5" />
-          <span>{{ businessStore.terminology.employee || 'Empleado' }}s</span>
-        </div>
-        <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Gestión de {{ (businessStore.terminology.employee || 'Empleado').toLowerCase() }}s</h1>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
+        <UsersGroupRoundedIcon class="h-3.5 w-3.5" />
+        <span>{{ businessStore.terminology.employee || 'Empleado' }}s</span>
       </div>
       <div class="flex items-center gap-2">
-        <button v-if="canEditEmployeeRate" @click="showEmployeeRateModal = true"
+        <button v-if="canEditEmployeeRate && !businessStore.isSingleCurrency" @click="showEmployeeRateModal = true"
           class="flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-text shadow-sm transition-theme hover:bg-bg-secondary">
           <DollarIcon class="h-4 w-4" />
           <span class="hidden sm:inline">Tasa empleados</span>
@@ -24,11 +21,13 @@
     </div>
   </header>
 
-  <div class="mb-5 grid grid-cols-2 gap-2 sm:gap-3 lg:mb-8 lg:grid-cols-4">
+  <div class="mb-5 grid grid-cols-2 gap-2 sm:gap-3 lg:mb-8" :class="isStaffing ? 'lg:grid-cols-1' : 'lg:grid-cols-4'">
     <StatCard icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" icon-color="primary" :value="totalEmpleados" label="Total" />
-    <StatCard icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" icon-color="info" :value="empleadosPorcentaje" label="Con %" />
-    <StatCard icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" icon-color="warning" :value="empleadosSueldoBase" label="Sueldo base" />
-    <StatCard icon="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" icon-color="success" :value="empleadosMixto" label="Sueldo + %" />
+    <template v-if="!isStaffing">
+      <StatCard icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" icon-color="info" :value="empleadosPorcentaje" label="Con %" />
+      <StatCard icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" icon-color="warning" :value="empleadosSueldoBase" label="Sueldo base" />
+      <StatCard icon="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" icon-color="success" :value="empleadosMixto" label="Sueldo + %" />
+    </template>
   </div>
 
   <EmployeeGrid
@@ -37,13 +36,24 @@
     @edit="handleEditEmpleado" @view-agenda="handleViewAgenda" @view-recibo="handleOpenRecibo" @toggle-show-all="showAll = !showAll"
   />
 
+  <!--
+    Staffing has no commissions, no VES, no schedules in the agenda sense — the whole
+    commission-oriented GestionTabs (nomina/pagos/deuda/horarios) doesn't apply, so it's
+    replaced wholesale by the hours-and-payroll panel instead of threading isStaffing through it.
+  -->
+  <section v-if="isStaffing" class="rounded-2xl border border-border bg-surface p-4 lg:p-6">
+    <p class="mb-4 text-xs font-semibold uppercase tracking-wider text-primary">Horas trabajadas</p>
+    <StaffingHoursPanel :business-id="businessId" />
+  </section>
+
   <GestionTabs
+    v-else
     :summary-ctx="summaryCtx" :payments-ctx="paymentsCtx" :business-store="businessStore"
     :team-schedule="teamSchedule"
     :total-comisiones="totalComisiones" :total-nomina-pagada="totalNominaPagada"
     :total-consumido="totalConsumido" :total-deuda-pendiente="totalDeudaPendiente"
     :deuda-con-saldo="deudaConSaldo"
-    :format-u-s-d="formatUSD" :format-v-e-s-inline="formatVESInline" :format-v-e-s-es="formatVESEs"
+    :format-u-s-d="formatUSD" :format-secondary="formatSecondary" :format-v-e-s-es="formatVESEs"
     :format-method="formatMethod"
     :format-time24to12="formatTime24to12"
     :selected-month="selectedMonth" :selected-period="selectedPeriod"
@@ -108,6 +118,7 @@ import EmployeeConsumptionModal from '../components/equipo/EmployeeConsumptionMo
 import EmployeeReciboModal from '../components/equipo/EmployeeReciboModal.vue'
 import EmployeeRateModal from '../components/equipo/EmployeeRateModal.vue'
 import GestionTabs from '../components/equipo/GestionTabs.vue'
+import StaffingHoursPanel from '../components/staffing/StaffingHoursPanel.vue'
 import type { Empleado, EmpleadoFormData } from '../types/empleado'
 import { UsersGroupRoundedIcon, DollarIcon, AddCircleIcon } from '@solar-icons/vue/linear'
 
@@ -118,6 +129,7 @@ const queryClient = useQueryClient()
 const empleadoModalRef = ref<InstanceType<typeof EmpleadoFormModal> | null>(null)
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
+const isStaffing = computed(() => businessStore.hasCapability('staffing.timesheets'))
 
 const selectedReciboEmployee = ref<any>(null)
 const showReciboModal = ref(false)
@@ -194,7 +206,7 @@ const handleNewEmpleado = () => empleadoModalRef.value?.open()
 const handleEditEmpleado = (e: Empleado) => empleadoModalRef.value?.open(e)
 const handleViewAgenda = (e: Empleado) => { router.push('/admin?employee=' + e.id) }
 
-const { formatUSD, formatVESInline, formatVESEs } = useCurrency()
+const { formatUSD, formatSecondary, formatVESEs } = useCurrency()
 const employeeDebtSummary = computed(() => {
   return (paymentsCtx.debt.value ?? []).map((d: any) => ({
     employeeId: d.employee_id,

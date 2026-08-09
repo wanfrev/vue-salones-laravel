@@ -6,8 +6,7 @@
           <ListIcon class="h-4 w-4" />
           <span class="font-medium uppercase tracking-wider">{{ businessStore.terminology.client || 'Cliente' }}s</span>
         </div>
-        <h1 class="text-xl font-bold text-text lg:text-2xl">Historial de {{ cliente?.name || businessStore.terminology.client || 'Cliente' }}</h1>
-        <p class="hidden text-sm text-text-muted sm:block">Servicios y visitas anteriores</p>
+        <p class="text-sm font-semibold text-text sm:text-base">{{ cliente?.name || businessStore.terminology.client || 'Cliente' }}</p>
       </div>
       <div class="flex gap-2">
         <button

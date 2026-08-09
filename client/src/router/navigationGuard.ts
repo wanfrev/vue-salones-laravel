@@ -77,7 +77,8 @@ export function resolveNavigation(to: NavTarget, ctx: NavContext): string | unde
     const isInv = (to.path === '/admin/inventario' || to.path === '/admin/productos') && ctx.profile?.can_access_inventory
     const isSupp = to.path === '/admin/proveedores' && ctx.profile?.can_access_suppliers
     const isFinanzas = to.path.startsWith('/admin/finanzas') && ctx.profile?.can_access_finanzas
-    if (!isPos && !isInv && !isSupp && !isFinanzas) {
+    const isReq = to.path === '/admin/requerimientos' && ctx.profile?.can_access_requirements
+    if (!isPos && !isInv && !isSupp && !isFinanzas && !isReq) {
       return resolveHome()
     }
   }

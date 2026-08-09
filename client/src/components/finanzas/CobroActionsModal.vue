@@ -36,7 +36,7 @@ const emit = defineEmits<{
   delete: [transactionIds: string[]]
 }>()
 
-const { formatUSD, formatVESInline } = useCurrency()
+const { formatUSD, formatSecondary } = useCurrency()
 const businessStore = useBusinessStore()
 const t = computed(() => businessStore.terminology)
 
@@ -391,7 +391,7 @@ const totalServicios = computed(() => allServices.value.reduce((s, svc) => s + s
                 <span class="text-text-muted">Monto</span>
                 <div class="text-right">
                   <span class="font-semibold text-success">{{ formatUSD(paymentData?.amount ?? 0) }}</span>
-                  <span class="text-xs text-text-muted ml-1">{{ formatVESInline(paymentData?.amount ?? 0, paymentData?.exchangeRate ?? 1) }} Bs</span>
+                  <span class="text-xs text-text-muted ml-1">{{ formatSecondary(paymentData?.amount ?? 0, paymentData?.exchangeRate ?? 1) }}</span>
                 </div>
               </div>
               <div v-if="(paymentData?.tipAmount ?? 0) > 0" class="flex items-center justify-between text-sm">

@@ -1,13 +1,9 @@
 <template>
   <header class="mb-6 lg:mb-8">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1.5">
-          <SettingsIcon class="h-3.5 w-3.5" />
-          <span>Configuración</span>
-        </div>
-        <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Ajustes del Negocio</h1>
-        <p class="mt-1 text-sm text-text-muted">Personaliza la experiencia de tu equipo y clientes</p>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
+        <SettingsIcon class="h-3.5 w-3.5" />
+        <span>Configuración</span>
       </div>
     </div>
   </header>

@@ -22,9 +22,15 @@ use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\ProductCategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\RequirementController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\WhatsAppController;
 use App\Http\Controllers\Api\ReminderController;
+use App\Http\Controllers\Api\StaffingCompanyController;
+use App\Http\Controllers\Api\StaffingCompanyPaymentController;
+use App\Http\Controllers\Api\StaffingCompanyRateController;
+use App\Http\Controllers\Api\StaffingInvoiceController;
+use App\Http\Controllers\Api\StaffingTimesheetController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierPaymentController;
 use App\Http\Controllers\Api\SuperadminController;
@@ -178,6 +184,15 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
 
+    // Requirements (Fallas/Faltantes)
+    Route::middleware('perm:requirements')->group(function () {
+        Route::get('/requirements', [RequirementController::class, 'index']);
+        Route::post('/requirements', [RequirementController::class, 'store']);
+        Route::put('/requirements/{id}', [RequirementController::class, 'update']);
+        Route::patch('/requirements/{id}/status', [RequirementController::class, 'updateStatus']);
+        Route::delete('/requirements/{id}', [RequirementController::class, 'destroy']);
+    });
+
     // Suppliers — whole module gated on a single perm (no separate view/edit split requested).
     Route::middleware(['feature:proveedores', 'perm:suppliers'])->group(function () {
         Route::get('/suppliers', [SupplierController::class, 'index']);
@@ -190,6 +205,40 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/supplier-payments', [SupplierPaymentController::class, 'index']);
         Route::post('/supplier-payments', [SupplierPaymentController::class, 'store']);
         Route::delete('/supplier-payments/{id}', [SupplierPaymentController::class, 'destroy']);
+    });
+
+    // Staffing — client companies and their per-role rate card.
+    // `capability:` (unlike feature:/perm:) blocks for real regardless of FEATURE_GATE_ENFORCE,
+    // so these endpoints are unreachable from any niche other than staffing. `admin-panel`
+    // keeps them out of employee hands — staffing workers have no login at all.
+    Route::middleware(['capability:staffing.timesheets', 'admin-panel'])->group(function () {
+        Route::get('/staffing-companies', [StaffingCompanyController::class, 'index']);
+        Route::post('/staffing-companies', [StaffingCompanyController::class, 'store']);
+        Route::put('/staffing-companies/{id}', [StaffingCompanyController::class, 'update']);
+        Route::delete('/staffing-companies/{id}', [StaffingCompanyController::class, 'destroy']);
+
+        Route::get('/staffing-company-rates', [StaffingCompanyRateController::class, 'index']);
+        Route::post('/staffing-company-rates', [StaffingCompanyRateController::class, 'store']);
+        Route::put('/staffing-company-rates/{id}', [StaffingCompanyRateController::class, 'update']);
+        Route::delete('/staffing-company-rates/{id}', [StaffingCompanyRateController::class, 'destroy']);
+
+        Route::get('/staffing-companies/{companyId}/employees', [StaffingTimesheetController::class, 'employeesForCompany']);
+        Route::get('/staffing-timesheets', [StaffingTimesheetController::class, 'index']);
+        Route::post('/staffing-timesheets', [StaffingTimesheetController::class, 'store']);
+        Route::post('/staffing-timesheets/{id}/approve', [StaffingTimesheetController::class, 'approve']);
+        Route::delete('/staffing-timesheets/{id}', [StaffingTimesheetController::class, 'destroy']);
+    });
+
+    // Staffing — invoices billed to client companies and the payments (abonos) against them.
+    Route::middleware(['capability:staffing.billing', 'admin-panel'])->group(function () {
+        Route::get('/staffing-invoices', [StaffingInvoiceController::class, 'index']);
+        Route::get('/staffing-invoices/{id}', [StaffingInvoiceController::class, 'show']);
+        Route::post('/staffing-invoices/generate', [StaffingInvoiceController::class, 'generate']);
+        Route::get('/staffing-companies/{companyId}/balance', [StaffingInvoiceController::class, 'balance']);
+
+        Route::get('/staffing-company-payments', [StaffingCompanyPaymentController::class, 'index']);
+        Route::post('/staffing-company-payments', [StaffingCompanyPaymentController::class, 'store']);
+        Route::delete('/staffing-company-payments/{id}', [StaffingCompanyPaymentController::class, 'destroy']);
     });
 
     // Finanzas
@@ -271,5 +320,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/businesses/{id}/resume', [SuperadminController::class, 'resume']);
         Route::get('/businesses/{id}/admins', [SuperadminController::class, 'admins']);
         Route::put('/businesses/{id}/admins/{profileId}/password', [SuperadminController::class, 'resetAdminPassword']);
+        Route::post('/businesses/{id}/admins/{profileId}/impersonate', [SuperadminController::class, 'impersonate']);
+        Route::get('/businesses/{id}/audit-logs', [SuperadminController::class, 'auditLogs']);
     });
 });

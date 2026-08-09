@@ -4,6 +4,7 @@ import { db, getAuthToken } from '../lib/api'
 import type { ApiSession as Session, ApiUser as User } from '../lib/api'
 import { queryClient } from '../queryClient'
 import { useBusinessStore } from './business'
+import { clearImpersonationState } from '../composables/superadmin/useImpersonation'
 import type { Role } from '../constants/roles'
 import { isRole } from '../constants/roles'
 import type { AuthProfile } from '../types/auth'
@@ -52,7 +53,7 @@ export const useAuthStore = defineStore('auth', () => {
   const loadProfile = async (userId: string, userRole?: string | null) => {
     const { data, error } = await db
       .from('profiles')
-      .select('id, business_id, branch_id, full_name, role, phone, avatar_url, active, pay_type, pay_percentage, base_salary, disable_agenda, disable_inventory_edit, employee_ves_rate, can_create_appointments, can_create_clients, can_access_consultorio, can_access_inventory, can_access_pos, can_access_suppliers, can_access_finanzas')
+      .select('id, business_id, branch_id, full_name, role, phone, avatar_url, active, pay_type, pay_percentage, base_salary, disable_agenda, disable_inventory_edit, employee_ves_rate, can_create_appointments, can_create_clients, can_access_consultorio, can_access_inventory, can_access_pos, can_access_suppliers, can_access_finanzas, can_access_requirements')
       .eq('id', userId)
       .maybeSingle()
 
@@ -113,6 +114,7 @@ export const useAuthStore = defineStore('auth', () => {
       can_access_pos: (authProfile as any).can_access_pos ?? false,
       can_access_suppliers: (authProfile as any).can_access_suppliers ?? false,
       can_access_finanzas: (authProfile as any).can_access_finanzas ?? false,
+      can_access_requirements: (authProfile as any).can_access_requirements ?? false,
     }
   }
 
@@ -292,6 +294,11 @@ export const useAuthStore = defineStore('auth', () => {
 
   const signOut = async () => {
     loading.value = true
+
+    // An explicit logout ends the session outright — don't leave a stashed superadmin
+    // token behind for a future "volver a superadmin" to resurrect after this device logs
+    // in as someone else.
+    clearImpersonationState()
 
     clearAuthState()
     queryClient.clear()

@@ -52,6 +52,8 @@
         <slot />
       </div>
     </main>
+
+    <DailyExchangeRateModal />
   </div>
 </template>
 
@@ -71,6 +73,7 @@ import Sidebar from './Sidebar.vue'
 import NotificationBell from '../common/NotificationBell.vue'
 import { BranchSwitcher } from '../common'
 import GlobalLoading from '../common/GlobalLoading.vue'
+import DailyExchangeRateModal from '../common/DailyExchangeRateModal.vue'
 import { getInitials } from '../../lib/formatters'
 
 const { logout, loading } = useAuth()
