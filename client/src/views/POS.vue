@@ -561,7 +561,6 @@ const startDirectService = () => {
   tipManual.value = false
   showTipAdjust.value = false
   areProductsIncluded.value = false
-  if (isMobile.value) mobilePaymentOpen.value = true
 }
 
 const cancelDirectService = () => {
@@ -695,7 +694,6 @@ const showAppointmentsTab = () => {
 
 const addRetailProduct = (product: any) => {
   addProduct(product)
-  if (isMobile.value) mobilePaymentOpen.value = true
 }
 const addAppointmentProduct = (product: any) => {
   addProduct(product)
@@ -875,7 +873,6 @@ const goToAppointmentInCalendar = (appt: any) => {
 }
 const startRetailOnly = () => {
   selectedAppointment.value = null; activeSaleType.value = 'retail_only'; clearCart(); resetPayment(); retailClientSearch.value = ''; retailClientPhone.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailClientSearchRef.value?.reset(); retailGridRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false; areProductsIncluded.value = false; customTotalAmount.value = null; customTotalCurrency.value = 'USD'
-  if (isMobile.value) mobilePaymentOpen.value = true
 }
 const setTipAllocation = (employeeId: string, value: number) => { tipManual.value = true; tipAllocations.value = { ...tipAllocations.value, [employeeId]: Math.max(0, Number(value || 0)) } }
 

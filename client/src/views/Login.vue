@@ -173,15 +173,15 @@ const submitLogin = async () => {
  * instead of fighting the inputs for contrast. */
 @media (max-width: 1023px) {
   .login-image {
-    -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.55) 70%, #000 100%);
-    mask-image: linear-gradient(to right, transparent 0%, transparent 40%, rgba(0, 0, 0, 0.55) 70%, #000 100%);
-    opacity: 0.5;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 30%, rgba(0, 0, 0, 0.65) 55%, #000 100%);
+    mask-image: linear-gradient(to right, transparent 0%, transparent 30%, rgba(0, 0, 0, 0.65) 55%, #000 100%);
+    opacity: 0.75;
   }
 }
 
 @media (max-width: 639px) {
   .login-image {
-    opacity: 0.35;
+    opacity: 0.6;
   }
 }
 
@@ -189,7 +189,7 @@ const submitLogin = async () => {
  * Plain descendant selector, not :global(.dark) — the latter swallows the rest
  * of the selector and leaks the filter onto the whole page. */
 .dark .login-image {
-  filter: brightness(0.4) saturate(0.7);
+  filter: brightness(0.55) saturate(0.85);
 }
 
 /* Landscape phones / short viewports: min-h-screen + centered content can

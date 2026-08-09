@@ -18,10 +18,10 @@
 
         <button
           @click="ctx.openNew()"
-          class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
+          class="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover"
         >
           <AddCircleIcon class="h-4 w-4" />
-          Nueva Gift Card
+          <span>Nueva Gift Card</span>
         </button>
       </div>
     </div>

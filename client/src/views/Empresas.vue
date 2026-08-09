@@ -7,10 +7,10 @@
           <span>Empresas</span>
         </div>
         <button
-          class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
+          class="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover"
           @click="ctx.openNew()">
           <AddCircleIcon class="h-4 w-4" />
-          Nueva empresa
+          <span>Nueva empresa</span>
         </button>
       </div>
     </header>
