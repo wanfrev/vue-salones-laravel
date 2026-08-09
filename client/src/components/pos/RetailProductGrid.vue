@@ -1,5 +1,29 @@
 <template>
-  <div class="flex flex-col h-full bg-surface border border-border rounded-2xl overflow-hidden mt-4 shadow-sm">
+  <div class="flex flex-col h-full bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
+    <div v-if="showSearch" class="p-3 sm:p-4 border-b border-border">
+      <div class="relative">
+        <input
+          ref="searchInputRef"
+          v-model="search"
+          type="text"
+          placeholder="Buscar por nombre, SKU o código de barras..."
+          class="w-full rounded-lg border border-border bg-surface pl-9 pr-8 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
+          @keydown.enter.prevent="onSearchEnter"
+        />
+        <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        </div>
+        <button
+          v-if="search"
+          type="button"
+          @click="search = ''"
+          class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted hover:text-text"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+    </div>
+
     <div class="px-3 sm:px-4 py-3 border-b border-border bg-bg-secondary flex gap-2 overflow-x-auto no-scrollbar touch-pan-x">
       <button
         @click="selectedCategory = 'all'"
@@ -24,7 +48,7 @@
         <svg class="h-12 w-12 mb-3 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
         </svg>
-        <p class="text-sm font-medium">No hay productos en esta categoría</p>
+        <p class="text-sm font-medium">{{ search ? 'Sin resultados para tu búsqueda' : 'No hay productos en esta categoría' }}</p>
       </div>
 
       <div v-else class="grid gap-3 sm:gap-4" style="grid-template-columns: repeat(auto-fill, minmax(168px, 1fr))">
@@ -113,20 +137,25 @@
 import { ref, computed } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   products: any[]
   isRetailOnly?: boolean
   /** productId -> quantity currently in the cart, for the live "already added" badge. */
   cartQuantities?: Record<string, number>
-}>()
+  showSearch?: boolean
+}>(), {
+  showSearch: true,
+})
 
-defineEmits<{
+const emit = defineEmits<{
   'add-product': [product: any]
 }>()
 
 const { formatUSD, formatVES } = useCurrency()
 
 const selectedCategory = ref('all')
+const search = ref('')
+const searchInputRef = ref<HTMLInputElement | null>(null)
 
 const categories = computed(() => {
   const cats = new Set<string>()
@@ -137,11 +166,47 @@ const categories = computed(() => {
 })
 
 const filteredProducts = computed(() => {
-  if (selectedCategory.value === 'all') return props.products
-  return props.products.filter(p => p.category?.name === selectedCategory.value)
+  let list = selectedCategory.value === 'all' ? props.products : props.products.filter(p => p.category?.name === selectedCategory.value)
+  const q = search.value.trim().toLowerCase()
+  if (q) {
+    list = list.filter((p: any) =>
+      p.name.toLowerCase().includes(q) ||
+      (p.sku && String(p.sku).toLowerCase().includes(q)) ||
+      (p.barcode && String(p.barcode).toLowerCase().includes(q))
+    )
+  }
+  return list
 })
 
 const cartQty = (productId: string): number => props.cartQuantities?.[productId] ?? 0
+
+/**
+ * Scanner-gun workflow: a barcode scanner types the code then sends Enter. An exact
+ * sku/barcode match adds and clears immediately so the next scan can start right away.
+ * Falls back to "add the only match" for keyboard-only exact-name entry.
+ */
+const onSearchEnter = () => {
+  const q = search.value.trim().toLowerCase()
+  if (!q) return
+  const exact = props.products.find((p: any) =>
+    (p.barcode && String(p.barcode).toLowerCase() === q) ||
+    (p.sku && String(p.sku).toLowerCase() === q)
+  )
+  const target = exact ?? (filteredProducts.value.length === 1 ? filteredProducts.value[0] : null)
+  if (!target || Number(target.available_qty ?? 0) <= 0) return
+  emit('add-product', { ...target, override_price: target.unit_price })
+  search.value = ''
+}
+
+defineExpose({
+  focusSearch() {
+    searchInputRef.value?.focus()
+  },
+  reset() {
+    search.value = ''
+    selectedCategory.value = 'all'
+  },
+})
 </script>
 
 <style scoped>

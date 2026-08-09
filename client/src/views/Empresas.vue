@@ -2,15 +2,9 @@
   <FeatureGate :gate="{ capability: 'staffing.timesheets' }">
     <header class="mb-5 lg:mb-8">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <div class="mb-1.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
-            <BuildingsIcon class="h-3.5 w-3.5" />
-            <span>Empresas</span>
-          </div>
-          <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Empresas cliente</h1>
-          <p class="mt-1 text-sm text-text-muted">
-            Las empresas donde trabajan tus empleados, con la tarifa de cada rol y las reglas de nómina.
-          </p>
+        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
+          <BuildingsIcon class="h-3.5 w-3.5" />
+          <span>Empresas</span>
         </div>
         <button
           class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"

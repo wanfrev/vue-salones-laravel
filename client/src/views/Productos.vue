@@ -2,12 +2,9 @@
   <FeatureGate feature="inventario">
   <header class="mb-4 lg:mb-6">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <div class="flex items-center gap-2 text-xs text-primary mb-1">
-          <BoxIcon class="h-3.5 w-3.5" />
-          <span class="font-medium uppercase tracking-wider">Inventario</span>
-        </div>
-        <h1 class="text-2xl font-bold text-text lg:text-3xl">Inventario</h1>
+      <div class="flex items-center gap-2 text-xs text-primary">
+        <BoxIcon class="h-3.5 w-3.5" />
+        <span class="font-medium uppercase tracking-wider">Inventario</span>
       </div>
       <button
         v-if="!disableInventoryEdit"

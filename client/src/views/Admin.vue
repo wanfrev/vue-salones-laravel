@@ -7,11 +7,9 @@
           <div>
             <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1">
               <CalendarIcon class="h-3.5 w-3.5" />
-              {{ businessStore.terminology.appointment || 'Cita' }}s
+              Agenda
             </div>
-            <h1 class="text-xl font-bold tracking-tight text-text sm:text-2xl lg:text-3xl">
-              {{ todayLabel }}
-            </h1>
+            <p class="text-sm font-semibold text-text sm:text-base">{{ todayLabel }}</p>
           </div>
 
           <div class="flex items-center gap-2">

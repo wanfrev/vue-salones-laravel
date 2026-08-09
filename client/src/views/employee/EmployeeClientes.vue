@@ -2,14 +2,9 @@
   <AppLayout>
     <div class="space-y-4">
       <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1">
-            <UsersGroupRoundedIcon class="h-3.5 w-3.5" />
-            {{ t.client || 'Cliente' }}s
-          </div>
-          <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">
-            {{ totalClientes }} {{ totalClientes === 1 ? label : label + 's' }}
-          </h1>
+        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
+          <UsersGroupRoundedIcon class="h-3.5 w-3.5" />
+          {{ t.client || 'Cliente' }}s
         </div>
         <button
           v-if="canCreateClients"
@@ -174,7 +169,6 @@ const queryClient = useQueryClient()
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 const t = computed(() => businessStore.terminology)
-const label = computed(() => (t.value.client || 'cliente').toLowerCase())
 const isEmployee = computed(() => authStore.role === 'empleado')
 const canCreateClients = computed(() => {
   if (!isEmployee.value) return true
@@ -196,7 +190,6 @@ const clients = computed<Cliente[]>(() => clientesData.value ?? [])
 const {
   searchQuery,
   filteredClients,
-  totalClientes,
   currentPage,
   paginatedData,
   pageNumbers,

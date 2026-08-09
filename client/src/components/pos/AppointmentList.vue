@@ -18,11 +18,10 @@
         <POSAppointmentCard
           v-for="appt in overdue" :key="appt.id"
           :appt="appt" :is-selected="selectedId === appt.id"
-          :products="products" :cart="cart" :inline-product-search="inlineProductSearch"
-          :show-inline-dropdown="showInlineDropdown" :show-go-to-calendar="showGoToCalendar" variant="overdue"
+          :products="products" :cart="cart"
+          :show-go-to-calendar="showGoToCalendar" variant="overdue"
           @select="$emit('select', appt)" @go-to-calendar="$emit('go-to-calendar', appt)"
-          @update:inline-product-search="$emit('update:inline-product-search', $event)"
-          @add-product="$emit('add-product', $event)" @blur="$emit('blur', $event)" @focus="$emit('focus')"
+          @open-add-product="$emit('open-add-product', appt)"
         />
       </div>
     </div>
@@ -37,11 +36,10 @@
         <POSAppointmentCard
           v-for="appt in upcoming" :key="appt.id"
           :appt="appt" :is-selected="selectedId === appt.id"
-          :products="products" :cart="cart" :inline-product-search="inlineProductSearch"
-          :show-inline-dropdown="showInlineDropdown" :show-go-to-calendar="showGoToCalendar" variant="upcoming"
+          :products="products" :cart="cart"
+          :show-go-to-calendar="showGoToCalendar" variant="upcoming"
           @select="$emit('select', appt)" @go-to-calendar="$emit('go-to-calendar', appt)"
-          @update:inline-product-search="$emit('update:inline-product-search', $event)"
-          @add-product="$emit('add-product', $event)" @blur="$emit('blur', $event)" @focus="$emit('focus')"
+          @open-add-product="$emit('open-add-product', appt)"
         />
       </div>
     </div>
@@ -56,25 +54,20 @@
 import { ref, watch } from 'vue'
 import POSAppointmentCard from './POSAppointmentCard.vue'
 
-const props = defineProps<{
+defineProps<{
   overdue: any[]
   upcoming: any[]
   totalCount: number
   selectedId: string | null
   products: any[]
   cart?: any[]
-  inlineProductSearch: string
-  showInlineDropdown: boolean
   showGoToCalendar?: boolean
 }>()
 
 const emit = defineEmits<{
   select: [appt: any]
   'go-to-calendar': [appt: any]
-  'update:inline-product-search': [value: string]
-  'add-product': [product: any]
-  blur: [event: FocusEvent]
-  focus: []
+  'open-add-product': [appt: any]
   'update:search': [value: string]
 }>()
 

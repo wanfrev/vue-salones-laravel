@@ -7,8 +7,8 @@
         </button>
         <div>
           <p class="text-xs font-medium uppercase tracking-wider text-primary">Finanzas</p>
-          <h1 class="text-xl font-bold text-text">{{ title }}</h1>
-          <p class="text-sm text-text-muted">Vista completa de registros del periodo {{ periodLabel }}</p>
+          <p class="text-sm font-semibold text-text sm:text-base">{{ title }}</p>
+          <p class="text-xs text-text-muted">Periodo {{ periodLabel }}</p>
         </div>
       </div>
     </header>

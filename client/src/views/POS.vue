@@ -2,13 +2,9 @@
   <FeatureGate feature="pos">
   <header class="mb-4 lg:mb-6">
     <div class="grid grid-cols-1 items-center gap-3 lg:grid-cols-[1fr_auto_1fr]">
-      <div>
-        <div class="flex items-center gap-2 text-xs text-primary mb-1">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
-          <span class="font-medium uppercase tracking-wider">Ventas</span>
-        </div>
-        <h1 class="text-xl font-bold text-text sm:text-2xl lg:text-3xl">Punto de Venta</h1>
-        <p class="hidden text-sm text-text-muted sm:block">Registra pagos de servicios y productos</p>
+      <div class="flex items-center gap-2 text-xs text-primary">
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
+        <span class="font-medium uppercase tracking-wider">Punto de Venta</span>
       </div>
 
       <div class="flex justify-center">
@@ -61,34 +57,35 @@
     <!-- LEFT PANEL -->
     <div class="min-w-0 space-y-4">
       <!-- DIRECT SERVICE PANEL -->
-      <div v-if="activeSaleType === 'direct_service'" class="rounded-2xl border border-primary/30 bg-surface p-4 shadow-sm space-y-4 mb-4">
-        <div class="flex items-center justify-between border-b border-border pb-3">
-          <div class="flex items-center gap-2">
-            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+      <div v-if="activeSaleType === 'direct_service'" class="rounded-2xl border border-primary/30 bg-surface p-3 shadow-sm space-y-4 mb-4 sm:p-4">
+        <div class="flex items-center justify-between gap-2 border-b border-border pb-3">
+          <div class="flex items-center gap-2.5 min-w-0">
+            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
             </div>
-            <div>
+            <div class="min-w-0">
               <h3 class="text-sm font-bold text-text">Cobro Directo de Servicios</h3>
-              <p class="text-xs text-text-muted">Agrega múltiples servicios y modifica sus montos fácilmente</p>
+              <p class="hidden text-xs text-text-muted sm:block">Agrega múltiples servicios y modifica sus montos fácilmente</p>
             </div>
           </div>
-          <button @click="cancelDirectService" class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text" title="Cancelar servicio directo">
+          <button @click="cancelDirectService" class="shrink-0 rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text" title="Cancelar servicio directo">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
 
         <!-- Formulario para agregar un servicio -->
-        <div class="rounded-xl bg-bg-secondary/60 p-3 space-y-3 border border-border/50">
-          <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-            <!-- Servicio -->
-            <div class="lg:col-span-2">
-              <label class="block text-[11px] font-semibold text-text-secondary mb-1">Servicio *</label>
+        <div class="rounded-xl bg-bg-secondary/60 p-3 border border-border/50 sm:p-4">
+          <div class="grid gap-3" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr))">
+            <div>
+              <label class="mb-1 flex items-center gap-1 text-[11px] font-semibold text-text-secondary">
+                <StarIcon class="h-3 w-3" /> Servicio *
+              </label>
               <select
                 v-model="pendingServiceId"
                 @change="onPendingServiceChange"
-                class="w-full rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-text outline-none focus:border-primary"
+                class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary"
               >
                 <option value="" disabled>Selecciona un servicio</option>
                 <option v-for="s in posServiciosList" :key="s.id" :value="s.id">
@@ -97,25 +94,27 @@
               </select>
             </div>
 
-            <!-- Precio Modificable -->
             <div>
-              <label class="block text-[11px] font-semibold text-text-secondary mb-1">Precio ($) *</label>
+              <label class="mb-1 flex items-center gap-1 text-[11px] font-semibold text-text-secondary">
+                <DollarIcon class="h-3 w-3" /> Precio ($) *
+              </label>
               <input
                 type="number"
                 step="0.01"
                 min="0"
                 v-model.number="pendingServicePrice"
                 placeholder="0.00"
-                class="w-full rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-text font-medium outline-none focus:border-primary"
+                class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text font-medium outline-none focus:border-primary"
               />
             </div>
 
-            <!-- Empleado Principal -->
             <div>
-              <label class="block text-[11px] font-semibold text-text-secondary mb-1">Empleado *</label>
+              <label class="mb-1 flex items-center gap-1 text-[11px] font-semibold text-text-secondary">
+                <UserIcon class="h-3 w-3" /> Empleado *
+              </label>
               <select
                 v-model="pendingEmployeeId"
-                class="w-full rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-text outline-none focus:border-primary"
+                class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary"
               >
                 <option value="" disabled>Selecciona empleado</option>
                 <option v-for="e in posEmpleadosList" :key="e.id" :value="e.id">
@@ -124,12 +123,13 @@
               </select>
             </div>
 
-            <!-- Asistente (Opcional) -->
-            <div class="lg:col-span-2">
-              <label class="block text-[11px] font-semibold text-text-secondary mb-1">Asistente (opcional)</label>
+            <div>
+              <label class="mb-1 flex items-center gap-1 text-[11px] font-semibold text-text-secondary">
+                <UsersGroupRoundedIcon class="h-3 w-3" /> Asistente (opcional)
+              </label>
               <select
                 v-model="pendingAssistantId"
-                class="w-full rounded-xl border border-border bg-surface px-2.5 py-1.5 text-xs text-text outline-none focus:border-primary"
+                class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary"
               >
                 <option value="">Sin asistente</option>
                 <option v-for="e in posEmpleadosList.filter((x: any) => x.id !== pendingEmployeeId)" :key="e.id" :value="e.id">
@@ -137,44 +137,41 @@
                 </option>
               </select>
             </div>
-
-            <!-- Botón Agregar -->
-            <div class="lg:col-span-2 flex items-end">
-              <button
-                @click="addDirectServiceToList"
-                :disabled="!pendingServiceId || !pendingEmployeeId || pendingServicePrice < 0"
-                class="w-full flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-all hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-              >
-                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
-                + Agregar servicio a la cuenta
-              </button>
-            </div>
           </div>
+
+          <button
+            @click="addDirectServiceToList"
+            :disabled="!pendingServiceId || !pendingEmployeeId || pendingServicePrice < 0"
+            class="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-text-inverse transition-all hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+            Agregar servicio a la cuenta
+          </button>
         </div>
 
         <!-- Lista de Servicios Agregados -->
         <div v-if="directServicesList.length > 0" class="space-y-2">
-          <div class="flex items-center justify-between">
+          <div class="flex flex-wrap items-center justify-between gap-1">
             <h4 class="text-xs font-bold text-text uppercase tracking-wider">Servicios Agregados ({{ directServicesList.length }})</h4>
-            <span class="text-xs font-bold text-primary tabular-nums">Subtotal Servicios: ${{ servicePrice.toFixed(2) }}</span>
+            <span class="text-xs font-bold text-primary tabular-nums">Subtotal: ${{ servicePrice.toFixed(2) }}</span>
           </div>
 
-          <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+          <div class="space-y-1.5 max-h-56 overflow-y-auto pr-1">
             <div
               v-for="(item, idx) in directServicesList"
               :key="item.id"
-              class="flex items-center justify-between gap-2 rounded-xl border border-border bg-surface p-2.5 shadow-2xs"
+              class="flex items-center justify-between gap-2 rounded-xl border border-border bg-surface p-2.5 shadow-2xs sm:gap-3"
             >
               <div class="flex-1 min-w-0">
-                <p class="text-xs font-semibold text-text truncate">{{ item.serviceName }}</p>
+                <p class="text-xs font-semibold text-text truncate sm:text-sm">{{ item.serviceName }}</p>
                 <p class="text-[11px] text-text-muted truncate">
                   Por: <span class="font-medium text-text">{{ item.employeeName }}</span>
                   <template v-if="item.assistantEmployeeName"> | Asistente: <span class="font-medium text-text">{{ item.assistantEmployeeName }}</span></template>
                 </p>
               </div>
 
-              <div class="flex items-center gap-2 shrink-0">
-                <div class="flex items-center gap-1 bg-bg-secondary px-2 py-1 rounded-lg border border-border">
+              <div class="flex items-center gap-1.5 shrink-0 sm:gap-2">
+                <div class="flex items-center gap-1 bg-bg-secondary px-2 py-1.5 rounded-lg border border-border">
                   <span class="text-xs text-text-muted">$</span>
                   <input
                     type="number"
@@ -182,13 +179,13 @@
                     min="0"
                     :value="item.price"
                     @input="updateDirectServicePrice(idx, ($event.target as HTMLInputElement).valueAsNumber)"
-                    class="w-16 bg-transparent text-right text-xs font-bold text-text outline-none"
+                    class="w-14 bg-transparent text-right text-xs font-bold text-text outline-none sm:w-16"
                   />
                 </div>
 
                 <button
                   @click="removeDirectServiceFromList(idx)"
-                  class="rounded-lg p-1 text-text-muted hover:bg-danger/10 hover:text-danger transition-colors"
+                  class="rounded-lg p-1.5 text-text-muted hover:bg-danger/10 hover:text-danger transition-colors"
                   title="Eliminar servicio"
                 >
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
@@ -206,8 +203,11 @@
               v-model="directServiceClientSearch"
               @input="onDirectServiceSearchClients(directServiceClientSearch)"
               placeholder="Buscar cliente por nombre o teléfono..."
-              class="w-full rounded-xl border border-border bg-bg-secondary px-3 py-2 text-xs text-text outline-none focus:border-primary"
+              class="w-full rounded-xl border border-border bg-bg-secondary pl-9 pr-3 py-2.5 text-sm text-text outline-none focus:border-primary"
             />
+            <div class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            </div>
             <div v-if="directServiceClientSuggestions.length > 0" class="absolute left-0 right-0 top-full z-30 mt-1 max-h-40 overflow-y-auto rounded-xl border border-border bg-surface p-1 shadow-lg">
               <button
                 v-for="c in directServiceClientSuggestions"
@@ -223,21 +223,17 @@
         </div>
       </div>
 
-      <div v-if="activeSaleType === 'retail_only'" class="flex flex-col h-full space-y-4">
-        <RetailProductSearch
-          ref="retailSearchRef"
-          :products="retailFilteredProducts"
+      <div v-if="activeSaleType === 'retail_only'" class="flex flex-col h-full space-y-3">
+        <RetailClientSearch
+          ref="retailClientSearchRef"
           :client-suggestions="retailClientSuggestions"
-          :business-id="businessId"
-          :branch-id="branchId"
-          :is-retail-only="!businessStore.features.agenda"
-          @add-product="addRetailProduct"
           @select-client="selectRetailClient"
           @search-clients="onRetailSearchClients"
           @update:client-name="retailClientSearch = $event; retailClientId = null"
           @update:client-phone="retailClientPhone = $event"
         />
         <RetailProductGrid
+          ref="retailGridRef"
           :products="products"
           :is-retail-only="!businessStore.features.agenda"
           :cart-quantities="cartQuantities"
@@ -254,15 +250,11 @@
         :selected-id="selectedId"
         :products="products"
         :cart="cart"
-        :inline-product-search="inlineProductSearch"
-        :show-inline-dropdown="showInlineDropdown"
         :show-go-to-calendar="!authStore.isCajeroProfile"
         @select="onSelectAppointment"
         @go-to-calendar="goToAppointmentInCalendar"
         @update:search="appointmentSearch = $event"
-        @update:inline-product-search="inlineProductSearch = $event"
-        @add-product="addInlineProduct"
-        @blur="onInlineBlur" @focus="showInlineDropdown = true"
+        @open-add-product="showAddProductModal = true"
       />
     </div>
 
@@ -398,6 +390,15 @@
     @save="handleSaveCita"
     @delete="handleDeleteCita"
   />
+
+  <AddProductModal
+    :show="showAddProductModal"
+    :products="products"
+    :cart-quantities="cartQuantities"
+    :client-name="confirmClientName"
+    @add-product="addAppointmentProduct"
+    @close="showAddProductModal = false"
+  />
 </template>
 
 <script setup lang="ts">
@@ -418,14 +419,16 @@ import { FeatureGate } from '../components/common'
 import { CitaFormModal } from '../components/modals'
 import POSPaymentPanel from '../components/pos/POSPaymentPanel.vue'
 import POSConfirmModal from '../components/pos/POSConfirmModal.vue'
-import RetailProductSearch from '../components/pos/RetailProductSearch.vue'
+import RetailClientSearch from '../components/pos/RetailClientSearch.vue'
 import RetailProductGrid from '../components/pos/RetailProductGrid.vue'
 import AppointmentList from '../components/pos/AppointmentList.vue'
+import AddProductModal from '../components/pos/AddProductModal.vue'
 import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
 import { useExchangeRate } from '../composables/finanzas/useExchangeRate'
 import { toISODate, minutesToHHmm } from '../lib/formatters'
 import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
+import { StarIcon, DollarIcon, UserIcon, UsersGroupRoundedIcon } from '@solar-icons/vue/linear'
 import type { PaymentMethod } from '../types/database'
 import type { Cita } from '../types/cita'
 
@@ -603,8 +606,7 @@ onUnmounted(() => window.removeEventListener('resize', onResize))
 const hasPaymentContext = computed(() => selectedAppointment.value !== null || activeSaleType.value === 'retail_only' || activeSaleType.value === 'direct_service')
 const queryError = ref<string | null>(null)
 const appointmentSearch = ref('')
-const inlineProductSearch = ref('')
-const showInlineDropdown = ref(false)
+const showAddProductModal = ref(false)
 const showTipAdjust = ref(false)
 const tipAllocations = ref<Record<string, number>>({})
 const tipManual = ref(false)
@@ -613,7 +615,8 @@ const retailClientSearch = ref('')
 const retailClientId = ref<string | null>(null)
 const retailClientPhone = ref('')
 const retailClientSuggestions = ref<{ id: string; full_name: string; phone: string }[]>([])
-const retailSearchRef = ref<InstanceType<typeof RetailProductSearch> | null>(null)
+const retailClientSearchRef = ref<InstanceType<typeof RetailClientSearch> | null>(null)
+const retailGridRef = ref<InstanceType<typeof RetailProductGrid> | null>(null)
 
 const { data: appointmentsData, refetch: refetchAppointments } = useQuery({
   queryKey: computed(() => posKeys.pending(businessId.value, branchId.value)),
@@ -677,10 +680,6 @@ const now = computed(() => new Date())
 const overdueAppointments = computed(() => filteredAppointments.value.filter(a => new Date(a.start_time) <= now.value))
 const upcomingAppointments = computed(() => filteredAppointments.value.filter(a => new Date(a.start_time) > now.value))
 
-const retailFilteredProducts = computed(() =>
-  (products.value as any[]).filter((p: any) => Number(p.available_qty ?? 0) > 0)
-)
-
 const tabButtonClass = (tab: typeof activeSaleType.value) =>
   activeSaleType.value === tab
     ? 'bg-primary text-text-inverse shadow-sm'
@@ -694,15 +693,13 @@ const showAppointmentsTab = () => {
   areProductsIncluded.value = false
 }
 
-const addRetailProduct = (product: any) => { 
-  addProduct(product); 
-  retailSearchRef.value?.reset() 
+const addRetailProduct = (product: any) => {
+  addProduct(product)
   if (isMobile.value) mobilePaymentOpen.value = true
 }
-const addInlineProduct = (product: any) => { addProduct(product); inlineProductSearch.value = ''; showInlineDropdown.value = false }
-const onInlineBlur = (e: FocusEvent) => {
-  if (!e.relatedTarget) return
-  setTimeout(() => { showInlineDropdown.value = false }, 150)
+const addAppointmentProduct = (product: any) => {
+  addProduct(product)
+  showAddProductModal.value = false
 }
 
 const selectRetailClient = (client: { id: string; full_name: string; phone: string }) => {
@@ -710,7 +707,7 @@ const selectRetailClient = (client: { id: string; full_name: string; phone: stri
   retailClientSearch.value = client.full_name
   retailClientPhone.value = client.phone
   retailClientSuggestions.value = []
-  retailSearchRef.value?.reset()
+  retailClientSearchRef.value?.reset()
 }
 
 const onRetailSearchClients = async (query: string) => {
@@ -877,7 +874,7 @@ const goToAppointmentInCalendar = (appt: any) => {
   posCitaModalRef.value?.open(cita)
 }
 const startRetailOnly = () => {
-  selectedAppointment.value = null; activeSaleType.value = 'retail_only'; clearCart(); resetPayment(); retailClientSearch.value = ''; retailClientPhone.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailSearchRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false; areProductsIncluded.value = false; customTotalAmount.value = null; customTotalCurrency.value = 'USD'
+  selectedAppointment.value = null; activeSaleType.value = 'retail_only'; clearCart(); resetPayment(); retailClientSearch.value = ''; retailClientPhone.value = ''; retailClientId.value = null; retailClientSuggestions.value = []; retailClientSearchRef.value?.reset(); retailGridRef.value?.reset(); tipAllocations.value = {}; tipManual.value = false; showTipAdjust.value = false; areProductsIncluded.value = false; customTotalAmount.value = null; customTotalCurrency.value = 'USD'
   if (isMobile.value) mobilePaymentOpen.value = true
 }
 const setTipAllocation = (employeeId: string, value: number) => { tipManual.value = true; tipAllocations.value = { ...tipAllocations.value, [employeeId]: Math.max(0, Number(value || 0)) } }
@@ -898,7 +895,8 @@ const handleRetailPayment = async () => {
     retailClientPhone.value = ''
     retailClientId.value = null
     retailClientSuggestions.value = []
-    retailSearchRef.value?.reset()
+    retailClientSearchRef.value?.reset()
+    retailGridRef.value?.reset()
     mobilePaymentOpen.value = false
   }
 }

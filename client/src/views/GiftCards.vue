@@ -2,12 +2,9 @@
   <FeatureGate feature="gift_cards">
   <header class="mb-5 lg:mb-8">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1.5">
-          <TicketIcon class="h-3.5 w-3.5" />
-          <span>Gift Cards</span>
-        </div>
-        <h1 class="text-2xl font-bold tracking-tight text-text lg:text-3xl">Gestión de Gift Cards</h1>
+      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
+        <TicketIcon class="h-3.5 w-3.5" />
+        <span>Gift Cards</span>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <div class="flex rounded-lg border border-border bg-bg-secondary p-1">
