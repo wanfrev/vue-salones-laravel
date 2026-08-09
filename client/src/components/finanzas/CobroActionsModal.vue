@@ -136,6 +136,8 @@ const onRollback = () => {
     tipAmount: pd.tipAmount ?? 0,
     notes: pd.notes ?? null,
     breakdown: pd.breakdown ?? null,
+    clientName: pd.clientName ?? null,
+    employeeName: pd.employeeName ?? null,
     products: appointmentProducts.value.map(p => ({
       productId: p.productId,
       productName: p.productName,
@@ -328,16 +330,24 @@ const totalServicios = computed(() => allServices.value.reduce((s, svc) => s + s
         </div>
 
         <div class="p-6 space-y-5">
-          <!-- Client -->
-          <SectionCard title="Cliente" icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" :no-padding="true">
-            <div class="p-3 space-y-1">
-              <p class="font-medium text-text">{{ cita?.clientName || '—' }}</p>
-              <p v-if="cita?.clientPhone" class="text-sm text-text-secondary">{{ cita?.clientPhone }}</p>
-            </div>
-          </SectionCard>
+          <!-- Client & Employee for Direct Sales -->
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <SectionCard title="Cliente" icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" :no-padding="true">
+              <div class="p-3 space-y-1">
+                <p class="font-medium text-text">{{ cita?.clientName || paymentData?.clientName || '—' }}</p>
+                <p v-if="cita?.clientPhone" class="text-sm text-text-secondary">{{ cita?.clientPhone }}</p>
+              </div>
+            </SectionCard>
+
+            <SectionCard v-if="!cita && paymentData?.employeeName" title="Empleado" icon="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" :no-padding="true">
+              <div class="p-3 space-y-1">
+                <p class="font-medium text-text">{{ paymentData.employeeName }}</p>
+              </div>
+            </SectionCard>
+          </div>
 
           <!-- Services -->
-          <SectionCard title="Servicios" icon="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" :no-padding="true">
+          <SectionCard v-if="allServices.length > 0" title="Servicios" icon="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" :no-padding="true">
             <div class="divide-y divide-border-subtle">
               <div v-if="grupoLoading" class="p-3 text-sm text-text-muted">Cargando servicios...</div>
               <div v-else v-for="svc in allServices" :key="svc.id" class="p-3 space-y-1">

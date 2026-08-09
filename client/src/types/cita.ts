@@ -90,6 +90,8 @@ export interface PaymentEditContext {
   notes?: string
   breakdown?: import('./pos').PaymentBreakdownItem[]
   appointmentId?: string
+  clientName?: string
+  employeeName?: string
 }
 
 export interface AppointmentProduct {

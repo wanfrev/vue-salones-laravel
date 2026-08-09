@@ -424,6 +424,8 @@ const openCobroActions = async (tx: any) => {
     notes: tx.notes || undefined,
     breakdown: tx.breakdown || undefined,
     appointmentId,
+    clientName: tx.clientName,
+    employeeName: tx.employee,
   }
 
   cobroActionsCita.value = cita

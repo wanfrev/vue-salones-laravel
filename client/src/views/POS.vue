@@ -1021,6 +1021,10 @@ const applyPrefill = () => {
   tipAmount.value = prefill.tipAmount ?? 0
   paymentNotes.value = prefill.notes ?? ''
 
+  if (prefill.clientName) {
+    retailClientSearch.value = prefill.clientName
+  }
+
   if (prefill.products && prefill.products.length > 0) {
     clearCart()
     for (const p of prefill.products) {
