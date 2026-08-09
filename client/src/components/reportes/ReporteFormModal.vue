@@ -285,7 +285,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
 import ModalBase from '../common/ModalBase.vue'
 import FormInput from '../forms/FormInput.vue'
 import { useBusinessStore } from '../../store/business'
@@ -307,6 +308,7 @@ const businessStore = useBusinessStore()
 const authStore = useAuthStore()
 const { error: showError } = useNotification()
 const { saveMutation, activeBusinessId } = useDailyReports()
+const queryClient = useQueryClient()
 
 const isEditing = ref(false)
 const isSaving = computed(() => saveMutation.isPending.value)
@@ -360,6 +362,12 @@ const removeCreditRow = async (index: number) => {
              inputAmount: amt
           }]
         })
+        await Promise.allSettled([
+          queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
+          queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
+          queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
+          queryClient.invalidateQueries({ exact: false, queryKey: ['pos-pending'] }),
+        ])
       } catch (err) {
         console.error('Error marcando crédito como pagado:', err)
       }
