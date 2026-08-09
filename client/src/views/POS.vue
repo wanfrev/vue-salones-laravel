@@ -21,15 +21,28 @@
         />
         <div class="flex items-center gap-2">
           <button
+            v-if="businessStore.features.agenda"
+            @click="showAppointmentsTab"
+            class="flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200"
+            :class="tabButtonClass('appointment')"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            Citas
+          </button>
+          <button
             v-if="businessStore.features.pos_direct_service_sale"
             @click="startDirectService"
             class="flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200"
-            :class="activeSaleType === 'direct_service' ? 'bg-primary text-text-inverse border-primary' : 'border-primary/30 text-primary hover:bg-primary/5'"
+            :class="tabButtonClass('direct_service')"
           >
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
             Servicio directo
           </button>
-          <button @click="startRetailOnly" class="flex items-center justify-center gap-1.5 rounded-lg border border-primary/30 px-3 py-2 text-xs font-semibold text-primary shadow-sm transition-all duration-200 hover:bg-primary/5">
+          <button
+            @click="startRetailOnly"
+            class="flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-semibold shadow-sm transition-all duration-200"
+            :class="tabButtonClass('retail_only')"
+          >
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
             {{ businessStore.features.agenda ? 'Venta directa' : 'Nueva factura' }}
           </button>
@@ -206,7 +219,7 @@
         </div>
       </div>
 
-      <div v-if="activeSaleType === 'retail_only' && showRetailCatalog" class="flex flex-col h-full space-y-4">
+      <div v-if="activeSaleType === 'retail_only'" class="flex flex-col h-full space-y-4">
         <RetailProductSearch
           ref="retailSearchRef"
           :products="retailFilteredProducts"
@@ -230,7 +243,7 @@
       </div>
 
       <AppointmentList
-        v-if="businessStore.features.agenda && (activeSaleType === 'appointment' || !showRetailCatalog)"
+        v-if="businessStore.features.agenda && activeSaleType === 'appointment'"
         :overdue="overdueAppointments"
         :upcoming="upcomingAppointments"
         :total-count="filteredAppointments.length"
@@ -251,21 +264,6 @@
 
     <!-- RIGHT PANEL (desktop & tablet landscape) -->
     <div class="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden lg:min-w-[340px]">
-      <RetailProductSearch
-        v-if="activeSaleType === 'retail_only' && !showRetailCatalog"
-        ref="retailSearchRef"
-        :products="retailFilteredProducts"
-        :client-suggestions="retailClientSuggestions"
-        :business-id="businessId"
-        :branch-id="branchId"
-        :is-retail-only="!businessStore.features.agenda"
-        @add-product="addRetailProduct"
-        @select-client="selectRetailClient"
-        @search-clients="onRetailSearchClients"
-        @update:client-name="retailClientSearch = $event; retailClientId = null"
-        @update:client-phone="retailClientPhone = $event"
-        class="border-b border-border pb-4"
-      />
       <POSPaymentPanel
         :selected-appointment="selectedAppointment"
         :cart="cart" :service-price="servicePrice"
@@ -330,21 +328,6 @@
         </div>
         <div class="flex-1 overflow-hidden p-3 sm:p-4 flex justify-center">
           <div class="w-full max-w-lg h-full flex flex-col min-w-0">
-          <RetailProductSearch
-            v-if="activeSaleType === 'retail_only' && !showRetailCatalog"
-            ref="retailSearchRef"
-            :products="retailFilteredProducts"
-            :client-suggestions="retailClientSuggestions"
-            :business-id="businessId"
-            :branch-id="branchId"
-            :is-retail-only="!businessStore.features.agenda"
-            @add-product="addRetailProduct"
-            @select-client="selectRetailClient"
-            @search-clients="onRetailSearchClients"
-            @update:client-name="retailClientSearch = $event; retailClientId = null"
-            @update:client-phone="retailClientPhone = $event"
-            class="border-b border-border pb-4"
-          />
           <POSPaymentPanel
             :selected-appointment="selectedAppointment"
             :cart="cart" :service-price="servicePrice"
@@ -694,9 +677,18 @@ const retailFilteredProducts = computed(() =>
   (products.value as any[]).filter((p: any) => Number(p.available_qty ?? 0) > 0)
 )
 
-// The browsable product catalog is a retail-niche affordance — gated on the niche
-// registry's capability, not on a niche id, so it follows NICHES rather than a literal.
-const showRetailCatalog = computed(() => businessStore.hasCapability('catalog.products'))
+const tabButtonClass = (tab: typeof activeSaleType.value) =>
+  activeSaleType.value === tab
+    ? 'bg-primary text-text-inverse border-primary'
+    : 'border-primary/30 text-primary hover:bg-primary/5'
+
+const showAppointmentsTab = () => {
+  selectedAppointment.value = null
+  activeSaleType.value = 'appointment'
+  clearCart()
+  resetPayment()
+  areProductsIncluded.value = false
+}
 
 const addRetailProduct = (product: any) => { 
   addProduct(product); 

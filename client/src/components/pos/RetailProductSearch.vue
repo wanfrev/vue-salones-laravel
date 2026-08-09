@@ -21,7 +21,7 @@
           </div>
           <div class="flex items-center gap-1.5 shrink-0" @mousedown.stop>
             <button @mousedown.prevent="$emit('add-product', { ...product, override_price: product.unit_price })" :disabled="Number(product.available_qty ?? 0) <= 0" class="rounded border border-primary/30 bg-surface px-2 py-1 text-xs font-bold text-primary hover:bg-primary/10 transition-theme disabled:opacity-50">
-              P1: {{ formatDual(product.unit_price) }}
+              <template v-if="isRetailOnly && product.unit_price_2">P1: </template>{{ formatDual(product.unit_price) }}
             </button>
             <button v-if="isRetailOnly && product.unit_price_2" @mousedown.prevent="$emit('add-product', { ...product, override_price: product.unit_price_2 })" :disabled="Number(product.available_qty ?? 0) <= 0" class="rounded border border-primary/30 bg-surface px-2 py-1 text-xs font-bold text-primary hover:bg-primary/10 transition-theme disabled:opacity-50">
               P2: {{ formatDual(product.unit_price_2) }}
