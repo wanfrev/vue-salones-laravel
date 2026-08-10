@@ -53,6 +53,8 @@ class ParseApiFilters
                     $parsed[$key] = $val;
                 } elseif ($op === 'like' || $op === 'ilike') {
                     $parsed[$key] = str_replace('*', '%', $val);
+                } elseif ($op === 'is') {
+                    $parsed[$key] = $val === 'null' ? null : ($val === 'true' ? true : ($val === 'false' ? false : $val));
                 }
             } else {
                 $parsed[$key] = $value;
