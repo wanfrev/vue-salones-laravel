@@ -400,6 +400,7 @@ const { success, error: showError } = useNotification()
 
 const openCobroActions = async (tx: any) => {
   const appointmentId = tx.appointmentId || tx.appointment_id
+  const isInvoice = !!(tx.items)
   let cita = null
   if (appointmentId) {
     const { data: citaRaw } = await db
@@ -411,26 +412,27 @@ const openCobroActions = async (tx: any) => {
       cita = mapAppointmentToCita(citaRaw)
     }
   }
-  const hasMixed = tx.breakdown && tx.breakdown.length > 1
+  const breakdown = tx.breakdown
+  const hasMixed = breakdown && breakdown.length > 1
   const paymentData: PaymentEditContext = {
     transactionId: tx.id,
-    method: hasMixed ? 'mixed' : (tx.rawMethod || tx.method),
-    amount: tx.amount,
-    currency: hasMixed ? 'USD' : (tx.primaryCurrency || 'USD'),
+    method: hasMixed ? 'mixed' : (isInvoice ? tx.paymentMethod : (tx.rawMethod || tx.method)),
+    amount: isInvoice ? tx.total : tx.amount,
+    currency: hasMixed ? 'USD' : (isInvoice ? tx.currency : (tx.primaryCurrency || 'USD')),
     exchangeRate: tx.exchangeRateUsed || 1,
     tipAmount: tx.tipAmount || 0,
     notes: tx.notes || undefined,
-    breakdown: tx.breakdown || undefined,
+    breakdown: breakdown || undefined,
     appointmentId,
     clientName: tx.clientName || undefined,
     employeeName: tx.employeeName || undefined,
-    invoiceProducts: tx.items?.map((item: any) => ({
+    invoiceProducts: isInvoice ? tx.items?.map((item: any) => ({
       movementId: item.id,
       productId: item.productId || item.id,
       productName: item.product,
       quantity: item.quantity,
       unitCost: item.unitPrice,
-    })) || undefined,
+    })) : undefined,
   }
 
   cobroActionsCita.value = cita
