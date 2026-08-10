@@ -114,32 +114,20 @@ export const deleteCliente = async (clientId: string): Promise<void> => {
 }
 
 export const searchClients = async (
-  businessId: string,
+  _businessId: string,
   query: string,
   branchId?: string | null
 ): Promise<Pick<Client, 'id' | 'full_name' | 'phone'>[]> => {
   const q = query.trim()
   if (!q) return []
 
-  let qb = db
-    .from('clients')
-    .select('id, full_name, phone')
-    .eq('business_id', businessId)
-    .order('full_name')
-    .limit(30)
-
+  let path = `/clients/search?q=${encodeURIComponent(q)}`
   if (branchId) {
-    qb = qb.eq('branch_id', branchId)
+    path += `&branch_id=${encodeURIComponent(branchId)}`
   }
 
-  const { data, error } = await qb
-
-  if (error) throw error
-
-  return ((data ?? []) as Client[]).filter(c =>
-    c.full_name?.toLowerCase().startsWith(q.toLowerCase()) ||
-    c.phone?.startsWith(q)
-  ).slice(0, 20)
+  const results = await apiRequest<Client[]>('GET', path)
+  return results.map(c => ({ id: c.id, full_name: c.full_name, phone: c.phone }))
 }
 
 export const findOrCreateClientByPhone = async (
