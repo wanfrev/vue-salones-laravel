@@ -524,7 +524,11 @@ watch(modalData, (data) => {
     zReportCurrency.value = 'VES'
     zReportAmount.value = ''
     creditsList.value = []
-    nextTick(() => { fetchFromPos() })
+    nextTick(() => {
+      if (businessStore.hasFeature('daily_report_autofill_from_pos')) {
+        fetchFromPos()
+      }
+    })
   }
   errors.value = {}
 }, { immediate: true })
