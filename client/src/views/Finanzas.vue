@@ -420,19 +420,27 @@ const openCobroActions = async (tx: any) => {
       cita = mapAppointmentToCita(citaRaw)
     }
   }
+  const isInvoice = 'items' in tx && Array.isArray(tx.items)
   const hasMixed = tx.breakdown && tx.breakdown.length > 1
   const paymentData: PaymentEditContext = {
     transactionId: tx.id,
-    method: hasMixed ? 'mixed' : (tx.rawMethod || tx.method),
-    amount: tx.amount,
-    currency: hasMixed ? 'USD' : (tx.primaryCurrency || 'USD'),
+    method: hasMixed ? 'mixed' : (isInvoice ? tx.paymentMethod : (tx.rawMethod || tx.method)),
+    amount: isInvoice ? tx.total : tx.amount,
+    currency: hasMixed ? 'USD' : (isInvoice ? (tx.currency || 'USD') : (tx.primaryCurrency || 'USD')),
     exchangeRate: tx.exchangeRateUsed || 1,
     tipAmount: tx.tipAmount || 0,
     notes: tx.notes || undefined,
     breakdown: tx.breakdown || undefined,
     appointmentId,
     clientName: tx.clientName,
-    employeeName: tx.employee,
+    employeeName: isInvoice ? tx.employeeName : tx.employee,
+    invoiceProducts: isInvoice ? (tx.items || []).map((item: any) => ({
+      movementId: item.id,
+      productId: item.id,
+      productName: item.product,
+      quantity: item.quantity,
+      unitCost: item.unitPrice,
+    })) : undefined,
   }
 
   cobroActionsCita.value = cita
