@@ -76,13 +76,13 @@ export const submitBookingRequest = async (
   slug: string,
   data: {
     employee_id: string
-    service_id: string
+    service_ids: string[]
     start_time: string
     branch_id?: string
     client_name?: string
   },
 ) =>
-  apiRequest<{ appointment_id: string; start_time: string; end_time: string; status: string }>(
+  apiRequest<{ appointments: Array<{ appointment_id: string; start_time: string; end_time: string; status: string; service_name: string }>; message: string }>(
     'POST',
     `/public/business/${slug}/request`,
     data,

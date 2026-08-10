@@ -122,6 +122,8 @@ class PublicBookingController extends Controller
 
     /**
      * Submit a booking request (no client info — employee assigns later).
+     * Supports multiple services: creates one appointment per service with
+     * sequential start times, all linked by the same group_id.
      */
     public function request(Request $request, string $slug): JsonResponse
     {
@@ -134,19 +136,32 @@ class PublicBookingController extends Controller
 
         $validated = $request->validate([
             'employee_id' => 'required|uuid',
-            'service_id' => 'required|uuid',
+            'service_ids' => 'required|array|min:1',
+            'service_ids.*' => 'uuid',
             'start_time' => 'required|date',
             'branch_id' => 'nullable|uuid',
-            'client_name' => 'nullable|string|max:200',
+            'client_name' => 'required|string|max:200',
         ]);
 
-        $service = Service::where('id', $validated['service_id'])
-            ->where('business_id', $business->id)->first();
-        if (!$service) return response()->json(['message' => 'Servicio no encontrado'], 404);
+        $serviceIds = $validated['service_ids'];
 
-        $duration = $service->duration_minutes ?? 30;
+        $services = Service::whereIn('id', $serviceIds)
+            ->where('business_id', $business->id)
+            ->select('id', 'name', 'duration_minutes', 'price')
+            ->get()
+            ->keyBy('id');
+
+        if ($services->count() !== count($serviceIds)) {
+            return response()->json(['message' => 'Uno o más servicios no encontrados'], 404);
+        }
+
+        $totalDuration = 0;
+        foreach ($serviceIds as $sid) {
+            $totalDuration += $services[$sid]->duration_minutes ?? 30;
+        }
+
         $startTime = new \DateTime($validated['start_time']);
-        $endTime = (clone $startTime)->add(new \DateInterval("PT{$duration}M"));
+        $endTime = (clone $startTime)->add(new \DateInterval("PT{$totalDuration}M"));
 
         $conflict = Appointment::where('business_id', $business->id)
             ->where('employee_id', $validated['employee_id'])
@@ -158,25 +173,45 @@ class PublicBookingController extends Controller
 
         if ($conflict) return response()->json(['message' => 'El horario ya no está disponible'], 409);
 
-        $appointment = Appointment::create([
-            'id' => Str::uuid()->toString(),
-            'business_id' => $business->id,
-            'branch_id' => $validated['branch_id'] ?? null,
-            'client_id' => null, 'pet_id' => null,
-            'employee_id' => $validated['employee_id'],
-            'service_id' => $validated['service_id'],
-            'start_time' => $startTime, 'end_time' => $endTime,
-            'status' => 'pending', 'payment_status' => 'unpaid',
-            'source' => 'public',
-            'internal_notes' => $validated['client_name'] ?? null,
-            'created_at' => now(), 'updated_at' => now(),
-        ]);
+        $groupId = Str::uuid()->toString();
+        $appointments = [];
+        $cursor = clone $startTime;
+
+        foreach ($serviceIds as $sid) {
+            $svc = $services[$sid];
+            $dur = $svc->duration_minutes ?? 30;
+            $svcStart = clone $cursor;
+            $svcEnd = (clone $cursor)->add(new \DateInterval("PT{$dur}M"));
+
+            $appointment = Appointment::create([
+                'id' => Str::uuid()->toString(),
+                'business_id' => $business->id,
+                'branch_id' => $validated['branch_id'] ?? null,
+                'client_id' => null, 'pet_id' => null,
+                'employee_id' => $validated['employee_id'],
+                'service_id' => $sid,
+                'start_time' => $svcStart, 'end_time' => $svcEnd,
+                'status' => 'pending', 'payment_status' => 'unpaid',
+                'source' => 'public',
+                'internal_notes' => $validated['client_name'],
+                'group_id' => $groupId,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+
+            $appointments[] = [
+                'appointment_id' => $appointment->id,
+                'start_time' => $svcStart->format('Y-m-d\TH:i:s'),
+                'end_time' => $svcEnd->format('Y-m-d\TH:i:s'),
+                'status' => $appointment->status,
+                'service_name' => $svc->name,
+            ];
+
+            $cursor = $svcEnd;
+        }
 
         return response()->json([
-            'appointment_id' => $appointment->id,
-            'start_time' => $startTime->format('Y-m-d\TH:i:s'),
-            'end_time' => $endTime->format('Y-m-d\TH:i:s'),
-            'status' => $appointment->status,
+            'appointments' => $appointments,
+            'message' => 'Reserva creada exitosamente',
         ], 201);
     }
 }
