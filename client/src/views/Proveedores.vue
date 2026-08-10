@@ -44,7 +44,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-border">
-          <tr v-for="supplier in suppliersCtx.suppliers.value" :key="supplier.id" class="transition-colors hover:bg-bg-secondary/50">
+          <tr v-for="supplier in suppliersCtx.suppliersWithBalance.value" :key="supplier.id" class="transition-colors hover:bg-bg-secondary/50">
             <td class="px-4 py-3.5">
               <div class="flex items-center gap-3">
                 <div class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
@@ -59,11 +59,19 @@
             <td class="px-4 py-3.5 text-sm text-text-secondary hidden sm:table-cell">{{ supplier.company || '—' }}</td>
             <td class="px-4 py-3.5 text-sm text-text-secondary hidden md:table-cell">{{ supplier.phone || '—' }}</td>
             <td class="px-4 py-3.5 text-right">
-              <div class="text-sm font-semibold text-text">
-                {{ supplier.debtCurrency === 'VES' ? formatVESEs(supplier.debtOriginalAmount) : formatUSD(supplier.totalDebt) }}
+              <div class="text-sm font-semibold" :class="supplier.pendingBalance > 0 ? 'text-warning' : 'text-success'">
+                {{ formatUSD(supplier.pendingBalance) }}
               </div>
               <div class="text-xs text-text-muted">
-                {{ supplier.debtCurrency === 'VES' ? formatUSD(supplier.totalDebt) : formatVESInline(supplier.totalDebt) + ' Bs' }}
+                <template v-if="supplier.debtCurrency === 'VES'">
+                  {{ formatVESEs(supplier.debtOriginalAmount) }} total
+                </template>
+                <template v-else>
+                  {{ formatUSD(supplier.totalDebt) }} total
+                </template>
+                <span v-if="supplier.totalPaid > 0" class="text-success">
+                  · {{ formatUSD(supplier.totalPaid) }} abonado
+                </span>
               </div>
             </td>
             <td class="px-4 py-3.5 text-center">

@@ -34,6 +34,31 @@ export function useSuppliers(businessId: import('vue').Ref<string | null>) {
 
   const suppliers = computed(() => data.value ?? [])
 
+  const { data: paymentsData } = useQuery({
+    queryKey: computed(() => ['supplier-payments-all', businessId.value, branchId.value]),
+    queryFn: () => listSupplierPayments(businessId.value!, branchId.value),
+    enabled: computed(() => !!businessId.value),
+  })
+
+  const paymentsBySupplier = computed(() => {
+    const map: Record<string, number> = {}
+    for (const p of (paymentsData.value ?? [])) {
+      map[p.supplierId] = (map[p.supplierId] ?? 0) + p.amount
+    }
+    return map
+  })
+
+  const suppliersWithBalance = computed(() =>
+    suppliers.value.map(s => {
+      const paid = paymentsBySupplier.value[s.id] ?? 0
+      return {
+        ...s,
+        totalPaid: paid,
+        pendingBalance: Math.max(0, s.totalDebt - paid),
+      }
+    })
+  )
+
   const saveMutation = useMutation({
     mutationFn: (formData: SupplierFormData & { id?: string }) => {
       if (!businessId.value) throw new Error('No hay negocio activo')
@@ -148,6 +173,8 @@ export function useSuppliers(businessId: import('vue').Ref<string | null>) {
 
   return {
     suppliers,
+    suppliersWithBalance,
+    paymentsBySupplier,
     isLoading,
     saveMutation,
     deleteMutation,
