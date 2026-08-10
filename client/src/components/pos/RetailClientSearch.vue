@@ -44,6 +44,7 @@ const onClientInput = () => {
   if (clientTimeout) clearTimeout(clientTimeout)
   const q = localClientSearch.value.trim()
   if (q.length < 1) { showClientDropdown.value = false; return }
+  showClientDropdown.value = true
   clientTimeout = setTimeout(() => emit('search-clients', q), 200)
 }
 
