@@ -134,9 +134,8 @@
               :key="svc.id"
               type="button"
               class="svc-item"
-              :class="{ 'svc-sel': isServiceSelected(svc), 'svc-disabled': !isServiceSelected(svc) && !canAddService(svc) }"
+              :class="{ 'svc-sel': isServiceSelected(svc) }"
               :style="isServiceSelected(svc) ? { borderColor: primaryColor, background: `${primaryColor}0A` } : {}"
-              :disabled="!isServiceSelected(svc) && !canAddService(svc)"
               @click="toggleService(svc)"
             >
               <span class="svc-check" :style="isServiceSelected(svc) ? { background: primaryColor, borderColor: primaryColor } : {}">
@@ -154,6 +153,9 @@
             <span class="text-[11px] text-text-muted">{{ chosenServices.length }} · {{ formatDuration(totalSelectedDuration) }}</span>
             <span class="text-sm font-extrabold" :style="{ color: primaryColor }">${{ totalSelectedPrice.toFixed(0) }}</span>
           </div>
+          <p v-if="chosenServices.length > 0 && !canConfirm" class="err-msg">
+            La duración total supera el tiempo disponible en este horario. Quita un servicio o elige otro horario.
+          </p>
           <button
             type="button"
             class="cta-btn"
@@ -490,16 +492,11 @@ function isServiceSelected(svc: PublicService) {
   return chosenServices.value.some(x => x.id === svc.id)
 }
 
-function canAddService(svc: PublicService) {
-  return totalSelectedDuration.value + (svc.duration_minutes || 0) <= availableMinutes.value
-}
-
 function toggleService(svc: PublicService) {
   if (isServiceSelected(svc)) {
     chosenServices.value = chosenServices.value.filter(x => x.id !== svc.id)
     return
   }
-  if (!canAddService(svc)) return
   chosenServices.value = [...chosenServices.value, svc]
 }
 
@@ -567,9 +564,7 @@ async function submitRequest() {
 
 <style scoped>
 .booking-root {
-  height: 100dvh;
-  max-height: 100dvh;
-  overflow: hidden;
+  min-height: 100dvh;
   background: var(--color-bg-secondary);
   display: flex;
   align-items: stretch;
@@ -578,11 +573,11 @@ async function submitRequest() {
 .booking-page {
   width: 100%;
   max-width: 28rem;
-  height: 100%;
+  min-height: 100dvh;
   max-height: 100dvh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-y: auto;
   padding: calc(env(safe-area-inset-top, 0px) + 0.625rem) 0.875rem calc(env(safe-area-inset-bottom, 0px) + 0.625rem);
   gap: 0.375rem;
 }
@@ -627,7 +622,6 @@ async function submitRequest() {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 .step-view {
   flex: 1 1 0;
@@ -640,7 +634,6 @@ async function submitRequest() {
   border: 1px solid var(--color-border);
   background: var(--color-surface);
   box-shadow: var(--shadow-sm);
-  overflow: hidden;
 }
 @media (min-width: 640px) {
   .step-view { padding: 0.75rem; border-radius: 1rem; gap: 0.5rem; }
@@ -698,9 +691,8 @@ async function submitRequest() {
   min-height: 0;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  grid-auto-rows: 1fr;
+  grid-auto-rows: minmax(1.75rem, 1fr);
   gap: 2px;
-  overflow: hidden;
 }
 .cal-day {
   display: flex; align-items: center; justify-content: center;
@@ -752,8 +744,7 @@ async function submitRequest() {
   border: 1px solid var(--color-border); background: transparent;
   cursor: pointer; text-align: left; flex-shrink: 0; min-height: 2.75rem;
 }
-.svc-item:active:not(:disabled) { transform: scale(0.98); }
-.svc-disabled { opacity: 0.35; cursor: not-allowed; }
+.svc-item:active { transform: scale(0.98); }
 .svc-check {
   flex-shrink: 0; height: 1.125rem; width: 1.125rem; border-radius: 0.25rem;
   border: 2px solid var(--color-border-strong);

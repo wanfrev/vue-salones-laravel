@@ -68,10 +68,11 @@
             <button
               v-if="canManageInvitations"
               @click="openInvitations"
-              class="flex items-center gap-1.5 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-3 py-2 text-xs font-semibold text-orange-700 dark:text-orange-400 transition-colors hover:bg-orange-100 dark:hover:bg-orange-950/40"
+              class="relative flex items-center gap-1.5 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-3 py-2 text-xs font-semibold text-orange-700 dark:text-orange-400 transition-colors hover:bg-orange-100 dark:hover:bg-orange-950/40"
             >
               <BellIcon class="h-3.5 w-3.5" />
               <span class="hidden sm:inline">Invitaciones</span>
+              <span v-if="invitationsCount > 0" class="absolute -top-1.5 -right-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">{{ invitationsCount }}</span>
             </button>
             <button
               @click="handleNewCita"
@@ -177,10 +178,11 @@
             <button
               v-if="canManageInvitations"
               @click="openInvitations"
-              class="flex items-center gap-1.5 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-2.5 py-1.5 text-xs font-semibold text-orange-700 dark:text-orange-400 transition-colors hover:bg-orange-100 dark:hover:bg-orange-950/40"
+              class="relative flex items-center gap-1.5 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-2.5 py-1.5 text-xs font-semibold text-orange-700 dark:text-orange-400 transition-colors hover:bg-orange-100 dark:hover:bg-orange-950/40"
             >
               <BellIcon class="h-3.5 w-3.5" />
               Invitaciones
+              <span v-if="invitationsCount > 0" class="absolute -top-1.5 -right-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">{{ invitationsCount }}</span>
             </button>
           </div>
         </header>
@@ -213,6 +215,7 @@ import { useAdminAgenda } from '../composables/agenda/useAdminAgenda'
 import { useBusinessStore } from '../store/business'
 import { useNotification } from '../composables/common/useNotification'
 import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
+import { usePendingInvitations } from '../composables/agenda/usePendingInvitations'
 import { CitaFormModal } from '../components/modals'
 import { db } from '../lib/api'
 import AgendaListView from '../components/agenda/AgendaListView.vue'
@@ -234,6 +237,7 @@ const canManageInvitations = computed(() => {
 
 const citaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
 const invitationsModalRef = ref<InstanceType<typeof PendingInvitationsModal> | null>(null)
+const { count: invitationsCount } = usePendingInvitations()
 
 function openInvitations() {
   invitationsModalRef.value?.open()

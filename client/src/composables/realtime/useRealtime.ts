@@ -38,7 +38,7 @@ export function useRealtime() {
       employee_payment: ['employee-payments', 'employee-earnings', 'finanzas-transactions', 'financial-summary'],
       branch: ['branches'],
       business: ['businesses'],
-      appointment: ['appointments', 'finanzas-transactions', 'financial-summary', 'employee-earnings', 'pos-pending'],
+      appointment: ['appointments', 'finanzas-transactions', 'financial-summary', 'employee-earnings', 'pos-pending', 'invitaciones-pendientes'],
       transaction: ['finanzas-transactions', 'financial-summary', 'employee-earnings', 'pos-pending'],
       client: ['clientes', 'clients', 'appointments'],
       service: ['servicios', 'services', 'appointments', 'financial-summary'],

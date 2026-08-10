@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\EntityChanged;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\Business;
@@ -208,6 +209,8 @@ class PublicBookingController extends Controller
 
             $cursor = $svcEnd;
         }
+
+        EntityChanged::safe($business->id, 'appointment', 'created', $groupId);
 
         return response()->json([
             'appointments' => $appointments,
