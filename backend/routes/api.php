@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\ClientController;
+use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\EmployeeCommissionController;
 use App\Http\Controllers\Api\EmployeePaymentController;
 use App\Http\Controllers\Api\EmployeeScheduleController;
@@ -250,6 +251,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/transactions', [TransactionController::class, 'index']);
     Route::put('/transactions/{id}', [TransactionController::class, 'update']);
     Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
+
+    Route::get('/credits', [CreditController::class, 'index']);
+    Route::post('/credits/{id}/mark-paid', [CreditController::class, 'markPaid']);
 
     // Expenses
     Route::get('/expenses', [ExpenseController::class, 'index']);

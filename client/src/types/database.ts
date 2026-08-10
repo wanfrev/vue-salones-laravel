@@ -553,6 +553,25 @@ export interface Requirement {
   updated_at: string
 }
 
+export interface Credit {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string | null
+  client_name: string
+  client_phone: string | null
+  transaction_id: string
+  amount: number
+  currency: string
+  status: 'pending' | 'paid'
+  paid_at: string | null
+  paid_method: string | null
+  created_by: string | null
+  client?: { id: string; full_name: string; phone: string | null } | null
+  created_at: string
+  updated_at: string
+}
+
 type TableShape<Row> = {
   Row: Row
   Insert: Partial<Row>

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Appointment;
+use App\Models\Credit;
 use App\Models\DailyReport;
 use App\Models\Product;
 use App\Models\Transaction;
@@ -372,6 +373,11 @@ class PosService
                 $paymentsBreakdown, $totalAmount, $rate,
                 $clientName, $tx->id,
             );
+            $this->createCreditRecord(
+                $businessId, $appointment->branch_id, $method, $totalAmount,
+                $appointment->client_id, $clientName, $appointment->client?->phone,
+                $tx->id, $createdBy,
+            );
 
             return $tx->id;
         });
@@ -515,11 +521,17 @@ class PosService
                 );
             }
 
+            $resolvedClientName = $clientName ?: ($clientInfoStr ? str_replace('Venta directa — ', '', $clientInfoStr) : 'Cliente Desconocido');
             $this->addCreditToDailyReport(
                 $businessId, $branchId, $method,
                 $paymentsBreakdown, $totalAmount, $rate,
-                $clientName ?: ($clientInfoStr ? str_replace('Venta directa — ', '', $clientInfoStr) : 'Cliente Desconocido'),
+                $resolvedClientName,
                 $tx->id,
+            );
+            $this->createCreditRecord(
+                $businessId, $branchId, $method, $totalAmount,
+                $clientId, $resolvedClientName, null,
+                $tx->id, $createdBy,
             );
 
             return $tx->id;
@@ -790,5 +802,41 @@ class PosService
 
         $report->credits_detail = $creditsDetail;
         $report->save();
+    }
+
+    /**
+     * Create a trackable Credit record for a full-credito sale so it shows up
+     * in the "Créditos" section and can later be marked as paid.
+     * Mixed-method sales that include a credito split are not tracked here —
+     * only pure `credito` transactions are.
+     */
+    private function createCreditRecord(
+        string $businessId,
+        ?string $branchId,
+        string $method,
+        float $totalAmount,
+        ?string $clientId,
+        string $clientName,
+        ?string $clientPhone,
+        string $transactionId,
+        string $createdBy,
+    ): void {
+        if ($method !== 'credito' || $totalAmount <= 0) {
+            return;
+        }
+
+        Credit::create([
+            'id' => Str::uuid()->toString(),
+            'business_id' => $businessId,
+            'branch_id' => $branchId,
+            'client_id' => $clientId,
+            'client_name' => $clientName,
+            'client_phone' => $clientPhone,
+            'transaction_id' => $transactionId,
+            'amount' => $totalAmount,
+            'currency' => 'USD',
+            'status' => 'pending',
+            'created_by' => $createdBy,
+        ]);
     }
 }
