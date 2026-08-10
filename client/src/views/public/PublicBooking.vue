@@ -40,7 +40,7 @@
 
       <!-- Content -->
       <div v-else class="content-area">
-        <Transition name="slide" mode="out-in">
+        <Transition name="fade" mode="out-in">
           <!-- 0: CALENDARIO -->
           <div v-if="currentStep === 0" key="s0" class="step-view">
             <div class="cal-head">
@@ -252,10 +252,10 @@ const submitting = ref(false)
 const clientName = ref('')
 const nameTouched = ref(false)
 
-const avMins = computed(() => pendingSlot.value ? Math.floor(pendingSlot.value.availableMs / 60000) : 0)
+const availableMinutes = computed(() => pendingSlot.value ? Math.floor(pendingSlot.value.availableMs / 60000) : 0)
 const totalDur = computed(() => chosenServices.value.reduce((a, b) => a + b.duration_minutes, 0))
 const totalPrice = computed(() => chosenServices.value.reduce((a, b) => a + b.price, 0))
-const canConfirm = computed(() => chosenServices.value.length > 0 && totalDur.value <= avMins.value)
+const canConfirm = computed(() => chosenServices.value.length > 0 && totalDur.value <= availableMinutes.value)
 const nameValid = computed(() => clientName.value.trim().length > 0)
 const canSubmit = computed(() => nameValid.value)
 
@@ -268,13 +268,13 @@ function selectTimeSlot(s: FreeSlot) {
 function isServiceSelected(s: PublicService) { return chosenServices.value.some(x => x.id === s.id) }
 function toggleService(s: PublicService) {
   if (isServiceSelected(s)) chosenServices.value = chosenServices.value.filter(x => x.id !== s.id)
-  else { const t = [...chosenServices.value, s].reduce((a, b) => a + b.duration_minutes, 0); if (t <= avMins.value) chosenServices.value = [...chosenServices.value, s] }
+  else { const t = [...chosenServices.value, s].reduce((a, b) => a + b.duration_minutes, 0); if (t <= availableMinutes.value) chosenServices.value = [...chosenServices.value, s] }
 }
 
-function fmtSlotTime(s: FreeSlot | null) { if (!s) return ''; return new Date(s.start).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: true }) }
-function fmtSlotRange(s: FreeSlot | null) { if (!s) return ''; const d = new Date(s.start); return `${d.toLocaleDateString('es-VE',{day:'2-digit',month:'short'})} · ${d.toLocaleTimeString('es-VE',{hour:'2-digit',minute:'2-digit',hour12:true})}` }
-function fmtDur(m: number) { if (m < 60) return `${Math.floor(m)} min`; const h = Math.floor(m/60); const r = Math.floor(m%60); return r>0 ? `${h}h ${r}min` : `${h}h` }
-function fmtDate(d: string) { return new Date(d+'T12:00:00').toLocaleDateString('es-VE',{weekday:'long',day:'numeric',month:'long'}) }
+function formatSlotTime(s: FreeSlot | null) { if (!s) return ''; return new Date(s.start).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: true }) }
+function formatSlotRange(s: FreeSlot | null) { if (!s) return ''; const d = new Date(s.start); return `${d.toLocaleDateString('es-VE',{day:'2-digit',month:'short'})} · ${d.toLocaleTimeString('es-VE',{hour:'2-digit',minute:'2-digit',hour12:true})}` }
+function formatDuration(m: number) { if (m < 60) return `${Math.floor(m)} min`; const h = Math.floor(m/60); const r = Math.floor(m%60); return r>0 ? `${h}h ${r}min` : `${h}h` }
+function formatDateLabel(d: string) { return new Date(d+'T12:00:00').toLocaleDateString('es-VE',{weekday:'long',day:'numeric',month:'long'}) }
 function getInitials(n: string) { return n.split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('') }
 
 async function submitRequest() {
@@ -328,7 +328,7 @@ async function submitRequest() {
 .step-divider { width: 1rem; height: 1px; background: var(--color-border); flex-shrink: 0; transition: background 0.5s; }
 
 /* ===== CONTENT ===== */
-.content-area { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.content-area { flex: 1; display: flex; flex-direction: column; min-height: 0; position: relative; }
 .step-view { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; min-height: 0; padding: 0.5rem; border-radius: 1rem; border: 1px solid var(--color-border); background: var(--color-surface); box-shadow: var(--shadow-sm); }
 @media (min-width: 640px) { .step-view { padding: 1rem; border-radius: 1.25rem; gap: 0.75rem; } }
 
@@ -417,8 +417,8 @@ async function submitRequest() {
 .footer { flex-shrink: 0; text-align: center; padding-top: 0.25rem; }
 
 /* ===== TRANSITIONS ===== */
-.slide-enter-active { transition: all 0.25s ease-out; }
-.slide-leave-active { transition: all 0.12s ease-in; position: absolute; }
-.slide-enter-from { opacity: 0; transform: translateX(10px); }
-.slide-leave-to { opacity: 0; transform: translateX(-10px); }
+.fade-enter-active { transition: opacity 0.2s ease-out; }
+.fade-leave-active { transition: opacity 0.15s ease-in; position: absolute; }
+.fade-enter-from { opacity: 0; }
+.fade-leave-to { opacity: 0; }
 </style>
