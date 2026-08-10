@@ -99,7 +99,9 @@
               <span class="text-[11px] text-text-muted">{{ chosenServices.length }} · {{ formatDuration(totalSelectedDuration) }}</span>
               <span class="text-sm font-extrabold" :style="{ color: colored('--color-primary') }">${{ totalSelectedPrice.toFixed(0) }}</span>
             </div>
-            <button v-if="canConfirm" @click="advanceStep" class="cta-btn" :style="{ background: colored('--color-primary') }">Confirmar servicios &rarr;</button>
+            <button @click="advanceStep" :disabled="!canConfirm" class="cta-btn" :style="{ background: colored('--color-primary'), opacity: canConfirm ? 1 : 0.35 }">
+            {{ chosenServices.length ? `Confirmar ${chosenServices.length} servicio${chosenServices.length !== 1 ? 's' : ''}` : 'Selecciona al menos un servicio' }}
+          </button>
           </div>
 
           <!-- 3: CONFIRMAR -->
@@ -116,6 +118,9 @@
             <input v-model="clientName" type="text" placeholder="Escribe tu nombre completo *" maxlength="200" @input="nameTouched = true"
               class="name-inp" :style="nameTouched && !nameValid ? { borderColor: 'var(--color-danger)' } : {}" />
             <p v-if="nameTouched && !nameValid" class="text-[11px] text-danger mt-1">El nombre es obligatorio.</p>
+          <p v-if="submitError" class="text-[11px] text-danger mt-1 flex items-center gap-1">
+            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            {{ submitError }}</p>
             <button @click="submitRequest" :disabled="submitting || !canSubmit" class="cta-btn" :style="{ background: colored('--color-primary'), opacity: (submitting || !canSubmit) ? 0.4 : 1 }">
               <span v-if="submitting" class="spinner-sm" /> {{ submitting ? 'Reservando...' : 'Confirmar reserva' }}
             </button>
@@ -251,6 +256,7 @@ const chosenServices = ref<PublicService[]>([])
 const submitting = ref(false)
 const clientName = ref('')
 const nameTouched = ref(false)
+const submitError = ref('')
 
 const availableMinutes = computed(() => pendingSlot.value ? Math.floor(pendingSlot.value.availableMs / 60000) : 0)
 const totalDur = computed(() => chosenServices.value.reduce((a, b) => a + b.duration_minutes, 0))
@@ -278,14 +284,17 @@ function formatDateLabel(d: string) { return new Date(d+'T12:00:00').toLocaleDat
 function getInitials(n: string) { return n.split(' ').slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('') }
 
 async function submitRequest() {
-  if (!chosenServices.value.length || !pendingSlot.value || !presetEmployeeId.value) return
+  if (!chosenServices.value.length || !pendingSlot.value) return
+  if (!presetEmployeeId.value) { submitError.value = 'Falta el empleado en el enlace.'; return }
   if (!nameValid.value) { nameTouched.value = true; return }
-  submitting.value = true
+  submitting.value = true; submitError.value = ''
   try {
     await submitBookingRequest(slug.value, { employee_id: presetEmployeeId.value, service_ids: chosenServices.value.map(s => s.id), start_time: pendingSlot.value.start, client_name: clientName.value.trim() })
     advanceStep()
-  } catch { alert('Horario no disponible.'); currentStep.value = 0; maxReachedStep.value = 0 }
-  finally { submitting.value = false }
+  } catch (e: any) {
+    const msg = e?.message || e?.response?.data?.message || ''
+    submitError.value = msg.includes('409') || msg.includes('disponible') ? 'Este horario ya fue tomado. Elige otro.' : 'Error al reservar. Intenta de nuevo.'
+  } finally { submitting.value = false }
 }
 </script>
 
