@@ -32,10 +32,12 @@ export function useDailyReports() {
   const saveMutation = useMutation({
     mutationFn: (payload: Partial<DailyReport>) => saveDailyReport(payload),
     onSuccess: async (_, variables) => {
-      await queryClient.invalidateQueries({
-        queryKey: ['daily-reports'],
-        exact: false,
-      })
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: ['daily-reports'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['finanzas-summary'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['finanzas-transactions'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['financial-summary'], exact: false }),
+      ])
       showSuccess(variables.id ? 'Reporte actualizado exitosamente' : 'Reporte guardado exitosamente')
     },
     onError: (err: any) => {
@@ -48,10 +50,12 @@ export function useDailyReports() {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteDailyReport(id),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ['daily-reports'],
-        exact: false,
-      })
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: ['daily-reports'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['finanzas-summary'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['finanzas-transactions'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['financial-summary'], exact: false }),
+      ])
       showSuccess('Reporte eliminado')
     },
     onError: (err: any) => {

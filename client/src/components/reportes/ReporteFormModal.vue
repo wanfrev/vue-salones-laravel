@@ -524,6 +524,7 @@ watch(modalData, (data) => {
     zReportCurrency.value = 'VES'
     zReportAmount.value = ''
     creditsList.value = []
+    nextTick(() => { fetchFromPos() })
   }
   errors.value = {}
 }, { immediate: true })

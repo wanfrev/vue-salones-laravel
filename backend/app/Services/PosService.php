@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\Appointment;
+use App\Models\DailyReport;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\Client;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -362,6 +364,15 @@ class PosService
 
             $appointment->update(['payment_status' => $paymentStatus]);
 
+            $clientName = $appointment->client?->full_name
+                ?? ($appointment->client?->name)
+                ?? 'Cliente Desconocido';
+            $this->addCreditToDailyReport(
+                $businessId, $appointment->branch_id, $method,
+                $paymentsBreakdown, $totalAmount, $rate,
+                $clientName, $tx->id,
+            );
+
             return $tx->id;
         });
     }
@@ -503,6 +514,13 @@ class PosService
                     clientId: $clientId,
                 );
             }
+
+            $this->addCreditToDailyReport(
+                $businessId, $branchId, $method,
+                $paymentsBreakdown, $totalAmount, $rate,
+                $clientName ?: ($clientInfoStr ? str_replace('Venta directa — ', '', $clientInfoStr) : 'Cliente Desconocido'),
+                $tx->id,
+            );
 
             return $tx->id;
         });
@@ -702,5 +720,75 @@ class PosService
 
         $stock->quantity -= $quantity;
         $stock->save();
+    }
+
+    /**
+     * Auto-add a credit sale to the daily_reports table so it appears
+     * automatically in the daily report without manual entry.
+     */
+    private function addCreditToDailyReport(
+        string $businessId,
+        ?string $branchId,
+        string $method,
+        array $paymentsBreakdown,
+        float $totalAmount,
+        float $exchangeRate,
+        string $clientName,
+        string $transactionId,
+    ): void {
+        $creditAmount = 0;
+        $creditCurrency = 'USD';
+
+        if ($method === 'credito') {
+            $creditAmount = $totalAmount;
+        } elseif ($method === 'mixed' && !empty($paymentsBreakdown)) {
+            foreach ($paymentsBreakdown as $split) {
+                if (($split['method'] ?? '') === 'credito') {
+                    $creditAmount += (float) ($split['amount'] ?? $split['inputAmount'] ?? 0);
+                    $creditCurrency = ($split['currency'] ?? 'USD') === 'VES' ? 'VES' : 'USD';
+                }
+            }
+        }
+
+        if ($creditAmount <= 0) return;
+
+        $today = Carbon::now()->toDateString();
+
+        $report = DailyReport::firstOrNew([
+            'business_id' => $businessId,
+            'branch_id' => $branchId,
+            'date' => $today,
+        ]);
+
+        if (!$report->exists) {
+            $report->user_id = null;
+            $report->fill(array_fill_keys([
+                'exchange_rate', 'z_report_bs', 'z_report_usd',
+                'pos_bs', 'pago_movil_bs', 'cash_bs', 'transfer_bs',
+                'cash_usd', 'zelle_usd', 'binance_usd', 'cashea_usd',
+                'card_usd', 'gift_card_usd', 'other_usd', 'other_bs',
+                'credit_bs', 'credit_usd', 'total_bs', 'total_usd',
+            ], 0));
+        }
+
+        $creditsDetail = $report->credits_detail ?? [];
+
+        $creditsDetail[] = [
+            'name' => $clientName,
+            'amount' => $creditAmount,
+            'currency' => $creditCurrency === 'VES' ? 'Bs' : 'USD',
+            'transaction_id' => $transactionId,
+        ];
+
+        if ($creditCurrency === 'VES') {
+            $report->credit_bs = (float) ($report->credit_bs ?? 0) + $creditAmount;
+            $report->total_bs = (float) ($report->total_bs ?? 0) + $creditAmount;
+        } else {
+            $report->credit_usd = (float) ($report->credit_usd ?? 0) + $creditAmount;
+            $report->total_usd = (float) ($report->total_usd ?? 0) + $creditAmount;
+        }
+
+        $report->credits_detail = $creditsDetail;
+        $report->save();
     }
 }
