@@ -171,8 +171,23 @@ class FinancialSummaryService
         $cogsQuery = DB::table('inventory_movements')
             ->leftJoin('products', 'inventory_movements.product_id', '=', 'products.id')
             ->leftJoin('product_variants', 'inventory_movements.variant_id', '=', 'product_variants.id')
+            ->leftJoin('transactions', function ($join) {
+                $join->where(function ($q) {
+                    $q->where(function ($sq) {
+                        $sq->on('inventory_movements.reference_id', '=', 'transactions.id')
+                           ->whereIn('inventory_movements.reference_type', ['direct', 'invoice']);
+                    })->orWhere(function ($sq) {
+                        $sq->on('inventory_movements.reference_id', '=', 'transactions.id')
+                           ->where('inventory_movements.reference_type', '=', 'appointment');
+                    });
+                });
+            })
             ->where('inventory_movements.business_id', $businessId)
-            ->whereIn('inventory_movements.movement_type', ['sale', 'consumption']);
+            ->whereIn('inventory_movements.movement_type', ['sale', 'consumption'])
+            ->where(function ($q) {
+                $q->whereNull('transactions.id')
+                  ->orWhere('transactions.method', '!=', 'credito');
+            });
 
         if ($start && $end) {
             $cogsQuery->whereBetween('inventory_movements.created_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
@@ -237,6 +252,7 @@ class FinancialSummaryService
             },
         ])
             ->where('business_id', $businessId)
+            ->where('method', '!=', 'credito')
             ->orderByRaw('COALESCE(paid_at, created_at) DESC');
 
         $tz = $this->resolveTimezone($businessId);
@@ -320,6 +336,10 @@ class FinancialSummaryService
             })
             ->where('inventory_movements.business_id', $businessId)
             ->where('inventory_movements.movement_type', 'sale')
+            ->where(function ($q) {
+                $q->whereNull('transactions.id')
+                  ->orWhere('transactions.method', '!=', 'credito');
+            })
             ->select(
                 'inventory_movements.id',
                 'inventory_movements.created_at',

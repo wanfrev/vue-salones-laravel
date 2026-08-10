@@ -400,7 +400,7 @@ const { success, error: showError } = useNotification()
 
 const openCobroActions = async (tx: any) => {
   const appointmentId = tx.appointmentId || tx.appointment_id
-  const isInvoice = !!(tx.items)
+  const isInvoice = 'items' in tx && Array.isArray(tx.items)
   let cita = null
   if (appointmentId) {
     const { data: citaRaw } = await db
@@ -424,8 +424,8 @@ const openCobroActions = async (tx: any) => {
     notes: tx.notes || undefined,
     breakdown: breakdown || undefined,
     appointmentId,
-    clientName: tx.clientName || undefined,
-    employeeName: tx.employeeName || undefined,
+    clientName: tx.clientName,
+    employeeName: isInvoice ? tx.employeeName : tx.employee,
     invoiceProducts: isInvoice ? tx.items?.map((item: any) => ({
       movementId: item.id,
       productId: item.productId || item.id,

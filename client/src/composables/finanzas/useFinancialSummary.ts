@@ -485,12 +485,16 @@ function useFinancialSummary(
 
       result.push({
         id: tx.id,
+        appointmentId: tx.appointment_id || undefined,
+        appointment_id: tx.appointment_id || undefined,
         date: formatDate(tx.paid_at),
         description: `${clientLabel} · ${serviceLabel}`,
         clientName: clientLabel,
         employee: (tx.employee_name as string) || undefined,
         method: formatMethod(tx.method),
+        rawMethod: tx.method,
         amount: amt,
+        total: amt,
         type: 'ingreso',
         exchangeRateUsed,
         notes: tx.notes,
