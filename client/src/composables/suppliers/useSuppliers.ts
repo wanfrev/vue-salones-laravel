@@ -35,7 +35,7 @@ export function useSuppliers(businessId: import('vue').Ref<string | null>) {
   const suppliers = computed(() => data.value ?? [])
 
   const { data: paymentsData } = useQuery({
-    queryKey: computed(() => ['supplier-payments-all', businessId.value, branchId.value]),
+    queryKey: computed(() => ['supplier-payments', 'all', businessId.value, branchId.value]),
     queryFn: () => listSupplierPayments(businessId.value!, branchId.value),
     enabled: computed(() => !!businessId.value),
   })
