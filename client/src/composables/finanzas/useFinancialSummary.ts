@@ -526,6 +526,8 @@ function useFinancialSummary(
         clientName?: string
         employeeName?: string
         method: string
+        rawMethod: string
+        breakdown: PaymentBreakdownItem[] | null
         breakdownLabel: string
         amount: number
         exchangeRateUsed: number
@@ -567,6 +569,8 @@ function useFinancialSummary(
             clientName: clientLabel,
             employeeName: employeeLabel,
             method: formatMethod(method),
+            rawMethod: method,
+            breakdown,
             breakdownLabel: formatBreakdownLabel(breakdown),
             amount: total,
             exchangeRateUsed,
@@ -589,10 +593,16 @@ function useFinancialSummary(
           date: inv.date,
           description: desc,
           clientName: inv.clientName,
+          employeeName: inv.employeeName || undefined,
           employee: inv.employeeName || undefined,
           method: inv.method,
+          rawMethod: inv.rawMethod,
+          breakdown: inv.breakdown,
           breakdownLabel: inv.breakdownLabel,
           amount: inv.amount,
+          total: inv.amount,
+          paymentMethod: inv.rawMethod,
+          currency: inv.isVES ? 'VES' : 'USD',
           type: 'ingreso',
           exchangeRateUsed: inv.exchangeRateUsed,
           notes: inv.notes,
