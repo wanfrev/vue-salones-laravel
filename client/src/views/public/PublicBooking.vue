@@ -54,35 +54,30 @@
                 :style="c.isSelected ? { background: colored('--color-primary'), color: '#fff', boxShadow: `0 3px 12px ${colored('--color-primary')}55` } : c.isToday ? { boxShadow: `inset 0 0 0 2px ${colored('--color-primary')}` } : !c.selectable ? { opacity: 0.15, pointerEvents: 'none' } : {}"
               >{{ c.dayNumber }}</button>
             </div>
-            <button v-if="selectedDate !== todayStr" @click="currentStep = 1" class="cta-btn" :style="{ background: colored('--color-primary') }">
-              {{ formatDateLabel(selectedDate) }} &rarr;
-            </button>
+            <p v-if="selectedDate !== todayStr" class="text-center text-[11px] text-text-muted">{{ formatDateLabel(selectedDate) }}</p>
           </div>
 
           <!-- 1: HORARIOS -->
           <div v-else-if="currentStep === 1" key="s1" class="step-view">
-            <button @click="currentStep = 0" class="back-link">&larr; {{ formatDateLabel(selectedDate) }}</button>
+            <button @click="goToStep(0)" class="back-link">&larr; {{ formatDateLabel(selectedDate) }}</button>
             <p class="step-label-text">{{ freeSlots.length }} horario{{ freeSlots.length !== 1 ? 's' : '' }} disponible{{ freeSlots.length !== 1 ? 's' : '' }}</p>
             <div v-if="loadingCalendar" class="flex-1 flex items-center justify-center"><div class="spinner" /></div>
             <div v-else-if="!hasSchedule" class="flex-1 flex flex-col items-center justify-center text-center gap-2">
               <p class="font-semibold text-text">Sin horario</p>
               <p class="text-xs text-text-muted">{{ employeeName }} no atiende.</p>
-              <button @click="currentStep = 0" class="text-xs text-primary font-semibold">Elegir otro día</button>
+              <button @click="goToStep(0)" class="text-xs text-primary font-semibold">Elegir otro día</button>
             </div>
             <div v-else class="slots-wrap">
               <button v-for="s in freeSlots" :key="s.label" @click="selectTimeSlot(s)" class="slot"
                 :style="pendingSlot === s ? { borderColor: colored('--color-primary'), background: `${colored('--color-primary')}12` } : {}"
               >{{ s.label }}</button>
             </div>
-            <button v-if="pendingSlot" @click="currentStep = 2" class="cta-btn" :style="{ background: colored('--color-primary') }">
-              {{ formatSlotTime(pendingSlot) }} &rarr;
-            </button>
           </div>
 
           <!-- 2: SERVICIOS -->
           <div v-else-if="currentStep === 2" key="s2" class="step-view">
             <div class="svc-top">
-              <button @click="currentStep = 1" class="back-link">&larr; {{ formatDateLabel(selectedDate) }} · {{ pendingSlot ? formatSlotTime(pendingSlot) : '' }}</button>
+              <button @click="goToStep(1)" class="back-link">&larr; {{ formatDateLabel(selectedDate) }} · {{ pendingSlot ? formatSlotTime(pendingSlot) : '' }}</button>
               <span class="text-[10px] sm:text-xs text-text-muted font-medium">{{ formatDuration(availableMinutes) }} disp.</span>
             </div>
             <div v-if="(services ?? []).length === 0" class="flex-1 flex items-center justify-center"><p class="text-xs text-text-muted">Sin servicios.</p></div>
@@ -104,12 +99,12 @@
               <span class="text-[11px] text-text-muted">{{ chosenServices.length }} · {{ formatDuration(totalSelectedDuration) }}</span>
               <span class="text-sm font-extrabold" :style="{ color: colored('--color-primary') }">${{ totalSelectedPrice.toFixed(0) }}</span>
             </div>
-            <button v-if="canConfirm" @click="currentStep = 3" class="cta-btn" :style="{ background: colored('--color-primary') }">Confirmar servicios &rarr;</button>
+            <button v-if="canConfirm" @click="advanceStep" class="cta-btn" :style="{ background: colored('--color-primary') }">Confirmar servicios &rarr;</button>
           </div>
 
           <!-- 3: CONFIRMAR -->
           <div v-else-if="currentStep === 3" key="s3" class="step-view">
-            <button @click="currentStep = 2" class="back-link">&larr; Cambiar servicios</button>
+            <button @click="goToStep(2)" class="back-link">&larr; Cambiar servicios</button>
             <p class="text-sm sm:text-base font-bold text-text">Confirma tu reserva</p>
             <div class="summary">
               <div class="sum-row"><span class="sum-lbl">Servicios</span><span class="sum-val">{{ chosenServices.map(s => s.name).join(', ') }}</span></div>
@@ -199,13 +194,10 @@ function prevMonth() { if (canGoPrevMonth.value) calendarMonth.value = new Date(
 function nextMonth() { if (canGoNextMonth.value) calendarMonth.value = new Date(calendarMonth.value.getFullYear(), calendarMonth.value.getMonth() + 1, 1) }
 
 const currentStep = ref(0)
-function goToStep(s: number) { if (s <= maxReachableStep.value) currentStep.value = s }
-const maxReachableStep = computed(() => {
-  if (currentStep.value === 4) return 4
-  if (chosenServices.value.length && pendingSlot.value && clientName.value.trim()) return 3
-  if (chosenServices.value.length && pendingSlot.value) return 2
-  if (pendingSlot.value) return 1; return 0
-})
+const maxReachedStep = ref(0)
+function goToStep(s: number) { if (s <= maxReachedStep.value) currentStep.value = s }
+function advanceStep() { currentStep.value++; maxReachedStep.value = Math.max(maxReachedStep.value, currentStep.value) }
+const maxReachableStep = computed(() => maxReachedStep.value)
 
 const { data: business, error: businessError, isLoading: loadingBusiness } = useQuery({ queryKey: computed(() => ['pb-biz', slug.value] as const), queryFn: () => getBusinessPublic(slug.value), staleTime: 5 * 60 * 1000 })
 const primaryColor = computed(() => business.value?.theme_config?.primary_color || '#869C84')
@@ -267,8 +259,12 @@ const canConfirm = computed(() => chosenServices.value.length > 0 && totalDur.va
 const nameValid = computed(() => clientName.value.trim().length > 0)
 const canSubmit = computed(() => nameValid.value)
 
-function selectDay(d: string) { selectedDate.value = d; pendingSlot.value = null; chosenServices.value = []; currentStep.value = 1 }
-function selectTimeSlot(s: FreeSlot) { pendingSlot.value = s; if (totalDur.value > Math.floor(s.availableMs / 60000)) chosenServices.value = [] }
+function selectDay(d: string) { selectedDate.value = d; pendingSlot.value = null; chosenServices.value = []; advanceStep() }
+function selectTimeSlot(s: FreeSlot) {
+  pendingSlot.value = s
+  if (totalDur.value > Math.floor(s.availableMs / 60000)) chosenServices.value = []
+  advanceStep()
+}
 function isServiceSelected(s: PublicService) { return chosenServices.value.some(x => x.id === s.id) }
 function toggleService(s: PublicService) {
   if (isServiceSelected(s)) chosenServices.value = chosenServices.value.filter(x => x.id !== s.id)
@@ -287,8 +283,8 @@ async function submitRequest() {
   submitting.value = true
   try {
     await submitBookingRequest(slug.value, { employee_id: presetEmployeeId.value, service_ids: chosenServices.value.map(s => s.id), start_time: pendingSlot.value.start, client_name: clientName.value.trim() })
-    currentStep.value = 4
-  } catch { alert('Horario no disponible.'); currentStep.value = 0 }
+    advanceStep()
+  } catch { alert('Horario no disponible.'); currentStep.value = 0; maxReachedStep.value = 0 }
   finally { submitting.value = false }
 }
 </script>
