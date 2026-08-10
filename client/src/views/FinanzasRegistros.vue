@@ -422,6 +422,15 @@ const openCobroActions = async (tx: any) => {
     notes: tx.notes || undefined,
     breakdown: tx.breakdown || undefined,
     appointmentId,
+    clientName: tx.clientName || undefined,
+    employeeName: tx.employeeName || undefined,
+    invoiceProducts: tx.items?.map((item: any) => ({
+      movementId: item.id,
+      productId: item.productId || item.id,
+      productName: item.product,
+      quantity: item.quantity,
+      unitCost: item.unitPrice,
+    })) || undefined,
   }
 
   cobroActionsCita.value = cita

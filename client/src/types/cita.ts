@@ -92,6 +92,7 @@ export interface PaymentEditContext {
   appointmentId?: string
   clientName?: string
   employeeName?: string
+  invoiceProducts?: AppointmentProduct[]
 }
 
 export interface AppointmentProduct {

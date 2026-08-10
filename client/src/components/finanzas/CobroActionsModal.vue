@@ -53,6 +53,10 @@ watch(() => props.show, (visible) => { if (visible) { mode.value = 'actions'; gr
 
 watch(() => props.paymentData, (data) => {
   appointmentProducts.value = []
+  if (data?.invoiceProducts && data.invoiceProducts.length > 0) {
+    appointmentProducts.value = data.invoiceProducts
+    return
+  }
   if (data?.appointmentId) {
     db
       .from('inventory_movements')

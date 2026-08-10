@@ -411,6 +411,7 @@ function useFinancialSummary(
       const itemObj = {
         id: (r as any).id,
         product: (r as any).product ?? 'Sin producto',
+        productId: (r as any).product_id ?? null,
         quantity: qty,
         unitPrice: unitPrice,
         total,
