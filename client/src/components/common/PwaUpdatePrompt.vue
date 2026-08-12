@@ -35,17 +35,6 @@
           >
             {{ updating ? 'Actualizando…' : 'Actualizar' }}
           </button>
-
-          <button
-            v-if="!updating"
-            type="button"
-            aria-label="Descartar por ahora"
-            class="shrink-0 h-7 w-7 rounded-lg flex items-center justify-center transition-opacity hover:opacity-70"
-            style="color: var(--color-text-muted)"
-            @click="dismissUpdate"
-          >
-            <X class="h-3.5 w-3.5" />
-          </button>
         </div>
       </div>
     </Transition>
@@ -53,15 +42,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { RefreshCw, X } from 'lucide-vue-next'
+import { RefreshCw } from 'lucide-vue-next'
 import { usePwaUpdate } from '../../composables/common/usePwaUpdate'
 
-const { needRefresh, updating, dismissed, applyUpdate, dismissUpdate } = usePwaUpdate()
-
-// Descartar solo lo esconde hasta que la app vuelva al foco (ver usePwaUpdate),
-// para que una versión nueva no quede oculta indefinidamente.
-const visible = computed(() => needRefresh.value && !dismissed.value)
+const { needRefresh: visible, updating, applyUpdate } = usePwaUpdate()
 </script>
 
 <style scoped>
