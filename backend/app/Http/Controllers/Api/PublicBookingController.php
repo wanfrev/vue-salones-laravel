@@ -60,6 +60,7 @@ class PublicBookingController extends Controller
         if (!$business) return response()->json(['message' => 'Negocio no encontrado'], 404);
 
         $services = Service::where('business_id', $business->id)->where('active', true)
+            ->where('show_in_public_booking', true)
             ->where(function ($q) use ($business) {
                 $q->whereNull('branch_id');
                 if ($business->branches()->count() > 0)

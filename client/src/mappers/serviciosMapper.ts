@@ -90,6 +90,7 @@ export const mapServiceToServicio = (service: Service, citasMes = 0, ingresos = 
     is_fixed_commission: !!service.is_fixed_commission,
     fixed_commission_amount: service.fixed_commission_amount ? Number(service.fixed_commission_amount) : 0,
     fixed_commission_assistant_amount: service.fixed_commission_assistant_amount ? Number(service.fixed_commission_assistant_amount) : 0,
+    show_in_public_booking: service.show_in_public_booking ?? true,
   }
 }
 
@@ -109,5 +110,6 @@ export const mapServicioFormToServiceInsert = (businessId: string, data: Servici
     is_fixed_commission: data.is_fixed_commission,
     fixed_commission_amount: data.fixed_commission_amount ?? null,
     fixed_commission_assistant_amount: data.fixed_commission_assistant_amount ?? null,
+    show_in_public_booking: data.show_in_public_booking ?? true,
   }
 }

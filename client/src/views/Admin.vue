@@ -230,8 +230,8 @@ const { success } = useNotification()
 
 const canManageInvitations = computed(() => {
   const role = authStore.role
-  if (!role) return false
-  if (role === 'admin' || role === 'superadmin') return businessStore.hasFeature('enable_public_booking')
+  if (!role || !businessStore.hasFeature('enable_public_booking')) return false
+  if (role === 'admin' || role === 'superadmin') return true
   return (authStore.profile as any)?.can_create_appointments !== false
 })
 

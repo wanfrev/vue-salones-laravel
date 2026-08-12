@@ -114,6 +114,7 @@ export interface Service {
   is_fixed_commission?: boolean
   fixed_commission_amount?: number | null
   fixed_commission_assistant_amount?: number | null
+  show_in_public_booking?: boolean
   created_at: string
   updated_at: string
 }

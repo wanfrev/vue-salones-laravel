@@ -126,6 +126,17 @@
         </div>
       </div>
 
+      <!-- Visibilidad en reservas públicas -->
+      <div v-if="businessStore.hasFeature('enable_public_booking')" class="rounded-lg border border-border p-4">
+        <label class="flex items-center space-x-2 text-sm font-medium text-text-primary cursor-pointer">
+          <input type="checkbox" v-model="formData.show_in_public_booking" class="rounded border-border text-primary focus:ring-primary" />
+          <span>Visible en el link de reserva pública</span>
+        </label>
+        <p class="mt-1 text-xs text-text-muted ml-6">
+          Si lo desactivas, este servicio no aparecerá en el catálogo que ven los clientes al reservar por su cuenta desde el link de invitación.
+        </p>
+      </div>
+
       <!-- Insumos Consumibles del Inventario (Múltiples Productos) -->
       <div class="rounded-lg border border-border p-4 space-y-3">
         <label class="flex items-center space-x-2 text-sm font-medium text-text-primary cursor-pointer">
@@ -372,6 +383,7 @@ const defaultFormData: ServicioFormData = {
   is_fixed_commission: false,
   fixed_commission_amount: 0,
   fixed_commission_assistant_amount: 0,
+  show_in_public_booking: true,
   linked_product_id: null,
   linked_variant_id: null,
   linked_products: [],
@@ -447,6 +459,7 @@ const open = (servicio?: Servicio, branchId?: string) => {
       is_fixed_commission: s.is_fixed_commission ?? false,
       fixed_commission_amount: s.fixed_commission_amount ?? 0,
       fixed_commission_assistant_amount: s.fixed_commission_assistant_amount ?? 0,
+      show_in_public_booking: s.show_in_public_booking ?? true,
     }
 
     const rawLinked = s.linked_products ?? []
