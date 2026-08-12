@@ -580,6 +580,12 @@ const gridColumns = computed<GridColumn[]>(() => {
   const groupMemberMap = buildGroupMemberMap(appointments.value ?? [])
   const q = debouncedSearch.value.toLowerCase()
 
+  // Parse each appointment's date once instead of re-parsing it per day column / per employee column below.
+  const isoDateByAppt = new Map<any, string>()
+  for (const a of appts) {
+    isoDateByAppt.set(a, toISODate(new Date(a.start_time)))
+  }
+
   if (viewMode.value === 'week') {
     const sel = new Date(selectedDate.value + 'T12:00:00')
     const sow = new Date(sel); sow.setDate(sel.getDate() - sel.getDay())
@@ -587,7 +593,7 @@ const gridColumns = computed<GridColumn[]>(() => {
       const d = new Date(sow); d.setDate(sow.getDate() + i)
       const iso = toISODate(d)
       const dayAppts = appts
-        .filter(a => toISODate(new Date(a.start_time)) === iso && (empId === 'all' || a.employee_id === empId) && (!q || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(q)))
+        .filter(a => isoDateByAppt.get(a) === iso && (empId === 'all' || a.employee_id === empId) && (!q || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(q)))
         .map(a => mapAppt(a, svcMap, empMap.get(a.employee_id)?.full_name || '', groupMemberMap))
         .sort((a, b) => a.top - b.top)
       const isT = iso === todayIso.value
@@ -600,7 +606,7 @@ const gridColumns = computed<GridColumn[]>(() => {
 
   return cols.map(c => {
     const cAppts = appts
-      .filter(a => (c.id === '__default__' || (toISODate(new Date(a.start_time)) === selectedDate.value && a.employee_id === c.id)) && (!q || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(q)))
+      .filter(a => (c.id === '__default__' || (isoDateByAppt.get(a) === selectedDate.value && a.employee_id === c.id)) && (!q || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(q)))
       .map(a => mapAppt(a, svcMap, c.name, groupMemberMap))
       .sort((a, b) => a.top - b.top)
     return { key: c.id, label: c.id === '__default__' ? 'Citas' : c.name.split(' ')[0], avatar: c.id === '__default__' ? undefined : getInitials(c.name), widthPercent: 100 / cols.length, appointments: cAppts }

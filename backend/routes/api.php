@@ -128,6 +128,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/clients/{id}', [ClientController::class, 'update']);
     Route::delete('/clients/{id}', [ClientController::class, 'destroy']);
     Route::get('/clients/search', [ClientController::class, 'search']);
+    Route::get('/clients/stats', [ClientController::class, 'stats']);
     Route::post('/clients/find-or-create-by-phone', [ClientController::class, 'findOrCreateByPhone']);
     Route::get('/clients/{id}', [ClientController::class, 'show']);
         Route::get('/clients/{id}/history', [ClientController::class, 'history']);

@@ -93,6 +93,31 @@ class ClientService
         }
     }
 
+    /**
+     * Aggregated per-client stats (visit count, total spent at current service
+     * prices, last visit date) computed in SQL instead of shipping every
+     * appointment row to the frontend for a client-side reduce.
+     */
+    public function stats(string $businessId, ?string $branchId = null): Collection
+    {
+        $query = DB::table('appointments')
+            ->leftJoin('services', function ($join) {
+                $join->on('services.id', '=', 'appointments.service_id')
+                    ->on('services.business_id', '=', 'appointments.business_id');
+            })
+            ->where('appointments.business_id', $businessId)
+            ->selectRaw('appointments.client_id as client_id, COUNT(*) as total_appointments, COALESCE(SUM(services.price), 0) as total_spent, MAX(appointments.start_time) as last_visit')
+            ->groupBy('appointments.client_id');
+
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('appointments.branch_id')->orWhere('appointments.branch_id', $branchId);
+            });
+        }
+
+        return $query->get();
+    }
+
     public function search(string $businessId, string $query, ?string $branchId = null): Collection
     {
         $term = $query . '%';
