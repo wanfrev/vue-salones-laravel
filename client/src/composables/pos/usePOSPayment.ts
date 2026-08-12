@@ -38,7 +38,7 @@ export function usePOSPayment() {
       methods.push({ label: 'Gift Card', value: 'gift_card' as PaymentMethod, currency: 'USD' as const })
     }
     
-    if (businessStore.business?.niche_type === 'tienda') {
+    if (businessStore.nicheType !== 'staffing') {
       methods.push({ label: 'Crédito', value: 'credito' as PaymentMethod, currency: 'USD' as const })
     }
     
