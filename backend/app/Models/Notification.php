@@ -37,4 +37,9 @@ class Notification extends Model
     {
         return $this->belongsTo(Branch::class);
     }
+
+    public function profile(): BelongsTo
+    {
+        return $this->belongsTo(Profile::class, 'profile_id');
+    }
 }

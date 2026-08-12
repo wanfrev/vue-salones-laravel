@@ -25,8 +25,17 @@ class NotificationService
                   ->orWhere('branch_id', $branchId)
                   ->orWhereNull('branch_id');
             });
+        } else {
+            // admin / superadmin: ven toda la actividad del negocio, pero no las filas
+            // dirigidas específicamente a un empleado raso — esas son la copia de un
+            // evento (ej. "nueva cita") del que el admin ya tiene su propia fila con
+            // el resumen completo (cliente, servicio y empleado). Sin este filtro, el
+            // admin veía dos tarjetas por la misma cita: la suya y la del empleado.
+            $query->where(function ($q) use ($profileId) {
+                $q->where('profile_id', $profileId)
+                  ->orWhereHas('profile', fn($p) => $p->whereIn('role', ['admin', 'superadmin', 'encargado']));
+            });
         }
-        // admin / superadmin: sin filtro adicional (ven todo el negocio)
     }
 
     public function list(string $businessId, string $profileId, ?bool $unreadOnly = false, string $role = 'empleado', ?string $branchId = null): Collection
