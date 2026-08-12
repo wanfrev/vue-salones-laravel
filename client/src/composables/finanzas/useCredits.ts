@@ -24,7 +24,7 @@ export function useCredits() {
       return await apiRequest<Credit[]>('GET', '/credits')
     },
     enabled: computed(() => !!authStore.businessId),
-    staleTime: 0,
+    staleTime: 15000,
   })
 
   const credits = computed(() => creditsQuery.data.value ?? [])

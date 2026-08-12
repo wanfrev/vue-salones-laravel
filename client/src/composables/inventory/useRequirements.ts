@@ -26,7 +26,7 @@ export function useRequirements() {
       if (isAdminPanelRole(authStore.role ?? undefined)) return true
       return authStore.profile?.can_access_requirements ?? false
     }),
-    staleTime: 0,
+    staleTime: 15000,
   })
 
   const createRequirement = useMutation({

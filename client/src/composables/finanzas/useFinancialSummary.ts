@@ -157,7 +157,7 @@ function useFinancialSummary(
     },
     enabled: computed(() => !!businessId.value),
     placeholderData: keepPreviousData,
-    staleTime: 0,
+    staleTime: 15000,
   })
 
   const summaryBuckets = computed(() => summaryData.value?.buckets ?? [])
@@ -217,7 +217,7 @@ function useFinancialSummary(
     },
     enabled: computed(() => !!businessId.value),
     placeholderData: keepPreviousData,
-    staleTime: 0,
+    staleTime: 15000,
   })
 
   const allTransactionsRaw = computed<TransactionRow[]>(() => {
@@ -344,7 +344,7 @@ function useFinancialSummary(
     },
     enabled: computed(() => !!businessId.value),
     placeholderData: keepPreviousData,
-    staleTime: 0,
+    staleTime: 15000,
   })
 
   const productSalesTotal = computed(() =>

@@ -1,7 +1,7 @@
 <template>
   <div class="lg:hidden space-y-3 mb-4">
     <div v-for="producto in products" :key="producto.id"
-      class="group rounded-xl border border-border bg-surface p-4 space-y-3 shadow-sm transition-all duration-200 hover:shadow-md">
+      class="group rounded-xl border border-border bg-surface p-4 space-y-3 shadow-sm transition-shadow duration-200 hover:shadow-md">
       <div class="flex items-start justify-between">
         <div class="flex items-center gap-2 min-w-0">
           <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 transition-transform duration-300 group-hover:scale-105">
@@ -28,7 +28,7 @@
           <div class="flex items-center justify-end gap-1.5">
             <span :class="['font-medium tabular-nums', producto.stockTotal <= producto.reorderPoint ? 'text-danger' : 'text-text']">{{ producto.stockTotal }}</span>
              <span class="text-xs text-slate-400"> {{ producto.unit }}</span>
-            <button v-if="!readonly" type="button" class="rounded p-0.5 text-text-muted transition-all hover:bg-bg-secondary hover:text-primary" title="Ajustar stock" @click.stop="$emit('adjust', producto)">
+            <button v-if="!readonly" type="button" class="rounded p-0.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary" title="Ajustar stock" @click.stop="$emit('adjust', producto)">
               <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
             </button>
           </div>
@@ -49,13 +49,13 @@
       </div>
 
       <div v-if="!readonly" class="flex items-center justify-end gap-1 pt-1 border-t border-border-subtle">
-        <button @click.stop="$emit('edit', producto)" class="rounded-lg p-1.5 text-text-muted transition-all duration-200 hover:bg-bg-secondary hover:text-primary" title="Editar producto">
+        <button @click.stop="$emit('edit', producto)" class="rounded-lg p-1.5 text-text-muted transition-colors duration-200 hover:bg-bg-secondary hover:text-primary" title="Editar producto">
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
         </button>
-        <button @click.stop="$emit('deactivate', producto)" class="rounded-lg p-1.5 text-text-muted transition-all duration-200 hover:bg-bg-secondary hover:text-warning" title="Desactivar producto">
+        <button @click.stop="$emit('deactivate', producto)" class="rounded-lg p-1.5 text-text-muted transition-colors duration-200 hover:bg-bg-secondary hover:text-warning" title="Desactivar producto">
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
         </button>
-        <button @click.stop="$emit('delete', producto)" class="rounded-lg p-1.5 text-text-muted transition-all duration-200 hover:bg-bg-secondary hover:text-danger" title="Eliminar permanentemente">
+        <button @click.stop="$emit('delete', producto)" class="rounded-lg p-1.5 text-text-muted transition-colors duration-200 hover:bg-bg-secondary hover:text-danger" title="Eliminar permanentemente">
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
         </button>
       </div>
@@ -78,7 +78,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-border-subtle">
-          <tr v-for="producto in products" :key="producto.id" class="text-sm transition-all duration-200 hover:bg-bg-secondary/50">
+          <tr v-for="producto in products" :key="producto.id" class="text-sm transition-colors duration-200 hover:bg-bg-secondary/50">
             <td class="px-4 py-3">
               <div class="flex items-center gap-2">
                 <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
@@ -104,7 +104,7 @@
               <div class="flex items-center justify-end gap-1.5">
                 <span :class="['font-medium', producto.stockTotal <= producto.reorderPoint ? 'text-danger' : 'text-text']">{{ producto.stockTotal }}</span>
                 <span class="text-xs text-slate-400"> {{ producto.unit }}</span>
-            <button v-if="!readonly" type="button" class="rounded p-0.5 text-text-muted transition-all hover:bg-bg-secondary hover:text-primary" title="Ajustar stock" @click.stop="$emit('adjust', producto)">
+            <button v-if="!readonly" type="button" class="rounded p-0.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary" title="Ajustar stock" @click.stop="$emit('adjust', producto)">
                   <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" /></svg>
                 </button>
               </div>
@@ -117,13 +117,13 @@
             </td>
             <td v-if="!readonly" class="px-4 py-3 text-center">
               <div class="flex items-center justify-center gap-1">
-                <button @click="$emit('edit', producto)" class="rounded-lg p-1.5 text-text-muted transition-all duration-200 hover:bg-bg-secondary hover:text-primary" title="Editar producto">
+                <button @click="$emit('edit', producto)" class="rounded-lg p-1.5 text-text-muted transition-colors duration-200 hover:bg-bg-secondary hover:text-primary" title="Editar producto">
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                 </button>
-                <button @click="$emit('deactivate', producto)" class="rounded-lg p-1.5 text-text-muted transition-all duration-200 hover:bg-bg-secondary hover:text-warning" title="Desactivar producto">
+                <button @click="$emit('deactivate', producto)" class="rounded-lg p-1.5 text-text-muted transition-colors duration-200 hover:bg-bg-secondary hover:text-warning" title="Desactivar producto">
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
                 </button>
-                <button @click="$emit('delete', producto)" class="rounded-lg p-1.5 text-text-muted transition-all duration-200 hover:bg-bg-secondary hover:text-danger" title="Eliminar permanentemente">
+                <button @click="$emit('delete', producto)" class="rounded-lg p-1.5 text-text-muted transition-colors duration-200 hover:bg-bg-secondary hover:text-danger" title="Eliminar permanentemente">
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 </button>
               </div>

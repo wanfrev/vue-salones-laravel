@@ -125,7 +125,7 @@
   <!-- Services Grid -->
   <div class="grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
     <ServiceCard
-      v-for="service in filteredServices"
+      v-for="service in paginatedServices"
       :key="service.id"
       :service="service"
       :appointment-label="(businessStore.terminology.appointment || 'cita').toLowerCase()"
@@ -141,6 +141,60 @@
     title="No hay servicios"
     :subtitle="searchQuery ? 'No se encontraron servicios con ese criterio de búsqueda.' : 'No se encontraron servicios en esta categoría.'"
   />
+
+  <!-- Pagination -->
+  <div v-if="filteredServices.length > 0" class="mt-4 flex items-center justify-between rounded-lg border border-border bg-surface px-3 sm:px-4 py-2.5">
+    <div class="text-xs sm:text-sm text-text-muted">
+      {{ paginationStart }}-{{ paginationEnd }} de {{ filteredServices.length }}
+    </div>
+    <div class="hidden sm:flex gap-1">
+      <button
+        @click="previousPage"
+        :disabled="!hasPreviousPage"
+        class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-theme"
+        :class="hasPreviousPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
+      >
+        Anterior
+      </button>
+      <button
+        v-for="page in pageNumbers"
+        :key="page"
+        @click="page === '...' ? null : goToPage(page as number)"
+        :disabled="page === '...'"
+        class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-theme"
+        :class="page === currentPage ? 'bg-primary text-text-inverse' : 'text-text-secondary hover:bg-bg-secondary disabled:cursor-default'"
+      >
+        {{ page }}
+      </button>
+      <button
+        @click="nextPage"
+        :disabled="!hasNextPage"
+        class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-theme"
+        :class="hasNextPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
+      >
+        Siguiente
+      </button>
+    </div>
+    <div class="flex sm:hidden items-center gap-1">
+      <button
+        @click="previousPage"
+        :disabled="!hasPreviousPage"
+        class="rounded-md p-1.5 transition-theme"
+        :class="hasPreviousPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
+      >
+        <ArrowLeftIcon class="h-4 w-4" />
+      </button>
+      <span class="text-xs font-medium text-text px-1">{{ currentPage }} / {{ totalPages }}</span>
+      <button
+        @click="nextPage"
+        :disabled="!hasNextPage"
+        class="rounded-md p-1.5 transition-theme"
+        :class="hasNextPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
+      >
+        <ArrowRightIcon class="h-4 w-4" />
+      </button>
+    </div>
+  </div>
 
   <!-- Modals -->
   <ServicioFormModal
@@ -230,12 +284,13 @@
 
 <script setup lang="ts">
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useCrud } from '../composables/empleados/useCrud'
 import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
 import { useNotification } from '../composables/common/useNotification'
 import { useCategoryCRUD } from '../composables/common/useCategoryCRUD'
+import { usePagination } from '../composables/common/usePagination'
 import { useBusinessStore } from '../store/business'
 import { ServicioFormModal } from '../components/modals'
 import { ModalBase, StatCard, EmptyState } from '../components/common'
@@ -244,7 +299,7 @@ import { deleteServicio, listServicios, saveServicio, serviciosKeys } from '../s
 import { addBusinessCategory } from '../services/equipoService'
 import { addBranchCategory } from '../services/equipoService'
 import type { Servicio, ServicioFormData } from '../types/servicio'
-import { StarIcon, PenIcon, AddCircleIcon, MagnifierIcon } from '@solar-icons/vue/linear'
+import { StarIcon, PenIcon, AddCircleIcon, MagnifierIcon, ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
@@ -356,6 +411,22 @@ const filteredServices = computed(() => {
   }
   return result
 })
+
+const {
+  currentPage,
+  totalPages,
+  paginatedData: paginatedServices,
+  paginationStart,
+  paginationEnd,
+  hasNextPage,
+  hasPreviousPage,
+  goToPage,
+  nextPage,
+  previousPage,
+  pageNumbers,
+} = usePagination({ data: filteredServices, pageSize: 24 })
+
+watch([searchQuery, activeCategory], () => goToPage(1))
 
 const totalServicios = computed(() => servicios.value.filter(s => s.status === 'Activo').length)
 const totalCategorias = computed(() => categories.value.length - 1)

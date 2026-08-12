@@ -26,7 +26,7 @@ export function useDailyReports() {
     queryKey,
     queryFn: () => listDailyReports(activeBusinessId.value!, selectedBranchId.value),
     enabled: computed(() => !!activeBusinessId.value),
-    staleTime: 0,
+    staleTime: 15000,
   })
 
   const saveMutation = useMutation({
