@@ -109,7 +109,7 @@ export const searchClients = async (
   _businessId: string,
   query: string,
   branchId?: string | null
-): Promise<Pick<Client, 'id' | 'full_name' | 'phone'>[]> => {
+): Promise<Pick<Client, 'id' | 'full_name' | 'phone' | 'client_code'>[]> => {
   const q = query.trim()
   if (!q) return []
 
@@ -119,7 +119,7 @@ export const searchClients = async (
   }
 
   const results = await apiRequest<Client[]>('GET', path)
-  return results.map(c => ({ id: c.id, full_name: c.full_name, phone: c.phone }))
+  return results.map(c => ({ id: c.id, full_name: c.full_name, phone: c.phone, client_code: c.client_code }))
 }
 
 export const findOrCreateClientByPhone = async (

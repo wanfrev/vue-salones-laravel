@@ -85,6 +85,7 @@ export const clienteFormSchema = z.object({
   name: z.string().min(1, 'El nombre del cliente es requerido'),
   phone: z.string().min(1, 'El teléfono del cliente es requerido'),
   email: z.string().email('Email inválido').or(z.literal('')).default(''),
+  code: z.string().max(20, 'Máximo 20 caracteres').default(''),
   notes: z.string().default(''),
   birthday: z.string().default(''),
   preferredServices: z.array(z.string()).default([]),

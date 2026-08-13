@@ -37,6 +37,7 @@ class ClientService
                     'full_name' => $data['full_name'],
                     'phone' => $data['phone'],
                     'email' => $data['email'] ?? null,
+                    'client_code' => $this->normalizeCode($data['client_code'] ?? null),
                     'notes' => $data['notes'] ?? null,
                     'birthday' => $data['birthday'] ?? null,
                     'metadata' => $data['metadata'] ?? [],
@@ -51,7 +52,7 @@ class ClientService
                 return $client;
             });
         } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-            throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'Ya existe un cliente registrado con este teléfono');
+            throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, $this->duplicateMessage($e));
         }
     }
 
@@ -59,10 +60,14 @@ class ClientService
     {
         $client = $this->findForBusiness($id, $businessId);
 
+        if (array_key_exists('client_code', $data)) {
+            $data['client_code'] = $this->normalizeCode($data['client_code']);
+        }
+
         try {
             DB::transaction(function () use ($client, $data, $businessId) {
                 $client->update(array_filter($data, fn($k) => in_array($k, [
-                    'full_name', 'phone', 'email', 'branch_id', 'notes', 'birthday', 'metadata',
+                    'full_name', 'phone', 'email', 'client_code', 'branch_id', 'notes', 'birthday', 'metadata',
                 ]), ARRAY_FILTER_USE_KEY) + ['updated_at' => now()]);
 
                 if (array_key_exists('pets', $data)) {
@@ -70,10 +75,24 @@ class ClientService
                 }
             });
         } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-            throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, 'Ya existe otro cliente registrado con este teléfono');
+            throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, $this->duplicateMessage($e));
         }
 
         return $client->fresh();
+    }
+
+    private function normalizeCode(?string $code): ?string
+    {
+        $trimmed = trim((string) $code);
+        return $trimmed === '' ? null : $trimmed;
+    }
+
+    private function duplicateMessage(\Illuminate\Database\UniqueConstraintViolationException $e): string
+    {
+        if (str_contains($e->getMessage(), 'clients_unique_code_idx')) {
+            return 'Ya existe un cliente con ese código de identificación. Prueba con otro.';
+        }
+        return 'Ya existe un cliente registrado con este teléfono';
     }
 
     public function destroy(string $id, string $businessId): void
@@ -126,7 +145,8 @@ class ClientService
             ->where('business_id', $businessId)
             ->where(function ($q) use ($term) {
                 $q->where('full_name', 'ilike', $term)
-                  ->orWhere('phone', 'ilike', $term);
+                  ->orWhere('phone', 'ilike', $term)
+                  ->orWhere('client_code', 'ilike', $term);
             })
             ->orderBy('full_name')
             ->limit(20);

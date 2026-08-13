@@ -138,6 +138,7 @@ export interface Client {
   full_name: string
   phone: string
   email: string | null
+  client_code: string | null
   notes: string | null
   birthday: string | null
   metadata: Record<string, unknown>

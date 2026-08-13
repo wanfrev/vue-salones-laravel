@@ -14,6 +14,7 @@ export interface Cliente {
   name: string
   phone: string
   email?: string
+  code?: string
   lastVisit?: string
   totalAppointments?: number
   totalSpent?: string
@@ -29,6 +30,7 @@ export interface ClienteFormData {
   name: string
   phone: string
   email: string
+  code: string
   notes: string
   birthday: string
   preferredServices: string[]
