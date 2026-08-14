@@ -26,8 +26,8 @@
         max="100"
         step="0.1"
         label="% de tax (opcional)"
-        :placeholder="companyTaxHint ? `Vacío = ${companyTaxHint}` : 'Vacío = lo que tenga la empresa'"
-        hint="Solo si este empleado necesita un porcentaje distinto al de la empresa."
+        placeholder="Ej: 7.5 (Vacío = sin retención)"
+        hint="Solo si este empleado tiene retención."
       />
     </div>
 
@@ -151,12 +151,7 @@ const resolvedRate = computed(() =>
 
 const selectedCompany = computed(() => (companies.value ?? []).find(c => c.id === companyId.value) ?? null)
 
-/** What "vacío" resolves to, so the admin isn't guessing which rate actually applies. */
-const companyTaxHint = computed(() => {
-  const brackets = selectedCompany.value?.taxBrackets ?? []
-  if (brackets.length === 0) return 'sin retención'
-  return brackets.map(b => `${Math.round(b.rate * 1000) / 10}%`).join(' / ')
-})
+
 
 // Stored as a fraction (0.07) but edited as a percentage (7) — same convention as the
 // company's own tax brackets in Empresas.vue. FormInput emits '' (not null) when cleared.

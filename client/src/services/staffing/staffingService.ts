@@ -66,8 +66,6 @@ export interface StaffingCompanyRow {
   paymentTermsDays: number
   overtimeThresholdHours: number
   overtimeMultiplier: number
-  taxBrackets: StaffingTaxBracket[]
-  taxDestination: TaxDestination
   payoutRounding: PayoutRounding
   notes: string
   active: boolean
@@ -102,8 +100,7 @@ export interface StaffingCompanyFormData {
   paymentTermsDays: number
   overtimeThresholdHours: number
   overtimeMultiplier: number
-  taxBrackets: StaffingTaxBracket[]
-  taxDestination: TaxDestination
+  roles: { role: string, payRate: number, billRate: number, overtimePayRate?: number }[]
   payoutRounding: PayoutRounding
   status: StaffingCompanyStatus
   notes: string
@@ -118,11 +115,7 @@ export interface StaffingRateFormData {
   overtimeMultiplier: number | null
 }
 
-/** DYKE's agreement — the shape a brand-new company starts from. */
-export const DEFAULT_TAX_BRACKETS: StaffingTaxBracket[] = [
-  { threshold: 500, rate: 0.035 },
-  { threshold: null, rate: 0.07 },
-]
+
 
 const toCompanyRow = (row: StaffingCompany): StaffingCompanyRow => ({
   id: row.id,
@@ -139,8 +132,6 @@ const toCompanyRow = (row: StaffingCompany): StaffingCompanyRow => ({
   paymentTermsDays: Number(row.payment_terms_days ?? 15),
   overtimeThresholdHours: Number(row.overtime_threshold_hours ?? 40),
   overtimeMultiplier: Number(row.overtime_multiplier ?? 1.5),
-  taxBrackets: row.tax_brackets ?? [],
-  taxDestination: (row.tax_destination as TaxDestination) || 'remitted',
   payoutRounding: (row.payout_rounding as PayoutRounding) || 'cent',
   notes: row.notes ?? '',
   active: row.active,
@@ -213,8 +204,6 @@ export const saveStaffingCompany = async (
     payment_terms_days: parsed.data.paymentTermsDays,
     overtime_threshold_hours: parsed.data.overtimeThresholdHours,
     overtime_multiplier: parsed.data.overtimeMultiplier,
-    tax_brackets: parsed.data.taxBrackets,
-    tax_destination: parsed.data.taxDestination,
     payout_rounding: parsed.data.payoutRounding,
     status: parsed.data.status,
     notes: parsed.data.notes || null,

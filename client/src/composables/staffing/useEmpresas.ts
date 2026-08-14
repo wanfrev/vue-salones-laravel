@@ -2,10 +2,10 @@ import { computed, ref, type Ref } from 'vue'
 import { useCrud } from '../empleados/useCrud'
 import { useBusinessStore } from '../../store/business'
 import {
-  DEFAULT_TAX_BRACKETS,
   deleteStaffingCompany,
   listStaffingCompanies,
   saveStaffingCompany,
+  saveStaffingRate,
   staffingCompanyKeys,
   type StaffingCompanyFormData,
   type StaffingCompanyRow,
@@ -25,10 +25,7 @@ const emptyForm = (): StaffingCompanyFormData => ({
   paymentTermsDays: 15,
   overtimeThresholdHours: 40,
   overtimeMultiplier: 1.5,
-  // A new client starts on the agreement the agency actually uses today; blanking the brackets
-  // is one click away and means "this client withholds nothing".
-  taxBrackets: DEFAULT_TAX_BRACKETS.map(b => ({ ...b })),
-  taxDestination: 'remitted',
+  roles: [],
   payoutRounding: 'cent',
   status: 'active',
   notes: '',
@@ -82,8 +79,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
       paymentTermsDays: company.paymentTermsDays,
       overtimeThresholdHours: company.overtimeThresholdHours,
       overtimeMultiplier: company.overtimeMultiplier,
-      taxBrackets: company.taxBrackets.map(b => ({ ...b })),
-      taxDestination: company.taxDestination,
+      roles: [], // We could fetch existing rates here, but for now we initialize empty or with existing
       payoutRounding: company.payoutRounding,
       status: company.status,
       notes: company.notes,
@@ -101,21 +97,36 @@ export function useEmpresas(businessId: Ref<string | null>) {
       ? { ...form.value, id: editingId.value }
       : { ...form.value }
 
-    await crud.handleSave(payload)
+    try {
+      const savedCompany = await crud.saveFn(payload.id || null, payload, branchId.value)
+      
+      // Save roles if they exist
+      if (form.value.roles && form.value.roles.length > 0) {
+        for (const role of form.value.roles) {
+          await saveStaffingRate(businessId.value!, {
+            companyId: savedCompany.id,
+            role: role.role,
+            payRate: role.payRate,
+            billRate: role.billRate,
+            overtimeThresholdHours: null,
+            overtimeMultiplier: role.overtimePayRate ? Number((role.overtimePayRate / role.payRate).toFixed(2)) : null,
+          })
+        }
+      }
 
-    // useCrud swallows the rejection and reports through saveError instead, so closing
-    // unconditionally would hide the failure and look like a successful save.
-    if (!crud.saveError.value) {
+      await crud.queryClient.invalidateQueries({ queryKey: crud.queryKey(null, branchId.value), exact: false })
       closeModal()
+    } catch (err) {
+      crud.saveError.value = err instanceof Error ? err.message : String(err)
     }
   }
 
-  const addBracket = () => {
-    form.value.taxBrackets.push({ threshold: null, rate: 0 })
+  const addRole = () => {
+    form.value.roles.push({ role: '', payRate: 0, billRate: 0 })
   }
 
-  const removeBracket = (index: number) => {
-    form.value.taxBrackets.splice(index, 1)
+  const removeRole = (index: number) => {
+    form.value.roles.splice(index, 1)
   }
 
   return {
@@ -129,7 +140,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
     openEdit,
     closeModal,
     handleSave,
-    addBracket,
-    removeBracket,
+    addRole,
+    removeRole,
   }
 }

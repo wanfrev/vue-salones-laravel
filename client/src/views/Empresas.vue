@@ -77,10 +77,7 @@
             </span>
           </button>
 
-          <div class="hidden text-right sm:block">
-            <span class="block text-[10px] uppercase tracking-wider text-text-muted">Retención</span>
-            <span class="text-xs font-semibold text-text">{{ describeBrackets(company) }}</span>
-          </div>
+
 
           <div class="hidden text-right md:block">
             <span class="block text-[10px] uppercase tracking-wider text-text-muted">Pago</span>
@@ -205,9 +202,7 @@
                 </div>
               </div>
 
-              <div class="grid gap-3 sm:grid-cols-2">
-                <FormDropdown v-model="ctx.form.value.taxDestination" label="¿Qué pasa con la retención?"
-                  :options="TAX_DESTINATION_OPTIONS" />
+              <div class="grid gap-3 sm:grid-cols-1">
                 <FormDropdown v-model="ctx.form.value.payoutRounding" label="Redondeo del pago"
                   :options="ROUNDING_OPTIONS" />
               </div>
@@ -215,47 +210,48 @@
               <div class="rounded-xl border border-border p-3">
                 <div class="mb-2 flex items-center justify-between">
                   <div>
-                    <p class="text-sm font-medium text-text">Tramos de retención</p>
+                    <p class="text-sm font-medium text-text">Roles y Tarifas</p>
                     <p class="text-xs text-text-muted">
-                      El porcentaje se aplica sobre el bruto completo, no solo sobre el excedente.
-                      Sin tramos, no se retiene nada.
+                      Configura lo que gana cada empleado y lo que se le cobra a la empresa por hora regular y overtime.
                     </p>
                   </div>
                   <button type="button"
                     class="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
-                    @click="ctx.addBracket()">
-                    Agregar tramo
+                    @click="ctx.addRole()">
+                    Agregar rol
                   </button>
                 </div>
 
-                <p v-if="ctx.form.value.taxBrackets.length === 0" class="py-2 text-xs text-text-muted">
-                  Sin retención — el empleado cobra el bruto completo.
+                <p v-if="ctx.form.value.roles.length === 0" class="py-2 text-xs text-text-muted">
+                  Sin roles definidos. Agrégalos para poder asignar tarifas a los empleados.
                 </p>
 
-                <div v-for="(bracket, i) in ctx.form.value.taxBrackets" :key="i"
+                <div v-for="(role, i) in ctx.form.value.roles" :key="i"
                   class="mb-2 flex flex-wrap items-end gap-2">
-                  <div class="w-40">
+                  <div class="flex-1 min-w-[120px]">
                     <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">
-                      Si el bruto es menor a
+                      Rol / Cargo
                     </label>
-                    <input v-model.number="bracket.threshold" type="number" min="0" step="0.01" :class="inputClass"
-                      placeholder="Sin límite" />
+                    <input v-model="role.role" type="text" :class="inputClass" required />
                   </div>
-                  <div class="w-32">
-                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Retener %</label>
-                    <input :value="toPercent(bracket.rate)" type="number" min="0" max="100" step="0.1"
-                      :class="inputClass" @input="setRate(bracket, $event)" />
+                  <div class="w-24">
+                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Paga ($)</label>
+                    <input v-model.number="role.payRate" type="number" min="0" step="0.01" :class="inputClass" required />
+                  </div>
+                  <div class="w-24">
+                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Cobra ($)</label>
+                    <input v-model.number="role.billRate" type="number" min="0" step="0.01" :class="inputClass" required />
+                  </div>
+                  <div class="w-24">
+                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">OT ($)</label>
+                    <input v-model.number="role.overtimePayRate" type="number" min="0" step="0.01" :class="inputClass" />
                   </div>
                   <button type="button"
                     class="rounded-lg p-2 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
-                    @click="ctx.removeBracket(i)">
+                    @click="ctx.removeRole(i)">
                     <TrashBin2Icon class="h-4 w-4" />
                   </button>
                 </div>
-
-                <p v-if="cliffWarning" class="mt-1 rounded-lg bg-warning/10 px-2.5 py-1.5 text-xs text-warning">
-                  {{ cliffWarning }}
-                </p>
               </div>
             </section>
 
@@ -296,7 +292,6 @@ import BillingPanel from '../components/staffing/BillingPanel.vue'
 import StaffingWorkersPanel from '../components/staffing/StaffingWorkersPanel.vue'
 import HeadcountMatrix from '../components/staffing/HeadcountMatrix.vue'
 import type { StaffingCompanyRow, StaffingCompanyStatus } from '../services/staffing/staffingService'
-import type { StaffingTaxBracket } from '../types/database'
 import { BuildingsIcon, AddCircleIcon, PenIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
 
 const inputClass =
@@ -328,10 +323,7 @@ const STATUS_BADGE_CLASS: Record<StaffingCompanyStatus, string> = {
 
 const activeStatusTab = ref<StaffingCompanyStatus>('active')
 
-const TAX_DESTINATION_OPTIONS = [
-  { value: 'remitted', label: 'Se entrega a un tercero (es un costo)' },
-  { value: 'retained', label: 'Se la queda la agencia (es margen)' },
-]
+
 
 const ROUNDING_OPTIONS = [
   { value: 'cent', label: 'Al centavo' },
@@ -368,40 +360,5 @@ const confirmDelete = (company: StaffingCompanyRow) => {
   }
 }
 
-// Rates are stored as fractions (0.07) but typed as percentages (7).
-const toPercent = (rate: number) => Math.round(rate * 10000) / 100
-const setRate = (bracket: StaffingTaxBracket, event: Event) => {
-  const value = Number((event.target as HTMLInputElement).value)
-  bracket.rate = Number.isFinite(value) ? value / 100 : 0
-}
 
-const describeBrackets = (company: StaffingCompanyRow): string => {
-  if (!company.taxBrackets.length) return 'Ninguna'
-  return company.taxBrackets.map(b => `${toPercent(b.rate)}%`).join(' / ')
-}
-
-/**
- * A flat-rate tier applies to the whole gross, so crossing a threshold can leave someone with
- * less take-home than the person just below it. Surfacing it here turns an accidental cliff
- * into a deliberate one.
- */
-const cliffWarning = computed(() => {
-  const brackets = ctx.form.value.taxBrackets
-  for (let i = 0; i < brackets.length - 1; i++) {
-    const current = brackets[i]
-    const next = brackets[i + 1]
-    if (current.threshold === null || next.rate <= current.rate) continue
-
-    const atThreshold = current.threshold
-    const netBelow = atThreshold * (1 - current.rate)
-    const netAbove = atThreshold * (1 - next.rate)
-    const drop = netBelow - netAbove
-
-    if (drop > 0) {
-      return `Ojo: al pasar de $${atThreshold} de bruto, el neto del empleado cae $${drop.toFixed(2)}. `
-        + 'Ganar un dólar más le deja menos dinero.'
-    }
-  }
-  return ''
-})
 </script>

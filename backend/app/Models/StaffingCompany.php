@@ -26,7 +26,7 @@ class StaffingCompany extends Model
         'contact_name', 'contact_phone', 'contact_email',
         'payment_terms_days',
         'overtime_threshold_hours', 'overtime_multiplier', 'agency_overhead_rate',
-        'tax_brackets', 'tax_destination', 'payout_rounding',
+        'payout_rounding',
         'active', 'status', 'notes',
     ];
 
@@ -37,7 +37,6 @@ class StaffingCompany extends Model
             'overtime_threshold_hours' => 'float',
             'overtime_multiplier' => 'float',
             'agency_overhead_rate' => 'float',
-            'tax_brackets' => 'array',
             'active' => 'boolean',
         ];
     }
