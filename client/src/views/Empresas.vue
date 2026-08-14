@@ -184,25 +184,14 @@
 
             <section class="space-y-3">
               <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Reglas de nómina</p>
-              <div class="grid gap-3 sm:grid-cols-3">
-                <div>
-                  <label class="mb-1 block text-sm font-medium text-text" for="emp-terms">Plazo de pago (días)</label>
-                  <input id="emp-terms" v-model.number="ctx.form.value.paymentTermsDays" type="number" min="0" max="365"
-                    :class="inputClass" />
-                </div>
-                <div>
-                  <label class="mb-1 block text-sm font-medium text-text" for="emp-ot-threshold">Horas antes de OT</label>
-                  <input id="emp-ot-threshold" v-model.number="ctx.form.value.overtimeThresholdHours" type="number"
-                    min="0" max="168" step="0.5" :class="inputClass" />
-                </div>
-                <div>
-                  <label class="mb-1 block text-sm font-medium text-text" for="emp-ot-mult">Recargo OT</label>
-                  <input id="emp-ot-mult" v-model.number="ctx.form.value.overtimeMultiplier" type="number" min="1"
-                    max="5" step="0.1" :class="inputClass" />
-                </div>
-              </div>
 
-              <div class="grid gap-3 sm:grid-cols-1">
+              <div class="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-text" for="emp-tax">Retención (Tax %)</label>
+                  <input id="emp-tax" v-model.number="taxRatePercent" type="number" min="0" max="100" step="0.1"
+                    :class="inputClass" />
+                  <p class="mt-1 text-[10px] text-text-muted">Se aparta del pago de nómina.</p>
+                </div>
                 <FormDropdown v-model="ctx.form.value.payoutRounding" label="Redondeo del pago"
                   :options="ROUNDING_OPTIONS" />
               </div>
@@ -234,15 +223,19 @@
                     </label>
                     <input v-model="role.role" type="text" :class="inputClass" required />
                   </div>
-                  <div class="w-24">
+                  <div class="w-16">
+                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" title="Horas Regulares antes de OT">Hrs Reg</label>
+                    <input v-model.number="role.overtimeThresholdHours" type="number" min="0" step="0.5" :class="inputClass" required />
+                  </div>
+                  <div class="w-20">
                     <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Paga ($)</label>
                     <input v-model.number="role.payRate" type="number" min="0" step="0.01" :class="inputClass" required />
                   </div>
-                  <div class="w-24">
+                  <div class="w-20">
                     <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Cobra ($)</label>
                     <input v-model.number="role.billRate" type="number" min="0" step="0.01" :class="inputClass" required />
                   </div>
-                  <div class="w-24">
+                  <div class="w-20">
                     <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">OT ($)</label>
                     <input v-model.number="role.overtimePayRate" type="number" min="0" step="0.01" :class="inputClass" />
                   </div>
@@ -327,8 +320,8 @@ const activeStatusTab = ref<StaffingCompanyStatus>('active')
 
 const ROUNDING_OPTIONS = [
   { value: 'cent', label: 'Al centavo' },
-  { value: 'floor', label: 'A dólar entero hacia abajo' },
-  { value: 'exact', label: 'Exacto, sin redondear' },
+  { value: 'floor', label: 'Al entero inferior' },
+  { value: 'exact', label: 'Exacto (no redondea)' },
 ]
 
 const ROUNDING_LABELS: Record<string, string> = {
@@ -343,6 +336,13 @@ const roundingLabel = (mode: string) => ROUNDING_LABELS[mode] ?? 'Al centavo'
 const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)
 const ctx = useEmpresas(businessId)
+
+const taxRatePercent = computed({
+  get: () => Math.round(ctx.form.value.taxRate * 10000) / 100,
+  set: (val: number | string) => {
+    ctx.form.value.taxRate = val === '' || val == null ? 0 : Number(val) / 100
+  }
+})
 
 const filteredCompanies = computed(() => ctx.companiesByStatus.value[activeStatusTab.value])
 const showMatrix = ref(false)

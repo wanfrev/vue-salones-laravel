@@ -24,8 +24,8 @@ class StaffingCompany extends Model
         'id', 'business_id', 'branch_id',
         'name', 'legal_name', 'address', 'city', 'state', 'zip', 'work_site',
         'contact_name', 'contact_phone', 'contact_email',
-        'payment_terms_days',
-        'overtime_threshold_hours', 'overtime_multiplier', 'agency_overhead_rate',
+        'agency_overhead_rate',
+        'tax_rate',
         'payout_rounding',
         'active', 'status', 'notes',
     ];
@@ -33,10 +33,8 @@ class StaffingCompany extends Model
     protected function casts(): array
     {
         return [
-            'payment_terms_days' => 'integer',
-            'overtime_threshold_hours' => 'float',
-            'overtime_multiplier' => 'float',
             'agency_overhead_rate' => 'float',
+            'tax_rate' => 'float',
             'active' => 'boolean',
         ];
     }

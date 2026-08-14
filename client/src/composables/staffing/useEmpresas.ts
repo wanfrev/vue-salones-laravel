@@ -22,9 +22,7 @@ const emptyForm = (): StaffingCompanyFormData => ({
   contactName: '',
   contactPhone: '',
   contactEmail: '',
-  paymentTermsDays: 15,
-  overtimeThresholdHours: 40,
-  overtimeMultiplier: 1.5,
+  taxRate: 0.04,
   roles: [],
   payoutRounding: 'cent',
   status: 'active',
@@ -76,9 +74,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
       contactName: company.contactName,
       contactPhone: company.contactPhone,
       contactEmail: company.contactEmail,
-      paymentTermsDays: company.paymentTermsDays,
-      overtimeThresholdHours: company.overtimeThresholdHours,
-      overtimeMultiplier: company.overtimeMultiplier,
+      taxRate: company.taxRate,
       roles: [], // We could fetch existing rates here, but for now we initialize empty or with existing
       payoutRounding: company.payoutRounding,
       status: company.status,
@@ -108,7 +104,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
             role: role.role,
             payRate: role.payRate,
             billRate: role.billRate,
-            overtimeThresholdHours: null,
+            overtimeThresholdHours: role.overtimeThresholdHours,
             overtimeMultiplier: role.overtimePayRate ? Number((role.overtimePayRate / role.payRate).toFixed(2)) : null,
           })
         }
@@ -122,7 +118,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
   }
 
   const addRole = () => {
-    form.value.roles.push({ role: '', payRate: 0, billRate: 0 })
+    form.value.roles.push({ role: '', payRate: 0, billRate: 0, overtimeThresholdHours: 40 })
   }
 
   const removeRole = (index: number) => {

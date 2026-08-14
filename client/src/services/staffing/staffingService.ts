@@ -63,9 +63,7 @@ export interface StaffingCompanyRow {
   contactName: string
   contactPhone: string
   contactEmail: string
-  paymentTermsDays: number
-  overtimeThresholdHours: number
-  overtimeMultiplier: number
+  taxRate: number
   payoutRounding: PayoutRounding
   notes: string
   active: boolean
@@ -97,10 +95,8 @@ export interface StaffingCompanyFormData {
   contactName: string
   contactPhone: string
   contactEmail: string
-  paymentTermsDays: number
-  overtimeThresholdHours: number
-  overtimeMultiplier: number
-  roles: { role: string, payRate: number, billRate: number, overtimePayRate?: number }[]
+  taxRate: number
+  roles: { role: string, payRate: number, billRate: number, overtimeThresholdHours: number, overtimePayRate?: number }[]
   payoutRounding: PayoutRounding
   status: StaffingCompanyStatus
   notes: string
@@ -129,9 +125,7 @@ const toCompanyRow = (row: StaffingCompany): StaffingCompanyRow => ({
   contactName: row.contact_name ?? '',
   contactPhone: row.contact_phone ?? '',
   contactEmail: row.contact_email ?? '',
-  paymentTermsDays: Number(row.payment_terms_days ?? 15),
-  overtimeThresholdHours: Number(row.overtime_threshold_hours ?? 40),
-  overtimeMultiplier: Number(row.overtime_multiplier ?? 1.5),
+  taxRate: Number(row.tax_rate ?? 0.04),
   payoutRounding: (row.payout_rounding as PayoutRounding) || 'cent',
   notes: row.notes ?? '',
   active: row.active,
@@ -201,9 +195,7 @@ export const saveStaffingCompany = async (
     contact_name: parsed.data.contactName || null,
     contact_phone: parsed.data.contactPhone || null,
     contact_email: parsed.data.contactEmail || null,
-    payment_terms_days: parsed.data.paymentTermsDays,
-    overtime_threshold_hours: parsed.data.overtimeThresholdHours,
-    overtime_multiplier: parsed.data.overtimeMultiplier,
+    tax_rate: parsed.data.taxRate,
     payout_rounding: parsed.data.payoutRounding,
     status: parsed.data.status,
     notes: parsed.data.notes || null,

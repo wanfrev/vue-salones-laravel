@@ -26,8 +26,8 @@
         max="100"
         step="0.1"
         label="% de tax (opcional)"
-        placeholder="Ej: 7.5 (Vacío = sin retención)"
-        hint="Solo si este empleado tiene retención."
+        :placeholder="companyTaxHint ? `Vacío = ${companyTaxHint}` : 'Vacío = 0%'"
+        hint="Solo si este empleado necesita un porcentaje distinto al de la empresa."
       />
     </div>
 
@@ -150,6 +150,13 @@ const resolvedRate = computed(() =>
 )
 
 const selectedCompany = computed(() => (companies.value ?? []).find(c => c.id === companyId.value) ?? null)
+
+/** What "vacío" resolves to, so the admin isn't guessing which rate actually applies. */
+const companyTaxHint = computed(() => {
+  const rate = selectedCompany.value?.taxRate
+  if (rate == null || rate === 0) return 'sin retención'
+  return `${Math.round(rate * 1000) / 10}%`
+})
 
 
 
