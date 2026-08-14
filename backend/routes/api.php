@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\StaffingCompanyController;
 use App\Http\Controllers\Api\StaffingCompanyPaymentController;
 use App\Http\Controllers\Api\StaffingCompanyRateController;
 use App\Http\Controllers\Api\StaffingInvoiceController;
+use App\Http\Controllers\Api\StaffingReportController;
 use App\Http\Controllers\Api\StaffingTimesheetController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierPaymentController;
@@ -232,6 +233,10 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::delete('/staffing-company-rates/{id}', [StaffingCompanyRateController::class, 'destroy']);
 
         Route::get('/staffing-companies/{companyId}/employees', [StaffingTimesheetController::class, 'employeesForCompany']);
+        // Year-wide weekly headcount matrix for the Empresas status tabs — must be registered
+        // before {companyId} routes would otherwise be ambiguous; it isn't (different shapes),
+        // but keeping it next to them documents the relationship.
+        Route::get('/staffing-companies/headcount-matrix', [StaffingReportController::class, 'headcountMatrix']);
         Route::get('/staffing-timesheets', [StaffingTimesheetController::class, 'index']);
         Route::post('/staffing-timesheets', [StaffingTimesheetController::class, 'store']);
         Route::post('/staffing-timesheets/{id}/approve', [StaffingTimesheetController::class, 'approve']);

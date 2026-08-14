@@ -36,6 +36,11 @@ export const staffingRateKeys = {
     ['staffing-company-rates', businessId, companyId] as const,
 }
 
+export const staffingReportKeys = {
+  headcountMatrix: (businessId?: string | null, year?: number, status?: StaffingCompanyStatus | 'all') =>
+    ['staffing-headcount-matrix', businessId, year, status] as const,
+}
+
 export type TaxDestination = 'remitted' | 'retained'
 export type PayoutRounding = 'floor' | 'cent' | 'exact'
 export type StaffingCompanyStatus = 'active' | 'inactive' | 'on_hold'
@@ -423,4 +428,33 @@ export const createCompanyPayment = async (
 export const deleteCompanyPayment = async (id: string): Promise<void> => {
   const { error } = await db.from('staffing_company_payments').delete().eq('id', id)
   if (error) handleDbError(error, 'Error al eliminar el abono')
+}
+
+export interface StaffingWeekLabel {
+  week_start: string
+  week_end: string
+  label: string
+}
+
+export interface StaffingHeadcountCompanyRow {
+  companyId: string
+  name: string
+  status: StaffingCompanyStatus
+  weeklyHeadcount: Record<string, number>
+}
+
+export interface StaffingHeadcountMatrix {
+  weeks: StaffingWeekLabel[]
+  companies: StaffingHeadcountCompanyRow[]
+}
+
+/** Year-wide, per-company weekly headcount for the Empresas status tabs — 2 queries server-side. */
+export const getCompanyHeadcountMatrix = (
+  year: number,
+  status?: StaffingCompanyStatus | 'all',
+): Promise<StaffingHeadcountMatrix> => {
+  const params = new URLSearchParams({ year: String(year) })
+  if (status && status !== 'all') params.set('status', status)
+
+  return apiRequest<StaffingHeadcountMatrix>('GET', `/staffing-companies/headcount-matrix?${params.toString()}`)
 }
