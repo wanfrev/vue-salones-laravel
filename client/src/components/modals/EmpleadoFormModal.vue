@@ -4,7 +4,7 @@
     :title="isEditing ? `Editar ${t.employee}` : `Nuevo ${t.employee}`"
     :subtitle="isEditing ? `Editando a ${formData.name}` : `Agrega un nuevo ${t.employee.toLowerCase()} al equipo`"
     :icon="isEditing ? 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z' : 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'"
-    :size="isStaffing ? '3xl' : 'full'"
+    :size="isStaffing ? 'xl' : 'full'"
     :is-loading="isLoading"
     :is-confirm-disabled="!isFormValid"
     :confirm-text="`Guardar ${t.employee}`"
@@ -26,8 +26,13 @@
             @update:model-value="formData = $event"
           />
 
+          <div v-if="isEditing && hasUnsavedRateChanges" class="rounded-xl border border-warning/30 bg-warning/10 p-4 text-center">
+            <p class="text-sm font-medium text-warning">
+              Guarda los cambios del empleado para poder registrar sus horas de la semana.
+            </p>
+          </div>
           <EmployeeTimesheetMini
-            v-if="isEditing"
+            v-else-if="isEditing"
             :employee-id="modalData?.empleado?.id"
             :company-id="formData.staffingCompanyId"
             :business-id="authStore.businessId"
@@ -424,6 +429,13 @@ const isFormValid = computed(() => {
   const pwd = formData.value.password
   const passwordValid = pwd.length === 0 ? isEditing.value : pwd.length >= 6
   return nameValid && roleValid && emailValid && passwordValid
+})
+
+const hasUnsavedRateChanges = computed(() => {
+  if (!modalData.value?.empleado) return false
+  const emp = modalData.value.empleado
+  return formData.value.staffingCompanyId !== (emp.staffingCompanyId || '') ||
+         formData.value.role !== (emp.staffingRole || emp.role || '')
 })
 
 watch(
