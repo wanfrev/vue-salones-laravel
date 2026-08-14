@@ -21,7 +21,7 @@
         class="shrink-0 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-200"
         :class="statusFilter === 'all' ? 'bg-primary text-text-inverse shadow-sm' : 'border border-border bg-surface text-text-secondary hover:text-text'"
       >
-        Todos ({{ ctx.leads.value.length }})
+        Todos ({{ ownerFilteredLeads.length }})
       </button>
       <button
         v-for="opt in LEAD_STATUS_OPTIONS" :key="opt.value"
@@ -49,29 +49,73 @@
       <p class="mt-1 text-sm text-text-muted">Registra la primera empresa contactada.</p>
     </div>
 
-    <div v-else class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      <div v-for="lead in filteredLeads" :key="lead.id"
-        class="flex flex-col gap-2 rounded-xl border border-border bg-surface p-4">
-        <div class="flex items-start justify-between gap-2">
-          <p class="min-w-0 truncate text-sm font-semibold text-text">{{ lead.companyName }}</p>
-          <span class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase" :class="statusClass(lead.status)">
-            {{ statusLabel(lead.status) }}
-          </span>
-        </div>
-        <p v-if="lead.workArea" class="text-xs text-text-muted">{{ lead.workArea }}</p>
-        <p v-if="lead.address" class="text-xs text-text-muted truncate">{{ lead.address }}</p>
-        <p v-if="lead.phone" class="text-xs font-medium text-text">{{ lead.phone }}</p>
-        <p v-if="lead.notes" class="line-clamp-2 text-xs text-text-muted">{{ lead.notes }}</p>
-        <div class="mt-1 flex items-center justify-end gap-1 border-t border-border-subtle pt-2">
-          <button title="Editar" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
-            @click="ctx.openEdit(lead)">
-            <PenIcon class="h-4 w-4" />
-          </button>
-          <button title="Eliminar" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
-            @click="confirmDelete(lead)">
-            <TrashBin2Icon class="h-4 w-4" />
-          </button>
-        </div>
+    <div v-else class="overflow-hidden rounded-xl border border-border bg-surface">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-border bg-bg-secondary text-left text-[10px] uppercase tracking-wider text-text-muted">
+              <th class="sticky left-0 z-10 bg-bg-secondary px-3 py-2.5">Elemento</th>
+              <th class="px-3 py-2.5">Vendedora</th>
+              <th class="px-3 py-2.5">Ubicación</th>
+              <th class="px-3 py-2.5">Correo</th>
+              <th class="px-3 py-2.5">Teléfono</th>
+              <th class="px-3 py-2.5">Categoría de Compañía</th>
+              <th class="px-3 py-2.5">Tarjeta de Contacto</th>
+              <th class="px-3 py-2.5">Prioridad</th>
+              <th class="px-3 py-2.5">Estado del Seguimiento</th>
+              <th class="px-3 py-2.5">Estado</th>
+              <th class="px-3 py-2.5">Fecha de Visita</th>
+              <th class="px-3 py-2.5">Comentarios</th>
+              <th class="px-3 py-2.5 w-16"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-border">
+            <tr v-for="lead in filteredLeads" :key="lead.id">
+              <td class="sticky left-0 z-10 whitespace-nowrap bg-surface px-3 py-2.5 font-medium text-text">
+                {{ lead.companyName }}
+              </td>
+              <td class="whitespace-nowrap px-3 py-2.5">
+                <span class="flex items-center gap-1.5">
+                  <span class="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                    {{ getInitials(lead.ownerName) }}
+                  </span>
+                  <span class="text-text-secondary">{{ lead.ownerName || '—' }}</span>
+                </span>
+              </td>
+              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ lead.address || '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ lead.email || '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ lead.phone || '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ lead.companyCategory || '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ lead.contactCard || '—' }}</td>
+              <td class="px-3 py-2.5">
+                <span v-if="lead.priority" class="rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="priorityClass(lead.priority)">
+                  {{ priorityLabel(lead.priority) }}
+                </span>
+                <span v-else class="text-text-secondary">—</span>
+              </td>
+              <td class="px-3 py-2.5">
+                <span class="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase" :class="statusClass(lead.status)">
+                  {{ statusLabel(lead.status) }}
+                </span>
+              </td>
+              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ lead.state || '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ lead.visitDate || '—' }}</td>
+              <td class="max-w-[220px] truncate px-3 py-2.5 text-text-secondary" :title="lead.notes">{{ lead.notes || '—' }}</td>
+              <td class="px-3 py-2.5">
+                <div class="flex items-center justify-end gap-1">
+                  <button title="Editar" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
+                    @click="ctx.openEdit(lead)">
+                    <PenIcon class="h-4 w-4" />
+                  </button>
+                  <button title="Eliminar" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+                    @click="confirmDelete(lead)">
+                    <TrashBin2Icon class="h-4 w-4" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -97,21 +141,56 @@
                 placeholder="Ej: Almacén, construcción..." />
             </div>
             <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="lead-address">Dirección</label>
+              <label class="mb-1 block text-sm font-medium text-text" for="lead-address">Ubicación</label>
               <input id="lead-address" v-model="ctx.form.value.address" type="text" :class="inputClass" />
             </div>
-            <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="lead-phone">Número</label>
-              <input id="lead-phone" v-model="ctx.form.value.phone" type="text" :class="inputClass" />
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label class="mb-1 block text-sm font-medium text-text" for="lead-phone">Teléfono</label>
+                <input id="lead-phone" v-model="ctx.form.value.phone" type="text" :class="inputClass" />
+              </div>
+              <div>
+                <label class="mb-1 block text-sm font-medium text-text" for="lead-email">Correo electrónico</label>
+                <input id="lead-email" v-model="ctx.form.value.email" type="email" :class="inputClass" />
+              </div>
+            </div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label class="mb-1 block text-sm font-medium text-text" for="lead-category">Categoría de compañía</label>
+                <input id="lead-category" v-model="ctx.form.value.companyCategory" type="text" :class="inputClass"
+                  placeholder="Ej: Manufactura" />
+              </div>
+              <div>
+                <label class="mb-1 block text-sm font-medium text-text" for="lead-state">Estado</label>
+                <input id="lead-state" v-model="ctx.form.value.state" type="text" :class="inputClass"
+                  placeholder="Ej: Georgia" />
+              </div>
+            </div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label class="mb-1 block text-sm font-medium text-text" for="lead-priority">Prioridad</label>
+                <select id="lead-priority" v-model="ctx.form.value.priority" :class="inputClass">
+                  <option value="">Sin definir</option>
+                  <option v-for="opt in LEAD_PRIORITY_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+              </div>
+              <div>
+                <label class="mb-1 block text-sm font-medium text-text" for="lead-visit-date">Fecha de visita</label>
+                <input id="lead-visit-date" v-model="ctx.form.value.visitDate" type="date" :class="inputClass" />
+              </div>
             </div>
             <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="lead-status">Estado de comunicación</label>
+              <label class="mb-1 block text-sm font-medium text-text" for="lead-contact-card">Tarjeta de contacto</label>
+              <input id="lead-contact-card" v-model="ctx.form.value.contactCard" type="text" :class="inputClass" />
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text" for="lead-status">Estado del seguimiento</label>
               <select id="lead-status" v-model="ctx.form.value.status" :class="inputClass">
                 <option v-for="opt in LEAD_STATUS_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
               </select>
             </div>
             <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="lead-notes">Notas</label>
+              <label class="mb-1 block text-sm font-medium text-text" for="lead-notes">Comentarios</label>
               <textarea id="lead-notes" v-model="ctx.form.value.notes" rows="3" :class="inputClass" />
             </div>
 
@@ -138,12 +217,15 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useLeads } from '../../composables/staffing/useLeads'
-import { LEAD_STATUS_OPTIONS, type LeadRow } from '../../services/leadsService'
-import type { LeadStatus } from '../../types/database'
+import { LEAD_PRIORITY_OPTIONS, LEAD_STATUS_OPTIONS, type LeadRow } from '../../services/leadsService'
+import { getInitials } from '../../lib/formatters'
+import type { LeadPriority, LeadStatus } from '../../types/database'
 import { ChatRoundLineIcon, AddCircleIcon, PenIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
 
 const props = defineProps<{
   businessId: string | null
+  /** When set (admin viewing one vendedora from the sidebar), shows only her leads. */
+  ownerId?: string | null
 }>()
 
 const inputClass =
@@ -154,11 +236,17 @@ const ctx = useLeads(businessId)
 
 const statusFilter = ref<LeadStatus | 'all'>('all')
 
-const filteredLeads = computed(() =>
-  statusFilter.value === 'all' ? ctx.leads.value : ctx.leads.value.filter(l => l.status === statusFilter.value)
+// The API already returns every lead an admin can see; narrowing to one vendedora happens here
+// client-side, same as the status filter below — no extra request needed.
+const ownerFilteredLeads = computed(() =>
+  props.ownerId ? ctx.leads.value.filter(l => l.ownerId === props.ownerId) : ctx.leads.value,
 )
 
-const countByStatus = (status: LeadStatus) => ctx.leads.value.filter(l => l.status === status).length
+const filteredLeads = computed(() =>
+  statusFilter.value === 'all' ? ownerFilteredLeads.value : ownerFilteredLeads.value.filter(l => l.status === statusFilter.value)
+)
+
+const countByStatus = (status: LeadStatus) => ownerFilteredLeads.value.filter(l => l.status === status).length
 
 const statusLabel = (status: LeadStatus) => LEAD_STATUS_OPTIONS.find(o => o.value === status)?.label ?? status
 
@@ -172,6 +260,15 @@ const STATUS_CLASSES: Record<LeadStatus, string> = {
   lost: 'bg-danger/10 text-danger',
 }
 const statusClass = (status: LeadStatus) => STATUS_CLASSES[status] ?? STATUS_CLASSES.new
+
+const priorityLabel = (priority: LeadPriority) => LEAD_PRIORITY_OPTIONS.find(o => o.value === priority)?.label ?? priority
+
+const PRIORITY_CLASSES: Record<LeadPriority, string> = {
+  low: 'bg-bg-secondary text-text-muted',
+  medium: 'bg-primary/10 text-primary',
+  high: 'bg-danger/10 text-danger',
+}
+const priorityClass = (priority: LeadPriority) => PRIORITY_CLASSES[priority] ?? PRIORITY_CLASSES.low
 
 const confirmDelete = (lead: LeadRow) => {
   if (window.confirm(`¿Eliminar el lead de ${lead.companyName}?`)) {

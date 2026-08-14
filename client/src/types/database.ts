@@ -527,6 +527,7 @@ export interface StaffingCompanyBalance {
 
 /** A staffing-CRM prospect, private to the vendedora who registered it unless viewed by an admin. */
 export type LeadStatus = 'new' | 'called' | 'answered' | 'emailed' | 'meeting' | 'won' | 'lost'
+export type LeadPriority = 'low' | 'medium' | 'high'
 
 export interface Lead {
   id: string
@@ -536,10 +537,20 @@ export interface Lead {
   work_area: string | null
   address: string | null
   phone: string | null
+  email: string | null
   status: LeadStatus
+  visit_date: string | null
+  company_category: string | null
+  priority: LeadPriority | null
+  /** No behaviour behind this yet — see the migration docblock. */
+  contact_card: string | null
+  /** US state, free text (e.g. "Georgia") — not constrained to an abbreviation. */
+  state: string | null
   notes: string | null
   created_at: string
   updated_at: string
+  /** Eager-loaded by LeadService::list() so the UI can show the vendedora's name without another call. */
+  owner?: { id: string; full_name: string } | null
 }
 
 export interface SupplierPayment {

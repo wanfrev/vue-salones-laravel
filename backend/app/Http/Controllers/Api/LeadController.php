@@ -28,6 +28,26 @@ class LeadController
         );
     }
 
+    /**
+     * The sidebar roster for the admin CRM view — every vendedora with her lead count.
+     * Admin-only, same in-controller check as everywhere else in this class (no `admin-panel`
+     * middleware on the route group, since a plain vendedora reaching this legitimately gets []).
+     */
+    public function vendedoras(Request $request): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json([]);
+        }
+
+        $isAdmin = in_array($p->role, ['admin', 'superadmin', 'encargado'], true);
+        if (!$isAdmin) {
+            return response()->json([]);
+        }
+
+        return response()->json($this->leads->vendedoraRoster($p->business_id));
+    }
+
     public function store(Request $request): JsonResponse
     {
         $p = $request->user()?->load('profile')?->profile;
@@ -84,7 +104,13 @@ class LeadController
             'work_area' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:255',
             'phone' => 'nullable|string|max:50',
+            'email' => 'nullable|email|max:255',
             'status' => 'nullable|in:' . implode(',', Lead::STATUSES),
+            'visit_date' => 'nullable|date',
+            'company_category' => 'nullable|string|max:120',
+            'priority' => 'nullable|in:' . implode(',', Lead::PRIORITIES),
+            'contact_card' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:120',
             'notes' => 'nullable|string',
         ];
     }

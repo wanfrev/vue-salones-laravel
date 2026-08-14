@@ -176,7 +176,13 @@ export const leadFormSchema = z.object({
   workArea: z.string().default(''),
   address: z.string().default(''),
   phone: z.string().default(''),
+  email: z.string().email('El email no es válido').or(z.literal('')).default(''),
   status: z.enum(['new', 'called', 'answered', 'emailed', 'meeting', 'won', 'lost']).default('new'),
+  visitDate: z.string().default(''),
+  companyCategory: z.string().default(''),
+  priority: z.enum(['low', 'medium', 'high']).or(z.literal('')).default(''),
+  contactCard: z.string().default(''),
+  state: z.string().default(''),
   notes: z.string().default(''),
 })
 

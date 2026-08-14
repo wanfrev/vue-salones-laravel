@@ -290,6 +290,8 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::post('/leads', [LeadController::class, 'store']);
         Route::put('/leads/{id}', [LeadController::class, 'update']);
         Route::delete('/leads/{id}', [LeadController::class, 'destroy']);
+        // Admin-only sidebar roster — checked inside the controller, same pattern as index().
+        Route::get('/leads/vendedoras', [LeadController::class, 'vendedoras']);
     });
 
     // Finanzas

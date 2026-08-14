@@ -14,7 +14,13 @@ const emptyForm = (): LeadFormData => ({
   workArea: '',
   address: '',
   phone: '',
+  email: '',
   status: 'new',
+  visitDate: '',
+  companyCategory: '',
+  priority: '',
+  contactCard: '',
+  state: '',
   notes: '',
 })
 
@@ -45,7 +51,13 @@ export function useLeads(businessId: Ref<string | null>) {
       workArea: lead.workArea,
       address: lead.address,
       phone: lead.phone,
+      email: lead.email,
       status: lead.status,
+      visitDate: lead.visitDate,
+      companyCategory: lead.companyCategory,
+      priority: lead.priority,
+      contactCard: lead.contactCard,
+      state: lead.state,
       notes: lead.notes,
     }
     showModal.value = true

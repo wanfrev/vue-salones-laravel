@@ -3,7 +3,9 @@
 namespace App\Services\Staffing;
 
 use App\Models\Lead;
+use App\Models\Profile;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -18,6 +20,7 @@ class LeadService
     public function list(string $businessId, string $viewerId, bool $isAdmin): Collection
     {
         $query = Lead::query()
+            ->with('owner:id,full_name')
             ->where('business_id', $businessId)
             ->orderByDesc('updated_at');
 
@@ -38,11 +41,50 @@ class LeadService
             'work_area' => $data['work_area'] ?? null,
             'address' => $data['address'] ?? null,
             'phone' => $data['phone'] ?? null,
+            'email' => $data['email'] ?? null,
             'status' => $data['status'] ?? 'new',
+            'visit_date' => $data['visit_date'] ?? null,
+            'company_category' => $data['company_category'] ?? null,
+            'priority' => $data['priority'] ?? null,
+            'contact_card' => $data['contact_card'] ?? null,
+            'state' => $data['state'] ?? null,
             'notes' => $data['notes'] ?? null,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    }
+
+    /**
+     * The admin CRM sidebar roster: every non-staffing-worker employee (a "vendedora" — plain
+     * `empleado`/`encargado` without a `staffing_company_id`) and how many leads she owns, in
+     * one aggregated query rather than N+1 counts.
+     *
+     * @return list<array{id: string, name: string, leadCount: int}>
+     */
+    public function vendedoraRoster(string $businessId): array
+    {
+        $vendedoras = Profile::query()
+            ->where('business_id', $businessId)
+            ->whereIn('role', ['empleado', 'encargado'])
+            ->whereNull('staffing_company_id')
+            ->orderBy('full_name')
+            ->get(['id', 'full_name']);
+
+        if ($vendedoras->isEmpty()) {
+            return [];
+        }
+
+        $counts = Lead::where('business_id', $businessId)
+            ->whereIn('owner_id', $vendedoras->pluck('id'))
+            ->select('owner_id', DB::raw('COUNT(*) as lead_count'))
+            ->groupBy('owner_id')
+            ->pluck('lead_count', 'owner_id');
+
+        return $vendedoras->map(fn (Profile $v) => [
+            'id' => $v->id,
+            'name' => $v->full_name,
+            'leadCount' => (int) ($counts[$v->id] ?? 0),
+        ])->all();
     }
 
     public function update(string $id, array $data, string $businessId, string $viewerId, bool $isAdmin): Lead
