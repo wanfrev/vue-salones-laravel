@@ -263,6 +263,7 @@
               :is-editing="isEditing"
               :bank-account-last4="editingBankAccountLast4"
               :payroll-card-last4="editingPayrollCardLast4"
+              :ssn-last4="editingSsnLast4"
               @update:model-value="formData = $event"
             />
           </template>
@@ -403,6 +404,8 @@ const defaultFormData: EmpleadoFormData = {
   canAccessRequirements: false,
   staffingCompanyId: '',
   staffingTaxRate: null,
+  address: '',
+  ssn: '',
   bankName: '',
   bankAccountHolder: '',
   bankAccountType: '',
@@ -416,9 +419,10 @@ const formData = ref<EmpleadoFormData>({ ...defaultFormData })
 const { errors, isValid, validate, clearErrors, handleBlur } = useFormValidation(empleadoFormSchema as any, formData) as any as ReturnType<typeof useFormValidation>
 
 // Populated from the saved record on edit — masked hints only, the modal never sees the
-// full number. See Profile::$hidden / bank_account_last4 / payroll_card_last4.
+// full number. See Profile::$hidden / bank_account_last4 / payroll_card_last4 / ssn_last4.
 const editingBankAccountLast4 = ref<string | null>(null)
 const editingPayrollCardLast4 = ref<string | null>(null)
+const editingSsnLast4 = ref<string | null>(null)
 
 const isFormValid = computed(() => {
   const nameValid = formData.value.name.trim().length >= 2
@@ -468,6 +472,7 @@ watch(
         canAccessRequirements: empleado.canAccessRequirements ?? false,
         staffingCompanyId: empleado.staffingCompanyId ?? '',
         staffingTaxRate: empleado.staffingTaxRate ?? null,
+        address: empleado.address ?? '',
         bankName: empleado.bankName ?? '',
         bankAccountHolder: empleado.bankAccountHolder ?? '',
         bankAccountType: empleado.bankAccountType ?? '',
@@ -476,9 +481,11 @@ watch(
         bankRoutingNumber: '',
         bankAccountNumber: '',
         payrollCardNumber: '',
+        ssn: '',
       }
       editingBankAccountLast4.value = empleado.bankAccountLast4 ?? null
       editingPayrollCardLast4.value = empleado.payrollCardLast4 ?? null
+      editingSsnLast4.value = empleado.ssnLast4 ?? null
     } else {
       formData.value = {
         ...defaultFormData,
@@ -486,6 +493,7 @@ watch(
       }
       editingBankAccountLast4.value = null
       editingPayrollCardLast4.value = null
+      editingSsnLast4.value = null
     }
     clearErrors()
   },

@@ -33,6 +33,8 @@ use App\Http\Controllers\Api\StaffingCompanyPaymentController;
 use App\Http\Controllers\Api\StaffingCompanyRateController;
 use App\Http\Controllers\Api\StaffingInvoiceController;
 use App\Http\Controllers\Api\StaffingReportController;
+use App\Http\Controllers\Api\StaffingTaxEntityController;
+use App\Http\Controllers\Api\StaffingTaxEntryController;
 use App\Http\Controllers\Api\StaffingTimesheetController;
 use App\Http\Controllers\Api\StaffingWeeklyExpenseController;
 use App\Http\Controllers\Api\SupplierController;
@@ -263,6 +265,20 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::get('/staffing-reports/weekly', [StaffingReportController::class, 'weeklyReport']);
         Route::get('/staffing-reports/employee-hours', [StaffingReportController::class, 'employeeHours']);
         Route::post('/staffing-weekly-expenses', [StaffingWeeklyExpenseController::class, 'store']);
+
+        Route::get('/staffing-reports/annual-tax', [StaffingReportController::class, 'annualTaxReport']);
+        Route::get('/staffing-tax-entities', [StaffingTaxEntityController::class, 'index']);
+        Route::post('/staffing-tax-entities', [StaffingTaxEntityController::class, 'store']);
+        Route::put('/staffing-tax-entities/{id}', [StaffingTaxEntityController::class, 'update']);
+        Route::delete('/staffing-tax-entities/{id}', [StaffingTaxEntityController::class, 'destroy']);
+
+        Route::get('/staffing-tax-entries', [StaffingTaxEntryController::class, 'index']);
+        // Multipart upsert — see StaffingTaxEntryController::store(). Kept as POST-only rather
+        // than also exposing PUT: the (employee, entity, year) key already makes this idempotent.
+        Route::post('/staffing-tax-entries', [StaffingTaxEntryController::class, 'store']);
+        Route::delete('/staffing-tax-entries/{id}', [StaffingTaxEntryController::class, 'destroy']);
+        // Never served from a public disk/URL — see the controller docblock.
+        Route::get('/staffing-tax-entries/{id}/download', [StaffingTaxEntryController::class, 'download']);
     });
 
     // Staffing CRM — leads registered by sales reps. No `admin-panel` here on purpose: a plain

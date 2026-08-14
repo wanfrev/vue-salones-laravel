@@ -55,6 +55,7 @@ export const sidebarSections: SidebarSection[] = [
       { to: '/admin/equipo', label: 'Equipo', labelKey: 'employee', icon: BagIcon, adminOnly: true },
       { to: '/admin/empresas', label: 'Empresas', icon: BuildingsIcon, adminOnly: true, gate: { capability: 'staffing.timesheets' } },
       { to: '/admin/staffing-reportes', label: 'Reportes', icon: DocumentIcon, adminOnly: true, gate: { capability: 'staffing.reports' } },
+      { to: '/admin/staffing-taxes', label: 'Taxes', icon: DocumentIcon, adminOnly: true, gate: { capability: 'staffing.reports' } },
       { to: '/admin/crm', label: 'CRM', icon: ChatRoundLineIcon, adminOnly: true, gate: { capability: 'staffing.crm' } },
       { to: '/dashboard/crm', label: 'CRM', icon: ChatRoundLineIcon, employeeOnly: true, gate: { capability: 'staffing.crm' } },
       { to: '/admin/finanzas', label: 'Finanzas', icon: GraphIcon, adminOnly: true, badge: 'Nuevo' },

@@ -1,4 +1,4 @@
-import { apiRequest, db } from '../lib/api'
+import { apiDownloadFile, apiRequest, apiUpload, db } from '../lib/api'
 import { handleDbError } from '../lib/errors'
 import { staffingCompanyFormSchema, staffingCompanyPaymentFormSchema, staffingRateFormSchema } from '../lib/validation'
 import type {
@@ -537,3 +537,115 @@ export interface StaffingEmployeeHoursMatrix {
 /** Year-wide, per-employee weekly hours for the "Horas Reportadas" report tab. */
 export const getEmployeeHoursMatrix = (year: number, active: boolean): Promise<StaffingEmployeeHoursMatrix> =>
   apiRequest<StaffingEmployeeHoursMatrix>('GET', `/staffing-reports/employee-hours?year=${year}&active=${active}`)
+
+// ── Taxes ──────────────────────────────────────────────────────
+
+export const staffingTaxEntityKeys = {
+  all: (businessId?: string | null) => ['staffing-tax-entities', businessId] as const,
+}
+
+export interface StaffingTaxEntityRow {
+  id: string
+  name: string
+  active: boolean
+}
+
+export interface StaffingTaxEntityFormData {
+  name: string
+  active: boolean
+}
+
+interface StaffingTaxEntityApiRow {
+  id: string
+  name: string
+  active: boolean
+}
+
+const toTaxEntityRow = (row: StaffingTaxEntityApiRow): StaffingTaxEntityRow => ({
+  id: row.id,
+  name: row.name,
+  active: row.active,
+})
+
+export const listStaffingTaxEntities = async (businessId: string): Promise<StaffingTaxEntityRow[]> => {
+  const { data, error } = await db.from('staffing_tax_entities').select('*').eq('business_id', businessId).order('name', { ascending: true })
+  if (error) handleDbError(error, 'Error al cargar las entidades de tax')
+
+  return ((data ?? []) as StaffingTaxEntityApiRow[]).map(toTaxEntityRow)
+}
+
+export const saveStaffingTaxEntity = async (
+  _businessId: string,
+  data: StaffingTaxEntityFormData & { id?: string },
+): Promise<StaffingTaxEntityRow> => {
+  const payload = { name: data.name, active: data.active }
+
+  const { data: saved, error } = data.id
+    ? await db.from('staffing_tax_entities').update(payload).eq('id', data.id).select('*').single()
+    : await db.from('staffing_tax_entities').insert(payload).select('*').single()
+
+  if (error) handleDbError(error, 'Error al guardar la entidad de tax')
+
+  return toTaxEntityRow(saved as StaffingTaxEntityApiRow)
+}
+
+export const deleteStaffingTaxEntity = async (id: string): Promise<void> => {
+  const { error } = await db.from('staffing_tax_entities').delete().eq('id', id)
+  if (error) handleDbError(error, 'Error al eliminar la entidad de tax')
+}
+
+export interface StaffingAnnualTaxEntry {
+  entryId: string
+  amount: number
+  hasFile: boolean
+  fileName: string | null
+  entryDate: string | null
+}
+
+export interface StaffingAnnualTaxEmployeeRow {
+  employeeId: string
+  name: string
+  active: boolean
+  companyName: string | null
+  phone: string | null
+  address: string | null
+  ssnLast4: string | null
+  entriesByEntity: Record<string, StaffingAnnualTaxEntry | null>
+}
+
+export interface StaffingAnnualTaxReport {
+  entities: StaffingTaxEntityRow[]
+  employees: StaffingAnnualTaxEmployeeRow[]
+}
+
+export const getAnnualTaxReport = (year: number): Promise<StaffingAnnualTaxReport> =>
+  apiRequest<StaffingAnnualTaxReport>('GET', `/staffing-reports/annual-tax?year=${year}`)
+
+export interface StaffingTaxEntryFormData {
+  employeeId: string
+  taxEntityId: string
+  year: number
+  amount: number
+  entryDate?: string
+  file?: File | null
+}
+
+/** Multipart upsert by (employee, tax entity, year) — see StaffingTaxEntryController::store(). */
+export const saveTaxEntry = (data: StaffingTaxEntryFormData): Promise<void> => {
+  const form = new FormData()
+  form.set('employee_id', data.employeeId)
+  form.set('tax_entity_id', data.taxEntityId)
+  form.set('year', String(data.year))
+  form.set('amount', String(data.amount))
+  if (data.entryDate) form.set('entry_date', data.entryDate)
+  if (data.file) form.set('file', data.file)
+
+  return apiUpload('POST', '/staffing-tax-entries', form)
+}
+
+export const deleteTaxEntry = (id: string): Promise<void> =>
+  apiRequest('DELETE', `/staffing-tax-entries/${id}`)
+
+/** Fetches the attached document as a blob (auth header) and triggers a browser save. */
+export const downloadTaxEntryFile = (entryId: string, fallbackFilename: string): Promise<void> =>
+  apiDownloadFile(`/staffing-tax-entries/${entryId}/download`, fallbackFilename)

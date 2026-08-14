@@ -6,6 +6,8 @@ use App\Models\Profile;
 use App\Models\StaffingCompany;
 use App\Models\StaffingCompanyPayment;
 use App\Models\StaffingInvoice;
+use App\Models\StaffingTaxEntity;
+use App\Models\StaffingTaxEntry;
 use App\Models\StaffingWeeklyExpense;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -307,6 +309,65 @@ class StaffingReportService
                         $companyIds,
                     )),
                     'weeklyHours' => $hoursByEmployee[$employee->id] ?? [],
+                ];
+            })->all(),
+        ];
+    }
+
+    /**
+     * The annual taxes report: every employee (active + inactive), the configured tax entities
+     * as columns, and each employee's amount/document for the given year in those columns.
+     *
+     * @return array{entities: list<array>, employees: list<array>}
+     */
+    public function annualTaxReport(string $businessId, int $year): array
+    {
+        $entities = StaffingTaxEntity::where('business_id', $businessId)
+            ->orderBy('name')
+            ->get();
+
+        $employees = Profile::with('staffingCompany')
+            ->where('business_id', $businessId)
+            ->orderBy('full_name')
+            ->get();
+
+        $entries = StaffingTaxEntry::where('business_id', $businessId)
+            ->where('year', $year)
+            ->get();
+
+        // employee_id => tax_entity_id => entry
+        $byEmployeeAndEntity = [];
+        foreach ($entries as $entry) {
+            $byEmployeeAndEntity[$entry->employee_id][$entry->tax_entity_id] = $entry;
+        }
+
+        return [
+            'entities' => $entities->map(fn (StaffingTaxEntity $e) => [
+                'id' => $e->id,
+                'name' => $e->name,
+            ])->all(),
+            'employees' => $employees->map(function (Profile $employee) use ($byEmployeeAndEntity, $entities) {
+                $entriesByEntity = [];
+                foreach ($entities as $entity) {
+                    $entry = $byEmployeeAndEntity[$employee->id][$entity->id] ?? null;
+                    $entriesByEntity[$entity->id] = $entry ? [
+                        'entryId' => $entry->id,
+                        'amount' => (float) $entry->amount,
+                        'hasFile' => (bool) $entry->file_path,
+                        'fileName' => $entry->file_original_name,
+                        'entryDate' => $entry->entry_date?->format('Y-m-d'),
+                    ] : null;
+                }
+
+                return [
+                    'employeeId' => $employee->id,
+                    'name' => $employee->full_name,
+                    'active' => (bool) $employee->active,
+                    'companyName' => $employee->staffingCompany?->name,
+                    'phone' => $employee->phone,
+                    'address' => $employee->address,
+                    'ssnLast4' => $employee->ssn_last4,
+                    'entriesByEntity' => $entriesByEntity,
                 ];
             })->all(),
         ];

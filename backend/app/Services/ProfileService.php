@@ -93,6 +93,8 @@ class ProfileService
                 'staffing_company_id' => $data['staffing_company_id'] ?? null,
                 'staffing_role' => $data['staffing_role'] ?? null,
                 'staffing_tax_rate' => $data['staffing_tax_rate'] ?? null,
+                'ssn' => $data['ssn'] ?? null,
+                'address' => $data['address'] ?? null,
                 'bank_name' => $data['bank_name'] ?? null,
                 'bank_account_holder' => $data['bank_account_holder'] ?? null,
                 'bank_account_type' => $data['bank_account_type'] ?? null,
@@ -181,7 +183,7 @@ class ProfileService
                 $profileFields['can_access_requirements'] = $data['can_access_requirements'];
             }
             foreach ([
-                'staffing_company_id', 'staffing_role', 'staffing_tax_rate',
+                'staffing_company_id', 'staffing_role', 'staffing_tax_rate', 'ssn', 'address',
                 'bank_name', 'bank_account_holder', 'bank_account_type', 'payment_method',
                 'bank_routing_number', 'bank_account_number', 'payroll_card_number',
             ] as $staffingField) {

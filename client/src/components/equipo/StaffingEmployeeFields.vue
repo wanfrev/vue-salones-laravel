@@ -31,6 +31,15 @@
       />
     </div>
 
+    <FormInput v-model="address" label="Dirección" placeholder="Calle, ciudad, estado" />
+
+    <FormInput
+      v-model="ssn"
+      label="SSN"
+      placeholder="XXX-XX-XXXX"
+      :hint="ssnHint"
+    />
+
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <FormInput v-model="bankName" label="Banco" placeholder="Ej: Bank of America" />
       <FormInput v-model="bankAccountHolder" label="Titular de la cuenta" placeholder="Nombre en la cuenta" />
@@ -94,6 +103,7 @@ const props = defineProps<{
   /** Read-only context from the saved record — a blank input never overwrites these. */
   bankAccountLast4?: string | null
   payrollCardLast4?: string | null
+  ssnLast4?: string | null
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [data: EmpleadoFormData] }>()
@@ -109,6 +119,8 @@ const field = <K extends keyof EmpleadoFormData>(key: K) => computed<EmpleadoFor
 const companyId = field('staffingCompanyId')
 const staffingTaxRate = field('staffingTaxRate')
 const role = computed(() => props.formData.role)
+const address = field('address')
+const ssn = field('ssn')
 const bankName = field('bankName')
 const bankAccountHolder = field('bankAccountHolder')
 const bankAccountType = field('bankAccountType')
@@ -160,5 +172,8 @@ const accountHint = computed(() =>
 )
 const cardHint = computed(() =>
   props.payrollCardLast4 ? `Terminada en ${props.payrollCardLast4} — deja vacío para mantenerla` : undefined,
+)
+const ssnHint = computed(() =>
+  props.ssnLast4 ? `Terminado en ${props.ssnLast4} — deja vacío para mantenerlo` : 'Nunca se muestra completo una vez guardado',
 )
 </script>

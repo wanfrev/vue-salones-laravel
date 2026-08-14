@@ -78,4 +78,20 @@ class StaffingReportController
             $this->reports->employeeHoursMatrix($p->business_id, (int) $data['year'], (bool) $data['active'])
         );
     }
+
+    public function annualTaxReport(Request $request): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json(['entities' => [], 'employees' => []]);
+        }
+
+        $data = $request->validate([
+            'year' => 'required|integer|min:2000|max:2100',
+        ]);
+
+        return response()->json(
+            $this->reports->annualTaxReport($p->business_id, (int) $data['year'])
+        );
+    }
 }

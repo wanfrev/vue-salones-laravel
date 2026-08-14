@@ -69,6 +69,7 @@ export const saveEmpleado = async (
       staffing_company_id: profileUpdate.staffing_company_id,
       staffing_role: profileUpdate.staffing_role,
       staffing_tax_rate: profileUpdate.staffing_tax_rate,
+      address: profileUpdate.address,
       bank_name: profileUpdate.bank_name,
       bank_account_holder: profileUpdate.bank_account_holder,
       bank_account_type: profileUpdate.bank_account_type,
@@ -76,6 +77,7 @@ export const saveEmpleado = async (
       bank_routing_number: data.bankRoutingNumber?.trim() || null,
       bank_account_number: data.bankAccountNumber?.trim() || null,
       payroll_card_number: data.payrollCardNumber?.trim() || null,
+      ssn: data.ssn?.trim() || null,
       branch_id: branchId ?? null,
       schedules: scheduleBlocks,
     })
@@ -94,6 +96,7 @@ export const saveEmpleado = async (
     ...(data.bankRoutingNumber?.trim() ? { bank_routing_number: data.bankRoutingNumber.trim() } : {}),
     ...(data.bankAccountNumber?.trim() ? { bank_account_number: data.bankAccountNumber.trim() } : {}),
     ...(data.payrollCardNumber?.trim() ? { payroll_card_number: data.payrollCardNumber.trim() } : {}),
+    ...(data.ssn?.trim() ? { ssn: data.ssn.trim() } : {}),
     can_create_appointments: data.systemRole !== 'cajero' ? data.canCreateAppointments : false,
     can_create_clients: data.systemRole !== 'cajero' ? data.canCreateClients : false,
     can_access_consultorio: data.systemRole !== 'cajero' ? data.canAccessConsultorio : false,

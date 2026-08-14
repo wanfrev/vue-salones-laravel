@@ -26,6 +26,64 @@ export async function apiRequest<T>(
   return res.data as T
 }
 
+/**
+ * Multipart upload — the browser sets its own `Content-Type: multipart/form-data; boundary=...`
+ * for a FormData body, so this deliberately skips the JSON header apiFetch always sends. First
+ * user: staffing tax entries (StaffingTaxEntryController::store), which accept an optional file
+ * alongside the other fields in the same request.
+ */
+export async function apiUpload<T>(method: string, path: string, formData: FormData): Promise<T> {
+  const url = `${API_BASE}${path}`
+  const headers: Record<string, string> = { Accept: 'application/json' }
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`
+  }
+
+  const res = await fetch(url, { method, headers, body: formData })
+
+  if (!res.ok) {
+    let message = `HTTP ${res.status}`
+    try {
+      const json = await res.json()
+      message = json.error?.message ?? json.message ?? message
+    } catch { /* not JSON */ }
+    throw new Error(message)
+  }
+
+  return (await res.json()) as T
+}
+
+/**
+ * Downloads a file from an authenticated endpoint and saves it via a throwaway anchor — a plain
+ * `<a href>` can't carry the Bearer token, so the file has to be fetched as a blob first.
+ */
+export async function apiDownloadFile(path: string, fallbackFilename: string): Promise<void> {
+  const url = `${API_BASE}${path}`
+  const headers: Record<string, string> = {}
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`
+  }
+
+  const res = await fetch(url, { headers })
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`)
+  }
+
+  const disposition = res.headers.get('content-disposition') ?? ''
+  const match = /filename="?([^"]+)"?/.exec(disposition)
+  const filename = match?.[1] ?? fallbackFilename
+
+  const blob = await res.blob()
+  const blobUrl = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = blobUrl
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(blobUrl)
+}
+
 let authToken: string | null = localStorage.getItem('auth_token')
 
 export function getAuthToken(): string | null {

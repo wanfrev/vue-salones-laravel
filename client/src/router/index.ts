@@ -154,6 +154,12 @@ const router = createRouter({
           meta: { gate: { capability: 'staffing.reports' } },
         },
         {
+          path: 'staffing-taxes',
+          name: 'admin-staffing-taxes',
+          component: () => import('../views/StaffingTaxes.vue'),
+          meta: { gate: { capability: 'staffing.reports' } },
+        },
+        {
           path: 'crm',
           name: 'admin-crm',
           component: () => import('../views/Crm.vue'),

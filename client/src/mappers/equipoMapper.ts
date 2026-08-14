@@ -66,6 +66,8 @@ export const mapProfileToEmpleado = (
     staffingCompanyId: profile.staffing_company_id ?? null,
     staffingRole: profile.staffing_role ?? '',
     staffingTaxRate: profile.staffing_tax_rate ?? null,
+    address: profile.address ?? '',
+    ssnLast4: profile.ssn_last4 ?? null,
     bankName: profile.bank_name ?? '',
     bankAccountHolder: profile.bank_account_holder ?? '',
     bankAccountType: (profile.bank_account_type as Empleado['bankAccountType']) ?? '',
@@ -103,6 +105,7 @@ export const mapEmpleadoFormToProfileUpdate = (data: EmpleadoFormData) => ({
   // the write-only bank/card fields below, since an admin re-editing this record can see and
   // blank it deliberately.
   staffing_tax_rate: data.staffingTaxRate,
+  address: data.address?.trim() || null,
   bank_name: data.bankName?.trim() || null,
   bank_account_holder: data.bankAccountHolder?.trim() || null,
   bank_account_type: data.bankAccountType || null,

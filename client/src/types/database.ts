@@ -73,14 +73,16 @@ export interface Profile {
   staffing_company_id?: string | null
   staffing_role?: string | null
   staffing_tax_rate?: number | null
+  address?: string | null
   bank_name?: string | null
   bank_account_holder?: string | null
   bank_account_type?: string | null
   payment_method?: string | null
-  // The raw numbers are never present in an API response — Profile::$hidden strips them
+  // The raw numbers/SSN are never present in an API response — Profile::$hidden strips them
   // server-side. Only the masked last-4 accessors below ever reach the client.
   bank_account_last4?: string | null
   payroll_card_last4?: string | null
+  ssn_last4?: string | null
   created_at: string
   updated_at: string
 }

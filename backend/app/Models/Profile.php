@@ -22,18 +22,18 @@ class Profile extends Model
         'can_create_appointments', 'can_create_clients',
         'can_access_consultorio',
         'can_access_inventory', 'can_access_pos', 'can_access_suppliers', 'can_access_finanzas', 'can_access_requirements',
-        'staffing_company_id', 'staffing_role', 'staffing_tax_rate',
+        'staffing_company_id', 'staffing_role', 'staffing_tax_rate', 'ssn', 'address',
         'bank_name', 'bank_account_holder', 'bank_account_type', 'payment_method',
         'bank_routing_number', 'bank_account_number', 'payroll_card_number',
     ];
 
     // Never serialized in full — see the *Last4 accessors below for what the API exposes instead.
     protected $hidden = [
-        'bank_routing_number', 'bank_account_number', 'payroll_card_number',
+        'bank_routing_number', 'bank_account_number', 'payroll_card_number', 'ssn',
     ];
 
     protected $appends = [
-        'bank_account_last4', 'payroll_card_last4',
+        'bank_account_last4', 'payroll_card_last4', 'ssn_last4',
     ];
 
     protected function casts(): array
@@ -57,6 +57,7 @@ class Profile extends Model
             'bank_routing_number' => 'encrypted',
             'bank_account_number' => 'encrypted',
             'payroll_card_number' => 'encrypted',
+            'ssn' => 'encrypted',
         ];
     }
 
@@ -87,6 +88,11 @@ class Profile extends Model
     protected function getPayrollCardLast4Attribute(): ?string
     {
         return $this->last4Of('payroll_card_number');
+    }
+
+    protected function getSsnLast4Attribute(): ?string
+    {
+        return $this->last4Of('ssn');
     }
 
     private function last4Of(string $attribute): ?string
