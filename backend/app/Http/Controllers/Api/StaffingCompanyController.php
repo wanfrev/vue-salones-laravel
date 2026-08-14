@@ -27,8 +27,14 @@ class StaffingCompanyController
             $active = filter_var($request->input('active'), FILTER_VALIDATE_BOOL);
         }
 
+        $status = $request->input('status');
+        if ($status === 'all') {
+            $status = null;
+            $active = null;
+        }
+
         return response()->json(
-            $this->companies->list($p->business_id, $request->branch_id, $active)
+            $this->companies->list($p->business_id, $request->branch_id, $active, $status)
         );
     }
 
@@ -99,6 +105,7 @@ class StaffingCompanyController
                 . PayrollTerms::PAYOUT_EXACT,
             'notes' => 'nullable|string',
             'active' => 'boolean',
+            'status' => 'nullable|in:active,inactive,on_hold',
             'branch_id' => 'nullable|uuid',
         ];
     }

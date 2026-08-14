@@ -35,6 +35,13 @@ final class TimesheetEntry
          * is not null. Null here means "use the company's rule", the previous behaviour.
          */
         public readonly ?TaxRule $taxOverride = null,
+        /**
+         * Per-role override of PayrollTerms::$overtimeThresholdHours / $overtimeMultiplier — set
+         * when the rate card row (staffing_company_rates) carries its own OT terms. Null means
+         * "use the company's terms", the previous (and still default) behaviour.
+         */
+        public readonly ?float $overtimeThresholdOverride = null,
+        public readonly ?float $overtimeMultiplierOverride = null,
     ) {
         if ($totalHours < 0) {
             throw new InvalidArgumentException("Negative hours for {$employeeName}: {$totalHours}");

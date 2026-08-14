@@ -38,6 +38,7 @@ export const staffingRateKeys = {
 
 export type TaxDestination = 'remitted' | 'retained'
 export type PayoutRounding = 'floor' | 'cent' | 'exact'
+export type StaffingCompanyStatus = 'active' | 'inactive' | 'on_hold'
 
 export interface StaffingCompanyRow {
   id: string
@@ -59,6 +60,7 @@ export interface StaffingCompanyRow {
   payoutRounding: PayoutRounding
   notes: string
   active: boolean
+  status: StaffingCompanyStatus
 }
 
 export interface StaffingRateRow {
@@ -69,6 +71,9 @@ export interface StaffingRateRow {
   billRate: number
   /** What the agency keeps per hour, before withholdings. The reason the business exists. */
   hourlyMargin: number
+  /** Null = falls back to the company's own overtime terms. */
+  overtimeThresholdHours: number | null
+  overtimeMultiplier: number | null
   active: boolean
 }
 
@@ -89,6 +94,7 @@ export interface StaffingCompanyFormData {
   taxBrackets: StaffingTaxBracket[]
   taxDestination: TaxDestination
   payoutRounding: PayoutRounding
+  status: StaffingCompanyStatus
   notes: string
 }
 
@@ -97,6 +103,8 @@ export interface StaffingRateFormData {
   role: string
   payRate: number
   billRate: number
+  overtimeThresholdHours: number | null
+  overtimeMultiplier: number | null
 }
 
 /** DYKE's agreement — the shape a brand-new company starts from. */
@@ -125,6 +133,7 @@ const toCompanyRow = (row: StaffingCompany): StaffingCompanyRow => ({
   payoutRounding: (row.payout_rounding as PayoutRounding) || 'cent',
   notes: row.notes ?? '',
   active: row.active,
+  status: row.status ?? (row.active ? 'active' : 'inactive'),
 })
 
 const toRateRow = (row: StaffingCompanyRate): StaffingRateRow => ({
@@ -134,19 +143,30 @@ const toRateRow = (row: StaffingCompanyRate): StaffingRateRow => ({
   payRate: Number(row.pay_rate ?? 0),
   billRate: Number(row.bill_rate ?? 0),
   hourlyMargin: Number(row.bill_rate ?? 0) - Number(row.pay_rate ?? 0),
+  overtimeThresholdHours: row.overtime_threshold_hours == null ? null : Number(row.overtime_threshold_hours),
+  overtimeMultiplier: row.overtime_multiplier == null ? null : Number(row.overtime_multiplier),
   active: row.active,
 })
 
+/**
+ * Defaults to 'active' so the two call sites that only ever want active companies
+ * (StaffingHoursPanel.vue, StaffingEmployeeFields.vue) keep seeing exactly what they saw before
+ * the status tabs existed. Pass 'all' for the Empresas screen's own tabbed list.
+ */
 export const listStaffingCompanies = async (
   businessId: string,
   branchId?: string | null,
+  status: StaffingCompanyStatus | 'all' = 'active',
 ): Promise<StaffingCompanyRow[]> => {
   let query = db
     .from('staffing_companies')
     .select('*')
     .eq('business_id', businessId)
-    .eq('active', true)
     .order('name', { ascending: true })
+
+  if (status !== 'all') {
+    query = query.eq('status', status)
+  }
 
   if (branchId) {
     query = query.eq('branch_id', branchId)
@@ -185,6 +205,7 @@ export const saveStaffingCompany = async (
     tax_brackets: parsed.data.taxBrackets,
     tax_destination: parsed.data.taxDestination,
     payout_rounding: parsed.data.payoutRounding,
+    status: parsed.data.status,
     notes: parsed.data.notes || null,
     branch_id: branchId ?? null,
   }
@@ -240,6 +261,8 @@ export const saveStaffingRate = async (
     role: parsed.data.role,
     pay_rate: parsed.data.payRate,
     bill_rate: parsed.data.billRate,
+    overtime_threshold_hours: parsed.data.overtimeThresholdHours,
+    overtime_multiplier: parsed.data.overtimeMultiplier,
   }
 
   const { data: saved, error } = data.id

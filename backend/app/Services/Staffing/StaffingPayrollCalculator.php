@@ -16,14 +16,20 @@ namespace App\Services\Staffing;
  */
 class StaffingPayrollCalculator
 {
-    /** Split total hours the way both sheets do: `IF(hours < 40, hours, 40)`. */
-    private function splitHours(float $totalHours, PayrollTerms $terms): array
+    /** Split total hours the way both sheets do: `IF(hours < threshold, hours, threshold)`. */
+    private function splitHours(float $totalHours, TimesheetEntry $entry, PayrollTerms $terms): array
     {
-        $regular = $totalHours < $terms->overtimeThresholdHours
-            ? $totalHours
-            : $terms->overtimeThresholdHours;
+        $threshold = $entry->overtimeThresholdOverride ?? $terms->overtimeThresholdHours;
+
+        $regular = $totalHours < $threshold ? $totalHours : $threshold;
 
         return [$regular, $totalHours - $regular];
+    }
+
+    /** The role's own override, when the rate card sets one, otherwise the company's terms. */
+    private function overtimeMultiplierFor(TimesheetEntry $entry, PayrollTerms $terms): float
+    {
+        return $entry->overtimeMultiplierOverride ?? $terms->overtimeMultiplier;
     }
 
     /** The employee's own tax override, when set, otherwise the company's rule. */
@@ -34,9 +40,9 @@ class StaffingPayrollCalculator
 
     public function payroll(TimesheetEntry $entry, PayrollTerms $terms): PayrollLine
     {
-        [$regularHours, $overtimeHours] = $this->splitHours($entry->totalHours, $terms);
+        [$regularHours, $overtimeHours] = $this->splitHours($entry->totalHours, $entry, $terms);
 
-        $overtimeRate = $entry->payRate * $terms->overtimeMultiplier;
+        $overtimeRate = $entry->payRate * $this->overtimeMultiplierFor($entry, $terms);
         $regularAmount = $regularHours * $entry->payRate;
         $overtimeAmount = $overtimeHours * $overtimeRate;
 
@@ -83,9 +89,9 @@ class StaffingPayrollCalculator
 
     public function invoice(TimesheetEntry $entry, PayrollTerms $terms): InvoiceLine
     {
-        [$regularHours, $overtimeHours] = $this->splitHours($entry->totalHours, $terms);
+        [$regularHours, $overtimeHours] = $this->splitHours($entry->totalHours, $entry, $terms);
 
-        $overtimeBillRate = round($entry->billRate * $terms->overtimeMultiplier, 2);
+        $overtimeBillRate = round($entry->billRate * $this->overtimeMultiplierFor($entry, $terms), 2);
         $regularAmount = round($entry->billRate * $regularHours, 2);
         $overtimeAmount = round($overtimeHours * $overtimeBillRate, 2);
 

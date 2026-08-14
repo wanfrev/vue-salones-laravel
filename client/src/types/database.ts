@@ -411,6 +411,8 @@ export interface StaffingCompany {
   /** 'floor' | 'cent' | 'exact' */
   payout_rounding: string
   active: boolean
+  /** Tri-state, manual: 'active' | 'inactive' | 'on_hold' ("en descanso"). Mirrors `active`. */
+  status: 'active' | 'inactive' | 'on_hold'
   notes: string | null
   created_at: string
   updated_at: string
@@ -424,6 +426,9 @@ export interface StaffingCompanyRate {
   role: string
   pay_rate: number
   bill_rate: number
+  /** Null = use the company's overtime terms. See StaffingPayrollCalculator's override lookup. */
+  overtime_threshold_hours: number | null
+  overtime_multiplier: number | null
   active: boolean
   created_at: string
   updated_at: string

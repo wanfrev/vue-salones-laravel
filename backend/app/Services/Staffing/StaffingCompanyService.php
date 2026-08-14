@@ -20,8 +20,12 @@ class StaffingCompanyService
         ['threshold' => null, 'rate' => 0.07],
     ];
 
-    public function list(string $businessId, ?string $branchId = null, ?bool $active = null): Collection
-    {
+    public function list(
+        string $businessId,
+        ?string $branchId = null,
+        ?bool $active = null,
+        ?string $status = null,
+    ): Collection {
         $query = StaffingCompany::query()
             ->where('business_id', $businessId)
             ->orderBy('name');
@@ -32,7 +36,11 @@ class StaffingCompanyService
             });
         }
 
-        if ($active !== null) {
+        // `status` is the tri-state filter (active|inactive|on_hold); `active` is the legacy
+        // boolean still used by call sites that only care about "active or not".
+        if ($status !== null) {
+            $query->where('status', $status);
+        } elseif ($active !== null) {
             $query->where('active', $active);
         }
 
@@ -62,6 +70,7 @@ class StaffingCompanyService
             'tax_destination' => $data['tax_destination'] ?? TaxRule::REMITTED,
             'payout_rounding' => $data['payout_rounding'] ?? PayrollTerms::PAYOUT_CENT,
             'active' => $data['active'] ?? true,
+            'status' => $data['status'] ?? StaffingCompany::STATUS_ACTIVE,
             'notes' => $data['notes'] ?? null,
             'created_at' => now(),
             'updated_at' => now(),
@@ -83,7 +92,7 @@ class StaffingCompanyService
     public function destroy(string $id, string $businessId): void
     {
         $company = $this->findForBusiness($id, $businessId);
-        $company->update(['active' => false, 'updated_at' => now()]);
+        $company->update(['status' => StaffingCompany::STATUS_INACTIVE, 'updated_at' => now()]);
     }
 
     public function findForBusiness(string $id, string $businessId): StaffingCompany

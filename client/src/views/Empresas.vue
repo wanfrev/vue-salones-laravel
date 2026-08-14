@@ -15,6 +15,19 @@
       </div>
     </header>
 
+    <div class="mb-4 flex gap-1 border-b border-border">
+      <button v-for="tab in STATUS_TABS" :key="tab.value" type="button"
+        class="relative px-3 py-2 text-sm font-semibold transition-theme"
+        :class="activeStatusTab === tab.value ? 'text-primary' : 'text-text-muted hover:text-text'"
+        @click="activeStatusTab = tab.value">
+        {{ tab.label }}
+        <span class="ml-1.5 rounded-full bg-bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-text-muted">
+          {{ ctx.companiesByStatus.value[tab.value].length }}
+        </span>
+        <span v-if="activeStatusTab === tab.value" class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
+      </button>
+    </div>
+
     <div v-if="ctx.isLoading.value" class="flex items-center justify-center py-16">
       <svg class="h-7 w-7 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -23,17 +36,17 @@
       </svg>
     </div>
 
-    <div v-else-if="ctx.companies.value.length === 0"
+    <div v-else-if="filteredCompanies.length === 0"
       class="flex flex-col items-center justify-center py-16 text-center">
       <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-secondary">
         <BuildingsIcon class="h-7 w-7 text-text-muted" />
       </div>
-      <p class="text-lg font-semibold text-text">No hay empresas</p>
+      <p class="text-lg font-semibold text-text">No hay empresas {{ STATUS_TAB_LABELS[activeStatusTab].toLowerCase() }}</p>
       <p class="mt-1 text-sm text-text-muted">Registra la primera empresa para poder cargar horas y facturar.</p>
     </div>
 
     <div v-else class="space-y-3">
-      <div v-for="company in ctx.companies.value" :key="company.id"
+      <div v-for="company in filteredCompanies" :key="company.id"
         class="overflow-hidden rounded-xl border border-border bg-surface">
         <div class="flex flex-wrap items-center gap-3 px-4 py-3.5">
           <button type="button" class="flex flex-1 items-center gap-3 text-left"
@@ -42,7 +55,12 @@
               {{ getInitials(company.name) }}
             </span>
             <span class="min-w-0">
-              <span class="block truncate text-sm font-semibold text-text">{{ company.name }}</span>
+              <span class="flex items-center gap-2">
+                <span class="block truncate text-sm font-semibold text-text">{{ company.name }}</span>
+                <span class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="STATUS_BADGE_CLASS[company.status]">
+                  {{ STATUS_TAB_LABELS[company.status] }}
+                </span>
+              </span>
               <span class="block truncate text-xs text-text-muted">
                 {{ company.workSite || 'Sin sitio de trabajo' }} · {{ company.paymentTermsDays }} días de plazo
               </span>
@@ -121,6 +139,7 @@
                   <input id="emp-name" v-model="ctx.form.value.name" type="text" required :class="inputClass"
                     placeholder="Ej: DYKE INDUSTRIES" />
                 </div>
+                <FormDropdown v-model="ctx.form.value.status" label="Estado" :options="STATUS_FORM_OPTIONS" />
                 <div>
                   <label class="mb-1 block text-sm font-medium text-text" for="emp-worksite">Sitio de trabajo</label>
                   <input id="emp-worksite" v-model="ctx.form.value.workSite" type="text" :class="inputClass"
@@ -264,12 +283,38 @@ import { FormDropdown } from '../components/forms'
 import RateCardEditor from '../components/staffing/RateCardEditor.vue'
 import BillingPanel from '../components/staffing/BillingPanel.vue'
 import StaffingWorkersPanel from '../components/staffing/StaffingWorkersPanel.vue'
-import type { StaffingCompanyRow } from '../services/staffingService'
+import type { StaffingCompanyRow, StaffingCompanyStatus } from '../services/staffingService'
 import type { StaffingTaxBracket } from '../types/database'
 import { BuildingsIcon, AddCircleIcon, PenIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
 
 const inputClass =
   'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30'
+
+const STATUS_TABS: { value: StaffingCompanyStatus; label: string }[] = [
+  { value: 'active', label: 'Activas' },
+  { value: 'inactive', label: 'Inactivas' },
+  { value: 'on_hold', label: 'En descanso' },
+]
+
+const STATUS_TAB_LABELS: Record<StaffingCompanyStatus, string> = {
+  active: 'Activa',
+  inactive: 'Inactiva',
+  on_hold: 'En descanso',
+}
+
+const STATUS_FORM_OPTIONS = [
+  { value: 'active', label: 'Activa' },
+  { value: 'inactive', label: 'Inactiva' },
+  { value: 'on_hold', label: 'En descanso (pausa temporal)' },
+]
+
+const STATUS_BADGE_CLASS: Record<StaffingCompanyStatus, string> = {
+  active: 'bg-success/10 text-success',
+  inactive: 'bg-danger/10 text-danger',
+  on_hold: 'bg-warning/10 text-warning',
+}
+
+const activeStatusTab = ref<StaffingCompanyStatus>('active')
 
 const TAX_DESTINATION_OPTIONS = [
   { value: 'remitted', label: 'Se entrega a un tercero (es un costo)' },
@@ -294,6 +339,8 @@ const roundingLabel = (mode: string) => ROUNDING_LABELS[mode] ?? 'Al centavo'
 const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)
 const ctx = useEmpresas(businessId)
+
+const filteredCompanies = computed(() => ctx.companiesByStatus.value[activeStatusTab.value])
 
 const expandedId = ref<string | null>(null)
 const expandedTab = ref<'rates' | 'personal' | 'billing'>('rates')

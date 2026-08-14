@@ -30,6 +30,7 @@ const emptyForm = (): StaffingCompanyFormData => ({
   taxBrackets: DEFAULT_TAX_BRACKETS.map(b => ({ ...b })),
   taxDestination: 'remitted',
   payoutRounding: 'cent',
+  status: 'active',
   notes: '',
 })
 
@@ -45,11 +46,19 @@ export function useEmpresas(businessId: Ref<string | null>) {
     businessId,
     branchId,
     queryKey: (id, brId) => staffingCompanyKeys.all(id, brId),
-    queryFn: (id, brId) => listStaffingCompanies(id, brId),
+    // 'all' — the status tabs on Empresas.vue filter this same list client-side, rather than
+    // refetching per tab.
+    queryFn: (id, brId) => listStaffingCompanies(id, brId, 'all'),
     saveFn: (id, data, brId) => saveStaffingCompany(id, data, brId),
     deleteFn: (id) => deleteStaffingCompany(id),
     entityName: 'Empresa',
   })
+
+  const companiesByStatus = computed(() => ({
+    active: crud.items.value.filter(c => c.status === 'active'),
+    inactive: crud.items.value.filter(c => c.status === 'inactive'),
+    on_hold: crud.items.value.filter(c => c.status === 'on_hold'),
+  }))
 
   const openNew = () => {
     editingId.value = null
@@ -76,6 +85,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
       taxBrackets: company.taxBrackets.map(b => ({ ...b })),
       taxDestination: company.taxDestination,
       payoutRounding: company.payoutRounding,
+      status: company.status,
       notes: company.notes,
     }
     showModal.value = true
@@ -111,6 +121,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
   return {
     ...crud,
     companies: crud.items,
+    companiesByStatus,
     showModal,
     editingId,
     form,

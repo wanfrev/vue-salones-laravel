@@ -150,6 +150,8 @@ class StaffingTimesheetService
                     fixedFees: (float) ($input['fixed_fees'] ?? 0),
                     adjustment: (float) ($input['adjustment'] ?? 0),
                     taxOverride: $taxOverride,
+                    overtimeThresholdOverride: $rate->overtime_threshold_hours,
+                    overtimeMultiplierOverride: $rate->overtime_multiplier,
                 );
 
                 $result = $this->calculator->line($timesheetEntry, $terms);

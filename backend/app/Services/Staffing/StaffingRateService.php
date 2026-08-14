@@ -43,6 +43,8 @@ class StaffingRateService
             $existing->update([
                 'pay_rate' => $data['pay_rate'],
                 'bill_rate' => $data['bill_rate'],
+                'overtime_threshold_hours' => $data['overtime_threshold_hours'] ?? null,
+                'overtime_multiplier' => $data['overtime_multiplier'] ?? null,
                 'active' => $data['active'] ?? true,
                 'updated_at' => now(),
             ]);
@@ -57,6 +59,8 @@ class StaffingRateService
             'role' => $data['role'],
             'pay_rate' => $data['pay_rate'],
             'bill_rate' => $data['bill_rate'],
+            'overtime_threshold_hours' => $data['overtime_threshold_hours'] ?? null,
+            'overtime_multiplier' => $data['overtime_multiplier'] ?? null,
             'active' => $data['active'] ?? true,
             'created_at' => now(),
             'updated_at' => now(),
