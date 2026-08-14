@@ -2,6 +2,7 @@
 
 namespace App\Services\Staffing;
 
+use App\Models\Profile;
 use App\Models\StaffingCompany;
 use App\Models\StaffingCompanyPayment;
 use App\Models\StaffingInvoice;
@@ -245,6 +246,70 @@ class StaffingReportService
                 'empleados' => $headcount,
             ];
         })->all();
+    }
+
+    /**
+     * Hours per employee per week of the year, for active or inactive staff — the "Horas
+     * Reportadas" sheet. Which companies an employee worked for is derived from their actual
+     * timesheet entries, not the single profiles.staffing_company_id FK: the PDF is explicit an
+     * employee can have hours against one or two companies in the same year ("si son dos o una").
+     *
+     * @return array{weeks: list<array{week_start: string, week_end: string, label: string}>, employees: list<array>}
+     */
+    public function employeeHoursMatrix(string $businessId, int $year, bool $activeOnly): array
+    {
+        $weeks = $this->weeksForYear($year);
+
+        $employees = Profile::query()
+            ->where('business_id', $businessId)
+            ->where('active', $activeOnly)
+            ->orderBy('full_name')
+            ->get();
+
+        if ($weeks === [] || $employees->isEmpty()) {
+            return ['weeks' => $weeks, 'employees' => []];
+        }
+
+        $firstWeekStart = $weeks[0]['week_start'];
+        $lastWeekStart = $weeks[count($weeks) - 1]['week_start'];
+
+        $entryRows = DB::table('staffing_timesheet_entries as ste')
+            ->join('staffing_timesheets as st', 'st.id', '=', 'ste.timesheet_id')
+            ->where('st.business_id', $businessId)
+            ->whereBetween('st.week_start', [$firstWeekStart, $lastWeekStart])
+            ->where('ste.total_hours', '>', 0)
+            ->selectRaw('ste.employee_id, st.company_id, st.week_start, ste.total_hours')
+            ->get();
+
+        $companyNames = StaffingCompany::where('business_id', $businessId)->pluck('name', 'id');
+
+        // employee_id => [companyId => true] (dedup via keys), employee_id => week_start => hours
+        $companiesByEmployee = [];
+        $hoursByEmployee = [];
+        foreach ($entryRows as $row) {
+            $companiesByEmployee[$row->employee_id][$row->company_id] = true;
+            $weekStart = $this->normalizeDate($row->week_start);
+            $hoursByEmployee[$row->employee_id][$weekStart] = ($hoursByEmployee[$row->employee_id][$weekStart] ?? 0.0) + (float) $row->total_hours;
+        }
+
+        return [
+            'weeks' => $weeks,
+            'employees' => $employees->map(function (Profile $employee) use ($companiesByEmployee, $hoursByEmployee, $companyNames) {
+                $companyIds = array_keys($companiesByEmployee[$employee->id] ?? []);
+
+                return [
+                    'employeeId' => $employee->id,
+                    'name' => $employee->full_name,
+                    'active' => (bool) $employee->active,
+                    'paymentMethod' => $employee->payment_method,
+                    'companies' => array_values(array_map(
+                        fn ($id) => ['id' => $id, 'name' => $companyNames->get($id, 'Empresa eliminada')],
+                        $companyIds,
+                    )),
+                    'weeklyHours' => $hoursByEmployee[$employee->id] ?? [],
+                ];
+            })->all(),
+        ];
     }
 
     private function normalizeDate(string|DateTimeInterface $value): string

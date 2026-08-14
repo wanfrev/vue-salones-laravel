@@ -43,6 +43,8 @@ export const staffingReportKeys = {
     ['staffing-monthly-payroll', businessId, year, month] as const,
   weekly: (businessId?: string | null, weekStart?: string) =>
     ['staffing-weekly-report', businessId, weekStart] as const,
+  employeeHours: (businessId?: string | null, year?: number, active?: boolean) =>
+    ['staffing-employee-hours', businessId, year, active] as const,
 }
 
 export type TaxDestination = 'remitted' | 'retained'
@@ -512,3 +514,26 @@ export const saveWeeklyExpense = (data: StaffingWeeklyExpenseFormData): Promise<
     amount: data.amount,
     notes: data.notes || null,
   })
+
+export interface StaffingEmployeeHoursCompanyRef {
+  id: string
+  name: string
+}
+
+export interface StaffingEmployeeHoursRow {
+  employeeId: string
+  name: string
+  active: boolean
+  paymentMethod: string | null
+  companies: StaffingEmployeeHoursCompanyRef[]
+  weeklyHours: Record<string, number>
+}
+
+export interface StaffingEmployeeHoursMatrix {
+  weeks: StaffingWeekLabel[]
+  employees: StaffingEmployeeHoursRow[]
+}
+
+/** Year-wide, per-employee weekly hours for the "Horas Reportadas" report tab. */
+export const getEmployeeHoursMatrix = (year: number, active: boolean): Promise<StaffingEmployeeHoursMatrix> =>
+  apiRequest<StaffingEmployeeHoursMatrix>('GET', `/staffing-reports/employee-hours?year=${year}&active=${active}`)

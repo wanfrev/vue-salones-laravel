@@ -61,4 +61,21 @@ class StaffingReportController
             $this->reports->weeklyCompanyReport($p->business_id, $data['week_start'])
         );
     }
+
+    public function employeeHours(Request $request): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json(['weeks' => [], 'employees' => []]);
+        }
+
+        $data = $request->validate([
+            'year' => 'required|integer|min:2000|max:2100',
+            'active' => 'required|boolean',
+        ]);
+
+        return response()->json(
+            $this->reports->employeeHoursMatrix($p->business_id, (int) $data['year'], (bool) $data['active'])
+        );
+    }
 }

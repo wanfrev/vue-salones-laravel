@@ -18,7 +18,8 @@
     </div>
 
     <MonthlyPayrollReport v-if="activeTab === 'monthly'" :business-id="businessId" />
-    <WeeklyCompanyReport v-else :business-id="businessId" />
+    <WeeklyCompanyReport v-else-if="activeTab === 'weekly'" :business-id="businessId" />
+    <EmployeeHoursMatrix v-else :business-id="businessId" />
   </FeatureGate>
 </template>
 
@@ -28,15 +29,17 @@ import { useAuth } from '../composables/common/useAuth'
 import { FeatureGate } from '../components/common'
 import MonthlyPayrollReport from '../components/staffing/MonthlyPayrollReport.vue'
 import WeeklyCompanyReport from '../components/staffing/WeeklyCompanyReport.vue'
+import EmployeeHoursMatrix from '../components/staffing/EmployeeHoursMatrix.vue'
 import { DocumentIcon } from '@solar-icons/vue/linear'
 
-const TABS: { value: 'monthly' | 'weekly'; label: string }[] = [
+const TABS: { value: 'monthly' | 'weekly' | 'hours'; label: string }[] = [
   { value: 'monthly', label: 'Mensual' },
   { value: 'weekly', label: 'Semanal' },
+  { value: 'hours', label: 'Horas reportadas' },
 ]
 
 const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)
 
-const activeTab = ref<'monthly' | 'weekly'>('monthly')
+const activeTab = ref<'monthly' | 'weekly' | 'hours'>('monthly')
 </script>

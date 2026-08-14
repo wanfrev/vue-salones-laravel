@@ -261,6 +261,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     Route::middleware(['capability:staffing.reports', 'admin-panel'])->group(function () {
         Route::get('/staffing-reports/monthly-payroll', [StaffingReportController::class, 'monthlyPayroll']);
         Route::get('/staffing-reports/weekly', [StaffingReportController::class, 'weeklyReport']);
+        Route::get('/staffing-reports/employee-hours', [StaffingReportController::class, 'employeeHours']);
         Route::post('/staffing-weekly-expenses', [StaffingWeeklyExpenseController::class, 'store']);
     });
 
