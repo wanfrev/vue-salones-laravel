@@ -431,6 +431,8 @@ export interface StaffingCompanyRate {
   /** Null = use the company's overtime terms. See StaffingPayrollCalculator's override lookup. */
   overtime_threshold_hours: number | null
   overtime_multiplier: number | null
+  overtime_pay_rate: number | null
+  overtime_bill_rate: number | null
   active: boolean
   created_at: string
   updated_at: string

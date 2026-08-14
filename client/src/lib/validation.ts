@@ -127,9 +127,13 @@ const staffingCompanyRoleSchema = z.object({
   billRate: z.number().min(0, 'La tarifa no puede ser negativa'),
   overtimeThresholdHours: z.number().min(0, 'Las horas no pueden ser negativas').default(40),
   overtimePayRate: z.number().min(0, 'La tarifa OT no puede ser negativa').optional(),
+  overtimeBillRate: z.number().min(0, 'La tarifa OT cobrada no puede ser negativa').optional(),
 }).refine(r => r.billRate >= r.payRate, {
   message: 'Lo que cobras a la empresa no puede ser menor a lo que le pagas al empleado',
   path: ['billRate'],
+}).refine(r => (r.overtimeBillRate == null || r.overtimePayRate == null) || r.overtimeBillRate >= r.overtimePayRate, {
+  message: 'El cobro de OT a la empresa no puede ser menor al pago de OT al empleado',
+  path: ['overtimeBillRate'],
 })
 
 export const staffingCompanyFormSchema = z.object({
@@ -157,6 +161,8 @@ export const staffingRateFormSchema = z.object({
   billRate: z.number().min(0, 'La tarifa no puede ser negativa'),
   overtimeThresholdHours: z.number().min(0).max(168).nullable().default(null),
   overtimeMultiplier: z.number().min(1, 'El recargo no puede ser menor a 1').max(5).nullable().default(null),
+  overtimePayRate: z.number().min(0).nullable().default(null),
+  overtimeBillRate: z.number().min(0).nullable().default(null),
 }).refine(r => r.billRate >= r.payRate, {
   // Billing below cost is almost always a typo, and it silently inverts the margin.
   message: 'Lo que cobras a la empresa no puede ser menor a lo que le pagas al empleado',

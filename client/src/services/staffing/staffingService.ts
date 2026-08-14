@@ -81,6 +81,8 @@ export interface StaffingRateRow {
   /** Null = falls back to the company's own overtime terms. */
   overtimeThresholdHours: number | null
   overtimeMultiplier: number | null
+  overtimePayRate: number | null
+  overtimeBillRate: number | null
   active: boolean
 }
 
@@ -96,7 +98,14 @@ export interface StaffingCompanyFormData {
   contactPhone: string
   contactEmail: string
   taxRate: number
-  roles: { role: string, payRate: number, billRate: number, overtimeThresholdHours: number, overtimePayRate?: number }[]
+  roles: {
+    role: string
+    payRate: number
+    billRate: number
+    overtimeThresholdHours: number
+    overtimePayRate?: number
+    overtimeBillRate?: number
+  }[]
   payoutRounding: PayoutRounding
   status: StaffingCompanyStatus
   notes: string
@@ -109,6 +118,8 @@ export interface StaffingRateFormData {
   billRate: number
   overtimeThresholdHours: number | null
   overtimeMultiplier: number | null
+  overtimePayRate?: number | null
+  overtimeBillRate?: number | null
 }
 
 
@@ -141,6 +152,8 @@ const toRateRow = (row: StaffingCompanyRate): StaffingRateRow => ({
   hourlyMargin: Number(row.bill_rate ?? 0) - Number(row.pay_rate ?? 0),
   overtimeThresholdHours: row.overtime_threshold_hours == null ? null : Number(row.overtime_threshold_hours),
   overtimeMultiplier: row.overtime_multiplier == null ? null : Number(row.overtime_multiplier),
+  overtimePayRate: row.overtime_pay_rate == null ? null : Number(row.overtime_pay_rate),
+  overtimeBillRate: row.overtime_bill_rate == null ? null : Number(row.overtime_bill_rate),
   active: row.active,
 })
 
@@ -255,6 +268,8 @@ export const saveStaffingRate = async (
     bill_rate: parsed.data.billRate,
     overtime_threshold_hours: parsed.data.overtimeThresholdHours,
     overtime_multiplier: parsed.data.overtimeMultiplier,
+    overtime_pay_rate: parsed.data.overtimePayRate ?? null,
+    overtime_bill_rate: parsed.data.overtimeBillRate ?? null,
   }
 
   const { data: saved, error } = data.id

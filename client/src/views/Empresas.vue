@@ -130,7 +130,7 @@
     <Teleport to="body">
       <div v-if="ctx.showModal.value" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6"
         @click.self="ctx.closeModal">
-        <div class="max-h-full w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-xl">
+        <div class="max-h-full w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-xl">
           <div class="mb-5">
             <h2 class="text-lg font-semibold text-text">
               {{ ctx.editingId.value ? 'Editar empresa' : 'Nueva empresa' }}
@@ -171,13 +171,23 @@
                     <input id="emp-zip" v-model="ctx.form.value.zip" type="text" :class="inputClass" />
                   </div>
                 </div>
+              </div>
+            </section>
+
+            <section class="space-y-3">
+              <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Contacto</p>
+              <div class="grid gap-3 sm:grid-cols-3">
                 <div>
-                  <label class="mb-1 block text-sm font-medium text-text" for="emp-contact">Contacto</label>
-                  <input id="emp-contact" v-model="ctx.form.value.contactName" type="text" :class="inputClass" />
+                  <label class="mb-1 block text-sm font-medium text-text" for="emp-cname">Nombre</label>
+                  <input id="emp-cname" v-model="ctx.form.value.contactName" type="text" :class="inputClass" />
                 </div>
                 <div>
-                  <label class="mb-1 block text-sm font-medium text-text" for="emp-email">Email</label>
-                  <input id="emp-email" v-model="ctx.form.value.contactEmail" type="email" :class="inputClass" />
+                  <label class="mb-1 block text-sm font-medium text-text" for="emp-cphone">Teléfono</label>
+                  <input id="emp-cphone" v-model="ctx.form.value.contactPhone" type="text" :class="inputClass" />
+                </div>
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-text" for="emp-cemail">Email</label>
+                  <input id="emp-cemail" v-model="ctx.form.value.contactEmail" type="email" :class="inputClass" />
                 </div>
               </div>
             </section>
@@ -216,34 +226,40 @@
                 </p>
 
                 <div v-for="(role, i) in ctx.form.value.roles" :key="i"
-                  class="mb-2 flex flex-wrap items-end gap-2">
-                  <div class="flex-1 min-w-[120px]">
+                  class="mb-2.5 grid grid-cols-12 items-end gap-2 rounded-lg border border-border/50 bg-bg-secondary/20 p-2 sm:border-0 sm:bg-transparent sm:p-0">
+                  <div class="col-span-12 sm:col-span-3">
                     <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">
                       Rol / Cargo
                     </label>
-                    <input v-model="role.role" type="text" :class="inputClass" required />
+                    <input v-model="role.role" type="text" :class="inputClass" placeholder="Ej: Operario" required />
                   </div>
-                  <div class="w-16">
+                  <div class="col-span-6 sm:col-span-1">
                     <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" title="Horas Regulares antes de OT">Hrs Reg</label>
                     <input v-model.number="role.overtimeThresholdHours" type="number" min="0" step="0.5" :class="inputClass" required />
                   </div>
-                  <div class="w-20">
-                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Paga ($)</label>
+                  <div class="col-span-6 sm:col-span-2">
+                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Paga Reg ($)</label>
                     <input v-model.number="role.payRate" type="number" min="0" step="0.01" :class="inputClass" required />
                   </div>
-                  <div class="w-20">
-                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Cobra ($)</label>
+                  <div class="col-span-6 sm:col-span-2">
+                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Cobra Reg ($)</label>
                     <input v-model.number="role.billRate" type="number" min="0" step="0.01" :class="inputClass" required />
                   </div>
-                  <div class="w-20">
-                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">OT ($)</label>
-                    <input v-model.number="role.overtimePayRate" type="number" min="0" step="0.01" :class="inputClass" />
+                  <div class="col-span-6 sm:col-span-2">
+                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Paga OT ($)</label>
+                    <input v-model.number="role.overtimePayRate" type="number" min="0" step="0.01" :class="inputClass" placeholder="0.00" />
                   </div>
-                  <button type="button"
-                    class="rounded-lg p-2 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
-                    @click="ctx.removeRole(i)">
-                    <TrashBin2Icon class="h-4 w-4" />
-                  </button>
+                  <div class="col-span-10 sm:col-span-1">
+                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Cobra OT ($)</label>
+                    <input v-model.number="role.overtimeBillRate" type="number" min="0" step="0.01" :class="inputClass" placeholder="0.00" />
+                  </div>
+                  <div class="col-span-2 flex justify-end sm:col-span-1">
+                    <button type="button"
+                      class="rounded-lg p-2 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+                      @click="ctx.removeRole(i)">
+                      <TrashBin2Icon class="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </section>

@@ -99,13 +99,19 @@ export function useEmpresas(businessId: Ref<string | null>) {
       // Save roles if they exist
       if (form.value.roles && form.value.roles.length > 0) {
         for (const role of form.value.roles) {
+          const multiplier = role.overtimePayRate && role.payRate > 0
+            ? Number((role.overtimePayRate / role.payRate).toFixed(2))
+            : null
+
           await saveStaffingRate(businessId.value!, {
             companyId: savedCompany.id,
             role: role.role,
             payRate: role.payRate,
             billRate: role.billRate,
             overtimeThresholdHours: role.overtimeThresholdHours,
-            overtimeMultiplier: role.overtimePayRate ? Number((role.overtimePayRate / role.payRate).toFixed(2)) : null,
+            overtimeMultiplier: multiplier,
+            overtimePayRate: role.overtimePayRate || null,
+            overtimeBillRate: role.overtimeBillRate || null,
           })
         }
       }
@@ -118,7 +124,14 @@ export function useEmpresas(businessId: Ref<string | null>) {
   }
 
   const addRole = () => {
-    form.value.roles.push({ role: '', payRate: 0, billRate: 0, overtimeThresholdHours: 40 })
+    form.value.roles.push({
+      role: '',
+      payRate: 0,
+      billRate: 0,
+      overtimeThresholdHours: 40,
+      overtimePayRate: 0,
+      overtimeBillRate: 0,
+    })
   }
 
   const removeRole = (index: number) => {
