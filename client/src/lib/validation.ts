@@ -168,6 +168,15 @@ export const staffingCompanyPaymentFormSchema = z.object({
   notes: z.string().default(''),
 })
 
+export const leadFormSchema = z.object({
+  companyName: z.string().min(1, 'El nombre de la empresa es requerido'),
+  workArea: z.string().default(''),
+  address: z.string().default(''),
+  phone: z.string().default(''),
+  status: z.enum(['new', 'called', 'answered', 'emailed', 'meeting', 'won', 'lost']).default('new'),
+  notes: z.string().default(''),
+})
+
 export const empleadoFormSchema = z.object({
   name: z.string().min(1, 'El nombre es obligatorio').min(2, 'El nombre debe tener al menos 2 caracteres'),
   // Required for every niche except staffing (no login there) — enforced by isFormValid in

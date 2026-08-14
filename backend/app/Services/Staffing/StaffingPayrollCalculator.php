@@ -26,6 +26,12 @@ class StaffingPayrollCalculator
         return [$regular, $totalHours - $regular];
     }
 
+    /** The employee's own tax override, when set, otherwise the company's rule. */
+    private function taxRuleFor(TimesheetEntry $entry, PayrollTerms $terms): TaxRule
+    {
+        return $entry->taxOverride ?? $terms->taxRule;
+    }
+
     public function payroll(TimesheetEntry $entry, PayrollTerms $terms): PayrollLine
     {
         [$regularHours, $overtimeHours] = $this->splitHours($entry->totalHours, $terms);
@@ -35,7 +41,7 @@ class StaffingPayrollCalculator
         $overtimeAmount = $overtimeHours * $overtimeRate;
 
         $gross = $regularAmount + $overtimeAmount - $entry->preTaxDeduction;
-        $tax = $terms->taxRule->amountFor($gross);
+        $tax = $this->taxRuleFor($entry, $terms)->amountFor($gross);
         $net = $gross - $tax - $entry->fixedFees + $entry->adjustment;
 
         $payout = $this->roundPayout($net, $terms->payoutRounding);
@@ -103,7 +109,7 @@ class StaffingPayrollCalculator
 
         // Everything withheld leaves the agency along with the net, except a withholding the
         // agreement lets the agency keep — that one was never an outflow.
-        $retained = $terms->taxRule->isRetainedByAgency() ? $payroll->taxWithheld : 0.0;
+        $retained = $this->taxRuleFor($entry, $terms)->isRetainedByAgency() ? $payroll->taxWithheld : 0.0;
         $employerCost = $payroll->net + $payroll->taxWithheld + $payroll->feesWithheld - $retained;
 
         return new StaffingLine(

@@ -15,6 +15,7 @@ import {
   DocumentIcon,
   HeartPulseIcon,
   BuildingsIcon,
+  ChatRoundLineIcon,
 } from '@solar-icons/vue/linear'
 import type { Component } from 'vue'
 import type { RouteGate } from '../../router/gate'
@@ -47,12 +48,14 @@ export const sidebarSections: SidebarSection[] = [
       { to: '/dashboard/comisiones', label: 'Comisiones', icon: DollarIcon, employeeOnly: true, gate: { feature: 'servicios' } },
       { to: '/dashboard/recibo', label: 'Recibo', icon: BillIcon, employeeOnly: true },
       { to: '/admin/pos', label: 'Punto de Venta', icon: CartLargeIcon, adminOnly: true, gate: { feature: 'pos' } },
-      { to: '/admin/clientes', label: 'Clientes', labelKey: 'client', icon: UsersGroupRoundedIcon, adminOnly: true },
-      { to: '/dashboard/clientes', label: 'Clientes', labelKey: 'client', icon: UsersGroupRoundedIcon, employeeOnly: true, gate: { feature: 'employees_see_clients' } },
+      { to: '/admin/clientes', label: 'Clientes', labelKey: 'client', icon: UsersGroupRoundedIcon, adminOnly: true, gate: { hideIfCapability: 'staffing.timesheets' } },
+      { to: '/dashboard/clientes', label: 'Clientes', labelKey: 'client', icon: UsersGroupRoundedIcon, employeeOnly: true, gate: { feature: 'employees_see_clients', hideIfCapability: 'staffing.timesheets' } },
       { to: '/admin/consultorio', label: 'Consultorio', icon: HeartPulseIcon, adminOnly: true, gate: { capability: 'clients.pets' } },
       { to: '/dashboard/consultorio', label: 'Consultorio', icon: HeartPulseIcon, employeeOnly: true, gate: { capability: 'clients.pets', profileFlag: 'can_access_consultorio' } },
       { to: '/admin/equipo', label: 'Equipo', labelKey: 'employee', icon: BagIcon, adminOnly: true },
       { to: '/admin/empresas', label: 'Empresas', icon: BuildingsIcon, adminOnly: true, gate: { capability: 'staffing.timesheets' } },
+      { to: '/admin/crm', label: 'CRM', icon: ChatRoundLineIcon, adminOnly: true, gate: { capability: 'staffing.crm' } },
+      { to: '/dashboard/crm', label: 'CRM', icon: ChatRoundLineIcon, employeeOnly: true, gate: { capability: 'staffing.crm' } },
       { to: '/admin/finanzas', label: 'Finanzas', icon: GraphIcon, adminOnly: true, badge: 'Nuevo' },
       { to: '/admin/finanzas', label: 'Finanzas', icon: GraphIcon, employeeOnly: true, badge: 'Nuevo', gate: { profileFlag: 'can_access_finanzas' } },
       { to: '/admin/servicios', label: 'Servicios', labelKey: 'service', icon: StarsIcon, adminOnly: true, gate: { feature: 'servicios' } },

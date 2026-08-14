@@ -30,6 +30,11 @@ final class TimesheetEntry
         /** `DD` for direct deposit, otherwise the payroll card number. */
         public readonly ?string $paymentMethod = null,
         public readonly ?string $employeeId = null,
+        /**
+         * Per-employee override of PayrollTerms::$taxRule — set when profiles.staffing_tax_rate
+         * is not null. Null here means "use the company's rule", the previous behaviour.
+         */
+        public readonly ?TaxRule $taxOverride = null,
     ) {
         if ($totalHours < 0) {
             throw new InvalidArgumentException("Negative hours for {$employeeName}: {$totalHours}");

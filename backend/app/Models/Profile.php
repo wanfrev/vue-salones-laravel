@@ -22,7 +22,7 @@ class Profile extends Model
         'can_create_appointments', 'can_create_clients',
         'can_access_consultorio',
         'can_access_inventory', 'can_access_pos', 'can_access_suppliers', 'can_access_finanzas', 'can_access_requirements',
-        'staffing_company_id', 'staffing_role',
+        'staffing_company_id', 'staffing_role', 'staffing_tax_rate',
         'bank_name', 'bank_account_holder', 'bank_account_type', 'payment_method',
         'bank_routing_number', 'bank_account_number', 'payroll_card_number',
     ];
@@ -53,6 +53,7 @@ class Profile extends Model
             'pay_percentage' => 'float',
             'base_salary' => 'float',
             'employee_ves_rate' => 'float',
+            'staffing_tax_rate' => 'float',
             'bank_routing_number' => 'encrypted',
             'bank_account_number' => 'encrypted',
             'payroll_card_number' => 'encrypted',

@@ -25,6 +25,7 @@ export interface EmployeeInput {
   can_access_requirements?: boolean
   staffing_company_id?: string | null
   staffing_role?: string | null
+  staffing_tax_rate?: number | null
   bank_name?: string | null
   bank_account_holder?: string | null
   bank_account_type?: string | null
@@ -71,6 +72,7 @@ export const adminCreateEmployee = async (input: EmployeeInput): Promise<{ id: s
       can_access_requirements: input.can_access_requirements ?? false,
       staffing_company_id: input.staffing_company_id || null,
       staffing_role: input.staffing_role || null,
+      staffing_tax_rate: input.staffing_tax_rate ?? null,
       bank_name: input.bank_name || null,
       bank_account_holder: input.bank_account_holder || null,
       bank_account_type: input.bank_account_type || null,

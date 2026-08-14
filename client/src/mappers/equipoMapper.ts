@@ -65,6 +65,7 @@ export const mapProfileToEmpleado = (
     canAccessRequirements: profile.can_access_requirements ?? false,
     staffingCompanyId: profile.staffing_company_id ?? null,
     staffingRole: profile.staffing_role ?? '',
+    staffingTaxRate: profile.staffing_tax_rate ?? null,
     bankName: profile.bank_name ?? '',
     bankAccountHolder: profile.bank_account_holder ?? '',
     bankAccountType: (profile.bank_account_type as Empleado['bankAccountType']) ?? '',
@@ -98,6 +99,10 @@ export const mapEmpleadoFormToProfileUpdate = (data: EmpleadoFormData) => ({
   staffing_company_id: data.staffingCompanyId || null,
   // No separate staffing-role input — the existing Rol/Puesto field is the rate-card role.
   staffing_role: data.role?.trim() || null,
+  // Null clears the override back to "use the company's tax_brackets" — always sent, unlike
+  // the write-only bank/card fields below, since an admin re-editing this record can see and
+  // blank it deliberately.
+  staffing_tax_rate: data.staffingTaxRate,
   bank_name: data.bankName?.trim() || null,
   bank_account_holder: data.bankAccountHolder?.trim() || null,
   bank_account_type: data.bankAccountType || null,

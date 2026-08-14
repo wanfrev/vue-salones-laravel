@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\FinancialSummaryController;
 
 use App\Http\Controllers\Api\GiftCardController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PetController;
 use App\Http\Controllers\Api\PosController;
@@ -241,6 +242,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/staffing-company-payments', [StaffingCompanyPaymentController::class, 'index']);
         Route::post('/staffing-company-payments', [StaffingCompanyPaymentController::class, 'store']);
         Route::delete('/staffing-company-payments/{id}', [StaffingCompanyPaymentController::class, 'destroy']);
+    });
+
+    // Staffing CRM — leads registered by sales reps. No `admin-panel` here on purpose: a plain
+    // 'empleado' (the vendedora) must reach these routes, unlike every other staffing group
+    // above which is admin-only. Privacy (a vendedora sees only her own leads) is enforced in
+    // LeadService, not by keeping non-admins out of the route.
+    Route::middleware(['capability:staffing.crm'])->group(function () {
+        Route::get('/leads', [LeadController::class, 'index']);
+        Route::post('/leads', [LeadController::class, 'store']);
+        Route::put('/leads/{id}', [LeadController::class, 'update']);
+        Route::delete('/leads/{id}', [LeadController::class, 'destroy']);
     });
 
     // Finanzas

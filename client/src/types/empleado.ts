@@ -31,6 +31,8 @@ export interface Empleado {
   // assignment below, resolved against that company's rate card.
   staffingCompanyId?: string | null
   staffingRole?: string
+  /** Fraction (0.07 = 7%). Null means "use the company's tax_brackets". */
+  staffingTaxRate?: number | null
   bankName?: string
   bankAccountHolder?: string
   bankAccountType?: 'checking' | 'savings' | ''
@@ -69,6 +71,7 @@ export interface EmpleadoFormData {
   // Staffing niche only. No separate "staffing role" input — `role` above (the existing
   // Rol/Puesto field, backed by businessStore.jobTitles) doubles as the rate-card role.
   staffingCompanyId: string
+  staffingTaxRate: number | null
   bankName: string
   bankAccountHolder: string
   bankAccountType: 'checking' | 'savings' | ''

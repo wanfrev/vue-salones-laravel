@@ -167,7 +167,7 @@ const onPaymentSaved = async () => {
   await queryClient.refetchQueries({ queryKey: employeePaymentKeys.all(businessId.value), exact: false })
 }
 
-const { items: team, handleSave: handleSaveEmpleado, handleDelete: handleDeleteEmpleado, isSaving } = useCrud<Empleado, EmpleadoFormData>({
+const { items: rawTeam, handleSave: handleSaveEmpleado, handleDelete: handleDeleteEmpleado, isSaving } = useCrud<Empleado, EmpleadoFormData>({
   businessId, branchId,
   queryKey: (id, brId) => equipoKeys.all(id, brId),
   queryFn: (id, brId) => listEquipo(id, brId),
@@ -182,6 +182,12 @@ const { items: team, handleSave: handleSaveEmpleado, handleDelete: handleDeleteE
     (id) => ['employees', id, branchId.value],
   ],
 })
+
+// Staffing workers placed at client companies live under Empresas, not here — they never
+// belonged in the generic team list to begin with, and this niche's real "Equipo" is its sales
+// reps (staffingCompanyId is never set on any profile outside the staffing niche, so this
+// filter is a no-op everywhere else).
+const team = computed(() => rawTeam.value.filter(e => !e.staffingCompanyId))
 
 const teamForPayroll = computed(() => team.value.filter(e => !e.isCajero))
 

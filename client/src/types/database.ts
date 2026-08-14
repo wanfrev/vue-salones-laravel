@@ -72,6 +72,7 @@ export interface Profile {
   can_access_requirements?: boolean
   staffing_company_id?: string | null
   staffing_role?: string | null
+  staffing_tax_rate?: number | null
   bank_name?: string | null
   bank_account_holder?: string | null
   bank_account_type?: string | null
@@ -512,6 +513,23 @@ export interface StaffingCompanyBalance {
   invoiced: number
   paid: number
   pending: number
+}
+
+/** A staffing-CRM prospect, private to the vendedora who registered it unless viewed by an admin. */
+export type LeadStatus = 'new' | 'called' | 'answered' | 'emailed' | 'meeting' | 'won' | 'lost'
+
+export interface Lead {
+  id: string
+  business_id: string
+  owner_id: string
+  company_name: string
+  work_area: string | null
+  address: string | null
+  phone: string | null
+  status: LeadStatus
+  notes: string | null
+  created_at: string
+  updated_at: string
 }
 
 export interface SupplierPayment {

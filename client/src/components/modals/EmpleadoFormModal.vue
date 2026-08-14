@@ -338,9 +338,17 @@ const t = computed(() => businessStore.terminology)
 
 const isPetNicheBusiness = computed(() => isPetNiche(businessStore.nicheType))
 const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
-// Staffing workers have no login — email/password/permission toggles/schedule/commission
-// config are all replaced by the company + rate-card assignment (see StaffingEmployeeFields).
-const isStaffing = computed(() => businessStore.hasCapability('staffing.timesheets'))
+// A staffing niche has two very different kinds of "team member": the workers placed at
+// client companies (no login at all — pay comes from the company + rate card) and the
+// vendedoras who use the CRM (a normal login-having employee). Only the former gets the
+// StaffingEmployeeFields treatment, so this checks the RECORD, not just the niche: editing an
+// existing worker (they already have staffing_company_id) or explicitly opened in worker mode
+// (see StaffingWorkersPanel.vue, which sets workerMode when adding one from inside Empresas).
+const isStaffing = computed(() => {
+  if (!businessStore.hasCapability('staffing.timesheets')) return false
+  if (modalData.value?.empleado) return !!modalData.value.empleado.staffingCompanyId
+  return !!modalData.value?.workerMode
+})
 
 const isSubmitting = ref(false)
 const isLoading = computed(() => isSubmitting.value || props.isSaving)
@@ -394,6 +402,7 @@ const defaultFormData: EmpleadoFormData = {
   canAccessFinanzas: false,
   canAccessRequirements: false,
   staffingCompanyId: '',
+  staffingTaxRate: null,
   bankName: '',
   bankAccountHolder: '',
   bankAccountType: '',
@@ -458,6 +467,7 @@ watch(
         canAccessFinanzas: empleado.canAccessFinanzas ?? false,
         canAccessRequirements: empleado.canAccessRequirements ?? false,
         staffingCompanyId: empleado.staffingCompanyId ?? '',
+        staffingTaxRate: empleado.staffingTaxRate ?? null,
         bankName: empleado.bankName ?? '',
         bankAccountHolder: empleado.bankAccountHolder ?? '',
         bankAccountType: empleado.bankAccountType ?? '',
@@ -470,7 +480,10 @@ watch(
       editingBankAccountLast4.value = empleado.bankAccountLast4 ?? null
       editingPayrollCardLast4.value = empleado.payrollCardLast4 ?? null
     } else {
-      formData.value = { ...defaultFormData }
+      formData.value = {
+        ...defaultFormData,
+        staffingCompanyId: modalData.value?.presetCompanyId ?? '',
+      }
       editingBankAccountLast4.value = null
       editingPayrollCardLast4.value = null
     }

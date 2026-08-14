@@ -77,6 +77,12 @@ const router = createRouter({
       component: () => import('../views/employee/EmployeePayments.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/dashboard/crm',
+      name: 'employee-crm',
+      component: () => import('../views/employee/EmployeeCrm.vue'),
+      meta: { requiresAuth: true, gate: { capability: 'staffing.crm' } },
+    },
     { path: '/dashboard/finanzas', redirect: '/admin/finanzas' },
     { path: '/dashboard/finanzas/registros/:tipo', redirect: to => `/admin/finanzas/registros/${to.params.tipo}` },
     // Admin routes — lazy loaded layout + children
@@ -134,17 +140,17 @@ const router = createRouter({
           component: () => import('../views/Equipo.vue'),
         },
         {
+          // Staffing-only. The capability gate blocks every other niche here and in the API.
           path: 'empresas',
           name: 'admin-empresas',
           component: () => import('../views/Empresas.vue'),
           meta: { gate: { capability: 'staffing.timesheets' } },
         },
         {
-          // Staffing-only. The capability gate blocks every other niche here and in the API.
-          path: 'empresas',
-          name: 'admin-empresas',
-          component: () => import('../views/Empresas.vue'),
-          meta: { gate: { capability: 'staffing.timesheets' } },
+          path: 'crm',
+          name: 'admin-crm',
+          component: () => import('../views/Crm.vue'),
+          meta: { gate: { capability: 'staffing.crm' } },
         },
         {
           path: 'servicios',

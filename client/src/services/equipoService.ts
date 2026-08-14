@@ -68,6 +68,7 @@ export const saveEmpleado = async (
       can_access_requirements: profileUpdate.can_access_requirements,
       staffing_company_id: profileUpdate.staffing_company_id,
       staffing_role: profileUpdate.staffing_role,
+      staffing_tax_rate: profileUpdate.staffing_tax_rate,
       bank_name: profileUpdate.bank_name,
       bank_account_holder: profileUpdate.bank_account_holder,
       bank_account_type: profileUpdate.bank_account_type,
