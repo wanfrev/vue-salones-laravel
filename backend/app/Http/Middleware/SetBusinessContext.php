@@ -68,7 +68,6 @@ class SetBusinessContext
         app()->instance(BusinessContext::class, $context);
         app()->instance('biz_id', $context->businessId ?: null);
         app()->instance('branch_id', $context->branchId);
-        $request->merge(['_context' => $context]);
 
         return $next($request);
     }
