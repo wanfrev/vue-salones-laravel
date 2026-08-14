@@ -337,15 +337,9 @@ const isPetNicheBusiness = computed(() => isPetNiche(businessStore.nicheType))
 const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
 // A staffing niche has two very different kinds of "team member": the workers placed at
 // client companies (no login at all — pay comes from the company + rate card) and the
-// vendedoras who use the CRM (a normal login-having employee). Only the former gets the
-// StaffingEmployeeFields treatment, so this checks the RECORD, not just the niche: editing an
-// existing worker (they already have staffing_company_id) or explicitly opened in worker mode
-// (see StaffingWorkersPanel.vue, which sets workerMode when adding one from inside Empresas).
-const isStaffing = computed(() => {
-  if (!businessStore.hasCapability('staffing.timesheets')) return false
-  if (modalData.value?.empleado) return !!modalData.value.empleado.staffingCompanyId
-  return !!modalData.value?.workerMode
-})
+// The user requested that for the Staffing niche, all employees use the new unified form
+// without separate "internal" profiles. So this simply checks the niche capability.
+const isStaffing = computed(() => businessStore.hasCapability('staffing.timesheets'))
 
 const isSubmitting = ref(false)
 const isLoading = computed(() => isSubmitting.value || props.isSaving)
