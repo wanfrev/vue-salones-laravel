@@ -4,6 +4,7 @@ import { useBusinessStore } from '../../store/business'
 import {
   deleteStaffingCompany,
   listStaffingCompanies,
+  listStaffingRates,
   saveStaffingCompany,
   saveStaffingRate,
   staffingCompanyKeys,
@@ -61,7 +62,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
     showModal.value = true
   }
 
-  const openEdit = (company: StaffingCompanyRow) => {
+  const openEdit = async (company: StaffingCompanyRow) => {
     editingId.value = company.id
     form.value = {
       name: company.name,
@@ -75,12 +76,28 @@ export function useEmpresas(businessId: Ref<string | null>) {
       contactPhone: company.contactPhone,
       contactEmail: company.contactEmail,
       taxRate: company.taxRate,
-      roles: [], // We could fetch existing rates here, but for now we initialize empty or with existing
+      roles: [],
       payoutRounding: company.payoutRounding,
       status: company.status,
       notes: company.notes,
     }
     showModal.value = true
+
+    try {
+      if (businessId.value) {
+        const rates = await listStaffingRates(businessId.value, company.id)
+        form.value.roles = rates.map(r => ({
+          role: r.role,
+          payRate: r.payRate,
+          billRate: r.billRate,
+          overtimeThresholdHours: r.overtimeThresholdHours ?? 40,
+          overtimePayRate: r.overtimePayRate ?? undefined,
+          overtimeBillRate: r.overtimeBillRate ?? undefined,
+        }))
+      }
+    } catch (err) {
+      console.error('Error al cargar tarifas de la empresa:', err)
+    }
   }
 
   const closeModal = () => {
