@@ -67,7 +67,13 @@ Route::prefix('public')->group(function () {
 });
 
 // Protected routes
-Route::middleware('auth:sanctum')->group(function () {
+// 'business-context' (SetBusinessContext) must run AFTER auth:sanctum, not as global api
+// middleware — it reads $request->user(), which isn't resolved yet at the point the global
+// 'api' middleware group runs (that group wraps the whole file, sanctum auth is applied here,
+// nested inside it). Running it globally left BusinessContext permanently unbound for every
+// request; harmless for feature:/perm: (which fail OPEN when context is missing) but a hard
+// 403 for capability: (which fails closed on purpose — see EnsureNicheCapability's docblock).
+Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     // Auth
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/session', [AuthController::class, 'session']);

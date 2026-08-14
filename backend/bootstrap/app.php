@@ -17,8 +17,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->api(prepend: [
             \App\Http\Middleware\UnwrapApiData::class,
             \App\Http\Middleware\ParseApiFilters::class,
-            \App\Http\Middleware\SetBusinessContext::class,
         ]);
+        // SetBusinessContext moved out of this global group — it needs $request->user(),
+        // which isn't resolved yet at this point in the pipeline (auth:sanctum runs later,
+        // nested inside routes/api.php). It's now applied explicitly via the 'business-context'
+        // alias on the protected route group instead. See routes/api.php for the full story.
         $middleware->alias([
             'superadmin' => \App\Http\Middleware\EnsureSuperadmin::class,
             'admin-panel' => \App\Http\Middleware\EnsureAdminPanelRole::class,

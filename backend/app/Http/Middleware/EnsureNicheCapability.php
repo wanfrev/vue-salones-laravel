@@ -18,6 +18,10 @@ use Illuminate\Http\Request;
  * The failure direction is also inverted on purpose. `feature:`/`perm:` let the request through
  * when no BusinessContext could be resolved; here that denies. A capability answers "does this
  * niche have this module at all", and the safe answer when we cannot tell is no.
+ *
+ * This is exactly why route ordering matters: this middleware must run AFTER auth:sanctum (via
+ * the 'business-context' alias on the protected route group in routes/api.php) — if BusinessContext
+ * isn't bound yet because auth hasn't resolved, every capability-gated request 403s.
  */
 class EnsureNicheCapability
 {
