@@ -42,6 +42,8 @@ final class TimesheetEntry
          */
         public readonly ?float $overtimeThresholdOverride = null,
         public readonly ?float $overtimeMultiplierOverride = null,
+        public readonly ?float $overtimePayRateOverride = null,
+        public readonly ?float $overtimeBillRateOverride = null,
     ) {
         if ($totalHours < 0) {
             throw new InvalidArgumentException("Negative hours for {$employeeName}: {$totalHours}");

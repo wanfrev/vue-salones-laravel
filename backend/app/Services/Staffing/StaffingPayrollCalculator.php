@@ -42,7 +42,7 @@ class StaffingPayrollCalculator
     {
         [$regularHours, $overtimeHours] = $this->splitHours($entry->totalHours, $entry, $terms);
 
-        $overtimeRate = $entry->payRate * $this->overtimeMultiplierFor($entry, $terms);
+        $overtimeRate = $entry->overtimePayRateOverride ?? ($entry->payRate * $this->overtimeMultiplierFor($entry, $terms));
         $regularAmount = $regularHours * $entry->payRate;
         $overtimeAmount = $overtimeHours * $overtimeRate;
 
@@ -91,7 +91,7 @@ class StaffingPayrollCalculator
     {
         [$regularHours, $overtimeHours] = $this->splitHours($entry->totalHours, $entry, $terms);
 
-        $overtimeBillRate = round($entry->billRate * $this->overtimeMultiplierFor($entry, $terms), 2);
+        $overtimeBillRate = $entry->overtimeBillRateOverride ?? round($entry->billRate * $this->overtimeMultiplierFor($entry, $terms), 2);
         $regularAmount = round($entry->billRate * $regularHours, 2);
         $overtimeAmount = round($overtimeHours * $overtimeBillRate, 2);
 

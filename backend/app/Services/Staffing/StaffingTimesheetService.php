@@ -152,6 +152,8 @@ class StaffingTimesheetService
                     taxOverride: $taxOverride,
                     overtimeThresholdOverride: $rate->overtime_threshold_hours,
                     overtimeMultiplierOverride: $rate->overtime_multiplier,
+                    overtimePayRateOverride: $rate->overtime_pay_rate,
+                    overtimeBillRateOverride: $rate->overtime_bill_rate,
                 );
 
                 $result = $this->calculator->line($timesheetEntry, $terms);
