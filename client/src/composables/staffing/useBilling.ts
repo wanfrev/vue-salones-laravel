@@ -12,7 +12,7 @@ import {
   staffingCompanyPaymentKeys,
   staffingInvoiceKeys,
   type StaffingCompanyPaymentFormData,
-} from '../../services/staffingService'
+} from '../../services/staffing/staffingService'
 
 /** One company's billing: invoices, running balance, and the abonos against it. */
 export function useBilling(businessId: Ref<string | null>, companyId: Ref<string | null>) {

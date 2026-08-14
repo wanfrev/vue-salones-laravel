@@ -127,7 +127,7 @@ import { useRateCard } from '../../composables/staffing/useRateCard'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { TrashBin2Icon } from '@solar-icons/vue/linear'
-import type { StaffingRateFormData } from '../../services/staffingService'
+import type { StaffingRateFormData } from '../../services/staffing/staffingService'
 
 const props = defineProps<{
   businessId: string | null

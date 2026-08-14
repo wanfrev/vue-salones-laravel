@@ -8,7 +8,7 @@ import {
   getAnnualTaxReport,
   saveTaxEntry,
   type StaffingTaxEntryFormData,
-} from '../../services/staffingService'
+} from '../../services/staffing/staffingService'
 
 const queryKey = (businessId: string | null, year: number) => ['staffing-annual-tax', businessId, year] as const
 

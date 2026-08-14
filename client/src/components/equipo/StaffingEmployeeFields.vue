@@ -83,7 +83,7 @@ import { computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { FormInput, FormDropdown } from '../forms'
 import { useCurrency } from '../../composables/common/useCurrency'
-import { listStaffingCompanies, listStaffingRates, staffingCompanyKeys, staffingRateKeys } from '../../services/staffingService'
+import { listStaffingCompanies, listStaffingRates, staffingCompanyKeys, staffingRateKeys } from '../../services/staffing/staffingService'
 import type { EmpleadoFormData } from '../../types/empleado'
 
 const PAYMENT_METHOD_OPTIONS = [

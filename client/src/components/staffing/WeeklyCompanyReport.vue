@@ -63,7 +63,7 @@
 import { ref, toRef } from 'vue'
 import { useStaffingWeeklyReport } from '../../composables/staffing/useStaffingWeeklyReport'
 import { useCurrency } from '../../composables/common/useCurrency'
-import type { StaffingWeeklyReportEstado } from '../../services/staffingService'
+import type { StaffingWeeklyReportEstado } from '../../services/staffing/staffingService'
 
 const props = defineProps<{ businessId: string | null }>()
 

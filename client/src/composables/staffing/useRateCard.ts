@@ -9,7 +9,7 @@ import {
   staffingRateKeys,
   type StaffingRateFormData,
   type StaffingRateRow,
-} from '../../services/staffingService'
+} from '../../services/staffing/staffingService'
 
 /**
  * The rate card of one company: role -> (pay rate, bill rate). Kept separate from useEmpresas

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Staffing;
 
 use App\Services\Staffing\StaffingReportService;
 use Illuminate\Http\JsonResponse;

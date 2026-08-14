@@ -7,7 +7,7 @@ import {
   staffingTaxEntityKeys,
   type StaffingTaxEntityFormData,
   type StaffingTaxEntityRow,
-} from '../../services/staffingService'
+} from '../../services/staffing/staffingService'
 
 /** The configurable $-columns of the annual taxes report — plain list+save+delete. */
 export function useStaffingTaxEntities(businessId: Ref<string | null>) {

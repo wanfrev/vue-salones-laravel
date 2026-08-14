@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Staffing;
 
 use App\Events\EntityChanged;
 use App\Services\Staffing\StaffingTaxEntityService;

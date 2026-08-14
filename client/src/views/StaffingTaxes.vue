@@ -172,7 +172,7 @@ import { FeatureGate } from '../components/common'
 import { useAnnualTaxReport } from '../composables/staffing/useAnnualTaxReport'
 import { useStaffingTaxEntities } from '../composables/staffing/useStaffingTaxEntities'
 import { useCurrency } from '../composables/common/useCurrency'
-import type { StaffingAnnualTaxEmployeeRow, StaffingTaxEntityRow } from '../services/staffingService'
+import type { StaffingAnnualTaxEmployeeRow, StaffingTaxEntityRow } from '../services/staffing/staffingService'
 import { DocumentIcon, ArrowLeftIcon, ArrowRightIcon, CloseCircleIcon, PaperclipIcon } from '@solar-icons/vue/linear'
 
 const { authStore } = useAuth()

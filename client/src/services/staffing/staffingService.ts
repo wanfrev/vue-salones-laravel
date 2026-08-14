@@ -1,10 +1,10 @@
-import { apiDownloadFile, apiRequest, apiUpload, db } from '../lib/api'
-import { handleDbError } from '../lib/errors'
-import { staffingCompanyFormSchema, staffingCompanyPaymentFormSchema, staffingRateFormSchema } from '../lib/validation'
+import { apiDownloadFile, apiRequest, apiUpload, db } from '../../lib/api'
+import { handleDbError } from '../../lib/errors'
+import { staffingCompanyFormSchema, staffingCompanyPaymentFormSchema, staffingRateFormSchema } from '../../lib/validation'
 import type {
   Profile, StaffingCompany, StaffingCompanyBalance, StaffingCompanyPayment, StaffingCompanyRate,
   StaffingInvoice, StaffingTaxBracket, StaffingTimesheet,
-} from '../types/database'
+} from '../../types/database'
 
 export const staffingCompanyKeys = {
   all: (businessId?: string | null, branchId?: string | null) =>

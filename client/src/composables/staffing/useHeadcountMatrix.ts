@@ -1,6 +1,6 @@
 import { computed, type Ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { getCompanyHeadcountMatrix, staffingReportKeys, type StaffingCompanyStatus } from '../../services/staffingService'
+import { getCompanyHeadcountMatrix, staffingReportKeys, type StaffingCompanyStatus } from '../../services/staffing/staffingService'
 
 /** The year-wide headcount matrix behind one Empresas status tab. */
 export function useHeadcountMatrix(

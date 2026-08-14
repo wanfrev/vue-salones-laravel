@@ -295,7 +295,7 @@ import RateCardEditor from '../components/staffing/RateCardEditor.vue'
 import BillingPanel from '../components/staffing/BillingPanel.vue'
 import StaffingWorkersPanel from '../components/staffing/StaffingWorkersPanel.vue'
 import HeadcountMatrix from '../components/staffing/HeadcountMatrix.vue'
-import type { StaffingCompanyRow, StaffingCompanyStatus } from '../services/staffingService'
+import type { StaffingCompanyRow, StaffingCompanyStatus } from '../services/staffing/staffingService'
 import type { StaffingTaxBracket } from '../types/database'
 import { BuildingsIcon, AddCircleIcon, PenIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
 

@@ -1,6 +1,6 @@
 import { computed, type Ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { getMonthlyPayrollReport, staffingReportKeys } from '../../services/staffingService'
+import { getMonthlyPayrollReport, staffingReportKeys } from '../../services/staffing/staffingService'
 
 /** Payroll-by-week-of-month, one row per company — the "REPORTE DE NOMINA" sheet. */
 export function useStaffingMonthlyReport(businessId: Ref<string | null>, year: Ref<number>, month: Ref<number>) {

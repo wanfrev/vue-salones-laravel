@@ -53,7 +53,7 @@
 import { ref, toRef } from 'vue'
 import { ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
 import { useHeadcountMatrix } from '../../composables/staffing/useHeadcountMatrix'
-import type { StaffingCompanyStatus } from '../../services/staffingService'
+import type { StaffingCompanyStatus } from '../../services/staffing/staffingService'
 
 const props = defineProps<{
   businessId: string | null

@@ -1,6 +1,6 @@
 import { computed, type Ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { getEmployeeHoursMatrix, staffingReportKeys } from '../../services/staffingService'
+import { getEmployeeHoursMatrix, staffingReportKeys } from '../../services/staffing/staffingService'
 
 /** The year-wide employee hours matrix behind one Horas Reportadas tab (activos/inactivos). */
 export function useEmployeeHoursMatrix(businessId: Ref<string | null>, year: Ref<number>, active: Ref<boolean>) {

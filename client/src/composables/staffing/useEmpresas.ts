@@ -9,7 +9,7 @@ import {
   staffingCompanyKeys,
   type StaffingCompanyFormData,
   type StaffingCompanyRow,
-} from '../../services/staffingService'
+} from '../../services/staffing/staffingService'
 
 const emptyForm = (): StaffingCompanyFormData => ({
   name: '',

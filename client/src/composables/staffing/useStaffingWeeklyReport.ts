@@ -7,7 +7,7 @@ import {
   saveWeeklyExpense,
   staffingReportKeys,
   type StaffingWeeklyExpenseFormData,
-} from '../../services/staffingService'
+} from '../../services/staffing/staffingService'
 
 /** The "RESULTADOS SEMANALES" sheet: per-company financial summary for one week, with an
  *  editable "otros gastos" field — everything else is computed server-side. */
