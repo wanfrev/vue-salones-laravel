@@ -455,6 +455,9 @@ export interface StaffingTimesheetEntry {
   payout: number
   carried: number
   invoice_total: number
+  /** Cent-rounded REG/OT split of invoice_total — see StaffingPayrollCalculator::invoice(). */
+  invoice_regular_amount: number | null
+  invoice_overtime_amount: number | null
   employer_cost: number
   margin: number
   created_at: string

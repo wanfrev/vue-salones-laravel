@@ -16,17 +16,29 @@ const fmtDate = (iso: string) => new Date(iso + 'T00:00:00').toLocaleDateString(
 export function printStaffingInvoice(invoice: StaffingInvoice, agencyName: string): void {
   const entries = invoice.timesheet?.entries ?? []
 
-  const rows = entries.map(e => `
+  // Prefer the persisted, cent-rounded split (invoice_regular_amount/invoice_overtime_amount —
+  // see StaffingPayrollCalculator::invoice()). Older rows saved before that split existed fall
+  // back to a client-side estimate; the OT rate shown is derived from the OT amount rather than
+  // assumed to be 1.5x, since a role can now carry its own overtime multiplier (see Fase 1).
+  const rows = entries.map(e => {
+    const regularAmount = e.invoice_regular_amount ?? e.regular_hours * e.bill_rate
+    const overtimeAmount = e.invoice_overtime_amount ?? e.invoice_total - regularAmount
+    const overtimeRate = e.overtime_hours > 0 ? overtimeAmount / e.overtime_hours : 0
+
+    return `
     <tr>
       <td>${esc(e.employee?.full_name)}</td>
       <td class="num">${e.total_hours.toFixed(2)}</td>
       <td class="num">${e.regular_hours.toFixed(2)}</td>
       <td class="num">${fmtMoney(e.bill_rate)}</td>
+      <td class="num">${fmtMoney(regularAmount)}</td>
       <td class="num">${e.overtime_hours.toFixed(2)}</td>
-      <td class="num">${fmtMoney(e.bill_rate * 1.5)}</td>
+      <td class="num">${e.overtime_hours > 0 ? fmtMoney(overtimeRate) : '—'}</td>
+      <td class="num">${fmtMoney(overtimeAmount)}</td>
       <td class="num">${fmtMoney(e.invoice_total)}</td>
     </tr>
-  `).join('')
+  `
+  }).join('')
 
   const totalHours = entries.reduce((a, e) => a + e.total_hours, 0)
 
@@ -70,9 +82,11 @@ export function printStaffingInvoice(invoice: StaffingInvoice, agencyName: strin
         <th class="num">Total hours</th>
         <th class="num">Reg hours</th>
         <th class="num">Reg rate</th>
+        <th class="num">Reg amount</th>
         <th class="num">OT hours</th>
         <th class="num">OT rate</th>
-        <th class="num">Amount</th>
+        <th class="num">OT amount</th>
+        <th class="num">Total amount</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
@@ -80,7 +94,7 @@ export function printStaffingInvoice(invoice: StaffingInvoice, agencyName: strin
       <tr>
         <td>Totals</td>
         <td class="num">${totalHours.toFixed(2)}</td>
-        <td colspan="4"></td>
+        <td colspan="6"></td>
         <td class="num">${fmtMoney(invoice.total)}</td>
       </tr>
     </tfoot>

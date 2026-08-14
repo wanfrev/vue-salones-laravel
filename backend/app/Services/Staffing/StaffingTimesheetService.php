@@ -175,6 +175,8 @@ class StaffingTimesheetService
                     'payout' => $result->payroll->payout,
                     'carried' => $result->payroll->carried,
                     'invoice_total' => $result->invoice->total,
+                    'invoice_regular_amount' => $result->invoice->regularAmount,
+                    'invoice_overtime_amount' => $result->invoice->overtimeAmount,
                     'employer_cost' => $result->employerCost,
                     'margin' => $result->margin,
                     'created_at' => now(),
