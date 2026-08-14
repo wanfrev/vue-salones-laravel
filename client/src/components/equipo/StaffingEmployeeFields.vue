@@ -1,22 +1,77 @@
 <template>
   <div class="space-y-4">
-    <p class="text-xs font-semibold uppercase tracking-wider text-primary">Empresa y pago</p>
+    <p class="text-xs font-semibold uppercase tracking-wider text-primary">Información Personal</p>
 
-    <FormDropdown
-      v-model="companyId"
-      label="Empresa"
-      placeholder="Selecciona la empresa donde trabaja"
-      :options="companyOptions"
+    <FormInput
+      v-model="name"
+      label="Nombre completo"
+      placeholder="Ej: Carlos Méndez"
       required
+      prefix-icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+      :error="errors?.name"
+      @blur="emit('blur', 'name')"
     />
-    <p v-if="companyId && role && !resolvedRate" class="text-xs text-warning">
-      Esta empresa no tiene una tarifa configurada para "{{ role }}" todavía — agrégala en Empresas
-      antes de cargar horas.
-    </p>
-    <p v-else-if="resolvedRate" class="rounded-lg bg-bg-secondary/60 px-3 py-2 text-xs text-text-secondary">
-      Gana <span class="font-semibold text-text">{{ formatUSD(resolvedRate.payRate) }}/h</span>
-      · se cobra a la empresa <span class="font-semibold text-text">{{ formatUSD(resolvedRate.billRate) }}/h</span>
-    </p>
+
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <FormInput
+        v-model="phone"
+        label="Teléfono"
+        type="tel"
+        placeholder="+58 412 1234567"
+        prefix-icon="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+        :error="errors?.phone"
+      />
+
+      <FormInput
+        v-model="email"
+        label="Email (Opcional)"
+        type="email"
+        placeholder="carlos@email.com"
+        prefix-icon="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
+        :error="errors?.email"
+        @blur="emit('blur', 'email')"
+      />
+    </div>
+
+    <FormInput v-model="address" label="Dirección" placeholder="Calle, ciudad, estado" />
+
+    <FormInput
+      v-model="ssn"
+      label="SSN"
+      placeholder="XXX-XX-XXXX"
+      :hint="ssnHint"
+    />
+
+    <div class="mt-8 border-t border-border pt-6 space-y-4">
+      <p class="text-xs font-semibold uppercase tracking-wider text-primary">Empresa y pago</p>
+
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <FormDropdown
+          v-model="companyId"
+          label="Empresa"
+          placeholder="Selecciona la empresa donde trabaja"
+          :options="companyOptions"
+          required
+        />
+        
+        <FormDropdown
+          v-model="role"
+          label="Rol / Puesto"
+          placeholder="Seleccionar rol..."
+          :options="roleOptions"
+          required
+        />
+      </div>
+
+      <p v-if="companyId && role && !resolvedRate" class="text-xs text-warning">
+        Esta empresa no tiene una tarifa configurada para "{{ role }}" todavía — agrégala en Empresas
+        antes de cargar horas.
+      </p>
+      <p v-else-if="resolvedRate" class="rounded-lg bg-bg-secondary/60 px-3 py-2 text-xs text-text-secondary">
+        Gana <span class="font-semibold text-text">{{ formatUSD(resolvedRate.payRate) }}/h</span>
+        · se cobra a la empresa <span class="font-semibold text-text">{{ formatUSD(resolvedRate.billRate) }}/h</span>
+      </p>
+    </div>
 
     <div>
       <FormInput
@@ -100,13 +155,16 @@ const props = defineProps<{
   formData: EmpleadoFormData
   businessId: string | null
   isEditing?: boolean
-  /** Read-only context from the saved record — a blank input never overwrites these. */
   bankAccountLast4?: string | null
   payrollCardLast4?: string | null
   ssnLast4?: string | null
+  errors?: Record<string, string>
 }>()
 
-const emit = defineEmits<{ 'update:modelValue': [data: EmpleadoFormData] }>()
+const emit = defineEmits<{ 
+  'update:modelValue': [data: EmpleadoFormData],
+  'blur': [field: string]
+}>()
 
 const { formatUSD } = useCurrency()
 
@@ -116,6 +174,9 @@ const field = <K extends keyof EmpleadoFormData>(key: K) => computed<EmpleadoFor
   set: (value) => emit('update:modelValue', { ...props.formData, [key]: value }),
 })
 
+const name = field('name')
+const phone = field('phone')
+const email = field('email')
 const companyId = field('staffingCompanyId')
 const staffingTaxRate = field('staffingTaxRate')
 const role = computed(() => props.formData.role)

@@ -183,11 +183,9 @@ const { items: rawTeam, handleSave: handleSaveEmpleado, handleDelete: handleDele
   ],
 })
 
-// Staffing workers placed at client companies live under Empresas, not here — they never
-// belonged in the generic team list to begin with, and this niche's real "Equipo" is its sales
-// reps (staffingCompanyId is never set on any profile outside the staffing niche, so this
-// filter is a no-op everywhere else).
-const team = computed(() => rawTeam.value.filter(e => !e.staffingCompanyId))
+// Staffing workers placed at client companies belong in the main list for staffing businesses.
+// For other business types, we filter them out so they don't pollute the generic team list.
+const team = computed(() => isStaffing.value ? rawTeam.value : rawTeam.value.filter(e => !e.staffingCompanyId))
 
 const teamForPayroll = computed(() => team.value.filter(e => !e.isCajero))
 
