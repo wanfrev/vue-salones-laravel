@@ -39,6 +39,10 @@ export const staffingRateKeys = {
 export const staffingReportKeys = {
   headcountMatrix: (businessId?: string | null, year?: number, status?: StaffingCompanyStatus | 'all') =>
     ['staffing-headcount-matrix', businessId, year, status] as const,
+  monthlyPayroll: (businessId?: string | null, year?: number, month?: number) =>
+    ['staffing-monthly-payroll', businessId, year, month] as const,
+  weekly: (businessId?: string | null, weekStart?: string) =>
+    ['staffing-weekly-report', businessId, weekStart] as const,
 }
 
 export type TaxDestination = 'remitted' | 'retained'
@@ -458,3 +462,53 @@ export const getCompanyHeadcountMatrix = (
 
   return apiRequest<StaffingHeadcountMatrix>('GET', `/staffing-companies/headcount-matrix?${params.toString()}`)
 }
+
+export interface StaffingMonthlyPayrollCompanyRow {
+  companyId: string
+  name: string
+  weeklyPayroll: Record<string, number>
+  total: number
+}
+
+export interface StaffingMonthlyPayrollReport {
+  weeks: StaffingWeekLabel[]
+  companies: StaffingMonthlyPayrollCompanyRow[]
+}
+
+export const getMonthlyPayrollReport = (year: number, month: number): Promise<StaffingMonthlyPayrollReport> =>
+  apiRequest<StaffingMonthlyPayrollReport>('GET', `/staffing-reports/monthly-payroll?year=${year}&month=${month}`)
+
+export type StaffingWeeklyReportEstado = 'paid' | 'pending' | 'no_invoice'
+
+export interface StaffingWeeklyReportRow {
+  companyId: string
+  name: string
+  estado: StaffingWeeklyReportEstado
+  proyecto: string | null
+  nomina: number
+  invoice: number
+  gananciaBruta: number
+  overheadRate: number
+  overhead: number
+  otrosGastos: number
+  total: number
+  empleados: number
+}
+
+export const getWeeklyCompanyReport = (weekStart: string): Promise<StaffingWeeklyReportRow[]> =>
+  apiRequest<StaffingWeeklyReportRow[]>('GET', `/staffing-reports/weekly?week_start=${weekStart}`)
+
+export interface StaffingWeeklyExpenseFormData {
+  companyId: string
+  weekStart: string
+  amount: number
+  notes?: string
+}
+
+export const saveWeeklyExpense = (data: StaffingWeeklyExpenseFormData): Promise<void> =>
+  apiRequest('POST', '/staffing-weekly-expenses', {
+    company_id: data.companyId,
+    week_start: data.weekStart,
+    amount: data.amount,
+    notes: data.notes || null,
+  })

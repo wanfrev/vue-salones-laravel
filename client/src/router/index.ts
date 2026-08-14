@@ -147,6 +147,13 @@ const router = createRouter({
           meta: { gate: { capability: 'staffing.timesheets' } },
         },
         {
+          // Staffing-only reports — separate from the salon-side `reportes` route/module above.
+          path: 'staffing-reportes',
+          name: 'admin-staffing-reportes',
+          component: () => import('../views/StaffingReportes.vue'),
+          meta: { gate: { capability: 'staffing.reports' } },
+        },
+        {
           path: 'crm',
           name: 'admin-crm',
           component: () => import('../views/Crm.vue'),

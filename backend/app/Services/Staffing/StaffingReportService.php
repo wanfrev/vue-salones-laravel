@@ -3,7 +3,11 @@
 namespace App\Services\Staffing;
 
 use App\Models\StaffingCompany;
+use App\Models\StaffingCompanyPayment;
+use App\Models\StaffingInvoice;
+use App\Models\StaffingWeeklyExpense;
 use DateTimeImmutable;
+use DateTimeInterface;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -85,10 +89,7 @@ class StaffingReportService
         // company_id => week_start (Y-m-d string) => headcount
         $byCompany = [];
         foreach ($rows as $row) {
-            $weekStart = $row->week_start instanceof \DateTimeInterface
-                ? $row->week_start->format('Y-m-d')
-                : substr((string) $row->week_start, 0, 10);
-            $byCompany[$row->company_id][$weekStart] = (int) $row->headcount;
+            $byCompany[$row->company_id][$this->normalizeDate($row->week_start)] = (int) $row->headcount;
         }
 
         return [
@@ -100,5 +101,154 @@ class StaffingReportService
                 'weeklyHeadcount' => $byCompany[$company->id] ?? [],
             ])->all(),
         ];
+    }
+
+    /**
+     * Payroll (payout) total per company for each week that STARTS in the given month — matches
+     * the client's "REPORTE DE NOMINA" sheet, which has one column per Sunday-anchored week of
+     * the calendar month (4 or 5 of them), not per exact calendar-week overlap.
+     *
+     * @return array{weeks: list<array{week_start: string, week_end: string, label: string}>, companies: list<array>}
+     */
+    public function monthlyPayrollByCompany(string $businessId, int $year, int $month): array
+    {
+        $weeks = array_values(array_filter(
+            $this->weeksForYear($year),
+            fn (array $w) => (int) substr($w['week_start'], 5, 2) === $month,
+        ));
+
+        $companies = StaffingCompany::query()
+            ->where('business_id', $businessId)
+            ->orderBy('name')
+            ->get();
+
+        if ($weeks === [] || $companies->isEmpty()) {
+            return ['weeks' => $weeks, 'companies' => []];
+        }
+
+        $weekStarts = array_column($weeks, 'week_start');
+
+        $rows = DB::table('staffing_timesheet_entries as ste')
+            ->join('staffing_timesheets as st', 'st.id', '=', 'ste.timesheet_id')
+            ->where('st.business_id', $businessId)
+            ->whereIn('st.week_start', $weekStarts)
+            ->selectRaw('st.company_id, st.week_start, SUM(ste.payout) as nomina')
+            ->groupBy('st.company_id', 'st.week_start')
+            ->get();
+
+        $byCompany = [];
+        foreach ($rows as $row) {
+            $byCompany[$row->company_id][$this->normalizeDate($row->week_start)] = (float) $row->nomina;
+        }
+
+        return [
+            'weeks' => $weeks,
+            'companies' => $companies->map(function (StaffingCompany $company) use ($byCompany, $weekStarts) {
+                $weekly = $byCompany[$company->id] ?? [];
+                $total = array_sum(array_map(fn ($ws) => $weekly[$ws] ?? 0.0, $weekStarts));
+
+                return [
+                    'companyId' => $company->id,
+                    'name' => $company->name,
+                    'weeklyPayroll' => $weekly,
+                    'total' => $total,
+                ];
+            })->all(),
+        ];
+    }
+
+    /**
+     * The weekly financial summary per company — nomina/invoice/gross-profit/overhead/otros
+     * gastos/total/headcount/estado, matching the client's "RESULTADOS SEMANALES" sheet. `estado`
+     * is modeled as the invoice's payment status (paid/pending/no_invoice), and the "4%" as a
+     * per-company agency overhead rate applied to gross profit — both flagged in the plan as
+     * assumptions to confirm; every number here stays editable (weekly expense) or per-company
+     * configurable (overhead rate) so a wrong assumption is a one-field fix, not a migration.
+     *
+     * @return list<array>
+     */
+    public function weeklyCompanyReport(string $businessId, string $weekStart): array
+    {
+        $companies = StaffingCompany::query()
+            ->where('business_id', $businessId)
+            ->orderBy('name')
+            ->get();
+
+        if ($companies->isEmpty()) {
+            return [];
+        }
+
+        $entryTotals = DB::table('staffing_timesheet_entries as ste')
+            ->join('staffing_timesheets as st', 'st.id', '=', 'ste.timesheet_id')
+            ->where('st.business_id', $businessId)
+            ->where('st.week_start', $weekStart)
+            ->selectRaw('st.company_id, st.id as timesheet_id, SUM(ste.payout) as nomina, SUM(ste.invoice_total) as invoice, COUNT(DISTINCT ste.employee_id) as headcount')
+            ->groupBy('st.company_id', 'st.id')
+            ->get()
+            ->keyBy('company_id');
+
+        $timesheetIds = $entryTotals->pluck('timesheet_id')->filter()->values();
+
+        $invoicesByTimesheet = StaffingInvoice::where('business_id', $businessId)
+            ->whereIn('timesheet_id', $timesheetIds)
+            ->get()
+            ->keyBy('timesheet_id');
+
+        $invoiceIds = $invoicesByTimesheet->pluck('id')->values();
+
+        $paidByInvoice = StaffingCompanyPayment::where('business_id', $businessId)
+            ->whereIn('invoice_id', $invoiceIds)
+            ->selectRaw('invoice_id, SUM(amount) as paid')
+            ->groupBy('invoice_id')
+            ->get()
+            ->keyBy('invoice_id');
+
+        $expensesByCompany = StaffingWeeklyExpense::where('business_id', $businessId)
+            ->where('week_start', $weekStart)
+            ->get()
+            ->keyBy('company_id');
+
+        return $companies->map(function (StaffingCompany $company) use ($entryTotals, $invoicesByTimesheet, $paidByInvoice, $expensesByCompany) {
+            $entry = $entryTotals->get($company->id);
+            $nomina = $entry ? (float) $entry->nomina : 0.0;
+            $invoiceTotal = $entry ? (float) $entry->invoice : 0.0;
+            $headcount = $entry ? (int) $entry->headcount : 0;
+
+            $grossProfit = $invoiceTotal - $nomina;
+            $overheadRate = $company->agency_overhead_rate ?? 0.04;
+            $overhead = $grossProfit * $overheadRate;
+
+            $expense = $expensesByCompany->get($company->id);
+            $otrosGastos = $expense ? (float) $expense->amount : 0.0;
+
+            $total = $grossProfit - $overhead - $otrosGastos;
+
+            $invoice = $entry ? $invoicesByTimesheet->get($entry->timesheet_id) : null;
+            $estado = 'no_invoice';
+            if ($invoice) {
+                $paid = $paidByInvoice->get($invoice->id)?->paid ?? 0.0;
+                $estado = (float) $paid >= (float) $invoice->total ? 'paid' : 'pending';
+            }
+
+            return [
+                'companyId' => $company->id,
+                'name' => $company->name,
+                'estado' => $estado,
+                'proyecto' => $company->work_site,
+                'nomina' => $nomina,
+                'invoice' => $invoiceTotal,
+                'gananciaBruta' => $grossProfit,
+                'overheadRate' => $overheadRate,
+                'overhead' => $overhead,
+                'otrosGastos' => $otrosGastos,
+                'total' => $total,
+                'empleados' => $headcount,
+            ];
+        })->all();
+    }
+
+    private function normalizeDate(string|DateTimeInterface $value): string
+    {
+        return $value instanceof DateTimeInterface ? $value->format('Y-m-d') : substr($value, 0, 10);
     }
 }

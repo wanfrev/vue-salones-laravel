@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\StaffingCompanyRateController;
 use App\Http\Controllers\Api\StaffingInvoiceController;
 use App\Http\Controllers\Api\StaffingReportController;
 use App\Http\Controllers\Api\StaffingTimesheetController;
+use App\Http\Controllers\Api\StaffingWeeklyExpenseController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierPaymentController;
 use App\Http\Controllers\Api\SuperadminController;
@@ -253,6 +254,14 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::get('/staffing-company-payments', [StaffingCompanyPaymentController::class, 'index']);
         Route::post('/staffing-company-payments', [StaffingCompanyPaymentController::class, 'store']);
         Route::delete('/staffing-company-payments/{id}', [StaffingCompanyPaymentController::class, 'destroy']);
+    });
+
+    // Staffing — the reports module (distinct from the salon-side daily-report module): monthly
+    // and weekly financial summaries across all of a business's client companies.
+    Route::middleware(['capability:staffing.reports', 'admin-panel'])->group(function () {
+        Route::get('/staffing-reports/monthly-payroll', [StaffingReportController::class, 'monthlyPayroll']);
+        Route::get('/staffing-reports/weekly', [StaffingReportController::class, 'weeklyReport']);
+        Route::post('/staffing-weekly-expenses', [StaffingWeeklyExpenseController::class, 'store']);
     });
 
     // Staffing CRM — leads registered by sales reps. No `admin-panel` here on purpose: a plain

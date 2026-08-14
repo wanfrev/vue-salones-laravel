@@ -66,6 +66,7 @@ class StaffingCompanyService
             'payment_terms_days' => $data['payment_terms_days'] ?? 15,
             'overtime_threshold_hours' => $data['overtime_threshold_hours'] ?? 40,
             'overtime_multiplier' => $data['overtime_multiplier'] ?? 1.5,
+            'agency_overhead_rate' => $data['agency_overhead_rate'] ?? 0.04,
             'tax_brackets' => $data['tax_brackets'] ?? self::DEFAULT_TAX_BRACKETS,
             'tax_destination' => $data['tax_destination'] ?? TaxRule::REMITTED,
             'payout_rounding' => $data['payout_rounding'] ?? PayrollTerms::PAYOUT_CENT,
