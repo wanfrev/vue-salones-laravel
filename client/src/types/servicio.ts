@@ -25,6 +25,7 @@ export interface Servicio {
   is_fixed_commission?: boolean
   fixed_commission_amount?: number
   fixed_commission_assistant_amount?: number
+  show_in_public_booking?: boolean
 }
 
 export interface ServicioFormData {
@@ -40,4 +41,5 @@ export interface ServicioFormData {
   is_fixed_commission?: boolean
   fixed_commission_amount?: number
   fixed_commission_assistant_amount?: number
+  show_in_public_booking?: boolean
 }

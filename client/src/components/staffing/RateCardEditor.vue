@@ -23,6 +23,8 @@
             <th class="pb-2 pr-3 text-right">Paga al empleado</th>
             <th class="pb-2 pr-3 text-right">Cobra a la empresa</th>
             <th class="pb-2 pr-3 text-right">Margen</th>
+            <th class="pb-2 pr-3 text-right">Horas antes de OT</th>
+            <th class="pb-2 pr-3 text-right">Recargo OT</th>
             <th class="pb-2 w-10"></th>
           </tr>
         </thead>
@@ -35,6 +37,12 @@
               :class="rate.hourlyMargin > 0 ? 'text-success' : 'text-danger'">
               {{ formatUSD(rate.hourlyMargin) }}
             </td>
+            <td class="py-2 pr-3 text-right tabular-nums text-text-secondary">
+              {{ rate.overtimeThresholdHours ?? 'de la empresa' }}
+            </td>
+            <td class="py-2 pr-3 text-right tabular-nums text-text-secondary">
+              {{ rate.overtimeMultiplier ? `${rate.overtimeMultiplier}x` : 'de la empresa' }}
+            </td>
             <td class="py-2 text-right">
               <button type="button" title="Eliminar tarifa"
                 class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
@@ -45,7 +53,7 @@
           </tr>
 
           <tr v-if="rates.length === 0">
-            <td colspan="5" class="py-3 text-center text-xs text-text-muted">
+            <td colspan="7" class="py-3 text-center text-xs text-text-muted">
               Sin tarifas todavía. Agrega el primer rol abajo.
             </td>
           </tr>
@@ -85,6 +93,24 @@
         </p>
       </div>
 
+      <div class="w-32">
+        <label :for="`ot-threshold-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">
+          Horas antes de OT
+        </label>
+        <input :id="`ot-threshold-${companyId}`" v-model.number="draft.overtimeThresholdHours" type="number" min="0"
+          max="168" step="0.5" placeholder="de la empresa"
+          class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+      </div>
+
+      <div class="w-28">
+        <label :for="`ot-mult-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">
+          Recargo OT
+        </label>
+        <input :id="`ot-mult-${companyId}`" v-model.number="draft.overtimeMultiplier" type="number" min="1" max="5"
+          step="0.1" placeholder="de la empresa"
+          class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+      </div>
+
       <button type="submit" :disabled="saveMutation.isPending.value"
         class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">
         {{ saveMutation.isPending.value ? 'Guardando...' : 'Agregar' }}
@@ -101,7 +127,7 @@ import { useRateCard } from '../../composables/staffing/useRateCard'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { TrashBin2Icon } from '@solar-icons/vue/linear'
-import type { StaffingRateFormData } from '../../services/staffingService'
+import type { StaffingRateFormData } from '../../services/staffing/staffingService'
 
 const props = defineProps<{
   businessId: string | null
@@ -122,14 +148,25 @@ const emptyDraft = (): StaffingRateFormData => ({
   role: '',
   payRate: 0,
   billRate: 0,
+  overtimeThresholdHours: null,
+  overtimeMultiplier: null,
 })
 
 const draft = ref<StaffingRateFormData>(emptyDraft())
 
 const draftMargin = computed(() => (draft.value.billRate || 0) - (draft.value.payRate || 0))
 
+// v-model.number leaves a cleared field as '' rather than null.
+const normalizeOptionalNumber = (v: number | string | null): number | null =>
+  v === '' || v === null || v === undefined ? null : Number(v)
+
 const submit = async () => {
-  const ok = await save({ ...draft.value, companyId: props.companyId })
+  const ok = await save({
+    ...draft.value,
+    companyId: props.companyId,
+    overtimeThresholdHours: normalizeOptionalNumber(draft.value.overtimeThresholdHours),
+    overtimeMultiplier: normalizeOptionalNumber(draft.value.overtimeMultiplier),
+  })
   if (ok) draft.value = emptyDraft()
 }
 </script>

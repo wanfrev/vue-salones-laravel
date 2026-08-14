@@ -6,7 +6,7 @@
 export type AppRole = 'superadmin' | 'admin' | 'empleado' | 'encargado' | 'cajero'
 export type AppointmentStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'no_show'
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid'
-export type PaymentMethod = 'cash' | 'cash_ves' | 'card' | 'transfer' | 'other' | 'zelle' | 'binance' | 'cashea' | 'pago_movil' | 'punto_venta' | 'mixed' | 'gift_card'
+export type PaymentMethod = 'cash' | 'cash_ves' | 'card' | 'transfer' | 'other' | 'zelle' | 'binance' | 'cashea' | 'pago_movil' | 'punto_venta' | 'mixed' | 'gift_card' | 'credito'
 export type AppointmentSource = 'internal' | 'public'
 export type EmployeeAbsenceType = 'break' | 'vacation' | 'sick_leave' | 'personal' | 'blocked'
 export type InventoryMovementType =
@@ -72,14 +72,17 @@ export interface Profile {
   can_access_requirements?: boolean
   staffing_company_id?: string | null
   staffing_role?: string | null
+  staffing_tax_rate?: number | null
+  address?: string | null
   bank_name?: string | null
   bank_account_holder?: string | null
   bank_account_type?: string | null
   payment_method?: string | null
-  // The raw numbers are never present in an API response — Profile::$hidden strips them
+  // The raw numbers/SSN are never present in an API response — Profile::$hidden strips them
   // server-side. Only the masked last-4 accessors below ever reach the client.
   bank_account_last4?: string | null
   payroll_card_last4?: string | null
+  ssn_last4?: string | null
   created_at: string
   updated_at: string
 }
@@ -114,6 +117,7 @@ export interface Service {
   is_fixed_commission?: boolean
   fixed_commission_amount?: number | null
   fixed_commission_assistant_amount?: number | null
+  show_in_public_booking?: boolean
   created_at: string
   updated_at: string
 }
@@ -137,6 +141,7 @@ export interface Client {
   full_name: string
   phone: string
   email: string | null
+  client_code: string | null
   notes: string | null
   birthday: string | null
   metadata: Record<string, unknown>
@@ -408,6 +413,8 @@ export interface StaffingCompany {
   /** 'floor' | 'cent' | 'exact' */
   payout_rounding: string
   active: boolean
+  /** Tri-state, manual: 'active' | 'inactive' | 'on_hold' ("en descanso"). Mirrors `active`. */
+  status: 'active' | 'inactive' | 'on_hold'
   notes: string | null
   created_at: string
   updated_at: string
@@ -421,6 +428,9 @@ export interface StaffingCompanyRate {
   role: string
   pay_rate: number
   bill_rate: number
+  /** Null = use the company's overtime terms. See StaffingPayrollCalculator's override lookup. */
+  overtime_threshold_hours: number | null
+  overtime_multiplier: number | null
   active: boolean
   created_at: string
   updated_at: string
@@ -447,6 +457,9 @@ export interface StaffingTimesheetEntry {
   payout: number
   carried: number
   invoice_total: number
+  /** Cent-rounded REG/OT split of invoice_total — see StaffingPayrollCalculator::invoice(). */
+  invoice_regular_amount: number | null
+  invoice_overtime_amount: number | null
   employer_cost: number
   margin: number
   created_at: string
@@ -512,6 +525,34 @@ export interface StaffingCompanyBalance {
   pending: number
 }
 
+/** A staffing-CRM prospect, private to the vendedora who registered it unless viewed by an admin. */
+export type LeadStatus = 'new' | 'called' | 'answered' | 'emailed' | 'meeting' | 'won' | 'lost'
+export type LeadPriority = 'low' | 'medium' | 'high'
+
+export interface Lead {
+  id: string
+  business_id: string
+  owner_id: string
+  company_name: string
+  work_area: string | null
+  address: string | null
+  phone: string | null
+  email: string | null
+  status: LeadStatus
+  visit_date: string | null
+  company_category: string | null
+  priority: LeadPriority | null
+  /** No behaviour behind this yet — see the migration docblock. */
+  contact_card: string | null
+  /** US state, free text (e.g. "Georgia") — not constrained to an abbreviation. */
+  state: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+  /** Eager-loaded by LeadService::list() so the UI can show the vendedora's name without another call. */
+  owner?: { id: string; full_name: string } | null
+}
+
 export interface SupplierPayment {
   id: string
   business_id: string
@@ -549,6 +590,25 @@ export interface Requirement {
   status: 'pending' | 'purchased' | 'cancelled'
   created_by_profile_id: string | null
   creator?: { id: string; full_name: string } | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Credit {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string | null
+  client_name: string
+  client_phone: string | null
+  transaction_id: string
+  amount: number
+  currency: string
+  status: 'pending' | 'paid'
+  paid_at: string | null
+  paid_method: string | null
+  created_by: string | null
+  client?: { id: string; full_name: string; phone: string | null } | null
   created_at: string
   updated_at: string
 }

@@ -31,6 +31,11 @@ export interface Empleado {
   // assignment below, resolved against that company's rate card.
   staffingCompanyId?: string | null
   staffingRole?: string
+  /** Fraction (0.07 = 7%). Null means "use the company's tax_brackets". */
+  staffingTaxRate?: number | null
+  address?: string
+  /** Last 4 digits only — the full SSN never leaves the server. See Profile::$hidden. */
+  ssnLast4?: string | null
   bankName?: string
   bankAccountHolder?: string
   bankAccountType?: 'checking' | 'savings' | ''
@@ -69,6 +74,11 @@ export interface EmpleadoFormData {
   // Staffing niche only. No separate "staffing role" input — `role` above (the existing
   // Rol/Puesto field, backed by businessStore.jobTitles) doubles as the rate-card role.
   staffingCompanyId: string
+  staffingTaxRate: number | null
+  address: string
+  // Write-only, same convention as the bank/card numbers below: typing a value changes what's
+  // on file, leaving it blank on an edit preserves whatever SSN is already stored.
+  ssn: string
   bankName: string
   bankAccountHolder: string
   bankAccountType: 'checking' | 'savings' | ''

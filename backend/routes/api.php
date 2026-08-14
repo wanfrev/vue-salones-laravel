@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\ClientController;
+use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\EmployeeCommissionController;
 use App\Http\Controllers\Api\EmployeePaymentController;
 use App\Http\Controllers\Api\EmployeeScheduleController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\Api\FinancialSummaryController;
 
 use App\Http\Controllers\Api\GiftCardController;
 use App\Http\Controllers\Api\InventoryController;
+use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PetController;
 use App\Http\Controllers\Api\PosController;
@@ -26,11 +28,15 @@ use App\Http\Controllers\Api\RequirementController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\WhatsAppController;
 use App\Http\Controllers\Api\ReminderController;
-use App\Http\Controllers\Api\StaffingCompanyController;
-use App\Http\Controllers\Api\StaffingCompanyPaymentController;
-use App\Http\Controllers\Api\StaffingCompanyRateController;
-use App\Http\Controllers\Api\StaffingInvoiceController;
-use App\Http\Controllers\Api\StaffingTimesheetController;
+use App\Http\Controllers\Api\Staffing\StaffingCompanyController;
+use App\Http\Controllers\Api\Staffing\StaffingCompanyPaymentController;
+use App\Http\Controllers\Api\Staffing\StaffingCompanyRateController;
+use App\Http\Controllers\Api\Staffing\StaffingInvoiceController;
+use App\Http\Controllers\Api\Staffing\StaffingReportController;
+use App\Http\Controllers\Api\Staffing\StaffingTaxEntityController;
+use App\Http\Controllers\Api\Staffing\StaffingTaxEntryController;
+use App\Http\Controllers\Api\Staffing\StaffingTimesheetController;
+use App\Http\Controllers\Api\Staffing\StaffingWeeklyExpenseController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierPaymentController;
 use App\Http\Controllers\Api\SuperadminController;
@@ -65,7 +71,13 @@ Route::prefix('public')->group(function () {
 });
 
 // Protected routes
-Route::middleware('auth:sanctum')->group(function () {
+// 'business-context' (SetBusinessContext) must run AFTER auth:sanctum, not as global api
+// middleware — it reads $request->user(), which isn't resolved yet at the point the global
+// 'api' middleware group runs (that group wraps the whole file, sanctum auth is applied here,
+// nested inside it). Running it globally left BusinessContext permanently unbound for every
+// request; harmless for feature:/perm: (which fail OPEN when context is missing) but a hard
+// 403 for capability: (which fails closed on purpose — see EnsureNicheCapability's docblock).
+Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     // Auth
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/session', [AuthController::class, 'session']);
@@ -127,6 +139,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/clients/{id}', [ClientController::class, 'update']);
     Route::delete('/clients/{id}', [ClientController::class, 'destroy']);
     Route::get('/clients/search', [ClientController::class, 'search']);
+    Route::get('/clients/stats', [ClientController::class, 'stats']);
     Route::post('/clients/find-or-create-by-phone', [ClientController::class, 'findOrCreateByPhone']);
     Route::get('/clients/{id}', [ClientController::class, 'show']);
         Route::get('/clients/{id}/history', [ClientController::class, 'history']);
@@ -223,6 +236,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/staffing-company-rates/{id}', [StaffingCompanyRateController::class, 'destroy']);
 
         Route::get('/staffing-companies/{companyId}/employees', [StaffingTimesheetController::class, 'employeesForCompany']);
+        // Year-wide weekly headcount matrix for the Empresas status tabs — must be registered
+        // before {companyId} routes would otherwise be ambiguous; it isn't (different shapes),
+        // but keeping it next to them documents the relationship.
+        Route::get('/staffing-companies/headcount-matrix', [StaffingReportController::class, 'headcountMatrix']);
         Route::get('/staffing-timesheets', [StaffingTimesheetController::class, 'index']);
         Route::post('/staffing-timesheets', [StaffingTimesheetController::class, 'store']);
         Route::post('/staffing-timesheets/{id}/approve', [StaffingTimesheetController::class, 'approve']);
@@ -241,6 +258,42 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/staffing-company-payments/{id}', [StaffingCompanyPaymentController::class, 'destroy']);
     });
 
+    // Staffing — the reports module (distinct from the salon-side daily-report module): monthly
+    // and weekly financial summaries across all of a business's client companies.
+    Route::middleware(['capability:staffing.reports', 'admin-panel'])->group(function () {
+        Route::get('/staffing-reports/monthly-payroll', [StaffingReportController::class, 'monthlyPayroll']);
+        Route::get('/staffing-reports/weekly', [StaffingReportController::class, 'weeklyReport']);
+        Route::get('/staffing-reports/employee-hours', [StaffingReportController::class, 'employeeHours']);
+        Route::post('/staffing-weekly-expenses', [StaffingWeeklyExpenseController::class, 'store']);
+
+        Route::get('/staffing-reports/annual-tax', [StaffingReportController::class, 'annualTaxReport']);
+        Route::get('/staffing-tax-entities', [StaffingTaxEntityController::class, 'index']);
+        Route::post('/staffing-tax-entities', [StaffingTaxEntityController::class, 'store']);
+        Route::put('/staffing-tax-entities/{id}', [StaffingTaxEntityController::class, 'update']);
+        Route::delete('/staffing-tax-entities/{id}', [StaffingTaxEntityController::class, 'destroy']);
+
+        Route::get('/staffing-tax-entries', [StaffingTaxEntryController::class, 'index']);
+        // Multipart upsert — see StaffingTaxEntryController::store(). Kept as POST-only rather
+        // than also exposing PUT: the (employee, entity, year) key already makes this idempotent.
+        Route::post('/staffing-tax-entries', [StaffingTaxEntryController::class, 'store']);
+        Route::delete('/staffing-tax-entries/{id}', [StaffingTaxEntryController::class, 'destroy']);
+        // Never served from a public disk/URL — see the controller docblock.
+        Route::get('/staffing-tax-entries/{id}/download', [StaffingTaxEntryController::class, 'download']);
+    });
+
+    // Staffing CRM — leads registered by sales reps. No `admin-panel` here on purpose: a plain
+    // 'empleado' (the vendedora) must reach these routes, unlike every other staffing group
+    // above which is admin-only. Privacy (a vendedora sees only her own leads) is enforced in
+    // LeadService, not by keeping non-admins out of the route.
+    Route::middleware(['capability:staffing.crm'])->group(function () {
+        Route::get('/leads', [LeadController::class, 'index']);
+        Route::post('/leads', [LeadController::class, 'store']);
+        Route::put('/leads/{id}', [LeadController::class, 'update']);
+        Route::delete('/leads/{id}', [LeadController::class, 'destroy']);
+        // Admin-only sidebar roster — checked inside the controller, same pattern as index().
+        Route::get('/leads/vendedoras', [LeadController::class, 'vendedoras']);
+    });
+
     // Finanzas
     Route::get('/finanzas/summary', [FinancialSummaryController::class, 'summary']);
     Route::get('/finanzas/transactions', [FinancialSummaryController::class, 'transactions']);
@@ -250,6 +303,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/transactions', [TransactionController::class, 'index']);
     Route::put('/transactions/{id}', [TransactionController::class, 'update']);
     Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
+
+    Route::get('/credits', [CreditController::class, 'index']);
+    Route::post('/credits/{id}/mark-paid', [CreditController::class, 'markPaid']);
 
     // Expenses
     Route::get('/expenses', [ExpenseController::class, 'index']);

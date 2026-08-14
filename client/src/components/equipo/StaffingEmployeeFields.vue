@@ -18,6 +18,28 @@
       · se cobra a la empresa <span class="font-semibold text-text">{{ formatUSD(resolvedRate.billRate) }}/h</span>
     </p>
 
+    <div>
+      <FormInput
+        v-model="taxRatePercent"
+        type="number"
+        min="0"
+        max="100"
+        step="0.1"
+        label="% de tax (opcional)"
+        :placeholder="companyTaxHint ? `Vacío = ${companyTaxHint}` : 'Vacío = lo que tenga la empresa'"
+        hint="Solo si este empleado necesita un porcentaje distinto al de la empresa."
+      />
+    </div>
+
+    <FormInput v-model="address" label="Dirección" placeholder="Calle, ciudad, estado" />
+
+    <FormInput
+      v-model="ssn"
+      label="SSN"
+      placeholder="XXX-XX-XXXX"
+      :hint="ssnHint"
+    />
+
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <FormInput v-model="bankName" label="Banco" placeholder="Ej: Bank of America" />
       <FormInput v-model="bankAccountHolder" label="Titular de la cuenta" placeholder="Nombre en la cuenta" />
@@ -61,7 +83,7 @@ import { computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { FormInput, FormDropdown } from '../forms'
 import { useCurrency } from '../../composables/common/useCurrency'
-import { listStaffingCompanies, listStaffingRates, staffingCompanyKeys, staffingRateKeys } from '../../services/staffingService'
+import { listStaffingCompanies, listStaffingRates, staffingCompanyKeys, staffingRateKeys } from '../../services/staffing/staffingService'
 import type { EmpleadoFormData } from '../../types/empleado'
 
 const PAYMENT_METHOD_OPTIONS = [
@@ -81,6 +103,7 @@ const props = defineProps<{
   /** Read-only context from the saved record — a blank input never overwrites these. */
   bankAccountLast4?: string | null
   payrollCardLast4?: string | null
+  ssnLast4?: string | null
 }>()
 
 const emit = defineEmits<{ 'update:modelValue': [data: EmpleadoFormData] }>()
@@ -94,7 +117,10 @@ const field = <K extends keyof EmpleadoFormData>(key: K) => computed<EmpleadoFor
 })
 
 const companyId = field('staffingCompanyId')
+const staffingTaxRate = field('staffingTaxRate')
 const role = computed(() => props.formData.role)
+const address = field('address')
+const ssn = field('ssn')
 const bankName = field('bankName')
 const bankAccountHolder = field('bankAccountHolder')
 const bankAccountType = field('bankAccountType')
@@ -123,10 +149,31 @@ const resolvedRate = computed(() =>
   (rates.value ?? []).find(r => r.role === role.value && r.active) ?? null,
 )
 
+const selectedCompany = computed(() => (companies.value ?? []).find(c => c.id === companyId.value) ?? null)
+
+/** What "vacío" resolves to, so the admin isn't guessing which rate actually applies. */
+const companyTaxHint = computed(() => {
+  const brackets = selectedCompany.value?.taxBrackets ?? []
+  if (brackets.length === 0) return 'sin retención'
+  return brackets.map(b => `${Math.round(b.rate * 1000) / 10}%`).join(' / ')
+})
+
+// Stored as a fraction (0.07) but edited as a percentage (7) — same convention as the
+// company's own tax brackets in Empresas.vue. FormInput emits '' (not null) when cleared.
+const taxRatePercent = computed<number | string>({
+  get: () => (staffingTaxRate.value == null ? '' : Math.round(staffingTaxRate.value * 10000) / 100),
+  set: (value) => {
+    staffingTaxRate.value = value === '' || value == null ? null : Number(value) / 100
+  },
+})
+
 const accountHint = computed(() =>
   props.bankAccountLast4 ? `Terminada en ${props.bankAccountLast4} — deja vacío para mantenerla` : undefined,
 )
 const cardHint = computed(() =>
   props.payrollCardLast4 ? `Terminada en ${props.payrollCardLast4} — deja vacío para mantenerla` : undefined,
+)
+const ssnHint = computed(() =>
+  props.ssnLast4 ? `Terminado en ${props.ssnLast4} — deja vacío para mantenerlo` : 'Nunca se muestra completo una vez guardado',
 )
 </script>

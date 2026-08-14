@@ -20,7 +20,8 @@ export function useClientFilters(clients: Ref<Cliente[]>) {
       result = result.filter(c =>
         c.name.toLowerCase().includes(q) ||
         c.phone?.toLowerCase().includes(q) ||
-        c.email?.toLowerCase().includes(q)
+        c.email?.toLowerCase().includes(q) ||
+        c.code?.toLowerCase().includes(q)
       )
     }
 

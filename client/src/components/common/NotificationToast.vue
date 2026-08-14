@@ -5,7 +5,7 @@
         <div
           v-for="n in notifications"
           :key="n.id"
-          class="pointer-events-auto relative overflow-hidden rounded-xl border bg-zinc-950/85 backdrop-blur-md px-4 py-3.5 shadow-2xl shadow-black/80 flex items-center gap-3 transition-all duration-300"
+          class="pointer-events-auto relative overflow-hidden rounded-xl border bg-zinc-950/85 backdrop-blur-md px-4 py-3.5 shadow-2xl shadow-black/80 flex items-center gap-3 transition-[opacity,transform] duration-300"
           :class="n.type === 'error' || n.type === 'warning'
             ? 'border-[#f38ba8]/20 shadow-[#f38ba8]/5'
             : 'border-[var(--color-primary)]/20 shadow-[var(--color-primary)]/5'"

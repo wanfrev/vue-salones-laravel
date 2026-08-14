@@ -134,6 +134,13 @@ class StaffingTimesheetService
                 $rate = $line['rate'];
                 $input = $line['input'];
 
+                // A manually set staffing_tax_rate replaces the company's tiered brackets with
+                // a single flat rate for this employee only; the destination (remitted/kept by
+                // the agency) still follows the company's agreement.
+                $taxOverride = $employee->staffing_tax_rate !== null
+                    ? TaxRule::flat((float) $employee->staffing_tax_rate, $terms->taxRule->destination)
+                    : null;
+
                 $timesheetEntry = new TimesheetEntry(
                     employeeName: $employee->full_name,
                     totalHours: (float) $input['total_hours'],
@@ -142,6 +149,9 @@ class StaffingTimesheetService
                     preTaxDeduction: (float) ($input['pre_tax_deduction'] ?? 0),
                     fixedFees: (float) ($input['fixed_fees'] ?? 0),
                     adjustment: (float) ($input['adjustment'] ?? 0),
+                    taxOverride: $taxOverride,
+                    overtimeThresholdOverride: $rate->overtime_threshold_hours,
+                    overtimeMultiplierOverride: $rate->overtime_multiplier,
                 );
 
                 $result = $this->calculator->line($timesheetEntry, $terms);
@@ -165,6 +175,8 @@ class StaffingTimesheetService
                     'payout' => $result->payroll->payout,
                     'carried' => $result->payroll->carried,
                     'invoice_total' => $result->invoice->total,
+                    'invoice_regular_amount' => $result->invoice->regularAmount,
+                    'invoice_overtime_amount' => $result->invoice->overtimeAmount,
                     'employer_cost' => $result->employerCost,
                     'margin' => $result->margin,
                     'created_at' => now(),

@@ -64,11 +64,12 @@ class DailyReportPosSummaryService
             });
         }
 
-        $transactions = $query->get();
+        $transactions = $query->with('appointment.client')->get();
 
         $fields = array_fill_keys(self::FIELDS, 0.0);
         $rates = [];
         $unmapped = [];
+        $creditsIssued = [];
 
         foreach ($transactions as $tx) {
             $rate = (float) ($tx->exchange_rate_used ?: 0);
@@ -77,6 +78,26 @@ class DailyReportPosSummaryService
             }
 
             foreach ($this->splitsFor($tx, $rate) as $split) {
+                if ($split['method'] === 'credito') {
+                    $clientName = $tx->appointment?->client?->full_name;
+                    if (!$clientName && $tx->notes && str_starts_with($tx->notes, 'Venta directa — ')) {
+                        $extracted = str_replace('Venta directa — ', '', $tx->notes);
+                        $extracted = preg_replace('/\s*\([\d\+\-\s]+\)$/', '', $extracted);
+                        $clientName = trim($extracted);
+                    }
+                    if (!$clientName) {
+                        $clientName = 'Cliente Desconocido';
+                    }
+
+                    $creditsIssued[] = [
+                        'client_name' => $clientName,
+                        'amount' => $split['amount'],
+                        'currency' => $split['currency'],
+                        'transaction_id' => $tx->id
+                    ];
+                    continue;
+                }
+
                 $field = self::METHOD_MAP[$split['method']][$split['currency']] ?? null;
 
                 if ($field === null) {
@@ -92,9 +113,13 @@ class DailyReportPosSummaryService
             $fields[$key] = round($value, 2);
         }
 
+        $branch = $branchId ? \App\Models\Branch::find($branchId) : null;
+        $branchRate = (float) ($branch?->ves_exchange_rate ?: 0);
         $businessRate = (float) ($business?->ves_exchange_rate ?: 0);
+        $fallbackRate = $branchRate > 0 ? $branchRate : ($businessRate > 0 ? $businessRate : null);
+
         $dominantRate = $this->dominantRate($rates);
-        $finalRate = $dominantRate ?: ($businessRate > 0 ? $businessRate : null);
+        $finalRate = $dominantRate ?: $fallbackRate;
 
         return [
             'fields' => $fields,
@@ -103,6 +128,7 @@ class DailyReportPosSummaryService
                 // Tasa más usada del día o tasa actual del negocio
                 'exchange_rate' => $finalRate ? round((float) $finalRate, 2) : null,
                 'unmapped_methods' => array_keys($unmapped),
+                'credits_issued' => $creditsIssued,
             ],
         ];
     }

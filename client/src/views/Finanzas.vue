@@ -93,6 +93,11 @@
     </div>
   </template>
 
+  <!-- TAB 4: Créditos -->
+  <template v-if="activeTab === 'creditos'">
+    <CreditosSection />
+  </template>
+
   <ExpenseFormModal :is-open="expensesCtx.showExpenseModal.value" :is-editing="!!expensesCtx.editingExpenseId.value" :form="expensesCtx.expenseForm.value" :save-error="expensesCtx.saveError.value" :form-errors="expensesCtx.formErrors.value" :is-saving="expensesCtx.saveMutation.isPending.value" @close="expensesCtx.closeModal" @save="handleExpenseSave" />
   <EditCobroModal :show="summaryCtx.showEditModal.value" :summary-ctx="summaryCtx" @close="summaryCtx.cancelEdit()" />
   <CobroActionsModal
@@ -125,6 +130,7 @@ import ExpenseFormModal from '../components/finanzas/ExpenseFormModal.vue'
 import CurrencyBreakdown from '../components/finanzas/CurrencyBreakdown.vue'
 import RecentTransactionsCard from '../components/finanzas/RecentTransactionsCard.vue'
 import DetailMovimientos from '../components/finanzas/DetailMovimientos.vue'
+import CreditosSection from '../components/finanzas/CreditosSection.vue'
 import EditCobroModal from '../components/finanzas/EditCobroModal.vue'
 import CobroActionsModal from '../components/finanzas/CobroActionsModal.vue'
 import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
@@ -175,14 +181,15 @@ function onCustomToChange(e: Event) {
 const isTienda = computed(() => isTiendaNiche(businessStore.nicheType) || (!businessStore.features.agenda && !businessStore.features.calendario && !businessStore.features.servicios))
 const isTiendaEmployee = computed(() => isTienda.value && !isAdminPanelRole(authStore.role ?? undefined))
 
-const activeTab = ref<'resumen' | 'ingresos' | 'egresos'>('resumen')
-const mainTabs = computed<{ key: 'resumen' | 'ingresos' | 'egresos'; label: string }[]>(() => {
-  const tabs: { key: 'resumen' | 'ingresos' | 'egresos'; label: string }[] = [
+const activeTab = ref<'resumen' | 'ingresos' | 'egresos' | 'creditos'>('resumen')
+const mainTabs = computed<{ key: 'resumen' | 'ingresos' | 'egresos' | 'creditos'; label: string }[]>(() => {
+  const tabs: { key: 'resumen' | 'ingresos' | 'egresos' | 'creditos'; label: string }[] = [
     { key: 'resumen', label: 'Resumen' },
     { key: 'ingresos', label: 'Ingresos' },
   ]
   if (!isTiendaEmployee.value) {
     tabs.push({ key: 'egresos', label: 'Egresos' })
+    tabs.push({ key: 'creditos', label: 'Créditos' })
   }
   return tabs
 })
@@ -190,7 +197,7 @@ const mainTabs = computed<{ key: 'resumen' | 'ingresos' | 'egresos'; label: stri
 watch(
   [activeTab, isTiendaEmployee],
   ([tab, hideEgresos]) => {
-    if (hideEgresos && tab === 'egresos') {
+    if (hideEgresos && (tab === 'egresos' || tab === 'creditos')) {
       activeTab.value = 'resumen'
     }
   },
@@ -413,17 +420,27 @@ const openCobroActions = async (tx: any) => {
       cita = mapAppointmentToCita(citaRaw)
     }
   }
+  const isInvoice = 'items' in tx && Array.isArray(tx.items)
   const hasMixed = tx.breakdown && tx.breakdown.length > 1
   const paymentData: PaymentEditContext = {
     transactionId: tx.id,
-    method: hasMixed ? 'mixed' : (tx.rawMethod || tx.method),
-    amount: tx.amount,
-    currency: hasMixed ? 'USD' : (tx.primaryCurrency || 'USD'),
+    method: hasMixed ? 'mixed' : (isInvoice ? tx.paymentMethod : (tx.rawMethod || tx.method)),
+    amount: isInvoice ? tx.total : tx.amount,
+    currency: hasMixed ? 'USD' : (isInvoice ? (tx.currency || 'USD') : (tx.primaryCurrency || 'USD')),
     exchangeRate: tx.exchangeRateUsed || 1,
     tipAmount: tx.tipAmount || 0,
     notes: tx.notes || undefined,
     breakdown: tx.breakdown || undefined,
     appointmentId,
+    clientName: tx.clientName,
+    employeeName: isInvoice ? tx.employeeName : tx.employee,
+    invoiceProducts: isInvoice ? (tx.items || []).map((item: any) => ({
+      movementId: item.id,
+      productId: item.id,
+      productName: item.product,
+      quantity: item.quantity,
+      unitCost: item.unitPrice,
+    })) : undefined,
   }
 
   cobroActionsCita.value = cita

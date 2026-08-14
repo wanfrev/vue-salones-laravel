@@ -48,6 +48,10 @@ class ProfileController
         return [
             'staffing_company_id' => 'nullable|uuid|exists:staffing_companies,id',
             'staffing_role' => 'nullable|string|max:120',
+            // Fraction (0.07 = 7%) overriding the company's tax_brackets for this employee only.
+            'staffing_tax_rate' => 'nullable|numeric|min:0|max:1',
+            'ssn' => 'nullable|string|max:11',
+            'address' => 'nullable|string|max:255',
             'bank_name' => 'nullable|string|max:255',
             'bank_account_holder' => 'nullable|string|max:255',
             'bank_account_type' => 'nullable|in:checking,savings',

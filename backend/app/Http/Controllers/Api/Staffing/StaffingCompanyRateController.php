@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Staffing;
 
 use App\Events\EntityChanged;
 use App\Services\Staffing\StaffingRateService;
@@ -37,6 +37,9 @@ class StaffingCompanyRateController
             'role' => 'required|string|max:120',
             'pay_rate' => 'required|numeric|min:0',
             'bill_rate' => 'required|numeric|min:0',
+            // Null falls back to the company's own overtime terms — see StaffingTermsFactory.
+            'overtime_threshold_hours' => 'nullable|numeric|min:0|max:168',
+            'overtime_multiplier' => 'nullable|numeric|min:1|max:5',
             'active' => 'boolean',
         ]);
 
@@ -54,6 +57,8 @@ class StaffingCompanyRateController
             'role' => 'sometimes|string|max:120',
             'pay_rate' => 'sometimes|numeric|min:0',
             'bill_rate' => 'sometimes|numeric|min:0',
+            'overtime_threshold_hours' => 'nullable|numeric|min:0|max:168',
+            'overtime_multiplier' => 'nullable|numeric|min:1|max:5',
             'active' => 'boolean',
         ]);
 

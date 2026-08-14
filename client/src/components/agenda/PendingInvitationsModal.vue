@@ -1,8 +1,8 @@
 <template>
   <Teleport to="body">
-    <div v-if="visible" class="fixed inset-0 z-[200] flex items-start justify-center pt-16 px-4">
+    <div v-if="visible" class="fixed inset-0 z-[200] flex items-start justify-center pt-4 px-4 sm:pt-16">
       <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="close"></div>
-      <div class="relative w-full max-w-2xl max-h-[80vh] rounded-2xl border border-border bg-surface shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-150">
+      <div class="relative w-full max-w-2xl max-h-[92dvh] sm:max-h-[80vh] rounded-2xl border border-border bg-surface shadow-2xl flex flex-col animate-in fade-in zoom-in-95 duration-150">
         <!-- Header -->
         <div class="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
@@ -72,43 +72,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { ref, computed } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
 import { db } from '../../lib/api'
-import { useAuthStore } from '../../store/auth'
-import { useBusinessStore } from '../../store/business'
 import { useNotification } from '../../composables/common/useNotification'
-import { APPOINTMENT_SELECT } from '../../services/agendaService'
+import { usePendingInvitations } from '../../composables/agenda/usePendingInvitations'
 import AssignClientModal from '../agenda/AssignClientModal.vue'
 
-const authStore = useAuthStore()
-const businessStore = useBusinessStore()
 const queryClient = useQueryClient()
 const { success } = useNotification()
 const visible = ref(false)
 
-const businessId = computed(() => authStore.businessId)
-const branchId = computed(() => businessStore.currentBranchId)
-
-const { data: rawInvitations, refetch } = useQuery({
-  queryKey: computed(() => ['invitaciones-pendientes', businessId.value, branchId.value] as const),
-  queryFn: async () => {
-    if (!businessId.value) return []
-    let query = db.from('appointments')
-      .select(APPOINTMENT_SELECT)
-      .eq('business_id', businessId.value)
-      .eq('source', 'public')
-      .is('client_id', null)
-      .in('status', ['pending', 'confirmed'])
-      .order('start_time')
-    if (branchId.value) query = query.eq('branch_id', branchId.value)
-    const { data, error } = await query
-    if (error) throw error
-    return (data ?? []) as any[]
-  },
-  enabled: computed(() => !!businessId.value),
-  staleTime: 0,
-})
+const { invitations: rawInvitations, refetch } = usePendingInvitations()
 
 const invitations = computed(() => {
   return (rawInvitations.value ?? []).map((inv: any) => {

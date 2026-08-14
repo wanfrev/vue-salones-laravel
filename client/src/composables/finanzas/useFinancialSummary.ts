@@ -157,7 +157,7 @@ function useFinancialSummary(
     },
     enabled: computed(() => !!businessId.value),
     placeholderData: keepPreviousData,
-    staleTime: 0,
+    staleTime: 15000,
   })
 
   const summaryBuckets = computed(() => summaryData.value?.buckets ?? [])
@@ -179,6 +179,7 @@ function useFinancialSummary(
   const vesIncomeTotal = computed(() => {
     let total = 0
     for (const tx of (transactionsData.value ?? [])) {
+      if (tx.method === 'credito') continue
       const breakdown = tx.payments_breakdown as PaymentBreakdownItem[] | null
       const exchangeRateUsed = Number(tx.exchange_rate_used ?? 1)
       const amount = Number(tx.total_amount ?? 0)
@@ -216,7 +217,7 @@ function useFinancialSummary(
     },
     enabled: computed(() => !!businessId.value),
     placeholderData: keepPreviousData,
-    staleTime: 0,
+    staleTime: 15000,
   })
 
   const allTransactionsRaw = computed<TransactionRow[]>(() => {
@@ -343,7 +344,7 @@ function useFinancialSummary(
     },
     enabled: computed(() => !!businessId.value),
     placeholderData: keepPreviousData,
-    staleTime: 0,
+    staleTime: 15000,
   })
 
   const productSalesTotal = computed(() =>
@@ -410,6 +411,7 @@ function useFinancialSummary(
       const itemObj = {
         id: (r as any).id,
         product: (r as any).product ?? 'Sin producto',
+        productId: (r as any).product_id ?? null,
         quantity: qty,
         unitPrice: unitPrice,
         total,
@@ -463,6 +465,7 @@ function useFinancialSummary(
 
     // Appointment payments (skip direct sales that have product sales entries)
     for (const tx of (transactionsData.value ?? [])) {
+      if (tx.method === 'credito' || tx.method === 'crédito') continue
       const isDirectSale = !tx.appointment_id
       if (isDirectSale && directSaleTxIds.has(tx.id)) continue
 
@@ -482,11 +485,16 @@ function useFinancialSummary(
 
       result.push({
         id: tx.id,
+        appointmentId: tx.appointment_id || undefined,
+        appointment_id: tx.appointment_id || undefined,
         date: formatDate(tx.paid_at),
         description: `${clientLabel} · ${serviceLabel}`,
+        clientName: clientLabel,
         employee: (tx.employee_name as string) || undefined,
         method: formatMethod(tx.method),
+        rawMethod: tx.method,
         amount: amt,
+        total: amt,
         type: 'ingreso',
         exchangeRateUsed,
         notes: tx.notes,
@@ -522,6 +530,8 @@ function useFinancialSummary(
         clientName?: string
         employeeName?: string
         method: string
+        rawMethod: string
+        breakdown: PaymentBreakdownItem[] | null
         breakdownLabel: string
         amount: number
         exchangeRateUsed: number
@@ -563,6 +573,8 @@ function useFinancialSummary(
             clientName: clientLabel,
             employeeName: employeeLabel,
             method: formatMethod(method),
+            rawMethod: method,
+            breakdown,
             breakdownLabel: formatBreakdownLabel(breakdown),
             amount: total,
             exchangeRateUsed,
@@ -576,6 +588,7 @@ function useFinancialSummary(
       }
 
       for (const inv of psGroupMap.values()) {
+        if (inv.method.toLowerCase() === 'crédito' || inv.method.toLowerCase() === 'credito') continue
         const prodCount = inv.items.reduce((s, i) => s + i.quantity, 0)
         const prodCountLabel = prodCount === 1 ? '1 producto' : `${prodCount} productos`
         const desc = inv.clientName ? `${inv.clientName} · ${prodCountLabel}` : `Venta · ${prodCountLabel}`
@@ -583,10 +596,17 @@ function useFinancialSummary(
           id: inv.id,
           date: inv.date,
           description: desc,
+          clientName: inv.clientName,
+          employeeName: inv.employeeName || undefined,
           employee: inv.employeeName || undefined,
           method: inv.method,
+          rawMethod: inv.rawMethod,
+          breakdown: inv.breakdown,
           breakdownLabel: inv.breakdownLabel,
           amount: inv.amount,
+          total: inv.amount,
+          paymentMethod: inv.rawMethod,
+          currency: inv.isVES ? 'VES' : 'USD',
           type: 'ingreso',
           exchangeRateUsed: inv.exchangeRateUsed,
           notes: inv.notes,
@@ -601,9 +621,10 @@ function useFinancialSummary(
     } else {
       // Non-tienda niche (product sales per item line)
       for (const ps of (productSalesData.value ?? [])) {
+        const method = (ps as any).payment_method ?? 'cash'
+        if (method === 'credito' || method === 'crédito') continue
         const clientLabel = (ps as any).client_name as string | undefined
         const productName = (ps as any).product ?? 'Producto'
-        const method = (ps as any).payment_method ?? 'cash'
         const breakdown = (ps as any).payments_breakdown ?? null
         const isAppointmentSale = (ps as any).is_appointment_sale ?? false
         const exchangeRateUsed = Number((ps as any).exchange_rate_used ?? 1)
@@ -618,6 +639,7 @@ function useFinancialSummary(
           id: 'ps-' + (ps as any).id,
           date: formatDate((ps as any).date ?? (ps as any).created_at),
           description: clientLabel ? `${clientLabel} · ${productName}` : productName,
+          clientName: clientLabel,
           method: formatMethod(method),
           breakdownLabel: formatBreakdownLabel(breakdown),
           amount: total,

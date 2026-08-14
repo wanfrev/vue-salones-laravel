@@ -682,8 +682,16 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
     const incomingClinicalHistory = (cita as any).clinicalHistory || (cita as any).clinical_history || {}
     formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: cita.clientPhone || '', clientEmail: (cita as any).clientEmail || '', petId: incomingPetId, service: cita.serviceId || cita.service || '', employee: cita.employeeId || cita.employee || (isEmployee.value ? (authStore.profile?.id ?? '') : ''), assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), isFixedCommissionOverride: cita.isFixedCommissionOverride ?? false, employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, employeeAmountOverride: cita.employeeAmountOverride != null ? Number(cita.employeeAmountOverride) : undefined, assistantAmountOverride: cita.assistantAmountOverride != null ? Number(cita.assistantAmountOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '', diagnosis: (cita as any).diagnosis || '', treatment: (cita as any).treatment || '', associatedProducts: initialAssociated, clinicalHistory: JSON.parse(JSON.stringify(incomingClinicalHistory)) }
 
-    if (cita.clientId && businessId.value) { try { const { searchClients } = await import('../../services/clientesService'); const r = await searchClients(businessId.value, cita.clientName, branchId.value); const m = r.find(c => c.id === cita.clientId); if (m) { formData.value.clientPhone = m.phone; formData.value.clientEmail = (m as any).email || '' } } catch {} }
-    if (cita.groupId) {
+    const clientTask = (cita.clientId && businessId.value) ? (async () => {
+      try {
+        const { searchClients } = await import('../../services/clientesService')
+        const r = await searchClients(businessId.value!, cita.clientName, branchId.value)
+        const m = r.find(c => c.id === cita.clientId)
+        if (m) { formData.value.clientPhone = m.phone; formData.value.clientEmail = (m as any).email || '' }
+      } catch {}
+    })() : Promise.resolve()
+
+    const groupTask = cita.groupId ? (async () => {
       try {
         const members = await listCitaGroupMembers(cita.groupId)
         const selectedMember =
@@ -725,13 +733,16 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
         formData.value.duration = primaryDuration
         formData.value.price = primaryPrice
       } catch {}
-    }
-    if (formData.value.clientId && showPetSelector.value) {
-      await loadClientPets(formData.value.clientId)
+    })() : Promise.resolve()
+
+    const petsTask = (formData.value.clientId && showPetSelector.value) ? (async () => {
+      await loadClientPets(formData.value.clientId!)
       if (incomingPetId && clientPets.value.some(p => p.id === incomingPetId)) {
         formData.value.petId = incomingPetId
       }
-    }
+    })() : Promise.resolve()
+
+    await Promise.allSettled([clientTask, groupTask, petsTask])
   } else {
     isInitialSetup.value = true
     formData.value = defaultFormData()

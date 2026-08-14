@@ -26,7 +26,7 @@ const emit = defineEmits<{
   'select-client': [client: { id: string; full_name: string; phone: string }]
 }>()
 
-const suggestions = ref<{ id: string; full_name: string; phone: string }[]>([])
+const suggestions = ref<{ id: string; full_name: string; phone: string; client_code?: string | null }[]>([])
 const showSuggestions = ref(false)
 const searchLoading = ref(false)
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
@@ -82,7 +82,10 @@ const onFocus = () => { if (suggestions.value.length > 0) showSuggestions.value 
           </svg>
         </div>
         <div class="flex-1 min-w-0">
-          <div class="font-medium text-text truncate">{{ client.full_name }}</div>
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="font-medium text-text truncate">{{ client.full_name }}</span>
+            <span v-if="client.client_code" class="shrink-0 rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary bg-primary/10">{{ client.client_code }}</span>
+          </div>
           <div v-if="!hidePhoneFromEmployee && client.phone" class="text-xs text-text-muted">{{ client.phone }}</div>
         </div>
       </button>

@@ -7,7 +7,13 @@
       <button v-for="client in clientSuggestions" :key="client.id"
         @mousedown.prevent="onSelectClient(client)"
         class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-bg-secondary border-b border-border last:border-b-0">
-        <div class="flex-1 min-w-0"><span class="text-text block truncate">{{ client.full_name }}</span><span class="text-xs text-text-muted">{{ client.phone }}</span></div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="text-text truncate">{{ client.full_name }}</span>
+            <span v-if="client.client_code" class="shrink-0 rounded px-1 py-0.5 text-[9px] font-bold uppercase tracking-wide text-primary bg-primary/10">{{ client.client_code }}</span>
+          </div>
+          <span class="text-xs text-text-muted">{{ client.phone }}</span>
+        </div>
       </button>
     </div>
     <input v-if="localClientSearch && !hasSelectedClient" v-model="localClientPhone" type="text" placeholder="Teléfono (opcional)..."
@@ -20,7 +26,7 @@
 import { ref } from 'vue'
 
 defineProps<{
-  clientSuggestions: { id: string; full_name: string; phone: string }[]
+  clientSuggestions: { id: string; full_name: string; phone: string; client_code?: string | null }[]
 }>()
 
 const emit = defineEmits<{
@@ -44,6 +50,7 @@ const onClientInput = () => {
   if (clientTimeout) clearTimeout(clientTimeout)
   const q = localClientSearch.value.trim()
   if (q.length < 1) { showClientDropdown.value = false; return }
+  showClientDropdown.value = true
   clientTimeout = setTimeout(() => emit('search-clients', q), 200)
 }
 

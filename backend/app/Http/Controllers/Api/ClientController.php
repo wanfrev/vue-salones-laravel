@@ -125,6 +125,14 @@ class ClientController
         return response()->json(null, 204);
     }
 
+    public function stats(Request $request): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId || !$this->canEmployeeSeeClients($request)) return response()->json([]);
+
+        return response()->json($this->clientService->stats($businessId, $request->branch_id));
+    }
+
     public function search(Request $request): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);

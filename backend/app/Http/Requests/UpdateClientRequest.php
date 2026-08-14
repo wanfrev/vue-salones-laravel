@@ -17,6 +17,7 @@ class UpdateClientRequest extends FormRequest
             'full_name' => 'sometimes|string|max:255',
             'phone' => 'sometimes|string|max:50',
             'email' => 'nullable|email|max:255',
+            'client_code' => 'nullable|string|max:20',
             'notes' => 'nullable|string',
             'birthday' => 'nullable|date',
             'branch_id' => 'nullable|uuid',

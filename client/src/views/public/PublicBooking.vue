@@ -1,502 +1,377 @@
 <template>
-  <!-- En móvil la página fluye y scrollea; el layout de altura fija (todo dentro
-       del viewport, sin scroll) solo aplica de `sm`/`md` en adelante. Forzarlo en
-       móvil hacía que el timeline de 14 h se pintara encima del resumen. -->
-  <div class="relative flex min-h-dvh items-start sm:items-center justify-center overflow-x-hidden sm:overflow-hidden px-0 sm:px-4 py-0 sm:py-6 bg-bg-secondary" :style="cssVars">
-    <div
-      class="absolute inset-0 bg-cover bg-center bg-no-repeat"
-      :style="{ backgroundImage: `url('${leafBackground}')` }"
-      aria-hidden="true"
-    />
-    <div class="absolute inset-0 bg-black/35 dark:bg-black/55" aria-hidden="true" />
-    <div
-      class="absolute inset-0 opacity-25 dark:opacity-20"
-      aria-hidden="true"
-      style="background-image: radial-gradient(circle at 20% 30%, rgba(134,156,132,0.2), transparent 40%), radial-gradient(circle at 80% 70%, rgba(15,23,42,0.1), transparent 35%)"
-    />
-
-    <div class="relative z-10 w-full sm:max-w-6xl sm:rounded-3xl border-0 sm:border border-white/20 dark:border-white/10 bg-white/85 dark:bg-zinc-950/85 sm:backdrop-blur-2xl shadow-2xl shadow-black/5 dark:shadow-black/30 overflow-hidden transition-shadow duration-500 min-h-dvh sm:min-h-0 sm:max-h-[96dvh] flex flex-col">
+  <div class="booking-root" :style="cssVars">
+    <div class="booking-page">
       <!-- Header -->
-      <div class="flex-shrink-0 px-4 sm:px-8 pt-3 sm:pt-5 pb-2 sm:pb-3 flex items-center justify-between border-b border-black/5 dark:border-white/5">
-        <div class="flex items-center gap-2 sm:gap-3">
-          <img :src="logo" alt="Luma" class="h-6 sm:h-7 w-auto object-contain" />
-          <span v-if="business?.name" class="text-[10px] sm:text-xs font-semibold text-text/60 tracking-wide truncate max-w-[140px] sm:max-w-none">{{ business.name }}</span>
+      <header class="header">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <img :src="logo" alt="Luma" class="h-7 sm:h-8 w-auto object-contain" />
+          <span v-if="business?.name" class="text-[11px] sm:text-xs font-semibold text-text-muted truncate">{{ business.name }}</span>
         </div>
         <button
+          type="button"
           @click="toggleTheme"
-          class="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border border-black/10 dark:border-white/10 text-text-muted hover:text-text hover:border-black/20 dark:hover:border-white/20 transition-all duration-200 active:scale-95 bg-transparent flex-shrink-0"
-          :aria-label="isDarkEffective ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
-          :title="isDarkEffective ? 'Modo claro' : 'Modo oscuro'"
+          class="h-9 w-9 flex items-center justify-center rounded-full border border-border text-text-muted hover:text-text active:scale-90 transition-all bg-transparent shrink-0"
+          :aria-label="isDarkEffective ? 'Modo claro' : 'Modo oscuro'"
         >
-          <svg v-if="!isDarkEffective" class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/>
-          </svg>
-          <svg v-else class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/>
-          </svg>
+          <svg v-if="!isDarkEffective" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z"/></svg>
+          <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z"/></svg>
         </button>
-      </div>
+      </header>
 
       <!-- Employee -->
-      <div v-if="employeeName" class="flex-shrink-0 px-4 sm:px-8 pt-2 pb-1 flex items-center gap-2 sm:gap-2.5">
-        <div class="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full text-[9px] sm:text-[10px] font-bold text-white shadow-sm flex-shrink-0" :style="{ background: `linear-gradient(135deg, ${colored('--color-primary')}, ${adjustHex(colored('--color-primary'), -15)})` }">
-          {{ getInitials(employeeName) }}
-        </div>
-        <div class="min-w-0">
-          <p class="text-[10px] sm:text-xs font-semibold text-text leading-tight truncate">Agenda con {{ employeeName }}</p>
-          <p class="text-[9px] sm:text-[10px] text-text-muted truncate">Reserva tu cita</p>
-        </div>
+      <div v-if="employeeName" class="emp-line">
+        <div class="emp-avatar" :style="{ background: primaryColor }">{{ getInitials(employeeName) }}</div>
+        <span class="text-sm font-semibold text-text truncate">Agenda con {{ employeeName }}</span>
       </div>
 
       <!-- Steps -->
-      <div class="flex-shrink-0 flex items-center justify-center gap-1 sm:gap-1.5 px-4 sm:px-8 pb-1 sm:pb-2">
-        <button
-          v-for="(step, i) in steps" :key="i"
-          @click="currentStep >= i ? goToStep(i) : undefined"
-          :disabled="currentStep < i || loadingCalendar"
-          class="flex items-center gap-1 sm:gap-1.5 transition-all duration-300 group"
-          :class="currentStep >= i ? 'opacity-100' : 'opacity-30 pointer-events-none'"
-        >
-          <span
-            class="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-[9px] sm:text-[10px] font-bold transition-all duration-300"
-            :class="currentStep === i
-              ? 'text-white shadow-md scale-100'
-              : currentStep > i
-                ? 'text-primary/80'
-                : 'text-text-muted bg-black/5 dark:bg-white/5'"
-            :style="currentStep === i ? { background: `linear-gradient(135deg, ${colored('--color-primary')}, ${adjustHex(colored('--color-primary'), -10)})`, boxShadow: `0 4px 12px ${colored('--color-primary')}33` } : currentStep > i ? { background: `${colored('--color-primary')}18` } : {}"
+      <nav class="steps-nav" aria-label="Progreso">
+        <template v-for="(label, i) in steps" :key="i">
+          <button
+            type="button"
+            @click="goToStep(i)"
+            :disabled="i > maxReachedStep"
+            class="step-btn"
+            :class="i > maxReachedStep ? 'opacity-25 pointer-events-none' : ''"
           >
-            {{ currentStep > i ? '✓' : i + 1 }}
-          </span>
-          <span class="text-[9px] sm:text-[10px] font-semibold hidden sm:inline transition-colors duration-300" :class="currentStep >= i ? 'text-text' : 'text-text-muted'">
-            {{ step.label }}
-          </span>
-          <span v-if="i < steps.length - 1" class="w-3 sm:w-5 h-px mx-0 sm:mx-0.5 transition-colors duration-300" :class="currentStep > i ? 'bg-primary/40' : 'bg-black/10 dark:bg-white/8'" />
-        </button>
-      </div>
+            <span
+              class="step-num"
+              :style="i === currentStep
+                ? { background: primaryColor, color: '#fff' }
+                : i < currentStep
+                  ? { background: `${primaryColor}88`, color: '#fff' }
+                  : {}"
+            >
+              <template v-if="i < currentStep">✓</template>
+              <template v-else>{{ i + 1 }}</template>
+            </span>
+            <span class="step-txt" :style="i === currentStep ? { color: primaryColor, fontWeight: 700 } : {}">{{ label }}</span>
+          </button>
+          <span v-if="i < steps.length - 1" class="step-divider" :style="i < currentStep ? { background: `${primaryColor}55` } : {}" />
+        </template>
+      </nav>
+
+      <!-- Loading / Errors -->
+      <div v-if="loadingBusiness" class="flex-1 flex items-center justify-center"><div class="spinner" /></div>
+      <div v-else-if="businessError" class="flex-1 flex items-center justify-center text-center px-4"><p class="text-sm text-text-muted">Negocio no encontrado.</p></div>
+      <div v-else-if="!publicBookingEnabled" class="flex-1 flex items-center justify-center text-center px-4"><p class="text-sm text-text-muted">Reservas no disponibles.</p></div>
 
       <!-- Content -->
-      <div class="flex flex-col md:flex-1 md:min-h-0 md:overflow-hidden">
-        <!-- LOADING / ERROR / DISABLED -->
-        <div v-if="loadingBusiness" class="flex-1 flex items-center justify-center">
-          <div class="flex flex-col items-center gap-3">
-            <div class="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-            <p class="text-xs text-text-muted">Cargando...</p>
+      <div v-else class="content-area">
+        <!-- STEP 0: Día -->
+        <div v-if="currentStep === 0" class="step-view">
+          <div class="cal-head">
+            <button type="button" @click="prevMonth" :disabled="!canGoPrevMonth" class="cal-nav-btn" :class="{ 'opacity-20': !canGoPrevMonth }">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+            <span class="cal-month-title">{{ calendarMonthLabel }}</span>
+            <button type="button" @click="nextMonth" :disabled="!canGoNextMonth" class="cal-nav-btn" :class="{ 'opacity-20': !canGoNextMonth }">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+          <div class="cal-dow"><span v-for="d in dayOfWeekHeaders" :key="d">{{ d }}</span></div>
+          <div class="cal-grid">
+            <button
+              v-for="(c, ci) in calendarCells"
+              :key="ci"
+              type="button"
+              class="cal-day"
+              :disabled="!c.selectable"
+              :class="{
+                'cal-day-sel': c.isSelected,
+                'cal-day-today': c.isToday && !c.isSelected,
+                'cal-day-ghost': !c.selectable,
+              }"
+              :style="c.isSelected ? { background: primaryColor, color: '#fff' } : c.isToday ? { boxShadow: `inset 0 0 0 1.5px ${primaryColor}` } : {}"
+              @click="onSelectDay(c)"
+            >{{ c.dayNumber }}</button>
           </div>
         </div>
-        <div v-else-if="businessError" class="flex-1 flex items-center justify-center text-center px-6">
-          <div>
-            <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-danger/10">
-              <svg class="h-6 w-6 text-danger" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>
-            </div>
-            <p class="text-sm font-semibold text-text mb-1">Negocio no encontrado</p>
-            <p class="text-xs text-text-muted">Verifica el enlace o contacta a quien te lo envió.</p>
+
+        <!-- STEP 1: Horario -->
+        <div v-else-if="currentStep === 1" class="step-view">
+          <button type="button" class="back-link" @click="goToStep(0)">← {{ formatDateLabel(selectedDate) }}</button>
+          <p class="step-hint">{{ freeSlots.length }} horario{{ freeSlots.length !== 1 ? 's' : '' }} disponible{{ freeSlots.length !== 1 ? 's' : '' }}</p>
+
+          <div v-if="loadingCalendar" class="flex-1 flex items-center justify-center"><div class="spinner" /></div>
+          <div v-else-if="!hasSchedule" class="flex-1 flex flex-col items-center justify-center text-center gap-2">
+            <p class="font-semibold text-text text-sm">Sin horario este día</p>
+            <p class="text-xs text-text-muted">{{ employeeName || 'El profesional' }} no atiende.</p>
+            <button type="button" class="text-xs font-semibold" :style="{ color: primaryColor }" @click="goToStep(0)">Elegir otro día</button>
+          </div>
+          <div v-else-if="freeSlots.length === 0" class="flex-1 flex items-center justify-center">
+            <p class="text-sm text-text-muted">No hay horarios libres.</p>
+          </div>
+          <div v-else class="slots-wrap">
+            <button
+              v-for="s in freeSlots"
+              :key="s.label + s.start"
+              type="button"
+              class="slot"
+              :class="{ 'slot-sel': pendingSlot?.start === s.start }"
+              :style="pendingSlot?.start === s.start ? { borderColor: primaryColor, background: `${primaryColor}14` } : {}"
+              @click="onSelectTime(s)"
+            >{{ s.label }}</button>
           </div>
         </div>
-        <div v-else-if="!publicBookingEnabled" class="flex-1 flex items-center justify-center text-center px-6">
-          <div>
-            <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-warning/10">
-              <svg class="h-6 w-6 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/></svg>
-            </div>
-            <p class="text-sm font-semibold text-text mb-1">Reservas no disponibles</p>
-            <p class="text-xs text-text-muted">Este negocio no acepta reservas públicas en este momento.</p>
+
+        <!-- STEP 2: Servicios (multi-select) -->
+        <div v-else-if="currentStep === 2" class="step-view">
+          <div class="svc-top">
+            <button type="button" class="back-link" @click="goToStep(1)">
+              ← {{ formatDateLabel(selectedDate) }} · {{ pendingSlot ? formatSlotTime(pendingSlot) : '' }}
+            </button>
+            <span class="text-[10px] sm:text-xs text-text-muted font-medium shrink-0">{{ formatDuration(availableMinutes) }} disp.</span>
           </div>
+          <p class="step-hint">Puedes elegir varios servicios</p>
+
+          <div v-if="(services ?? []).length === 0" class="flex-1 flex items-center justify-center">
+            <p class="text-xs text-text-muted">Sin servicios disponibles.</p>
+          </div>
+          <div v-else class="svc-list">
+            <button
+              v-for="svc in (services ?? [])"
+              :key="svc.id"
+              type="button"
+              class="svc-item"
+              :class="{ 'svc-sel': isServiceSelected(svc) }"
+              :style="isServiceSelected(svc) ? { borderColor: primaryColor, background: `${primaryColor}0A` } : {}"
+              @click="toggleService(svc)"
+            >
+              <span class="svc-check" :style="isServiceSelected(svc) ? { background: primaryColor, borderColor: primaryColor } : {}">
+                <svg v-if="isServiceSelected(svc)" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+              </span>
+              <span class="svc-info">
+                <span class="svc-name">{{ svc.name }}</span>
+                <span class="svc-meta">{{ svc.duration_minutes }} min</span>
+              </span>
+              <span class="svc-price">${{ Number(svc.price).toFixed(0) }}</span>
+            </button>
+          </div>
+
+          <div v-if="chosenServices.length > 0" class="svc-footer">
+            <span class="text-[11px] text-text-muted">{{ chosenServices.length }} · {{ formatDuration(totalSelectedDuration) }}</span>
+            <span class="text-sm font-extrabold" :style="{ color: primaryColor }">${{ totalSelectedPrice.toFixed(0) }}</span>
+          </div>
+          <p v-if="chosenServices.length > 0 && !canConfirm" class="err-msg">
+            La duración total supera el tiempo disponible en este horario. Quita un servicio o elige otro horario.
+          </p>
+          <button
+            type="button"
+            class="cta-btn"
+            :disabled="!canConfirm"
+            :style="{ background: primaryColor, opacity: canConfirm ? 1 : 0.35 }"
+            @click="goToConfirm"
+          >
+            {{ chosenServices.length
+              ? `Continuar con ${chosenServices.length} servicio${chosenServices.length !== 1 ? 's' : ''}`
+              : 'Selecciona al menos un servicio' }}
+          </button>
         </div>
 
-        <template v-else>
-          <!-- ============ STEP 0: DATE PICKER TOP, TIMELINE MIDDLE, SUMMARY BOTTOM ============ -->
-          <div v-if="currentStep === 0" class="grid grid-cols-1 md:grid-cols-[1fr_1.5fr] md:flex-1 md:min-h-0 gap-0 md:gap-0 px-3 sm:px-6 pb-3 sm:pb-5">
-            <!-- TOP: Date picker (mobile) / left-top (desktop) -->
-            <div class="md:col-start-1 md:row-start-1 pt-1 md:pt-2 md:pl-2 flex flex-col gap-2 sm:gap-3">
-              <div>
-                <p class="text-[10px] sm:text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5 sm:mb-2">Selecciona un día</p>
-                <div class="flex items-center gap-1.5 sm:gap-2">
-                  <button @click="goPrevDay" class="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg sm:rounded-xl border border-black/8 dark:border-white/8 text-text-secondary hover:bg-black/3 dark:hover:bg-white/5 hover:border-black/15 dark:hover:border-white/15 transition-all active:scale-95 flex-shrink-0">
-                    <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                  </button>
-                  <input type="date" :value="selectedDate" @change="onDateChange" :min="todayStr" :max="maxDateStr"
-                    class="flex-1 rounded-lg sm:rounded-xl border border-black/8 dark:border-white/8 bg-transparent px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-text text-center outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all cursor-pointer [color-scheme:light_dark] min-w-0" />
-                  <button @click="goNextDay" class="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg sm:rounded-xl border border-black/8 dark:border-white/8 text-text-secondary hover:bg-black/3 dark:hover:bg-white/5 hover:border-black/15 dark:hover:border-white/15 transition-all active:scale-95 flex-shrink-0">
-                    <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                  </button>
-                </div>
-                <button @click="goToday"
-                  class="w-full mt-1.5 sm:mt-2 rounded-lg sm:rounded-xl border border-black/5 dark:border-white/5 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-[11px] font-medium text-text-muted hover:text-text hover:bg-black/3 dark:hover:bg-white/3 transition-all active:scale-[0.98]">
-                  Ir a hoy — {{ formatDateLabel(todayStr) }}
-                </button>
-              </div>
-            </div>
+        <!-- STEP 3: Confirmar -->
+        <div v-else-if="currentStep === 3" class="step-view">
+          <button type="button" class="back-link" @click="goToStep(2)">← Cambiar servicios</button>
+          <p class="text-sm font-bold text-text">Confirma tu reserva</p>
 
-            <!-- MIDDLE: Timeline (mobile) / right full-height (desktop) -->
-            <div class="md:col-start-2 md:row-start-1 md:row-span-2 pt-2 md:pt-2 md:pr-2 flex flex-col md:min-h-0">
-              <div v-if="loadingCalendar" class="flex-1 flex items-center justify-center">
-                <div class="flex flex-col items-center gap-3">
-                  <div class="h-7 w-7 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                  <p class="text-xs text-text-muted">Cargando disponibilidad...</p>
-                </div>
-              </div>
-              <div v-else-if="!hasSchedule" class="flex-1 flex items-center justify-center">
-                <div class="text-center px-4">
-                  <div class="mx-auto mb-2 sm:mb-3 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/5 dark:bg-white/5">
-                    <svg class="h-4 w-4 sm:h-5 sm:w-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                  </div>
-                  <p class="text-xs sm:text-sm font-semibold text-text mb-0.5">Sin horario disponible</p>
-                  <p class="text-[10px] sm:text-xs text-text-muted">{{ employeeName }} no atiende este día.</p>
-                </div>
-              </div>
-              <div v-else class="flex flex-col md:flex-1 md:min-h-0">
-                <p class="text-[9px] sm:text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-1.5 sm:mb-2 flex-shrink-0 hidden md:block">Horarios</p>
-                <p class="text-[9px] font-semibold text-text-muted mb-1 flex-shrink-0 md:hidden">{{ formatDateLabel(selectedDate) }}</p>
-                <div class="flex-1 relative rounded-xl sm:rounded-2xl border border-black/5 dark:border-white/5 bg-black/[0.015] dark:bg-white/[0.015] p-2 sm:p-2.5" :style="{ minHeight: `${totalHeight + 4}px` }">
-                  <div v-for="h in hours" :key="'l'+h.hour"
-                    class="absolute left-1.5 sm:left-2 w-9 sm:w-10 text-right pr-1.5 sm:pr-2 text-[8px] sm:text-[9px] font-medium text-text-muted/50"
-                    :style="{ top: `${(h.hour - startHour) * slotHeight + 4}px` }">
-                    {{ h.label }}
-                  </div>
-                  <div v-for="h in hours" :key="'g'+h.hour"
-                    class="absolute left-11 sm:left-12 right-0.5 sm:right-1 border-t border-dashed border-black/[0.03] dark:border-white/[0.03]"
-                    :style="{ top: `${(h.hour - startHour) * slotHeight + 4}px` }" />
-                  <div v-for="(block, i) in occupiedBlocks" :key="'o'+i"
-                    class="absolute left-11 sm:left-12 right-0.5 sm:right-1 rounded-md flex items-center justify-center text-[9px] font-semibold tracking-wide overflow-hidden border"
-                    :style="{ top: `${block.top + 4}px`, height: `${block.height}px` }">
-                    <div class="absolute inset-0 opacity-20" :style="{ background: block.confirmed ? '#f59e0b' : '#94a3b8' }" />
-                    <span class="relative text-[7px] sm:text-[8px] uppercase tracking-widest" :style="{ color: block.confirmed ? '#b45309' : '#64748b' }">OCUPADO</span>
-                  </div>
-                  <div v-for="(abs, i) in absenceBlocks" :key="'a'+i"
-                    class="absolute left-11 sm:left-12 right-0.5 sm:right-1 rounded-md flex items-center justify-center text-[7px] sm:text-[8px] uppercase tracking-widest font-semibold"
-                    :style="{ top: `${abs.top + 4}px`, height: `${abs.height}px`, background: 'rgba(239,68,68,0.04)', border: '1px dashed rgba(239,68,68,0.12)', color: 'rgba(239,68,68,0.45)' }">
-                    NO DISPONIBLE
-                  </div>
-                  <div v-for="(slot, i) in freeSlots" :key="'s'+i"
-                    class="absolute left-11 sm:left-12 right-0.5 sm:right-1 rounded-md flex items-center justify-center cursor-pointer transition-all duration-200 group active:scale-[0.98]"
-                    :style="{ top: `${slot.top + 4}px`, height: `${slot.height}px`, animationDelay: `${i * 30}ms` }"
-                    :class="pendingSlot === slot
-                      ? 'bg-primary/25 dark:bg-primary/30 border-2 border-primary/50 shadow-sm shadow-primary/10'
-                      : 'border border-dashed border-primary/20 dark:border-primary/25 bg-primary/[0.04] dark:bg-primary/[0.06] hover:bg-primary/10 dark:hover:bg-primary/15 hover:border-primary/40 dark:hover:border-primary/40'"
-                    @click="selectTimeSlot(slot)">
-                    <span
-                      class="text-[9px] sm:text-[10px] font-semibold transition-colors"
-                      :class="pendingSlot === slot ? 'text-primary dark:text-primary' : 'text-primary/50 dark:text-primary/50 group-hover:text-primary/80 dark:group-hover:text-primary/80'">
-                      {{ slot.label }}
-                    </span>
-                  </div>
-                </div>
-              </div>
+          <div class="summary">
+            <div class="sum-row">
+              <span class="sum-lbl">Servicios</span>
+              <span class="sum-val">{{ chosenServices.map(s => s.name).join(', ') }}</span>
             </div>
-
-            <!-- BOTTOM: Summary + continue (mobile) / left-bottom (desktop) -->
-            <div class="md:col-start-1 md:row-start-2 pt-2 md:pt-0 md:pl-2 md:pb-2 flex flex-col">
-              <div v-if="pendingSlot" class="rounded-xl sm:rounded-2xl border border-primary/20 dark:border-primary/25 bg-primary/[0.04] dark:bg-primary/[0.06] p-3 sm:p-4 flex flex-col gap-1">
-                <p class="text-[9px] sm:text-[10px] font-semibold text-text-muted uppercase tracking-wider">Horario seleccionado</p>
-                <p class="text-sm sm:text-base font-bold" :style="{ color: colored('--color-primary') }">{{ formatSlotTime(pendingSlot) }}</p>
-                <p class="text-[9px] sm:text-[10px] text-text-muted">{{ formatDateLabel(selectedDate) }}</p>
-                <p class="text-[9px] sm:text-[10px] text-text-muted">Hasta {{ formatDuration(availableMinutes) }} disponibles</p>
-              </div>
-              <div v-else class="flex-1 flex items-center justify-center text-text-muted/30 py-3 md:py-0">
-                <p class="text-[10px] sm:text-xs text-center">Elige un horario en el calendario<br/>para ver los servicios</p>
-              </div>
-              <button v-if="pendingSlot" @click="currentStep = 1"
-                class="w-full mt-2 sm:mt-3 rounded-xl sm:rounded-2xl py-3 sm:py-3.5 text-xs sm:text-sm font-bold text-white shadow-lg transition-all active:scale-[0.98] flex items-center justify-center gap-1.5 sm:gap-2"
-                :style="{ background: `linear-gradient(135deg, ${colored('--color-primary')}, ${adjustHex(colored('--color-primary'), -12)})`, boxShadow: `0 8px 25px ${colored('--color-primary')}40` }">
-                <span>Ver servicios</span>
-                <svg class="h-3.5 w-3.5 sm:h-4 sm:w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7"/></svg>
-              </button>
+            <div class="sum-row">
+              <span class="sum-lbl">Duración</span>
+              <span class="sum-val">{{ formatDuration(totalSelectedDuration) }}</span>
+            </div>
+            <div class="sum-row">
+              <span class="sum-lbl">Día y hora</span>
+              <span class="sum-val">{{ formatSlotRange(pendingSlot) }}</span>
+            </div>
+            <div class="sum-row">
+              <span class="sum-lbl">Profesional</span>
+              <span class="sum-val">{{ employeeName }}</span>
+            </div>
+            <div class="sum-row sum-total" :style="{ background: `${primaryColor}0A` }">
+              <span class="text-xs font-bold text-text">Total</span>
+              <span class="text-base font-extrabold" :style="{ color: primaryColor }">${{ totalSelectedPrice.toFixed(0) }}</span>
             </div>
           </div>
 
-          <!-- ============ STEP 1: SERVICES ============ -->
-          <div v-else-if="currentStep === 1" class="flex-1 min-h-0 grid grid-cols-1 md:grid-cols-[1fr_1.5fr] gap-0 md:gap-0 px-3 sm:px-6 pb-3 sm:pb-5">
-            <div class="md:col-start-1 md:row-start-1 md:row-span-2 pt-1 md:pt-2 md:pl-2 min-h-0 md:overflow-y-auto flex flex-col gap-2 sm:gap-3">
-              <button @click="currentStep = 0"
-                class="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium text-text-muted hover:text-text transition-colors flex-shrink-0">
-                <svg class="h-3 w-3 sm:h-3.5 sm:w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                <span class="truncate">{{ formatDateLabel(selectedDate) }} · {{ formatSlotTime(pendingSlot) }}</span>
-              </button>
+          <label class="name-label">¿Cómo te llamas? <span class="text-danger">*</span></label>
+          <input
+            v-model="clientName"
+            type="text"
+            placeholder="Tu nombre completo"
+            maxlength="200"
+            class="name-inp"
+            :class="{ 'name-err': nameTouched && !nameValid }"
+            @input="nameTouched = true"
+          />
+          <p v-if="nameTouched && !nameValid" class="err-msg">El nombre es obligatorio.</p>
+          <p v-if="submitError" class="err-msg">{{ submitError }}</p>
 
-              <div class="flex-shrink-0">
-                <p class="text-sm sm:text-sm font-bold text-text mb-0.5">Elige tu servicio</p>
-                <p class="text-[10px] sm:text-xs text-text-muted flex items-center gap-1 sm:gap-1.5">
-                  <svg class="h-3 w-3 sm:h-3.5 sm:w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                  Hasta {{ formatDuration(availableMinutes) }}
-                </p>
-              </div>
+          <button
+            type="button"
+            class="cta-btn"
+            :disabled="submitting || !canSubmit"
+            :style="{ background: primaryColor, opacity: (submitting || !canSubmit) ? 0.4 : 1 }"
+            @click="submitRequest"
+          >
+            <span v-if="submitting" class="spinner-sm" />
+            {{ submitting ? 'Reservando…' : 'Confirmar reserva' }}
+          </button>
+        </div>
 
-              <div v-if="filterableServices.length === 0" class="flex-1 flex items-center justify-center py-6 text-center">
-                <div>
-                  <p class="text-xs text-text-muted">Ningún servicio cabe en este espacio.</p>
-                  <button @click="currentStep = 0" class="text-primary font-medium hover:underline mt-1.5 text-xs inline-block">Elige otro horario</button>
-                </div>
-              </div>
-
-              <div v-else class="space-y-1.5 sm:space-y-2">
-                <button v-for="svc in filterableServices" :key="svc.id"
-                  @click="selectService(svc)"
-                  class="w-full rounded-lg sm:rounded-xl border p-2.5 sm:p-3 text-left transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.98] group"
-                  :class="chosenService?.id === svc.id
-                    ? 'border-primary/40 dark:border-primary/30 bg-primary/[0.06] dark:bg-primary/[0.08] shadow-sm shadow-primary/5'
-                    : 'border-black/6 dark:border-white/6 hover:border-primary/30 hover:bg-black/[0.01] dark:hover:bg-white/[0.02] hover:shadow-md'">
-                  <div class="flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-2 min-w-0">
-                      <div class="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full flex-shrink-0" :style="{ background: svc.color || colored('--color-primary') }" />
-                      <div class="min-w-0">
-                        <p class="text-xs sm:text-sm font-bold text-text truncate">{{ svc.name }}</p>
-                        <p class="text-[9px] sm:text-[10px] text-text-muted">{{ svc.duration_minutes }} min</p>
-                      </div>
-                    </div>
-                    <p class="text-sm sm:text-base font-extrabold text-text flex-shrink-0">${{ svc.price.toFixed(0) }}</p>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            <!-- Timeline on desktop only -->
-            <div class="hidden md:flex md:col-start-2 md:row-start-1 md:row-span-2 pt-2 md:pt-2 md:pr-2 flex-col min-h-0">
-              <div v-if="loadingCalendar" class="flex-1 flex items-center justify-center">
-                <div class="flex flex-col items-center gap-3">
-                  <div class="h-7 w-7 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                  <p class="text-xs text-text-muted">Cargando disponibilidad...</p>
-                </div>
-              </div>
-              <div v-else-if="!hasSchedule" class="flex-1 flex items-center justify-center">
-                <div class="text-center px-4">
-                  <div class="mx-auto mb-2 sm:mb-3 flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/5 dark:bg-white/5">
-                    <svg class="h-4 w-4 sm:h-5 sm:w-5 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                  </div>
-                  <p class="text-xs sm:text-sm font-semibold text-text mb-0.5">Sin horario disponible</p>
-                  <p class="text-[10px] sm:text-xs text-text-muted">{{ employeeName }} no atiende este día.</p>
-                </div>
-              </div>
-              <div v-else class="flex-1 flex flex-col min-h-0">
-                <p class="text-[11px] font-semibold text-text-muted uppercase tracking-wider mb-2 flex-shrink-0">Horario seleccionado</p>
-                <div class="flex-1 relative rounded-2xl border border-black/5 dark:border-white/5 bg-black/[0.015] dark:bg-white/[0.015] p-2.5" :style="{ minHeight: `${totalHeight + 4}px` }">
-                  <div v-for="h in hours" :key="'l2'+h.hour"
-                    class="absolute left-2 w-10 text-right pr-2 text-[9px] font-medium text-text-muted/50"
-                    :style="{ top: `${(h.hour - startHour) * slotHeight + 4}px` }">
-                    {{ h.label }}
-                  </div>
-                  <div v-for="h in hours" :key="'g2'+h.hour"
-                    class="absolute left-12 right-1 border-t border-dashed border-black/[0.03] dark:border-white/[0.03]"
-                    :style="{ top: `${(h.hour - startHour) * slotHeight + 4}px` }" />
-                  <div v-for="(block, i) in occupiedBlocks" :key="'o2'+i"
-                    class="absolute left-12 right-1 rounded-md flex items-center justify-center text-[9px] font-semibold tracking-wide overflow-hidden border"
-                    :style="{ top: `${block.top + 4}px`, height: `${block.height}px` }">
-                    <div class="absolute inset-0 opacity-20" :style="{ background: block.confirmed ? '#f59e0b' : '#94a3b8' }" />
-                    <span class="relative text-[8px] uppercase tracking-widest" :style="{ color: block.confirmed ? '#b45309' : '#64748b' }">OCUPADO</span>
-                  </div>
-                  <div v-for="(abs, i) in absenceBlocks" :key="'a2'+i"
-                    class="absolute left-12 right-1 rounded-md flex items-center justify-center text-[8px] uppercase tracking-widest font-semibold"
-                    :style="{ top: `${abs.top + 4}px`, height: `${abs.height}px`, background: 'rgba(239,68,68,0.04)', border: '1px dashed rgba(239,68,68,0.12)', color: 'rgba(239,68,68,0.45)' }">
-                    NO DISPONIBLE
-                  </div>
-                  <div v-for="(slot, i) in freeSlots" :key="'s2'+i"
-                    class="absolute left-12 right-1 rounded-md flex items-center justify-center cursor-pointer transition-all duration-200 group active:scale-[0.98]"
-                    :style="{ top: `${slot.top + 4}px`, height: `${slot.height}px`, animationDelay: `${i * 30}ms` }"
-                    :class="pendingSlot === slot
-                      ? 'bg-primary/25 dark:bg-primary/30 border-2 border-primary/50 shadow-sm shadow-primary/10'
-                      : 'border border-dashed border-primary/20 dark:border-primary/25 bg-primary/[0.04] dark:bg-primary/[0.06] hover:bg-primary/10 dark:hover:bg-primary/15 hover:border-primary/40 dark:hover:border-primary/40'"
-                    @click="selectTimeSlot(slot)">
-                    <span
-                      class="text-[10px] font-semibold transition-colors"
-                      :class="pendingSlot === slot ? 'text-primary dark:text-primary' : 'text-primary/50 dark:text-primary/50 group-hover:text-primary/80 dark:group-hover:text-primary/80'">
-                      {{ slot.label }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <!-- STEP 4: Éxito -->
+        <div v-else-if="currentStep === 4" class="step-view success-view">
+          <div class="success-circle" :style="{ background: `${primaryColor}15` }">
+            <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" :style="{ color: primaryColor }">
+              <path d="M5 13l4 4L19 7" class="success-path" />
+            </svg>
           </div>
-
-          <!-- ============ STEP 2: CONFIRMATION ============ -->
-          <Transition name="step-fade" mode="out-in">
-            <div v-if="currentStep === 2" key="step-2" class="flex-1 flex items-start justify-center px-4 sm:px-6 pb-4 sm:pb-6 pt-1 sm:pt-2 md:pt-4 overflow-y-auto">
-              <div class="w-full max-w-md space-y-3 sm:space-y-4">
-                <button @click="currentStep = 1"
-                  class="flex items-center gap-1 sm:gap-1.5 text-[10px] sm:text-xs font-medium text-text-muted hover:text-text transition-colors">
-                  <svg class="h-3 w-3 sm:h-3.5 sm:w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                  Cambiar servicio
-                </button>
-
-                <div>
-                  <p class="text-base sm:text-lg font-bold text-text mb-0.5">Confirma tu reserva</p>
-                  <p class="text-[10px] sm:text-xs text-text-muted">Revisa los detalles antes de enviar</p>
-                </div>
-
-                <div class="rounded-xl sm:rounded-2xl border border-black/6 dark:border-white/6 overflow-hidden bg-black/[0.01] dark:bg-white/[0.01]">
-                  <div class="px-4 sm:px-5 py-2.5 sm:py-3 border-b border-black/3 dark:border-white/3" :style="{ background: `${colored('--color-primary')}0D` }">
-                    <p class="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider" :style="{ color: `${colored('--color-primary')}cc` }">Detalle de la cita</p>
-                  </div>
-                  <div class="divide-y divide-black/[0.03] dark:divide-white/[0.03]">
-                    <div class="flex items-center justify-between px-4 sm:px-5 py-2.5 sm:py-3">
-                      <span class="text-[11px] sm:text-xs text-text-muted">Servicio</span>
-                      <span class="text-[11px] sm:text-xs font-semibold text-text">{{ chosenService?.name }}</span>
-                    </div>
-                    <div class="flex items-center justify-between px-4 sm:px-5 py-2.5 sm:py-3">
-                      <span class="text-[11px] sm:text-xs text-text-muted">Duración</span>
-                      <span class="text-[11px] sm:text-xs font-semibold text-text">{{ chosenService?.duration_minutes }} min</span>
-                    </div>
-                    <div class="flex items-center justify-between px-4 sm:px-5 py-2.5 sm:py-3">
-                      <span class="text-[11px] sm:text-xs text-text-muted">Día y hora</span>
-                      <span class="text-[11px] sm:text-xs font-semibold text-text">{{ formatSlotRange(pendingSlot) }}</span>
-                    </div>
-                    <div class="flex items-center justify-between px-4 sm:px-5 py-2.5 sm:py-3">
-                      <span class="text-[11px] sm:text-xs text-text-muted">Profesional</span>
-                      <span class="text-[11px] sm:text-xs font-semibold text-text flex items-center gap-1.5">
-                        <span class="inline-flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full text-[7px] sm:text-[8px] font-bold text-white" :style="{ background: `linear-gradient(135deg, ${colored('--color-primary')}, ${adjustHex(colored('--color-primary'), -15)})` }">{{ getInitials(employeeName) }}</span>
-                        {{ employeeName }}
-                      </span>
-                    </div>
-                    <div class="flex items-center justify-between px-4 sm:px-5 py-2.5 sm:py-3 bg-black/[0.02] dark:bg-white/[0.02]">
-                      <span class="text-[11px] sm:text-xs font-semibold text-text">Total</span>
-                      <span class="text-base sm:text-lg font-extrabold" :style="{ color: colored('--color-primary') }">${{ chosenService?.price.toFixed(0) }}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label class="block text-[10px] sm:text-[11px] font-semibold text-text mb-1 sm:mb-1.5 uppercase tracking-wider">¿Cómo te llamas?</label>
-                  <input
-                    v-model="clientName"
-                    type="text"
-                    placeholder="Tu nombre"
-                    maxlength="200"
-                    class="w-full rounded-lg sm:rounded-xl border border-black/8 dark:border-white/8 bg-transparent px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm text-text placeholder:text-text-muted/40 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
-                  <p class="text-[9px] sm:text-[10px] text-text-muted/60 mt-1 sm:mt-1.5 flex items-center gap-1">
-                    <svg class="h-2.5 w-2.5 sm:h-3 sm:w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    Solo para identificar tu solicitud.
-                  </p>
-                </div>
-
-                <button @click="submitRequest" :disabled="submitting"
-                  class="w-full rounded-xl sm:rounded-2xl py-3 sm:py-3.5 text-xs sm:text-sm font-bold text-white shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  :style="{ background: `linear-gradient(135deg, ${colored('--color-primary')}, ${adjustHex(colored('--color-primary'), -12)})`, boxShadow: `0 8px 25px ${colored('--color-primary')}40` }">
-                  <svg v-if="submitting" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
-                  {{ submitting ? 'Reservando...' : 'Confirmar reserva' }}
-                </button>
-              </div>
-            </div>
-          </Transition>
-
-          <!-- ============ STEP 3: SUCCESS ============ -->
-          <Transition name="step-fade" mode="out-in">
-            <div v-if="currentStep === 3" key="step-3" class="flex-1 flex items-center justify-center px-4 sm:px-6 pb-4 sm:pb-6 pt-1 sm:pt-2">
-              <div class="text-center max-w-xs px-2">
-                <div class="mx-auto mb-4 sm:mb-5 flex h-16 w-16 sm:h-20 sm:w-20 items-center justify-center rounded-full relative" :style="{ background: `${colored('--color-primary')}0F` }">
-                  <svg class="h-7 w-7 sm:h-9 sm:w-9 success-check" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" :style="{ color: colored('--color-primary') }">
-                    <path class="check-path" d="M5 13l4 4L19 7"/>
-                  </svg>
-                  <div class="absolute inset-0 rounded-full border-2 success-ring" :style="{ borderColor: `${colored('--color-primary')}40` }" />
-                </div>
-
-                <h2 class="text-lg sm:text-xl font-extrabold text-text mb-1 sm:mb-1.5">¡Reserva enviada!</h2>
-                <p class="text-[10px] sm:text-xs text-text-muted mb-4 sm:mb-5 leading-relaxed">
-                  {{ employeeName }} recibirá tu solicitud para
-                  <span class="font-semibold text-text">{{ chosenService?.name }}</span>
-                  el {{ formatSlotRange(pendingSlot) }}.
-                </p>
-                <p class="text-[9px] sm:text-[10px] text-text-muted/40">Gracias por tu reserva.</p>
-              </div>
-            </div>
-          </Transition>
-        </template>
+          <h2 class="text-lg font-extrabold text-text mt-3">¡Reserva enviada!</h2>
+          <p class="text-sm text-text-muted mt-2 leading-relaxed max-w-xs">
+            {{ employeeName }} recibirá tu solicitud para
+            <b class="text-text">{{ chosenServices.map(s => s.name).join(', ') }}</b>
+            el {{ formatSlotRange(pendingSlot) }}.
+          </p>
+          <p class="text-xs text-text-muted/50 mt-3">Gracias por tu reserva.</p>
+        </div>
       </div>
+
+      <footer v-if="business && publicBookingEnabled && currentStep !== 4" class="footer">
+        <p class="text-[10px] text-text-muted/40">{{ business.name }} recibirá tu solicitud.</p>
+      </footer>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { useThemeStore } from '../../store/theme'
-import { getBusinessPublic, getEmployeePublic, listPublicServices, submitBookingRequest, getCalendarData } from '../../services/publicBookingService'
+import {
+  getBusinessPublic,
+  getEmployeePublic,
+  listPublicServices,
+  submitBookingRequest,
+  getCalendarData,
+} from '../../services/publicBookingService'
 import type { PublicService } from '../../services/publicBookingService'
 import logoLight from '../../assets/Luma.svg'
 import logoDark from '../../assets/Luma blanco.svg'
-import leafBackground from '../../assets/Fondo.jpg'
 
 const route = useRoute()
 const themeStore = useThemeStore()
 const slug = computed(() => route.params.slug as string)
-const presetEmployeeId = ref((route.query.empleado as string) || '')
+const presetEmployeeId = ref(String(route.query.empleado || ''))
 
 const logo = computed(() => (themeStore.isDark ? logoDark : logoLight))
 const isDarkEffective = computed(() => themeStore.isDark)
+function toggleTheme() { themeStore.toggle() }
 
-function toggleTheme() {
-  themeStore.toggle()
-}
+const today = new Date()
+const todayStr = today.toISOString().slice(0, 10)
+const maxCal = new Date(today.getFullYear(), today.getMonth() + 4, 0)
+const maxCalStr = maxCal.toISOString().slice(0, 10)
 
-const todayStr = new Date().toISOString().slice(0, 10)
-const maxDate = new Date(); maxDate.setDate(maxDate.getDate() + 30)
-const maxDateStr = maxDate.toISOString().slice(0, 10)
-
+const calendarMonth = ref(new Date(today.getFullYear(), today.getMonth(), 1))
 const selectedDate = ref(todayStr)
-const currentStep = ref(0)
-const steps = [
-  { label: 'Día y hora' },
-  { label: 'Servicio' },
-  { label: 'Confirmar' },
-  { label: '¡Listo!' },
-]
+const steps = ['Día', 'Horario', 'Servicios', 'Confirmar', 'Listo'] as const
 
-const startHour = 7
-const endHour = 21
-const slotHeight = ref(52)
-const totalHeight = computed(() => (endHour - startHour) * slotHeight.value)
+const canGoPrevMonth = computed(() => {
+  const cm = calendarMonth.value
+  return cm.getFullYear() > today.getFullYear()
+    || (cm.getFullYear() === today.getFullYear() && cm.getMonth() > today.getMonth())
+})
+const canGoNextMonth = computed(() => {
+  const cm = calendarMonth.value
+  return cm.getFullYear() < maxCal.getFullYear()
+    || (cm.getFullYear() === maxCal.getFullYear() && cm.getMonth() < maxCal.getMonth())
+})
+const calendarMonthLabel = computed(() =>
+  calendarMonth.value.toLocaleDateString('es-VE', { month: 'long', year: 'numeric' }),
+)
+const dayOfWeekHeaders = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
-function updateSlotHeight() {
-  slotHeight.value = window.innerWidth >= 768 ? 40 : 54
+interface CalCell {
+  dateStr: string
+  dayNumber: number
+  isToday: boolean
+  isSelected: boolean
+  selectable: boolean
 }
 
-onMounted(() => {
-  updateSlotHeight()
-  window.addEventListener('resize', updateSlotHeight)
+const calendarCells = computed<CalCell[]>(() => {
+  const y = calendarMonth.value.getFullYear()
+  const m = calendarMonth.value.getMonth()
+  const first = new Date(y, m, 1)
+  let sd = first.getDay()
+  if (sd === 0) sd = 7
+  const dim = new Date(y, m + 1, 0).getDate()
+  const prevEnd = new Date(y, m, 0).getDate()
+  const cells: CalCell[] = []
+
+  for (let i = sd - 1; i > 0; i--) {
+    cells.push({ dateStr: '', dayNumber: prevEnd - i + 1, isToday: false, isSelected: false, selectable: false })
+  }
+  for (let d = 1; d <= dim; d++) {
+    const ds = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+    cells.push({
+      dateStr: ds,
+      dayNumber: d,
+      isToday: ds === todayStr,
+      isSelected: ds === selectedDate.value,
+      selectable: ds >= todayStr && ds <= maxCalStr,
+    })
+  }
+  const rem = 7 - (cells.length % 7)
+  if (rem < 7) {
+    for (let d = 1; d <= rem; d++) {
+      cells.push({ dateStr: '', dayNumber: d, isToday: false, isSelected: false, selectable: false })
+    }
+  }
+  return cells
 })
 
-onUnmounted(() => {
-  window.removeEventListener('resize', updateSlotHeight)
-})
+function prevMonth() {
+  if (!canGoPrevMonth.value) return
+  calendarMonth.value = new Date(calendarMonth.value.getFullYear(), calendarMonth.value.getMonth() - 1, 1)
+}
+function nextMonth() {
+  if (!canGoNextMonth.value) return
+  calendarMonth.value = new Date(calendarMonth.value.getFullYear(), calendarMonth.value.getMonth() + 1, 1)
+}
 
-const hours = computed(() =>
-  Array.from({ length: endHour - startHour }, (_, i) => {
-    const h24 = startHour + i
-    const h12 = h24 % 12 || 12; return { hour: h24, label: `${h12}:00` }
-  })
-)
+const currentStep = ref(0)
+const maxReachedStep = ref(0)
+
+function goToStep(s: number) {
+  if (s <= maxReachedStep.value) currentStep.value = s
+}
+function advanceTo(s: number) {
+  currentStep.value = s
+  maxReachedStep.value = Math.max(maxReachedStep.value, s)
+}
 
 const { data: business, error: businessError, isLoading: loadingBusiness } = useQuery({
-  queryKey: computed(() => ['public-business', slug.value] as const),
+  queryKey: computed(() => ['pb-biz', slug.value] as const),
   queryFn: () => getBusinessPublic(slug.value),
   staleTime: 5 * 60 * 1000,
 })
 
 const primaryColor = computed(() => business.value?.theme_config?.primary_color || '#869C84')
-
-const cssVars = computed(() => ({
-  '--color-primary': primaryColor.value,
-  '--color-primary-hover': adjustHex(primaryColor.value, -8),
-}))
-
-function colored(_token: string): string {
-  return primaryColor.value
-}
-
-function adjustHex(hex: string, amount: number): string {
-  const num = parseInt(hex.replace('#', ''), 16)
-  const r = Math.min(255, Math.max(0, ((num >> 16) & 0xFF) + amount))
-  const g = Math.min(255, Math.max(0, ((num >> 8) & 0xFF) + amount))
-  const b = Math.min(255, Math.max(0, (num & 0xFF) + amount))
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`
-}
+const cssVars = computed(() => ({ '--color-primary': primaryColor.value }))
 
 const publicBookingEnabled = computed(() => {
-  const features = business.value?.features
-  if (!features || typeof features !== 'object') return true
-  return features.enable_public_booking !== false
+  const f = business.value?.features
+  if (!f || typeof f !== 'object') return true
+  return f.enable_public_booking !== false
 })
 
 const { data: employeeData } = useQuery({
-  queryKey: computed(() => ['public-employee', slug.value, presetEmployeeId.value] as const),
+  queryKey: computed(() => ['pb-emp', slug.value, presetEmployeeId.value] as const),
   queryFn: () => getEmployeePublic(slug.value, presetEmployeeId.value),
   enabled: computed(() => !!presetEmployeeId.value && !!business.value),
   staleTime: 5 * 60 * 1000,
@@ -504,199 +379,423 @@ const { data: employeeData } = useQuery({
 const employeeName = computed(() => employeeData.value?.full_name || '')
 
 const { data: services } = useQuery({
-  queryKey: computed(() => ['public-services', slug.value] as const),
+  queryKey: computed(() => ['pb-svcs', slug.value] as const),
   queryFn: () => listPublicServices(slug.value),
   enabled: computed(() => !!business.value),
   staleTime: 5 * 60 * 1000,
 })
 
-const dateRange = computed(() => ({ from: `${selectedDate.value}T00:00:00`, to: `${selectedDate.value}T23:59:59` }))
+const dateRange = computed(() => ({
+  from: `${selectedDate.value}T00:00:00`,
+  to: `${selectedDate.value}T23:59:59`,
+}))
 const { data: calendarData, isLoading: loadingCalendar } = useQuery({
-  queryKey: computed(() => ['public-calendar', slug.value, presetEmployeeId.value, selectedDate.value] as const),
+  queryKey: computed(() => ['pb-cal', slug.value, presetEmployeeId.value, selectedDate.value] as const),
   queryFn: () => getCalendarData(slug.value, presetEmployeeId.value, dateRange.value.from, dateRange.value.to),
-  enabled: computed(() => !!presetEmployeeId.value && !!business.value),
+  enabled: computed(() => !!presetEmployeeId.value && !!business.value && currentStep.value >= 1),
   staleTime: 0,
 })
 
-const schedules = computed(() => calendarData.value?.schedules ?? [])
-const occupied = computed(() => calendarData.value?.occupied ?? [])
-const absences = computed(() => calendarData.value?.absences ?? [])
-const selectedDayOfWeek = computed(() => new Date(selectedDate.value + 'T12:00:00').getDay())
-const hasSchedule = computed(() => (schedules.value as any[]).some((s: any) => s.weekday == selectedDayOfWeek.value))
+const schedules = computed(() => (calendarData.value?.schedules ?? []) as Array<{ weekday: number; start_time: string; end_time: string }>)
+const occupied = computed(() => (calendarData.value?.occupied ?? []) as Array<{ start: string; end: string }>)
+const absences = computed(() => (calendarData.value?.absences ?? []) as Array<{ start: string; end: string }>)
+const selDow = computed(() => new Date(selectedDate.value + 'T12:00:00').getDay())
+const hasSchedule = computed(() => schedules.value.some(s => Number(s.weekday) === selDow.value))
 
-function topForTime(isoStr: string): number {
-  const d = new Date(isoStr)
-  const mins = d.getHours() * 60 + d.getMinutes() - startHour * 60
-  return Math.max(0, (mins / 60) * slotHeight.value)
-}
-function heightForRange(startIso: string, endIso: string): number {
-  return Math.max(topForTime(endIso) - topForTime(startIso), 12)
-}
-
-const occupiedBlocks = computed(() =>
-  occupied.value.map((o: any) => ({ top: topForTime(o.start), height: heightForRange(o.start, o.end), confirmed: o.status === 'confirmed' }))
-)
-const absenceBlocks = computed(() =>
-  absences.value.map((a: any) => ({ top: topForTime(a.start), height: heightForRange(a.start, a.end) }))
-)
-
-interface FreeSlot { date: string; start: string; end: string; top: number; height: number; label: string; gapEndMs: number; availableMs: number }
+interface FreeSlot { start: string; label: string; availableMs: number }
 
 const freeSlots = computed<FreeSlot[]>(() => {
   const date = selectedDate.value
-  const daySchedule = (schedules.value as any[]).filter((s: any) => s.weekday == selectedDayOfWeek.value)
-  if (!daySchedule.length) return []
+  const daySchedules = schedules.value.filter(s => Number(s.weekday) === selDow.value)
+  if (!daySchedules.length) return []
 
-  const allOccupied = [
-    ...occupied.value.map((o: any) => ({ start: new Date(o.start).getTime(), end: new Date(o.end).getTime() })),
-    ...absences.value.map((a: any) => ({ start: new Date(a.start).getTime(), end: new Date(a.end).getTime() })),
-  ].sort((a, b) => a.start - b.start)
+  const occ = [
+    ...occupied.value.map(o => ({ s: new Date(o.start).getTime(), e: new Date(o.end).getTime() })),
+    ...absences.value.map(a => ({ s: new Date(a.start).getTime(), e: new Date(a.end).getTime() })),
+  ].sort((a, b) => a.s - b.s)
 
   const results: FreeSlot[] = []
-  for (const sch of daySchedule) {
-    const [sh, sm] = (sch.start_time as string).split(':').map(Number)
-    const [eh, em] = (sch.end_time as string).split(':').map(Number)
-    const schedStart = new Date(`${date}T${String(sh).padStart(2, '0')}:${String(sm).padStart(2, '0')}:00`).getTime()
-    const schedEnd = new Date(`${date}T${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}:00`).getTime()
+  const STEP = 30 * 60 * 1000
 
-    let cursor = schedStart
-    const STEP = 30 * 60 * 1000
-    while (cursor < schedEnd) {
-      const slotEnd = cursor + STEP
-      if (slotEnd > schedEnd) break
-      const overlaps = allOccupied.some(o => cursor < o.end && slotEnd > o.start)
-      if (!overlaps) {
+  for (const sch of daySchedules) {
+    const [sh, sm] = sch.start_time.split(':').map(Number)
+    const [eh, em] = sch.end_time.split(':').map(Number)
+    const ss = new Date(`${date}T${String(sh).padStart(2, '0')}:${String(sm).padStart(2, '0')}:00`).getTime()
+    const se = new Date(`${date}T${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}:00`).getTime()
+    let cur = ss
+    while (cur < se) {
+      const slotEnd = cur + STEP
+      if (slotEnd > se) break
+      if (!occ.some(o => cur < o.e && slotEnd > o.s)) {
         let gapEnd = slotEnd
-        while (gapEnd + STEP <= schedEnd) {
-          const probeEnd = gapEnd + STEP
-          if (allOccupied.some(o => gapEnd < o.end && probeEnd > o.start)) break
-          gapEnd = probeEnd
+        while (gapEnd + STEP <= se && !occ.some(o => gapEnd < o.e && gapEnd + STEP > o.s)) {
+          gapEnd += STEP
         }
-        for (const o of allOccupied) {
-          if (o.start > cursor && o.start < gapEnd) { gapEnd = Math.floor(o.start / STEP) * STEP }
+        for (const o of occ) {
+          if (o.s > cur && o.s < gapEnd) gapEnd = Math.floor(o.s / STEP) * STEP
         }
-        const startDate = new Date(cursor); const hh = startDate.getHours(); const mm = startDate.getMinutes()
-        const ampm = hh >= 12 ? 'PM' : 'AM'; const h12 = hh % 12 || 12
+        const sd = new Date(cur)
+        const h12 = sd.getHours() % 12 || 12
+        const mm = sd.getMinutes()
+        const ap = sd.getHours() >= 12 ? 'PM' : 'AM'
         results.push({
-          date, start: new Date(cursor).toISOString(), end: new Date(slotEnd).toISOString(),
-          top: topForTime(new Date(cursor).toISOString()), height: heightForRange(new Date(cursor).toISOString(), new Date(slotEnd).toISOString()),
-          label: `${String(h12).padStart(2, '0')}:${String(mm).padStart(2, '0')} ${ampm}`,
-          gapEndMs: gapEnd, availableMs: gapEnd - cursor,
+          start: new Date(cur).toISOString(),
+          label: `${String(h12).padStart(2, '0')}:${String(mm).padStart(2, '0')} ${ap}`,
+          availableMs: gapEnd - cur,
         })
       }
-      cursor += STEP
+      cur += STEP
     }
   }
   return results
 })
 
 const pendingSlot = ref<FreeSlot | null>(null)
-const chosenService = ref<PublicService | null>(null)
+const chosenServices = ref<PublicService[]>([])
 const submitting = ref(false)
 const clientName = ref('')
-const availableMinutes = ref(0)
+const nameTouched = ref(false)
+const submitError = ref('')
 
-function selectTimeSlot(slot: FreeSlot) {
-  pendingSlot.value = slot
-  availableMinutes.value = Math.floor(slot.availableMs / 60000)
+const availableMinutes = computed(() =>
+  pendingSlot.value ? Math.floor(pendingSlot.value.availableMs / 60000) : 0,
+)
+const totalSelectedDuration = computed(() =>
+  chosenServices.value.reduce((sum, s) => sum + (s.duration_minutes || 0), 0),
+)
+const totalSelectedPrice = computed(() =>
+  chosenServices.value.reduce((sum, s) => sum + (Number(s.price) || 0), 0),
+)
+const canConfirm = computed(() =>
+  chosenServices.value.length > 0 && totalSelectedDuration.value <= availableMinutes.value,
+)
+const nameValid = computed(() => clientName.value.trim().length > 0)
+const canSubmit = computed(() => nameValid.value && chosenServices.value.length > 0 && !!pendingSlot.value)
+
+function onSelectDay(c: CalCell) {
+  if (!c.selectable || !c.dateStr) return
+  selectedDate.value = c.dateStr
+  pendingSlot.value = null
+  chosenServices.value = []
+  advanceTo(1)
 }
 
-const filterableServices = computed(() => {
-  return ((services.value ?? []) as PublicService[]).filter(svc => svc.duration_minutes <= availableMinutes.value)
-})
-
-function selectService(svc: PublicService) {
-  chosenService.value = svc
-  currentStep.value = 2
+function onSelectTime(s: FreeSlot) {
+  pendingSlot.value = s
+  if (totalSelectedDuration.value > Math.floor(s.availableMs / 60000)) {
+    chosenServices.value = []
+  }
+  advanceTo(2)
 }
 
-function formatSlotTime(slot: FreeSlot | null): string {
-  if (!slot) return ''
-  const s = new Date(slot.start)
-  return s.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: true })
+function isServiceSelected(svc: PublicService) {
+  return chosenServices.value.some(x => x.id === svc.id)
 }
 
-function formatSlotRange(slot: FreeSlot | null): string {
-  if (!slot) return ''
-  const s = new Date(slot.start)
-  const day = s.toLocaleDateString('es-VE', { day: '2-digit', month: 'short' })
-  const time = s.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: true })
-  return `${day} · ${time}`
+function toggleService(svc: PublicService) {
+  if (isServiceSelected(svc)) {
+    chosenServices.value = chosenServices.value.filter(x => x.id !== svc.id)
+    return
+  }
+  chosenServices.value = [...chosenServices.value, svc]
 }
 
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`
-  const h = Math.floor(minutes / 60); const m = minutes % 60
-  return m > 0 ? `${h}h ${m}min` : `${h}h`
+function goToConfirm() {
+  if (!canConfirm.value) return
+  advanceTo(3)
 }
 
-function formatDateLabel(dateStr: string): string {
-  const d = new Date(dateStr + 'T12:00:00')
-  return d.toLocaleDateString('es-VE', { weekday: 'long', day: 'numeric', month: 'long' })
+function formatSlotTime(s: FreeSlot | null) {
+  if (!s) return ''
+  return new Date(s.start).toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: true })
 }
-
-function getInitials(name: string): string {
-  return name.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('')
+function formatSlotRange(s: FreeSlot | null) {
+  if (!s) return ''
+  const d = new Date(s.start)
+  return `${d.toLocaleDateString('es-VE', { day: '2-digit', month: 'short' })} · ${d.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: true })}`
+}
+function formatDuration(m: number) {
+  const mins = Math.floor(m || 0)
+  if (mins < 60) return `${mins} min`
+  const h = Math.floor(mins / 60)
+  const r = mins % 60
+  return r > 0 ? `${h}h ${r}min` : `${h}h`
+}
+function formatDateLabel(d: string) {
+  return new Date(d + 'T12:00:00').toLocaleDateString('es-VE', { weekday: 'long', day: 'numeric', month: 'long' })
+}
+function getInitials(n: string) {
+  return n.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('')
 }
 
 async function submitRequest() {
-  if (!chosenService.value || !pendingSlot.value || !presetEmployeeId.value) return
+  if (!chosenServices.value.length || !pendingSlot.value) return
+  if (!presetEmployeeId.value) {
+    submitError.value = 'Falta el empleado en el enlace de invitación.'
+    return
+  }
+  if (!nameValid.value) {
+    nameTouched.value = true
+    return
+  }
+
   submitting.value = true
+  submitError.value = ''
   try {
     await submitBookingRequest(slug.value, {
       employee_id: presetEmployeeId.value,
-      service_id: chosenService.value.id,
+      service_ids: chosenServices.value.map(s => s.id),
       start_time: pendingSlot.value.start,
-      client_name: clientName.value.trim() || undefined,
+      client_name: clientName.value.trim(),
     })
-    currentStep.value = 3
-  } catch {
-    alert('Este horario ya no está disponible. Por favor elige otro.')
-    currentStep.value = 0
+    advanceTo(4)
+  } catch (e: unknown) {
+    const err = e as { message?: string; data?: { message?: string } }
+    const msg = String(err?.message || err?.data?.message || '')
+    submitError.value =
+      msg.toLowerCase().includes('disponible') || msg.includes('409')
+        ? 'Este horario ya fue tomado. Elige otro.'
+        : (err?.data?.message || 'Error al reservar. Intenta de nuevo.')
   } finally {
     submitting.value = false
   }
 }
-
-function goToStep(step: number) { currentStep.value = step }
-function onDateChange(e: Event) { selectedDate.value = (e.target as HTMLInputElement).value; pendingSlot.value = null }
-function goPrevDay() { const d = new Date(selectedDate.value + 'T12:00:00'); d.setDate(d.getDate() - 1); selectedDate.value = d.toISOString().slice(0, 10); pendingSlot.value = null }
-function goNextDay() { const d = new Date(selectedDate.value + 'T12:00:00'); d.setDate(d.getDate() + 1); selectedDate.value = d.toISOString().slice(0, 10); pendingSlot.value = null }
-function goToday() { selectedDate.value = todayStr; pendingSlot.value = null }
 </script>
 
 <style scoped>
-.step-fade-enter-active {
-  transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+.booking-root {
+  min-height: 100dvh;
+  background: var(--color-bg-secondary);
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
 }
-.step-fade-leave-active {
-  transition: all 0.2s cubic-bezier(0.4, 0, 1, 1);
-  position: absolute;
+.booking-page {
+  width: 100%;
+  max-width: 28rem;
+  min-height: 100dvh;
+  max-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: calc(env(safe-area-inset-top, 0px) + 0.625rem) 0.875rem calc(env(safe-area-inset-bottom, 0px) + 0.625rem);
+  gap: 0.375rem;
 }
-.step-fade-enter-from {
-  opacity: 0;
-  transform: translateX(8px);
+@media (min-width: 640px) {
+  .booking-page {
+    max-width: 36rem;
+    padding: 1.25rem 1.5rem;
+    gap: 0.5rem;
+  }
 }
-.step-fade-leave-to {
-  opacity: 0;
-  transform: translateX(-8px);
+@media (min-width: 1024px) {
+  .booking-page {
+    max-width: 42rem;
+    padding: 1.5rem 2rem;
+  }
 }
 
-.success-check .check-path {
-  stroke-dasharray: 24;
-  stroke-dashoffset: 24;
-  animation: draw-check 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+.header { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-shrink: 0; }
+.emp-line { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+.emp-avatar {
+  display: flex; height: 1.75rem; width: 1.75rem; align-items: center; justify-content: center;
+  border-radius: 9999px; font-size: 0.5625rem; font-weight: 700; color: #fff; flex-shrink: 0;
 }
-.success-ring {
-  animation: ring-pulse 1.5s ease-out 0.7s forwards;
-  opacity: 0;
+
+.steps-nav { display: flex; align-items: center; justify-content: center; gap: 0.125rem; flex-shrink: 0; }
+.step-btn { display: flex; align-items: center; gap: 0.25rem; padding: 0.125rem; border: none; background: none; cursor: pointer; }
+.step-num {
+  display: flex; height: 1.25rem; width: 1.25rem; align-items: center; justify-content: center;
+  border-radius: 9999px; font-size: 0.5625rem; font-weight: 700;
+  background: var(--color-surface-muted); color: var(--color-text-muted);
 }
-@keyframes draw-check {
-  to { stroke-dashoffset: 0; }
+.step-txt { font-size: 0.5625rem; font-weight: 500; color: var(--color-text-muted); white-space: nowrap; }
+@media (min-width: 400px) {
+  .step-num { height: 1.375rem; width: 1.375rem; font-size: 0.625rem; }
+  .step-txt { font-size: 0.625rem; }
 }
-@keyframes ring-pulse {
-  0% { opacity: 0; transform: scale(0.8); }
-  40% { opacity: 1; transform: scale(1.15); }
-  100% { opacity: 0; transform: scale(1.4); }
+.step-divider { width: 0.75rem; height: 1px; background: var(--color-border); flex-shrink: 0; }
+@media (min-width: 640px) { .step-divider { width: 1.25rem; } }
+
+.content-area {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
+.step-view {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.5rem;
+  border-radius: 0.875rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+}
+@media (min-width: 640px) {
+  .step-view { padding: 0.75rem; border-radius: 1rem; gap: 0.5rem; }
+}
+
+.spinner {
+  height: 1.75rem; width: 1.75rem; border-radius: 9999px;
+  border: 2.5px solid var(--color-border); border-top-color: var(--color-primary);
+  animation: spin 0.7s linear infinite;
+}
+.spinner-sm {
+  display: inline-block; height: 0.875rem; width: 0.875rem; border-radius: 9999px;
+  border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.cta-btn {
+  width: 100%; padding: 0.625rem 0.75rem; border-radius: 0.75rem; border: none;
+  color: #fff; font-size: 0.8125rem; font-weight: 700; cursor: pointer;
+  flex-shrink: 0; display: flex; align-items: center; justify-content: center; gap: 0.375rem;
+}
+.cta-btn:disabled { cursor: not-allowed; }
+.cta-btn:active:not(:disabled) { opacity: 0.85; }
+
+.back-link {
+  display: inline-flex; align-items: center; gap: 0.25rem;
+  font-size: 0.6875rem; color: var(--color-text-muted);
+  border: none; background: none; cursor: pointer; padding: 0; flex-shrink: 0;
+  text-align: left; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.back-link:hover { color: var(--color-text); }
+.step-hint {
+  font-size: 0.625rem; font-weight: 600; color: var(--color-text-muted);
+  text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0;
+}
+
+/* Calendar */
+.cal-head { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.cal-nav-btn {
+  display: flex; height: 1.75rem; width: 1.75rem; align-items: center; justify-content: center;
+  border-radius: 0.5rem; border: 1px solid var(--color-border); color: var(--color-text-muted);
+  background: transparent; cursor: pointer;
+}
+.cal-nav-btn svg { width: 0.875rem; height: 0.875rem; }
+.cal-nav-btn:disabled { cursor: not-allowed; }
+.cal-month-title { font-size: 0.8125rem; font-weight: 700; color: var(--color-text); text-transform: capitalize; }
+.cal-dow { display: grid; grid-template-columns: repeat(7, 1fr); flex-shrink: 0; }
+.cal-dow span {
+  text-align: center; font-size: 0.5rem; font-weight: 700; color: var(--color-text-muted);
+  opacity: 0.5; text-transform: uppercase; padding: 0.125rem 0;
+}
+.cal-grid {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: minmax(1.75rem, 1fr);
+  gap: 2px;
+}
+.cal-day {
+  display: flex; align-items: center; justify-content: center;
+  border: none; background: transparent; border-radius: 0.375rem;
+  cursor: pointer; font-size: 0.6875rem; font-weight: 600; color: var(--color-text);
+  padding: 0; min-height: 0;
+}
+.cal-day:active:not(:disabled) { transform: scale(0.92); }
+.cal-day-ghost { opacity: 0.2; cursor: default; }
+.cal-day-sel { color: #fff; }
+.cal-day-today { font-weight: 800; }
+
+/* Slots */
+.slots-wrap {
+  flex: 1 1 0;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.375rem;
+  align-content: start;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+@media (min-width: 400px) {
+  .slots-wrap { grid-template-columns: repeat(4, 1fr); }
+}
+.slot {
+  padding: 0.5rem 0.25rem; border-radius: 0.5rem; border: 1px solid var(--color-border);
+  background: transparent; cursor: pointer; font-size: 0.75rem; font-weight: 600;
+  color: var(--color-text); text-align: center; min-height: 2.5rem;
+}
+.slot:active { transform: scale(0.96); }
+.slot-sel { font-weight: 700; }
+
+/* Services */
+.svc-top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-shrink: 0; }
+.svc-list {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.svc-item {
+  display: flex; align-items: center; gap: 0.5rem;
+  padding: 0.5rem 0.625rem; border-radius: 0.625rem;
+  border: 1px solid var(--color-border); background: transparent;
+  cursor: pointer; text-align: left; flex-shrink: 0; min-height: 2.75rem;
+}
+.svc-item:active { transform: scale(0.98); }
+.svc-check {
+  flex-shrink: 0; height: 1.125rem; width: 1.125rem; border-radius: 0.25rem;
+  border: 2px solid var(--color-border-strong);
+  display: flex; align-items: center; justify-content: center;
+}
+.svc-check svg { width: 0.625rem; height: 0.625rem; }
+.svc-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.svc-name {
+  font-size: 0.75rem; font-weight: 600; color: var(--color-text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.svc-meta { font-size: 0.5625rem; color: var(--color-text-muted); }
+.svc-price { font-size: 0.8125rem; font-weight: 800; color: var(--color-text); flex-shrink: 0; }
+.svc-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-top: 0.25rem; border-top: 1px solid var(--color-border-subtle); flex-shrink: 0;
+}
+
+/* Summary */
+.summary {
+  border-radius: 0.625rem; border: 1px solid var(--color-border);
+  overflow: hidden; flex-shrink: 0; max-height: 40%; overflow-y: auto;
+}
+.sum-row {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 0.375rem 0.625rem; border-bottom: 1px solid var(--color-border-subtle); gap: 0.5rem;
+}
+.sum-row:last-child { border-bottom: none; }
+.sum-lbl { font-size: 0.625rem; color: var(--color-text-muted); flex-shrink: 0; }
+.sum-val { font-size: 0.6875rem; font-weight: 600; color: var(--color-text); text-align: right; word-break: break-word; }
+
+.name-label {
+  display: block; font-size: 0.625rem; font-weight: 600; color: var(--color-text-secondary);
+  text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0;
+}
+.name-inp {
+  width: 100%; padding: 0.5rem 0.75rem; border-radius: 0.625rem;
+  border: 1px solid var(--color-border); background: var(--color-surface);
+  font-size: 1rem; color: var(--color-text); outline: none; flex-shrink: 0;
+}
+.name-inp::placeholder { color: var(--color-text-muted); opacity: 0.5; }
+.name-inp:focus { border-color: var(--color-primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent); }
+.name-err { border-color: var(--color-danger) !important; }
+.err-msg { font-size: 0.6875rem; color: var(--color-danger); flex-shrink: 0; margin: 0; }
+
+.success-view { align-items: center; justify-content: center; text-align: center; }
+.success-circle {
+  display: flex; height: 3.5rem; width: 3.5rem; align-items: center; justify-content: center; border-radius: 9999px;
+}
+.success-path { stroke-dasharray: 24; stroke-dashoffset: 24; animation: draw 0.45s 0.15s forwards; }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+
+.footer { flex-shrink: 0; text-align: center; padding-top: 0.125rem; }
 </style>

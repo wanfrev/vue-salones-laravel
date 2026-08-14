@@ -19,7 +19,7 @@ class StaffingTimesheetEntry extends Model
         'total_hours', 'pre_tax_deduction', 'fixed_fees', 'adjustment',
         'pay_rate', 'bill_rate',
         'regular_hours', 'overtime_hours', 'gross', 'tax_withheld', 'net', 'payout', 'carried',
-        'invoice_total', 'employer_cost', 'margin',
+        'invoice_total', 'invoice_regular_amount', 'invoice_overtime_amount', 'employer_cost', 'margin',
     ];
 
     protected function casts(): array
@@ -39,6 +39,8 @@ class StaffingTimesheetEntry extends Model
             'payout' => 'float',
             'carried' => 'float',
             'invoice_total' => 'float',
+            'invoice_regular_amount' => 'float',
+            'invoice_overtime_amount' => 'float',
             'employer_cost' => 'float',
             'margin' => 'float',
         ];

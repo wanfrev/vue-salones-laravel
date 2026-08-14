@@ -3,9 +3,12 @@
 namespace App\Services;
 
 use App\Models\Appointment;
+use App\Models\Credit;
+use App\Models\DailyReport;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\Client;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -362,6 +365,20 @@ class PosService
 
             $appointment->update(['payment_status' => $paymentStatus]);
 
+            $clientName = $appointment->client?->full_name
+                ?? ($appointment->client?->name)
+                ?? 'Cliente Desconocido';
+            $this->addCreditToDailyReport(
+                $businessId, $appointment->branch_id, $method,
+                $paymentsBreakdown, $totalAmount, $rate,
+                $clientName, $tx->id,
+            );
+            $this->createCreditRecord(
+                $businessId, $appointment->branch_id, $method, $totalAmount,
+                $appointment->client_id, $clientName, $appointment->client?->phone,
+                $tx->id, $createdBy,
+            );
+
             return $tx->id;
         });
     }
@@ -392,8 +409,20 @@ class PosService
 
         $clientName = $clientNameInput;
         if (!$clientName && $clientId) {
-            $client = Client::where('business_id', $businessId)->find($clientId);
+            $client = \App\Models\Client::where('business_id', $businessId)->find($clientId);
             $clientName = $client?->full_name;
+        }
+
+        if (!$clientId && !empty($clientNameInput) && !empty($clientPhoneInput)) {
+            $client = \App\Models\Client::create([
+                'id' => \Illuminate\Support\Str::uuid()->toString(),
+                'business_id' => $businessId,
+                'branch_id' => $branchId,
+                'full_name' => $clientNameInput,
+                'phone' => $clientPhoneInput,
+            ]);
+            $clientId = $client->id;
+            $clientName = $client->full_name;
         }
         
         $clientInfoStr = $clientName ? ($clientPhoneInput ? "{$clientName} ({$clientPhoneInput})" : $clientName) : null;
@@ -491,6 +520,19 @@ class PosService
                     clientId: $clientId,
                 );
             }
+
+            $resolvedClientName = $clientName ?: ($clientInfoStr ? str_replace('Venta directa — ', '', $clientInfoStr) : 'Cliente Desconocido');
+            $this->addCreditToDailyReport(
+                $businessId, $branchId, $method,
+                $paymentsBreakdown, $totalAmount, $rate,
+                $resolvedClientName,
+                $tx->id,
+            );
+            $this->createCreditRecord(
+                $businessId, $branchId, $method, $totalAmount,
+                $clientId, $resolvedClientName, null,
+                $tx->id, $createdBy,
+            );
 
             return $tx->id;
         });
@@ -690,5 +732,111 @@ class PosService
 
         $stock->quantity -= $quantity;
         $stock->save();
+    }
+
+    /**
+     * Auto-add a credit sale to the daily_reports table so it appears
+     * automatically in the daily report without manual entry.
+     */
+    private function addCreditToDailyReport(
+        string $businessId,
+        ?string $branchId,
+        string $method,
+        array $paymentsBreakdown,
+        float $totalAmount,
+        float $exchangeRate,
+        string $clientName,
+        string $transactionId,
+    ): void {
+        $creditAmount = 0;
+        $creditCurrency = 'USD';
+
+        if ($method === 'credito') {
+            $creditAmount = $totalAmount;
+        } elseif ($method === 'mixed' && !empty($paymentsBreakdown)) {
+            foreach ($paymentsBreakdown as $split) {
+                if (($split['method'] ?? '') === 'credito') {
+                    $creditAmount += (float) ($split['amount'] ?? $split['inputAmount'] ?? 0);
+                    $creditCurrency = ($split['currency'] ?? 'USD') === 'VES' ? 'VES' : 'USD';
+                }
+            }
+        }
+
+        if ($creditAmount <= 0) return;
+
+        $today = Carbon::now()->toDateString();
+
+        $report = DailyReport::firstOrNew([
+            'business_id' => $businessId,
+            'branch_id' => $branchId,
+            'date' => $today,
+        ]);
+
+        if (!$report->exists) {
+            $report->user_id = null;
+            $report->fill(array_fill_keys([
+                'exchange_rate', 'z_report_bs', 'z_report_usd',
+                'pos_bs', 'pago_movil_bs', 'cash_bs', 'transfer_bs',
+                'cash_usd', 'zelle_usd', 'binance_usd', 'cashea_usd',
+                'card_usd', 'gift_card_usd', 'other_usd', 'other_bs',
+                'credit_bs', 'credit_usd', 'total_bs', 'total_usd',
+            ], 0));
+        }
+
+        $creditsDetail = $report->credits_detail ?? [];
+
+        $creditsDetail[] = [
+            'name' => $clientName,
+            'amount' => $creditAmount,
+            'currency' => $creditCurrency === 'VES' ? 'Bs' : 'USD',
+            'transaction_id' => $transactionId,
+        ];
+
+        if ($creditCurrency === 'VES') {
+            $report->credit_bs = (float) ($report->credit_bs ?? 0) + $creditAmount;
+            $report->total_bs = (float) ($report->total_bs ?? 0) + $creditAmount;
+        } else {
+            $report->credit_usd = (float) ($report->credit_usd ?? 0) + $creditAmount;
+            $report->total_usd = (float) ($report->total_usd ?? 0) + $creditAmount;
+        }
+
+        $report->credits_detail = $creditsDetail;
+        $report->save();
+    }
+
+    /**
+     * Create a trackable Credit record for a full-credito sale so it shows up
+     * in the "Créditos" section and can later be marked as paid.
+     * Mixed-method sales that include a credito split are not tracked here —
+     * only pure `credito` transactions are.
+     */
+    private function createCreditRecord(
+        string $businessId,
+        ?string $branchId,
+        string $method,
+        float $totalAmount,
+        ?string $clientId,
+        string $clientName,
+        ?string $clientPhone,
+        string $transactionId,
+        string $createdBy,
+    ): void {
+        if ($method !== 'credito' || $totalAmount <= 0) {
+            return;
+        }
+
+        Credit::create([
+            'id' => Str::uuid()->toString(),
+            'business_id' => $businessId,
+            'branch_id' => $branchId,
+            'client_id' => $clientId,
+            'client_name' => $clientName,
+            'client_phone' => $clientPhone,
+            'transaction_id' => $transactionId,
+            'amount' => $totalAmount,
+            'currency' => 'USD',
+            'status' => 'pending',
+            'created_by' => $createdBy,
+        ]);
     }
 }

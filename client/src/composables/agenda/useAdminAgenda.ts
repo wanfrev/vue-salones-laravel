@@ -55,7 +55,7 @@ export function useAdminAgenda(businessId: () => string | null) {
     ]),
     queryFn: () => listCitas(businessId()!, dateRange.value, undefined, currentBranchId.value),
     enabled: computed(() => !!businessId()),
-    staleTime: 0,
+    staleTime: 15000,
   })
 
   const { data: serviciosData } = useQuery({
@@ -159,13 +159,19 @@ export function useAdminAgenda(businessId: () => string | null) {
   })
 
   const stats = computed(() => {
-    const citasDelPeriodo = citasData.value ?? []
+    // citasHoy/pendientes/confirmadas cuentan citas (deduplicadas por group_id, como en la tabla),
+    // no filas de servicio — así el número coincide con lo que se ve listado abajo.
+    const citasDelPeriodo = citas.value
+    // estimadoHoy sí necesita cada fila cruda: una cita agrupada con varios servicios
+    // solo conserva el precio de un miembro tras deduplicar, así que sumar desde `citas`
+    // subestimaría el ingreso total del día.
+    const filasDelPeriodo = citasData.value ?? []
 
     return {
       citasHoy: citasDelPeriodo.length,
       pendientes: citasDelPeriodo.filter(c => c.status === 'pending').length,
       confirmadas: citasDelPeriodo.filter(c => c.status === 'confirmed').length,
-      estimadoHoy: citasDelPeriodo
+      estimadoHoy: filasDelPeriodo
         .filter(c => c.status !== 'cancelled')
         .reduce((sum, c) => sum + c.price, 0)
         .toLocaleString(),

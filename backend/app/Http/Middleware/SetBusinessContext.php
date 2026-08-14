@@ -7,6 +7,14 @@ use App\Services\BusinessContext;
 use Closure;
 use Illuminate\Http\Request;
 
+/**
+ * Must run AFTER auth:sanctum has resolved $request->user() — applied via the 'business-context'
+ * alias on the protected route group in routes/api.php, not as global 'api' middleware. It used
+ * to be global-prepended, which ran it before auth:sanctum (nested inside the same file) ever
+ * authenticated the request, so $request->user() was always null here and BusinessContext never
+ * bound. feature:/perm: silently no-op when that happens (fail open), which is why this went
+ * unnoticed until capability: (fail closed, by design) started 403ing every staffing request.
+ */
 class SetBusinessContext
 {
     public function handle(Request $request, Closure $next)
@@ -60,7 +68,6 @@ class SetBusinessContext
         app()->instance(BusinessContext::class, $context);
         app()->instance('biz_id', $context->businessId ?: null);
         app()->instance('branch_id', $context->branchId);
-        $request->merge(['_context' => $context]);
 
         return $next($request);
     }

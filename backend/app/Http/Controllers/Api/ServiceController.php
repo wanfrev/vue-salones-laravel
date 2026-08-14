@@ -79,6 +79,7 @@ class ServiceController
             'is_fixed_commission' => 'boolean',
             'fixed_commission_amount' => 'nullable|numeric|min:0',
             'fixed_commission_assistant_amount' => 'nullable|numeric|min:0',
+            'show_in_public_booking' => 'boolean',
         ]);
 
         $service = $this->serviceService->store($data, $businessId);
@@ -111,6 +112,7 @@ class ServiceController
             'is_fixed_commission' => 'boolean',
             'fixed_commission_amount' => 'nullable|numeric|min:0',
             'fixed_commission_assistant_amount' => 'nullable|numeric|min:0',
+            'show_in_public_booking' => 'boolean',
         ]);
 
         $service = $this->serviceService->update($id, $data, $businessId);

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Staffing;
 
 use App\Events\EntityChanged;
 use App\Services\Staffing\PayrollTerms;
@@ -27,8 +27,14 @@ class StaffingCompanyController
             $active = filter_var($request->input('active'), FILTER_VALIDATE_BOOL);
         }
 
+        $status = $request->input('status');
+        if ($status === 'all') {
+            $status = null;
+            $active = null;
+        }
+
         return response()->json(
-            $this->companies->list($p->business_id, $request->branch_id, $active)
+            $this->companies->list($p->business_id, $request->branch_id, $active, $status)
         );
     }
 
@@ -88,6 +94,8 @@ class StaffingCompanyController
             'payment_terms_days' => 'nullable|integer|min:0|max:365',
             'overtime_threshold_hours' => 'nullable|numeric|min:0|max:168',
             'overtime_multiplier' => 'nullable|numeric|min:1|max:5',
+            // The weekly report's agency overhead on gross profit — see StaffingReportService.
+            'agency_overhead_rate' => 'nullable|numeric|min:0|max:1',
             // Ordered brackets; a null threshold marks the catch-all tier.
             'tax_brackets' => 'nullable|array',
             'tax_brackets.*.threshold' => 'nullable|numeric|min:0',
@@ -99,6 +107,7 @@ class StaffingCompanyController
                 . PayrollTerms::PAYOUT_EXACT,
             'notes' => 'nullable|string',
             'active' => 'boolean',
+            'status' => 'nullable|in:active,inactive,on_hold',
             'branch_id' => 'nullable|uuid',
         ];
     }

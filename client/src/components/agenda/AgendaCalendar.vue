@@ -74,10 +74,11 @@
         <button
           v-if="canManageInvitations"
           @click="openInvitations"
-          class="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 hover:bg-orange-100 dark:hover:bg-orange-950/40 transition-colors sm:text-[11px]"
+          class="relative flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 hover:bg-orange-100 dark:hover:bg-orange-950/40 transition-colors sm:text-[11px]"
         >
           <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
           Invitaciones
+          <span v-if="invitationsCount > 0" class="absolute -top-1.5 -right-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">{{ invitationsCount }}</span>
         </button>
         <button
           v-if="businessStore.hasFeature('enable_public_booking') && !isEmployee"
@@ -345,6 +346,7 @@ import { useBusinessStore } from '../../store/business'
 import { isAdminPanelRole } from '../../constants/roles'
 import { normalizeAppointmentStatus, getStatusLabel, dateToHHmm, dateToHHmm12, toISODate, getInitials, parseLocalDate } from '../../lib/formatters'
 import { mapAppointmentToCita } from '../../mappers/agendaMapper'
+import { usePendingInvitations } from '../../composables/agenda/usePendingInvitations'
 import PendingInvitationsModal from './PendingInvitationsModal.vue'
 import AgendaMonthView from './AgendaMonthView.vue'
 import AgendaYearView from './AgendaYearView.vue'
@@ -416,6 +418,7 @@ const gridContainer = ref<HTMLElement | null>(null)
 const statusMenu = ref<{ appointmentId: string; currentStatus: string; x: number; y: number } | null>(null)
 const empDropdownOpen = ref(false)
 const invitationsModalRef = ref<InstanceType<typeof PendingInvitationsModal> | null>(null)
+const { count: invitationsCount } = usePendingInvitations()
 
 // Mobile viewport width for responsive decisions
 const windowWidth = ref(window.innerWidth)
@@ -577,6 +580,12 @@ const gridColumns = computed<GridColumn[]>(() => {
   const groupMemberMap = buildGroupMemberMap(appointments.value ?? [])
   const q = debouncedSearch.value.toLowerCase()
 
+  // Parse each appointment's date once instead of re-parsing it per day column / per employee column below.
+  const isoDateByAppt = new Map<any, string>()
+  for (const a of appts) {
+    isoDateByAppt.set(a, toISODate(new Date(a.start_time)))
+  }
+
   if (viewMode.value === 'week') {
     const sel = new Date(selectedDate.value + 'T12:00:00')
     const sow = new Date(sel); sow.setDate(sel.getDate() - sel.getDay())
@@ -584,7 +593,7 @@ const gridColumns = computed<GridColumn[]>(() => {
       const d = new Date(sow); d.setDate(sow.getDate() + i)
       const iso = toISODate(d)
       const dayAppts = appts
-        .filter(a => toISODate(new Date(a.start_time)) === iso && (empId === 'all' || a.employee_id === empId) && (!q || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(q)))
+        .filter(a => isoDateByAppt.get(a) === iso && (empId === 'all' || a.employee_id === empId) && (!q || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(q)))
         .map(a => mapAppt(a, svcMap, empMap.get(a.employee_id)?.full_name || '', groupMemberMap))
         .sort((a, b) => a.top - b.top)
       const isT = iso === todayIso.value
@@ -597,7 +606,7 @@ const gridColumns = computed<GridColumn[]>(() => {
 
   return cols.map(c => {
     const cAppts = appts
-      .filter(a => (c.id === '__default__' || (toISODate(new Date(a.start_time)) === selectedDate.value && a.employee_id === c.id)) && (!q || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(q)))
+      .filter(a => (c.id === '__default__' || (isoDateByAppt.get(a) === selectedDate.value && a.employee_id === c.id)) && (!q || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(q)))
       .map(a => mapAppt(a, svcMap, c.name, groupMemberMap))
       .sort((a, b) => a.top - b.top)
     return { key: c.id, label: c.id === '__default__' ? 'Citas' : c.name.split(' ')[0], avatar: c.id === '__default__' ? undefined : getInitials(c.name), widthPercent: 100 / cols.length, appointments: cAppts }

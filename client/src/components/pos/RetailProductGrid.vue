@@ -27,7 +27,7 @@
     <div class="px-3 sm:px-4 py-3 border-b border-border bg-bg-secondary flex gap-2 overflow-x-auto no-scrollbar touch-pan-x">
       <button
         @click="selectedCategory = 'all'"
-        class="shrink-0 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
+        class="shrink-0 px-4 py-2.5 rounded-xl text-sm font-semibold transition duration-200"
         :class="selectedCategory === 'all' ? 'bg-primary text-text-inverse shadow-md shadow-primary/20' : 'bg-surface border border-border text-text-secondary hover:text-text hover:border-primary/50'"
       >
         Todos
@@ -36,7 +36,7 @@
         v-for="cat in categories"
         :key="cat"
         @click="selectedCategory = cat"
-        class="shrink-0 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200"
+        class="shrink-0 px-4 py-2.5 rounded-xl text-sm font-semibold transition duration-200"
         :class="selectedCategory === cat ? 'bg-primary text-text-inverse shadow-md shadow-primary/20' : 'bg-surface border border-border text-text-secondary hover:text-text hover:border-primary/50'"
       >
         {{ cat }}
@@ -58,7 +58,7 @@
           @click="$emit('add-product', { ...product, override_price: product.unit_price })"
           role="button"
           tabindex="0"
-          class="relative flex flex-col items-start p-4 sm:p-5 rounded-2xl border-2 transition-all duration-150 text-left bg-surface h-full min-h-[152px] sm:min-h-[168px] group active:scale-[0.97]"
+          class="relative flex flex-col items-start p-4 sm:p-5 rounded-2xl border-2 transition duration-150 text-left bg-surface h-full min-h-[152px] sm:min-h-[168px] group active:scale-[0.97]"
           :class="[
             Number(product.available_qty ?? 0) > 0
               ? 'border-border hover:border-primary/60 hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-0.5 cursor-pointer'

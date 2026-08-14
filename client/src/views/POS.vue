@@ -504,6 +504,8 @@ const pendingAssistantId = ref('')
 const directServiceClientId = ref<string | null>(null)
 const directServiceClientSearch = ref('')
 const directServiceClientSuggestions = ref<{ id: string; full_name: string; phone: string }[]>([])
+let directServiceSearchTimeout: ReturnType<typeof setTimeout> | null = null
+let directServiceSearchSeq = 0
 
 const onPendingServiceChange = () => {
   const svc = posServiciosList.value.find((s: any) => s.id === pendingServiceId.value)
@@ -583,16 +585,25 @@ const selectDirectServiceClient = (client: { id: string; full_name: string; phon
   directServiceClientSuggestions.value = []
 }
 
-const onDirectServiceSearchClients = async (query: string) => {
+const onDirectServiceSearchClients = (query: string) => {
+  if (directServiceSearchTimeout) clearTimeout(directServiceSearchTimeout)
   if (!businessId.value || !query.trim()) {
     directServiceClientSuggestions.value = []
     return
   }
-  try {
-    directServiceClientSuggestions.value = await searchClients(businessId.value, query, branchId.value)
-  } catch {
-    directServiceClientSuggestions.value = []
-  }
+  const seq = ++directServiceSearchSeq
+  directServiceSearchTimeout = setTimeout(async () => {
+    try {
+      const results = await searchClients(businessId.value!, query, branchId.value)
+      if (seq === directServiceSearchSeq) {
+        directServiceClientSuggestions.value = results
+      }
+    } catch {
+      if (seq === directServiceSearchSeq) {
+        directServiceClientSuggestions.value = []
+      }
+    }
+  }, 200)
 }
 
 const mobilePaymentOpen = ref(false)
@@ -613,7 +624,8 @@ const tipManual = ref(false)
 const retailClientSearch = ref('')
 const retailClientId = ref<string | null>(null)
 const retailClientPhone = ref('')
-const retailClientSuggestions = ref<{ id: string; full_name: string; phone: string }[]>([])
+const retailClientSuggestions = ref<{ id: string; full_name: string; phone: string; client_code?: string | null }[]>([])
+let retailSearchSeq = 0
 const retailClientSearchRef = ref<InstanceType<typeof RetailClientSearch> | null>(null)
 const retailGridRef = ref<InstanceType<typeof RetailProductGrid> | null>(null)
 
@@ -710,10 +722,16 @@ const selectRetailClient = (client: { id: string; full_name: string; phone: stri
 
 const onRetailSearchClients = async (query: string) => {
   if (!businessId.value) return
+  const seq = ++retailSearchSeq
   try {
-    retailClientSuggestions.value = await searchClients(businessId.value, query, branchId.value)
+    const results = await searchClients(businessId.value, query, branchId.value)
+    if (seq === retailSearchSeq) {
+      retailClientSuggestions.value = results
+    }
   } catch {
-    retailClientSuggestions.value = []
+    if (seq === retailSearchSeq) {
+      retailClientSuggestions.value = []
+    }
   }
 }
 
@@ -795,6 +813,16 @@ const canPay = computed(() => {
     if (directServicesList.value.length === 0) return false
   }
   if (activeSaleType.value !== 'retail_only' && tipAmount.value > 0 && tipParticipants.value.length > 0 && Math.abs(tipRemaining.value) >= 0.01) return false
+  if (paymentMethod.value === 'credito') {
+    if (activeSaleType.value === 'retail_only') {
+      if (!retailClientId.value && (!retailClientSearch.value || !retailClientPhone.value)) return false
+    } else if (activeSaleType.value === 'direct_service') {
+      if (!directServiceClientId.value && (!directServiceClientSearch.value)) return false
+    } else {
+      if (!selectedAppointment.value) return false
+    }
+  }
+
   if (paymentMethod.value === 'mixed') {
     const total = paymentsBreakdown.value.reduce((sum: number, s: any) => sum + (s.currency === 'VES' ? (s.inputAmount || 0) / exchangeRate.value : (s.inputAmount || 0)), 0)
     return Math.abs(total - grandTotal.value) < 0.01 && paymentsBreakdown.value.length > 0
@@ -1010,6 +1038,10 @@ const applyPrefill = () => {
 
   tipAmount.value = prefill.tipAmount ?? 0
   paymentNotes.value = prefill.notes ?? ''
+
+  if (prefill.clientName) {
+    retailClientSearch.value = prefill.clientName
+  }
 
   if (prefill.products && prefill.products.length > 0) {
     clearCart()

@@ -1,5 +1,5 @@
 import { QueryClient, QueryCache, MutationCache, keepPreviousData } from '@tanstack/vue-query'
-import { setAuthToken } from './lib/api'
+import { db, setAuthToken, getAuthToken } from './lib/api'
 
 const isAuthError = (err: unknown): boolean => {
   if (!err) return false
@@ -10,9 +10,32 @@ const isAuthError = (err: unknown): boolean => {
 }
 
 let authErrorRedirecting = false
+let refreshAttempt: Promise<boolean> | null = null
 
-const handleAuthError = () => {
+/**
+ * A single failed request can look like an auth error for reasons that have nothing to
+ * do with the session actually being gone (a slow network, a one-off race on a request
+ * fired just as the token was being set). Before nuking the whole SPA with a redirect,
+ * try one silent token refresh and only give up if the server explicitly rejects it —
+ * a network hiccup on the refresh call itself isn't proof the session is invalid.
+ * Concurrent auth errors share the same in-flight attempt instead of each firing their
+ * own refresh call.
+ */
+const trySessionStillValid = (): Promise<boolean> => {
+  if (!refreshAttempt) {
+    refreshAttempt = db.auth.refreshSession()
+      .then(({ error }) => !error || error.code === 'NETWORK_ERROR')
+      .catch(() => true)
+      .finally(() => { refreshAttempt = null })
+  }
+  return refreshAttempt
+}
+
+const handleAuthError = async () => {
   if (authErrorRedirecting) return
+  if (!getAuthToken()) return // nothing to refresh — never logged in, or already logged out
+  const stillValid = await trySessionStillValid()
+  if (stillValid || authErrorRedirecting) return
   authErrorRedirecting = true
   setAuthToken(null)
   if (typeof window !== 'undefined' && window.location.pathname !== '/') {

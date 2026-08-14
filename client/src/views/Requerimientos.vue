@@ -60,7 +60,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-border bg-bg-primary">
-          <tr v-for="req in filteredRequirements" :key="req.id" class="transition-colors hover:bg-bg-secondary/50">
+          <tr v-for="req in paginatedRequirements" :key="req.id" class="transition-colors hover:bg-bg-secondary/50">
             <td class="px-4 py-3">
               <p class="font-medium text-text">{{ req.name }}</p>
               <p class="text-xs text-text-muted">{{ formatDate(req.created_at) }}</p>
@@ -116,18 +116,74 @@
         </tbody>
       </table>
     </div>
-    
+
+    <!-- Pagination -->
+    <div v-if="filteredRequirements.length > 0" class="flex items-center justify-between rounded-lg border border-border bg-surface px-3 sm:px-4 py-2.5">
+      <div class="text-xs sm:text-sm text-text-muted">
+        {{ paginationStart }}-{{ paginationEnd }} de {{ filteredRequirements.length }}
+      </div>
+      <div class="hidden sm:flex gap-1">
+        <button
+          @click="previousPage"
+          :disabled="!hasPreviousPage"
+          class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-theme"
+          :class="hasPreviousPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
+        >
+          Anterior
+        </button>
+        <button
+          v-for="page in pageNumbers"
+          :key="page"
+          @click="page === '...' ? null : goToPage(page as number)"
+          :disabled="page === '...'"
+          class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-theme"
+          :class="page === currentPage ? 'bg-primary text-text-inverse' : 'text-text-secondary hover:bg-bg-secondary disabled:cursor-default'"
+        >
+          {{ page }}
+        </button>
+        <button
+          @click="nextPage"
+          :disabled="!hasNextPage"
+          class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-theme"
+          :class="hasNextPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
+        >
+          Siguiente
+        </button>
+      </div>
+      <div class="flex sm:hidden items-center gap-1">
+        <button
+          @click="previousPage"
+          :disabled="!hasPreviousPage"
+          class="rounded-md p-1.5 transition-theme"
+          :class="hasPreviousPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
+        >
+          <ArrowLeftIcon class="h-4 w-4" />
+        </button>
+        <span class="text-xs font-medium text-text px-1">{{ currentPage }} / {{ totalPages }}</span>
+        <button
+          @click="nextPage"
+          :disabled="!hasNextPage"
+          class="rounded-md p-1.5 transition-theme"
+          :class="hasNextPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
+        >
+          <ArrowRightIcon class="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+
     <RequirementFormModal />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useModal } from '../composables/common/useModal'
 import { useRequirements } from '../composables/inventory/useRequirements'
+import { usePagination } from '../composables/common/usePagination'
 import { useBusinessStore } from '../store/business'
 import type { Requirement } from '../types/database'
 import RequirementFormModal from '../components/inventory/RequirementFormModal.vue'
+import { ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
 
 const { requirementsQuery, updateRequirementStatus, deleteRequirement } = useRequirements()
 const businessStore = useBusinessStore()
@@ -139,6 +195,22 @@ const filteredRequirements = computed(() => {
   if (filter.value === 'all') return all
   return all.filter((r: Requirement) => r.status === filter.value)
 })
+
+const {
+  currentPage,
+  totalPages,
+  paginatedData: paginatedRequirements,
+  paginationStart,
+  paginationEnd,
+  hasNextPage,
+  hasPreviousPage,
+  goToPage,
+  nextPage,
+  previousPage,
+  pageNumbers,
+} = usePagination({ data: filteredRequirements, pageSize: 15 })
+
+watch(filter, () => goToPage(1))
 
 const openModal = (requirement?: Requirement) => {
   useModal('requirement-form-modal').open({ requirement })

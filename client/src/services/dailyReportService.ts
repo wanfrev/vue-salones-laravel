@@ -129,7 +129,7 @@ export const getDailyReportPosSummary = async (
   date: string,
   branchId?: string | null,
 ) => {
-  const params = new URLSearchParams({ business_id: businessId, date })
+  const params = new URLSearchParams({ business_id: businessId, date, _t: Date.now().toString() })
   if (branchId) params.set('branch_id', branchId)
   return await apiRequest<DailyReportPosSummary>('GET', `/daily-reports/pos-summary?${params.toString()}`)
 }

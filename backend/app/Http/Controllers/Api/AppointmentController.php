@@ -75,6 +75,9 @@ class AppointmentController
             }
         }
 
+        $hasClientFilter = $request->has('client_id');
+        $clientId = $hasClientFilter ? $request->input('client_id') : null;
+
         $list = $this->appointmentService->list(
             $businessId,
             $startDate,
@@ -84,6 +87,9 @@ class AppointmentController
             $request->get('status'),
             $request->get('group_id'),
             $request->get('id_not'),
+            $request->get('source'),
+            $hasClientFilter,
+            $clientId,
         );
 
         if ($this->shouldHideClientPhoneFromEmployee($request, $businessId)) {

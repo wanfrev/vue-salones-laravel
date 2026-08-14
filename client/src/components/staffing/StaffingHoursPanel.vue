@@ -47,13 +47,21 @@
             <thead>
               <tr class="border-b border-border bg-bg-secondary text-left text-[10px] uppercase tracking-wider text-text-muted">
                 <th class="px-3 py-2.5">Empleado</th>
-                <th class="px-3 py-2.5 text-right">Horas</th>
+                <th class="px-3 py-2.5 text-right">Horas totales</th>
+                <th class="px-3 py-2.5 text-right">Horas regulares</th>
+                <th class="px-3 py-2.5 text-right">Pay rate</th>
+                <th class="px-3 py-2.5 text-right">Bill rate</th>
+                <th class="px-3 py-2.5 text-right">Total regular</th>
+                <th class="px-3 py-2.5 text-right">Horas OT</th>
+                <th class="px-3 py-2.5 text-right">OT rate</th>
+                <th class="px-3 py-2.5 text-right">Total OT</th>
                 <th class="px-3 py-2.5 text-right">Deducción</th>
                 <th class="px-3 py-2.5 text-right">Fee fijo</th>
                 <th class="px-3 py-2.5 text-right">Ajuste</th>
-                <th class="px-3 py-2.5 text-right">Bruto</th>
-                <th class="px-3 py-2.5 text-right">Retención</th>
-                <th class="px-3 py-2.5 text-right">Pagado</th>
+                <th class="px-3 py-2.5 text-right">Total semanal</th>
+                <th class="px-3 py-2.5 text-right">% retención</th>
+                <th class="px-3 py-2.5 text-right">Total</th>
+                <th class="px-3 py-2.5 text-right">Redondeo</th>
                 <th class="px-3 py-2.5 text-right">Factura</th>
                 <th class="px-3 py-2.5 text-right">Margen</th>
               </tr>
@@ -68,6 +76,13 @@
                   <input v-model.number="grid[employee.id].totalHours" type="number" min="0" max="168" step="0.01"
                     :disabled="isReadOnly" :class="cellInputClass" />
                 </td>
+                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ resultFor(employee.id)?.regular_hours?.toFixed(2) ?? '—' }}</td>
+                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ resultFor(employee.id) ? formatUSD(resultFor(employee.id)!.pay_rate) : '—' }}</td>
+                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ resultFor(employee.id) ? formatUSD(resultFor(employee.id)!.bill_rate) : '—' }}</td>
+                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ formatUSD(regularAmountFor(employee.id)) }}</td>
+                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ resultFor(employee.id)?.overtime_hours?.toFixed(2) ?? '—' }}</td>
+                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ overtimeRateFor(employee.id) ? formatUSD(overtimeRateFor(employee.id)) : '—' }}</td>
+                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ formatUSD(overtimeAmountFor(employee.id)) }}</td>
                 <td class="px-3 py-2">
                   <input v-model.number="grid[employee.id].preTaxDeduction" type="number" min="0" step="0.01"
                     :disabled="isReadOnly" :class="cellInputClass" />
@@ -81,8 +96,9 @@
                     :disabled="isReadOnly" :class="cellInputClass" />
                 </td>
                 <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ formatUSD(resultFor(employee.id)?.gross ?? 0) }}</td>
-                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ formatUSD(resultFor(employee.id)?.tax_withheld ?? 0) }}</td>
+                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ taxPercentFor(employee.id).toFixed(1) }}%</td>
                 <td class="px-3 py-2 text-right tabular-nums font-semibold text-text">{{ formatUSD(resultFor(employee.id)?.payout ?? 0) }}</td>
+                <td class="px-3 py-2 text-right text-text-secondary">{{ roundingLabel }}</td>
                 <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ formatUSD(resultFor(employee.id)?.invoice_total ?? 0) }}</td>
                 <td class="px-3 py-2 text-right tabular-nums font-semibold text-success">{{ formatUSD(resultFor(employee.id)?.margin ?? 0) }}</td>
               </tr>
@@ -91,11 +107,11 @@
               <tr class="border-t border-border bg-bg-secondary/60 text-xs font-semibold">
                 <td class="px-3 py-2.5 text-text">Total</td>
                 <td class="px-3 py-2.5 text-right tabular-nums">{{ totals.hours.toFixed(2) }}</td>
-                <td colspan="2"></td>
-                <td class="px-3 py-2.5"></td>
+                <td colspan="10"></td>
                 <td class="px-3 py-2.5 text-right tabular-nums">{{ formatUSD(totals.gross) }}</td>
-                <td class="px-3 py-2.5 text-right tabular-nums">{{ formatUSD(totals.tax) }}</td>
+                <td class="px-3 py-2.5"></td>
                 <td class="px-3 py-2.5 text-right tabular-nums">{{ formatUSD(totals.payout) }}</td>
+                <td class="px-3 py-2.5"></td>
                 <td class="px-3 py-2.5 text-right tabular-nums">{{ formatUSD(totals.invoice) }}</td>
                 <td class="px-3 py-2.5 text-right tabular-nums text-success">{{ formatUSD(totals.margin) }}</td>
               </tr>
@@ -144,8 +160,8 @@ import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { useTimesheets } from '../../composables/staffing/useTimesheets'
 import { useBilling } from '../../composables/staffing/useBilling'
-import { getStaffingInvoice, listStaffingCompanies, staffingCompanyKeys } from '../../services/staffingService'
-import type { TimesheetEntryInput } from '../../services/staffingService'
+import { getStaffingInvoice, listStaffingCompanies, staffingCompanyKeys } from '../../services/staffing/staffingService'
+import type { TimesheetEntryInput } from '../../services/staffing/staffingService'
 import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
 import type { StaffingTimesheetEntry } from '../../types/database'
 
@@ -227,6 +243,44 @@ watch([() => timesheets.employees.value, currentWeek], rebuildGrid, { immediate:
 
 const resultFor = (employeeId: string): StaffingTimesheetEntry | undefined =>
   currentWeek.value?.entries.find(e => e.employee_id === employeeId)
+
+/** What the regular hours alone earned — the calculator's own regularAmount, not persisted, so derived here. */
+const regularAmountFor = (employeeId: string): number => {
+  const entry = resultFor(employeeId)
+  return entry ? entry.regular_hours * entry.pay_rate : 0
+}
+
+/** gross = regularAmount + overtimeAmount - preTaxDeduction, so this is the OT amount alone. */
+const overtimeAmountFor = (employeeId: string): number => {
+  const entry = resultFor(employeeId)
+  if (!entry) return 0
+  return entry.gross - regularAmountFor(employeeId) + entry.pre_tax_deduction
+}
+
+/** Effective $/hour paid on the OT hours — derived rather than assumed 1.5x, since a role's
+ *  overtime multiplier can now be its own override (see Fase 1). */
+const overtimeRateFor = (employeeId: string): number => {
+  const entry = resultFor(employeeId)
+  if (!entry || entry.overtime_hours <= 0) return 0
+  return overtimeAmountFor(employeeId) / entry.overtime_hours
+}
+
+const taxPercentFor = (employeeId: string): number => {
+  const entry = resultFor(employeeId)
+  if (!entry || entry.gross <= 0) return 0
+  return (entry.tax_withheld / entry.gross) * 100
+}
+
+const ROUNDING_LABELS: Record<string, string> = {
+  cent: 'Al centavo',
+  floor: 'Dólar entero',
+  exact: 'Exacto',
+}
+
+const roundingLabel = computed(() => {
+  const company = (companies.value ?? []).find(c => c.id === selectedCompanyId.value)
+  return company ? (ROUNDING_LABELS[company.payoutRounding] ?? 'Al centavo') : '—'
+})
 
 const totals = computed(() => {
   const entries = currentWeek.value?.entries ?? []

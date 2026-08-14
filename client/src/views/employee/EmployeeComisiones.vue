@@ -203,7 +203,7 @@ const { data: earningsData, isLoading: loadingEarnings } = useQuery({
   queryKey: computed(() => dashboardKeys.earnings(businessId.value, employeeId.value, branchId.value, dateRange.value.start, dateRange.value.end)),
   queryFn: () => listEmployeeTransactions(businessId.value!, employeeId.value!, branchId.value, dateRange.value.start, dateRange.value.end),
   enabled: computed(() => !!businessId.value && !!employeeId.value),
-  staleTime: 0,
+  staleTime: 15000,
 })
 const earnings = computed(() => earningsData.value ?? [])
 
@@ -226,7 +226,7 @@ const { data: paymentsData } = useQuery({
   queryKey: dashboardKeys.payments(businessId.value, employeeId.value, branchId.value),
   queryFn: () => listEmployeePayments(businessId.value!, employeeId.value!, branchId.value),
   enabled: computed(() => !!businessId.value && !!employeeId.value),
-  staleTime: 0,
+  staleTime: 15000,
 })
 const payments = computed(() => paymentsData.value ?? [])
 const { formatUSD, formatVESEs } = useCurrency()

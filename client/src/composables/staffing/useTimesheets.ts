@@ -10,7 +10,7 @@ import {
   saveTimesheetWeek,
   staffingTimesheetKeys,
   type TimesheetEntryInput,
-} from '../../services/staffingService'
+} from '../../services/staffing/staffingService'
 
 /**
  * Hours entry for one company: who can be paid (employees pinned to this company), which weeks

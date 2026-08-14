@@ -106,7 +106,7 @@ return [
         ],
         'staffing' => [
             'status' => 'creatable',
-            'capabilities' => ['staffing.timesheets', 'staffing.billing'],
+            'capabilities' => ['staffing.timesheets', 'staffing.billing', 'staffing.crm', 'staffing.reports'],
             'feature_defaults' => [
                 'agenda' => false,
                 'calendario' => false,

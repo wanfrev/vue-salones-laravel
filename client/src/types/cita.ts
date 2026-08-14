@@ -82,7 +82,7 @@ export interface CitaFormData {
 
 export interface PaymentEditContext {
   transactionId: string
-  method: 'cash' | 'cash_ves' | 'card' | 'transfer' | 'zelle' | 'binance' | 'cashea' | 'pago_movil' | 'punto_venta' | 'mixed' | 'other'
+  method: 'cash' | 'cash_ves' | 'card' | 'transfer' | 'zelle' | 'binance' | 'cashea' | 'pago_movil' | 'punto_venta' | 'mixed' | 'other' | 'credito'
   amount: number
   currency: 'USD' | 'VES'
   exchangeRate: number
@@ -90,6 +90,9 @@ export interface PaymentEditContext {
   notes?: string
   breakdown?: import('./pos').PaymentBreakdownItem[]
   appointmentId?: string
+  clientName?: string
+  employeeName?: string
+  invoiceProducts?: AppointmentProduct[]
 }
 
 export interface AppointmentProduct {

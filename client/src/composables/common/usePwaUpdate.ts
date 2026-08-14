@@ -9,13 +9,12 @@ const needRefresh = ref(false)
 const offlineReady = ref(false)
 const updating = ref(false)
 const checking = ref(false)
-const dismissed = ref(false)
 
 let updateSW: ((reloadPage?: boolean) => Promise<void>) | null = null
 let registration: ServiceWorkerRegistration | null = null
 let initialized = false
 
-const UPDATE_CHECK_MS = 60_000
+const UPDATE_CHECK_MS = 15_000
 
 // Justo después de aplicar una actualización, el primer pedido de sw.js tras el
 // reload puede caer en un servidor/nodo de CDN que todavía no terminó de
@@ -46,14 +45,12 @@ export function initPwaUpdate(): void {
             // directamente en vez de esperar un evento que no va a llegar.
             if (registration?.waiting) {
               needRefresh.value = true
-              dismissed.value = false
             }
           }, PROPAGATION_GRACE_MS - elapsed)
           return
         }
         sessionStorage.removeItem(JUST_UPDATED_KEY)
         needRefresh.value = true
-        dismissed.value = false
       },
       onOfflineReady() {
         offlineReady.value = true
@@ -64,6 +61,9 @@ export function initPwaUpdate(): void {
 
         const check = () => { r.update().catch(() => {}) }
 
+        // No esperar al primer tick del intervalo: si el deploy ya está listo,
+        // que el aviso salga apenas se registra el SW en vez de hasta 15s después.
+        check()
         setInterval(check, UPDATE_CHECK_MS)
 
         // En el móvil la PWA queda suspendida en segundo plano durante días sin
@@ -71,7 +71,6 @@ export function initPwaUpdate(): void {
         // hay una build nueva.
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState !== 'visible') return
-          dismissed.value = false
           check()
         })
 
@@ -141,20 +140,14 @@ export async function hardReset(): Promise<void> {
   window.location.reload()
 }
 
-export function dismissUpdate(): void {
-  dismissed.value = true
-}
-
 export function usePwaUpdate() {
   return {
     needRefresh: readonly(needRefresh),
     offlineReady: readonly(offlineReady),
     updating: readonly(updating),
     checking: readonly(checking),
-    dismissed: readonly(dismissed),
     applyUpdate,
     checkForUpdate,
     hardReset,
-    dismissUpdate,
   }
 }

@@ -30,7 +30,7 @@
       <input
         v-model="searchQuery"
         type="text"
-        placeholder="Buscar por nombre, teléfono o email..."
+        placeholder="Buscar por nombre, código, teléfono o email..."
         class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
       />
       <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
@@ -61,7 +61,10 @@
           {{ getInitials(client.name) }}
         </div>
         <div class="flex-1 min-w-0">
-          <p class="font-semibold text-text truncate">{{ client.name }}</p>
+          <div class="flex items-center gap-1.5">
+            <p class="font-semibold text-text truncate">{{ client.name }}</p>
+            <span v-if="client.code" class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10">{{ client.code }}</span>
+          </div>
           <p class="text-xs text-text-muted">{{ client.phone }}</p>
           <p class="text-xs text-text-muted">Última visita: {{ client.lastVisit }}</p>
         </div>
@@ -112,7 +115,10 @@
                   {{ getInitials(client.name) }}
                 </div>
                 <div class="min-w-0">
-                  <p class="text-sm font-medium text-text truncate">{{ client.name }}</p>
+                  <div class="flex items-center gap-1.5">
+                    <p class="text-sm font-medium text-text truncate">{{ client.name }}</p>
+                    <span v-if="client.code" class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10">{{ client.code }}</span>
+                  </div>
                   <p class="text-xs text-slate-400">Desde {{ client.joinDate }}</p>
                 </div>
               </div>
@@ -235,7 +241,7 @@ import { useNotification } from '../composables/common/useNotification'
 import { useBusinessStore } from '../store/business'
 import { clientesKeys, deleteCliente, listClientes, saveCliente } from '../services/clientesService'
 import { getInitials, sanitizePhone } from '../lib/formatters'
-import ClientStats from '../components/clientes/ClientStats.vue'
+import ClientStats from '../components/clients/ClientStats.vue'
 import { ClienteFormModal } from '../components/modals'
 import { FilterDrawer } from '../components/filters'
 import { UserIcon, AddCircleIcon, MagnifierIcon, FilterIcon, PenIcon, CheckCircleIcon, ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'

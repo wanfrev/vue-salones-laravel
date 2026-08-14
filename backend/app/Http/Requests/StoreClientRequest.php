@@ -17,6 +17,7 @@ class StoreClientRequest extends FormRequest
             'full_name' => 'required|string|max:255',
             'phone' => 'required|string|max:50',
             'email' => 'nullable|email|max:255',
+            'client_code' => 'nullable|string|max:20',
             'notes' => 'nullable|string',
             'birthday' => 'nullable|date',
             'branch_id' => 'nullable|uuid',

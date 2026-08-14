@@ -232,3 +232,146 @@ Antes de mergear cualquier PR, verificar:
 - [ ] Invalidación de caché cubre tanto admin como empleado
 - [ ] Componentes ≤ 400 líneas
 - [ ] No hay `onMounted` con refetch manual (TanStack Query lo hace solo)
+
+---
+
+## 🧭 11. Contexto del Proyecto y Dominio
+
+**Luma** es un SaaS multi-tenant para negocios de servicios (salones, spas, barberías, veterinarias, pet spas) y también negocios tipo **tienda** (venta de productos sin agenda). Un mismo código base sirve a todos los "nichos" — el comportamiento se adapta por configuración, no por ramas de código separadas.
+
+### Multi-tenancy
+- Todo dato productivo cuelga de `business_id` (negocio) y, dentro de él, opcionalmente de `branch_id` (sucursal). Casi todo modelo/tabla tiene ambos campos.
+- El scope global por `business_id` (`BusinessScope`) está **desactivado** (`app/Models/Concerns/BelongsToBusiness.php`) — el filtrado por negocio se hace **manualmente en cada Service/Controller** con `->where('business_id', $businessId)`. Nunca asumir que un query está automáticamente aislado por negocio: siempre filtrar explícitamente.
+- `business_id` normalmente se resuelve desde `$request->user()?->profile?->business_id` (ver `resolveBusinessId()` repetido en varios controllers, p. ej. `TransactionController`, `CreditController`).
+
+### Nichos y feature flags
+- `client/src/config/niches/registry.ts` define los nichos (`salon`, `barberia`, `spa`, `dog_spa`, `vet`, `nail_bar`, `tienda`, `mixto`, etc.) y sus `capabilities` (ej. `clients.pets`, `clients.medical`).
+- `isTiendaNiche(nicheType)` y variantes (`isPetNiche`, `isVetNiche`) en `client/src/config/niches/index.ts` determinan qué UI mostrar. El nicho **"tienda"** es un negocio sin agenda/servicios — solo POS de productos.
+- Backend usa middlewares para gatear por negocio: `feature:<x>` (`EnsureBusinessFeature`, ej. `feature:pos`, `feature:productos`, `feature:inventario`), `perm:<x>` (`EnsureProfilePermission`, permisos por perfil), `capability:<x>` (`EnsureNicheCapability`), y `admin-panel` (`EnsureAdminPanelRole`).
+- Frontend replica esto vía `businessStore.features` (agenda, calendario, servicios, pos, etc.) y roles (`isAdminPanelRole`).
+
+### Dominio de ventas / POS / Finanzas
+- **`Transaction`**: el registro de cobro. Puede colgar de una `appointment_id` (cobro de cita) o ser `null` (venta directa de producto). Tiene `method` (cash, card, transfer, zelle, pago_movil, mixed, **credito**, etc.), `payments_breakdown` (JSON, array de splits para pagos mixtos), `exchange_rate_used`, `paid_at`.
+- **`PosService`** (`backend/app/Services/PosService.php`) centraliza toda la lógica de venta: `processSale` (cobro de cita + productos), `processDirectSale` (venta directa de producto sin cita), `processDirectServiceSale` (servicio cobrado sin cita previa, crea la cita internamente). Todo corre dentro de `DB::transaction` — si falla el inventario, se revierte el cobro y viceversa.
+- El **inventario se descuenta siempre** al vender, sin importar el método de pago (incluyendo `credito`) — ver `validateAndDeductStock()`.
+- **`FinancialSummaryService`** calcula KPIs (ingresos, gastos, ganancia, ganancia neta) agregando por `COALESCE(transactions.paid_at, transactions.created_at)`. Las transacciones con `method = 'credito'` se excluyen de ingresos hasta que se cobran (ver `Credit`/`CreditController` más abajo).
+- **`Credit`** (tabla `credits`): registro trazable de una venta a crédito — cliente, monto, transacción de origen, estado `pending`/`paid`. Al marcar un crédito como pagado (`CreditController::markPaid`), se actualiza el `method` y `paid_at` de la **transacción original** (no se crea una nueva) para que toda la maquinaria de ingresos/ganancia existente lo reconozca automáticamente, en la fecha real del pago, no de la venta.
+- `DailyReportPosSummaryService` / tabla `daily_reports` es el **cierre de caja diario** — un resumen operativo por día/sucursal, independiente del sistema de créditos (un crédito sigue apareciendo en el reporte del día que se vendió, aunque su ingreso se reconozca después en Finanzas).
+
+---
+
+## 🏗️ 12. Estructura del Backend (Laravel)
+
+```
+backend/app/
+├── Http/Controllers/Api/   # Un controller por recurso (TransactionController, CreditController...)
+├── Services/                # Lógica de negocio pesada (PosService, FinancialSummaryService, InventoryService)
+├── Models/                  # Eloquent models, PK uuid no incremental (ver patrón abajo)
+│   └── Concerns/             # Traits compartidos: BelongsToBusiness, BelongsToBranch
+├── Http/Middleware/         # feature / perm / capability / admin-panel / superadmin
+├── Events/                  # EntityChanged (WebSocket realtime vía Reverb)
+├── Domain/, Enums/, Rules/, Scopes/, Policies/
+```
+
+### Convenciones de Models
+```php
+class Credit extends Model
+{
+    use BelongsToBranch;
+    use BelongsToBusiness;
+
+    public $incrementing = false;
+    protected $keyType = 'string';   // PKs son UUID (Str::uuid()->toString()), no autoincrement
+
+    protected $fillable = [...];
+    protected function casts(): array { return [...]; }
+}
+```
+Casi todas las tablas nuevas siguen este patrón: `id` uuid primary, `business_id`, `branch_id` nullable, timestamps, y a veces `softDeletes()`.
+
+### Convenciones de Controllers
+- Sin base class obligatoria (algunos extienden `Controller`, otros no — seguir el ejemplo del controller más cercano al recurso que estés tocando).
+- Patrón repetido: `resolveBusinessId(Request $request)` privado que prioriza `$request->user()?->profile?->business_id` y cae a un query param `business_id` (con soporte de sintaxis `eq.<uuid>` heredada de PostgREST).
+- Validación con `$request->validate([...])` inline en el método, nunca Form Requests separados (no es el patrón de este proyecto).
+- Mutaciones de dinero/inventario van envueltas en `DB::transaction(function () { ... })`.
+- Tras un cambio relevante, emitir `EntityChanged::safe($businessId, 'entity_name', 'created|updated|deleted', $id)` para que el frontend reciba el evento realtime.
+
+### Convenciones de Migraciones y Rutas
+- Nombre: `YYYY_MM_DD_HHMMSS_create_x_table.php` o `add_y_to_x_table.php`, fecha real del día en que se crea.
+- `backend/routes/api.php` es un único archivo grande, agrupado por `Route::middleware(['feature:x', 'perm:y'])->group(...)`. Al añadir un recurso nuevo, ubicar las rutas cerca de recursos relacionados (ej. `/credits` quedó junto a `/transactions`).
+
+---
+
+## 💻 13. Estructura del Frontend (Vue 3 + TypeScript)
+
+```
+client/src/
+├── views/            # Una vista por ruta (Finanzas.vue, POS.vue...)
+├── components/<dominio>/   # Componentes de UI agrupados por dominio (finanzas/, pos/, agenda/...)
+├── composables/<dominio>/  # useXxx.ts — estado + TanStack Query + mutaciones, por dominio
+├── services/<dominio>Service.ts  # Funciones puras de acceso a datos (una por dominio)
+├── types/database.ts  # Registro central de interfaces TS que reflejan las tablas backend
+├── store/              # Pinia (auth, business)
+├── config/niches/       # Definición de nichos y capabilities
+└── lib/api.ts           # Dos formas de hablar con el backend (ver abajo)
+```
+
+### Dos formas de llamar al backend — no mezclarlas sin razón
+1. **`db.from('tabla')...`** (`client/src/lib/api.ts`) — wrapper estilo Supabase/PostgREST sobre las tablas expuestas directamente (`suppliers`, `expenses`, `transactions` de solo lectura, etc.). Se usa en la mayoría de `services/*.ts` existentes (ver `suppliersService.ts`).
+2. **`apiRequest<T>(method, path, body)`** (mismo archivo) — para **endpoints custom de Laravel** que no son CRUD directo de tabla (`/requirements`, `/credits/{id}/mark-paid`, `/pos/*`). Se usa dentro de composables (`useRequirements.ts`, `useCredits.ts`) con TanStack Query (`useQuery`/`useMutation`) directamente, sin capa `services/` intermedia — patrón más nuevo y preferido para recursos con lógica de negocio (no es solo CRUD).
+
+Al agregar un recurso nuevo: si es lógica de negocio no trivial (como créditos, requerimientos), usar `apiRequest` + composable directo. Si es CRUD simple sobre una tabla ya expuesta, usar `db.from()`.
+
+### Composables (patrón estándar)
+```ts
+export function useCredits() {
+  const queryClient = useQueryClient()
+  const authStore = useAuthStore()
+  const { success, error: showError } = useNotification()
+
+  const xQuery = useQuery({ queryKey: [...], queryFn: ..., enabled: ..., staleTime: 0 })
+  const xMutation = useMutation({
+    mutationFn: ...,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: [...], exact: false }) /* + success() */ },
+    onError: (err) => showError(translateError(err, 'mensaje por defecto')),
+  })
+  return { ... }
+}
+```
+- `useNotification()` para toasts, `translateError()` para mensajes de error legibles, `useCurrency()` para formateo USD/VES y tasa de cambio activa.
+- Componentes de sección (`XxxSection.vue`) reciben o instancian su composable y son puramente de presentación — la lógica vive en el composable, no en el componente (ver checklist de la sección 5/6 arriba, componentes ≤ 400 líneas).
+
+### Pestañas y vistas grandes (ej. Finanzas.vue)
+`Finanzas.vue` es el ejemplo de referencia para vistas con pestañas: `activeTab` tipado como unión literal, `mainTabs` computed que arma la lista según rol/nicho, y un `watch` que redirige a una pestaña válida si la actual deja de estar disponible (ej. al ocultar "Egresos"/"Créditos" para empleados de tienda).
+
+---
+
+## 🤝 14. Flujo de Trabajo con el Usuario (Wanfredo)
+
+- **Investigar antes de construir.** Este proyecto avanza por iteraciones de commits pequeños y descriptivos (`abe7da1 metodo credito`, `ba2b761 factura`...). Antes de implementar algo "nuevo", revisar `git log`/`git diff` del rango relevante y grep del dominio (ej. `credito`, nombre de la feature) para no duplicar lógica que ya quedó a medio camino en un commit reciente.
+- **Preguntar decisiones de producto, no adivinarlas.** Cuando una feature tiene varias formas válidas de resolverse (pago parcial vs total de un crédito, dónde va una sección nueva en la navegación, si reusar un flujo destructivo existente o crear uno nuevo), preguntar con opciones concretas antes de codear. El usuario prefiere decidir el diseño de producto explícitamente.
+- **Backend y frontend en el mismo cambio.** Las features de negocio (ej. créditos) casi siempre tocan migración + modelo + controller + rutas + composable + componente + tipos TS en un solo PR/commit conceptual — no se entregan mitades.
+- **Verificación real, no solo "debería funcionar".** Frontend: `npx vue-tsc --noEmit` y `npm run build` antes de dar por terminado un cambio de UI/composable. Backend: revisar convenciones exactas de un archivo hermano (mismo patrón de controller/migración) en vez de inventar una convención nueva.
+- **Limitación conocida del entorno:** no hay PHP/Composer instalado localmente en esta máquina de desarrollo, por lo que **no se pueden correr migraciones ni levantar el servidor Laravel** desde aquí. Los cambios de backend se validan por revisión de código cuidadosa y consistencia con el resto del código, y las migraciones deben aplicarse manualmente en el servidor/VPS real (`php artisan migrate`) tras el despliegue. Avisar siempre esto explícitamente cuando un cambio incluya migraciones nuevas.
+- **Idioma:** el proyecto y las comunicaciones con el usuario son en español (Venezuela) — nombres de campos/UI en español, aunque el código (variables, nombres de archivo) esté en inglés siguiendo convención de programación.
+
+---
+
+## 🧩 15. Convención de Módulos por Vertical (obligatoria desde `staffing`/`tienda` en adelante)
+
+El negocio crece agregando **verticales** (salón/spa ya existía, luego `staffing`, luego `tienda`, próximamente **médico** e **inventario puro**). Cada vertical nueva se agrega como un módulo aislado en las 4 capas, siempre en **inglés** y siempre en **subcarpeta**, sin excepciones — `staffing` casi lo logró pero quedó inconsistente (subcarpeta en `Services/` y en `composables/`, pero plano-con-prefijo en `Controllers/` y en `services/`); ese es el error a no repetir.
+
+```
+backend/app/Services/<Vertical>/              # lógica de negocio del módulo
+backend/app/Http/Controllers/Api/<Vertical>/  # controllers del módulo (subcarpeta, no prefijo plano)
+backend/database/migrations/                  # sin subcarpeta (Laravel no lo permite), pero con prefijo de fecha real
+
+client/src/views/<Vertical>*.vue               # una o más vistas, prefijo del nombre de la vertical
+client/src/components/<vertical>/              # componentes del módulo
+client/src/composables/<vertical>/             # composables del módulo
+client/src/services/<vertical>/                # acceso a datos del módulo (subcarpeta, no archivo plano)
+```
+
+- **Nombre de carpeta siempre en inglés**, incluso si el dominio se llama distinto en español dentro de la UI (`inventory/`, no `inventario/`; `clients/`, no `clientes/`). El 2026-08-09 se unificaron `components/clientes/` → `components/clients/`, `components/inventario/` → `components/inventory/` y `composables/inventario/` → `composables/inventory/` (eran duplicados accidentales del mismo dominio partidos por idioma). Las carpetas legacy en español que ya existían antes de esta regla (`finanzas/`, `reportes/`, `empleados/` en `composables/`) **no se renombran retroactivamente** — son de bajo riesgo por ser un solo dueño sin par duplicado — pero ninguna carpeta nueva debe usar español.
+- Backend: cada vertical se gatea con su propio namespace de `capability:<vertical>.*` (ver `EnsureNicheCapability`), nunca reutilizando el de otra vertical.
+- Si un archivo/carpeta se abandona a medio camino de un refactor (ej. el `App\Domain\Clients\Models\Client` que se borró el 2026-08-09 por tener cero referencias), **bórralo o termina la migración** — no lo dejes como una segunda implementación fantasma del mismo concepto.

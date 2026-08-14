@@ -263,6 +263,7 @@
               :is-editing="isEditing"
               :bank-account-last4="editingBankAccountLast4"
               :payroll-card-last4="editingPayrollCardLast4"
+              :ssn-last4="editingSsnLast4"
               @update:model-value="formData = $event"
             />
           </template>
@@ -338,9 +339,17 @@ const t = computed(() => businessStore.terminology)
 
 const isPetNicheBusiness = computed(() => isPetNiche(businessStore.nicheType))
 const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
-// Staffing workers have no login — email/password/permission toggles/schedule/commission
-// config are all replaced by the company + rate-card assignment (see StaffingEmployeeFields).
-const isStaffing = computed(() => businessStore.hasCapability('staffing.timesheets'))
+// A staffing niche has two very different kinds of "team member": the workers placed at
+// client companies (no login at all — pay comes from the company + rate card) and the
+// vendedoras who use the CRM (a normal login-having employee). Only the former gets the
+// StaffingEmployeeFields treatment, so this checks the RECORD, not just the niche: editing an
+// existing worker (they already have staffing_company_id) or explicitly opened in worker mode
+// (see StaffingWorkersPanel.vue, which sets workerMode when adding one from inside Empresas).
+const isStaffing = computed(() => {
+  if (!businessStore.hasCapability('staffing.timesheets')) return false
+  if (modalData.value?.empleado) return !!modalData.value.empleado.staffingCompanyId
+  return !!modalData.value?.workerMode
+})
 
 const isSubmitting = ref(false)
 const isLoading = computed(() => isSubmitting.value || props.isSaving)
@@ -394,6 +403,9 @@ const defaultFormData: EmpleadoFormData = {
   canAccessFinanzas: false,
   canAccessRequirements: false,
   staffingCompanyId: '',
+  staffingTaxRate: null,
+  address: '',
+  ssn: '',
   bankName: '',
   bankAccountHolder: '',
   bankAccountType: '',
@@ -407,9 +419,10 @@ const formData = ref<EmpleadoFormData>({ ...defaultFormData })
 const { errors, isValid, validate, clearErrors, handleBlur } = useFormValidation(empleadoFormSchema as any, formData) as any as ReturnType<typeof useFormValidation>
 
 // Populated from the saved record on edit — masked hints only, the modal never sees the
-// full number. See Profile::$hidden / bank_account_last4 / payroll_card_last4.
+// full number. See Profile::$hidden / bank_account_last4 / payroll_card_last4 / ssn_last4.
 const editingBankAccountLast4 = ref<string | null>(null)
 const editingPayrollCardLast4 = ref<string | null>(null)
+const editingSsnLast4 = ref<string | null>(null)
 
 const isFormValid = computed(() => {
   const nameValid = formData.value.name.trim().length >= 2
@@ -458,6 +471,8 @@ watch(
         canAccessFinanzas: empleado.canAccessFinanzas ?? false,
         canAccessRequirements: empleado.canAccessRequirements ?? false,
         staffingCompanyId: empleado.staffingCompanyId ?? '',
+        staffingTaxRate: empleado.staffingTaxRate ?? null,
+        address: empleado.address ?? '',
         bankName: empleado.bankName ?? '',
         bankAccountHolder: empleado.bankAccountHolder ?? '',
         bankAccountType: empleado.bankAccountType ?? '',
@@ -466,13 +481,19 @@ watch(
         bankRoutingNumber: '',
         bankAccountNumber: '',
         payrollCardNumber: '',
+        ssn: '',
       }
       editingBankAccountLast4.value = empleado.bankAccountLast4 ?? null
       editingPayrollCardLast4.value = empleado.payrollCardLast4 ?? null
+      editingSsnLast4.value = empleado.ssnLast4 ?? null
     } else {
-      formData.value = { ...defaultFormData }
+      formData.value = {
+        ...defaultFormData,
+        staffingCompanyId: modalData.value?.presetCompanyId ?? '',
+      }
       editingBankAccountLast4.value = null
       editingPayrollCardLast4.value = null
+      editingSsnLast4.value = null
     }
     clearErrors()
   },

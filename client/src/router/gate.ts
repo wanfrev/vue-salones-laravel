@@ -15,6 +15,9 @@ import type { AuthProfile } from '../types/auth'
 export interface RouteGate {
   feature?: FeatureKey
   capability?: Capability
+  /** Inverse of `capability` — hides the link/route for niches that DO declare it. Used for
+   *  generic modules (Clientes) that a niche with its own dedicated equivalent shouldn't show. */
+  hideIfCapability?: Capability
   /** Profile boolean flag, positive polarity, default-true-unless-explicitly-false (matches
    *  every existing can_* column in this codebase — see AuthProfile). */
   profileFlag?: keyof AuthProfile
@@ -33,6 +36,7 @@ export function evaluateGate(gate: RouteGate | undefined, ctx: GateContext): boo
   if (!gate) return true
   if (gate.feature && !ctx.hasFeature(gate.feature)) return false
   if (gate.capability && !ctx.hasCapability(gate.capability)) return false
+  if (gate.hideIfCapability && ctx.hasCapability(gate.hideIfCapability)) return false
   if (gate.profileFlag && (ctx.profile as any)?.[gate.profileFlag] === false) return false
   if (gate.hideIfAgendaDisabled && ctx.profile?.disable_agenda) return false
   return true

@@ -1,12 +1,32 @@
 import { db, apiRequest } from '../lib/api'
 import { clienteFormSchema } from '../lib/validation'
-import { computeClientStats } from '../business/clientStats'
 import { mapClienteFormToClientInsert, mapClientToCliente } from '../mappers/clientesMapper'
-import type { Client, Appointment, Service } from '../types/database'
+import type { Client } from '../types/database'
 import type { Cliente, ClienteFormData } from '../types/cliente'
 
 export const clientesKeys = {
   all: (businessId?: string | null, branchId?: string | null) => ['clientes', businessId, branchId] as const,
+}
+
+interface ClientStatsRow {
+  client_id: string
+  total_appointments: number | string
+  total_spent: number | string
+  last_visit: string | null
+}
+
+const getClientStats = async (branchId?: string | null): Promise<Map<string, { lastVisit?: string; totalAppointments: number; totalSpent: number }>> => {
+  const path = branchId ? `/clients/stats?branch_id=${encodeURIComponent(branchId)}` : '/clients/stats'
+  const rows = await apiRequest<ClientStatsRow[]>('GET', path)
+  const map = new Map<string, { lastVisit?: string; totalAppointments: number; totalSpent: number }>()
+  for (const row of rows ?? []) {
+    map.set(row.client_id, {
+      lastVisit: row.last_visit ? row.last_visit.split('T')[0] : undefined,
+      totalAppointments: Number(row.total_appointments ?? 0),
+      totalSpent: Number(row.total_spent ?? 0),
+    })
+  }
+  return map
 }
 
 export const listClientes = async (businessId: string, branchId?: string | null): Promise<Cliente[]> => {
@@ -20,42 +40,14 @@ export const listClientes = async (businessId: string, branchId?: string | null)
     query = query.eq('branch_id', branchId)
   }
 
-  const { data, error } = await query
+  const [{ data, error }, statsByClient] = await Promise.all([
+    query,
+    getClientStats(branchId).catch(() => new Map<string, { lastVisit?: string; totalAppointments: number; totalSpent: number }>()),
+  ])
 
   if (error) throw error
 
   const clients = data as Client[]
-
-  let apptsQuery = db
-    .from('appointments')
-    .select('client_id, start_time, service_id')
-    .eq('business_id', businessId)
-
-  if (branchId) {
-    apptsQuery = apptsQuery.eq('branch_id', branchId)
-  }
-
-  const { data: appointments, error: apptError } = await apptsQuery
-
-  if (apptError) throw apptError
-
-  let svcsQuery = db
-    .from('services')
-    .select('id, price')
-    .eq('business_id', businessId)
-
-  if (branchId) {
-    svcsQuery = svcsQuery.eq('branch_id', branchId)
-  }
-
-  const { data: services, error: svcError } = await svcsQuery
-
-  if (svcError) throw svcError
-
-  const statsByClient = computeClientStats(
-    (services ?? []) as Service[],
-    (appointments ?? []) as Appointment[],
-  )
 
   return clients.map(client => mapClientToCliente(client, statsByClient.get(client.id)))
 }
@@ -114,32 +106,20 @@ export const deleteCliente = async (clientId: string): Promise<void> => {
 }
 
 export const searchClients = async (
-  businessId: string,
+  _businessId: string,
   query: string,
   branchId?: string | null
-): Promise<Pick<Client, 'id' | 'full_name' | 'phone'>[]> => {
+): Promise<Pick<Client, 'id' | 'full_name' | 'phone' | 'client_code'>[]> => {
   const q = query.trim()
   if (!q) return []
 
-  let qb = db
-    .from('clients')
-    .select('id, full_name, phone')
-    .eq('business_id', businessId)
-    .order('full_name')
-    .limit(30)
-
+  let path = `/clients/search?q=${encodeURIComponent(q)}`
   if (branchId) {
-    qb = qb.eq('branch_id', branchId)
+    path += `&branch_id=${encodeURIComponent(branchId)}`
   }
 
-  const { data, error } = await qb
-
-  if (error) throw error
-
-  return ((data ?? []) as Client[]).filter(c =>
-    c.full_name?.toLowerCase().startsWith(q.toLowerCase()) ||
-    c.phone?.startsWith(q)
-  ).slice(0, 20)
+  const results = await apiRequest<Client[]>('GET', path)
+  return results.map(c => ({ id: c.id, full_name: c.full_name, phone: c.phone, client_code: c.client_code }))
 }
 
 export const findOrCreateClientByPhone = async (

@@ -1,10 +1,10 @@
-import { apiRequest, db } from '../lib/api'
-import { handleDbError } from '../lib/errors'
-import { staffingCompanyFormSchema, staffingCompanyPaymentFormSchema, staffingRateFormSchema } from '../lib/validation'
+import { apiDownloadFile, apiRequest, apiUpload, db } from '../../lib/api'
+import { handleDbError } from '../../lib/errors'
+import { staffingCompanyFormSchema, staffingCompanyPaymentFormSchema, staffingRateFormSchema } from '../../lib/validation'
 import type {
   Profile, StaffingCompany, StaffingCompanyBalance, StaffingCompanyPayment, StaffingCompanyRate,
   StaffingInvoice, StaffingTaxBracket, StaffingTimesheet,
-} from '../types/database'
+} from '../../types/database'
 
 export const staffingCompanyKeys = {
   all: (businessId?: string | null, branchId?: string | null) =>
@@ -36,8 +36,20 @@ export const staffingRateKeys = {
     ['staffing-company-rates', businessId, companyId] as const,
 }
 
+export const staffingReportKeys = {
+  headcountMatrix: (businessId?: string | null, year?: number, status?: StaffingCompanyStatus | 'all') =>
+    ['staffing-headcount-matrix', businessId, year, status] as const,
+  monthlyPayroll: (businessId?: string | null, year?: number, month?: number) =>
+    ['staffing-monthly-payroll', businessId, year, month] as const,
+  weekly: (businessId?: string | null, weekStart?: string) =>
+    ['staffing-weekly-report', businessId, weekStart] as const,
+  employeeHours: (businessId?: string | null, year?: number, active?: boolean) =>
+    ['staffing-employee-hours', businessId, year, active] as const,
+}
+
 export type TaxDestination = 'remitted' | 'retained'
 export type PayoutRounding = 'floor' | 'cent' | 'exact'
+export type StaffingCompanyStatus = 'active' | 'inactive' | 'on_hold'
 
 export interface StaffingCompanyRow {
   id: string
@@ -59,6 +71,7 @@ export interface StaffingCompanyRow {
   payoutRounding: PayoutRounding
   notes: string
   active: boolean
+  status: StaffingCompanyStatus
 }
 
 export interface StaffingRateRow {
@@ -69,6 +82,9 @@ export interface StaffingRateRow {
   billRate: number
   /** What the agency keeps per hour, before withholdings. The reason the business exists. */
   hourlyMargin: number
+  /** Null = falls back to the company's own overtime terms. */
+  overtimeThresholdHours: number | null
+  overtimeMultiplier: number | null
   active: boolean
 }
 
@@ -89,6 +105,7 @@ export interface StaffingCompanyFormData {
   taxBrackets: StaffingTaxBracket[]
   taxDestination: TaxDestination
   payoutRounding: PayoutRounding
+  status: StaffingCompanyStatus
   notes: string
 }
 
@@ -97,6 +114,8 @@ export interface StaffingRateFormData {
   role: string
   payRate: number
   billRate: number
+  overtimeThresholdHours: number | null
+  overtimeMultiplier: number | null
 }
 
 /** DYKE's agreement — the shape a brand-new company starts from. */
@@ -125,6 +144,7 @@ const toCompanyRow = (row: StaffingCompany): StaffingCompanyRow => ({
   payoutRounding: (row.payout_rounding as PayoutRounding) || 'cent',
   notes: row.notes ?? '',
   active: row.active,
+  status: row.status ?? (row.active ? 'active' : 'inactive'),
 })
 
 const toRateRow = (row: StaffingCompanyRate): StaffingRateRow => ({
@@ -134,19 +154,30 @@ const toRateRow = (row: StaffingCompanyRate): StaffingRateRow => ({
   payRate: Number(row.pay_rate ?? 0),
   billRate: Number(row.bill_rate ?? 0),
   hourlyMargin: Number(row.bill_rate ?? 0) - Number(row.pay_rate ?? 0),
+  overtimeThresholdHours: row.overtime_threshold_hours == null ? null : Number(row.overtime_threshold_hours),
+  overtimeMultiplier: row.overtime_multiplier == null ? null : Number(row.overtime_multiplier),
   active: row.active,
 })
 
+/**
+ * Defaults to 'active' so the two call sites that only ever want active companies
+ * (StaffingHoursPanel.vue, StaffingEmployeeFields.vue) keep seeing exactly what they saw before
+ * the status tabs existed. Pass 'all' for the Empresas screen's own tabbed list.
+ */
 export const listStaffingCompanies = async (
   businessId: string,
   branchId?: string | null,
+  status: StaffingCompanyStatus | 'all' = 'active',
 ): Promise<StaffingCompanyRow[]> => {
   let query = db
     .from('staffing_companies')
     .select('*')
     .eq('business_id', businessId)
-    .eq('active', true)
     .order('name', { ascending: true })
+
+  if (status !== 'all') {
+    query = query.eq('status', status)
+  }
 
   if (branchId) {
     query = query.eq('branch_id', branchId)
@@ -185,6 +216,7 @@ export const saveStaffingCompany = async (
     tax_brackets: parsed.data.taxBrackets,
     tax_destination: parsed.data.taxDestination,
     payout_rounding: parsed.data.payoutRounding,
+    status: parsed.data.status,
     notes: parsed.data.notes || null,
     branch_id: branchId ?? null,
   }
@@ -240,6 +272,8 @@ export const saveStaffingRate = async (
     role: parsed.data.role,
     pay_rate: parsed.data.payRate,
     bill_rate: parsed.data.billRate,
+    overtime_threshold_hours: parsed.data.overtimeThresholdHours,
+    overtime_multiplier: parsed.data.overtimeMultiplier,
   }
 
   const { data: saved, error } = data.id
@@ -401,3 +435,217 @@ export const deleteCompanyPayment = async (id: string): Promise<void> => {
   const { error } = await db.from('staffing_company_payments').delete().eq('id', id)
   if (error) handleDbError(error, 'Error al eliminar el abono')
 }
+
+export interface StaffingWeekLabel {
+  week_start: string
+  week_end: string
+  label: string
+}
+
+export interface StaffingHeadcountCompanyRow {
+  companyId: string
+  name: string
+  status: StaffingCompanyStatus
+  weeklyHeadcount: Record<string, number>
+}
+
+export interface StaffingHeadcountMatrix {
+  weeks: StaffingWeekLabel[]
+  companies: StaffingHeadcountCompanyRow[]
+}
+
+/** Year-wide, per-company weekly headcount for the Empresas status tabs — 2 queries server-side. */
+export const getCompanyHeadcountMatrix = (
+  year: number,
+  status?: StaffingCompanyStatus | 'all',
+): Promise<StaffingHeadcountMatrix> => {
+  const params = new URLSearchParams({ year: String(year) })
+  if (status && status !== 'all') params.set('status', status)
+
+  return apiRequest<StaffingHeadcountMatrix>('GET', `/staffing-companies/headcount-matrix?${params.toString()}`)
+}
+
+export interface StaffingMonthlyPayrollCompanyRow {
+  companyId: string
+  name: string
+  weeklyPayroll: Record<string, number>
+  total: number
+}
+
+export interface StaffingMonthlyPayrollReport {
+  weeks: StaffingWeekLabel[]
+  companies: StaffingMonthlyPayrollCompanyRow[]
+}
+
+export const getMonthlyPayrollReport = (year: number, month: number): Promise<StaffingMonthlyPayrollReport> =>
+  apiRequest<StaffingMonthlyPayrollReport>('GET', `/staffing-reports/monthly-payroll?year=${year}&month=${month}`)
+
+export type StaffingWeeklyReportEstado = 'paid' | 'pending' | 'no_invoice'
+
+export interface StaffingWeeklyReportRow {
+  companyId: string
+  name: string
+  estado: StaffingWeeklyReportEstado
+  proyecto: string | null
+  nomina: number
+  invoice: number
+  gananciaBruta: number
+  overheadRate: number
+  overhead: number
+  otrosGastos: number
+  total: number
+  empleados: number
+}
+
+export const getWeeklyCompanyReport = (weekStart: string): Promise<StaffingWeeklyReportRow[]> =>
+  apiRequest<StaffingWeeklyReportRow[]>('GET', `/staffing-reports/weekly?week_start=${weekStart}`)
+
+export interface StaffingWeeklyExpenseFormData {
+  companyId: string
+  weekStart: string
+  amount: number
+  notes?: string
+}
+
+export const saveWeeklyExpense = (data: StaffingWeeklyExpenseFormData): Promise<void> =>
+  apiRequest('POST', '/staffing-weekly-expenses', {
+    company_id: data.companyId,
+    week_start: data.weekStart,
+    amount: data.amount,
+    notes: data.notes || null,
+  })
+
+export interface StaffingEmployeeHoursCompanyRef {
+  id: string
+  name: string
+}
+
+export interface StaffingEmployeeHoursRow {
+  employeeId: string
+  name: string
+  active: boolean
+  paymentMethod: string | null
+  companies: StaffingEmployeeHoursCompanyRef[]
+  weeklyHours: Record<string, number>
+}
+
+export interface StaffingEmployeeHoursMatrix {
+  weeks: StaffingWeekLabel[]
+  employees: StaffingEmployeeHoursRow[]
+}
+
+/** Year-wide, per-employee weekly hours for the "Horas Reportadas" report tab. */
+export const getEmployeeHoursMatrix = (year: number, active: boolean): Promise<StaffingEmployeeHoursMatrix> =>
+  apiRequest<StaffingEmployeeHoursMatrix>('GET', `/staffing-reports/employee-hours?year=${year}&active=${active}`)
+
+// ── Taxes ──────────────────────────────────────────────────────
+
+export const staffingTaxEntityKeys = {
+  all: (businessId?: string | null) => ['staffing-tax-entities', businessId] as const,
+}
+
+export interface StaffingTaxEntityRow {
+  id: string
+  name: string
+  active: boolean
+}
+
+export interface StaffingTaxEntityFormData {
+  name: string
+  active: boolean
+}
+
+interface StaffingTaxEntityApiRow {
+  id: string
+  name: string
+  active: boolean
+}
+
+const toTaxEntityRow = (row: StaffingTaxEntityApiRow): StaffingTaxEntityRow => ({
+  id: row.id,
+  name: row.name,
+  active: row.active,
+})
+
+export const listStaffingTaxEntities = async (businessId: string): Promise<StaffingTaxEntityRow[]> => {
+  const { data, error } = await db.from('staffing_tax_entities').select('*').eq('business_id', businessId).order('name', { ascending: true })
+  if (error) handleDbError(error, 'Error al cargar las entidades de tax')
+
+  return ((data ?? []) as StaffingTaxEntityApiRow[]).map(toTaxEntityRow)
+}
+
+export const saveStaffingTaxEntity = async (
+  _businessId: string,
+  data: StaffingTaxEntityFormData & { id?: string },
+): Promise<StaffingTaxEntityRow> => {
+  const payload = { name: data.name, active: data.active }
+
+  const { data: saved, error } = data.id
+    ? await db.from('staffing_tax_entities').update(payload).eq('id', data.id).select('*').single()
+    : await db.from('staffing_tax_entities').insert(payload).select('*').single()
+
+  if (error) handleDbError(error, 'Error al guardar la entidad de tax')
+
+  return toTaxEntityRow(saved as StaffingTaxEntityApiRow)
+}
+
+export const deleteStaffingTaxEntity = async (id: string): Promise<void> => {
+  const { error } = await db.from('staffing_tax_entities').delete().eq('id', id)
+  if (error) handleDbError(error, 'Error al eliminar la entidad de tax')
+}
+
+export interface StaffingAnnualTaxEntry {
+  entryId: string
+  amount: number
+  hasFile: boolean
+  fileName: string | null
+  entryDate: string | null
+}
+
+export interface StaffingAnnualTaxEmployeeRow {
+  employeeId: string
+  name: string
+  active: boolean
+  companyName: string | null
+  phone: string | null
+  address: string | null
+  ssnLast4: string | null
+  entriesByEntity: Record<string, StaffingAnnualTaxEntry | null>
+}
+
+export interface StaffingAnnualTaxReport {
+  entities: StaffingTaxEntityRow[]
+  employees: StaffingAnnualTaxEmployeeRow[]
+}
+
+export const getAnnualTaxReport = (year: number): Promise<StaffingAnnualTaxReport> =>
+  apiRequest<StaffingAnnualTaxReport>('GET', `/staffing-reports/annual-tax?year=${year}`)
+
+export interface StaffingTaxEntryFormData {
+  employeeId: string
+  taxEntityId: string
+  year: number
+  amount: number
+  entryDate?: string
+  file?: File | null
+}
+
+/** Multipart upsert by (employee, tax entity, year) — see StaffingTaxEntryController::store(). */
+export const saveTaxEntry = (data: StaffingTaxEntryFormData): Promise<void> => {
+  const form = new FormData()
+  form.set('employee_id', data.employeeId)
+  form.set('tax_entity_id', data.taxEntityId)
+  form.set('year', String(data.year))
+  form.set('amount', String(data.amount))
+  if (data.entryDate) form.set('entry_date', data.entryDate)
+  if (data.file) form.set('file', data.file)
+
+  return apiUpload('POST', '/staffing-tax-entries', form)
+}
+
+export const deleteTaxEntry = (id: string): Promise<void> =>
+  apiRequest('DELETE', `/staffing-tax-entries/${id}`)
+
+/** Fetches the attached document as a blob (auth header) and triggers a browser save. */
+export const downloadTaxEntryFile = (entryId: string, fallbackFilename: string): Promise<void> =>
+  apiDownloadFile(`/staffing-tax-entries/${entryId}/download`, fallbackFilename)

@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-const paymentMethodSchema = z.enum(['cash', 'cash_ves', 'card', 'transfer', 'other', 'zelle', 'binance', 'cashea', 'pago_movil', 'punto_venta', 'mixed', 'gift_card'])
+const paymentMethodSchema = z.enum(['cash', 'cash_ves', 'card', 'transfer', 'other', 'zelle', 'binance', 'cashea', 'pago_movil', 'punto_venta', 'mixed', 'gift_card', 'credito'])
 
 export const serviceItemSchema = z.object({
   serviceId: z.string().min(1, 'Selecciona un servicio'),
@@ -85,6 +85,7 @@ export const clienteFormSchema = z.object({
   name: z.string().min(1, 'El nombre del cliente es requerido'),
   phone: z.string().min(1, 'El teléfono del cliente es requerido'),
   email: z.string().email('Email inválido').or(z.literal('')).default(''),
+  code: z.string().max(20, 'Máximo 20 caracteres').default(''),
   notes: z.string().default(''),
   birthday: z.string().default(''),
   preferredServices: z.array(z.string()).default([]),
@@ -143,6 +144,7 @@ export const staffingCompanyFormSchema = z.object({
   taxBrackets: z.array(staffingTaxBracketSchema).default([]),
   taxDestination: z.enum(['remitted', 'retained']).default('remitted'),
   payoutRounding: z.enum(['floor', 'cent', 'exact']).default('cent'),
+  status: z.enum(['active', 'inactive', 'on_hold']).default('active'),
   notes: z.string().default(''),
 })
 
@@ -151,6 +153,8 @@ export const staffingRateFormSchema = z.object({
   role: z.string().min(1, 'El rol es requerido'),
   payRate: z.number().min(0, 'La tarifa no puede ser negativa'),
   billRate: z.number().min(0, 'La tarifa no puede ser negativa'),
+  overtimeThresholdHours: z.number().min(0).max(168).nullable().default(null),
+  overtimeMultiplier: z.number().min(1, 'El recargo no puede ser menor a 1').max(5).nullable().default(null),
 }).refine(r => r.billRate >= r.payRate, {
   // Billing below cost is almost always a typo, and it silently inverts the margin.
   message: 'Lo que cobras a la empresa no puede ser menor a lo que le pagas al empleado',
@@ -164,6 +168,21 @@ export const staffingCompanyPaymentFormSchema = z.object({
   paymentMethod: z.string().default(''),
   paymentDate: z.string().min(1, 'Selecciona una fecha'),
   reference: z.string().default(''),
+  notes: z.string().default(''),
+})
+
+export const leadFormSchema = z.object({
+  companyName: z.string().min(1, 'El nombre de la empresa es requerido'),
+  workArea: z.string().default(''),
+  address: z.string().default(''),
+  phone: z.string().default(''),
+  email: z.string().email('El email no es válido').or(z.literal('')).default(''),
+  status: z.enum(['new', 'called', 'answered', 'emailed', 'meeting', 'won', 'lost']).default('new'),
+  visitDate: z.string().default(''),
+  companyCategory: z.string().default(''),
+  priority: z.enum(['low', 'medium', 'high']).or(z.literal('')).default(''),
+  contactCard: z.string().default(''),
+  state: z.string().default(''),
   notes: z.string().default(''),
 })
 

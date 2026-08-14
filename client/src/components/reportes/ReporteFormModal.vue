@@ -285,24 +285,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
 import ModalBase from '../common/ModalBase.vue'
 import FormInput from '../forms/FormInput.vue'
 import { useBusinessStore } from '../../store/business'
+import { apiRequest } from '../../lib/api'
+import type { PaymentMethod } from '../../types/database'
 import { useAuthStore } from '../../store/auth'
 import { useDailyReports } from '../../composables/reportes/useDailyReports'
 import { getDailyReportPosSummary } from '../../services/dailyReportService'
 import type { DailyReport, CreditItem } from '../../services/dailyReportService'
 import { useNotification } from '../../composables/common/useNotification'
 import { useModal } from '../../composables/common/useModal'
+import { useCurrency } from '../../composables/common/useCurrency'
 
 const MODAL_ID = 'reporte-form-modal'
 const { isOpen, modalData, close } = useModal(MODAL_ID)
+const { exchangeRate } = useCurrency()
 
 const businessStore = useBusinessStore()
 const authStore = useAuthStore()
 const { error: showError } = useNotification()
 const { saveMutation, activeBusinessId } = useDailyReports()
+const queryClient = useQueryClient()
 
 const isEditing = ref(false)
 const isSaving = computed(() => saveMutation.isPending.value)
@@ -316,6 +322,7 @@ const zReportCurrency = ref<'VES' | 'USD'>('VES')
 
 interface CreditItemForm {
   id: string
+  transaction_id?: string
   name: string
   amount: string | number
   currency: 'USD' | 'Bs'
@@ -332,8 +339,42 @@ const addCreditRow = () => {
   })
 }
 
-const removeCreditRow = (index: number) => {
-  creditsList.value.splice(index, 1)
+const removeCreditRow = async (index: number) => {
+  const removed = creditsList.value.splice(index, 1)[0]
+  if (removed && parseNum(removed.amount) > 0) {
+    if (removed.currency === 'USD') {
+      formData.value.cash_usd = (parseNum(formData.value.cash_usd) + parseNum(removed.amount)).toFixed(2)
+    } else {
+      formData.value.cash_bs = (parseNum(formData.value.cash_bs) + parseNum(removed.amount)).toFixed(2)
+    }
+
+    if (removed.transaction_id) {
+      try {
+        const amt = parseNum(removed.amount)
+        const method = removed.currency === 'USD' ? 'cash' : 'cash_ves'
+        const paidAt = new Date(`${formData.value.date}T12:00:00Z`).toISOString()
+        await apiRequest('PUT', `/transactions/${removed.transaction_id}`, {
+          total_amount: amt,
+          method: method,
+          payments_breakdown: [{
+             method: method,
+             amount: amt,
+             currency: removed.currency === 'USD' ? 'USD' : 'VES',
+             inputAmount: amt
+          }],
+          paid_at: paidAt
+        })
+        await Promise.allSettled([
+          queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
+          queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
+          queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
+          queryClient.invalidateQueries({ exact: false, queryKey: ['pos-pending'] }),
+        ])
+      } catch (err) {
+        console.error('Error marcando crédito como pagado:', err)
+      }
+    }
+  }
 }
 
 const defaultForm = () => ({
@@ -479,10 +520,15 @@ watch(modalData, (data) => {
   } else {
     isEditing.value = false
     formData.value = defaultForm()
-    formData.value.exchange_rate = String(businessStore.business?.ves_exchange_rate || '')
+    formData.value.exchange_rate = String(exchangeRate.value || businessStore.business?.ves_exchange_rate || '')
     zReportCurrency.value = 'VES'
     zReportAmount.value = ''
     creditsList.value = []
+    nextTick(() => {
+      if (businessStore.hasFeature('daily_report_autofill_from_pos')) {
+        fetchFromPos()
+      }
+    })
   }
   errors.value = {}
 }, { immediate: true })
@@ -506,17 +552,16 @@ const totalCreditBs = computed(() => {
   }, 0)
 })
 
-// Total Bolívares (incluye Créditos en Bs)
+// Total Bolívares (NO incluye Créditos en Bs)
 const totalBs = computed(() => {
   return parseNum(formData.value.pos_bs) +
          parseNum(formData.value.pago_movil_bs) +
          parseNum(formData.value.cash_bs) +
          parseNum(formData.value.transfer_bs) +
-         parseNum(formData.value.other_bs) +
-         totalCreditBs.value
+         parseNum(formData.value.other_bs)
 })
 
-// Total Dólares (incluye Créditos en USD)
+// Total Dólares (NO incluye Créditos en USD)
 const totalUsd = computed(() => {
   return parseNum(formData.value.cash_usd) +
          parseNum(formData.value.zelle_usd) +
@@ -524,8 +569,7 @@ const totalUsd = computed(() => {
          parseNum(formData.value.cashea_usd) +
          parseNum(formData.value.card_usd) +
          parseNum(formData.value.gift_card_usd) +
-         parseNum(formData.value.other_usd) +
-         totalCreditUsd.value
+         parseNum(formData.value.other_usd)
 })
 
 // Total Bs al cambio en USD
@@ -607,24 +651,32 @@ const fetchFromPos = async () => {
       formData.value[field] = String(summary.fields[field] ?? 0)
     }
 
-    // Tasa actual del día (tasa del POS o tasa actual del negocio). No pisa una
-    // tasa que el negocio ya haya cargado a mano.
-    const hadManualRate = parseNum(formData.value.exchange_rate) > 0
-    const currentRate = (hadManualRate ? parseNum(formData.value.exchange_rate) : null)
-      || summary.meta.exchange_rate
+    // Tasa actual del día (traída preferentemente de las transacciones del POS en esa fecha,
+    // o como fallback la tasa activa de la sucursal / negocio / valor del formulario).
+    const currentRate = summary.meta.exchange_rate
+      || exchangeRate.value
       || businessStore.business?.ves_exchange_rate
+      || parseNum(formData.value.exchange_rate)
       || 0
-    if (!hadManualRate && currentRate > 0) {
+    if (currentRate > 0) {
       formData.value.exchange_rate = String(currentRate)
     }
 
-    // Calcular montos acumulados para autollenar Reporte Z en $ o Bs
+    if (summary.meta.credits_issued && summary.meta.credits_issued.length > 0) {
+      creditsList.value = summary.meta.credits_issued.map((c: any) => ({
+        id: String(Date.now() + Math.random()),
+        transaction_id: c.transaction_id,
+        name: c.client_name,
+        amount: String(c.amount),
+        currency: c.currency === 'VES' ? 'Bs' : 'USD'
+      }))
+    }
+
     const posBs = parseNum(summary.fields.pos_bs) +
                   parseNum(summary.fields.pago_movil_bs) +
                   parseNum(summary.fields.cash_bs) +
                   parseNum(summary.fields.transfer_bs) +
-                  parseNum(summary.fields.other_bs) +
-                  totalCreditBs.value
+                  parseNum(summary.fields.other_bs)
 
     const posUsd = parseNum(summary.fields.cash_usd) +
                    parseNum(summary.fields.zelle_usd) +
@@ -632,8 +684,7 @@ const fetchFromPos = async () => {
                    parseNum(summary.fields.cashea_usd) +
                    parseNum(summary.fields.card_usd) +
                    parseNum(summary.fields.gift_card_usd) +
-                   parseNum(summary.fields.other_usd) +
-                   totalCreditUsd.value
+                   parseNum(summary.fields.other_usd)
 
     const rate = currentRate > 0 ? currentRate : 0
     const usdInBs = posUsd * rate

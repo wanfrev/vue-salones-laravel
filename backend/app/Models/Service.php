@@ -22,6 +22,7 @@ class Service extends Model
         'local_percentage', 'color', 'category', 'icon', 'active',
         'linked_product_id', 'linked_variant_id',
         'is_fixed_commission', 'fixed_commission_amount', 'fixed_commission_assistant_amount',
+        'show_in_public_booking',
     ];
 
     protected function casts(): array
@@ -29,6 +30,7 @@ class Service extends Model
         return [
             'active' => 'boolean',
             'is_fixed_commission' => 'boolean',
+            'show_in_public_booking' => 'boolean',
             'price' => 'float',
             'local_percentage' => 'float',
             'fixed_commission_amount' => 'float',

@@ -21,6 +21,9 @@ class AppointmentService
         string|array|null $status = null,
         ?string $groupId = null,
         ?string $idNot = null,
+        ?string $source = null,
+        bool $hasClientFilter = false,
+        ?string $clientId = null,
     ): Collection {
         $query = Appointment::with($this->getWithRelations())
             ->where('business_id', $businessId)
@@ -61,6 +64,18 @@ class AppointmentService
         if ($idNot) {
             $cleanIdNot = preg_replace('/^(gte|lte|gt|lt|eq|in|neq)\./i', '', $idNot);
             $query->where('id', '!=', $cleanIdNot);
+        }
+        if ($source) {
+            $cleanSource = preg_replace('/^(eq|neq)\./i', '', $source);
+            $query->where('source', $cleanSource);
+        }
+        if ($hasClientFilter) {
+            if ($clientId === null) {
+                $query->whereNull('client_id');
+            } else {
+                $cleanClientId = preg_replace('/^(eq|neq)\./i', '', $clientId);
+                $query->where('client_id', $cleanClientId);
+            }
         }
 
         return $query->get();

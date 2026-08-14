@@ -127,6 +127,9 @@
                   <button @click.stop="toggleExpand(inv.id)" class="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-bg-secondary transition-colors" title="Ver detalle">
                     <svg :class="['h-4 w-4 transition-transform duration-200', expandedIds.has(inv.id) ? 'rotate-180 text-primary' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
                   </button>
+                  <button @click.stop="summaryCtx.startEdit(inv)" class="rounded-md bg-primary/10 p-1.5 text-primary transition-theme hover:bg-primary/20" title="Editar">
+                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  </button>
                   <button @click.stop="summaryCtx.confirmDeleteTransaction(inv.id)" class="flex h-6 w-6 items-center justify-center rounded text-text-muted hover:bg-danger/10 hover:text-danger transition-colors" title="Eliminar factura">
                     <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
@@ -184,10 +187,16 @@
               <span class="text-text-muted">Método: {{ formatMethod(inv.paymentMethod) }}</span>
               <span class="text-text-muted flex items-center gap-1">Ver productos <svg :class="['h-3.5 w-3.5 transition-transform duration-200', expandedIds.has(inv.id) ? 'rotate-180 text-primary' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg></span>
             </div>
-            <button @click.stop="summaryCtx.confirmDeleteTransaction(inv.id)" class="flex items-center justify-center gap-1 w-full rounded-lg py-1.5 text-xs text-danger hover:bg-danger/10 transition-colors mt-1 border border-danger/10">
-              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-              Eliminar factura
-            </button>
+            <div class="flex items-center gap-1">
+              <button @click.stop="summaryCtx.startEdit(inv)" class="flex items-center justify-center gap-1 flex-1 rounded-lg py-1.5 text-xs text-primary hover:bg-primary/10 transition-colors mt-1 border border-primary/10">
+                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                Editar
+              </button>
+              <button @click.stop="summaryCtx.confirmDeleteTransaction(inv.id)" class="flex items-center justify-center gap-1 flex-1 rounded-lg py-1.5 text-xs text-danger hover:bg-danger/10 transition-colors mt-1 border border-danger/10">
+                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                Eliminar
+              </button>
+            </div>
             <div v-if="expandedIds.has(inv.id)" class="mt-2 pt-2 border-t border-border-subtle space-y-1.5 bg-surface/50 p-2 rounded-lg">
               <div v-for="item in inv.items" :key="item.id" class="flex items-center justify-between text-xs py-1 border-b border-border-subtle/30 last:border-0">
                 <span class="font-medium text-text">{{ item.product }}</span>
@@ -236,7 +245,7 @@
             <td class="py-3"><span :class="['rounded-full px-2 py-0.5 text-xs font-semibold', tx.type === 'ingreso' ? 'bg-success/10 text-success' : tx.type === 'nomina' ? 'bg-warning/10 text-warning' : 'bg-danger/10 text-danger']">{{ tx.type === 'ingreso' ? (tx.items ? 'Factura' : tx.source === 'product_sale' ? 'Venta' : 'Ingreso') : tx.type === 'nomina' ? 'Nomina' : 'Gasto' }}</span></td>
             <td class="py-3 text-text-secondary">{{ tx.method }}</td>
             <td class="py-3 text-right" :class="tx.type === 'ingreso' ? 'text-success' : 'text-danger'"><div class="font-medium">{{ tx.type === 'ingreso' ? '' : '-' }}{{ tx._currency === 'VES' ? formatVESEs(tx._originalAmount ?? tx.amount) : formatUSD(tx.amount) }}</div><div class="text-[10px] text-text-muted mt-0.5">{{ tx._currency === 'VES' ? formatUSD(tx.amount) : formatSecondary(tx.amount, tx.exchangeRateUsed) }}</div><span v-if="tx.type === 'ingreso' && (tx.tipAmount ?? 0) > 0" class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary mt-1">+${{ (tx.tipAmount ?? 0).toFixed(2) }} propina</span></td>
-            <td class="py-3 text-right"><div v-if="tx.type === 'ingreso' && !tx.items" class="flex items-center gap-1 justify-end"><button @click="editCobroFromTx(tx)" class="rounded-md bg-primary/10 p-1.5 text-primary transition-theme hover:bg-primary/20"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button><button @click="summaryCtx.confirmDeleteTransaction(tx.id)" class="rounded-md bg-danger/10 p-1.5 text-danger transition-theme hover:bg-danger/20"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div><span v-else class="text-xs text-text-muted">—</span></td>
+            <td class="py-3 text-right"><div v-if="tx.type === 'ingreso'" class="flex items-center gap-1 justify-end"><button @click="editCobroFromTx(tx)" class="rounded-md bg-primary/10 p-1.5 text-primary transition-theme hover:bg-primary/20"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button><button @click="summaryCtx.confirmDeleteTransaction(tx.id)" class="rounded-md bg-danger/10 p-1.5 text-danger transition-theme hover:bg-danger/20"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div><span v-else class="text-xs text-text-muted">—</span></td>
           </tr>
           <tr v-if="tx.items && tx.items.length > 0 && expandedIds.has(tx.id)" :key="tx.id + '-expanded'" class="bg-bg-secondary/40">
             <td colspan="7" class="px-6 py-3">
@@ -278,7 +287,7 @@
               </div>
             </div>
           </div>
-          <div v-if="tx.type === 'ingreso' && !tx.items" class="flex items-center justify-end gap-1 pt-1 border-t border-border-subtle"><button @click="editCobroFromTx(tx)" class="rounded-md bg-primary/10 px-2 py-1 text-xs text-primary">Editar</button><button @click="summaryCtx.confirmDeleteTransaction(tx.id)" class="rounded-md bg-danger/10 px-2 py-1 text-xs text-danger">Eliminar</button></div>
+          <div v-if="tx.type === 'ingreso'" class="flex items-center justify-end gap-1 pt-1 border-t border-border-subtle"><button @click="editCobroFromTx(tx)" class="rounded-md bg-primary/10 px-2 py-1 text-xs text-primary">Editar</button><button @click="summaryCtx.confirmDeleteTransaction(tx.id)" class="rounded-md bg-danger/10 px-2 py-1 text-xs text-danger">Eliminar</button></div>
         </div>
       </template>
     </RecordSection>
@@ -391,6 +400,7 @@ const { success, error: showError } = useNotification()
 
 const openCobroActions = async (tx: any) => {
   const appointmentId = tx.appointmentId || tx.appointment_id
+  const isInvoice = 'items' in tx && Array.isArray(tx.items)
   let cita = null
   if (appointmentId) {
     const { data: citaRaw } = await db
@@ -402,17 +412,27 @@ const openCobroActions = async (tx: any) => {
       cita = mapAppointmentToCita(citaRaw)
     }
   }
-  const hasMixed = tx.breakdown && tx.breakdown.length > 1
+  const breakdown = tx.breakdown
+  const hasMixed = breakdown && breakdown.length > 1
   const paymentData: PaymentEditContext = {
     transactionId: tx.id,
-    method: hasMixed ? 'mixed' : (tx.rawMethod || tx.method),
-    amount: tx.amount,
-    currency: hasMixed ? 'USD' : (tx.primaryCurrency || 'USD'),
+    method: hasMixed ? 'mixed' : (isInvoice ? tx.paymentMethod : (tx.rawMethod || tx.method)),
+    amount: isInvoice ? tx.total : tx.amount,
+    currency: hasMixed ? 'USD' : (isInvoice ? tx.currency : (tx.primaryCurrency || 'USD')),
     exchangeRate: tx.exchangeRateUsed || 1,
     tipAmount: tx.tipAmount || 0,
     notes: tx.notes || undefined,
-    breakdown: tx.breakdown || undefined,
+    breakdown: breakdown || undefined,
     appointmentId,
+    clientName: tx.clientName,
+    employeeName: isInvoice ? tx.employeeName : tx.employee,
+    invoiceProducts: isInvoice ? tx.items?.map((item: any) => ({
+      movementId: item.id,
+      productId: item.productId || item.id,
+      productName: item.product,
+      quantity: item.quantity,
+      unitCost: item.unitPrice,
+    })) : undefined,
   }
 
   cobroActionsCita.value = cita

@@ -42,6 +42,7 @@ class FinancialSummaryService
     ): Collection {
         $query = DB::table('transactions')
             ->leftJoin('appointments', 'transactions.appointment_id', '=', 'appointments.id')
+            ->where('transactions.method', '!=', 'credito')
             ->where('transactions.business_id', $businessId)
             ->select(
                 DB::raw("to_char(COALESCE(transactions.paid_at, transactions.created_at), 'YYYY-MM-DD') as bucket"),
@@ -79,7 +80,8 @@ class FinancialSummaryService
     ): array {
         // Income from transactions
         $txQuery = DB::table('transactions')
-            ->where('business_id', $businessId);
+            ->where('business_id', $businessId)
+            ->where('method', '!=', 'credito');
 
         $tz = $this->resolveTimezone($businessId);
 
@@ -169,8 +171,23 @@ class FinancialSummaryService
         $cogsQuery = DB::table('inventory_movements')
             ->leftJoin('products', 'inventory_movements.product_id', '=', 'products.id')
             ->leftJoin('product_variants', 'inventory_movements.variant_id', '=', 'product_variants.id')
+            ->leftJoin('transactions', function ($join) {
+                $join->where(function ($q) {
+                    $q->where(function ($sq) {
+                        $sq->on('inventory_movements.reference_id', '=', 'transactions.id')
+                           ->whereIn('inventory_movements.reference_type', ['direct', 'invoice']);
+                    })->orWhere(function ($sq) {
+                        $sq->on('inventory_movements.reference_id', '=', 'transactions.id')
+                           ->where('inventory_movements.reference_type', '=', 'appointment');
+                    });
+                });
+            })
             ->where('inventory_movements.business_id', $businessId)
-            ->whereIn('inventory_movements.movement_type', ['sale', 'consumption']);
+            ->whereIn('inventory_movements.movement_type', ['sale', 'consumption'])
+            ->where(function ($q) {
+                $q->whereNull('transactions.id')
+                  ->orWhere('transactions.method', '!=', 'credito');
+            });
 
         if ($start && $end) {
             $cogsQuery->whereBetween('inventory_movements.created_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
@@ -235,6 +252,7 @@ class FinancialSummaryService
             },
         ])
             ->where('business_id', $businessId)
+            ->where('method', '!=', 'credito')
             ->orderByRaw('COALESCE(paid_at, created_at) DESC');
 
         $tz = $this->resolveTimezone($businessId);
@@ -318,6 +336,10 @@ class FinancialSummaryService
             })
             ->where('inventory_movements.business_id', $businessId)
             ->where('inventory_movements.movement_type', 'sale')
+            ->where(function ($q) {
+                $q->whereNull('transactions.id')
+                  ->orWhere('transactions.method', '!=', 'credito');
+            })
             ->select(
                 'inventory_movements.id',
                 'inventory_movements.created_at',
@@ -334,13 +356,14 @@ class FinancialSummaryService
                 'transactions.method as payment_method',
                 'transactions.payments_breakdown',
                 'transactions.total_amount as transaction_total_amount',
+                'transactions.paid_at as transaction_paid_at',
             )
-            ->orderByDesc('inventory_movements.created_at');
+            ->orderByDesc(DB::raw('COALESCE(transactions.paid_at, inventory_movements.created_at)'));
 
         $tz = $this->resolveTimezone($businessId);
 
         if ($start && $end) {
-            $query->whereBetween('inventory_movements.created_at', [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
+            $query->whereBetween(DB::raw('COALESCE(transactions.paid_at, inventory_movements.created_at)'), [$this->toUtc($start, $tz), $this->toUtc($end, $tz)]);
         }
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
@@ -380,7 +403,7 @@ class FinancialSummaryService
 
             return [
                 'id' => $row->id,
-                'date' => $row->created_at,
+                'date' => $row->transaction_paid_at ?? $row->created_at,
                 'product' => $row->product_name ?? 'Sin producto',
                 'client_name' => $row->client_name,
                 'employee_name' => $row->employee_name,

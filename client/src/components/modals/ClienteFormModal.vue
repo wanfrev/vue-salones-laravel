@@ -50,6 +50,26 @@
             />
           </div>
 
+          <div class="flex items-end gap-2">
+            <FormInput
+              v-model="formData.code"
+              label="Código de identificación (opcional)"
+              placeholder="Ej: MG-482"
+              hint="Te ayuda a buscar o reconocer al cliente rápido. No es obligatorio ni sigue un formato fijo."
+              prefix-icon="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 9V4a1 1 0 011-1z"
+              class="flex-1"
+            />
+            <button
+              type="button"
+              class="mb-[1.625rem] shrink-0 rounded-xl border border-border px-3 py-2.5 text-sm text-text-secondary transition-theme hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
+              :disabled="!formData.name.trim()"
+              title="Sugerir código a partir del nombre"
+              @click="suggestCode"
+            >
+              Sugerir
+            </button>
+          </div>
+
           <FormInput
             v-if="!isPet"
             :model-value="birthdayDisplay(formData.birthday)"
@@ -149,6 +169,7 @@ const defaultFormData: ClienteFormData = {
   name: '',
   phone: '',
   email: '',
+  code: '',
   notes: '',
   birthday: '',
   preferredServices: [],
@@ -187,6 +208,16 @@ function birthdayParse(value: string): string {
     return `${y}-${m}-${d}`
   }
   return value
+}
+
+function suggestCode() {
+  const parts = formData.value.name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return
+  const first = parts[0][0] ?? ''
+  const last = parts.length > 1 ? parts[parts.length - 1][0] : ''
+  const initials = (first + last).toUpperCase()
+  const suffix = String(Math.floor(Math.random() * 900) + 100)
+  formData.value.code = `${initials}-${suffix}`
 }
 
 const onNicheFieldUpdate = (key: string, value: string) => {
@@ -230,6 +261,7 @@ watch(
         name: cliente.name || '',
         phone: cliente.phone || '',
         email: cliente.email || '',
+        code: cliente.code || '',
         notes: cliente.notes || '',
         birthday: cliente.birthday || '',
         preferredServices: cliente.preferredServices || [],

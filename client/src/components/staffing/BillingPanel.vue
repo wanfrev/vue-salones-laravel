@@ -127,9 +127,9 @@ import { PrinterIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { useBilling } from '../../composables/staffing/useBilling'
-import { getStaffingInvoice } from '../../services/staffingService'
+import { getStaffingInvoice } from '../../services/staffing/staffingService'
 import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
-import type { StaffingCompanyPaymentFormData } from '../../services/staffingService'
+import type { StaffingCompanyPaymentFormData } from '../../services/staffing/staffingService'
 
 const inputClass =
   'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30'
