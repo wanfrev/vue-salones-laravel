@@ -88,13 +88,20 @@ export function useEmpresas(businessId: Ref<string | null>) {
     editingId.value = null
   }
 
+  const isSaving = ref(false)
+
   const handleSave = async () => {
+    crud.saveError.value = ''
+    isSaving.value = true
+
     const payload = editingId.value
       ? { ...form.value, id: editingId.value }
       : { ...form.value }
 
     try {
-      const savedCompany = await crud.saveFn(payload.id || null, payload, branchId.value)
+      if (!businessId.value) throw new Error('No hay negocio activo')
+
+      const savedCompany = await saveStaffingCompany(businessId.value, payload, branchId.value)
       
       // Save roles if they exist
       if (form.value.roles && form.value.roles.length > 0) {
@@ -103,7 +110,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
             ? Number((role.overtimePayRate / role.payRate).toFixed(2))
             : null
 
-          await saveStaffingRate(businessId.value!, {
+          await saveStaffingRate(businessId.value, {
             companyId: savedCompany.id,
             role: role.role,
             payRate: role.payRate,
@@ -116,10 +123,12 @@ export function useEmpresas(businessId: Ref<string | null>) {
         }
       }
 
-      await crud.queryClient.invalidateQueries({ queryKey: crud.queryKey(null, branchId.value), exact: false })
+      await crud.invalidateAll()
       closeModal()
     } catch (err) {
       crud.saveError.value = err instanceof Error ? err.message : String(err)
+    } finally {
+      isSaving.value = false
     }
   }
 
@@ -140,6 +149,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
 
   return {
     ...crud,
+    isSaving: computed(() => isSaving.value || crud.isSaving.value),
     companies: crud.items,
     companiesByStatus,
     showModal,
