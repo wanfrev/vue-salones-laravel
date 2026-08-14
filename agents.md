@@ -354,3 +354,24 @@ export function useCredits() {
 - **Verificación real, no solo "debería funcionar".** Frontend: `npx vue-tsc --noEmit` y `npm run build` antes de dar por terminado un cambio de UI/composable. Backend: revisar convenciones exactas de un archivo hermano (mismo patrón de controller/migración) en vez de inventar una convención nueva.
 - **Limitación conocida del entorno:** no hay PHP/Composer instalado localmente en esta máquina de desarrollo, por lo que **no se pueden correr migraciones ni levantar el servidor Laravel** desde aquí. Los cambios de backend se validan por revisión de código cuidadosa y consistencia con el resto del código, y las migraciones deben aplicarse manualmente en el servidor/VPS real (`php artisan migrate`) tras el despliegue. Avisar siempre esto explícitamente cuando un cambio incluya migraciones nuevas.
 - **Idioma:** el proyecto y las comunicaciones con el usuario son en español (Venezuela) — nombres de campos/UI en español, aunque el código (variables, nombres de archivo) esté en inglés siguiendo convención de programación.
+
+---
+
+## 🧩 15. Convención de Módulos por Vertical (obligatoria desde `staffing`/`tienda` en adelante)
+
+El negocio crece agregando **verticales** (salón/spa ya existía, luego `staffing`, luego `tienda`, próximamente **médico** e **inventario puro**). Cada vertical nueva se agrega como un módulo aislado en las 4 capas, siempre en **inglés** y siempre en **subcarpeta**, sin excepciones — `staffing` casi lo logró pero quedó inconsistente (subcarpeta en `Services/` y en `composables/`, pero plano-con-prefijo en `Controllers/` y en `services/`); ese es el error a no repetir.
+
+```
+backend/app/Services/<Vertical>/              # lógica de negocio del módulo
+backend/app/Http/Controllers/Api/<Vertical>/  # controllers del módulo (subcarpeta, no prefijo plano)
+backend/database/migrations/                  # sin subcarpeta (Laravel no lo permite), pero con prefijo de fecha real
+
+client/src/views/<Vertical>*.vue               # una o más vistas, prefijo del nombre de la vertical
+client/src/components/<vertical>/              # componentes del módulo
+client/src/composables/<vertical>/             # composables del módulo
+client/src/services/<vertical>/                # acceso a datos del módulo (subcarpeta, no archivo plano)
+```
+
+- **Nombre de carpeta siempre en inglés**, incluso si el dominio se llama distinto en español dentro de la UI (`inventory/`, no `inventario/`; `clients/`, no `clientes/`). El 2026-08-09 se unificaron `components/clientes/` → `components/clients/`, `components/inventario/` → `components/inventory/` y `composables/inventario/` → `composables/inventory/` (eran duplicados accidentales del mismo dominio partidos por idioma). Las carpetas legacy en español que ya existían antes de esta regla (`finanzas/`, `reportes/`, `empleados/` en `composables/`) **no se renombran retroactivamente** — son de bajo riesgo por ser un solo dueño sin par duplicado — pero ninguna carpeta nueva debe usar español.
+- Backend: cada vertical se gatea con su propio namespace de `capability:<vertical>.*` (ver `EnsureNicheCapability`), nunca reutilizando el de otra vertical.
+- Si un archivo/carpeta se abandona a medio camino de un refactor (ej. el `App\Domain\Clients\Models\Client` que se borró el 2026-08-09 por tener cero referencias), **bórralo o termina la migración** — no lo dejes como una segunda implementación fantasma del mismo concepto.
