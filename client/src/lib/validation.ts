@@ -147,6 +147,7 @@ export const staffingCompanyFormSchema = z.object({
   contactName: z.string().default(''),
   contactPhone: z.string().default(''),
   contactEmail: z.string().email('El email no es válido').or(z.literal('')).default(''),
+  paymentTermsDays: z.number().int().min(0).max(365).default(15),
   taxRate: z.number().min(0, 'El porcentaje no puede ser negativo').max(1, 'Usa una fracción: 0.04 = 4%').default(0.04),
   roles: z.array(staffingCompanyRoleSchema).default([]),
   payoutRounding: z.enum(['floor', 'cent', 'exact']).default('cent'),

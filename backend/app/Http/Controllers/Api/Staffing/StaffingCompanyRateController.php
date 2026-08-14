@@ -40,6 +40,8 @@ class StaffingCompanyRateController
             // Null falls back to the company's own overtime terms — see StaffingTermsFactory.
             'overtime_threshold_hours' => 'nullable|numeric|min:0|max:168',
             'overtime_multiplier' => 'nullable|numeric|min:1|max:5',
+            // Explicit OT $/hour, independent of each other and of overtime_multiplier — see
+            // StaffingPayrollCalculator, which prefers these outright when set.
             'overtime_pay_rate' => 'nullable|numeric|min:0',
             'overtime_bill_rate' => 'nullable|numeric|min:0',
             'active' => 'boolean',

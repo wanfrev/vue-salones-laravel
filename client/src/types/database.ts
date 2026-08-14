@@ -405,8 +405,9 @@ export interface StaffingCompany {
   contact_phone: string | null
   contact_email: string | null
   payment_terms_days: number
-  overtime_threshold_hours: number
-  overtime_multiplier: number
+  /** Flat withholding %, fraction (0.04 = 4%) — see StaffingTermsFactory::taxRuleFor(). */
+  tax_rate: number
+  /** Legacy tiered brackets — win over tax_rate when set. No current UI edits these. */
   tax_brackets: StaffingTaxBracket[] | null
   /** 'remitted' = paid onward (a cost); 'retained' = kept by the agency (margin). */
   tax_destination: string

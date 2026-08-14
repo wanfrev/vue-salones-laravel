@@ -172,16 +172,16 @@ const normalizeOptionalNumber = (v: number | string | null | undefined): number 
   v === '' || v === null || v === undefined ? null : Number(v)
 
 const submit = async () => {
-  const pay = Number(draft.value.payRate || 0)
-  const otPay = normalizeOptionalNumber(draft.value.overtimePayRate)
-  const multiplier = otPay && pay > 0 ? Number((otPay / pay).toFixed(2)) : null
-
+  // No derived multiplier: sending pay_rate * (otPay/pay) here would let the backend re-derive
+  // an OT BILL rate from a PAY-side ratio too (see StaffingPayrollCalculator), silently
+  // overriding whatever "Cobra OT ($)" was actually typed. Send both $ rates as-is instead —
+  // they apply independently. Leaving overtimeMultiplier null falls back to the 1.5x default.
   const ok = await save({
     ...draft.value,
     companyId: props.companyId,
     overtimeThresholdHours: normalizeOptionalNumber(draft.value.overtimeThresholdHours) ?? 40,
-    overtimeMultiplier: multiplier,
-    overtimePayRate: otPay,
+    overtimeMultiplier: null,
+    overtimePayRate: normalizeOptionalNumber(draft.value.overtimePayRate),
     overtimeBillRate: normalizeOptionalNumber(draft.value.overtimeBillRate),
   })
   if (ok) draft.value = emptyDraft()

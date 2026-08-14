@@ -210,9 +210,11 @@ class StaffingTimesheetService
         $timesheet->update([
             'status' => StaffingTimesheet::STATUS_APPROVED,
             'terms_snapshot' => [
-                'overtime_threshold_hours' => $company->overtime_threshold_hours,
-                'overtime_multiplier' => $company->overtime_multiplier,
+                // Overtime terms are per-role now (staffing_company_rates), already frozen onto
+                // each entry via regular_hours/overtime_hours — nothing company-wide left to
+                // snapshot here.
                 'tax_brackets' => $company->tax_brackets,
+                'tax_rate' => $company->tax_rate,
                 'tax_destination' => $company->tax_destination,
                 'payout_rounding' => $company->payout_rounding,
             ],

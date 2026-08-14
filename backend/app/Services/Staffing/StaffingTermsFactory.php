@@ -15,19 +15,40 @@ class StaffingTermsFactory
     {
         return new PayrollTerms(
             taxRule: $this->taxRuleFor($company),
-            overtimeThresholdHours: $company->overtime_threshold_hours ?: 40.0,
-            overtimeMultiplier: $company->overtime_multiplier ?: 1.5,
+            // Company-level OT terms were retired in favor of a per-role threshold/multiplier
+            // (staffing_company_rates) — every role set through the current UI carries its own,
+            // so this pair is only reached as the last-resort default for a role with neither.
+            overtimeThresholdHours: 40.0,
+            overtimeMultiplier: 1.5,
             payoutRounding: $this->payoutRoundingFor($company),
         );
     }
 
+    /**
+     * Tiered brackets win when a company has them (legacy agreements set up before the flat-rate
+     * UI existed, e.g. DYKE's 3.5%/7% split). Every company created through the current UI only
+     * ever sets `tax_rate` — a flat percentage is just a single-bracket TaxRule.
+     */
     private function taxRuleFor(StaffingCompany $company): TaxRule
     {
-        $brackets = $company->tax_brackets;
+        $brackets = $this->normalizedBrackets($company->tax_brackets);
+        if ($brackets !== []) {
+            return TaxRule::tiered($brackets, $this->taxDestinationFor($company));
+        }
 
-        // Null and [] both mean "this client withholds nothing" — the HILTON case.
-        if (!is_array($brackets) || $brackets === []) {
+        $rate = (float) ($company->tax_rate ?? 0.0);
+        if ($rate <= 0.0) {
             return TaxRule::none();
+        }
+
+        return TaxRule::flat($rate, $this->taxDestinationFor($company));
+    }
+
+    /** @return list<array{threshold: float|null, rate: float}> */
+    private function normalizedBrackets(mixed $brackets): array
+    {
+        if (!is_array($brackets) || $brackets === []) {
+            return [];
         }
 
         $normalized = [];
@@ -42,11 +63,7 @@ class StaffingTermsFactory
             ];
         }
 
-        if ($normalized === []) {
-            return TaxRule::none();
-        }
-
-        return TaxRule::tiered($normalized, $this->taxDestinationFor($company));
+        return $normalized;
     }
 
     private function taxDestinationFor(StaffingCompany $company): string

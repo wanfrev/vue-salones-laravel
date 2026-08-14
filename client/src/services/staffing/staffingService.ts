@@ -3,7 +3,7 @@ import { handleDbError } from '../../lib/errors'
 import { staffingCompanyFormSchema, staffingCompanyPaymentFormSchema, staffingRateFormSchema } from '../../lib/validation'
 import type {
   Profile, StaffingCompany, StaffingCompanyBalance, StaffingCompanyPayment, StaffingCompanyRate,
-  StaffingInvoice, StaffingTaxBracket, StaffingTimesheet,
+  StaffingInvoice, StaffingTimesheet,
 } from '../../types/database'
 
 export const staffingCompanyKeys = {
@@ -63,6 +63,7 @@ export interface StaffingCompanyRow {
   contactName: string
   contactPhone: string
   contactEmail: string
+  paymentTermsDays: number
   taxRate: number
   payoutRounding: PayoutRounding
   notes: string
@@ -97,6 +98,7 @@ export interface StaffingCompanyFormData {
   contactName: string
   contactPhone: string
   contactEmail: string
+  paymentTermsDays: number
   taxRate: number
   roles: {
     role: string
@@ -136,6 +138,7 @@ const toCompanyRow = (row: StaffingCompany): StaffingCompanyRow => ({
   contactName: row.contact_name ?? '',
   contactPhone: row.contact_phone ?? '',
   contactEmail: row.contact_email ?? '',
+  paymentTermsDays: Number(row.payment_terms_days ?? 15),
   taxRate: Number(row.tax_rate ?? 0.04),
   payoutRounding: (row.payout_rounding as PayoutRounding) || 'cent',
   notes: row.notes ?? '',
@@ -208,6 +211,7 @@ export const saveStaffingCompany = async (
     contact_name: parsed.data.contactName || null,
     contact_phone: parsed.data.contactPhone || null,
     contact_email: parsed.data.contactEmail || null,
+    payment_terms_days: parsed.data.paymentTermsDays,
     tax_rate: parsed.data.taxRate,
     payout_rounding: parsed.data.payoutRounding,
     status: parsed.data.status,

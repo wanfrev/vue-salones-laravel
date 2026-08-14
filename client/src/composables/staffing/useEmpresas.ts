@@ -23,6 +23,7 @@ const emptyForm = (): StaffingCompanyFormData => ({
   contactName: '',
   contactPhone: '',
   contactEmail: '',
+  paymentTermsDays: 15,
   taxRate: 0.04,
   roles: [],
   payoutRounding: 'cent',
@@ -75,6 +76,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
       contactName: company.contactName,
       contactPhone: company.contactPhone,
       contactEmail: company.contactEmail,
+      paymentTermsDays: company.paymentTermsDays,
       taxRate: company.taxRate,
       roles: [],
       payoutRounding: company.payoutRounding,
@@ -105,6 +107,8 @@ export function useEmpresas(businessId: Ref<string | null>) {
     editingId.value = null
   }
 
+  // Spans the whole save (company + roles), unlike crud.isSaving — that one only tracks the
+  // company mutation and would flip back to false while the roles loop below is still running.
   const isSaving = ref(false)
 
   const handleSave = async () => {
@@ -116,24 +120,30 @@ export function useEmpresas(businessId: Ref<string | null>) {
       : { ...form.value }
 
     try {
-      if (!businessId.value) throw new Error('No hay negocio activo')
+      // Not crud.handleSave() here: that helper doesn't hand back the saved row, and the roles
+      // loop below needs the new company's id. saveMutation is the same TanStack mutation
+      // handleSave wraps — mutateAsync resolves to whatever saveStaffingCompany() returns.
+      const savedCompany = await crud.saveMutation.mutateAsync(payload)
+      // saveFn's generic type allows `void`, but saveStaffingCompany() always resolves to the
+      // row — this only guards the type, it isn't expected to trigger.
+      if (!savedCompany) {
+        throw new Error('No se pudo guardar la empresa.')
+      }
 
-      const savedCompany = await saveStaffingCompany(businessId.value, payload, branchId.value)
-      
-      // Save roles if they exist
       if (form.value.roles && form.value.roles.length > 0) {
         for (const role of form.value.roles) {
-          const multiplier = role.overtimePayRate && role.payRate > 0
-            ? Number((role.overtimePayRate / role.payRate).toFixed(2))
-            : null
-
-          await saveStaffingRate(businessId.value, {
+          await saveStaffingRate(businessId.value!, {
             companyId: savedCompany.id,
             role: role.role,
             payRate: role.payRate,
             billRate: role.billRate,
             overtimeThresholdHours: role.overtimeThresholdHours,
-            overtimeMultiplier: multiplier,
+            // No derived multiplier — sending pay_rate * X as a fake "OT rate" here would let
+            // the backend re-derive an OT BILL rate from it too (see StaffingPayrollCalculator),
+            // silently overriding whatever "Cobra OT ($)" was actually typed below. Overtime
+            // multiplier stays null (falls back to the 1.5x federal default) unless the admin
+            // explicitly sets both $ rates.
+            overtimeMultiplier: null,
             overtimePayRate: role.overtimePayRate || null,
             overtimeBillRate: role.overtimeBillRate || null,
           })
@@ -143,7 +153,11 @@ export function useEmpresas(businessId: Ref<string | null>) {
       await crud.invalidateAll()
       closeModal()
     } catch (err) {
-      crud.saveError.value = err instanceof Error ? err.message : String(err)
+      // The company mutation's own onError (in useCrud) already sets saveError + shows a toast;
+      // this only fires for a failure in the roles loop above, which that handler never sees.
+      if (!crud.saveError.value) {
+        crud.saveError.value = err instanceof Error ? err.message : String(err)
+      }
     } finally {
       isSaving.value = false
     }

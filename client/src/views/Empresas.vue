@@ -195,12 +195,17 @@
             <section class="space-y-3">
               <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Reglas de nómina</p>
 
-              <div class="grid gap-3 sm:grid-cols-2">
+              <div class="grid gap-3 sm:grid-cols-3">
                 <div>
                   <label class="mb-1 block text-sm font-medium text-text" for="emp-tax">Retención (Tax %)</label>
                   <input id="emp-tax" v-model.number="taxRatePercent" type="number" min="0" max="100" step="0.1"
                     :class="inputClass" />
                   <p class="mt-1 text-[10px] text-text-muted">Se aparta del pago de nómina.</p>
+                </div>
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-text" for="emp-terms">Plazo de pago (días)</label>
+                  <input id="emp-terms" v-model.number="ctx.form.value.paymentTermsDays" type="number" min="0" max="365"
+                    :class="inputClass" />
                 </div>
                 <FormDropdown v-model="ctx.form.value.payoutRounding" label="Redondeo del pago"
                   :options="ROUNDING_OPTIONS" />

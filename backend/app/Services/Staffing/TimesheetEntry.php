@@ -42,6 +42,13 @@ final class TimesheetEntry
          */
         public readonly ?float $overtimeThresholdOverride = null,
         public readonly ?float $overtimeMultiplierOverride = null,
+        /**
+         * Per-role explicit OT $/hour — set when the rate card row carries its own
+         * overtime_pay_rate/overtime_bill_rate, independent of each other and of any multiplier.
+         * A company's OT margin is not always proportional to its regular margin, so deriving
+         * the bill rate from the pay rate's ratio (or vice versa) can silently over/under-bill —
+         * these two exist so each side is exactly what was agreed, not a derived approximation.
+         */
         public readonly ?float $overtimePayRateOverride = null,
         public readonly ?float $overtimeBillRateOverride = null,
     ) {
