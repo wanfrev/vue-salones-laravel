@@ -179,7 +179,10 @@ const phone = field('phone')
 const email = field('email')
 const companyId = field('staffingCompanyId')
 const staffingTaxRate = field('staffingTaxRate')
-const role = computed(() => props.formData.role)
+const role = computed({
+  get: () => props.formData.role,
+  set: (val) => emit('update:modelValue', { ...props.formData, role: val })
+})
 const address = field('address')
 const ssn = field('ssn')
 const bankName = field('bankName')
@@ -204,6 +207,11 @@ const { data: rates } = useQuery({
   queryKey: computed(() => staffingRateKeys.byCompany(props.businessId, companyId.value || null)),
   queryFn: () => listStaffingRates(props.businessId!, companyId.value || null),
   enabled: computed(() => !!props.businessId && !!companyId.value),
+})
+
+const roleOptions = computed(() => {
+  if (!rates.value) return []
+  return rates.value.map(r => ({ value: r.role, label: r.role }))
 })
 
 const resolvedRate = computed(() =>
