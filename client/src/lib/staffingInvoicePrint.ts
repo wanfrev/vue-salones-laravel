@@ -4,7 +4,10 @@ const esc = (value: string | number | null | undefined): string =>
   String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
 
 const fmtMoney = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-const fmtDate = (iso: string) => new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+// Eloquent's `date` cast serializes as a full ISO datetime ("2026-08-10T00:00:00.000000Z"), not
+// the bare "2026-08-10" this used to assume — slicing first avoids building an invalid
+// "...T00:00:00.000000ZT00:00:00" string that would render as "Invalid Date".
+const fmtDate = (iso: string) => new Date(iso.slice(0, 10) + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 
 /**
  * Opens a self-contained printable window for one invoice — mirrors the layout of the source
