@@ -57,6 +57,7 @@
                 <th class="px-3 py-2.5 text-right">Total regular</th>
                 <th class="px-3 py-2.5 text-right">Horas OT</th>
                 <th class="px-3 py-2.5 text-right">OT rate</th>
+                <th class="px-3 py-2.5 text-right">Bill rate OT</th>
                 <th class="px-3 py-2.5 text-right">Total OT</th>
                 <th class="px-3 py-2.5 text-right">Deducción</th>
                 <th class="px-3 py-2.5 text-right">Fee fijo</th>
@@ -86,6 +87,7 @@
                   <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee.id) ? formatUSD(rowFor(employee.id)!.regularAmount) : '—' }}</td>
                   <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee.id)?.overtimeHours?.toFixed(2) ?? '—' }}</td>
                   <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee.id)?.overtimeRate ? formatUSD(rowFor(employee.id)!.overtimeRate) : '—' }}</td>
+                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee.id)?.overtimeBillRate ? formatUSD(rowFor(employee.id)!.overtimeBillRate) : '—' }}</td>
                   <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee.id) ? formatUSD(rowFor(employee.id)!.overtimeAmount) : '—' }}</td>
                   <td class="px-3 py-2">
                     <input v-model.number="grid[employee.id].preTaxDeduction" type="number" min="0" step="0.01"
@@ -107,12 +109,12 @@
                   <td class="px-3 py-2 text-right tabular-nums font-semibold text-success">{{ rowFor(employee.id) ? formatUSD(rowFor(employee.id)!.margin) : '—' }}</td>
                 </tr>
                 <tr v-if="!rateFor(employee.id)">
-                  <td colspan="18" class="px-3 pb-2.5 text-xs text-warning">
+                  <td colspan="19" class="px-3 pb-2.5 text-xs text-warning">
                     Sin tarifa configurada para "{{ employee.staffing_role || 'sin rol' }}" en esta empresa — agrégala en Empresas antes de cargar horas.
                   </td>
                 </tr>
                 <tr v-else-if="rowFor(employee.id)?.isEstimate">
-                  <td colspan="18" class="px-3 pb-2.5 text-[10px] text-text-muted">
+                  <td colspan="19" class="px-3 pb-2.5 text-[10px] text-text-muted">
                     Estimado — guarda para confirmar.
                   </td>
                 </tr>
@@ -169,7 +171,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
@@ -245,21 +247,25 @@ const currentWeek = computed(() => timesheets.findWeek(weekStartInput.value))
 const isReadOnly = computed(() => !!currentWeek.value && currentWeek.value.status !== 'draft')
 
 type GridRow = { totalHours: number; preTaxDeduction: number; fixedFees: number; adjustment: number }
-const grid = reactive<Record<string, GridRow>>({})
+// A plain ref, replaced wholesale on every week/roster change (see rebuildGrid) rather than a
+// reactive() object mutated key-by-key — a single assignment is unambiguous to Vue's reactivity,
+// so switching weeks can never leave a stale key from the previous one behind.
+const grid = ref<Record<string, GridRow>>({})
 
 const emptyRow = (): GridRow => ({ totalHours: 0, preTaxDeduction: 0, fixedFees: 0, adjustment: 0 })
 
-/** (Re)builds the grid from the employee roster, prefilling from the saved week when one exists. */
+/** Rebuilds the grid from scratch for the roster + week currently selected, prefilling from the
+ *  saved week's entries when one exists — this is what makes switching weeks show that week's
+ *  own data instead of whatever was last typed. */
 const rebuildGrid = () => {
   const employees = timesheets.employees.value ?? []
   const savedEntries = currentWeek.value?.entries ?? []
   const byEmployee = new Map(savedEntries.map(e => [e.employee_id, e]))
 
-  for (const key of Object.keys(grid)) delete grid[key]
-
+  const next: Record<string, GridRow> = {}
   for (const employee of employees) {
     const saved = byEmployee.get(employee.id)
-    grid[employee.id] = saved
+    next[employee.id] = saved
       ? {
           totalHours: saved.total_hours,
           preTaxDeduction: saved.pre_tax_deduction,
@@ -268,9 +274,10 @@ const rebuildGrid = () => {
         }
       : emptyRow()
   }
+  grid.value = next
 }
 
-watch([() => timesheets.employees.value, currentWeek], rebuildGrid, { immediate: true })
+watch([() => timesheets.employees.value, weekStartInput, currentWeek], rebuildGrid, { immediate: true })
 
 const resultFor = (employeeId: string): StaffingTimesheetEntry | undefined =>
   currentWeek.value?.entries.find(e => e.employee_id === employeeId)
@@ -288,6 +295,7 @@ interface DisplayRow {
   regularAmount: number
   overtimeHours: number
   overtimeRate: number
+  overtimeBillRate: number
   overtimeAmount: number
   gross: number
   taxPercent: number
@@ -300,7 +308,7 @@ interface DisplayRow {
 /** A saved entry stops being authoritative the moment the admin edits a field past it. */
 const isDirty = (employeeId: string): boolean => {
   const saved = resultFor(employeeId)
-  const row = grid[employeeId]
+  const row = grid.value[employeeId]
   if (!saved || !row) return true
   return saved.total_hours !== row.totalHours
     || saved.pre_tax_deduction !== row.preTaxDeduction
@@ -328,6 +336,10 @@ const rowFor = (employeeId: string): DisplayRow | null => {
     const saved = resultFor(employeeId)!
     const regularAmount = saved.regular_hours * saved.pay_rate
     const overtimeAmount = saved.gross - regularAmount + saved.pre_tax_deduction
+    // Cent-rounded REG/OT split of invoice_total — see StaffingPayrollCalculator::invoice()
+    // and staffingInvoicePrint.ts, which derive the OT bill rate the same way.
+    const invoiceRegularAmount = saved.invoice_regular_amount ?? saved.regular_hours * saved.bill_rate
+    const invoiceOvertimeAmount = saved.invoice_overtime_amount ?? saved.invoice_total - invoiceRegularAmount
     return {
       regularHours: saved.regular_hours,
       payRate: saved.pay_rate,
@@ -335,6 +347,7 @@ const rowFor = (employeeId: string): DisplayRow | null => {
       regularAmount,
       overtimeHours: saved.overtime_hours,
       overtimeRate: saved.overtime_hours > 0 ? overtimeAmount / saved.overtime_hours : 0,
+      overtimeBillRate: saved.overtime_hours > 0 ? invoiceOvertimeAmount / saved.overtime_hours : 0,
       overtimeAmount,
       gross: saved.gross,
       taxPercent: saved.gross > 0 ? (saved.tax_withheld / saved.gross) * 100 : 0,
@@ -346,7 +359,7 @@ const rowFor = (employeeId: string): DisplayRow | null => {
   }
 
   const rate = rateFor(employeeId)
-  const row = grid[employeeId]
+  const row = grid.value[employeeId]
   if (!rate || !row || !employee) return null
 
   const threshold = rate.overtimeThresholdHours ?? 40
@@ -378,6 +391,7 @@ const rowFor = (employeeId: string): DisplayRow | null => {
     regularAmount,
     overtimeHours,
     overtimeRate: overtimeHours > 0 ? overtimePayRate : 0,
+    overtimeBillRate: overtimeHours > 0 ? overtimeBillRate : 0,
     overtimeAmount,
     gross,
     taxPercent: gross > 0 ? (tax / gross) * 100 : 0,
@@ -406,7 +420,7 @@ const totals = computed(() => {
       const row = rowFor(employee.id)
       if (!row) return acc
       return {
-        hours: acc.hours + (grid[employee.id]?.totalHours || 0),
+        hours: acc.hours + (grid.value[employee.id]?.totalHours || 0),
         gross: acc.gross + row.gross,
         payout: acc.payout + row.payout,
         invoice: acc.invoice + row.invoiceTotal,
@@ -418,7 +432,7 @@ const totals = computed(() => {
 })
 
 const handleSave = async () => {
-  const entries: TimesheetEntryInput[] = Object.entries(grid).map(([employeeId, row]) => ({
+  const entries: TimesheetEntryInput[] = Object.entries(grid.value).map(([employeeId, row]) => ({
     employeeId,
     totalHours: row.totalHours || 0,
     preTaxDeduction: row.preTaxDeduction || 0,
