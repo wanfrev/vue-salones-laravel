@@ -25,20 +25,6 @@
             @blur="handleBlur"
             @update:model-value="formData = $event"
           />
-
-          <div v-if="isEditing && hasUnsavedRateChanges" class="rounded-xl border border-warning/30 bg-warning/10 p-4 text-center">
-            <p class="text-sm font-medium text-warning">
-              Guarda los cambios del empleado para poder registrar sus horas de la semana.
-            </p>
-          </div>
-          <EmployeeTimesheetMini
-            v-else-if="isEditing"
-            :employee-id="modalData?.empleado?.id"
-            :company-id="formData.staffingCompanyId"
-            :business-id="authStore.businessId"
-            :role="formData.role"
-            :tax-rate-override="formData.staffingTaxRate"
-          />
         </div>
       </template>
 
@@ -320,7 +306,6 @@ import { FormInput, FormDropdown } from '../forms'
 import SalaryConfig from '../equipo/SalaryConfig.vue'
 import ScheduleEditor from '../equipo/ScheduleEditor.vue'
 import StaffingEmployeeFields from '../equipo/StaffingEmployeeFields.vue'
-import EmployeeTimesheetMini from '../staffing/EmployeeTimesheetMini.vue'
 
 const MODAL_ID = 'empleado-form-modal'
 
@@ -431,13 +416,6 @@ const isFormValid = computed(() => {
   const pwd = formData.value.password
   const passwordValid = pwd.length === 0 ? isEditing.value : pwd.length >= 6
   return nameValid && roleValid && emailValid && passwordValid
-})
-
-const hasUnsavedRateChanges = computed(() => {
-  if (!modalData.value?.empleado) return false
-  const emp = modalData.value.empleado
-  return formData.value.staffingCompanyId !== (emp.staffingCompanyId || '') ||
-         formData.value.role !== (emp.staffingRole || emp.role || '')
 })
 
 watch(
