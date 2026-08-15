@@ -70,43 +70,55 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-border">
-              <tr v-for="employee in timesheets.employees.value" :key="employee.id">
-                <td class="px-3 py-2.5">
-                  <p class="font-medium text-text">{{ employee.full_name }}</p>
-                  <p class="text-xs text-text-muted">{{ employee.staffing_role || 'Sin rol' }}</p>
-                </td>
-                <td class="px-3 py-2">
-                  <input v-model.number="grid[employee.id].totalHours" type="number" min="0" max="168" step="0.01"
-                    :disabled="isReadOnly" :class="cellInputClass" />
-                </td>
-                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ resultFor(employee.id)?.regular_hours?.toFixed(2) ?? '—' }}</td>
-                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ resultFor(employee.id) ? formatUSD(resultFor(employee.id)!.pay_rate) : '—' }}</td>
-                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ resultFor(employee.id) ? formatUSD(resultFor(employee.id)!.bill_rate) : '—' }}</td>
-                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ formatUSD(regularAmountFor(employee.id)) }}</td>
-                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ resultFor(employee.id)?.overtime_hours?.toFixed(2) ?? '—' }}</td>
-                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ overtimeRateFor(employee.id) ? formatUSD(overtimeRateFor(employee.id)) : '—' }}</td>
-                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ formatUSD(overtimeAmountFor(employee.id)) }}</td>
-                <td class="px-3 py-2">
-                  <input v-model.number="grid[employee.id].preTaxDeduction" type="number" min="0" step="0.01"
-                    :disabled="isReadOnly" :class="cellInputClass" />
-                </td>
-                <td class="px-3 py-2">
-                  <input v-model.number="grid[employee.id].fixedFees" type="number" min="0" step="0.01"
-                    :disabled="isReadOnly" :class="cellInputClass" />
-                </td>
-                <td class="px-3 py-2">
-                  <input v-model.number="grid[employee.id].adjustment" type="number" step="0.01"
-                    :disabled="isReadOnly" :class="cellInputClass" />
-                </td>
-                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ formatUSD(resultFor(employee.id)?.gross ?? 0) }}</td>
-                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ taxPercentFor(employee.id).toFixed(1) }}%</td>
-                <td class="px-3 py-2 text-right tabular-nums font-semibold text-text">{{ formatUSD(resultFor(employee.id)?.payout ?? 0) }}</td>
-                <td class="px-3 py-2 text-right text-text-secondary">{{ roundingLabel }}</td>
-                <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ formatUSD(resultFor(employee.id)?.invoice_total ?? 0) }}</td>
-                <td class="px-3 py-2 text-right tabular-nums font-semibold text-success">{{ formatUSD(resultFor(employee.id)?.margin ?? 0) }}</td>
-              </tr>
+              <template v-for="employee in timesheets.employees.value" :key="employee.id">
+                <tr>
+                  <td class="px-3 py-2.5">
+                    <p class="font-medium text-text">{{ employee.full_name }}</p>
+                    <p class="text-xs text-text-muted">{{ employee.staffing_role || 'Sin rol' }}</p>
+                  </td>
+                  <td class="px-3 py-2">
+                    <input v-model.number="grid[employee.id].totalHours" type="number" min="0" max="168" step="0.01"
+                      :disabled="isReadOnly" :class="cellInputClass" />
+                  </td>
+                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee.id)?.regularHours?.toFixed(2) ?? '—' }}</td>
+                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee.id) ? formatUSD(rowFor(employee.id)!.payRate) : '—' }}</td>
+                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee.id) ? formatUSD(rowFor(employee.id)!.billRate) : '—' }}</td>
+                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee.id) ? formatUSD(rowFor(employee.id)!.regularAmount) : '—' }}</td>
+                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee.id)?.overtimeHours?.toFixed(2) ?? '—' }}</td>
+                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee.id)?.overtimeRate ? formatUSD(rowFor(employee.id)!.overtimeRate) : '—' }}</td>
+                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee.id) ? formatUSD(rowFor(employee.id)!.overtimeAmount) : '—' }}</td>
+                  <td class="px-3 py-2">
+                    <input v-model.number="grid[employee.id].preTaxDeduction" type="number" min="0" step="0.01"
+                      :disabled="isReadOnly" :class="cellInputClass" />
+                  </td>
+                  <td class="px-3 py-2">
+                    <input v-model.number="grid[employee.id].fixedFees" type="number" min="0" step="0.01"
+                      :disabled="isReadOnly" :class="cellInputClass" />
+                  </td>
+                  <td class="px-3 py-2">
+                    <input v-model.number="grid[employee.id].adjustment" type="number" step="0.01"
+                      :disabled="isReadOnly" :class="cellInputClass" />
+                  </td>
+                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee.id) ? formatUSD(rowFor(employee.id)!.gross) : '—' }}</td>
+                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee.id) ? rowFor(employee.id)!.taxPercent.toFixed(1) : '0.0' }}%</td>
+                  <td class="px-3 py-2 text-right tabular-nums font-semibold text-text">{{ rowFor(employee.id) ? formatUSD(rowFor(employee.id)!.payout) : '—' }}</td>
+                  <td class="px-3 py-2 text-right text-text-secondary">{{ roundingLabel }}</td>
+                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee.id) ? formatUSD(rowFor(employee.id)!.invoiceTotal) : '—' }}</td>
+                  <td class="px-3 py-2 text-right tabular-nums font-semibold text-success">{{ rowFor(employee.id) ? formatUSD(rowFor(employee.id)!.margin) : '—' }}</td>
+                </tr>
+                <tr v-if="!rateFor(employee.id)">
+                  <td colspan="18" class="px-3 pb-2.5 text-xs text-warning">
+                    Sin tarifa configurada para "{{ employee.staffing_role || 'sin rol' }}" en esta empresa — agrégala en Empresas antes de cargar horas.
+                  </td>
+                </tr>
+                <tr v-else-if="rowFor(employee.id)?.isEstimate">
+                  <td colspan="18" class="px-3 pb-2.5 text-[10px] text-text-muted">
+                    Estimado — guarda para confirmar.
+                  </td>
+                </tr>
+              </template>
             </tbody>
-            <tfoot v-if="currentWeek">
+            <tfoot v-if="(timesheets.employees.value ?? []).length > 0">
               <tr class="border-t border-border bg-bg-secondary/60 text-xs font-semibold">
                 <td class="px-3 py-2.5 text-text">Total</td>
                 <td class="px-3 py-2.5 text-right tabular-nums">{{ totals.hours.toFixed(2) }}</td>
@@ -163,8 +175,10 @@ import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { useTimesheets } from '../../composables/staffing/useTimesheets'
 import { useBilling } from '../../composables/staffing/useBilling'
-import { getStaffingInvoice, listStaffingCompanies, staffingCompanyKeys } from '../../services/staffing/staffingService'
-import type { TimesheetEntryInput } from '../../services/staffing/staffingService'
+import {
+  getStaffingInvoice, listStaffingCompanies, listStaffingRates, staffingCompanyKeys, staffingRateKeys,
+} from '../../services/staffing/staffingService'
+import type { StaffingRateRow, TimesheetEntryInput } from '../../services/staffing/staffingService'
 import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
 import { formatDateUS } from '../../lib/formatters'
 import type { StaffingTimesheetEntry } from '../../types/database'
@@ -194,6 +208,14 @@ const { data: companies } = useQuery({
 
 const selectedCompanyId = ref(props.initialCompanyId || '')
 const companyId = computed(() => selectedCompanyId.value || null)
+
+// The rate card for the selected company — needed to estimate pay/OT/invoice live, before the
+// admin ever clicks "Guardar y calcular".
+const { data: rates } = useQuery({
+  queryKey: computed(() => staffingRateKeys.byCompany(props.businessId, companyId.value)),
+  queryFn: () => listStaffingRates(props.businessId!, companyId.value!),
+  enabled: computed(() => !!props.businessId && !!companyId.value),
+})
 
 const timesheets = useTimesheets(businessId, companyId)
 const billing = useBilling(businessId, companyId)
@@ -253,31 +275,117 @@ watch([() => timesheets.employees.value, currentWeek], rebuildGrid, { immediate:
 const resultFor = (employeeId: string): StaffingTimesheetEntry | undefined =>
   currentWeek.value?.entries.find(e => e.employee_id === employeeId)
 
-/** What the regular hours alone earned — the calculator's own regularAmount, not persisted, so derived here. */
-const regularAmountFor = (employeeId: string): number => {
-  const entry = resultFor(employeeId)
-  return entry ? entry.regular_hours * entry.pay_rate : 0
+const rateFor = (employeeId: string): StaffingRateRow | undefined => {
+  const employee = (timesheets.employees.value ?? []).find(e => e.id === employeeId)
+  if (!employee?.staffing_role) return undefined
+  return (rates.value ?? []).find(r => r.role === employee.staffing_role && r.active)
 }
 
-/** gross = regularAmount + overtimeAmount - preTaxDeduction, so this is the OT amount alone. */
-const overtimeAmountFor = (employeeId: string): number => {
-  const entry = resultFor(employeeId)
-  if (!entry) return 0
-  return entry.gross - regularAmountFor(employeeId) + entry.pre_tax_deduction
+interface DisplayRow {
+  regularHours: number
+  payRate: number
+  billRate: number
+  regularAmount: number
+  overtimeHours: number
+  overtimeRate: number
+  overtimeAmount: number
+  gross: number
+  taxPercent: number
+  payout: number
+  invoiceTotal: number
+  margin: number
+  isEstimate: boolean
 }
 
-/** Effective $/hour paid on the OT hours — derived rather than assumed 1.5x, since a role's
- *  overtime multiplier can now be its own override (see Fase 1). */
-const overtimeRateFor = (employeeId: string): number => {
-  const entry = resultFor(employeeId)
-  if (!entry || entry.overtime_hours <= 0) return 0
-  return overtimeAmountFor(employeeId) / entry.overtime_hours
+/** A saved entry stops being authoritative the moment the admin edits a field past it. */
+const isDirty = (employeeId: string): boolean => {
+  const saved = resultFor(employeeId)
+  const row = grid[employeeId]
+  if (!saved || !row) return true
+  return saved.total_hours !== row.totalHours
+    || saved.pre_tax_deduction !== row.preTaxDeduction
+    || saved.fixed_fees !== row.fixedFees
+    || saved.adjustment !== row.adjustment
 }
 
-const taxPercentFor = (employeeId: string): number => {
-  const entry = resultFor(employeeId)
-  if (!entry || entry.gross <= 0) return 0
-  return (entry.tax_withheld / entry.gross) * 100
+const roundPayout = (net: number, mode: string): number => {
+  if (mode === 'exact') return net
+  if (mode === 'floor' && net > 0) return Math.floor(net)
+  return Math.round(net * 100) / 100
+}
+
+/**
+ * What every row shows: the saved, authoritative numbers when nothing's been edited since the
+ * last "Guardar y calcular", otherwise a live client-side estimate — mirroring
+ * StaffingPayrollCalculator closely enough that typing hours shows something immediately instead
+ * of a wall of "—" until the next round trip.
+ */
+const rowFor = (employeeId: string): DisplayRow | null => {
+  const employee = (timesheets.employees.value ?? []).find(e => e.id === employeeId)
+  const company = (companies.value ?? []).find(c => c.id === selectedCompanyId.value)
+
+  if (!isDirty(employeeId)) {
+    const saved = resultFor(employeeId)!
+    const regularAmount = saved.regular_hours * saved.pay_rate
+    const overtimeAmount = saved.gross - regularAmount + saved.pre_tax_deduction
+    return {
+      regularHours: saved.regular_hours,
+      payRate: saved.pay_rate,
+      billRate: saved.bill_rate,
+      regularAmount,
+      overtimeHours: saved.overtime_hours,
+      overtimeRate: saved.overtime_hours > 0 ? overtimeAmount / saved.overtime_hours : 0,
+      overtimeAmount,
+      gross: saved.gross,
+      taxPercent: saved.gross > 0 ? (saved.tax_withheld / saved.gross) * 100 : 0,
+      payout: saved.payout,
+      invoiceTotal: saved.invoice_total,
+      margin: saved.margin,
+      isEstimate: false,
+    }
+  }
+
+  const rate = rateFor(employeeId)
+  const row = grid[employeeId]
+  if (!rate || !row || !employee) return null
+
+  const threshold = rate.overtimeThresholdHours ?? 40
+  const totalHours = row.totalHours || 0
+  const regularHours = Math.min(totalHours, threshold)
+  const overtimeHours = Math.max(0, totalHours - threshold)
+  const multiplier = rate.overtimeMultiplier ?? 1.5
+  const overtimePayRate = rate.overtimePayRate ?? rate.payRate * multiplier
+  const overtimeBillRate = rate.overtimeBillRate ?? rate.billRate * multiplier
+
+  const regularAmount = regularHours * rate.payRate
+  const overtimeAmount = overtimeHours * overtimePayRate
+  const gross = regularAmount + overtimeAmount - (row.preTaxDeduction || 0)
+
+  const taxRate = employee.staffing_tax_rate ?? company?.taxRate ?? 0
+  const tax = Math.max(0, gross) * taxRate
+  const net = gross - tax - (row.fixedFees || 0) + (row.adjustment || 0)
+  const payout = roundPayout(net, company?.payoutRounding ?? 'cent')
+
+  const invoiceRegular = Math.round(rate.billRate * regularHours * 100) / 100
+  const invoiceOvertime = Math.round(overtimeHours * overtimeBillRate * 100) / 100
+  const invoiceTotal = invoiceRegular + invoiceOvertime
+  const employerCost = net + tax + (row.fixedFees || 0)
+
+  return {
+    regularHours,
+    payRate: rate.payRate,
+    billRate: rate.billRate,
+    regularAmount,
+    overtimeHours,
+    overtimeRate: overtimeHours > 0 ? overtimePayRate : 0,
+    overtimeAmount,
+    gross,
+    taxPercent: gross > 0 ? (tax / gross) * 100 : 0,
+    payout,
+    invoiceTotal,
+    margin: invoiceTotal - employerCost,
+    isEstimate: true,
+  }
 }
 
 const ROUNDING_LABELS: Record<string, string> = {
@@ -292,17 +400,20 @@ const roundingLabel = computed(() => {
 })
 
 const totals = computed(() => {
-  const entries = currentWeek.value?.entries ?? []
-  return entries.reduce(
-    (acc, e) => ({
-      hours: acc.hours + e.total_hours,
-      gross: acc.gross + e.gross,
-      tax: acc.tax + e.tax_withheld,
-      payout: acc.payout + e.payout,
-      invoice: acc.invoice + e.invoice_total,
-      margin: acc.margin + e.margin,
-    }),
-    { hours: 0, gross: 0, tax: 0, payout: 0, invoice: 0, margin: 0 },
+  const employees = timesheets.employees.value ?? []
+  return employees.reduce(
+    (acc, employee) => {
+      const row = rowFor(employee.id)
+      if (!row) return acc
+      return {
+        hours: acc.hours + (grid[employee.id]?.totalHours || 0),
+        gross: acc.gross + row.gross,
+        payout: acc.payout + row.payout,
+        invoice: acc.invoice + row.invoiceTotal,
+        margin: acc.margin + row.margin,
+      }
+    },
+    { hours: 0, gross: 0, payout: 0, invoice: 0, margin: 0 },
   )
 })
 

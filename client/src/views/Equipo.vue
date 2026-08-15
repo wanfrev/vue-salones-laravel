@@ -38,12 +38,19 @@
 
   <!--
     Staffing has no commissions, no VES, no schedules in the agenda sense — the whole
-    commission-oriented GestionTabs (nomina/pagos/deuda/horarios) doesn't apply, so it's
-    replaced wholesale by the hours-and-payroll panel instead of threading isStaffing through it.
+    commission-oriented GestionTabs (nomina/pagos/deuda/horarios) doesn't apply here. Hours used
+    to be editable from this page too, but that duplicated Nómina and the two views could drift
+    out of sync — hours now live only in Nómina (see /admin/nomina).
   -->
-  <section v-if="isStaffing" class="rounded-2xl border border-border bg-surface p-4 lg:p-6">
-    <p class="mb-4 text-xs font-semibold uppercase tracking-wider text-primary">Horas trabajadas</p>
-    <StaffingHoursPanel :business-id="businessId" />
+  <section v-if="isStaffing" class="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4 lg:p-6">
+    <div>
+      <p class="text-sm font-semibold text-text">Horas y pago de la semana</p>
+      <p class="text-xs text-text-muted">Carga y calcula las horas trabajadas desde el módulo de Nómina.</p>
+    </div>
+    <router-link to="/admin/nomina"
+      class="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover">
+      Ir a Nómina
+    </router-link>
   </section>
 
   <GestionTabs
@@ -120,7 +127,6 @@ import EmployeeConsumptionModal from '../components/equipo/EmployeeConsumptionMo
 import EmployeeReciboModal from '../components/equipo/EmployeeReciboModal.vue'
 import EmployeeRateModal from '../components/equipo/EmployeeRateModal.vue'
 import GestionTabs from '../components/equipo/GestionTabs.vue'
-import StaffingHoursPanel from '../components/staffing/StaffingHoursPanel.vue'
 import type { Empleado, EmpleadoFormData } from '../types/empleado'
 import { UsersGroupRoundedIcon, DollarIcon, AddCircleIcon } from '@solar-icons/vue/linear'
 
