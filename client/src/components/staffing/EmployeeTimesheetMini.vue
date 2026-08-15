@@ -47,25 +47,31 @@
         </div>
       </div>
 
+      <p v-if="companyId && role && !rate" class="text-xs text-warning">
+        Esta empresa no tiene una tarifa configurada para "{{ role }}" todavía — agrégala en Empresas
+        antes de cargar horas.
+      </p>
+
       <div class="mt-2 grid grid-cols-2 gap-4 rounded-lg bg-surface p-3 text-sm">
         <div>
           <p class="text-xs text-text-muted">Horas Regulares</p>
-          <p class="font-semibold text-text">{{ result?.regular_hours?.toFixed(2) ?? '—' }}</p>
+          <p class="font-semibold text-text">{{ displayResult?.regular_hours?.toFixed(2) ?? '—' }}</p>
         </div>
         <div>
           <p class="text-xs text-text-muted">Horas OT</p>
-          <p class="font-semibold text-text">{{ result?.overtime_hours?.toFixed(2) ?? '—' }}</p>
+          <p class="font-semibold text-text">{{ displayResult?.overtime_hours?.toFixed(2) ?? '—' }}</p>
         </div>
         <div>
           <p class="text-xs text-text-muted">Total a Pagar</p>
-          <p class="font-bold text-primary">{{ result?.payout ? formatUSD(result.payout) : '—' }}</p>
+          <p class="font-bold text-primary">{{ displayResult ? formatUSD(displayResult.payout) : '—' }}</p>
+          <p v-if="hasUnsavedChanges && displayResult" class="text-[10px] text-text-muted">Estimado — guarda para confirmar</p>
         </div>
         <div>
           <p class="text-xs text-text-muted">Estado</p>
           <p class="font-medium" :class="statusColor">{{ statusLabel }}</p>
         </div>
       </div>
-      
+
       <p v-if="timesheets.saveError.value" class="text-xs text-danger">{{ timesheets.saveError.value }}</p>
 
       <div class="flex justify-end pt-2">
@@ -84,24 +90,48 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
 import { useTimesheets } from '../../composables/staffing/useTimesheets'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { formatDateUS } from '../../lib/formatters'
-import type { TimesheetEntryInput } from '../../services/staffing/staffingService'
+import {
+  listStaffingCompanies, listStaffingRates, staffingCompanyKeys, staffingRateKeys,
+  type TimesheetEntryInput,
+} from '../../services/staffing/staffingService'
 import type { StaffingTimesheetEntry } from '../../types/database'
 
 const props = defineProps<{
   employeeId?: string
   companyId?: string
   businessId: string | null
+  role?: string
+  /** The employee's own tax override, if set — otherwise the company's tax_rate applies. */
+  taxRateOverride?: number | null
 }>()
 
 const { formatUSD } = useCurrency()
 
 const businessId = computed(() => props.businessId)
 const companyId = computed(() => props.companyId || null)
+const role = computed(() => props.role || '')
 
 const timesheets = useTimesheets(businessId, companyId)
+
+// Same rate-card lookup StaffingEmployeeFields.vue uses, so the live estimate below reflects
+// the exact regular/OT pay this employee is on — not a guess.
+const { data: companies } = useQuery({
+  queryKey: computed(() => staffingCompanyKeys.all(props.businessId)),
+  queryFn: () => listStaffingCompanies(props.businessId!),
+  enabled: computed(() => !!props.businessId),
+})
+const company = computed(() => (companies.value ?? []).find(c => c.id === companyId.value) ?? null)
+
+const { data: rates } = useQuery({
+  queryKey: computed(() => staffingRateKeys.byCompany(props.businessId, companyId.value)),
+  queryFn: () => listStaffingRates(props.businessId!, companyId.value!),
+  enabled: computed(() => !!props.businessId && !!companyId.value),
+})
+const rate = computed(() => (rates.value ?? []).find(r => r.role === role.value && r.active) ?? null)
 
 const defaultWeekStart = (): string => {
   const d = new Date()
@@ -156,6 +186,48 @@ const result = computed<StaffingTimesheetEntry | undefined>(() => {
   if (!props.employeeId || !currentWeek.value) return undefined
   return currentWeek.value.entries.find(e => e.employee_id === props.employeeId)
 })
+
+type LiveEstimate = { regular_hours: number; overtime_hours: number; payout: number }
+
+/** Mirrors StaffingPayrollCalculator::payroll() closely enough for an instant preview — the
+ *  authoritative numbers still come from the server once saved (see `result` above). */
+const liveEstimate = computed<LiveEstimate | null>(() => {
+  const r = rate.value
+  if (!r) return null
+
+  const threshold = r.overtimeThresholdHours ?? 40
+  const totalHours = entry.totalHours || 0
+  const regularHours = Math.min(totalHours, threshold)
+  const overtimeHours = Math.max(0, totalHours - threshold)
+  const overtimeRate = r.overtimePayRate ?? r.payRate * (r.overtimeMultiplier ?? 1.5)
+
+  const regularAmount = regularHours * r.payRate
+  const overtimeAmount = overtimeHours * overtimeRate
+  const gross = regularAmount + overtimeAmount - (entry.preTaxDeduction || 0)
+
+  const taxRate = props.taxRateOverride ?? company.value?.taxRate ?? 0
+  const tax = Math.max(0, gross) * taxRate
+  const net = gross - tax - (entry.fixedFees || 0) + (entry.adjustment || 0)
+
+  const mode = company.value?.payoutRounding ?? 'cent'
+  const payout = mode === 'exact' ? net : mode === 'floor' && net > 0 ? Math.floor(net) : Math.round(net * 100) / 100
+
+  return { regular_hours: regularHours, overtime_hours: overtimeHours, payout }
+})
+
+/** A saved entry stops being authoritative the moment the admin edits a field past it. */
+const hasUnsavedChanges = computed(() => {
+  const saved = result.value
+  if (!saved) return true
+  return saved.total_hours !== entry.totalHours
+    || saved.pre_tax_deduction !== entry.preTaxDeduction
+    || saved.fixed_fees !== entry.fixedFees
+    || saved.adjustment !== entry.adjustment
+})
+
+const displayResult = computed<LiveEstimate | StaffingTimesheetEntry | null>(() =>
+  hasUnsavedChanges.value ? liveEstimate.value : (result.value ?? null),
+)
 
 const handleSave = async () => {
   if (!props.employeeId || isReadOnly.value) return

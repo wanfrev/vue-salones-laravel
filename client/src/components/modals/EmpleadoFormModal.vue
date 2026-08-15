@@ -36,6 +36,8 @@
             :employee-id="modalData?.empleado?.id"
             :company-id="formData.staffingCompanyId"
             :business-id="authStore.businessId"
+            :role="formData.role"
+            :tax-rate-override="formData.staffingTaxRate"
           />
         </div>
       </template>

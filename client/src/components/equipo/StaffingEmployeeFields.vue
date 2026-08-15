@@ -17,7 +17,7 @@
         v-model="phone"
         label="Teléfono"
         type="tel"
-        placeholder="+58 412 1234567"
+        placeholder="+1 305 555 0123"
         prefix-icon="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
         :error="errors?.phone"
       />
@@ -92,15 +92,6 @@
         hint="Solo si este empleado necesita un porcentaje distinto al de la empresa."
       />
     </div>
-
-    <FormInput v-model="address" label="Dirección" placeholder="Calle, ciudad, estado" />
-
-    <FormInput
-      v-model="ssn"
-      label="SSN"
-      placeholder="XXX-XX-XXXX"
-      :hint="ssnHint"
-    />
 
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <FormInput v-model="bankName" label="Banco" placeholder="Ej: Bank of America" />
