@@ -4,12 +4,14 @@
       <p class="text-xs font-semibold uppercase tracking-wider text-primary">Horas de la semana</p>
       
       <div v-if="companyId" class="flex items-center gap-2">
-        <input 
-          v-model="weekStartInput" 
-          type="date" 
-          class="rounded-lg border border-border bg-surface px-2 py-1 text-xs text-text outline-none transition-theme focus:border-primary" 
+        <input
+          v-model="weekStartInput"
+          type="date"
+          class="rounded-lg border border-border bg-surface px-2 py-1 text-xs text-text outline-none transition-theme focus:border-primary"
         />
-        <span class="text-xs text-text-muted">al {{ weekEnd || '—' }}</span>
+        <span class="text-xs text-text-muted">
+          {{ weekStartInput ? formatDateUS(weekStartInput) : '—' }} al {{ weekEnd ? formatDateUS(weekEnd) : '—' }}
+        </span>
       </div>
     </div>
 
@@ -84,6 +86,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useTimesheets } from '../../composables/staffing/useTimesheets'
 import { useCurrency } from '../../composables/common/useCurrency'
+import { formatDateUS } from '../../lib/formatters'
 import type { TimesheetEntryInput } from '../../services/staffing/staffingService'
 import type { StaffingTimesheetEntry } from '../../types/database'
 

@@ -15,18 +15,30 @@
       </div>
 
       <div class="mt-4 grid grid-cols-2 gap-2">
-        <div class="rounded-lg bg-gradient-to-br from-bg-secondary/80 to-bg-secondary/40 p-2.5 text-center">
-          <p class="text-sm font-semibold text-text">{{ member.payTypeLabel }}</p>
-          <p class="text-xs text-text-muted">Tipo de pago</p>
-        </div>
-        <div class="rounded-lg bg-gradient-to-br from-bg-secondary/80 to-bg-secondary/40 p-2.5 text-center">
-          <p class="text-sm font-semibold text-text">{{ member.payValueLabel }}</p>
-          <p class="text-xs text-text-muted">Condición</p>
-        </div>
+        <template v-if="isStaffing">
+          <div class="rounded-lg bg-gradient-to-br from-bg-secondary/80 to-bg-secondary/40 p-2.5 text-center">
+            <p class="truncate text-sm font-semibold text-text">{{ companyNameFor(member) }}</p>
+            <p class="text-xs text-text-muted">Empresa</p>
+          </div>
+          <div class="rounded-lg bg-gradient-to-br from-bg-secondary/80 to-bg-secondary/40 p-2.5 text-center">
+            <p class="truncate text-sm font-semibold text-text">{{ member.role || '—' }}</p>
+            <p class="text-xs text-text-muted">Rol</p>
+          </div>
+        </template>
+        <template v-else>
+          <div class="rounded-lg bg-gradient-to-br from-bg-secondary/80 to-bg-secondary/40 p-2.5 text-center">
+            <p class="text-sm font-semibold text-text">{{ member.payTypeLabel }}</p>
+            <p class="text-xs text-text-muted">Tipo de pago</p>
+          </div>
+          <div class="rounded-lg bg-gradient-to-br from-bg-secondary/80 to-bg-secondary/40 p-2.5 text-center">
+            <p class="text-sm font-semibold text-text">{{ member.payValueLabel }}</p>
+            <p class="text-xs text-text-muted">Condición</p>
+          </div>
+        </template>
       </div>
 
-      <div class="mt-4 grid grid-cols-3 gap-1.5">
-        <button @click="$emit('viewAgenda', member)"
+      <div class="mt-4 grid gap-1.5" :class="showAgenda ? 'grid-cols-3' : 'grid-cols-2'">
+        <button v-if="showAgenda" @click="$emit('viewAgenda', member)"
           class="rounded-lg border border-border py-2 text-xs font-medium text-text-secondary transition-theme hover:bg-primary/5 hover:text-primary hover:border-primary/30 flex items-center justify-center gap-1"
           title="Ver Agenda">
           <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -68,13 +80,20 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
+const props = withDefaults(defineProps<{
   employees: any[]
   showAll: boolean
   hasMore: boolean
   totalCount: number
   getInitials: (name?: string) => string
-}>()
+  isStaffing?: boolean
+  companiesById?: Record<string, string>
+  showAgenda?: boolean
+}>(), {
+  isStaffing: false,
+  companiesById: () => ({}),
+  showAgenda: true,
+})
 
 defineEmits<{
   edit: [employee: any]
@@ -82,4 +101,7 @@ defineEmits<{
   viewRecibo: [employee: any]
   toggleShowAll: []
 }>()
+
+const companyNameFor = (member: any): string =>
+  (member.staffingCompanyId && props.companiesById[member.staffingCompanyId]) || 'Sin empresa'
 </script>

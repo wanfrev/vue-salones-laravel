@@ -115,6 +115,15 @@ export function formatDateTime(date: string | Date): string {
   return `${formatDate(d, 'short')} ${formatTime(d)}`
 }
 
+/** MM/DD/YYYY — the staffing niche runs on US date conventions (nómina week filters, invoices). */
+export function formatDateUS(date: string | Date): string {
+  const d = toLocalDate(date)
+  if (Number.isNaN(d.getTime())) return String(date)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${mm}/${dd}/${d.getFullYear()}`
+}
+
 export function toISODate(date: string | Date): string {
   const d = toLocalDate(date)
   const yyyy = d.getFullYear()

@@ -16,10 +16,11 @@
           Semana desde
         </label>
         <input id="hours-week-start" v-model="weekStartInput" type="date" :class="inputClass" />
+        <p class="mt-1 text-[10px] text-text-muted">{{ weekStartInput ? formatDateUS(weekStartInput) : '—' }}</p>
       </div>
 
       <div class="rounded-lg border border-border bg-bg-secondary/60 px-3 py-2 text-xs text-text-muted">
-        Hasta <span class="font-semibold text-text">{{ weekEnd || '—' }}</span>
+        Hasta <span class="font-semibold text-text">{{ weekEnd ? formatDateUS(weekEnd) : '—' }}</span>
       </div>
 
       <span v-if="currentWeek" class="rounded-full px-2.5 py-1 text-xs font-semibold"
@@ -163,6 +164,7 @@ import { useBilling } from '../../composables/staffing/useBilling'
 import { getStaffingInvoice, listStaffingCompanies, staffingCompanyKeys } from '../../services/staffing/staffingService'
 import type { TimesheetEntryInput } from '../../services/staffing/staffingService'
 import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
+import { formatDateUS } from '../../lib/formatters'
 import type { StaffingTimesheetEntry } from '../../types/database'
 
 const inputClass =

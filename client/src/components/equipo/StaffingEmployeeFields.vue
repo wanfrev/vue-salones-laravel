@@ -67,10 +67,17 @@
         Esta empresa no tiene una tarifa configurada para "{{ role }}" todavía — agrégala en Empresas
         antes de cargar horas.
       </p>
-      <p v-else-if="resolvedRate" class="rounded-lg bg-bg-secondary/60 px-3 py-2 text-xs text-text-secondary">
-        Gana <span class="font-semibold text-text">{{ formatUSD(resolvedRate.payRate) }}/h</span>
-        · se cobra a la empresa <span class="font-semibold text-text">{{ formatUSD(resolvedRate.billRate) }}/h</span>
-      </p>
+      <div v-else-if="resolvedRate" class="space-y-1 rounded-lg bg-bg-secondary/60 px-3 py-2 text-xs text-text-secondary">
+        <p>
+          Regular (hasta {{ resolvedRate.overtimeThresholdHours ?? 40 }}h/sem): gana
+          <span class="font-semibold text-text">{{ formatUSD(resolvedRate.payRate) }}/h</span>
+          · se cobra a la empresa <span class="font-semibold text-text">{{ formatUSD(resolvedRate.billRate) }}/h</span>
+        </p>
+        <p>
+          Overtime: gana <span class="font-semibold text-text">{{ formatUSD(effectiveOvertimePayRate) }}/h</span>
+          · se cobra a la empresa <span class="font-semibold text-text">{{ formatUSD(effectiveOvertimeBillRate) }}/h</span>
+        </p>
+      </div>
     </div>
 
     <div>
@@ -217,6 +224,20 @@ const roleOptions = computed(() => {
 const resolvedRate = computed(() =>
   (rates.value ?? []).find(r => r.role === role.value && r.active) ?? null,
 )
+
+// Mirrors StaffingPayrollCalculator::overtimeMultiplierFor — an explicit OT rate on the role
+// wins outright, otherwise it's payRate/billRate times the role's own multiplier override or
+// the company-wide default of 1.5x (see StaffingTermsFactory).
+const effectiveOvertimePayRate = computed(() => {
+  const rate = resolvedRate.value
+  if (!rate) return 0
+  return rate.overtimePayRate ?? rate.payRate * (rate.overtimeMultiplier ?? 1.5)
+})
+const effectiveOvertimeBillRate = computed(() => {
+  const rate = resolvedRate.value
+  if (!rate) return 0
+  return rate.overtimeBillRate ?? rate.billRate * (rate.overtimeMultiplier ?? 1.5)
+})
 
 const selectedCompany = computed(() => (companies.value ?? []).find(c => c.id === companyId.value) ?? null)
 
