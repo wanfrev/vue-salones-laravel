@@ -16,6 +16,7 @@ import {
   HeartPulseIcon,
   BuildingsIcon,
   ChatRoundLineIcon,
+  WalletMoneyIcon,
 } from '@solar-icons/vue/linear'
 import type { Component } from 'vue'
 import type { RouteGate } from '../../router/gate'
@@ -54,6 +55,7 @@ export const sidebarSections: SidebarSection[] = [
       { to: '/dashboard/consultorio', label: 'Consultorio', icon: HeartPulseIcon, employeeOnly: true, gate: { capability: 'clients.pets', profileFlag: 'can_access_consultorio' } },
       { to: '/admin/equipo', label: 'Equipo', labelKey: 'employee', icon: BagIcon, adminOnly: true },
       { to: '/admin/empresas', label: 'Empresas', icon: BuildingsIcon, adminOnly: true, gate: { capability: 'staffing.timesheets' } },
+      { to: '/admin/nomina', label: 'Nómina', icon: WalletMoneyIcon, adminOnly: true, gate: { capability: 'staffing.timesheets' } },
       { to: '/admin/staffing-reportes', label: 'Reportes', icon: DocumentIcon, adminOnly: true, gate: { capability: 'staffing.reports' } },
       { to: '/admin/staffing-taxes', label: 'Taxes', icon: DocumentIcon, adminOnly: true, gate: { capability: 'staffing.reports' } },
       { to: '/admin/crm', label: 'CRM', icon: ChatRoundLineIcon, adminOnly: true, gate: { capability: 'staffing.crm' } },
