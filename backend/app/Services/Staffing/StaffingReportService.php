@@ -227,16 +227,22 @@ class StaffingReportService
             $total = $grossProfit - $overhead - $otrosGastos;
 
             $invoice = $entry ? $invoicesByTimesheet->get($entry->timesheet_id) : null;
-            $estado = 'no_invoice';
+            $autoEstado = 'no_invoice';
             if ($invoice) {
                 $paid = $paidByInvoice->get($invoice->id)?->paid ?? 0.0;
-                $estado = (float) $paid >= (float) $invoice->total ? 'paid' : 'pending';
+                $autoEstado = (float) $paid >= (float) $invoice->total ? 'paid' : 'pending';
             }
+            // The PDF wants "estado" both auto-filled and editable — an admin's manual override
+            // (e.g. paid outside the app) wins over the computed value, null means "automático".
+            $estadoOverride = $expense?->estado_override;
+            $estado = $estadoOverride ?? $autoEstado;
 
             return [
                 'companyId' => $company->id,
                 'name' => $company->name,
                 'estado' => $estado,
+                'estadoAuto' => $autoEstado,
+                'estadoOverride' => $estadoOverride,
                 'proyecto' => $company->work_site,
                 'nomina' => $nomina,
                 'invoice' => $invoiceTotal,
@@ -311,6 +317,76 @@ class StaffingReportService
                     'weeklyHours' => $hoursByEmployee[$employee->id] ?? [],
                 ];
             })->all(),
+        ];
+    }
+
+    /**
+     * Total hours per company across the given weeks, split by whether the employee is
+     * currently active or inactive — the "Horas Reportadas > Por empresa" totals, for a
+     * week/month/year period (the caller resolves which week_start values that period covers).
+     *
+     * @param list<string> $weekStarts
+     * @return list<array{companyId: string, name: string, activeHours: float, inactiveHours: float, totalHours: float}>
+     */
+    public function companyHoursSummary(string $businessId, array $weekStarts): array
+    {
+        $companies = StaffingCompany::where('business_id', $businessId)->orderBy('name')->get();
+        if ($companies->isEmpty() || $weekStarts === []) {
+            return [];
+        }
+
+        $rows = DB::table('staffing_timesheet_entries as ste')
+            ->join('staffing_timesheets as st', 'st.id', '=', 'ste.timesheet_id')
+            ->join('profiles as p', 'p.id', '=', 'ste.employee_id')
+            ->where('st.business_id', $businessId)
+            ->whereIn('st.week_start', $weekStarts)
+            ->selectRaw('st.company_id, p.active, SUM(ste.total_hours) as hours')
+            ->groupBy('st.company_id', 'p.active')
+            ->get();
+
+        // company_id => 'activeHours'|'inactiveHours' => hours
+        $byCompany = [];
+        foreach ($rows as $row) {
+            $key = $row->active ? 'activeHours' : 'inactiveHours';
+            $byCompany[$row->company_id][$key] = (float) $row->hours;
+        }
+
+        return $companies->map(function (StaffingCompany $company) use ($byCompany) {
+            $active = $byCompany[$company->id]['activeHours'] ?? 0.0;
+            $inactive = $byCompany[$company->id]['inactiveHours'] ?? 0.0;
+
+            return [
+                'companyId' => $company->id,
+                'name' => $company->name,
+                'activeHours' => $active,
+                'inactiveHours' => $inactive,
+                'totalHours' => $active + $inactive,
+            ];
+        })->all();
+    }
+
+    /**
+     * Finanzas > Resumen for the staffing niche: what invoiced hours brought in, what running
+     * payroll actually cost the agency, and the margin between them — summed across every
+     * timesheet whose week starts inside the given date range. Deliberately the same
+     * invoice_total/employer_cost/margin columns StaffingPayrollCalculator persisted per entry,
+     * not re-derived, so this always agrees with the nómina/invoice screens for the same weeks.
+     *
+     * @return array{invoiceTotal: float, employerCost: float, margin: float}
+     */
+    public function financeSummaryForPeriod(string $businessId, string $periodStart, string $periodEnd): array
+    {
+        $row = DB::table('staffing_timesheet_entries as ste')
+            ->join('staffing_timesheets as st', 'st.id', '=', 'ste.timesheet_id')
+            ->where('st.business_id', $businessId)
+            ->whereBetween('st.week_start', [$periodStart, $periodEnd])
+            ->selectRaw('SUM(ste.invoice_total) as invoice_total, SUM(ste.employer_cost) as employer_cost, SUM(ste.margin) as margin')
+            ->first();
+
+        return [
+            'invoiceTotal' => (float) ($row->invoice_total ?? 0.0),
+            'employerCost' => (float) ($row->employer_cost ?? 0.0),
+            'margin' => (float) ($row->margin ?? 0.0),
         ];
     }
 

@@ -99,7 +99,7 @@
                 </span>
               </td>
               <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ lead.state || '—' }}</td>
-              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ lead.visitDate || '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ lead.visitDate ? formatDateUS(lead.visitDate) : '—' }}</td>
               <td class="max-w-[220px] truncate px-3 py-2.5 text-text-secondary" :title="lead.notes">{{ lead.notes || '—' }}</td>
               <td class="px-3 py-2.5">
                 <div class="flex items-center justify-end gap-1">
@@ -218,7 +218,7 @@
 import { computed, ref } from 'vue'
 import { useLeads } from '../../composables/staffing/useLeads'
 import { LEAD_PRIORITY_OPTIONS, LEAD_STATUS_OPTIONS, type LeadRow } from '../../services/leadsService'
-import { getInitials } from '../../lib/formatters'
+import { getInitials, formatDateUS } from '../../lib/formatters'
 import type { LeadPriority, LeadStatus } from '../../types/database'
 import { ChatRoundLineIcon, AddCircleIcon, PenIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
 

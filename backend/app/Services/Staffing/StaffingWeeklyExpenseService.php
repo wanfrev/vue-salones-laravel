@@ -15,12 +15,20 @@ class StaffingWeeklyExpenseService
             ->where('week_start', $data['week_start'])
             ->first();
 
+        // estado_override is edited independently of amount (a separate control on the report),
+        // so only touch it when the caller actually sent the key — omitting it must not silently
+        // reset a previously-set override back to "automático".
+        $payload = [
+            'amount' => $data['amount'] ?? 0,
+            'notes' => $data['notes'] ?? null,
+            'updated_at' => now(),
+        ];
+        if (array_key_exists('estado_override', $data)) {
+            $payload['estado_override'] = $data['estado_override'];
+        }
+
         if ($existing) {
-            $existing->update([
-                'amount' => $data['amount'] ?? 0,
-                'notes' => $data['notes'] ?? null,
-                'updated_at' => now(),
-            ]);
+            $existing->update($payload);
 
             return $existing->fresh();
         }
@@ -30,11 +38,10 @@ class StaffingWeeklyExpenseService
             'business_id' => $businessId,
             'company_id' => $data['company_id'],
             'week_start' => $data['week_start'],
-            'amount' => $data['amount'] ?? 0,
-            'notes' => $data['notes'] ?? null,
+            'estado_override' => $data['estado_override'] ?? null,
             'created_by' => $createdBy,
             'created_at' => now(),
-            'updated_at' => now(),
+            ...$payload,
         ]);
     }
 }

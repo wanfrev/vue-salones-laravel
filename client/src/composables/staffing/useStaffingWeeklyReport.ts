@@ -6,7 +6,9 @@ import {
   getWeeklyCompanyReport,
   saveWeeklyExpense,
   staffingReportKeys,
+  updateStaffingCompanyWorkSite,
   type StaffingWeeklyExpenseFormData,
+  type StaffingWeeklyReportEstado,
 } from '../../services/staffing/staffingService'
 
 /** The "RESULTADOS SEMANALES" sheet: per-company financial summary for one week, with an
@@ -48,11 +50,42 @@ export function useStaffingWeeklyReport(businessId: Ref<string | null>, weekStar
     }
   }
 
+  // Both estado and otros gastos live on the same (company, week) row server-side, so an edit to
+  // one must carry the other's current value forward — see StaffingWeeklyExpenseService::upsert.
+  const saveEstado = async (companyId: string, weekStart: string, currentAmount: number, estadoOverride: StaffingWeeklyReportEstado | null) =>
+    saveExpense({ companyId, weekStart, amount: currentAmount, estadoOverride })
+
+  const workSiteMutation = useMutation({
+    mutationFn: ({ companyId, workSite }: { companyId: string; workSite: string }) =>
+      updateStaffingCompanyWorkSite(companyId, workSite),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKey.value, exact: false })
+      success('Proyecto actualizado')
+    },
+    onError: (err) => {
+      saveError.value = translateError(err)
+      showError(saveError.value)
+    },
+  })
+
+  const saveProyecto = async (companyId: string, workSite: string) => {
+    saveError.value = ''
+    try {
+      await workSiteMutation.mutateAsync({ companyId, workSite })
+      return true
+    } catch {
+      return false
+    }
+  }
+
   return {
     rows,
     isLoading,
     saveError,
     saveMutation,
     saveExpense,
+    saveEstado,
+    saveProyecto,
+    workSiteMutation,
   }
 }

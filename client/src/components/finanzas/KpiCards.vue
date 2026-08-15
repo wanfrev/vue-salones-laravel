@@ -52,8 +52,8 @@
       </div>
     </div>
 
-    <!-- Nueva Tarjeta de Ganancia Bruta (Sólo para Tienda) -->
-    <div v-if="isTienda" :class="[
+    <!-- Ganancia bruta — Tienda y Staffing (para staffing, es la única "ganancia": el margen de la nómina) -->
+    <div v-if="isTienda || isStaffing" :class="[
       'group rounded-xl border bg-surface p-2.5 shadow-sm transition-theme sm:p-4',
       'cursor-pointer select-none',
       activeCard === 'profit'
@@ -77,7 +77,8 @@
       </div>
     </div>
 
-    <div :class="[
+    <!-- "Ganancia Neta" no existe para Staffing — la ganancia bruta de la nómina ya es la cifra que importa. -->
+    <div v-if="!isStaffing" :class="[
       'group rounded-xl border bg-surface p-2.5 shadow-sm transition-theme sm:p-4',
       'cursor-pointer select-none',
       activeCard === 'net'
@@ -138,6 +139,7 @@ defineProps<{
   profitTotal?: number
   margin: number
   isTienda?: boolean
+  isStaffing?: boolean
   activeCard?: 'income' | 'expense' | 'net' | 'profit' | null
   isLoading?: boolean
 }>()

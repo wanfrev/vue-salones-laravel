@@ -79,6 +79,55 @@ class StaffingReportController
         );
     }
 
+    /** Total hours per company for a week, a month, or a whole year — see companyHoursSummary(). */
+    public function companyHours(Request $request): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json([]);
+        }
+
+        $data = $request->validate([
+            'period' => 'required|in:week,month,year',
+            'year' => 'required|integer|min:2000|max:2100',
+            'month' => 'required_if:period,month|integer|min:1|max:12',
+            'week_start' => 'required_if:period,week|date',
+        ]);
+
+        $weeks = $this->reports->weeksForYear((int) $data['year']);
+
+        $weekStarts = match ($data['period']) {
+            'week' => [$data['week_start']],
+            'month' => array_values(array_filter(
+                array_column($weeks, 'week_start'),
+                fn (string $ws) => (int) substr($ws, 5, 2) === (int) $data['month'],
+            )),
+            default => array_column($weeks, 'week_start'),
+        };
+
+        return response()->json(
+            $this->reports->companyHoursSummary($p->business_id, $weekStarts)
+        );
+    }
+
+    /** Finanzas > Resumen for staffing: invoiced hours, employer cost, and margin for a date range. */
+    public function financeSummary(Request $request): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json(['invoiceTotal' => 0, 'employerCost' => 0, 'margin' => 0]);
+        }
+
+        $data = $request->validate([
+            'period_start' => 'required|date',
+            'period_end' => 'required|date|after_or_equal:period_start',
+        ]);
+
+        return response()->json(
+            $this->reports->financeSummaryForPeriod($p->business_id, $data['period_start'], $data['period_end'])
+        );
+    }
+
     public function annualTaxReport(Request $request): JsonResponse
     {
         $p = $request->user()?->load('profile')?->profile;

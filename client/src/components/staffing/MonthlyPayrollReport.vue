@@ -42,9 +42,13 @@
         <tbody class="divide-y divide-border">
           <tr v-for="company in report.companies.value" :key="company.companyId">
             <td class="whitespace-nowrap px-3 py-2 font-medium text-text">{{ company.name }}</td>
-            <td v-for="week in report.weeks.value" :key="week.week_start"
-              class="px-3 py-2 text-right tabular-nums text-text-secondary">
-              {{ formatUSD(company.weeklyPayroll[week.week_start] ?? 0) }}
+            <td v-for="week in report.weeks.value" :key="week.week_start" class="px-1 py-1 text-right">
+              <button type="button"
+                class="w-full rounded-md px-2 py-1 tabular-nums text-text-secondary transition-theme hover:bg-primary/10 hover:text-primary"
+                :title="`Ir a la nómina de ${company.name} — semana del ${week.week_start}`"
+                @click="goToNomina(company.companyId, week.week_start)">
+                {{ formatUSD(company.weeklyPayroll[week.week_start] ?? 0) }}
+              </button>
             </td>
             <td class="px-3 py-2 text-right tabular-nums font-semibold text-text">{{ formatUSD(company.total) }}</td>
           </tr>
@@ -56,6 +60,7 @@
 
 <script setup lang="ts">
 import { ref, toRef } from 'vue'
+import { useRouter } from 'vue-router'
 import { ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
 import { useStaffingMonthlyReport } from '../../composables/staffing/useStaffingMonthlyReport'
 import { useCurrency } from '../../composables/common/useCurrency'
@@ -63,6 +68,11 @@ import { useCurrency } from '../../composables/common/useCurrency'
 const props = defineProps<{ businessId: string | null }>()
 
 const { formatUSD } = useCurrency()
+const router = useRouter()
+
+const goToNomina = (companyId: string, weekStart: string) => {
+  router.push({ path: '/admin/nomina', query: { companyId, weekStart } })
+}
 
 const MONTH_LABELS = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',

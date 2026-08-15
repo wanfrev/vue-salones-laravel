@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\Staffing\StaffingCompanyController;
 use App\Http\Controllers\Api\Staffing\StaffingCompanyPaymentController;
 use App\Http\Controllers\Api\Staffing\StaffingCompanyRateController;
 use App\Http\Controllers\Api\Staffing\StaffingInvoiceController;
+use App\Http\Controllers\Api\Staffing\StaffingManualIncomeController;
 use App\Http\Controllers\Api\Staffing\StaffingReportController;
 use App\Http\Controllers\Api\Staffing\StaffingTaxEntityController;
 use App\Http\Controllers\Api\Staffing\StaffingTaxEntryController;
@@ -264,7 +265,15 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::get('/staffing-reports/monthly-payroll', [StaffingReportController::class, 'monthlyPayroll']);
         Route::get('/staffing-reports/weekly', [StaffingReportController::class, 'weeklyReport']);
         Route::get('/staffing-reports/employee-hours', [StaffingReportController::class, 'employeeHours']);
+        Route::get('/staffing-reports/company-hours', [StaffingReportController::class, 'companyHours']);
         Route::post('/staffing-weekly-expenses', [StaffingWeeklyExpenseController::class, 'store']);
+
+        // Finanzas > Resumen for staffing: invoiced-hours/employer-cost/margin summary, plus the
+        // manual income entries that sit alongside it.
+        Route::get('/staffing-reports/finance-summary', [StaffingReportController::class, 'financeSummary']);
+        Route::get('/staffing-manual-incomes', [StaffingManualIncomeController::class, 'index']);
+        Route::post('/staffing-manual-incomes', [StaffingManualIncomeController::class, 'store']);
+        Route::delete('/staffing-manual-incomes/{id}', [StaffingManualIncomeController::class, 'destroy']);
 
         Route::get('/staffing-reports/annual-tax', [StaffingReportController::class, 'annualTaxReport']);
         Route::get('/staffing-tax-entities', [StaffingTaxEntityController::class, 'index']);

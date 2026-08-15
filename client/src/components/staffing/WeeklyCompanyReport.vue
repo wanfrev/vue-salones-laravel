@@ -6,6 +6,7 @@
         <label class="text-xs font-semibold uppercase tracking-wider text-text-muted" for="weekly-report-week">Semana desde</label>
         <input id="weekly-report-week" v-model="weekStart" type="date"
           class="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-text" />
+        <span class="text-xs text-text-muted">{{ weekStart ? formatDateUS(weekStart) : '—' }}</span>
       </div>
     </div>
 
@@ -34,10 +35,21 @@
         <tbody class="divide-y divide-border">
           <tr v-for="row in report.rows.value" :key="row.companyId">
             <td class="px-3 py-2">
-              <span class="inline-block h-2.5 w-2.5 rounded-full" :class="ESTADO_DOT_CLASS[row.estado]" :title="ESTADO_LABELS[row.estado]" />
+              <select
+                class="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+                :value="row.estadoOverride ?? ''"
+                :title="row.estadoOverride ? 'Override manual' : `Automático: ${ESTADO_LABELS[row.estadoAuto]}`"
+                @change="handleEstadoChange(row, $event)">
+                <option value="">Auto: {{ ESTADO_LABELS[row.estadoAuto] }}</option>
+                <option v-for="opt in ESTADO_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              </select>
             </td>
             <td class="whitespace-nowrap px-3 py-2 font-medium text-text">{{ row.name }}</td>
-            <td class="whitespace-nowrap px-3 py-2 text-text-secondary">{{ row.proyecto || '—' }}</td>
+            <td class="px-3 py-2">
+              <input type="text" :value="row.proyecto ?? ''" placeholder="Sin proyecto"
+                class="w-32 rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+                @change="handleProyectoChange(row.companyId, $event)" />
+            </td>
             <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ formatUSD(row.nomina) }}</td>
             <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ formatUSD(row.invoice) }}</td>
             <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ formatUSD(row.gananciaBruta) }}</td>
@@ -63,7 +75,8 @@
 import { ref, toRef } from 'vue'
 import { useStaffingWeeklyReport } from '../../composables/staffing/useStaffingWeeklyReport'
 import { useCurrency } from '../../composables/common/useCurrency'
-import type { StaffingWeeklyReportEstado } from '../../services/staffing/staffingService'
+import { formatDateUS } from '../../lib/formatters'
+import type { StaffingWeeklyReportEstado, StaffingWeeklyReportRow } from '../../services/staffing/staffingService'
 
 const props = defineProps<{ businessId: string | null }>()
 
@@ -75,11 +88,11 @@ const ESTADO_LABELS: Record<StaffingWeeklyReportEstado, string> = {
   no_invoice: 'Sin invoice generado todavía',
 }
 
-const ESTADO_DOT_CLASS: Record<StaffingWeeklyReportEstado, string> = {
-  paid: 'bg-success',
-  pending: 'bg-danger',
-  no_invoice: 'bg-text-muted/40',
-}
+const ESTADO_OPTIONS: { value: StaffingWeeklyReportEstado; label: string }[] = [
+  { value: 'paid', label: 'Invoice pagado' },
+  { value: 'pending', label: 'Invoice pendiente de pago' },
+  { value: 'no_invoice', label: 'Sin invoice generado todavía' },
+]
 
 /** Defaults to the most recent Sunday — same convention as StaffingHoursPanel.vue. */
 const defaultWeekStart = (): string => {
@@ -95,5 +108,14 @@ const report = useStaffingWeeklyReport(toRef(props, 'businessId'), weekStart)
 const handleExpenseChange = async (companyId: string, event: Event) => {
   const amount = Number((event.target as HTMLInputElement).value) || 0
   await report.saveExpense({ companyId, weekStart: weekStart.value, amount })
+}
+
+const handleEstadoChange = async (row: StaffingWeeklyReportRow, event: Event) => {
+  const value = (event.target as HTMLSelectElement).value as StaffingWeeklyReportEstado | ''
+  await report.saveEstado(row.companyId, weekStart.value, row.otrosGastos, value || null)
+}
+
+const handleProyectoChange = async (companyId: string, event: Event) => {
+  await report.saveProyecto(companyId, (event.target as HTMLInputElement).value.trim())
 }
 </script>

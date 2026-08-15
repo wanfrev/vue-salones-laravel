@@ -486,6 +486,9 @@ export interface StaffingWeeklyReportRow {
   companyId: string
   name: string
   estado: StaffingWeeklyReportEstado
+  estadoAuto: StaffingWeeklyReportEstado
+  /** Null = no manual override, "estado" above is the auto-computed value. */
+  estadoOverride: StaffingWeeklyReportEstado | null
   proyecto: string | null
   nomina: number
   invoice: number
@@ -505,6 +508,8 @@ export interface StaffingWeeklyExpenseFormData {
   weekStart: string
   amount: number
   notes?: string
+  /** Omit to leave the current override untouched, null to clear it back to "automático". */
+  estadoOverride?: StaffingWeeklyReportEstado | null
 }
 
 export const saveWeeklyExpense = (data: StaffingWeeklyExpenseFormData): Promise<void> =>
@@ -513,7 +518,14 @@ export const saveWeeklyExpense = (data: StaffingWeeklyExpenseFormData): Promise<
     week_start: data.weekStart,
     amount: data.amount,
     notes: data.notes || null,
+    ...('estadoOverride' in data ? { estado_override: data.estadoOverride ?? null } : {}),
   })
+
+/** Inline "Proyecto" edit from the weekly report — a partial update, not the full company form. */
+export const updateStaffingCompanyWorkSite = async (id: string, workSite: string): Promise<void> => {
+  const { error } = await db.from('staffing_companies').update({ work_site: workSite || null }).eq('id', id)
+  if (error) handleDbError(error, 'Error al actualizar el proyecto')
+}
 
 export interface StaffingEmployeeHoursCompanyRef {
   id: string
@@ -537,6 +549,84 @@ export interface StaffingEmployeeHoursMatrix {
 /** Year-wide, per-employee weekly hours for the "Horas Reportadas" report tab. */
 export const getEmployeeHoursMatrix = (year: number, active: boolean): Promise<StaffingEmployeeHoursMatrix> =>
   apiRequest<StaffingEmployeeHoursMatrix>('GET', `/staffing-reports/employee-hours?year=${year}&active=${active}`)
+
+export type StaffingHoursPeriod = 'week' | 'month' | 'year'
+
+export interface StaffingCompanyHoursRow {
+  companyId: string
+  name: string
+  activeHours: number
+  inactiveHours: number
+  totalHours: number
+}
+
+/** Total hours per company for a week, a month, or a whole year — "Horas Reportadas > Por empresa". */
+export const getCompanyHoursSummary = (
+  period: StaffingHoursPeriod,
+  year: number,
+  opts: { month?: number; weekStart?: string } = {},
+): Promise<StaffingCompanyHoursRow[]> => {
+  const params = new URLSearchParams({ period, year: String(year) })
+  if (period === 'month' && opts.month) params.set('month', String(opts.month))
+  if (period === 'week' && opts.weekStart) params.set('week_start', opts.weekStart)
+  return apiRequest<StaffingCompanyHoursRow[]>('GET', `/staffing-reports/company-hours?${params.toString()}`)
+}
+
+// ── Finanzas (staffing) ──────────────────────────────────────────
+
+export interface StaffingFinanceSummary {
+  invoiceTotal: number
+  employerCost: number
+  margin: number
+}
+
+/** Invoiced hours / employer cost / margin for a date range — Finanzas > Resumen (staffing). */
+export const getStaffingFinanceSummary = (periodStart: string, periodEnd: string): Promise<StaffingFinanceSummary> =>
+  apiRequest<StaffingFinanceSummary>('GET', `/staffing-reports/finance-summary?period_start=${periodStart}&period_end=${periodEnd}`)
+
+export interface StaffingManualIncomeRow {
+  id: string
+  incomeDate: string
+  amount: number
+  notes: string | null
+}
+
+interface StaffingManualIncomeApiRow {
+  id: string
+  income_date: string
+  amount: number | string
+  notes: string | null
+}
+
+const toManualIncomeRow = (row: StaffingManualIncomeApiRow): StaffingManualIncomeRow => ({
+  id: row.id,
+  incomeDate: String(row.income_date).slice(0, 10),
+  amount: Number(row.amount),
+  notes: row.notes,
+})
+
+export const listStaffingManualIncomes = async (from: string, to: string): Promise<StaffingManualIncomeRow[]> => {
+  const rows = await apiRequest<StaffingManualIncomeApiRow[]>('GET', `/staffing-manual-incomes?from=${from}&to=${to}`)
+  return rows.map(toManualIncomeRow)
+}
+
+export interface StaffingManualIncomeFormData {
+  incomeDate: string
+  amount: number
+  notes?: string
+}
+
+export const createStaffingManualIncome = async (data: StaffingManualIncomeFormData): Promise<StaffingManualIncomeRow> => {
+  const row = await apiRequest<StaffingManualIncomeApiRow>('POST', '/staffing-manual-incomes', {
+    income_date: data.incomeDate,
+    amount: data.amount,
+    notes: data.notes || null,
+  })
+  return toManualIncomeRow(row)
+}
+
+export const deleteStaffingManualIncome = (id: string): Promise<void> =>
+  apiRequest('DELETE', `/staffing-manual-incomes/${id}`)
 
 // ── Taxes ──────────────────────────────────────────────────────
 

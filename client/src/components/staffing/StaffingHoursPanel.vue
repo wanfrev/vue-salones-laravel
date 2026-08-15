@@ -172,7 +172,12 @@ const inputClass =
 const cellInputClass =
   'w-24 rounded-lg border border-border bg-surface px-2 py-1.5 text-right text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:bg-bg-secondary disabled:text-text-muted'
 
-const props = defineProps<{ businessId: string | null }>()
+const props = defineProps<{
+  businessId: string | null
+  /** Deep link from Reportes > Mensual — preselects the company/week the admin clicked on. */
+  initialCompanyId?: string | null
+  initialWeekStart?: string | null
+}>()
 
 const { formatUSD } = useCurrency()
 const businessStore = useBusinessStore()
@@ -185,7 +190,7 @@ const { data: companies } = useQuery({
   enabled: computed(() => !!props.businessId),
 })
 
-const selectedCompanyId = ref('')
+const selectedCompanyId = ref(props.initialCompanyId || '')
 const companyId = computed(() => selectedCompanyId.value || null)
 
 const timesheets = useTimesheets(businessId, companyId)
@@ -202,7 +207,7 @@ const defaultWeekStart = (): string => {
   return d.toISOString().slice(0, 10)
 }
 
-const weekStartInput = ref(defaultWeekStart())
+const weekStartInput = ref(props.initialWeekStart || defaultWeekStart())
 
 const weekEnd = computed(() => {
   if (!weekStartInput.value) return ''
