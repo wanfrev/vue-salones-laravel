@@ -153,7 +153,7 @@ import { ref, toRef } from 'vue'
 import { ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
 import { useEmployeeHoursMatrix } from '../../composables/staffing/useEmployeeHoursMatrix'
 import { useCompanyHoursSummary } from '../../composables/staffing/useCompanyHoursSummary'
-import { formatDateUS } from '../../lib/formatters'
+import { formatDateUS, toISODate } from '../../lib/formatters'
 import type { StaffingHoursPeriod } from '../../services/staffing/staffingService'
 
 const props = defineProps<{ businessId: string | null }>()
@@ -188,10 +188,11 @@ const matrix = useEmployeeHoursMatrix(toRef(props, 'businessId'), year, active)
 const period = ref<StaffingHoursPeriod>('week')
 const hoursYear = ref(new Date().getFullYear())
 const month = ref(new Date().getMonth() + 1)
+/** Same local-safe convention as StaffingHoursPanel.vue — toISODate, not toISOString(). */
 const defaultWeekStart = (): string => {
   const d = new Date()
   d.setDate(d.getDate() - d.getDay())
-  return d.toISOString().slice(0, 10)
+  return toISODate(d)
 }
 const weekStart = ref(defaultWeekStart())
 

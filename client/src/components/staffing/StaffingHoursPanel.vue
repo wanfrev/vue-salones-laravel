@@ -182,7 +182,7 @@ import {
 } from '../../services/staffing/staffingService'
 import type { StaffingRateRow, TimesheetEntryInput } from '../../services/staffing/staffingService'
 import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
-import { formatDateUS } from '../../lib/formatters'
+import { formatDateUS, toISODate } from '../../lib/formatters'
 import type { StaffingTimesheetEntry } from '../../types/database'
 
 const inputClass =
@@ -226,11 +226,17 @@ const existingInvoice = computed(() =>
   (billing.invoices.value ?? []).find(i => i.timesheet_id === currentWeek.value?.id) ?? null,
 )
 
-/** Defaults to the most recent Sunday, matching the FROM/TO convention on the source sheets. */
+/**
+ * Defaults to the most recent Sunday, matching the FROM/TO convention on the source sheets.
+ * Uses toISODate (local calendar date), never toISOString().slice(0, 10) — that converts to UTC
+ * first, which silently rolls the date forward for anyone west of UTC once local time is late
+ * enough that it's already the next day in UTC, producing a week_start every other staffing
+ * screen doesn't agree with.
+ */
 const defaultWeekStart = (): string => {
   const d = new Date()
   d.setDate(d.getDate() - d.getDay())
-  return d.toISOString().slice(0, 10)
+  return toISODate(d)
 }
 
 const weekStartInput = ref(props.initialWeekStart || defaultWeekStart())
@@ -239,7 +245,7 @@ const weekEnd = computed(() => {
   if (!weekStartInput.value) return ''
   const d = new Date(weekStartInput.value + 'T00:00:00')
   d.setDate(d.getDate() + 6)
-  return d.toISOString().slice(0, 10)
+  return toISODate(d)
 })
 
 const currentWeek = computed(() => timesheets.findWeek(weekStartInput.value))

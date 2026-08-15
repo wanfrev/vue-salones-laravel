@@ -75,7 +75,7 @@
 import { ref, toRef } from 'vue'
 import { useStaffingWeeklyReport } from '../../composables/staffing/useStaffingWeeklyReport'
 import { useCurrency } from '../../composables/common/useCurrency'
-import { formatDateUS } from '../../lib/formatters'
+import { formatDateUS, toISODate } from '../../lib/formatters'
 import type { StaffingWeeklyReportEstado, StaffingWeeklyReportRow } from '../../services/staffing/staffingService'
 
 const props = defineProps<{ businessId: string | null }>()
@@ -94,11 +94,16 @@ const ESTADO_OPTIONS: { value: StaffingWeeklyReportEstado; label: string }[] = [
   { value: 'no_invoice', label: 'Sin invoice generado todavía' },
 ]
 
-/** Defaults to the most recent Sunday — same convention as StaffingHoursPanel.vue. */
+/**
+ * Defaults to the most recent Sunday — same convention as StaffingHoursPanel.vue. Uses
+ * toISODate (local calendar date), not toISOString().slice(0, 10) — the latter converts to UTC
+ * first and can silently land on a different Sunday than Nómina's, so the two screens disagree
+ * about which week "this week" even is.
+ */
 const defaultWeekStart = (): string => {
   const d = new Date()
   d.setDate(d.getDate() - d.getDay())
-  return d.toISOString().slice(0, 10)
+  return toISODate(d)
 }
 
 const weekStart = ref(defaultWeekStart())
