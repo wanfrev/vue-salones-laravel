@@ -177,11 +177,26 @@ class PosService
 
             $localAmount = round($totalAmount - $employeeAmount - $assistantAmount, 2);
 
-            // Re-calculate percentages for reporting consistency
             $employeePct = $serviceAmount > 0 ? round(($employeeAmount / $serviceAmount) * 100, 2) : 0;
             $assistantPct = $serviceAmount > 0 ? round(($assistantAmount / $serviceAmount) * 100, 2) : 0;
             $localPct = 100 - $employeePct - $assistantPct;
             if ($localPct < 0) $localPct = 0;
+
+            $receiptCode = null;
+            $business = \App\Models\Business::find($businessId);
+            if ($business && $business->niche_type === 'retail') {
+                $lastCode = Transaction::where('business_id', $businessId)
+                    ->whereNotNull('receipt_code')
+                    ->lockForUpdate()
+                    ->max('receipt_code');
+                
+                if ($lastCode) {
+                    $num = (int) substr($lastCode, 1);
+                    $receiptCode = 'B' . str_pad($num + 1, 4, '0', STR_PAD_LEFT);
+                } else {
+                    $receiptCode = 'B0001';
+                }
+            }
 
             $tx = Transaction::create([
                 'id' => Str::uuid()->toString(),
@@ -198,6 +213,7 @@ class PosService
                 'method' => $method,
                 'exchange_rate_used' => $rate,
                 'payments_breakdown' => $paymentsBreakdown,
+                'receipt_code' => $receiptCode,
                 'created_by' => $createdBy,
                 'notes' => $notes,
                 'tip_amount' => $tip,
@@ -431,6 +447,22 @@ class PosService
             $totalAmount, $method, $products, $notes, $rate,
             $paymentsBreakdown, $clientId, $businessId, $branchId, $createdBy, $clientInfoStr, $clientName
         ) {
+            $receiptCode = null;
+            $business = \App\Models\Business::find($businessId);
+            if ($business && $business->niche_type === 'retail') {
+                $lastCode = Transaction::where('business_id', $businessId)
+                    ->whereNotNull('receipt_code')
+                    ->lockForUpdate()
+                    ->max('receipt_code');
+                
+                if ($lastCode) {
+                    $num = (int) substr($lastCode, 1);
+                    $receiptCode = 'B' . str_pad($num + 1, 4, '0', STR_PAD_LEFT);
+                } else {
+                    $receiptCode = 'B0001';
+                }
+            }
+
             $tx = Transaction::create([
                 'id' => Str::uuid()->toString(),
                 'business_id' => $businessId,
@@ -446,6 +478,7 @@ class PosService
                 'method' => $method,
                 'exchange_rate_used' => $rate,
                 'payments_breakdown' => $paymentsBreakdown,
+                'receipt_code' => $receiptCode,
                 'created_by' => $createdBy,
                 'notes' => $notes ?? ($clientInfoStr ? "Venta directa — {$clientInfoStr}" : 'Venta directa'),
                 'tip_amount' => 0,

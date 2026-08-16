@@ -82,7 +82,7 @@ export const recordSale = async (params: {
   businessId: string
   branchId?: string | null
   tipAmount?: number
-}): Promise<string> => {
+}): Promise<{ id: string, receipt_code?: string }> => {
   const serviceAmount = params.serviceAmount ?? params.amount ?? 0
   const products = params.products ?? []
   const productsPayload = products.map(p => ({
@@ -94,7 +94,7 @@ export const recordSale = async (params: {
     name: p.productName,
   }))
 
-  const response = await apiRequest<{ id: string }>('POST', '/pos/sale', {
+  const response = await apiRequest<{ id: string, receipt_code?: string }>('POST', '/pos/sale', {
     appointment_id: params.appointmentId,
     service_amount: serviceAmount,
     products_amount: params.productsAmount ?? 0,
@@ -106,7 +106,7 @@ export const recordSale = async (params: {
     tip_amount: params.tipAmount ?? 0,
   })
 
-  return response.id
+  return response
 }
 
 export const recordPaymentOnly = async (params: {
@@ -117,7 +117,7 @@ export const recordPaymentOnly = async (params: {
   exchangeRate: number
   paymentsBreakdown: PaymentBreakdownItem[]
   tipAmount?: number
-}): Promise<string> => {
+}): Promise<{ id: string, receipt_code?: string }> => {
   return await recordSale({
     appointmentId: params.appointmentId,
     serviceAmount: params.amount,
@@ -144,7 +144,7 @@ export const recordDirectSale = async (params: {
   clientId?: string | null
   clientNameInput?: string | null
   clientPhoneInput?: string | null
-}): Promise<string> => {
+}): Promise<{ id: string, receipt_code?: string }> => {
   const productsPayload = params.products.map(p => ({
     product_id: p.productId,
     variant_id: p.variantId,
@@ -154,7 +154,7 @@ export const recordDirectSale = async (params: {
     name: p.productName,
   }))
 
-  const response = await apiRequest<{ id: string }>('POST', '/pos/direct-sale', {
+  const response = await apiRequest<{ id: string, receipt_code?: string }>('POST', '/pos/direct-sale', {
     total_amount: params.totalAmount,
     method: params.method,
     products: productsPayload,
@@ -167,7 +167,7 @@ export const recordDirectSale = async (params: {
     branch_id: params.branchId || null,
   })
 
-  return response.id
+  return response
 }
 
 export const recordDirectServiceSale = async (params: {
@@ -191,7 +191,7 @@ export const recordDirectServiceSale = async (params: {
   businessId: string
   branchId?: string | null
   tipAmount?: number
-}): Promise<string> => {
+}): Promise<{ id: string, receipt_code?: string }> => {
   const products = params.products ?? []
   const productsPayload = products.map(p => ({
     product_id: p.productId,
@@ -209,7 +209,7 @@ export const recordDirectServiceSale = async (params: {
     price: s.price,
   }))
 
-  const response = await apiRequest<{ id: string }>('POST', '/pos/direct-service-sale', {
+  const response = await apiRequest<{ id: string, receipt_code?: string }>('POST', '/pos/direct-service-sale', {
     services: servicesPayload,
     service_id: params.serviceId,
     employee_id: params.employeeId,
@@ -226,7 +226,7 @@ export const recordDirectServiceSale = async (params: {
     branch_id: params.branchId || null,
   })
 
-  return response.id
+  return response
 }
 
 export const updateTransaction = async (params: {

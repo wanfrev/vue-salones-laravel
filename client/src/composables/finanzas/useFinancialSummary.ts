@@ -46,6 +46,7 @@ export type TransactionRow = {
   notes?: string | null
   tipAmount?: number
   transactionIds?: string[]
+  receiptCode?: string
 }
 
 export type ProductSaleDetail = {
@@ -254,6 +255,7 @@ function useFinancialSummary(
         notes: tx.notes ?? null,
         tipAmount: tip,
         transactionIds: [tx.id],
+        receiptCode: tx.receipt_code ?? undefined,
       }
     })
 
@@ -319,6 +321,7 @@ function useFinancialSummary(
         employees: undefined as any,
         services: undefined as any,
         rawRows: undefined as any,
+        receiptCode: r.receiptCode,
       }
     })
   })

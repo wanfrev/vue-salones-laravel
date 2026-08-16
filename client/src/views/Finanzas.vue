@@ -500,6 +500,7 @@ const openCobroActions = async (tx: any) => {
       quantity: item.quantity,
       unitCost: item.unitPrice,
     })) : undefined,
+    receipt_code: tx.receiptCode || undefined,
   }
 
   cobroActionsCita.value = cita

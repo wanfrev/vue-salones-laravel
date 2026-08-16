@@ -71,8 +71,9 @@ class PosController
             );
 
             EntityChanged::safe($businessId, 'transaction', 'created', $txId);
+            $tx = \App\Models\Transaction::find($txId);
 
-            return response()->json(['id' => $txId], 201);
+            return response()->json(['id' => $txId, 'receipt_code' => $tx ? $tx->receipt_code : null], 201);
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 400);
         }
@@ -101,8 +102,9 @@ class PosController
             );
 
             EntityChanged::safe($businessId, 'transaction', 'created', $txId);
+            $tx = \App\Models\Transaction::find($txId);
 
-            return response()->json(['id' => $txId], 201);
+            return response()->json(['id' => $txId, 'receipt_code' => $tx ? $tx->receipt_code : null], 201);
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('DirectSale error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json(['message' => $e->getMessage()], 400);
@@ -136,8 +138,9 @@ class PosController
             );
 
             EntityChanged::safe($businessId, 'transaction', 'created', $txId);
+            $tx = \App\Models\Transaction::find($txId);
 
-            return response()->json(['id' => $txId], 201);
+            return response()->json(['id' => $txId, 'receipt_code' => $tx ? $tx->receipt_code : null], 201);
         } catch (\Throwable $e) {
             return response()->json(['message' => $e->getMessage()], 400);
         }

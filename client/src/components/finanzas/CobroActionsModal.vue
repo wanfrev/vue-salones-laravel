@@ -164,7 +164,7 @@ const printReceipt = async () => {
 
   const data: ReceiptData = {
     businessName: businessStore.business?.name ?? 'Negocio',
-    receiptNumber: txId ? txId.substring(0, 8).toUpperCase() : undefined,
+    receiptNumber: pd.receipt_code || (txId ? txId.substring(0, 8).toUpperCase() : undefined),
     date: props.cita ? `${props.cita.date} ${props.cita.time}` : new Date().toLocaleString('es-VE'),
     clientName: props.cita?.clientName || pd.clientName || undefined,
     employeeName: props.cita?.employee || pd.employeeName || undefined,

@@ -995,10 +995,11 @@ const handleProcessPaymentPrint = () => {
 
 const cancelPayment = () => { showConfirmModal.value = false }
 
-const performPrintReceipt = async (transactionIds?: string[]) => {
+const performPrintReceipt = async (transactions?: Array<{ id: string, receipt_code?: string }>) => {
   if (!shouldPrintReceipt.value) return
   
-  const txId = transactionIds && transactionIds.length > 0 ? transactionIds[0] : undefined
+  const tx = transactions && transactions.length > 0 ? transactions[0] : undefined
+  const txId = tx?.id
 
   let servicesList: any[] = []
   if (activeSaleType.value === 'direct_service') {
@@ -1023,7 +1024,7 @@ const performPrintReceipt = async (transactionIds?: string[]) => {
   const data: ReceiptData = {
     businessName: businessStore.business?.name ?? 'Negocio',
     branchName: businessStore.branches.find(b => b.id === branchId.value)?.name,
-    receiptNumber: txId ? txId.substring(0, 8).toUpperCase() : undefined,
+    receiptNumber: tx?.receipt_code || (txId ? txId.substring(0, 8).toUpperCase() : undefined),
     date: new Date().toLocaleString('es-VE'),
     clientName: confirmClientName.value || undefined,
     employeeName: activeSaleType.value === 'direct_service' && directServicesList.value.length === 1 ? directServicesList.value[0].employeeName : undefined,
@@ -1053,7 +1054,7 @@ const confirmPayment = async () => {
       clientPhoneInput: !retailClientId.value ? retailClientPhone.value : undefined,
     })
     if (result.success) {
-      performPrintReceipt(result.transactionIds)
+      performPrintReceipt(result.transactions)
       clearCart()
       resetPayment()
       retailClientSearch.value = ''
@@ -1083,7 +1084,7 @@ const confirmPayment = async () => {
       tipAmount: tipAmount.value,
     })
     if (result.success) {
-      performPrintReceipt(result.transactionIds)
+      performPrintReceipt(result.transactions)
       selectedAppointment.value = null
       clearCart()
       resetPayment()
@@ -1108,7 +1109,7 @@ const confirmPayment = async () => {
     tipAllocations: tipAllocations.value,
   })
   if (result.success) { 
-    performPrintReceipt(result.transactionIds)
+    performPrintReceipt(result.transactions)
     selectedAppointment.value = null; clearCart(); resetPayment(); areProductsIncluded.value = false; mobilePaymentOpen.value = false 
   }
 }
