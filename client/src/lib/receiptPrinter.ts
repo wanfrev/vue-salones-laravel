@@ -48,52 +48,70 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
 <meta charset="UTF-8">
 <title>Recibo</title>
 <style>
-  /* Le decimos a Chrome que el papel es continuo de 58mm */
-  @page {
-    margin: 0;
-    size: 58mm auto;
+  /* 3. Corrección de líneas blancas (Paginación web) */
+  @media print {
+    html, body {
+      margin: 0;
+      padding: 0;
+    }
+    .receipt-container, table, tr, td, th {
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    @page {
+      margin: 0;
+      size: 58mm auto;
+    }
   }
+
+  /* 4. Interlineado y tipografía */
   body {
     margin: 0;
     padding: 0;
-    background: white;
-  }
-  .receipt-content {
-    margin: 0;
-    padding: 2mm 3mm 2mm 1mm;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 11px;
-    line-height: 1.3; /* Interlineado seguro para drivers chinos */
+    font-family: sans-serif;
+    font-weight: 600; /* o bold */
+    line-height: 1.1;
     color: black;
-    width: 100%;
+  }
+  
+  /* Eliminar margin-top/bottom por defecto (en este caso lo controlamos con clases) */
+  p, h1, h2, h3, h4, h5, h6, div {
+    margin: 0;
+  }
+
+  /* 1. Contenedor y Ancho Estricto */
+  .receipt-container {
+    width: 48mm;
+    max-width: 180px;
     box-sizing: border-box;
-    /* zoom: 1 fuerza a Chrome a no aplicar escalas raras de Windows que cortan los píxeles */
-    zoom: 1 !important; 
+    padding: 2mm 1mm; /* Pequeño respiro interno para no pegarse al borde del corte */
   }
   
   .text-center { text-align: center; }
   .text-right { text-align: right; }
-  .bold { font-weight: bold; }
   
   .divider { 
     border-top: 1px dashed black; 
-    margin: 5px 0; 
+    margin: 3px 0; 
   }
   
+  /* 2. Prevención de desbordamiento (Totales visibles) */
   table {
     width: 100%;
     border-collapse: collapse;
+    table-layout: fixed;
     margin-bottom: 2px;
   }
+  
   th, td {
-    padding: 2px 0;
+    padding: 1px 0;
     vertical-align: top;
   }
   
-  /* white-space: nowrap evita por completo que "CANT" se rompa en "CA" y "NT" */
-  .qty-col { width: 12%; white-space: nowrap; font-weight: bold; }
-  .price-col { width: 28%; text-align: right; white-space: nowrap; font-weight: bold; }
-  .desc-col { width: 60%; padding: 0 3px; word-wrap: break-word; }
+  .qty-col { width: 18%; white-space: nowrap; }
+  /* word-wrap: break-word en la descripción */
+  .desc-col { width: 50%; padding: 0 2px; word-wrap: break-word; }
+  .price-col { width: 32%; text-align: right; white-space: nowrap; }
   
   .meta-row { margin-bottom: 2px; }
   
@@ -102,15 +120,15 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
     border-collapse: collapse;
     margin-top: 2px;
   }
-  .totals-table td { padding: 2px 0; }
+  .totals-table td { padding: 1px 0; }
   .total-row { font-size: 13px; font-weight: bold; }
-  .footer { margin-top: 10px; margin-bottom: 15px; }
+  .footer { margin-top: 8px; margin-bottom: 12px; }
 </style>
 </head>
 <body>
-  <div class="receipt-content">
+  <div class="receipt-container">
     <!-- Header -->
-    <div class="text-center bold" style="font-size: 13px; margin-bottom: 2px;">${data.businessName}</div>
+    <div class="text-center" style="font-size: 13px; margin-bottom: 2px;">${data.businessName}</div>
     ${data.branchName ? `<div class="text-center" style="margin-bottom: 2px;">${data.branchName}</div>` : ''}
     <div class="divider"></div>
 
