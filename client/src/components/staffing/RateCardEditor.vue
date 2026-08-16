@@ -20,6 +20,7 @@
         <thead>
           <tr class="border-b border-border text-left text-[10px] uppercase tracking-wider text-text-muted">
             <th class="pb-2 pr-3">Rol</th>
+            <th class="pb-2 pr-3 text-right"># Empleados</th>
             <th class="pb-2 pr-3 text-right">Paga Reg</th>
             <th class="pb-2 pr-3 text-right">Cobra Reg</th>
             <th class="pb-2 pr-3 text-right">Margen</th>
@@ -32,6 +33,7 @@
         <tbody class="divide-y divide-border">
           <tr v-for="rate in rates" :key="rate.id" class="text-sm">
             <td class="py-2 pr-3 font-medium text-text">{{ rate.role }}</td>
+            <td class="py-2 pr-3 text-right tabular-nums text-text-secondary">{{ employeeCountByRole[rate.role] ?? 0 }}</td>
             <td class="py-2 pr-3 text-right tabular-nums text-text-secondary">{{ formatUSD(rate.payRate) }}</td>
             <td class="py-2 pr-3 text-right tabular-nums text-text-secondary">{{ formatUSD(rate.billRate) }}</td>
             <td class="py-2 pr-3 text-right tabular-nums font-semibold"
@@ -57,7 +59,7 @@
           </tr>
 
           <tr v-if="rates.length === 0">
-            <td colspan="8" class="py-3 text-center text-xs text-text-muted">
+            <td colspan="9" class="py-3 text-center text-xs text-text-muted">
               Sin tarifas todavía. Agrega el primer rol abajo.
             </td>
           </tr>
@@ -132,11 +134,12 @@
 
 <script setup lang="ts">
 import { computed, ref, toRef } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
 import { useRateCard } from '../../composables/staffing/useRateCard'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { TrashBin2Icon } from '@solar-icons/vue/linear'
-import type { StaffingRateFormData } from '../../services/staffing/staffingService'
+import { listCompanyEmployees, staffingTimesheetKeys, type StaffingRateFormData } from '../../services/staffing/staffingService'
 
 const props = defineProps<{
   businessId: string | null
@@ -151,6 +154,21 @@ const { rates, isLoading, save, remove, saveError, saveMutation, averageHourlyMa
   toRef(props, 'businessId'),
   toRef(props, 'companyId'),
 )
+
+const { data: companyEmployees } = useQuery({
+  queryKey: computed(() => staffingTimesheetKeys.employees(props.businessId, props.companyId)),
+  queryFn: () => listCompanyEmployees(props.businessId!, props.companyId),
+  enabled: computed(() => !!props.businessId && !!props.companyId),
+})
+
+const employeeCountByRole = computed<Record<string, number>>(() => {
+  const counts: Record<string, number> = {}
+  for (const employee of companyEmployees.value ?? []) {
+    const role = employee.staffing_role || ''
+    counts[role] = (counts[role] ?? 0) + 1
+  }
+  return counts
+})
 
 const emptyDraft = (): StaffingRateFormData => ({
   companyId: props.companyId,

@@ -37,8 +37,8 @@
           <tbody class="divide-y divide-border">
             <tr v-for="invoice in billing.invoices.value" :key="invoice.id">
               <td class="px-3 py-2 font-medium text-text">{{ invoice.invoice_number }}</td>
-              <td class="px-3 py-2 text-text-secondary">{{ invoice.issue_date }}</td>
-              <td class="px-3 py-2 text-text-secondary">{{ invoice.due_date }}</td>
+              <td class="px-3 py-2 text-text-secondary">{{ formatDateUS(invoice.issue_date.slice(0, 10)) }}</td>
+              <td class="px-3 py-2 text-text-secondary">{{ formatDateUS(invoice.due_date.slice(0, 10)) }}</td>
               <td class="px-3 py-2 text-right tabular-nums text-text">{{ formatUSD(invoice.total) }}</td>
               <td class="px-3 py-2">
                 <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="statusClass(invoice.status)">
@@ -72,7 +72,7 @@
           </thead>
           <tbody class="divide-y divide-border">
             <tr v-for="payment in billing.payments.value" :key="payment.id">
-              <td class="px-3 py-2 text-text-secondary">{{ payment.payment_date }}</td>
+              <td class="px-3 py-2 text-text-secondary">{{ formatDateUS(payment.payment_date.slice(0, 10)) }}</td>
               <td class="px-3 py-2 text-right tabular-nums font-medium text-success">{{ formatUSD(payment.amount) }}</td>
               <td class="px-3 py-2 text-text-secondary">{{ payment.payment_method || '—' }}</td>
               <td class="px-3 py-2 text-text-secondary">{{ payment.reference || '—' }}</td>
@@ -129,6 +129,7 @@ import { useBusinessStore } from '../../store/business'
 import { useBilling } from '../../composables/staffing/useBilling'
 import { getStaffingInvoice } from '../../services/staffing/staffingService'
 import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
+import { formatDateUS } from '../../lib/formatters'
 import type { StaffingCompanyPaymentFormData } from '../../services/staffing/staffingService'
 
 const inputClass =
