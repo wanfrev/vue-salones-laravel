@@ -30,7 +30,7 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   const processItems = (items: ReceiptItem[]) => {
     for (const item of items) {
       itemsHtml += `
-        <tr>
+        <tr style="page-break-inside: avoid; break-inside: avoid;">
           <td class="qty-col">${item.qty}</td>
           <td class="desc-col">${item.name}</td>
           <td class="price-col">${formatMoney(item.price)}</td>
@@ -53,21 +53,21 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   }
   body {
     margin: 0;
-    /* Mismo margen de la foto 3: protege el lado derecho para que no se corte el total */
-    padding: 0 4mm 0 1mm;
+    /* Margen perfecto de la versión 3 que protege el lado derecho */
+    padding: 2mm 3mm 2mm 1mm;
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: bold;
-    /* Interlineado exacto para mantener el mismo espaciado que te gustó */
-    line-height: 14px;
+    /* Interlineado ajustado para que no haya espacios en blanco gigantes ni se corten las letras */
+    line-height: 1.2;
     color: black;
     width: 100%;
     max-width: 48mm;
     box-sizing: border-box;
   }
   
-  /* ESTO EVITA LA LÍNEA BLANCA: Fuerza a Chrome a no cortar elementos por la mitad en los saltos de página internos */
-  tr, td, div {
+  /* Protecciones contra saltos de página del navegador que cortan las letras a la mitad */
+  table, tr, td, div {
     page-break-inside: avoid;
     break-inside: avoid;
   }
@@ -76,8 +76,9 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   .text-right { text-align: right; }
   .divider { 
     border-top: 1px dashed black; 
-    margin: 3px 0; 
+    margin: 4px 0; 
   }
+  
   table {
     width: 100%;
     border-collapse: collapse;
@@ -85,7 +86,7 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
     margin-bottom: 2px;
   }
   th, td {
-    padding: 1px 0;
+    padding: 2px 0; /* Padding añadido para evitar que el borde de la celda muerda la letra */
     vertical-align: top;
     word-wrap: break-word;
   }
@@ -93,21 +94,22 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   .desc-col { width: 55%; padding-right: 2px; }
   .price-col { width: 30%; text-align: right; }
   
-  .meta-row { margin-bottom: 1px; }
+  .meta-row { margin-bottom: 2px; }
+  
   .totals-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 2px;
   }
-  .totals-table td { padding: 1px 0; }
+  .totals-table td { padding: 2px 0; }
   .total-row { font-size: 13px; }
-  .footer { margin-top: 8px; margin-bottom: 15px; }
+  .footer { margin-top: 10px; margin-bottom: 15px; }
 </style>
 </head>
 <body>
   <!-- Header -->
-  <div class="text-center" style="font-size: 13px; margin-bottom: 1px;">${data.businessName}</div>
-  ${data.branchName ? `<div class="text-center" style="margin-bottom: 1px;">${data.branchName}</div>` : ''}
+  <div class="text-center" style="font-size: 13px; margin-bottom: 2px;">${data.businessName}</div>
+  ${data.branchName ? `<div class="text-center" style="margin-bottom: 2px;">${data.branchName}</div>` : ''}
   <div class="divider"></div>
 
   <!-- Meta -->
@@ -120,7 +122,7 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   <!-- Items Table -->
   <table>
     <thead>
-      <tr>
+      <tr style="page-break-inside: avoid; break-inside: avoid;">
         <th class="qty-col text-left">CANT</th>
         <th class="desc-col text-left">DESCRIP</th>
         <th class="price-col">TOTAL</th>
@@ -136,20 +138,20 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   <!-- Totals -->
   <table class="totals-table">
     ${(data.tip ?? 0) > 0 ? `
-      <tr>
+      <tr style="page-break-inside: avoid; break-inside: avoid;">
         <td>SUBTOTAL:</td>
         <td class="text-right">${formatMoney(data.subtotal)}</td>
       </tr>
-      <tr>
+      <tr style="page-break-inside: avoid; break-inside: avoid;">
         <td>PROPINA:</td>
         <td class="text-right">${formatMoney(data.tip!)}</td>
       </tr>
     ` : ''}
-    <tr class="total-row">
+    <tr class="total-row" style="page-break-inside: avoid; break-inside: avoid;">
       <td>TOTAL:</td>
       <td class="text-right">${formatMoney(data.total)}</td>
     </tr>
-    <tr>
+    <tr style="page-break-inside: avoid; break-inside: avoid;">
       <td>PAGO:</td>
       <td class="text-right">${formatMethod(data.method)}</td>
     </tr>
