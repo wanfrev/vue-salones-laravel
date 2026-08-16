@@ -161,7 +161,7 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
     <hr class="divider">
 
     <!-- Meta -->
-    ${data.receiptNumber ? `<div class="meta-row avoid-break">Factura: ${data.receiptNumber}</div>` : ''}
+    ${data.receiptNumber ? `<div class="meta-row avoid-break">Nota de Entrega: ${data.receiptNumber}</div>` : ''}
     <div class="meta-row avoid-break">Fecha: ${data.date}</div>
     ${data.clientName ? `<div class="meta-row avoid-break">Cliente: ${data.clientName}</div>` : ''}
     ${data.employeeName ? `<div class="meta-row avoid-break">Atiende: ${data.employeeName}</div>` : ''}

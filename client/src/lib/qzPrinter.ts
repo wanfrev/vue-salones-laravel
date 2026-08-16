@@ -181,7 +181,7 @@ function buildEscPosReceipt(data: ReceiptData): Uint8Array {
   if (data.branchName) b.line(data.branchName)
   b.align('left').divider()
 
-  if (data.receiptNumber) b.line(`Factura: ${data.receiptNumber}`)
+  if (data.receiptNumber) b.line(`Nota de Entrega: ${data.receiptNumber}`)
   b.line(`Fecha: ${data.date}`)
   if (data.clientName) b.line(`Cliente: ${data.clientName}`)
   if (data.employeeName) b.line(`Atiende: ${data.employeeName}`)
