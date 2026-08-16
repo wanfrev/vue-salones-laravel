@@ -82,10 +82,10 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
 
   /* 3. Interlineado Compacto y Tipografía */
   body, .receipt-container {
-    font-family: 'Courier New', Courier, monospace;
+    font-family: Arial, Helvetica, sans-serif;
     font-size: 10px;
     line-height: 1.3 !important;
-    font-weight: bold !important;
+    font-weight: normal;
   }
 
   p, h1, h2, h3, h4, h5, h6, hr, div {
@@ -117,7 +117,7 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
     table-layout: fixed;
     border-collapse: collapse;
     margin: 2px 0;
-    font-weight: bold !important;
+    font-weight: normal;
   }
   
   th, td {
