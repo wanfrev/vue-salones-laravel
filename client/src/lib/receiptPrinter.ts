@@ -48,39 +48,44 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
 <meta charset="UTF-8">
 <title>Recibo</title>
 <style>
-  @media print {
+  /* Regla de impresión maestra */
+  @media print { 
     @page { 
-      margin: 0; 
+      margin: 0 !important; 
       size: 58mm auto; 
-    }
+    } 
     body { 
-      margin: 0; 
-      padding: 0; 
-    }
+      margin: 0 !important; 
+      padding: 0 !important; 
+      width: 100%; 
+    } 
   }
 
+  /* Fuentes limpias sin renderizado borroso */
   body {
     margin: 0;
     padding: 0;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 10px;
-    line-height: 1.2;
-    color: black;
-    text-rendering: geometricPrecision;
+    text-rendering: optimizeSpeed; 
     -webkit-font-smoothing: none;
+    background: white;
   }
 
+  /* Contenedor fluido pero restringido */
   .receipt-container {
-    width: 48mm;
-    max-width: 48mm;
-    padding: 0;
-    margin: 0 auto;
-    box-sizing: border-box;
+    width: 100%; 
+    max-width: 190px; 
+    margin: 0; 
+    padding: 0; 
+    font-family: monospace; 
+    font-size: 11px; 
+    text-align: left; 
+    color: #000;
+    line-height: 1.2;
   }
   
   .text-center { text-align: center; }
   .text-right { text-align: right; }
-  .title { font-size: 11px; font-weight: bold; }
+  .bold { font-weight: bold; }
   
   hr.divider { 
     border: none; 
@@ -105,19 +110,21 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   
   .meta-row { margin: 2px 0; }
   
-  .totals-table {
+  /* Estructura de totales con Flexbox */
+  .flex-row {
+    display: flex; 
+    justify-content: space-between; 
     width: 100%;
-    border-collapse: collapse;
-    margin-top: 2px;
+    margin: 2px 0;
   }
-  .total-row { font-weight: bold; }
-  .footer { margin-top: 8px; margin-bottom: 12px; }
+  
+  .footer { margin-top: 6px; margin-bottom: 12px; }
 </style>
 </head>
 <body>
   <div class="receipt-container">
     <!-- Header -->
-    <div class="text-center title meta-row">${data.businessName}</div>
+    <div class="text-center bold meta-row">${data.businessName}</div>
     ${data.branchName ? `<div class="text-center meta-row">${data.branchName}</div>` : ''}
     <hr class="divider">
 
@@ -145,26 +152,24 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
     <hr class="divider">
 
     <!-- Totals -->
-    <table class="totals-table">
-      ${(data.tip ?? 0) > 0 ? `
-        <tr>
-          <td>SUBTOTAL:</td>
-          <td class="text-right">${formatMoney(data.subtotal)}</td>
-        </tr>
-        <tr>
-          <td>PROPINA:</td>
-          <td class="text-right">${formatMoney(data.tip!)}</td>
-        </tr>
-      ` : ''}
-      <tr class="total-row">
-        <td>TOTAL:</td>
-        <td class="text-right">${formatMoney(data.total)}</td>
-      </tr>
-      <tr>
-        <td>PAGO:</td>
-        <td class="text-right">${formatMethod(data.method)}</td>
-      </tr>
-    </table>
+    ${(data.tip ?? 0) > 0 ? `
+      <div class="flex-row">
+        <span>SUBTOTAL:</span>
+        <span>${formatMoney(data.subtotal)}</span>
+      </div>
+      <div class="flex-row">
+        <span>PROPINA:</span>
+        <span>${formatMoney(data.tip!)}</span>
+      </div>
+    ` : ''}
+    <div class="flex-row bold">
+      <span>TOTAL:</span>
+      <span>${formatMoney(data.total)}</span>
+    </div>
+    <div class="flex-row">
+      <span>PAGO:</span>
+      <span>${formatMethod(data.method)}</span>
+    </div>
     
     <hr class="divider">
     <div class="text-center footer">¡Gracias por su compra!</div>
