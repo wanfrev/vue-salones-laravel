@@ -170,7 +170,11 @@ class EscPosBuilder {
 }
 
 function buildEscPosReceipt(data: ReceiptData): Uint8Array {
-  const formatMoney = (amount: number) => `$${amount.toFixed(2)}`
+  const rate = data.exchangeRate ?? 1
+  const formatMoney = (amount: number) => {
+    const val = amount * rate
+    return `Bs ${val.toFixed(2)}`
+  }
   const b = new EscPosBuilder().init()
 
   b.align('center').bold(true).size(true).line(data.businessName).size(false).bold(false)
@@ -205,7 +209,6 @@ function buildEscPosReceipt(data: ReceiptData): Uint8Array {
     b.line(padLine('PROPINA:', formatMoney(data.tip!)))
   }
   b.bold(true).line(padLine('TOTAL:', formatMoney(data.total))).bold(false)
-  b.line(padLine('PAGO:', data.method))
 
   b.divider()
   b.align('center').line('¡Gracias por su compra!')
