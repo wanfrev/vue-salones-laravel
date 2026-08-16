@@ -60,18 +60,20 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
     margin: 0;
     padding: 2mm;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    font-size: 11px;
-    line-height: 1.2;
+    font-size: 12px;
+    line-height: normal;
     background: white;
     color: black;
-    width: 54mm; /* Ancho seguro */
+    width: 48mm; /* Ancho imprimible estándar de rollos de 58mm */
+    max-width: 100%;
     box-sizing: border-box;
+    margin: 0 auto;
   }
   .text-center { text-align: center; }
   .bold { font-weight: bold; }
   .divider { 
     border-top: 1px dashed black; 
-    margin: 5px 0; 
+    margin: 6px 0; 
   }
   .flex-between {
     display: flex;
@@ -81,33 +83,33 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   .item {
     display: flex;
     align-items: flex-start;
-    margin-bottom: 3px;
+    margin-bottom: 6px;
   }
   .item-qty {
-    width: 12%;
+    width: 15%;
     text-align: left;
   }
   .item-desc {
-    width: 60%;
+    width: 55%;
     text-align: left;
     padding-right: 2px;
     word-break: break-word;
   }
   .item-price {
-    width: 28%;
+    width: 30%;
     text-align: right;
   }
   .total-row {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: bold;
-    margin-top: 3px;
+    margin-top: 6px;
   }
   .meta-row {
-    margin-bottom: 2px;
+    margin-bottom: 4px;
   }
   .footer {
-    margin-top: 10px;
-    margin-bottom: 10px;
+    margin-top: 12px;
+    margin-bottom: 12px;
   }
 </style>
 </head>
