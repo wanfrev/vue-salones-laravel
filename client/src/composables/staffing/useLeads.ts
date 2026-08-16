@@ -8,6 +8,7 @@ import {
   type LeadFormData,
   type LeadRow,
 } from '../../services/leadsService'
+import type { LeadStatus } from '../../types/database'
 
 const emptyForm = (): LeadFormData => ({
   companyName: '',
@@ -22,6 +23,21 @@ const emptyForm = (): LeadFormData => ({
   contactCard: '',
   state: '',
   notes: '',
+})
+
+const leadToFormData = (lead: LeadRow): LeadFormData => ({
+  companyName: lead.companyName,
+  workArea: lead.workArea,
+  address: lead.address,
+  phone: lead.phone,
+  email: lead.email,
+  status: lead.status,
+  visitDate: lead.visitDate,
+  companyCategory: lead.companyCategory,
+  priority: lead.priority,
+  contactCard: lead.contactCard,
+  state: lead.state,
+  notes: lead.notes,
 })
 
 export function useLeads(businessId: Ref<string | null>) {
@@ -46,20 +62,7 @@ export function useLeads(businessId: Ref<string | null>) {
 
   const openEdit = (lead: LeadRow) => {
     editingId.value = lead.id
-    form.value = {
-      companyName: lead.companyName,
-      workArea: lead.workArea,
-      address: lead.address,
-      phone: lead.phone,
-      email: lead.email,
-      status: lead.status,
-      visitDate: lead.visitDate,
-      companyCategory: lead.companyCategory,
-      priority: lead.priority,
-      contactCard: lead.contactCard,
-      state: lead.state,
-      notes: lead.notes,
-    }
+    form.value = leadToFormData(lead)
     showModal.value = true
   }
 
@@ -80,6 +83,12 @@ export function useLeads(businessId: Ref<string | null>) {
     }
   }
 
+  /** Kanban drag-and-drop — moves a card to a new column without opening the edit modal. */
+  const updateStatus = (lead: LeadRow, status: LeadStatus) => {
+    if (lead.status === status) return
+    crud.handleSave({ ...leadToFormData(lead), status, id: lead.id })
+  }
+
   return {
     ...crud,
     leads: crud.items,
@@ -90,5 +99,6 @@ export function useLeads(businessId: Ref<string | null>) {
     openEdit,
     closeModal,
     handleSave,
+    updateStatus,
   }
 }

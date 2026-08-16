@@ -84,7 +84,11 @@ class ProfileService
                 'pay_type' => $data['pay_type'] ?? 'percentage',
                 'pay_percentage' => $data['pay_percentage'] ?? 50,
                 'base_salary' => $data['base_salary'] ?? 0,
-                'salary_frequency' => $data['salary_frequency'] ?? null,
+                // profiles.salary_frequency is NOT NULL — callers that skip the salary UI
+                // entirely (e.g. NuevaVendedoraModal, which only sets pay_type/pay_percentage's
+                // implicit percentage default) never send this, so it needs a real fallback here
+                // rather than null, same as pay_type/pay_percentage/base_salary above.
+                'salary_frequency' => $data['salary_frequency'] ?? 'monthly',
                 'disable_agenda' => $data['disable_agenda'] ?? false,
                 'disable_inventory_edit' => $data['disable_inventory_edit'] ?? false,
                 'can_create_appointments' => $data['can_create_appointments'] ?? true,

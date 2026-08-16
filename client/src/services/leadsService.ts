@@ -78,7 +78,10 @@ const toLeadRow = (row: Lead): LeadRow => ({
   phone: row.phone ?? '',
   email: row.email ?? '',
   status: row.status,
-  visitDate: row.visit_date ?? '',
+  // Eloquent's `date` cast serializes visit_date as a full ISO datetime ("2026-08-16T00:00:00.000000Z"),
+  // not the bare "2026-08-16" an <input type="date"> needs — feeding it the full string leaves
+  // that field blank when editing and risks a UTC/local off-by-one-day when displayed.
+  visitDate: row.visit_date ? row.visit_date.slice(0, 10) : '',
   companyCategory: row.company_category ?? '',
   priority: row.priority ?? '',
   contactCard: row.contact_card ?? '',

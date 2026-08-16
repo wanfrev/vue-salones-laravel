@@ -1,6 +1,6 @@
 <template>
   <div>
-    <header class="mb-5 lg:mb-8">
+    <header class="mb-5 lg:mb-6">
       <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
           <ChatRoundLineIcon class="h-3.5 w-3.5" />
@@ -15,22 +15,56 @@
       </div>
     </header>
 
-    <div class="mb-4 flex gap-2 overflow-x-auto pb-1">
-      <button
-        @click="statusFilter = 'all'"
-        class="shrink-0 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-200"
-        :class="statusFilter === 'all' ? 'bg-primary text-text-inverse shadow-sm' : 'border border-border bg-surface text-text-secondary hover:text-text'"
-      >
-        Todos ({{ ownerFilteredLeads.length }})
-      </button>
-      <button
-        v-for="opt in LEAD_STATUS_OPTIONS" :key="opt.value"
-        @click="statusFilter = opt.value"
-        class="shrink-0 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all duration-200"
-        :class="statusFilter === opt.value ? 'bg-primary text-text-inverse shadow-sm' : 'border border-border bg-surface text-text-secondary hover:text-text'"
-      >
-        {{ opt.label }} ({{ countByStatus(opt.value) }})
-      </button>
+    <!-- Stats strip -->
+    <div class="mb-5 grid grid-cols-2 gap-2 sm:gap-3 lg:mb-6 lg:grid-cols-4">
+      <StatCard icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+        icon-color="primary" :value="ownerFilteredLeads.length" label="Total leads" />
+      <StatCard icon="M13 10V3L4 14h7v7l9-11h-7z" icon-color="info" :value="inProgressCount" label="En proceso" />
+      <StatCard icon="M8 21l4-7 4 7M12 3v11m0 0l-4-4m4 4l4-4" icon-color="success" :value="wonCount" label="Ganados" />
+      <StatCard icon="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14"
+        icon-color="warning" :value="conversionRateLabel" label="Tasa de conversión" />
+    </div>
+
+    <!-- Toolbar -->
+    <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="relative min-w-0 flex-1 sm:max-w-xs">
+        <MagnifierIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+        <input v-model="search" type="text" placeholder="Buscar empresa, contacto..."
+          class="w-full rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20" />
+      </div>
+
+      <div class="flex items-center gap-2">
+        <div v-if="viewMode === 'table'" class="flex gap-1 overflow-x-auto pb-0.5">
+          <button
+            @click="statusFilter = 'all'"
+            class="shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-200"
+            :class="statusFilter === 'all' ? 'bg-primary text-text-inverse shadow-sm' : 'border border-border bg-surface text-text-secondary hover:text-text'"
+          >
+            Todos ({{ ownerFilteredLeads.length }})
+          </button>
+          <button
+            v-for="opt in LEAD_STATUS_OPTIONS" :key="opt.value"
+            @click="statusFilter = opt.value"
+            class="shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-200"
+            :class="statusFilter === opt.value ? 'bg-primary text-text-inverse shadow-sm' : 'border border-border bg-surface text-text-secondary hover:text-text'"
+          >
+            {{ opt.label }} ({{ countByStatus(opt.value) }})
+          </button>
+        </div>
+
+        <div class="flex shrink-0 gap-0.5 rounded-lg border border-border bg-surface p-0.5">
+          <button type="button" title="Vista tablero" class="rounded-md p-1.5 transition-theme"
+            :class="viewMode === 'kanban' ? 'bg-primary/10 text-primary' : 'text-text-muted hover:text-text'"
+            @click="viewMode = 'kanban'">
+            <Widget5Icon class="h-4 w-4" />
+          </button>
+          <button type="button" title="Vista tabla" class="rounded-md p-1.5 transition-theme"
+            :class="viewMode === 'table' ? 'bg-primary/10 text-primary' : 'text-text-muted hover:text-text'"
+            @click="viewMode = 'table'">
+            <ListIcon class="h-4 w-4" />
+          </button>
+        </div>
+      </div>
     </div>
 
     <div v-if="ctx.isLoading.value" class="flex items-center justify-center py-16">
@@ -41,12 +75,51 @@
       </svg>
     </div>
 
-    <div v-else-if="filteredLeads.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
+    <div v-else-if="ownerFilteredLeads.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
       <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-secondary">
         <ChatRoundLineIcon class="h-7 w-7 text-text-muted" />
       </div>
       <p class="text-lg font-semibold text-text">Sin leads</p>
       <p class="mt-1 text-sm text-text-muted">Registra la primera empresa contactada.</p>
+    </div>
+
+    <!-- Kanban board -->
+    <div v-else-if="viewMode === 'kanban'" class="-mx-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0">
+      <div class="flex items-start gap-3" style="min-width: max-content">
+        <div v-for="col in columns" :key="col.value"
+          class="flex w-72 shrink-0 flex-col rounded-2xl bg-bg-secondary/60 p-2.5 transition-theme"
+          :class="{ 'bg-primary/5 ring-2 ring-primary/30': dragOverStatus === col.value }"
+          @dragover.prevent="dragOverStatus = col.value"
+          @dragleave="dragOverStatus = dragOverStatus === col.value ? null : dragOverStatus"
+          @drop.prevent="handleDrop(col.value)"
+        >
+          <div class="mb-2 flex items-center justify-between px-1">
+            <span class="flex items-center gap-1.5 text-xs font-semibold text-text">
+              <span class="h-2 w-2 rounded-full" :class="col.dot" />
+              {{ col.label }}
+            </span>
+            <span class="rounded-full bg-surface px-1.5 py-0.5 text-[10px] font-bold text-text-muted">
+              {{ col.leads.length }}
+            </span>
+          </div>
+
+          <div class="flex min-h-[60px] flex-col gap-2">
+            <LeadCard v-for="lead in col.leads" :key="lead.id" :lead="lead" :show-owner="!ownerId"
+              :is-dragging="draggingId === lead.id"
+              @edit="ctx.openEdit" @delete="confirmDelete"
+              @dragstart="draggingId = lead.id" @dragend="draggingId = null; dragOverStatus = null" />
+
+            <p v-if="col.leads.length === 0" class="rounded-lg border border-dashed border-border py-4 text-center text-[11px] text-text-muted">
+              Sin leads aquí
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Table view -->
+    <div v-else-if="filteredLeads.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
+      <p class="text-sm text-text-muted">Sin leads en este filtro.</p>
     </div>
 
     <div v-else class="overflow-hidden rounded-xl border border-border bg-surface">
@@ -70,7 +143,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
-            <tr v-for="lead in filteredLeads" :key="lead.id">
+            <tr v-for="lead in filteredLeads" :key="lead.id" class="transition-theme hover:bg-bg-secondary/40">
               <td class="sticky left-0 z-10 whitespace-nowrap bg-surface px-3 py-2.5 font-medium text-text">
                 {{ lead.companyName }}
               </td>
@@ -219,8 +292,12 @@ import { computed, ref } from 'vue'
 import { useLeads } from '../../composables/staffing/useLeads'
 import { LEAD_PRIORITY_OPTIONS, LEAD_STATUS_OPTIONS, type LeadRow } from '../../services/leadsService'
 import { getInitials, formatDateUS } from '../../lib/formatters'
+import { StatCard } from '../common'
+import LeadCard from './LeadCard.vue'
 import type { LeadPriority, LeadStatus } from '../../types/database'
-import { ChatRoundLineIcon, AddCircleIcon, PenIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
+import {
+  ChatRoundLineIcon, AddCircleIcon, PenIcon, TrashBin2Icon, MagnifierIcon, ListIcon, Widget5Icon,
+} from '@solar-icons/vue/linear'
 
 const props = defineProps<{
   businessId: string | null
@@ -229,24 +306,77 @@ const props = defineProps<{
 }>()
 
 const inputClass =
-  'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30'
+  'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20'
 
 const businessId = computed(() => props.businessId)
 const ctx = useLeads(businessId)
 
+const viewMode = ref<'kanban' | 'table'>('kanban')
 const statusFilter = ref<LeadStatus | 'all'>('all')
+const search = ref('')
 
 // The API already returns every lead an admin can see; narrowing to one vendedora happens here
-// client-side, same as the status filter below — no extra request needed.
-const ownerFilteredLeads = computed(() =>
+// client-side, same as the status/search filters below — no extra request needed.
+const ownerScopedLeads = computed(() =>
   props.ownerId ? ctx.leads.value.filter(l => l.ownerId === props.ownerId) : ctx.leads.value,
 )
+
+const ownerFilteredLeads = computed(() => {
+  const term = search.value.trim().toLowerCase()
+  if (!term) return ownerScopedLeads.value
+  return ownerScopedLeads.value.filter(l =>
+    l.companyName.toLowerCase().includes(term) ||
+    l.contactCard.toLowerCase().includes(term) ||
+    l.address.toLowerCase().includes(term) ||
+    l.email.toLowerCase().includes(term)
+  )
+})
 
 const filteredLeads = computed(() =>
   statusFilter.value === 'all' ? ownerFilteredLeads.value : ownerFilteredLeads.value.filter(l => l.status === statusFilter.value)
 )
 
 const countByStatus = (status: LeadStatus) => ownerFilteredLeads.value.filter(l => l.status === status).length
+
+const wonCount = computed(() => countByStatus('won'))
+const inProgressCount = computed(() =>
+  ownerFilteredLeads.value.filter(l => l.status !== 'won' && l.status !== 'lost').length
+)
+const conversionRateLabel = computed(() => {
+  const closed = wonCount.value + countByStatus('lost')
+  if (closed === 0) return '—'
+  return `${Math.round((wonCount.value / closed) * 100)}%`
+})
+
+const COLUMN_DOTS: Record<LeadStatus, string> = {
+  new: 'bg-text-muted',
+  called: 'bg-primary',
+  answered: 'bg-primary',
+  emailed: 'bg-primary',
+  meeting: 'bg-warning',
+  won: 'bg-success',
+  lost: 'bg-danger',
+}
+
+const columns = computed(() =>
+  LEAD_STATUS_OPTIONS.map(opt => ({
+    value: opt.value,
+    label: opt.label,
+    dot: COLUMN_DOTS[opt.value],
+    leads: ownerFilteredLeads.value.filter(l => l.status === opt.value),
+  }))
+)
+
+const draggingId = ref<string | null>(null)
+const dragOverStatus = ref<LeadStatus | null>(null)
+
+const handleDrop = (status: LeadStatus) => {
+  dragOverStatus.value = null
+  const lead = ownerFilteredLeads.value.find(l => l.id === draggingId.value)
+  draggingId.value = null
+  if (!lead) return
+  ctx.updateStatus(lead, status)
+}
 
 const statusLabel = (status: LeadStatus) => LEAD_STATUS_OPTIONS.find(o => o.value === status)?.label ?? status
 
