@@ -126,28 +126,57 @@ class StaffingTermsFactoryTest extends TestCase
         $this->assertSame(PayrollTerms::PAYOUT_CENT, $terms->payoutRounding);
     }
 
-    public function test_zero_overtime_settings_fall_back_to_the_federal_defaults(): void
+    /**
+     * Overtime terms are no longer a company-level setting — they live per role on
+     * staffing_company_rates (see StaffingPayrollCalculator's entry-level overrides). The
+     * factory always hands back the federal-default baseline regardless of what's on the
+     * company row; a role without its own override falls back to this, never to per-company
+     * configuration.
+     */
+    public function test_overtime_terms_are_always_the_federal_default_baseline(): void
     {
-        // A row saved with blank overtime fields must not turn every hour into overtime.
-        $terms = $this->factory->forCompany($this->company([
-            'overtime_threshold_hours' => 0,
-            'overtime_multiplier' => 0,
-        ]));
+        $terms = $this->factory->forCompany($this->company());
 
         $this->assertEqualsWithDelta(40.0, $terms->overtimeThresholdHours, self::TOLERANCE);
         $this->assertEqualsWithDelta(1.5, $terms->overtimeMultiplier, self::TOLERANCE);
     }
 
-    public function test_a_company_can_define_a_different_overtime_threshold(): void
+    /** A per-role override (not a company setting) is how a different threshold is expressed now. */
+    public function test_a_role_can_define_a_different_overtime_threshold_via_entry_override(): void
     {
-        $terms = $this->factory->forCompany($this->company([
-            'overtime_threshold_hours' => 45,
-            'tax_brackets' => [],
-        ]));
+        $terms = $this->factory->forCompany($this->company(['tax_brackets' => []]));
 
-        $line = $this->calculator->payroll(new TimesheetEntry('X', 48.0, 10.0, 15.0), $terms);
+        $line = $this->calculator->payroll(
+            new TimesheetEntry('X', 48.0, 10.0, 15.0, overtimeThresholdOverride: 45.0),
+            $terms,
+        );
 
         $this->assertEqualsWithDelta(45.0, $line->regularHours, self::TOLERANCE);
         $this->assertEqualsWithDelta(3.0, $line->overtimeHours, self::TOLERANCE);
+    }
+
+    /** New companies only ever set a flat tax_rate — no tiered brackets. */
+    public function test_flat_tax_rate_is_used_when_there_are_no_brackets(): void
+    {
+        $terms = $this->factory->forCompany($this->company([
+            'tax_brackets' => null,
+            'tax_rate' => 0.04,
+        ]));
+
+        $line = $this->calculator->payroll(new TimesheetEntry('X', 40.0, 15.0, 20.0), $terms);
+
+        $this->assertEqualsWithDelta(24.0, $line->taxWithheld, self::TOLERANCE, '4% of 600');
+    }
+
+    /** Existing tiered agreements (DYKE) still take priority over a flat tax_rate. */
+    public function test_tiered_brackets_win_over_a_flat_tax_rate_when_both_are_set(): void
+    {
+        $terms = $this->factory->forCompany($this->company([
+            'tax_rate' => 0.04,
+        ]));
+
+        $line = $this->calculator->payroll(new TimesheetEntry('X', 40.0, 15.0, 20.0), $terms);
+
+        $this->assertEqualsWithDelta(42.0, $line->taxWithheld, self::TOLERANCE, '7% of 600, the DYKE bracket, not 4%');
     }
 }

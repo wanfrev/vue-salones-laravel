@@ -38,7 +38,12 @@
         </div>
       </div>
 
-      <div class="flex justify-start lg:justify-end">
+      <div class="flex items-center justify-start gap-2 lg:justify-end">
+        <button type="button" title="Configurar impresora térmica"
+          class="rounded-lg border border-border bg-surface p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
+          @click="showPrinterSettings = true">
+          <PrinterIcon class="h-4 w-4" />
+        </button>
         <ExchangeRateCard
           :is-editable="isRateEditable"
           :edit-rate-value="editRateValue"
@@ -50,6 +55,8 @@
       </div>
     </div>
   </header>
+
+  <PrinterSettingsModal v-if="showPrinterSettings" @close="showPrinterSettings = false" />
 
   <div v-if="queryError" class="mb-4 rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm text-danger">Error al cargar citas: {{ queryError }}</div>
 
@@ -291,6 +298,7 @@
         @set-equal-tip="setEqualTipAllocation"
         @update:tip-allocation="setTipAllocation"
         @process-payment="handleProcessPayment"
+        @process-payment-print="handleProcessPaymentPrint"
         @set-price-index="setPriceIndex"
         @increment-qty="incrementQty" @decrement-qty="decrementQty" @set-quantity="setQuantity" @remove-item="removeItem"
       />
@@ -355,6 +363,7 @@
             @set-equal-tip="setEqualTipAllocation"
             @update:tip-allocation="setTipAllocation"
             @process-payment="handleMobileProcessPayment"
+            @process-payment-print="handleMobileProcessPaymentPrint"
             @set-price-index="setPriceIndex"
             @increment-qty="incrementQty" @decrement-qty="decrementQty" @set-quantity="setQuantity" @remove-item="removeItem"
           />
@@ -425,10 +434,12 @@ import AppointmentList from '../components/pos/AppointmentList.vue'
 import AddProductModal from '../components/pos/AddProductModal.vue'
 import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
 import { useExchangeRate } from '../composables/finanzas/useExchangeRate'
-import { toISODate, minutesToHHmm } from '../lib/formatters'
+import { toISODate, minutesToHHmm, formatDate as fDate } from '../lib/formatters'
 import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
-import { StarIcon, DollarIcon, UserIcon, UsersGroupRoundedIcon } from '@solar-icons/vue/linear'
+import { printReceipt, type ReceiptData } from '../lib/receiptPrinter'
+import PrinterSettingsModal from '../components/pos/PrinterSettingsModal.vue'
+import { StarIcon, DollarIcon, UserIcon, UsersGroupRoundedIcon, PrinterIcon } from '@solar-icons/vue/linear'
 import type { PaymentMethod } from '../types/database'
 import type { Cita } from '../types/cita'
 
@@ -887,6 +898,13 @@ const closeMobilePayment = () => {
 
 const handleMobileProcessPayment = () => {
   if (grandTotal.value <= 0) return
+  shouldPrintReceipt.value = false
+  showConfirmModal.value = true
+}
+
+const handleMobileProcessPaymentPrint = () => {
+  if (grandTotal.value <= 0) return
+  shouldPrintReceipt.value = true
   showConfirmModal.value = true
 }
 
@@ -952,24 +970,132 @@ const handleDirectServicePayment = async () => {
 }
 
 const showConfirmModal = ref(false)
+const shouldPrintReceipt = ref(false)
+const showPrinterSettings = ref(false)
+
 const confirmClientName = computed(() => {
   if (activeSaleType.value === 'retail_only') return retailClientId.value ? retailClientSearch.value : null
   if (activeSaleType.value === 'direct_service') return directServiceClientId.value ? directServiceClientSearch.value : null
   return (selectedAppointment.value?.client?.full_name ?? selectedAppointment.value?.clients?.full_name) || null
 })
-const handleProcessPayment = () => { if (grandTotal.value > 0) showConfirmModal.value = true }
+
+const handleProcessPayment = () => { 
+  if (grandTotal.value > 0) {
+    shouldPrintReceipt.value = false
+    showConfirmModal.value = true 
+  }
+}
+
+const handleProcessPaymentPrint = () => {
+  if (grandTotal.value > 0) {
+    shouldPrintReceipt.value = true
+    showConfirmModal.value = true
+  }
+}
+
 const cancelPayment = () => { showConfirmModal.value = false }
+
+const performPrintReceipt = async (transactions?: Array<{ id: string, receipt_code?: string }>) => {
+  if (!shouldPrintReceipt.value) return
+  
+  const tx = transactions && transactions.length > 0 ? transactions[0] : undefined
+  const txId = tx?.id
+
+  let servicesList: any[] = []
+  if (activeSaleType.value === 'direct_service') {
+    servicesList = directServicesList.value.map(s => ({ name: s.serviceName, qty: 1, price: Number(s.price) }))
+  } else if (selectedAppointment.value) {
+    const appt = selectedAppointment.value
+    if (appt.isGroup && Array.isArray(appt.members)) {
+      servicesList = appt.members.map((m: any) => ({
+        name: m.serviceName,
+        qty: 1,
+        price: Number(m.price)
+      }))
+    } else {
+      servicesList = [{
+        name: appt.service?.name ?? appt.services?.name ?? 'Servicio',
+        qty: 1,
+        price: servicePrice.value
+      }]
+    }
+  }
+
+  const data: ReceiptData = {
+    businessName: businessStore.business?.name ?? 'Negocio',
+    branchName: businessStore.branches.find(b => b.id === branchId.value)?.name,
+    receiptNumber: tx?.receipt_code || (txId ? txId.substring(0, 8).toUpperCase() : undefined),
+    date: new Date().toLocaleString('es-VE'),
+    clientName: confirmClientName.value || undefined,
+    employeeName: activeSaleType.value === 'direct_service' && directServicesList.value.length === 1 ? directServicesList.value[0].employeeName : undefined,
+    services: servicesList,
+    products: cart.value.map(c => ({ name: c.productName, qty: c.quantity, price: c.unitPrice })),
+    subtotal: grandTotal.value - tipAmount.value,
+    tip: tipAmount.value > 0 ? tipAmount.value : undefined,
+    total: grandTotal.value,
+    method: paymentMethod.value,
+    currency: 'VES',
+    exchangeRate: exchangeRate.value
+  }
+  
+  await printReceipt(data, `Factura_${data.receiptNumber ?? Date.now()}.txt`)
+  shouldPrintReceipt.value = false
+}
 
 const confirmPayment = async () => {
   showConfirmModal.value = false
   if (activeSaleType.value === 'retail_only' || (activeSaleType.value === 'appointment' && !selectedAppointment.value && cart.value.length > 0)) { 
-    await handleRetailPayment(); 
+    const result = await processDirectSale({
+      totalAmount: grandTotal.value,
+      products: cart.value,
+      exchangeRate: exchangeRate.value,
+      clientId: retailClientId.value,
+      clientNameInput: !retailClientId.value ? retailClientSearch.value : undefined,
+      clientPhoneInput: !retailClientId.value ? retailClientPhone.value : undefined,
+    })
+    if (result.success) {
+      performPrintReceipt(result.transactions)
+      clearCart()
+      resetPayment()
+      retailClientSearch.value = ''
+      retailClientPhone.value = ''
+      retailClientId.value = null
+      retailClientSuggestions.value = []
+      retailClientSearchRef.value?.reset()
+      retailGridRef.value?.reset()
+      mobilePaymentOpen.value = false
+    }
     return 
   }
-  if (activeSaleType.value === 'direct_service') { await handleDirectServicePayment(); return }
+  if (activeSaleType.value === 'direct_service') { 
+    if (isProcessing.value || directServicesList.value.length === 0) return
+    const result = await processDirectServiceSale({
+      services: directServicesList.value.map(s => ({
+        serviceId: s.serviceId,
+        employeeId: s.employeeId,
+        assistantEmployeeId: s.assistantEmployeeId || null,
+        price: s.price,
+      })),
+      clientId: directServiceClientId.value || null,
+      serviceAmount: servicePrice.value,
+      productsAmount: effectiveProductsTotal.value,
+      products: cart.value,
+      exchangeRate: exchangeRate.value,
+      tipAmount: tipAmount.value,
+    })
+    if (result.success) {
+      performPrintReceipt(result.transactions)
+      selectedAppointment.value = null
+      clearCart()
+      resetPayment()
+      cancelDirectService()
+      mobilePaymentOpen.value = false
+    }
+    return 
+  }
   if (!selectedAppointment.value) return
   const appt = selectedAppointment.value
-  const ok = await processPayment({
+  const result = await processPayment({
     appointmentId: appt.id,
     serviceAmount: servicePrice.value,
     products: cart.value,
@@ -982,7 +1108,10 @@ const confirmPayment = async () => {
     groupPrice: appt.groupPrice,
     tipAllocations: tipAllocations.value,
   })
-  if (ok) { selectedAppointment.value = null; clearCart(); resetPayment(); areProductsIncluded.value = false; mobilePaymentOpen.value = false }
+  if (result.success) { 
+    performPrintReceipt(result.transactions)
+    selectedAppointment.value = null; clearCart(); resetPayment(); areProductsIncluded.value = false; mobilePaymentOpen.value = false 
+  }
 }
 
 const { handleSaveCita, handleDeleteCita } = useAppointmentMutations({

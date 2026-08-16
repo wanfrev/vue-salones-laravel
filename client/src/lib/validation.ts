@@ -121,10 +121,19 @@ export const supplierPaymentFormSchema = z.object({
   notes: z.string().default(''),
 })
 
-/** One withholding tier. A null threshold marks the catch-all — see StaffingTaxBracket. */
-export const staffingTaxBracketSchema = z.object({
-  threshold: z.number().min(0).nullable(),
-  rate: z.number().min(0, 'El porcentaje no puede ser negativo').max(1, 'Usa una fracción: 0.07 = 7%'),
+const staffingCompanyRoleSchema = z.object({
+  role: z.string().min(1, 'El rol es requerido'),
+  payRate: z.number().min(0, 'La tarifa no puede ser negativa'),
+  billRate: z.number().min(0, 'La tarifa no puede ser negativa'),
+  overtimeThresholdHours: z.number().min(0, 'Las horas no pueden ser negativas').default(40),
+  overtimePayRate: z.number().min(0, 'La tarifa OT no puede ser negativa').optional(),
+  overtimeBillRate: z.number().min(0, 'La tarifa OT cobrada no puede ser negativa').optional(),
+}).refine(r => r.billRate >= r.payRate, {
+  message: 'Lo que cobras a la empresa no puede ser menor a lo que le pagas al empleado',
+  path: ['billRate'],
+}).refine(r => (r.overtimeBillRate == null || r.overtimePayRate == null) || r.overtimeBillRate >= r.overtimePayRate, {
+  message: 'El cobro de OT a la empresa no puede ser menor al pago de OT al empleado',
+  path: ['overtimeBillRate'],
 })
 
 export const staffingCompanyFormSchema = z.object({
@@ -139,10 +148,8 @@ export const staffingCompanyFormSchema = z.object({
   contactPhone: z.string().default(''),
   contactEmail: z.string().email('El email no es válido').or(z.literal('')).default(''),
   paymentTermsDays: z.number().int().min(0).max(365).default(15),
-  overtimeThresholdHours: z.number().min(0).max(168).default(40),
-  overtimeMultiplier: z.number().min(1, 'El recargo no puede ser menor a 1').max(5).default(1.5),
-  taxBrackets: z.array(staffingTaxBracketSchema).default([]),
-  taxDestination: z.enum(['remitted', 'retained']).default('remitted'),
+  taxRate: z.number().min(0, 'El porcentaje no puede ser negativo').max(1, 'Usa una fracción: 0.04 = 4%').default(0.04),
+  roles: z.array(staffingCompanyRoleSchema).default([]),
   payoutRounding: z.enum(['floor', 'cent', 'exact']).default('cent'),
   status: z.enum(['active', 'inactive', 'on_hold']).default('active'),
   notes: z.string().default(''),
@@ -155,6 +162,8 @@ export const staffingRateFormSchema = z.object({
   billRate: z.number().min(0, 'La tarifa no puede ser negativa'),
   overtimeThresholdHours: z.number().min(0).max(168).nullable().default(null),
   overtimeMultiplier: z.number().min(1, 'El recargo no puede ser menor a 1').max(5).nullable().default(null),
+  overtimePayRate: z.number().min(0).nullable().default(null),
+  overtimeBillRate: z.number().min(0).nullable().default(null),
 }).refine(r => r.billRate >= r.payRate, {
   // Billing below cost is almost always a typo, and it silently inverts the margin.
   message: 'Lo que cobras a la empresa no puede ser menor a lo que le pagas al empleado',

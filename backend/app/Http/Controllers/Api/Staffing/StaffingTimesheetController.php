@@ -91,6 +91,21 @@ class StaffingTimesheetController
         return response()->json($timesheet);
     }
 
+    public function markPaid(Request $request, string $id): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+
+        try {
+            $timesheet = $this->timesheets->markPaid($id, $p?->business_id ?? '');
+        } catch (RuntimeException $e) {
+            return response()->json(['error' => ['message' => $e->getMessage()]], 422);
+        }
+
+        EntityChanged::safe($p?->business_id, 'staffing_timesheet', 'paid', $id);
+
+        return response()->json($timesheet);
+    }
+
     public function destroy(Request $request, string $id): JsonResponse
     {
         $p = $request->user()?->load('profile')?->profile;

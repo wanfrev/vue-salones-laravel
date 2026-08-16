@@ -17,7 +17,7 @@ class StaffingWeeklyExpense extends Model
 
     protected $fillable = [
         'id', 'business_id', 'company_id',
-        'week_start', 'amount', 'notes', 'created_by',
+        'week_start', 'amount', 'estado_override', 'notes', 'created_by',
     ];
 
     protected function casts(): array

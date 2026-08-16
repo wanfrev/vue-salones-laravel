@@ -147,6 +147,13 @@ const router = createRouter({
           meta: { gate: { capability: 'staffing.timesheets' } },
         },
         {
+          // Staffing-only — weekly hours-and-payroll entry, per company.
+          path: 'nomina',
+          name: 'admin-nomina',
+          component: () => import('../views/Nomina.vue'),
+          meta: { gate: { capability: 'staffing.timesheets' } },
+        },
+        {
           // Staffing-only reports — separate from the salon-side `reportes` route/module above.
           path: 'staffing-reportes',
           name: 'admin-staffing-reportes',

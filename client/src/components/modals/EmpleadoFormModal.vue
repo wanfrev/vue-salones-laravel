@@ -4,7 +4,7 @@
     :title="isEditing ? `Editar ${t.employee}` : `Nuevo ${t.employee}`"
     :subtitle="isEditing ? `Editando a ${formData.name}` : `Agrega un nuevo ${t.employee.toLowerCase()} al equipo`"
     :icon="isEditing ? 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z' : 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'"
-    size="full"
+    :size="isStaffing ? 'xl' : 'full'"
     :is-loading="isLoading"
     :is-confirm-disabled="!isFormValid"
     :confirm-text="`Guardar ${t.employee}`"
@@ -12,7 +12,23 @@
     @confirm="handleSubmit"
   >
     <form @submit.prevent>
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <template v-if="isStaffing">
+        <div class="mx-auto max-w-2xl space-y-6">
+          <StaffingEmployeeFields
+            :form-data="formData"
+            :business-id="authStore.businessId"
+            :is-editing="isEditing"
+            :bank-account-last4="editingBankAccountLast4"
+            :payroll-card-last4="editingPayrollCardLast4"
+            :ssn-last4="editingSsnLast4"
+            :errors="errors"
+            @blur="handleBlur"
+            @update:model-value="formData = $event"
+          />
+        </div>
+      </template>
+
+      <div v-else class="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <!-- COLUMNA IZQUIERDA: Perfil y Acceso -->
         <div class="space-y-4">
           <p class="text-xs font-semibold uppercase tracking-wider text-primary">Perfil y acceso</p>
@@ -27,7 +43,7 @@
             @blur="handleBlur('name')"
           />
 
-          <div v-if="!isStaffing">
+          <div>
             <label class="block text-sm font-medium text-text-secondary mb-2">Nivel de acceso</label>
             <div class="flex gap-2">
               <button v-for="opt in systemRoleOptions" :key="opt.value" type="button"
@@ -69,7 +85,7 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-1 gap-3" :class="isStaffing ? '' : 'sm:grid-cols-2'">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <FormInput
               v-model="formData.phone"
               label="Teléfono"
@@ -80,7 +96,6 @@
             />
 
             <FormInput
-              v-if="!isStaffing"
               v-model="formData.email"
               label="Email"
               type="email"
@@ -93,7 +108,6 @@
           </div>
 
           <FormInput
-            v-if="!isStaffing"
             v-model="formData.password"
             label="Contraseña"
             type="password"
@@ -107,16 +121,6 @@
             autocomplete="new-password"
           />
 
-          <p v-if="isStaffing" class="rounded-lg bg-bg-secondary/60 px-3 py-2 text-xs text-text-muted">
-            Este empleado no tiene acceso al sistema — no necesita email ni contraseña.
-          </p>
-
-          <!--
-            Every toggle below governs access to a module a staffing worker never opens (no
-            login at all), so the whole block is gated on !isStaffing rather than threading the
-            condition into each one.
-          -->
-          <template v-if="!isStaffing">
           <label v-if="formData.systemRole !== 'cajero'" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
               <p class="text-sm font-medium text-text">Desactivar agenda</p>
@@ -140,8 +144,6 @@
               />
             </button>
           </label>
-
-
 
           <label v-if="formData.systemRole !== 'cajero'" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
@@ -251,40 +253,26 @@
               <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAccessRequirements ? 'translate-x-4' : 'translate-x-0']" />
             </button>
           </label>
-          </template>
         </div>
 
         <!-- COLUMNA DERECHA: Contratación -->
         <div class="space-y-4 lg:border-l lg:border-border lg:pl-6">
-          <template v-if="isStaffing">
-            <StaffingEmployeeFields
-              :form-data="formData"
-              :business-id="authStore.businessId"
-              :is-editing="isEditing"
-              :bank-account-last4="editingBankAccountLast4"
-              :payroll-card-last4="editingPayrollCardLast4"
-              :ssn-last4="editingSsnLast4"
-              @update:model-value="formData = $event"
-            />
-          </template>
-          <template v-else>
-            <p class="text-xs font-semibold uppercase tracking-wider text-primary">Contratación</p>
+          <p class="text-xs font-semibold uppercase tracking-wider text-primary">Contratación</p>
 
-            <!-- Tipo de pago -->
-            <SalaryConfig
-              :formData="formData"
-              :terminology="t"
-              :errors="errors as any"
-              @update:model-value="formData = $event"
-            />
+          <!-- Tipo de pago -->
+          <SalaryConfig
+            :formData="formData"
+            :terminology="t"
+            :errors="errors as any"
+            @update:model-value="formData = $event"
+          />
 
-            <!-- Horario -->
-            <ScheduleEditor
-              :formData="formData"
-              :errors="errors as any"
-              @update:model-value="formData = $event"
-            />
-          </template>
+          <!-- Horario -->
+          <ScheduleEditor
+            :formData="formData"
+            :errors="errors as any"
+            @update:model-value="formData = $event"
+          />
         </div>
       </div>
 
@@ -341,15 +329,9 @@ const isPetNicheBusiness = computed(() => isPetNiche(businessStore.nicheType))
 const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
 // A staffing niche has two very different kinds of "team member": the workers placed at
 // client companies (no login at all — pay comes from the company + rate card) and the
-// vendedoras who use the CRM (a normal login-having employee). Only the former gets the
-// StaffingEmployeeFields treatment, so this checks the RECORD, not just the niche: editing an
-// existing worker (they already have staffing_company_id) or explicitly opened in worker mode
-// (see StaffingWorkersPanel.vue, which sets workerMode when adding one from inside Empresas).
-const isStaffing = computed(() => {
-  if (!businessStore.hasCapability('staffing.timesheets')) return false
-  if (modalData.value?.empleado) return !!modalData.value.empleado.staffingCompanyId
-  return !!modalData.value?.workerMode
-})
+// The user requested that for the Staffing niche, all employees use the new unified form
+// without separate "internal" profiles. So this simply checks the niche capability.
+const isStaffing = computed(() => businessStore.hasCapability('staffing.timesheets'))
 
 const isSubmitting = ref(false)
 const isLoading = computed(() => isSubmitting.value || props.isSaving)

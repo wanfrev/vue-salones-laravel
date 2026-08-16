@@ -352,6 +352,9 @@ const confirmDeleteServicio = async () => {
                 <th
                   class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
                   Cliente</th>
+                <th v-if="isTienda"
+                  class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+                  Código</th>
                 <th
                   class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
                   Empleado</th>
@@ -377,6 +380,9 @@ const confirmDeleteServicio = async () => {
                 class="text-xs transition-theme hover:bg-bg-secondary/40">
                 <td class="px-3 py-3 whitespace-nowrap text-text-secondary">{{ item.date }}</td>
                 <td class="px-3 py-3 font-medium text-text">{{ item.client }}</td>
+                <td v-if="isTienda" class="px-3 py-3 text-text-secondary font-mono text-[11px]">
+                  {{ item.receiptCode || '—' }}
+                </td>
                 <td class="px-3 py-3 text-text-secondary hidden sm:table-cell">{{ item.employee }}</td>
                 <td class="px-3 py-3 text-text-secondary hidden sm:table-cell">{{ item.service }}</td>
                 <td class="px-3 py-3 text-text-secondary hidden md:table-cell max-w-[160px]">

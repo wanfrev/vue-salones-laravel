@@ -42,7 +42,9 @@ class StaffingPayrollCalculator
     {
         [$regularHours, $overtimeHours] = $this->splitHours($entry->totalHours, $entry, $terms);
 
-        $overtimeRate = $entry->payRate * $this->overtimeMultiplierFor($entry, $terms);
+        // An explicit OT pay rate wins outright — it's exactly what was agreed, not payRate
+        // times some multiplier that may not reflect the real OT margin.
+        $overtimeRate = $entry->overtimePayRateOverride ?? ($entry->payRate * $this->overtimeMultiplierFor($entry, $terms));
         $regularAmount = $regularHours * $entry->payRate;
         $overtimeAmount = $overtimeHours * $overtimeRate;
 
@@ -91,7 +93,13 @@ class StaffingPayrollCalculator
     {
         [$regularHours, $overtimeHours] = $this->splitHours($entry->totalHours, $entry, $terms);
 
-        $overtimeBillRate = round($entry->billRate * $this->overtimeMultiplierFor($entry, $terms), 2);
+        // Independent of overtimePayRateOverride above — OT margin is not always proportional
+        // to regular margin, so this must never be derived from the pay-side rate or multiplier.
+        // The override is rounded too (not trusted as already-clean): every other amount in this
+        // chain is cent-rounded, and a typed dollar value can carry stray precision.
+        $overtimeBillRate = $entry->overtimeBillRateOverride !== null
+            ? round($entry->overtimeBillRateOverride, 2)
+            : round($entry->billRate * $this->overtimeMultiplierFor($entry, $terms), 2);
         $regularAmount = round($entry->billRate * $regularHours, 2);
         $overtimeAmount = round($overtimeHours * $overtimeBillRate, 2);
 

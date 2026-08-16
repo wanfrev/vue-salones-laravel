@@ -92,11 +92,12 @@ class StaffingCompanyController
             'contact_phone' => 'nullable|string|max:50',
             'contact_email' => 'nullable|email|max:255',
             'payment_terms_days' => 'nullable|integer|min:0|max:365',
-            'overtime_threshold_hours' => 'nullable|numeric|min:0|max:168',
-            'overtime_multiplier' => 'nullable|numeric|min:1|max:5',
             // The weekly report's agency overhead on gross profit — see StaffingReportService.
             'agency_overhead_rate' => 'nullable|numeric|min:0|max:1',
-            // Ordered brackets; a null threshold marks the catch-all tier.
+            // The flat withholding % — see StaffingTermsFactory::taxRuleFor(). Fraction (0.04 = 4%).
+            'tax_rate' => 'nullable|numeric|min:0|max:1',
+            // Ordered brackets; a null threshold marks the catch-all tier. Legacy — no UI sets
+            // these anymore, kept so an existing tiered agreement (e.g. DYKE) keeps working.
             'tax_brackets' => 'nullable|array',
             'tax_brackets.*.threshold' => 'nullable|numeric|min:0',
             'tax_brackets.*.rate' => 'required_with:tax_brackets|numeric|min:0|max:1',

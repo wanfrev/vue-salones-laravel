@@ -1,33 +1,35 @@
 <template>
   <div class="space-y-4">
-    <p class="text-xs font-semibold uppercase tracking-wider text-primary">Empresa y pago</p>
+    <p class="text-xs font-semibold uppercase tracking-wider text-primary">Información Personal</p>
 
-    <FormDropdown
-      v-model="companyId"
-      label="Empresa"
-      placeholder="Selecciona la empresa donde trabaja"
-      :options="companyOptions"
+    <FormInput
+      v-model="name"
+      label="Nombre completo"
+      placeholder="Ej: Carlos Méndez"
       required
+      prefix-icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+      :error="errors?.name"
+      @blur="emit('blur', 'name')"
     />
-    <p v-if="companyId && role && !resolvedRate" class="text-xs text-warning">
-      Esta empresa no tiene una tarifa configurada para "{{ role }}" todavía — agrégala en Empresas
-      antes de cargar horas.
-    </p>
-    <p v-else-if="resolvedRate" class="rounded-lg bg-bg-secondary/60 px-3 py-2 text-xs text-text-secondary">
-      Gana <span class="font-semibold text-text">{{ formatUSD(resolvedRate.payRate) }}/h</span>
-      · se cobra a la empresa <span class="font-semibold text-text">{{ formatUSD(resolvedRate.billRate) }}/h</span>
-    </p>
 
-    <div>
+    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <FormInput
-        v-model="taxRatePercent"
-        type="number"
-        min="0"
-        max="100"
-        step="0.1"
-        label="% de tax (opcional)"
-        :placeholder="companyTaxHint ? `Vacío = ${companyTaxHint}` : 'Vacío = lo que tenga la empresa'"
-        hint="Solo si este empleado necesita un porcentaje distinto al de la empresa."
+        v-model="phone"
+        label="Teléfono"
+        type="tel"
+        placeholder="+1 305 555 0123"
+        prefix-icon="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+        :error="errors?.phone"
+      />
+
+      <FormInput
+        v-model="email"
+        label="Email (Opcional)"
+        type="email"
+        placeholder="carlos@email.com"
+        prefix-icon="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
+        :error="errors?.email"
+        @blur="emit('blur', 'email')"
       />
     </div>
 
@@ -39,6 +41,57 @@
       placeholder="XXX-XX-XXXX"
       :hint="ssnHint"
     />
+
+    <div class="mt-8 border-t border-border pt-6 space-y-4">
+      <p class="text-xs font-semibold uppercase tracking-wider text-primary">Empresa y pago</p>
+
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <FormDropdown
+          v-model="companyId"
+          label="Empresa"
+          placeholder="Selecciona la empresa donde trabaja"
+          :options="companyOptions"
+          required
+        />
+        
+        <FormDropdown
+          v-model="role"
+          label="Rol / Puesto"
+          placeholder="Seleccionar rol..."
+          :options="roleOptions"
+          required
+        />
+      </div>
+
+      <p v-if="companyId && role && !resolvedRate" class="text-xs text-warning">
+        Esta empresa no tiene una tarifa configurada para "{{ role }}" todavía — agrégala en Empresas
+        antes de cargar horas.
+      </p>
+      <div v-else-if="resolvedRate" class="space-y-1 rounded-lg bg-bg-secondary/60 px-3 py-2 text-xs text-text-secondary">
+        <p>
+          Regular (hasta {{ resolvedRate.overtimeThresholdHours ?? 40 }}h/sem): gana
+          <span class="font-semibold text-text">{{ formatUSD(resolvedRate.payRate) }}/h</span>
+          · se cobra a la empresa <span class="font-semibold text-text">{{ formatUSD(resolvedRate.billRate) }}/h</span>
+        </p>
+        <p>
+          Overtime: gana <span class="font-semibold text-text">{{ formatUSD(effectiveOvertimePayRate) }}/h</span>
+          · se cobra a la empresa <span class="font-semibold text-text">{{ formatUSD(effectiveOvertimeBillRate) }}/h</span>
+        </p>
+      </div>
+    </div>
+
+    <div>
+      <FormInput
+        v-model="taxRatePercent"
+        type="number"
+        min="0"
+        max="100"
+        step="0.1"
+        label="% de tax (opcional)"
+        :placeholder="companyTaxHint ? `Vacío = ${companyTaxHint}` : 'Vacío = 0%'"
+        hint="Solo si este empleado necesita un porcentaje distinto al de la empresa."
+      />
+    </div>
 
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <FormInput v-model="bankName" label="Banco" placeholder="Ej: Bank of America" />
@@ -100,13 +153,16 @@ const props = defineProps<{
   formData: EmpleadoFormData
   businessId: string | null
   isEditing?: boolean
-  /** Read-only context from the saved record — a blank input never overwrites these. */
   bankAccountLast4?: string | null
   payrollCardLast4?: string | null
   ssnLast4?: string | null
+  errors?: Record<string, string>
 }>()
 
-const emit = defineEmits<{ 'update:modelValue': [data: EmpleadoFormData] }>()
+const emit = defineEmits<{ 
+  'update:modelValue': [data: EmpleadoFormData],
+  'blur': [field: string]
+}>()
 
 const { formatUSD } = useCurrency()
 
@@ -116,9 +172,15 @@ const field = <K extends keyof EmpleadoFormData>(key: K) => computed<EmpleadoFor
   set: (value) => emit('update:modelValue', { ...props.formData, [key]: value }),
 })
 
+const name = field('name')
+const phone = field('phone')
+const email = field('email')
 const companyId = field('staffingCompanyId')
 const staffingTaxRate = field('staffingTaxRate')
-const role = computed(() => props.formData.role)
+const role = computed({
+  get: () => props.formData.role,
+  set: (val) => emit('update:modelValue', { ...props.formData, role: val })
+})
 const address = field('address')
 const ssn = field('ssn')
 const bankName = field('bankName')
@@ -145,18 +207,39 @@ const { data: rates } = useQuery({
   enabled: computed(() => !!props.businessId && !!companyId.value),
 })
 
+const roleOptions = computed(() => {
+  if (!rates.value) return []
+  return rates.value.map(r => ({ value: r.role, label: r.role }))
+})
+
 const resolvedRate = computed(() =>
   (rates.value ?? []).find(r => r.role === role.value && r.active) ?? null,
 )
+
+// Mirrors StaffingPayrollCalculator::overtimeMultiplierFor — an explicit OT rate on the role
+// wins outright, otherwise it's payRate/billRate times the role's own multiplier override or
+// the company-wide default of 1.5x (see StaffingTermsFactory).
+const effectiveOvertimePayRate = computed(() => {
+  const rate = resolvedRate.value
+  if (!rate) return 0
+  return rate.overtimePayRate ?? rate.payRate * (rate.overtimeMultiplier ?? 1.5)
+})
+const effectiveOvertimeBillRate = computed(() => {
+  const rate = resolvedRate.value
+  if (!rate) return 0
+  return rate.overtimeBillRate ?? rate.billRate * (rate.overtimeMultiplier ?? 1.5)
+})
 
 const selectedCompany = computed(() => (companies.value ?? []).find(c => c.id === companyId.value) ?? null)
 
 /** What "vacío" resolves to, so the admin isn't guessing which rate actually applies. */
 const companyTaxHint = computed(() => {
-  const brackets = selectedCompany.value?.taxBrackets ?? []
-  if (brackets.length === 0) return 'sin retención'
-  return brackets.map(b => `${Math.round(b.rate * 1000) / 10}%`).join(' / ')
+  const rate = selectedCompany.value?.taxRate
+  if (rate == null || rate === 0) return 'sin retención'
+  return `${Math.round(rate * 1000) / 10}%`
 })
+
+
 
 // Stored as a fraction (0.07) but edited as a percentage (7) — same convention as the
 // company's own tax brackets in Empresas.vue. FormInput emits '' (not null) when cleared.

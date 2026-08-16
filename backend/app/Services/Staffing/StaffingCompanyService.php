@@ -14,12 +14,6 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 class StaffingCompanyService
 {
-    /** DYKE's agreement, used as the default for a new company: 3.5% under $500, 7% from $500 up. */
-    private const DEFAULT_TAX_BRACKETS = [
-        ['threshold' => 500.0, 'rate' => 0.035],
-        ['threshold' => null, 'rate' => 0.07],
-    ];
-
     public function list(
         string $businessId,
         ?string $branchId = null,
@@ -64,11 +58,13 @@ class StaffingCompanyService
             'contact_phone' => $data['contact_phone'] ?? null,
             'contact_email' => $data['contact_email'] ?? null,
             'payment_terms_days' => $data['payment_terms_days'] ?? 15,
-            'overtime_threshold_hours' => $data['overtime_threshold_hours'] ?? 40,
-            'overtime_multiplier' => $data['overtime_multiplier'] ?? 1.5,
             'agency_overhead_rate' => $data['agency_overhead_rate'] ?? 0.04,
-            'tax_brackets' => $data['tax_brackets'] ?? self::DEFAULT_TAX_BRACKETS,
+            // Tiered brackets are legacy (a company created through the current UI only ever
+            // sets tax_rate below) — no longer defaulted to DYKE's agreement for new companies,
+            // see StaffingTermsFactory::taxRuleFor().
+            'tax_brackets' => $data['tax_brackets'] ?? null,
             'tax_destination' => $data['tax_destination'] ?? TaxRule::REMITTED,
+            'tax_rate' => $data['tax_rate'] ?? 0.04,
             'payout_rounding' => $data['payout_rounding'] ?? PayrollTerms::PAYOUT_CENT,
             'active' => $data['active'] ?? true,
             'status' => $data['status'] ?? StaffingCompany::STATUS_ACTIVE,

@@ -17,7 +17,8 @@ class StaffingCompanyRate extends Model
     protected $fillable = [
         'id', 'business_id', 'company_id',
         'role', 'pay_rate', 'bill_rate',
-        'overtime_threshold_hours', 'overtime_multiplier', 'active',
+        'overtime_threshold_hours', 'overtime_multiplier',
+        'overtime_pay_rate', 'overtime_bill_rate', 'active',
     ];
 
     protected function casts(): array
@@ -27,6 +28,8 @@ class StaffingCompanyRate extends Model
             'bill_rate' => 'float',
             'overtime_threshold_hours' => 'float',
             'overtime_multiplier' => 'float',
+            'overtime_pay_rate' => 'float',
+            'overtime_bill_rate' => 'float',
             'active' => 'boolean',
         ];
     }

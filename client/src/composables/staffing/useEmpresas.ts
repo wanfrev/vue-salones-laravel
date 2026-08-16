@@ -2,10 +2,11 @@ import { computed, ref, type Ref } from 'vue'
 import { useCrud } from '../empleados/useCrud'
 import { useBusinessStore } from '../../store/business'
 import {
-  DEFAULT_TAX_BRACKETS,
   deleteStaffingCompany,
   listStaffingCompanies,
+  listStaffingRates,
   saveStaffingCompany,
+  saveStaffingRate,
   staffingCompanyKeys,
   type StaffingCompanyFormData,
   type StaffingCompanyRow,
@@ -23,12 +24,8 @@ const emptyForm = (): StaffingCompanyFormData => ({
   contactPhone: '',
   contactEmail: '',
   paymentTermsDays: 15,
-  overtimeThresholdHours: 40,
-  overtimeMultiplier: 1.5,
-  // A new client starts on the agreement the agency actually uses today; blanking the brackets
-  // is one click away and means "this client withholds nothing".
-  taxBrackets: DEFAULT_TAX_BRACKETS.map(b => ({ ...b })),
-  taxDestination: 'remitted',
+  taxRate: 0.04,
+  roles: [],
   payoutRounding: 'cent',
   status: 'active',
   notes: '',
@@ -66,7 +63,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
     showModal.value = true
   }
 
-  const openEdit = (company: StaffingCompanyRow) => {
+  const openEdit = async (company: StaffingCompanyRow) => {
     editingId.value = company.id
     form.value = {
       name: company.name,
@@ -80,15 +77,29 @@ export function useEmpresas(businessId: Ref<string | null>) {
       contactPhone: company.contactPhone,
       contactEmail: company.contactEmail,
       paymentTermsDays: company.paymentTermsDays,
-      overtimeThresholdHours: company.overtimeThresholdHours,
-      overtimeMultiplier: company.overtimeMultiplier,
-      taxBrackets: company.taxBrackets.map(b => ({ ...b })),
-      taxDestination: company.taxDestination,
+      taxRate: company.taxRate,
+      roles: [],
       payoutRounding: company.payoutRounding,
       status: company.status,
       notes: company.notes,
     }
     showModal.value = true
+
+    try {
+      if (businessId.value) {
+        const rates = await listStaffingRates(businessId.value, company.id)
+        form.value.roles = rates.map(r => ({
+          role: r.role,
+          payRate: r.payRate,
+          billRate: r.billRate,
+          overtimeThresholdHours: r.overtimeThresholdHours ?? 40,
+          overtimePayRate: r.overtimePayRate ?? undefined,
+          overtimeBillRate: r.overtimeBillRate ?? undefined,
+        }))
+      }
+    } catch (err) {
+      console.error('Error al cargar tarifas de la empresa:', err)
+    }
   }
 
   const closeModal = () => {
@@ -96,30 +107,80 @@ export function useEmpresas(businessId: Ref<string | null>) {
     editingId.value = null
   }
 
+  // Spans the whole save (company + roles), unlike crud.isSaving — that one only tracks the
+  // company mutation and would flip back to false while the roles loop below is still running.
+  const isSaving = ref(false)
+
   const handleSave = async () => {
+    crud.saveError.value = ''
+    isSaving.value = true
+
     const payload = editingId.value
       ? { ...form.value, id: editingId.value }
       : { ...form.value }
 
-    await crud.handleSave(payload)
+    try {
+      // Not crud.handleSave() here: that helper doesn't hand back the saved row, and the roles
+      // loop below needs the new company's id. saveMutation is the same TanStack mutation
+      // handleSave wraps — mutateAsync resolves to whatever saveStaffingCompany() returns.
+      const savedCompany = await crud.saveMutation.mutateAsync(payload)
+      // saveFn's generic type allows `void`, but saveStaffingCompany() always resolves to the
+      // row — this only guards the type, it isn't expected to trigger.
+      if (!savedCompany) {
+        throw new Error('No se pudo guardar la empresa.')
+      }
 
-    // useCrud swallows the rejection and reports through saveError instead, so closing
-    // unconditionally would hide the failure and look like a successful save.
-    if (!crud.saveError.value) {
+      if (form.value.roles && form.value.roles.length > 0) {
+        for (const role of form.value.roles) {
+          await saveStaffingRate(businessId.value!, {
+            companyId: savedCompany.id,
+            role: role.role,
+            payRate: role.payRate,
+            billRate: role.billRate,
+            overtimeThresholdHours: role.overtimeThresholdHours,
+            // No derived multiplier — sending pay_rate * X as a fake "OT rate" here would let
+            // the backend re-derive an OT BILL rate from it too (see StaffingPayrollCalculator),
+            // silently overriding whatever "Cobra OT ($)" was actually typed below. Overtime
+            // multiplier stays null (falls back to the 1.5x federal default) unless the admin
+            // explicitly sets both $ rates.
+            overtimeMultiplier: null,
+            overtimePayRate: role.overtimePayRate || null,
+            overtimeBillRate: role.overtimeBillRate || null,
+          })
+        }
+      }
+
+      await crud.invalidateAll()
       closeModal()
+    } catch (err) {
+      // The company mutation's own onError (in useCrud) already sets saveError + shows a toast;
+      // this only fires for a failure in the roles loop above, which that handler never sees.
+      if (!crud.saveError.value) {
+        crud.saveError.value = err instanceof Error ? err.message : String(err)
+      }
+    } finally {
+      isSaving.value = false
     }
   }
 
-  const addBracket = () => {
-    form.value.taxBrackets.push({ threshold: null, rate: 0 })
+  const addRole = () => {
+    form.value.roles.push({
+      role: '',
+      payRate: 0,
+      billRate: 0,
+      overtimeThresholdHours: 40,
+      overtimePayRate: 0,
+      overtimeBillRate: 0,
+    })
   }
 
-  const removeBracket = (index: number) => {
-    form.value.taxBrackets.splice(index, 1)
+  const removeRole = (index: number) => {
+    form.value.roles.splice(index, 1)
   }
 
   return {
     ...crud,
+    isSaving: computed(() => isSaving.value || crud.isSaving.value),
     companies: crud.items,
     companiesByStatus,
     showModal,
@@ -129,7 +190,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
     openEdit,
     closeModal,
     handleSave,
-    addBracket,
-    removeBracket,
+    addRole,
+    removeRole,
   }
 }

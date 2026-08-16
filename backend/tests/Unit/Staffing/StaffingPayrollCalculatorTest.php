@@ -293,6 +293,44 @@ class StaffingPayrollCalculatorTest extends TestCase
         new TimesheetEntry('X', -1.0, 13.0, 18.0);
     }
 
+    /**
+     * Regression: a role's OT bill rate must never be derived from the OT pay rate's ratio to
+     * the regular pay rate. A real agreement's OT margin is not always proportional to its
+     * regular margin — deriving one side from the other silently over/under-bills the client.
+     */
+    public function test_overtime_pay_and_bill_rate_overrides_are_independent(): void
+    {
+        $terms = PayrollTerms::withoutWithholding();
+
+        // Regular: pay $15/bill $20 (margin $5). OT: pay $22.50/bill $27 — a margin the client
+        // actually agreed to, NOT the $30 you'd get by scaling $20 by the pay side's 1.5x ratio.
+        $entry = new TimesheetEntry(
+            'X', 45.0, 15.0, 20.0,
+            overtimePayRateOverride: 22.50,
+            overtimeBillRateOverride: 27.00,
+        );
+
+        $payroll = $this->calculator->payroll($entry, $terms);
+        $invoice = $this->calculator->invoice($entry, $terms);
+
+        $this->assertEqualsWithDelta(22.50, $payroll->overtimeRate, self::TOLERANCE);
+        $this->assertEqualsWithDelta(27.00, $invoice->overtimeBillRate, self::TOLERANCE, 'not $30 — that would be billRate * (22.50/15)');
+        $this->assertEqualsWithDelta(27.00, $invoice->overtimeAmount, self::TOLERANCE, '1 OT hour at the agreed $27');
+    }
+
+    /** With no explicit OT rate override, the multiplier still drives both sides — unchanged behaviour. */
+    public function test_overtime_falls_back_to_the_multiplier_when_no_explicit_rate_is_set(): void
+    {
+        $terms = PayrollTerms::withoutWithholding();
+        $entry = new TimesheetEntry('X', 45.0, 15.0, 20.0, overtimeMultiplierOverride: 1.5);
+
+        $payroll = $this->calculator->payroll($entry, $terms);
+        $invoice = $this->calculator->invoice($entry, $terms);
+
+        $this->assertEqualsWithDelta(22.50, $payroll->overtimeRate, self::TOLERANCE);
+        $this->assertEqualsWithDelta(30.00, $invoice->overtimeBillRate, self::TOLERANCE);
+    }
+
     /** @return list<TimesheetEntry> */
     private function dykeEntries(): array
     {

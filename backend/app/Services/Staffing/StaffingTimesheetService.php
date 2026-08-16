@@ -152,6 +152,8 @@ class StaffingTimesheetService
                     taxOverride: $taxOverride,
                     overtimeThresholdOverride: $rate->overtime_threshold_hours,
                     overtimeMultiplierOverride: $rate->overtime_multiplier,
+                    overtimePayRateOverride: $rate->overtime_pay_rate,
+                    overtimeBillRateOverride: $rate->overtime_bill_rate,
                 );
 
                 $result = $this->calculator->line($timesheetEntry, $terms);
@@ -208,12 +210,31 @@ class StaffingTimesheetService
         $timesheet->update([
             'status' => StaffingTimesheet::STATUS_APPROVED,
             'terms_snapshot' => [
-                'overtime_threshold_hours' => $company->overtime_threshold_hours,
-                'overtime_multiplier' => $company->overtime_multiplier,
+                // Overtime terms are per-role now (staffing_company_rates), already frozen onto
+                // each entry via regular_hours/overtime_hours — nothing company-wide left to
+                // snapshot here.
                 'tax_brackets' => $company->tax_brackets,
+                'tax_rate' => $company->tax_rate,
                 'tax_destination' => $company->tax_destination,
                 'payout_rounding' => $company->payout_rounding,
             ],
+            'updated_at' => now(),
+        ]);
+
+        return $timesheet->fresh(['entries.employee']);
+    }
+
+    /** Marks an approved week's payroll as actually paid out to the employees. */
+    public function markPaid(string $id, string $businessId): StaffingTimesheet
+    {
+        $timesheet = $this->findForBusiness($id, $businessId);
+
+        if ($timesheet->status !== StaffingTimesheet::STATUS_APPROVED) {
+            throw new RuntimeException('Solo una semana aprobada puede marcarse como pagada.');
+        }
+
+        $timesheet->update([
+            'status' => StaffingTimesheet::STATUS_PAID,
             'updated_at' => now(),
         ]);
 

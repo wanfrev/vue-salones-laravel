@@ -14,7 +14,7 @@
           </div>
           <div>
             <label class="mb-1 block text-sm font-medium text-text" for="vend-phone">Teléfono</label>
-            <input id="vend-phone" v-model="form.phone" type="text" :class="inputClass" />
+            <input id="vend-phone" v-model="form.phone" type="text" required :class="inputClass" />
           </div>
           <div>
             <label class="mb-1 block text-sm font-medium text-text" for="vend-email">Correo electrónico</label>

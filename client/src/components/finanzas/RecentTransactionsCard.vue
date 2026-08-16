@@ -74,7 +74,7 @@
               tx.type === 'nomina' ? 'bg-warning/10 text-warning' :
                 'bg-danger/10 text-danger'
           ]">
-            {{ tx.type === 'ingreso' ? (tx.items ? 'Factura' : 'Ingreso') : tx.type === 'nomina' ? 'Nómina' : 'Gasto' }}
+            {{ tx.type === 'ingreso' ? (tx.items ? (tx.receiptCode ? 'Factura #' + tx.receiptCode : 'Factura') : 'Ingreso') : tx.type === 'nomina' ? 'Nómina' : 'Gasto' }}
           </span>
         </div>
         <div class="flex items-center justify-between">

@@ -7,6 +7,7 @@ import { formatMethod } from '../../lib/formatters'
 import SectionCard from '../common/SectionCard.vue'
 import { DualAmount } from '../common'
 import { listCitaGroupMembers } from '../../services/agendaService'
+import { printReceipt as printThermalReceipt, type ReceiptData } from '../../lib/receiptPrinter'
 import type { Cita, PaymentEditContext, AppointmentProduct } from '../../types/cita'
 import type { PaymentBreakdownItem } from '../../types/pos'
 
@@ -36,7 +37,7 @@ const emit = defineEmits<{
   delete: [transactionIds: string[]]
 }>()
 
-const { formatUSD, formatSecondary } = useCurrency()
+const { formatUSD, formatSecondary, exchangeRate } = useCurrency()
 const businessStore = useBusinessStore()
 const t = computed(() => businessStore.terminology)
 
@@ -61,8 +62,8 @@ watch(() => props.paymentData, (data) => {
     db
       .from('inventory_movements')
       .select('id, product_id, products(name, unit_price), quantity, unit_cost')
-      .eq('reference_type', 'appointment')
-      .eq('reference_id', data.appointmentId)
+      .eq('appointment_id', data.appointmentId)
+      .eq('reference_type', 'service')
       .then(({ data: items }: any) => {
         appointmentProducts.value = (items ?? []).map((m: any) => {
           const price = Number(m.products?.unit_price ?? 0)
@@ -129,9 +130,10 @@ const loadGroupMembers = async () => {
 
 watch(() => mode.value, (m) => { if (m === 'factura') loadGroupMembers() })
 
+
 const onRollback = () => {
-  const apptId = props.cita?.id
   const pd = props.paymentData
+  const apptId = pd?.appointmentId || props.cita?.id
   const prefill = pd ? {
     paymentMethod: pd.method,
     paymentAmount: pd.amount,
@@ -140,8 +142,6 @@ const onRollback = () => {
     tipAmount: pd.tipAmount ?? 0,
     notes: pd.notes ?? null,
     breakdown: pd.breakdown ?? null,
-    clientName: pd.clientName ?? null,
-    employeeName: pd.employeeName ?? null,
     products: appointmentProducts.value.map(p => ({
       productId: p.productId,
       productName: p.productName,
@@ -154,6 +154,31 @@ const onRollback = () => {
 
 const onDelete = () => {
   emit('delete', props.transactionIds)
+}
+
+const printReceipt = async () => {
+  const pd = props.paymentData
+  if (!pd) return
+  
+  let txId = pd.transactionId || props.transactionIds[0]
+
+  const data: ReceiptData = {
+    businessName: businessStore.business?.name ?? 'Negocio',
+    receiptNumber: pd.receipt_code || (txId ? txId.substring(0, 8).toUpperCase() : undefined),
+    date: props.cita ? `${props.cita.date} ${props.cita.time}` : new Date().toLocaleString('es-VE'),
+    clientName: props.cita?.clientName || pd.clientName || undefined,
+    employeeName: props.cita?.employee || pd.employeeName || undefined,
+    services: allServices.value.length > 0 ? allServices.value.map(s => ({ name: s.service, qty: 1, price: s.price })) : undefined,
+    products: appointmentProducts.value.length > 0 ? appointmentProducts.value.map(p => ({ name: p.productName, qty: p.quantity, price: p.unitCost })) : undefined,
+    subtotal: pd.amount - (pd.tipAmount || 0),
+    tip: pd.tipAmount > 0 ? pd.tipAmount : undefined,
+    total: pd.amount,
+    method: pd.method,
+    currency: 'VES',
+    exchangeRate: pd.exchangeRate || exchangeRate.value
+  }
+  
+  await printThermalReceipt(data, `Factura_${data.receiptNumber ?? Date.now()}.txt`)
 }
 
 const paymentMethodOptions: { value: string; label: string }[] = [
@@ -214,6 +239,8 @@ const allServices = computed(() => {
 })
 
 const totalServicios = computed(() => allServices.value.reduce((s, svc) => s + svc.price, 0))
+
+const displayReceiptCode = computed(() => props.paymentData?.receipt_code || null)
 </script>
 
 <template>
@@ -228,8 +255,8 @@ const totalServicios = computed(() => allServices.value.reduce((s, svc) => s + s
         <div class="mb-5 text-center">
           <h2 class="text-lg font-bold text-text">Opciones del cobro</h2>
           <p class="mt-1 text-sm text-text-muted line-clamp-1">
-            <template v-if="cita">{{ cita.clientName }} · {{ cita.service }}</template>
-            <template v-else>Factura de Venta</template>
+            <template v-if="cita">{{ cita.clientName }} · {{ cita.service }} <span v-if="displayReceiptCode" class="font-mono text-[11px] text-text-secondary ml-1">#{{ displayReceiptCode }}</span></template>
+            <template v-else>Factura de Venta <span v-if="displayReceiptCode" class="font-mono text-[11px] text-text-secondary ml-1">#{{ displayReceiptCode }}</span></template>
           </p>
         </div>
 
@@ -316,21 +343,34 @@ const totalServicios = computed(() => allServices.value.reduce((s, svc) => s + s
             <div>
               <h2 class="text-lg font-bold text-text">Factura</h2>
               <p class="text-xs text-text-muted">
-                <template v-if="cita">{{ cita.date }} · {{ cita.time }}</template>
-                <template v-else>Factura de Venta</template>
+                <template v-if="cita">{{ cita.date }} · {{ cita.time }} <span v-if="displayReceiptCode" class="font-mono text-[11px] text-text-secondary ml-1">#{{ displayReceiptCode }}</span></template>
+                <template v-else>Factura de Venta <span v-if="displayReceiptCode" class="font-mono text-[11px] text-text-secondary ml-1">#{{ displayReceiptCode }}</span></template>
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            @click="emit('close')"
-            class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text"
-            title="Cerrar"
-          >
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              @click="printReceipt"
+              class="rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-theme hover:bg-primary hover:text-text-inverse flex items-center gap-1.5"
+              title="Imprimir formato Ticket (58mm)"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Imprimir
+            </button>
+            <button
+              type="button"
+              @click="emit('close')"
+              class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text"
+              title="Cerrar"
+            >
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div class="p-6 space-y-5">

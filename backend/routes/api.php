@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\ProductCategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\QzController;
 use App\Http\Controllers\Api\RequirementController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\WhatsAppController;
@@ -32,6 +33,7 @@ use App\Http\Controllers\Api\Staffing\StaffingCompanyController;
 use App\Http\Controllers\Api\Staffing\StaffingCompanyPaymentController;
 use App\Http\Controllers\Api\Staffing\StaffingCompanyRateController;
 use App\Http\Controllers\Api\Staffing\StaffingInvoiceController;
+use App\Http\Controllers\Api\Staffing\StaffingManualIncomeController;
 use App\Http\Controllers\Api\Staffing\StaffingReportController;
 use App\Http\Controllers\Api\Staffing\StaffingTaxEntityController;
 use App\Http\Controllers\Api\Staffing\StaffingTaxEntryController;
@@ -103,6 +105,11 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::put('/profiles/{id}', [ProfileController::class, 'update']);
         Route::delete('/profiles/{id}', [ProfileController::class, 'destroy']);
     });
+
+    // QZ Tray (local print bridge) — signs/certifies print requests so it prints silently
+    // instead of popping a "trust this app?" prompt on every ticket. See QzCertificateService.
+    Route::get('/qz/certificate', [QzController::class, 'certificate']);
+    Route::post('/qz/sign', [QzController::class, 'sign']);
 
     // Employee payments
     Route::get('/employee-payments', [EmployeePaymentController::class, 'index']);
@@ -243,6 +250,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::get('/staffing-timesheets', [StaffingTimesheetController::class, 'index']);
         Route::post('/staffing-timesheets', [StaffingTimesheetController::class, 'store']);
         Route::post('/staffing-timesheets/{id}/approve', [StaffingTimesheetController::class, 'approve']);
+        Route::post('/staffing-timesheets/{id}/mark-paid', [StaffingTimesheetController::class, 'markPaid']);
         Route::delete('/staffing-timesheets/{id}', [StaffingTimesheetController::class, 'destroy']);
     });
 
@@ -264,7 +272,15 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::get('/staffing-reports/monthly-payroll', [StaffingReportController::class, 'monthlyPayroll']);
         Route::get('/staffing-reports/weekly', [StaffingReportController::class, 'weeklyReport']);
         Route::get('/staffing-reports/employee-hours', [StaffingReportController::class, 'employeeHours']);
+        Route::get('/staffing-reports/company-hours', [StaffingReportController::class, 'companyHours']);
         Route::post('/staffing-weekly-expenses', [StaffingWeeklyExpenseController::class, 'store']);
+
+        // Finanzas > Resumen for staffing: invoiced-hours/employer-cost/margin summary, plus the
+        // manual income entries that sit alongside it.
+        Route::get('/staffing-reports/finance-summary', [StaffingReportController::class, 'financeSummary']);
+        Route::get('/staffing-manual-incomes', [StaffingManualIncomeController::class, 'index']);
+        Route::post('/staffing-manual-incomes', [StaffingManualIncomeController::class, 'store']);
+        Route::delete('/staffing-manual-incomes/{id}', [StaffingManualIncomeController::class, 'destroy']);
 
         Route::get('/staffing-reports/annual-tax', [StaffingReportController::class, 'annualTaxReport']);
         Route::get('/staffing-tax-entities', [StaffingTaxEntityController::class, 'index']);

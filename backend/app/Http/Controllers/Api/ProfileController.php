@@ -70,7 +70,7 @@ class ProfileController
         }
 
         return response()->json(
-            $this->profileService->list($businessId, $request->branch_id, $request->disable_agenda)
+            $this->profileService->list($businessId, $request->branch_id, $request->disable_agenda, $request->active)
         );
     }
 

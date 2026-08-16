@@ -22,7 +22,7 @@ class Transaction extends Model
         'total_amount', 'local_amount', 'employee_amount', 'assistant_amount',
         'local_percentage', 'employee_percentage', 'assistant_percentage',
         'method', 'exchange_rate_used', 'payments_breakdown', 'tip_amount',
-        'created_by', 'notes', 'paid_at',
+        'created_by', 'notes', 'paid_at', 'receipt_code',
     ];
 
     protected function casts(): array

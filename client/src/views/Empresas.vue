@@ -77,10 +77,7 @@
             </span>
           </button>
 
-          <div class="hidden text-right sm:block">
-            <span class="block text-[10px] uppercase tracking-wider text-text-muted">Retención</span>
-            <span class="text-xs font-semibold text-text">{{ describeBrackets(company) }}</span>
-          </div>
+
 
           <div class="hidden text-right md:block">
             <span class="block text-[10px] uppercase tracking-wider text-text-muted">Pago</span>
@@ -133,7 +130,7 @@
     <Teleport to="body">
       <div v-if="ctx.showModal.value" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6"
         @click.self="ctx.closeModal">
-        <div class="max-h-full w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-xl">
+        <div class="max-h-full w-full max-w-4xl overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-xl">
           <div class="mb-5">
             <h2 class="text-lg font-semibold text-text">
               {{ ctx.editingId.value ? 'Editar empresa' : 'Nueva empresa' }}
@@ -174,40 +171,42 @@
                     <input id="emp-zip" v-model="ctx.form.value.zip" type="text" :class="inputClass" />
                   </div>
                 </div>
+              </div>
+            </section>
+
+            <section class="space-y-3">
+              <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Contacto</p>
+              <div class="grid gap-3 sm:grid-cols-3">
                 <div>
-                  <label class="mb-1 block text-sm font-medium text-text" for="emp-contact">Contacto</label>
-                  <input id="emp-contact" v-model="ctx.form.value.contactName" type="text" :class="inputClass" />
+                  <label class="mb-1 block text-sm font-medium text-text" for="emp-cname">Nombre</label>
+                  <input id="emp-cname" v-model="ctx.form.value.contactName" type="text" :class="inputClass" />
                 </div>
                 <div>
-                  <label class="mb-1 block text-sm font-medium text-text" for="emp-email">Email</label>
-                  <input id="emp-email" v-model="ctx.form.value.contactEmail" type="email" :class="inputClass" />
+                  <label class="mb-1 block text-sm font-medium text-text" for="emp-cphone">Teléfono</label>
+                  <input id="emp-cphone" v-model="ctx.form.value.contactPhone" type="text" :class="inputClass" />
+                </div>
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-text" for="emp-cemail">Email</label>
+                  <input id="emp-cemail" v-model="ctx.form.value.contactEmail" type="email" :class="inputClass" />
                 </div>
               </div>
             </section>
 
             <section class="space-y-3">
               <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Reglas de nómina</p>
+
               <div class="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-text" for="emp-tax">Retención (Tax %)</label>
+                  <input id="emp-tax" v-model.number="taxRatePercent" type="number" min="0" max="100" step="0.1"
+                    :class="inputClass" />
+                  <p class="mt-1 text-[10px] text-text-muted">Se aparta del pago de nómina.</p>
+                </div>
                 <div>
                   <label class="mb-1 block text-sm font-medium text-text" for="emp-terms">Plazo de pago (días)</label>
                   <input id="emp-terms" v-model.number="ctx.form.value.paymentTermsDays" type="number" min="0" max="365"
                     :class="inputClass" />
                 </div>
-                <div>
-                  <label class="mb-1 block text-sm font-medium text-text" for="emp-ot-threshold">Horas antes de OT</label>
-                  <input id="emp-ot-threshold" v-model.number="ctx.form.value.overtimeThresholdHours" type="number"
-                    min="0" max="168" step="0.5" :class="inputClass" />
-                </div>
-                <div>
-                  <label class="mb-1 block text-sm font-medium text-text" for="emp-ot-mult">Recargo OT</label>
-                  <input id="emp-ot-mult" v-model.number="ctx.form.value.overtimeMultiplier" type="number" min="1"
-                    max="5" step="0.1" :class="inputClass" />
-                </div>
-              </div>
-
-              <div class="grid gap-3 sm:grid-cols-2">
-                <FormDropdown v-model="ctx.form.value.taxDestination" label="¿Qué pasa con la retención?"
-                  :options="TAX_DESTINATION_OPTIONS" />
                 <FormDropdown v-model="ctx.form.value.payoutRounding" label="Redondeo del pago"
                   :options="ROUNDING_OPTIONS" />
               </div>
@@ -215,47 +214,58 @@
               <div class="rounded-xl border border-border p-3">
                 <div class="mb-2 flex items-center justify-between">
                   <div>
-                    <p class="text-sm font-medium text-text">Tramos de retención</p>
+                    <p class="text-sm font-medium text-text">Roles y Tarifas</p>
                     <p class="text-xs text-text-muted">
-                      El porcentaje se aplica sobre el bruto completo, no solo sobre el excedente.
-                      Sin tramos, no se retiene nada.
+                      Configura lo que gana cada empleado y lo que se le cobra a la empresa por hora regular y overtime.
                     </p>
                   </div>
                   <button type="button"
                     class="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
-                    @click="ctx.addBracket()">
-                    Agregar tramo
+                    @click="ctx.addRole()">
+                    Agregar rol
                   </button>
                 </div>
 
-                <p v-if="ctx.form.value.taxBrackets.length === 0" class="py-2 text-xs text-text-muted">
-                  Sin retención — el empleado cobra el bruto completo.
+                <p v-if="ctx.form.value.roles.length === 0" class="py-2 text-xs text-text-muted">
+                  Sin roles definidos. Agrégalos para poder asignar tarifas a los empleados.
                 </p>
 
-                <div v-for="(bracket, i) in ctx.form.value.taxBrackets" :key="i"
-                  class="mb-2 flex flex-wrap items-end gap-2">
-                  <div class="w-40">
+                <div v-for="(role, i) in ctx.form.value.roles" :key="i"
+                  class="mb-2.5 flex flex-wrap items-end gap-2 rounded-lg border border-border/50 bg-bg-secondary/20 p-2 sm:border-0 sm:bg-transparent sm:p-0">
+                  <div class="min-w-[130px] flex-1">
                     <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">
-                      Si el bruto es menor a
+                      Rol / Cargo
                     </label>
-                    <input v-model.number="bracket.threshold" type="number" min="0" step="0.01" :class="inputClass"
-                      placeholder="Sin límite" />
+                    <input v-model="role.role" type="text" :class="inputClass" placeholder="Ej: Operario" required />
                   </div>
-                  <div class="w-32">
-                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Retener %</label>
-                    <input :value="toPercent(bracket.rate)" type="number" min="0" max="100" step="0.1"
-                      :class="inputClass" @input="setRate(bracket, $event)" />
+                  <div class="w-20 shrink-0">
+                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" title="Horas Regulares antes de OT">Hrs Reg</label>
+                    <input v-model.number="role.overtimeThresholdHours" type="number" min="0" step="0.5" :class="inputClass" required />
                   </div>
-                  <button type="button"
-                    class="rounded-lg p-2 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
-                    @click="ctx.removeBracket(i)">
-                    <TrashBin2Icon class="h-4 w-4" />
-                  </button>
+                  <div class="w-24 shrink-0">
+                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Paga Reg ($)</label>
+                    <input v-model.number="role.payRate" type="number" min="0" step="0.01" :class="inputClass" required />
+                  </div>
+                  <div class="w-24 shrink-0">
+                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Cobra Reg ($)</label>
+                    <input v-model.number="role.billRate" type="number" min="0" step="0.01" :class="inputClass" required />
+                  </div>
+                  <div class="w-24 shrink-0">
+                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Paga OT ($)</label>
+                    <input v-model.number="role.overtimePayRate" type="number" min="0" step="0.01" :class="inputClass" placeholder="0.00" />
+                  </div>
+                  <div class="w-24 shrink-0">
+                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Cobra OT ($)</label>
+                    <input v-model.number="role.overtimeBillRate" type="number" min="0" step="0.01" :class="inputClass" placeholder="0.00" />
+                  </div>
+                  <div class="flex items-center pb-0.5 shrink-0">
+                    <button type="button"
+                      class="rounded-lg p-2 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+                      @click="ctx.removeRole(i)">
+                      <TrashBin2Icon class="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
-
-                <p v-if="cliffWarning" class="mt-1 rounded-lg bg-warning/10 px-2.5 py-1.5 text-xs text-warning">
-                  {{ cliffWarning }}
-                </p>
               </div>
             </section>
 
@@ -296,7 +306,6 @@ import BillingPanel from '../components/staffing/BillingPanel.vue'
 import StaffingWorkersPanel from '../components/staffing/StaffingWorkersPanel.vue'
 import HeadcountMatrix from '../components/staffing/HeadcountMatrix.vue'
 import type { StaffingCompanyRow, StaffingCompanyStatus } from '../services/staffing/staffingService'
-import type { StaffingTaxBracket } from '../types/database'
 import { BuildingsIcon, AddCircleIcon, PenIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
 
 const inputClass =
@@ -328,15 +337,12 @@ const STATUS_BADGE_CLASS: Record<StaffingCompanyStatus, string> = {
 
 const activeStatusTab = ref<StaffingCompanyStatus>('active')
 
-const TAX_DESTINATION_OPTIONS = [
-  { value: 'remitted', label: 'Se entrega a un tercero (es un costo)' },
-  { value: 'retained', label: 'Se la queda la agencia (es margen)' },
-]
+
 
 const ROUNDING_OPTIONS = [
   { value: 'cent', label: 'Al centavo' },
-  { value: 'floor', label: 'A dólar entero hacia abajo' },
-  { value: 'exact', label: 'Exacto, sin redondear' },
+  { value: 'floor', label: 'Al entero inferior' },
+  { value: 'exact', label: 'Exacto (no redondea)' },
 ]
 
 const ROUNDING_LABELS: Record<string, string> = {
@@ -351,6 +357,13 @@ const roundingLabel = (mode: string) => ROUNDING_LABELS[mode] ?? 'Al centavo'
 const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)
 const ctx = useEmpresas(businessId)
+
+const taxRatePercent = computed({
+  get: () => Math.round(ctx.form.value.taxRate * 10000) / 100,
+  set: (val: number | string) => {
+    ctx.form.value.taxRate = val === '' || val == null ? 0 : Number(val) / 100
+  }
+})
 
 const filteredCompanies = computed(() => ctx.companiesByStatus.value[activeStatusTab.value])
 const showMatrix = ref(false)
@@ -368,40 +381,5 @@ const confirmDelete = (company: StaffingCompanyRow) => {
   }
 }
 
-// Rates are stored as fractions (0.07) but typed as percentages (7).
-const toPercent = (rate: number) => Math.round(rate * 10000) / 100
-const setRate = (bracket: StaffingTaxBracket, event: Event) => {
-  const value = Number((event.target as HTMLInputElement).value)
-  bracket.rate = Number.isFinite(value) ? value / 100 : 0
-}
 
-const describeBrackets = (company: StaffingCompanyRow): string => {
-  if (!company.taxBrackets.length) return 'Ninguna'
-  return company.taxBrackets.map(b => `${toPercent(b.rate)}%`).join(' / ')
-}
-
-/**
- * A flat-rate tier applies to the whole gross, so crossing a threshold can leave someone with
- * less take-home than the person just below it. Surfacing it here turns an accidental cliff
- * into a deliberate one.
- */
-const cliffWarning = computed(() => {
-  const brackets = ctx.form.value.taxBrackets
-  for (let i = 0; i < brackets.length - 1; i++) {
-    const current = brackets[i]
-    const next = brackets[i + 1]
-    if (current.threshold === null || next.rate <= current.rate) continue
-
-    const atThreshold = current.threshold
-    const netBelow = atThreshold * (1 - current.rate)
-    const netAbove = atThreshold * (1 - next.rate)
-    const drop = netBelow - netAbove
-
-    if (drop > 0) {
-      return `Ojo: al pasar de $${atThreshold} de bruto, el neto del empleado cae $${drop.toFixed(2)}. `
-        + 'Ganar un dólar más le deja menos dinero.'
-    }
-  }
-  return ''
-})
 </script>

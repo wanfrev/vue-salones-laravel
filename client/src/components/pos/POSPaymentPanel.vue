@@ -446,17 +446,27 @@
         ></textarea>
       </div>
 
-      <div class="pt-3 shrink-0 border-t border-border-subtle">
+      <div class="pt-3 shrink-0 border-t border-border-subtle grid grid-cols-[1fr_auto] gap-2">
         <button
           @click="$emit('process-payment')"
           :disabled="isProcessing || !canPay"
-          class="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-text-inverse transition-theme hover:bg-primary-hover disabled:opacity-50"
+          class="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-text-inverse transition-theme hover:bg-primary-hover disabled:opacity-50"
         >
           <svg v-if="isProcessing" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
           {{ isProcessing ? 'Procesando...' : `Cobrar ${formatDual(grandTotal)}` }}
+        </button>
+        <button
+          @click="$emit('process-payment-print')"
+          :disabled="isProcessing || !canPay"
+          title="Cobrar e imprimir factura (TXT)"
+          class="flex items-center justify-center rounded-xl bg-primary/10 px-4 py-3 text-primary transition-theme hover:bg-primary hover:text-text-inverse disabled:opacity-50"
+        >
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+          </svg>
         </button>
       </div>
     </template>
@@ -542,6 +552,7 @@ const emit = defineEmits<{
   'set-equal-tip': []
   'update:tip-allocation': [employeeId: string, value: number]
   'process-payment': []
+  'process-payment-print': []
   'set-price-index': [idx: number, priceIndex: 1 | 2]
   'increment-qty': [idx: number]
   'decrement-qty': [idx: number]

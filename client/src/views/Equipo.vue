@@ -30,20 +30,31 @@
     </template>
   </div>
 
+  <div v-if="isStaffing" class="mb-4 max-w-xs">
+    <SegmentedTabs :tabs="employeeStatusTabs" :model-value="employeeActiveFilter" @update:model-value="employeeActiveFilter = $event as EmployeeActiveFilter" />
+  </div>
+
   <EmployeeGrid
     :employees="visibleTeam" :show-all="showAll" :has-more="hasMoreThanDefault" :total-count="team.length"
-    :get-initials="getInitials"
+    :get-initials="getInitials" :is-staffing="isStaffing" :companies-by-id="companiesById" :show-agenda="showAgenda"
     @edit="handleEditEmpleado" @view-agenda="handleViewAgenda" @view-recibo="handleOpenRecibo" @toggle-show-all="showAll = !showAll"
   />
 
   <!--
     Staffing has no commissions, no VES, no schedules in the agenda sense — the whole
-    commission-oriented GestionTabs (nomina/pagos/deuda/horarios) doesn't apply, so it's
-    replaced wholesale by the hours-and-payroll panel instead of threading isStaffing through it.
+    commission-oriented GestionTabs (nomina/pagos/deuda/horarios) doesn't apply here. Hours used
+    to be editable from this page too, but that duplicated Nómina and the two views could drift
+    out of sync — hours now live only in Nómina (see /admin/nomina).
   -->
-  <section v-if="isStaffing" class="rounded-2xl border border-border bg-surface p-4 lg:p-6">
-    <p class="mb-4 text-xs font-semibold uppercase tracking-wider text-primary">Horas trabajadas</p>
-    <StaffingHoursPanel :business-id="businessId" />
+  <section v-if="isStaffing" class="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4 lg:p-6">
+    <div>
+      <p class="text-sm font-semibold text-text">Horas y pago de la semana</p>
+      <p class="text-xs text-text-muted">Carga y calcula las horas trabajadas desde el módulo de Nómina.</p>
+    </div>
+    <router-link to="/admin/nomina"
+      class="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover">
+      Ir a Nómina
+    </router-link>
   </section>
 
   <GestionTabs
@@ -96,13 +107,15 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
 import { useCrud } from '../composables/empleados/useCrud'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/common/useAuth'
 import { useNotification } from '../composables/common/useNotification'
 import { useCurrency } from '../composables/common/useCurrency'
 import { usePeriodSelection } from '../composables/finanzas/usePeriodSelection'
-import { deleteEmpleado, equipoKeys, listEquipo, saveEmpleado } from '../services/equipoService'
+import { deleteEmpleado, equipoKeys, listEquipo, saveEmpleado, type EmployeeActiveFilter } from '../services/equipoService'
+import { listStaffingCompanies, staffingCompanyKeys } from '../services/staffing/staffingService'
 import { useBusinessStore } from '../store/business'
 import { getInitials, formatMethod, formatTime24to12 } from '../lib/formatters'
 import { resolvePeriodDates } from '../lib/periodUtils'
@@ -112,13 +125,13 @@ import { useEmployeePayments } from '../composables/empleados/useEmployeePayment
 import { useQueryClient } from '@tanstack/vue-query'
 import { employeePaymentKeys } from '../services/employeePaymentsService'
 import { StatCard } from '../components/common'
+import SegmentedTabs from '../components/common/SegmentedTabs.vue'
 import EmployeeGrid from '../components/common/EmployeeGrid.vue'
 import EmployeePaymentModal from '../components/equipo/EmployeePaymentModal.vue'
 import EmployeeConsumptionModal from '../components/equipo/EmployeeConsumptionModal.vue'
 import EmployeeReciboModal from '../components/equipo/EmployeeReciboModal.vue'
 import EmployeeRateModal from '../components/equipo/EmployeeRateModal.vue'
 import GestionTabs from '../components/equipo/GestionTabs.vue'
-import StaffingHoursPanel from '../components/staffing/StaffingHoursPanel.vue'
 import type { Empleado, EmpleadoFormData } from '../types/empleado'
 import { UsersGroupRoundedIcon, DollarIcon, AddCircleIcon } from '@solar-icons/vue/linear'
 
@@ -130,6 +143,23 @@ const empleadoModalRef = ref<InstanceType<typeof EmpleadoFormModal> | null>(null
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 const isStaffing = computed(() => businessStore.hasCapability('staffing.timesheets'))
+const showAgenda = computed(() => businessStore.hasFeature('agenda'))
+
+const employeeActiveFilter = ref<EmployeeActiveFilter>('active')
+const employeeStatusTabs = [
+  { key: 'active', label: 'Activos' },
+  { key: 'inactive', label: 'Inactivos' },
+  { key: 'all', label: 'Todos' },
+]
+
+const { data: staffingCompanies } = useQuery({
+  queryKey: computed(() => staffingCompanyKeys.all(businessId.value)),
+  queryFn: () => listStaffingCompanies(businessId.value!, null, 'all'),
+  enabled: computed(() => !!businessId.value && isStaffing.value),
+})
+const companiesById = computed<Record<string, string>>(() =>
+  Object.fromEntries((staffingCompanies.value ?? []).map(c => [c.id, c.name])),
+)
 
 const selectedReciboEmployee = ref<any>(null)
 const showReciboModal = ref(false)
@@ -169,8 +199,8 @@ const onPaymentSaved = async () => {
 
 const { items: rawTeam, handleSave: handleSaveEmpleado, handleDelete: handleDeleteEmpleado, isSaving } = useCrud<Empleado, EmpleadoFormData>({
   businessId, branchId,
-  queryKey: (id, brId) => equipoKeys.all(id, brId),
-  queryFn: (id, brId) => listEquipo(id, brId),
+  queryKey: (id, brId) => equipoKeys.all(id, brId, isStaffing.value ? employeeActiveFilter.value : undefined),
+  queryFn: (id, brId) => listEquipo(id, brId, isStaffing.value ? employeeActiveFilter.value : 'active'),
   saveFn: (id, data, brId) => saveEmpleado(data, id, brId),
   deleteFn: (id) => deleteEmpleado(id),
   entityName: 'Empleado', modalRef: empleadoModalRef,
@@ -183,11 +213,9 @@ const { items: rawTeam, handleSave: handleSaveEmpleado, handleDelete: handleDele
   ],
 })
 
-// Staffing workers placed at client companies live under Empresas, not here — they never
-// belonged in the generic team list to begin with, and this niche's real "Equipo" is its sales
-// reps (staffingCompanyId is never set on any profile outside the staffing niche, so this
-// filter is a no-op everywhere else).
-const team = computed(() => rawTeam.value.filter(e => !e.staffingCompanyId))
+// Staffing workers placed at client companies belong in the main list for staffing businesses.
+// For other business types, we filter them out so they don't pollute the generic team list.
+const team = computed(() => isStaffing.value ? rawTeam.value : rawTeam.value.filter(e => !e.staffingCompanyId))
 
 const teamForPayroll = computed(() => team.value.filter(e => !e.isCajero))
 

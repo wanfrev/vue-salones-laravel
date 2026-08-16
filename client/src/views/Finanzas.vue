@@ -69,14 +69,18 @@
     <div v-if="!hideFinancialDashboard" class="mb-4">
         <KpiCards :income-total="incomeTotal" :ves-income-total="vesIncomeTotal" :tips-total="summaryCtx.tipsTotal"
           :expense-total="expenseTotal" :net-total="netTotal" :profit-total="profitTotal" :margin="marginTotal"
-          :is-tienda="isTienda"
-          :active-card="activeCard" :is-loading="summaryCtx.isLoading.value" @click-income="toggleCard('income')"
+          :is-tienda="isTienda" :is-staffing="isStaffing"
+          :active-card="activeCard" :is-loading="isStaffing ? staffingFinance.isLoading.value : summaryCtx.isLoading.value"
+          @click-income="toggleCard('income')"
           @click-expense="toggleCard('expense')" @click-net="toggleCard('net')" @click-profit="toggleCard('profit')" />
     </div>
+
+    <StaffingManualIncomeSection v-if="isStaffing" :ctx="staffingFinance" class="mb-4" />
+
     <Transition name="accordion">
       <CurrencyBreakdown v-if="activeBreakdown" :data="activeBreakdown" class="mb-4" @close="activeCard = null" />
     </Transition>
-    <RecentTransactionsCard :transactions="visibleTransactions" :can-view-all="canViewAllTransactions" @view-all="activeTab = 'ingresos'" />
+    <RecentTransactionsCard v-if="!isStaffing" :transactions="visibleTransactions" :can-view-all="canViewAllTransactions" @view-all="activeTab = 'ingresos'" />
   </template>
 
   <!-- TAB 2: Ingresos Detallados -->
@@ -123,6 +127,8 @@ import { useExpenses } from '../composables/finanzas/useExpenses'
 import { isTiendaNiche } from '../config/niches'
 import { useSupplierPayments } from '../composables/suppliers/useSuppliers'
 import { useEmployeePayments } from '../composables/empleados/useEmployeePayments'
+import { useStaffingFinance } from '../composables/staffing/useStaffingFinance'
+import StaffingManualIncomeSection from '../components/staffing/StaffingManualIncomeSection.vue'
 import KpiCards from '../components/finanzas/KpiCards.vue'
 import SupplierPaymentsSection from '../components/finanzas/SupplierPaymentsSection.vue'
 import EmployeePaymentsSection from '../components/finanzas/EmployeePaymentsSection.vue'
@@ -180,6 +186,7 @@ function onCustomToChange(e: Event) {
 
 const isTienda = computed(() => isTiendaNiche(businessStore.nicheType) || (!businessStore.features.agenda && !businessStore.features.calendario && !businessStore.features.servicios))
 const isTiendaEmployee = computed(() => isTienda.value && !isAdminPanelRole(authStore.role ?? undefined))
+const isStaffing = computed(() => businessStore.hasCapability('staffing.timesheets'))
 
 const activeTab = ref<'resumen' | 'ingresos' | 'egresos' | 'creditos'>('resumen')
 const mainTabs = computed<{ key: 'resumen' | 'ingresos' | 'egresos' | 'creditos'; label: string }[]>(() => {
@@ -215,7 +222,12 @@ const supplierPaymentsCtx = useSupplierPayments(businessId, selectedPeriod, sele
 const employeePaymentsCtx = useEmployeePayments(businessId, periodDates)
 const summaryCtx = useFinancialSummary(businessId, selectedPeriod, expenses, selectedMonth, customTo)
 
-const incomeTotal = summaryCtx.incomeTotal
+const staffingFinance = useStaffingFinance(
+  businessId,
+  computed(() => periodDates.value.start),
+  computed(() => periodDates.value.end),
+)
+
 const localIncomeTotal = summaryCtx.localIncomeTotal
 const vesIncomeTotal = summaryCtx.vesIncomeTotal
 const consumptionsTotal = summaryCtx.consumptionsTotal
@@ -224,16 +236,59 @@ const cogsTotal = summaryCtx.cogsTotal
 const employeePaymentTotal = computed(() => {
   return (employeePaymentsCtx.paymentsMade.value ?? []).reduce((sum, p) => sum + Number(p.amount ?? 0), 0)
 })
-const expenseTotal = computed(() => expensesCtx.expenseTotal.value + supplierPaymentsCtx.paymentTotal.value + employeePaymentTotal.value)
 
-const profitTotal = computed(() => incomeTotal.value - (expenseTotal.value + consumptionsTotal.value))
+// Staffing: Ingresos = invoiced hours (nómina's invoice_total) + manual entries. Gastos =
+// employer cost (net paid to employees + taxes + fees — adjustments already folded into net)
+// plus the normal manual "Gastos Operativos" ledger. Ganancia = the nómina margin alone, not
+// reduced by manual gastos — it's what staffing services made before any other overhead. No
+// separate "ganancia neta" for this niche (see KpiCards' isStaffing prop).
+const incomeTotal = computed(() => isStaffing.value ? staffingFinance.incomeTotal.value : summaryCtx.incomeTotal.value)
+const expenseTotal = computed(() => isStaffing.value
+  ? staffingFinance.employerCost.value + expensesCtx.expenseTotal.value
+  : expensesCtx.expenseTotal.value + supplierPaymentsCtx.paymentTotal.value + employeePaymentTotal.value)
+
+const profitTotal = computed(() => isStaffing.value
+  ? staffingFinance.nominaMargin.value
+  : incomeTotal.value - (expenseTotal.value + consumptionsTotal.value))
 const netTotal = computed(() => profitTotal.value - cogsTotal.value)
 const marginTotal = computed(() => (incomeTotal.value > 0 ? (netTotal.value / incomeTotal.value) * 100 : 0))
 
 const activeCard = ref<'income' | 'expense' | 'net' | 'profit' | null>(null)
 const toggleCard = (card: 'income' | 'expense' | 'net' | 'profit') => { activeCard.value = activeCard.value === card ? null : card }
 
+const staffingIncomeBreakdown = computed(() => ({
+  title: 'Desglose de Ingresos', usdTotal: incomeTotal.value, vesTotal: 0,
+  usdItems: [
+    { label: 'Facturado (horas trabajadas)', amount: staffingFinance.invoiceTotal.value },
+    { label: 'Ingresos manuales', amount: staffingFinance.manualIncomeTotal.value },
+  ].filter(i => i.amount > 0),
+  vesItems: [],
+  usdLabel: 'Concepto', vesLabel: 'Concepto',
+}))
+
+const staffingExpenseBreakdown = computed(() => ({
+  title: 'Desglose de Gastos', usdTotal: expenseTotal.value, vesTotal: 0,
+  usdItems: [
+    { label: 'Costo de nómina (pagos, taxes, fees)', amount: staffingFinance.employerCost.value },
+    { label: 'Gastos operativos', amount: expensesCtx.expenseTotal.value },
+  ].filter(i => i.amount > 0),
+  vesItems: [],
+  usdLabel: 'Concepto', vesLabel: 'Concepto',
+}))
+
+const staffingProfitBreakdown = computed(() => ({
+  title: 'Desglose de Ganancia', usdTotal: profitTotal.value, vesTotal: 0,
+  usdItems: [
+    { label: 'Facturado (+)', amount: staffingFinance.invoiceTotal.value + staffingFinance.manualIncomeTotal.value },
+    { label: 'Costo de nómina (-)', amount: -staffingFinance.employerCost.value },
+  ],
+  vesItems: [],
+  usdLabel: 'Concepto', vesLabel: 'Concepto',
+}))
+
 const incomeBreakdown = computed(() => {
+  if (isStaffing.value) return staffingIncomeBreakdown.value
+
   const usdByMethod: Record<string, number> = {}
   const vesByMethod: Record<string, number> = {}
   let totalUSD = 0
@@ -270,6 +325,8 @@ const incomeBreakdown = computed(() => {
 })
 
 const expenseBreakdown = computed(() => {
+  if (isStaffing.value) return staffingExpenseBreakdown.value
+
   let totalUSD = 0
   let totalVES = 0
   const usdItems: { label: string; amount: number }[] = []
@@ -309,6 +366,8 @@ const expenseBreakdown = computed(() => {
 })
 
 const profitBreakdown = computed(() => {
+  if (isStaffing.value) return staffingProfitBreakdown.value
+
   const usdItems: { label: string; amount: number }[] = []
   const vesItems: { label: string; amount: number }[] = []
 
@@ -441,6 +500,7 @@ const openCobroActions = async (tx: any) => {
       quantity: item.quantity,
       unitCost: item.unitPrice,
     })) : undefined,
+    receipt_code: tx.receiptCode || undefined,
   }
 
   cobroActionsCita.value = cita

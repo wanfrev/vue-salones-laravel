@@ -265,7 +265,7 @@ export function usePOSPayment() {
     members?: any[]
     groupPrice?: number
     tipAllocations?: Record<string, number>
-  }): Promise<boolean> => {
+  }): Promise<{ success: boolean; transactions?: Array<{ id: string, receipt_code?: string }> }> => {
     const { isGroup, groupIds, members, groupPrice, tipAllocations } = params
     const method = paymentMethod.value
     const notes = paymentNotes.value
@@ -374,11 +374,11 @@ export function usePOSPayment() {
     }
 
     try {
-      await recordSaleMutation.mutateAsync(payloads)
+      const results = await recordSaleMutation.mutateAsync(payloads)
       reset()
-      return true
+      return { success: true, transactions: results }
     } catch {
-      return false
+      return { success: false }
     }
   }
 
@@ -389,7 +389,7 @@ export function usePOSPayment() {
     clientId?: string | null
     clientNameInput?: string | null
     clientPhoneInput?: string | null
-  }): Promise<boolean> => {
+  }): Promise<{ success: boolean; transactions?: Array<{ id: string, receipt_code?: string }> }> => {
     const method = paymentMethod.value
     const notes = paymentNotes.value
     const pMethodObj = paymentMethods.value.find(m => m.value === method)
@@ -414,22 +414,22 @@ export function usePOSPayment() {
     }
 
     try {
-      await directSaleMutation.mutateAsync({
+      const result = await directSaleMutation.mutateAsync({
         totalAmount: params.totalAmount,
-        method: method as PaymentMethod,
         products: params.products,
-        notes,
         exchangeRate: params.exchangeRate,
+        clientId: params.clientId,
+        clientNameInput: params.clientNameInput,
+        clientPhoneInput: params.clientPhoneInput,
+        method: method as PaymentMethod,
+        notes,
         paymentsBreakdown: breakdown,
-        clientId: params.clientId || null,
-        clientNameInput: params.clientNameInput || null,
-        clientPhoneInput: params.clientPhoneInput || null,
       })
       reset()
-      return true
+      return { success: true, transactions: [result] }
     } catch (err) {
       console.error('[POS Checkout Error]', err)
-      return false
+      return { success: false }
     }
   }
 
@@ -449,7 +449,7 @@ export function usePOSPayment() {
     products: POSProductItem[]
     exchangeRate: number
     tipAmount?: number
-  }): Promise<boolean> => {
+  }): Promise<{ success: boolean; transactions?: Array<{ id: string, receipt_code?: string }> }> => {
     const method = paymentMethod.value
     const notes = paymentNotes.value
     const pMethodObj = paymentMethods.value.find(m => m.value === method)
@@ -475,7 +475,7 @@ export function usePOSPayment() {
     }
 
     try {
-      await directServiceSaleMutation.mutateAsync({
+      const result = await directServiceSaleMutation.mutateAsync({
         services: params.services,
         serviceId: params.serviceId,
         employeeId: params.employeeId,
@@ -483,17 +483,17 @@ export function usePOSPayment() {
         clientId: params.clientId,
         serviceAmount: params.serviceAmount,
         productsAmount: params.productsAmount ?? 0,
-        method: method as PaymentMethod,
         products: params.products,
-        notes,
         exchangeRate: params.exchangeRate,
+        method: method as PaymentMethod,
+        notes,
         paymentsBreakdown: breakdown,
         tipAmount: params.tipAmount,
       })
       reset()
-      return true
+      return { success: true, transactions: [result] }
     } catch {
-      return false
+      return { success: false }
     }
   }
 
