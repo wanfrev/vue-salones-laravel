@@ -4,6 +4,7 @@ export interface Empleado {
   role: string
   systemRole?: string
   isCajero?: boolean
+  active?: boolean
   citasHoy: number
   producido: string
   schedule?: { start: string; end: string; break: string }

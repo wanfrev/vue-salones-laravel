@@ -34,6 +34,7 @@ export const mapProfileToEmpleado = (
     role: profile.job_title || (profile.role === 'admin' ? 'Administrador' : (isCajero ? 'Cajero' : 'Empleado')),
     systemRole: isCajero ? 'cajero' : (profile.role as Empleado['systemRole']),
     isCajero,
+    active: profile.active ?? true,
     citasHoy: stats?.citasHoy ?? 0,
     producido: (stats?.producido ?? 0).toLocaleString(),
     schedule: firstSchedule

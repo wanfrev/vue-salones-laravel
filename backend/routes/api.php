@@ -244,6 +244,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::get('/staffing-timesheets', [StaffingTimesheetController::class, 'index']);
         Route::post('/staffing-timesheets', [StaffingTimesheetController::class, 'store']);
         Route::post('/staffing-timesheets/{id}/approve', [StaffingTimesheetController::class, 'approve']);
+        Route::post('/staffing-timesheets/{id}/mark-paid', [StaffingTimesheetController::class, 'markPaid']);
         Route::delete('/staffing-timesheets/{id}', [StaffingTimesheetController::class, 'destroy']);
     });
 

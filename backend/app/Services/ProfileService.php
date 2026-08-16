@@ -22,13 +22,18 @@ class ProfileService
         return $profile;
     }
 
-    public function list(string $businessId, ?string $branchId = null, $disableAgenda = null): Collection
+    public function list(string $businessId, ?string $branchId = null, $disableAgenda = null, ?string $activeFilter = null): Collection
     {
         $query = Profile::with('schedules')
             ->where('business_id', $businessId)
             ->whereIn('role', ['empleado', 'encargado'])
-            ->where('active', true)
             ->orderBy('full_name');
+
+        if ($activeFilter === 'inactive') {
+            $query->where('active', false);
+        } elseif ($activeFilter !== 'all') {
+            $query->where('active', true);
+        }
 
         if ($branchId) {
             $query->where(function ($q) use ($branchId) {
