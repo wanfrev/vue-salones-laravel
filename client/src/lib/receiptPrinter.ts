@@ -23,135 +23,29 @@ export interface ReceiptData {
 }
 
 /**
- * Centra un texto en una línea de `width` caracteres.
+ * Genera el HTML y abre el diálogo de impresión directamente.
+ * Usa elementos HTML nativos en lugar de pre-wrap para evitar recortes de fuente en impresoras térmicas.
  */
-function centerText(text: string, width: number): string {
-  if (text.length >= width) return text.substring(0, width)
-  const leftPad = Math.floor((width - text.length) / 2)
-  const rightPad = width - text.length - leftPad
-  return ' '.repeat(leftPad) + text + ' '.repeat(rightPad)
-}
-
-/**
- * Alinea texto a la izquierda y derecha en una misma línea (ej. Total:  $10.00).
- */
-function justifyText(left: string, right: string, width: number): string {
-  const combinedLength = left.length + right.length
-  if (combinedLength >= width) {
-    // Si no cabe, corta el de la izquierda un poco
-    const maxLeft = width - right.length - 1
-    return left.substring(0, maxLeft) + ' ' + right
-  }
-  const spaces = width - combinedLength
-  return left + ' '.repeat(spaces) + right
-}
-
-/**
- * Trunca o rellena texto por la izquierda
- */
-function padRight(text: string, length: number): string {
-  if (text.length >= length) return text.substring(0, length)
-  return text + ' '.repeat(length - text.length)
-}
-
-/**
- * Trunca o rellena texto por la derecha
- */
-function padLeft(text: string, length: number): string {
-  if (text.length >= length) return text.substring(0, length)
-  return ' '.repeat(length - text.length) + text
-}
-
-const WIDTH = 32
-
-/**
- * Genera el contenido TXT para una impresora térmica de 58mm (aprox 32 columnas).
- */
-export function buildThermalReceiptTXT(data: ReceiptData): string {
-  const lines: string[] = []
-
-  const addDivider = () => lines.push('-'.repeat(WIDTH))
-  const addLine = (text: string) => lines.push(text)
-
-  // Cabecera
-  addLine(centerText(data.businessName, WIDTH))
-  if (data.branchName) {
-    addLine(centerText(data.branchName, WIDTH))
-  }
-  addDivider()
-
-  // Metadatos
-  if (data.receiptNumber) {
-    addLine(`Factura: ${data.receiptNumber}`)
-  }
-  addLine(`Fecha: ${data.date}`)
-  if (data.clientName) {
-    addLine(`Cliente: ${data.clientName}`)
-  }
-  if (data.employeeName) {
-    addLine(`Atiende: ${data.employeeName}`)
-  }
-  addDivider()
-
+export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): void {
   const formatMoney = (amount: number) => `$${amount.toFixed(2)}`
 
-  // Items
-  addLine('CANT DESCRIPCION        TOTAL')
+  let itemsHtml = ''
   
   const processItems = (items: ReceiptItem[]) => {
     for (const item of items) {
-      const qtyStr = padRight(String(item.qty), 4) // "1   "
-      const priceStr = padLeft(formatMoney(item.price), 8) // "  $10.00"
-      
-      const descMaxWidth = WIDTH - qtyStr.length - priceStr.length - 1
-      const descParts = item.name.match(new RegExp(`.{1,${descMaxWidth}}`, 'g')) || []
-      
-      for (let i = 0; i < descParts.length; i++) {
-        if (i === 0) {
-          addLine(`${qtyStr} ${padRight(descParts[i], descMaxWidth)}${priceStr}`)
-        } else {
-          addLine(`     ${descParts[i]}`) // sangría para multilíneas
-        }
-      }
+      itemsHtml += `
+        <div class="item">
+          <div class="item-qty">${item.qty}</div>
+          <div class="item-desc">${item.name}</div>
+          <div class="item-price">${formatMoney(item.price)}</div>
+        </div>
+      `
     }
   }
 
-  if (data.services && data.services.length > 0) {
-    processItems(data.services)
-  }
-  if (data.products && data.products.length > 0) {
-    processItems(data.products)
-  }
+  if (data.services && data.services.length > 0) processItems(data.services)
+  if (data.products && data.products.length > 0) processItems(data.products)
 
-  addDivider()
-
-  // Totales
-  if ((data.tip ?? 0) > 0) {
-    addLine(justifyText('SUBTOTAL:', formatMoney(data.subtotal), WIDTH))
-    addLine(justifyText('PROPINA:', formatMoney(data.tip!), WIDTH))
-  }
-  
-  addLine(justifyText('TOTAL:', formatMoney(data.total), WIDTH))
-  addLine(justifyText('METODO PAGO:', formatMethod(data.method), WIDTH))
-  
-  addDivider()
-  addLine(centerText('¡Gracias por su compra!', WIDTH))
-  addLine('')
-  addLine('')
-  addLine('')
-  addLine('')
-  
-  return lines.join('\n')
-}
-
-/**
- * Genera el HTML y abre el diálogo de impresión directamente.
- */
-export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): void {
-  const txtContent = buildThermalReceiptTXT(data)
-  
-  // En lugar de descargar un TXT, generamos un documento HTML con una fuente monospace
-  // estricta y márgenes en cero, y abrimos el diálogo de impresión del navegador.
   const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -164,28 +58,114 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   }
   body {
     margin: 0;
-    padding: 0;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 12px;
+    padding: 2mm;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 11px;
     line-height: 1.2;
     background: white;
     color: black;
-    width: 58mm; /* Ancho de la impresora */
-    white-space: pre-wrap; /* Respeta los espacios y saltos de línea */
-    word-break: break-all;
+    width: 54mm; /* Ancho seguro */
+    box-sizing: border-box;
   }
-  .content {
-    padding: 2mm;
-    margin: 0;
+  .text-center { text-align: center; }
+  .bold { font-weight: bold; }
+  .divider { 
+    border-top: 1px dashed black; 
+    margin: 5px 0; 
+  }
+  .flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 3px;
+  }
+  .item-qty {
+    width: 12%;
+    text-align: left;
+  }
+  .item-desc {
+    width: 60%;
+    text-align: left;
+    padding-right: 2px;
+    word-break: break-word;
+  }
+  .item-price {
+    width: 28%;
+    text-align: right;
+  }
+  .total-row {
+    font-size: 13px;
+    font-weight: bold;
+    margin-top: 3px;
+  }
+  .meta-row {
+    margin-bottom: 2px;
+  }
+  .footer {
+    margin-top: 10px;
+    margin-bottom: 10px;
   }
 </style>
 </head>
 <body>
-  <div class="content">${txtContent.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+  <!-- Header -->
+  <div class="text-center bold" style="font-size: 13px; margin-bottom: 2px;">${data.businessName}</div>
+  ${data.branchName ? `<div class="text-center" style="margin-bottom: 2px;">${data.branchName}</div>` : ''}
+  <div class="divider"></div>
+
+  <!-- Meta -->
+  ${data.receiptNumber ? `<div class="meta-row">Factura: ${data.receiptNumber}</div>` : ''}
+  <div class="meta-row">Fecha: ${data.date}</div>
+  ${data.clientName ? `<div class="meta-row">Cliente: ${data.clientName}</div>` : ''}
+  ${data.employeeName ? `<div class="meta-row">Atiende: ${data.employeeName}</div>` : ''}
+  <div class="divider"></div>
+
+  <!-- Table Header -->
+  <div class="item bold" style="margin-bottom: 4px;">
+    <div class="item-qty">CANT</div>
+    <div class="item-desc">DESCRIPCION</div>
+    <div class="item-price">TOTAL</div>
+  </div>
+  
+  <!-- Items -->
+  ${itemsHtml}
+
+  <div class="divider"></div>
+
+  <!-- Totals -->
+  ${(data.tip ?? 0) > 0 ? `
+    <div class="flex-between meta-row">
+      <span>SUBTOTAL:</span>
+      <span>${formatMoney(data.subtotal)}</span>
+    </div>
+    <div class="flex-between meta-row">
+      <span>PROPINA:</span>
+      <span>${formatMoney(data.tip!)}</span>
+    </div>
+  ` : ''}
+  <div class="flex-between total-row">
+    <span>TOTAL:</span>
+    <span>${formatMoney(data.total)}</span>
+  </div>
+  <div class="flex-between meta-row" style="margin-top: 4px;">
+    <span>METODO PAGO:</span>
+    <span class="text-right">${formatMethod(data.method)}</span>
+  </div>
+  
+  <div class="divider"></div>
+  <div class="text-center footer">¡Gracias por su compra!</div>
+  
   <script>
     window.onload = function() {
-      window.print();
-      setTimeout(function() { window.close(); }, 500);
+      // Pequeño timeout para asegurar que el renderizado se completó
+      setTimeout(function() {
+        window.print();
+        setTimeout(function() { window.close(); }, 500);
+      }, 200);
     }
   </script>
 </body>
