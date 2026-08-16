@@ -295,6 +295,7 @@ class FinancialSummaryService
                 'employee_pay_type' => $appt?->employeeProfile?->pay_type,
                 'employee_pay_percentage' => $appt?->employeeProfile?->pay_percentage,
                 'is_direct_sale' => $tx->appointment_id === null,
+                'receipt_code' => $tx->receipt_code,
             ];
         });
     }
@@ -357,6 +358,7 @@ class FinancialSummaryService
                 'transactions.payments_breakdown',
                 'transactions.total_amount as transaction_total_amount',
                 'transactions.paid_at as transaction_paid_at',
+                'transactions.receipt_code',
             )
             ->orderByDesc(DB::raw('COALESCE(transactions.paid_at, inventory_movements.created_at)'));
 
@@ -417,6 +419,7 @@ class FinancialSummaryService
                 'notes' => $row->notes,
                 'payment_method' => $row->payment_method ?? 'cash',
                 'payments_breakdown' => $row->payments_breakdown ? json_decode($row->payments_breakdown, true) : null,
+                'receipt_code' => $row->receipt_code,
             ];
         });
     }
