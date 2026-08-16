@@ -48,103 +48,92 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
 <meta charset="UTF-8">
 <title>Recibo</title>
 <style>
-  /* 3. Corrección de líneas blancas (Paginación web) */
   @media print {
-    html, body {
-      margin: 0;
-      padding: 0;
+    @page { 
+      margin: 0; 
+      size: 58mm auto; 
     }
-    .receipt-container, table, tr, td, th {
-      page-break-inside: avoid;
-      break-inside: avoid;
-    }
-    @page {
-      margin: 0;
-      size: 58mm auto;
+    body { 
+      margin: 0; 
+      padding: 0; 
     }
   }
 
-  /* 4. Interlineado y tipografía */
   body {
     margin: 0;
     padding: 0;
-    font-family: sans-serif;
-    font-weight: 600; /* o bold */
-    line-height: 1.1;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 10px;
+    line-height: 1.2;
     color: black;
-  }
-  
-  /* Eliminar margin-top/bottom por defecto (en este caso lo controlamos con clases) */
-  p, h1, h2, h3, h4, h5, h6, div {
-    margin: 0;
+    text-rendering: geometricPrecision;
+    -webkit-font-smoothing: none;
   }
 
-  /* 1. Contenedor y Ancho Estricto */
   .receipt-container {
     width: 48mm;
-    max-width: 180px;
+    max-width: 48mm;
+    padding: 0;
+    margin: 0 auto;
     box-sizing: border-box;
-    padding: 2mm 1mm; /* Pequeño respiro interno para no pegarse al borde del corte */
   }
   
   .text-center { text-align: center; }
   .text-right { text-align: right; }
+  .title { font-size: 11px; font-weight: bold; }
   
-  .divider { 
-    border-top: 1px dashed black; 
-    margin: 3px 0; 
+  hr.divider { 
+    border: none; 
+    border-top: 1px dashed #000; 
+    margin: 4px 0; 
   }
   
-  /* 2. Prevención de desbordamiento (Totales visibles) */
   table {
     width: 100%;
-    border-collapse: collapse;
     table-layout: fixed;
-    margin-bottom: 2px;
+    border-collapse: collapse;
+    margin: 2px 0;
   }
   
   th, td {
-    padding: 1px 0;
     vertical-align: top;
   }
   
-  .qty-col { width: 18%; white-space: nowrap; }
-  /* word-wrap: break-word en la descripción */
-  .desc-col { width: 50%; padding: 0 2px; word-wrap: break-word; }
-  .price-col { width: 32%; text-align: right; white-space: nowrap; }
+  .qty-col { width: 15%; text-align: left; }
+  .desc-col { width: 55%; text-align: left; word-break: break-word; }
+  .price-col { width: 30%; text-align: right; }
   
-  .meta-row { margin-bottom: 2px; }
+  .meta-row { margin: 2px 0; }
   
   .totals-table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 2px;
   }
-  .totals-table td { padding: 1px 0; }
-  .total-row { font-size: 13px; font-weight: bold; }
+  .total-row { font-weight: bold; }
   .footer { margin-top: 8px; margin-bottom: 12px; }
 </style>
 </head>
 <body>
   <div class="receipt-container">
     <!-- Header -->
-    <div class="text-center" style="font-size: 13px; margin-bottom: 2px;">${data.businessName}</div>
-    ${data.branchName ? `<div class="text-center" style="margin-bottom: 2px;">${data.branchName}</div>` : ''}
-    <div class="divider"></div>
+    <div class="text-center title meta-row">${data.businessName}</div>
+    ${data.branchName ? `<div class="text-center meta-row">${data.branchName}</div>` : ''}
+    <hr class="divider">
 
     <!-- Meta -->
     ${data.receiptNumber ? `<div class="meta-row">Factura: ${data.receiptNumber}</div>` : ''}
     <div class="meta-row">Fecha: ${data.date}</div>
     ${data.clientName ? `<div class="meta-row">Cliente: ${data.clientName}</div>` : ''}
     ${data.employeeName ? `<div class="meta-row">Atiende: ${data.employeeName}</div>` : ''}
-    <div class="divider"></div>
+    <hr class="divider">
 
     <!-- Items Table -->
     <table>
       <thead>
         <tr>
-          <th class="qty-col text-left">CANT</th>
-          <th class="desc-col text-left">DESCRIP</th>
+          <th class="qty-col">CANT</th>
+          <th class="desc-col">DESCRIP</th>
           <th class="price-col">TOTAL</th>
         </tr>
       </thead>
@@ -153,7 +142,7 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
       </tbody>
     </table>
 
-    <div class="divider"></div>
+    <hr class="divider">
 
     <!-- Totals -->
     <table class="totals-table">
@@ -177,7 +166,7 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
       </tr>
     </table>
     
-    <div class="divider"></div>
+    <hr class="divider">
     <div class="text-center footer">¡Gracias por su compra!</div>
   </div>
   
