@@ -22,10 +22,6 @@ export interface ReceiptData {
   currency: string
 }
 
-/**
- * Genera el HTML y abre el diálogo de impresión directamente.
- * Usa elementos HTML nativos en lugar de pre-wrap para evitar recortes de fuente en impresoras térmicas.
- */
 export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): void {
   const formatMoney = (amount: number) => `$${amount.toFixed(2)}`
 
@@ -54,26 +50,23 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
 <style>
   @page {
     margin: 0;
-    size: 58mm auto;
   }
   body {
     margin: 0;
-    padding: 2mm;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    font-size: 12px;
-    line-height: normal;
+    padding: 2mm 4mm 2mm 0; /* Padding derecho para evitar que el texto toque el borde y se corte */
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 11px; /* Letra un poco más pequeña para que quepa bien en 58mm */
+    line-height: 1.4; /* Interlineado fijo para evitar letras sobrepuestas */
     background: white;
     color: black;
-    width: 48mm; /* Ancho imprimible estándar de rollos de 58mm */
-    max-width: 100%;
+    width: 100%;
     box-sizing: border-box;
-    margin: 0 auto;
   }
   .text-center { text-align: center; }
   .bold { font-weight: bold; }
   .divider { 
     border-top: 1px dashed black; 
-    margin: 6px 0; 
+    margin: 4px 0; 
   }
   .flex-between {
     display: flex;
@@ -83,7 +76,7 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   .item {
     display: flex;
     align-items: flex-start;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
   }
   .item-qty {
     width: 15%;
@@ -100,16 +93,16 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
     text-align: right;
   }
   .total-row {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: bold;
-    margin-top: 6px;
+    margin-top: 4px;
   }
   .meta-row {
-    margin-bottom: 4px;
+    margin-bottom: 2px;
   }
   .footer {
-    margin-top: 12px;
-    margin-bottom: 12px;
+    margin-top: 10px;
+    margin-bottom: 10px;
   }
 </style>
 </head>
@@ -129,7 +122,7 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   <!-- Table Header -->
   <div class="item bold" style="margin-bottom: 4px;">
     <div class="item-qty">CANT</div>
-    <div class="item-desc">DESCRIPCION</div>
+    <div class="item-desc">DESCRIP</div>
     <div class="item-price">TOTAL</div>
   </div>
   
@@ -154,7 +147,7 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
     <span>${formatMoney(data.total)}</span>
   </div>
   <div class="flex-between meta-row" style="margin-top: 4px;">
-    <span>METODO PAGO:</span>
+    <span>PAGO:</span>
     <span class="text-right">${formatMethod(data.method)}</span>
   </div>
   
@@ -163,7 +156,6 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   
   <script>
     window.onload = function() {
-      // Pequeño timeout para asegurar que el renderizado se completó
       setTimeout(function() {
         window.print();
         setTimeout(function() { window.close(); }, 500);
