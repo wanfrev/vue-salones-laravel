@@ -76,6 +76,9 @@ const ACTION_BADGE_CLASSES: Record<string, string> = {
   resume_business: 'bg-success/10 text-success',
   reset_admin_password: 'bg-warning/10 text-warning',
   impersonate_admin: 'bg-primary/10 text-primary',
+  create_superadmin: 'bg-success/10 text-success',
+  revoke_superadmin: 'bg-danger/10 text-danger',
+  restore_superadmin: 'bg-success/10 text-success',
 }
 const actionBadgeClass = (action: string) => ACTION_BADGE_CLASSES[action] ?? 'bg-bg-secondary text-text-muted'
 

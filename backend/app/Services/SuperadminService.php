@@ -21,6 +21,109 @@ class SuperadminService
             ->get();
     }
 
+    public function listSuperadmins(): Collection
+    {
+        return Profile::where('role', 'superadmin')
+            ->select('id', 'full_name', 'email', 'active', 'created_at')
+            ->orderBy('full_name')
+            ->get();
+    }
+
+    public function createSuperadmin(array $data, string $actorId): Profile
+    {
+        $email = strtolower(trim($data['email']));
+
+        if (User::where('email', $email)->exists()) {
+            throw new HttpException(422, 'Ya existe un usuario registrado con este correo electrónico.');
+        }
+
+        $userId = Str::uuid()->toString();
+
+        DB::beginTransaction();
+        try {
+            User::create([
+                'id' => $userId,
+                'name' => $data['fullName'],
+                'email' => $email,
+                'password' => $data['password'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            Profile::create([
+                'id' => $userId,
+                'business_id' => null,
+                'full_name' => $data['fullName'],
+                'role' => 'superadmin',
+                'email' => $email,
+                'active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw new HttpException(500, 'No fue posible crear el superadmin: ' . $e->getMessage());
+        }
+
+        $profile = Profile::find($userId);
+
+        $this->logAudit($actorId, 'create_superadmin', null, $userId, [
+            'admin_name' => $profile->full_name,
+            'admin_email' => $profile->email,
+        ]);
+
+        return $profile;
+    }
+
+    /**
+     * Deactivates a superadmin and kills any session they're currently holding. Guarded against
+     * the two ways this could accidentally lock everyone out of /superadmin: revoking your own
+     * account, or revoking the last active one — either leaves nobody able to undo it.
+     */
+    public function revokeSuperadmin(string $id, string $actorId): void
+    {
+        if ($id === $actorId) {
+            throw new HttpException(422, 'No puedes revocar tu propia cuenta de superadmin.');
+        }
+
+        $profile = Profile::where('id', $id)->where('role', 'superadmin')->first();
+        if (!$profile) {
+            throw new NotFoundHttpException('Superadmin no encontrado.');
+        }
+
+        $activeCount = Profile::where('role', 'superadmin')->where('active', true)->count();
+        if ($profile->active && $activeCount <= 1) {
+            throw new HttpException(422, 'No puedes revocar el único superadmin activo — quedarían fuera todos los accesos.');
+        }
+
+        $profile->update(['active' => false, 'updated_at' => now()]);
+
+        $user = User::find($id);
+        $user?->tokens()->delete();
+
+        $this->logAudit($actorId, 'revoke_superadmin', null, $id, [
+            'admin_name' => $profile->full_name,
+            'admin_email' => $profile->email,
+        ]);
+    }
+
+    public function restoreSuperadmin(string $id, string $actorId): void
+    {
+        $profile = Profile::where('id', $id)->where('role', 'superadmin')->first();
+        if (!$profile) {
+            throw new NotFoundHttpException('Superadmin no encontrado.');
+        }
+
+        $profile->update(['active' => true, 'updated_at' => now()]);
+
+        $this->logAudit($actorId, 'restore_superadmin', null, $id, [
+            'admin_name' => $profile->full_name,
+            'admin_email' => $profile->email,
+        ]);
+    }
+
     public function store(array $data, string $actorId): array
     {
         $email = strtolower(trim($data['ownerEmail']));

@@ -35,10 +35,25 @@ export type CreateBusinessResult = {
   invitedUserId: string
 }
 
+export type SuperadminAccount = {
+  id: string
+  full_name: string
+  email: string | null
+  active: boolean
+  created_at: string
+}
+
+export type CreateSuperadminInput = {
+  fullName: string
+  email: string
+  password: string
+}
+
 export const superadminKeys = {
   businesses: () => ['superadmin', 'businesses'] as const,
   businessAdmins: (businessId: string) => ['superadmin', 'business-admins', businessId] as const,
   globalAuditLogs: (action?: string | null) => ['superadmin', 'audit-logs', action ?? 'all'] as const,
+  superadmins: () => ['superadmin', 'accounts'] as const,
 }
 
 // ── READ ──
@@ -169,6 +184,9 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   resume_business: 'Negocio reactivado',
   reset_admin_password: 'Contraseña restablecida',
   impersonate_admin: 'Sesión de soporte iniciada',
+  create_superadmin: 'Superadmin creado',
+  revoke_superadmin: 'Superadmin revocado',
+  restore_superadmin: 'Superadmin restaurado',
 }
 
 export function describeAuditAction(log: SuperadminAuditLogEntry): string {
@@ -220,4 +238,26 @@ export const suspendBusiness = async (businessId: string): Promise<void> => {
 
 export const resumeBusiness = async (businessId: string): Promise<void> => {
   await apiRequest('POST', `/admin/businesses/${businessId}/resume`)
+}
+
+// ── Superadmin account management ──
+
+export const listSuperadmins = async (): Promise<SuperadminAccount[]> => {
+  return apiRequest<SuperadminAccount[]>('GET', '/admin/superadmins')
+}
+
+export const createSuperadmin = async (input: CreateSuperadminInput): Promise<SuperadminAccount> => {
+  return apiRequest<SuperadminAccount>('POST', '/admin/superadmins', {
+    fullName: input.fullName.trim(),
+    email: input.email.trim().toLowerCase(),
+    password: input.password,
+  })
+}
+
+export const revokeSuperadmin = async (id: string): Promise<void> => {
+  await apiRequest('POST', `/admin/superadmins/${id}/revoke`)
+}
+
+export const restoreSuperadmin = async (id: string): Promise<void> => {
+  await apiRequest('POST', `/admin/superadmins/${id}/restore`)
 }

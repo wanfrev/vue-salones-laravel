@@ -157,4 +157,49 @@ class SuperadminController
             )
         );
     }
+
+    public function superadmins(): JsonResponse
+    {
+        return response()->json($this->superadminService->listSuperadmins());
+    }
+
+    public function storeSuperadmin(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'fullName' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string', 'min:6'],
+        ]);
+
+        try {
+            $profile = $this->superadminService->createSuperadmin($validated, $request->user()->id);
+            return response()->json($profile, 201);
+        } catch (\Throwable $e) {
+            $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+            return response()->json(['error' => ['message' => $e->getMessage()]], $status ?: 500);
+        }
+    }
+
+    public function revokeSuperadmin(Request $request, string $id): JsonResponse
+    {
+        try {
+            $this->superadminService->revokeSuperadmin($id, $request->user()->id);
+            return response()->json(['success' => true]);
+        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e) {
+            return response()->json(['error' => ['message' => $e->getMessage()]], 404);
+        } catch (\Throwable $e) {
+            $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+            return response()->json(['error' => ['message' => $e->getMessage()]], $status ?: 500);
+        }
+    }
+
+    public function restoreSuperadmin(Request $request, string $id): JsonResponse
+    {
+        try {
+            $this->superadminService->restoreSuperadmin($id, $request->user()->id);
+            return response()->json(['success' => true]);
+        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e) {
+            return response()->json(['error' => ['message' => $e->getMessage()]], 404);
+        }
+    }
 }

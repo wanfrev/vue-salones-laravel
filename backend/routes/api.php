@@ -395,5 +395,9 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::post('/businesses/{id}/admins/{profileId}/impersonate', [SuperadminController::class, 'impersonate']);
         Route::get('/businesses/{id}/audit-logs', [SuperadminController::class, 'auditLogs']);
         Route::get('/audit-logs', [SuperadminController::class, 'globalAuditLogs']);
+        Route::get('/superadmins', [SuperadminController::class, 'superadmins']);
+        Route::post('/superadmins', [SuperadminController::class, 'storeSuperadmin']);
+        Route::post('/superadmins/{id}/revoke', [SuperadminController::class, 'revokeSuperadmin']);
+        Route::post('/superadmins/{id}/restore', [SuperadminController::class, 'restoreSuperadmin']);
     });
 });
