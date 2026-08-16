@@ -184,7 +184,7 @@ class PosService
 
             $receiptCode = null;
             $business = \App\Models\Business::find($businessId);
-            if ($business && $business->niche_type === 'retail') {
+            if ($business && $business->niche_type === 'tienda') {
                 $lastCode = Transaction::where('business_id', $businessId)
                     ->whereNotNull('receipt_code')
                     ->lockForUpdate()
@@ -449,7 +449,7 @@ class PosService
         ) {
             $receiptCode = null;
             $business = \App\Models\Business::find($businessId);
-            if ($business && $business->niche_type === 'retail') {
+            if ($business && $business->niche_type === 'tienda') {
                 $lastCode = Transaction::where('business_id', $businessId)
                     ->whereNotNull('receipt_code')
                     ->lockForUpdate()

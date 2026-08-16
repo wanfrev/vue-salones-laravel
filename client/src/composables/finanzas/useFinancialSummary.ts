@@ -26,6 +26,7 @@ export type UnifiedTransaction = {
   _originalAmount?: number
   notes?: string | null
   tipAmount?: number
+  receiptCode?: string
 }
 
 export type TransactionRow = {
@@ -87,6 +88,7 @@ export type ProductSaleInvoice = {
     notes?: string | null
   }>
   totalQuantity: number
+  receiptCode?: string
 }
 
 export type PaymentRow = {
@@ -443,6 +445,7 @@ function useFinancialSummary(
           breakdown,
           items: [itemObj],
           totalQuantity: qty,
+          receiptCode: (r as any).receipt_code ?? undefined,
         })
       }
     }
@@ -507,6 +510,7 @@ function useFinancialSummary(
         _currency: isVES ? 'VES' : 'USD',
         _originalAmount: isVES ? originalAmount : undefined,
         _rawSortDate: tx.paid_at || '',
+        receiptCode: tx.receipt_code ?? undefined,
       } as any)
     }
 
@@ -542,6 +546,7 @@ function useFinancialSummary(
         isVES: boolean
         originalAmount: number
         rawSortDate: string
+        receiptCode?: string
         items: Array<{ id: string; product: string; quantity: number; unitPrice: number; total: number }>
       }>()
 
@@ -585,6 +590,7 @@ function useFinancialSummary(
             isVES,
             originalAmount,
             rawSortDate,
+            receiptCode: (ps as any).receipt_code ?? undefined,
             items: [itemObj],
           })
         }
@@ -614,6 +620,7 @@ function useFinancialSummary(
           exchangeRateUsed: inv.exchangeRateUsed,
           notes: inv.notes,
           source: 'product_sale',
+          receiptCode: inv.receiptCode,
           sourceLabel: 'Factura de venta',
           _currency: inv.isVES ? 'VES' : 'USD',
           _originalAmount: inv.isVES ? inv.originalAmount : undefined,
