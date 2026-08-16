@@ -239,6 +239,8 @@ const allServices = computed(() => {
 })
 
 const totalServicios = computed(() => allServices.value.reduce((s, svc) => s + svc.price, 0))
+
+const displayReceiptCode = computed(() => props.paymentData?.receipt_code || null)
 </script>
 
 <template>
@@ -253,8 +255,8 @@ const totalServicios = computed(() => allServices.value.reduce((s, svc) => s + s
         <div class="mb-5 text-center">
           <h2 class="text-lg font-bold text-text">Opciones del cobro</h2>
           <p class="mt-1 text-sm text-text-muted line-clamp-1">
-            <template v-if="cita">{{ cita.clientName }} · {{ cita.service }}</template>
-            <template v-else>Factura de Venta</template>
+            <template v-if="cita">{{ cita.clientName }} · {{ cita.service }} <span v-if="displayReceiptCode" class="font-mono text-[11px] text-text-secondary ml-1">#{{ displayReceiptCode }}</span></template>
+            <template v-else>Factura de Venta <span v-if="displayReceiptCode" class="font-mono text-[11px] text-text-secondary ml-1">#{{ displayReceiptCode }}</span></template>
           </p>
         </div>
 
@@ -341,8 +343,8 @@ const totalServicios = computed(() => allServices.value.reduce((s, svc) => s + s
             <div>
               <h2 class="text-lg font-bold text-text">Factura</h2>
               <p class="text-xs text-text-muted">
-                <template v-if="cita">{{ cita.date }} · {{ cita.time }}</template>
-                <template v-else>Factura de Venta</template>
+                <template v-if="cita">{{ cita.date }} · {{ cita.time }} <span v-if="displayReceiptCode" class="font-mono text-[11px] text-text-secondary ml-1">#{{ displayReceiptCode }}</span></template>
+                <template v-else>Factura de Venta <span v-if="displayReceiptCode" class="font-mono text-[11px] text-text-secondary ml-1">#{{ displayReceiptCode }}</span></template>
               </p>
             </div>
           </div>
