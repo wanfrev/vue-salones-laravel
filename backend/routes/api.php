@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\ProductCategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\QzController;
 use App\Http\Controllers\Api\RequirementController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\WhatsAppController;
@@ -104,6 +105,11 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::put('/profiles/{id}', [ProfileController::class, 'update']);
         Route::delete('/profiles/{id}', [ProfileController::class, 'destroy']);
     });
+
+    // QZ Tray (local print bridge) — signs/certifies print requests so it prints silently
+    // instead of popping a "trust this app?" prompt on every ticket. See QzCertificateService.
+    Route::get('/qz/certificate', [QzController::class, 'certificate']);
+    Route::post('/qz/sign', [QzController::class, 'sign']);
 
     // Employee payments
     Route::get('/employee-payments', [EmployeePaymentController::class, 'index']);

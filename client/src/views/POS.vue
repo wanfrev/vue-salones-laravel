@@ -38,7 +38,12 @@
         </div>
       </div>
 
-      <div class="flex justify-start lg:justify-end">
+      <div class="flex items-center justify-start gap-2 lg:justify-end">
+        <button type="button" title="Configurar impresora térmica"
+          class="rounded-lg border border-border bg-surface p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
+          @click="showPrinterSettings = true">
+          <PrinterIcon class="h-4 w-4" />
+        </button>
         <ExchangeRateCard
           :is-editable="isRateEditable"
           :edit-rate-value="editRateValue"
@@ -50,6 +55,8 @@
       </div>
     </div>
   </header>
+
+  <PrinterSettingsModal v-if="showPrinterSettings" @close="showPrinterSettings = false" />
 
   <div v-if="queryError" class="mb-4 rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm text-danger">Error al cargar citas: {{ queryError }}</div>
 
@@ -430,8 +437,9 @@ import { useExchangeRate } from '../composables/finanzas/useExchangeRate'
 import { toISODate, minutesToHHmm, formatDate as fDate } from '../lib/formatters'
 import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
-import { printThermalReceiptTXT, type ReceiptData } from '../lib/receiptPrinter'
-import { StarIcon, DollarIcon, UserIcon, UsersGroupRoundedIcon } from '@solar-icons/vue/linear'
+import { printReceipt, type ReceiptData } from '../lib/receiptPrinter'
+import PrinterSettingsModal from '../components/pos/PrinterSettingsModal.vue'
+import { StarIcon, DollarIcon, UserIcon, UsersGroupRoundedIcon, PrinterIcon } from '@solar-icons/vue/linear'
 import type { PaymentMethod } from '../types/database'
 import type { Cita } from '../types/cita'
 
@@ -963,6 +971,7 @@ const handleDirectServicePayment = async () => {
 
 const showConfirmModal = ref(false)
 const shouldPrintReceipt = ref(false)
+const showPrinterSettings = ref(false)
 
 const confirmClientName = computed(() => {
   if (activeSaleType.value === 'retail_only') return retailClientId.value ? retailClientSearch.value : null
@@ -986,7 +995,7 @@ const handleProcessPaymentPrint = () => {
 
 const cancelPayment = () => { showConfirmModal.value = false }
 
-const performPrintReceipt = (transactionIds?: string[]) => {
+const performPrintReceipt = async (transactionIds?: string[]) => {
   if (!shouldPrintReceipt.value) return
   
   const txId = transactionIds && transactionIds.length > 0 ? transactionIds[0] : undefined
@@ -1027,7 +1036,7 @@ const performPrintReceipt = (transactionIds?: string[]) => {
     currency: paymentMethod.value === 'mixed' || paymentMethod.value === 'cash' || paymentMethod.value === 'card' ? 'USD' : 'VES'
   }
   
-  printThermalReceiptTXT(data, `Factura_${data.receiptNumber ?? Date.now()}.txt`)
+  await printReceipt(data, `Factura_${data.receiptNumber ?? Date.now()}.txt`)
   shouldPrintReceipt.value = false
 }
 

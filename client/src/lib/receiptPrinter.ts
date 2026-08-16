@@ -1,4 +1,5 @@
 import { formatMethod } from './formatters'
+import { printThermalReceiptESC } from './qzPrinter'
 
 export interface ReceiptItem {
   name: string
@@ -217,5 +218,19 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
     printWindow.document.open()
     printWindow.document.write(html)
     printWindow.document.close()
+  }
+}
+
+/**
+ * The one function POS.vue / CobroActionsModal.vue should call. Tries QZ Tray first — raw ESC/POS
+ * straight to the printer, instant and never rasterized — and silently falls back to the old
+ * window.print() HTML ticket if QZ Tray isn't installed/connected on this machine, so printing
+ * doesn't break for a business that hasn't set it up yet.
+ */
+export async function printReceipt(data: ReceiptData, filename?: string): Promise<void> {
+  try {
+    await printThermalReceiptESC(data)
+  } catch {
+    printThermalReceiptTXT(data, filename)
   }
 }

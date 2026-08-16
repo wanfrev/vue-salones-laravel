@@ -7,7 +7,7 @@ import { formatMethod } from '../../lib/formatters'
 import SectionCard from '../common/SectionCard.vue'
 import { DualAmount } from '../common'
 import { listCitaGroupMembers } from '../../services/agendaService'
-import { printThermalReceiptTXT, type ReceiptData } from '../../lib/receiptPrinter'
+import { printReceipt as printThermalReceipt, type ReceiptData } from '../../lib/receiptPrinter'
 import type { Cita, PaymentEditContext, AppointmentProduct } from '../../types/cita'
 import type { PaymentBreakdownItem } from '../../types/pos'
 
@@ -157,7 +157,7 @@ const onDelete = () => {
   emit('delete', props.transactionIds)
 }
 
-const printReceipt = () => {
+const printReceipt = async () => {
   const pd = props.paymentData
   if (!pd) return
   
@@ -178,7 +178,7 @@ const printReceipt = () => {
     currency: pd.currency
   }
   
-  printThermalReceiptTXT(data, `Factura_${data.receiptNumber ?? Date.now()}.txt`)
+  await printThermalReceipt(data, `Factura_${data.receiptNumber ?? Date.now()}.txt`)
 }
 
 const paymentMethodOptions: { value: string; label: string }[] = [
