@@ -185,10 +185,12 @@ class PosService
             $receiptCode = null;
             $business = \App\Models\Business::find($businessId);
             if ($business && in_array($business->niche_type, ['tienda', 'retail'])) {
-                $lastCode = Transaction::where('business_id', $businessId)
+                $lastTx = Transaction::where('business_id', $businessId)
                     ->whereNotNull('receipt_code')
+                    ->orderBy('receipt_code', 'desc')
                     ->lockForUpdate()
-                    ->max('receipt_code');
+                    ->first();
+                $lastCode = $lastTx ? $lastTx->receipt_code : null;
                 
                 if ($lastCode) {
                     $num = (int) substr($lastCode, 1);
@@ -450,10 +452,12 @@ class PosService
             $receiptCode = null;
             $business = \App\Models\Business::find($businessId);
             if ($business && in_array($business->niche_type, ['tienda', 'retail'])) {
-                $lastCode = Transaction::where('business_id', $businessId)
+                $lastTx = Transaction::where('business_id', $businessId)
                     ->whereNotNull('receipt_code')
+                    ->orderBy('receipt_code', 'desc')
                     ->lockForUpdate()
-                    ->max('receipt_code');
+                    ->first();
+                $lastCode = $lastTx ? $lastTx->receipt_code : null;
                 
                 if ($lastCode) {
                     $num = (int) substr($lastCode, 1);
