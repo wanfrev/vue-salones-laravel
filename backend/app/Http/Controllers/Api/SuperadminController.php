@@ -28,7 +28,7 @@ class SuperadminController
     public function store(CreateBusinessRequest $request): JsonResponse
     {
         try {
-            $result = $this->superadminService->store($request->validated());
+            $result = $this->superadminService->store($request->validated(), $request->user()->id);
 
             $business = \App\Models\Business::find($result['businessId']);
 
@@ -58,25 +58,25 @@ class SuperadminController
             'features' => ['nullable', 'array'],
         ]);
 
-        $business = $this->superadminService->update($id, $validated);
+        $business = $this->superadminService->update($id, $validated, $request->user()->id);
         return response()->json(new BusinessResource($business));
     }
 
-    public function destroy(string $id): JsonResponse
+    public function destroy(Request $request, string $id): JsonResponse
     {
-        $this->superadminService->destroy($id);
+        $this->superadminService->destroy($id, $request->user()->id);
         return response()->json(null, 204);
     }
 
-    public function suspend(string $id): JsonResponse
+    public function suspend(Request $request, string $id): JsonResponse
     {
-        $this->superadminService->suspend($id);
+        $this->superadminService->suspend($id, $request->user()->id);
         return response()->json(['success' => true]);
     }
 
-    public function resume(string $id): JsonResponse
+    public function resume(Request $request, string $id): JsonResponse
     {
-        $this->superadminService->resume($id);
+        $this->superadminService->resume($id, $request->user()->id);
         return response()->json(['success' => true]);
     }
 
@@ -139,5 +139,22 @@ class SuperadminController
     public function auditLogs(string $id): JsonResponse
     {
         return response()->json($this->superadminService->auditLogs($id));
+    }
+
+    /** Every superadmin action across every business — the "Auditoría" page, not the per-business tab. */
+    public function globalAuditLogs(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'action' => ['nullable', 'string'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:500'],
+        ]);
+
+        return response()->json(
+            $this->superadminService->auditLogs(
+                null,
+                $validated['action'] ?? null,
+                $validated['limit'] ?? 100,
+            )
+        );
     }
 }

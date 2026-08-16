@@ -229,6 +229,12 @@ const router = createRouter({
       component: () => import('../views/SuperadminBusinessAdmins.vue'),
       meta: { requiresAuth: true, superadminOnly: true },
     },
+    {
+      path: '/superadmin/audit-log',
+      name: 'superadmin-audit-log',
+      component: () => import('../views/SuperadminAuditLog.vue'),
+      meta: { requiresAuth: true, superadminOnly: true },
+    },
     // Legacy redirects
     { path: '/clientes', redirect: '/admin/clientes' },
     { path: '/clientes/:id', redirect: to => `/admin/clientes/${to.params.id}` },

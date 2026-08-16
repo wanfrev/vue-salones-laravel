@@ -394,5 +394,6 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::put('/businesses/{id}/admins/{profileId}/password', [SuperadminController::class, 'resetAdminPassword']);
         Route::post('/businesses/{id}/admins/{profileId}/impersonate', [SuperadminController::class, 'impersonate']);
         Route::get('/businesses/{id}/audit-logs', [SuperadminController::class, 'auditLogs']);
+        Route::get('/audit-logs', [SuperadminController::class, 'globalAuditLogs']);
     });
 });

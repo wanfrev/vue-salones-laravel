@@ -60,8 +60,9 @@
           <div v-for="log in auditLogs" :key="log.id"
             class="flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-bg-secondary/30 px-3 py-2">
             <div class="min-w-0 flex-1">
-              <p class="text-xs font-semibold text-text">{{ describeAction(log) }}</p>
-              <p v-if="log.metadata?.admin_name" class="text-[11px] text-text-muted truncate">{{ log.metadata.admin_name }}</p>
+              <p class="text-xs font-semibold text-text">{{ describeAuditAction(log) }}</p>
+              <p v-if="describeAuditChanges(log)" class="text-[11px] text-text-muted truncate">{{ describeAuditChanges(log) }}</p>
+              <p v-else-if="log.metadata?.admin_name" class="text-[11px] text-text-muted truncate">{{ log.metadata.admin_name }}</p>
             </div>
             <span class="shrink-0 text-[11px] text-text-muted whitespace-nowrap">{{ formatDate(log.created_at) }}</span>
           </div>
@@ -155,12 +156,13 @@ import { useNotification } from '../composables/common/useNotification'
 import { formatDate } from '../lib/formatters'
 import { startImpersonation } from '../composables/superadmin/useImpersonation'
 import {
+  describeAuditAction,
+  describeAuditChanges,
   listAuditLogs,
   listBusinessAdmins,
   listBusinesses,
   resetBusinessAdminPassword,
   superadminKeys,
-  type SuperadminAuditLogEntry,
 } from '../services/superadminService'
 import type { Business } from '../types/database'
 import type { AuthProfile } from '../types/auth'
@@ -216,15 +218,6 @@ const { data: auditLogsData } = useQuery({
   queryFn: () => listAuditLogs(businessId.value),
 })
 const auditLogs = computed(() => auditLogsData.value ?? [])
-
-const actionLabels: Record<string, string> = {
-  impersonate_admin: 'Sesión de soporte iniciada',
-  reset_admin_password: 'Contraseña restablecida',
-}
-
-function describeAction(log: SuperadminAuditLogEntry): string {
-  return actionLabels[log.action] ?? log.action
-}
 
 // ── Password reset ──
 

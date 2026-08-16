@@ -21,7 +21,7 @@ class SuperadminService
             ->get();
     }
 
-    public function store(array $data): array
+    public function store(array $data, string $actorId): array
     {
         $email = strtolower(trim($data['ownerEmail']));
 
@@ -79,24 +79,74 @@ class SuperadminService
             throw new HttpException(500, 'No fue posible crear el negocio: ' . $e->getMessage());
         }
 
+        $this->logAudit($actorId, 'create_business', $businessId, null, [
+            'business_name' => $data['name'],
+            'owner_email' => $email,
+            'niche_type' => $data['nicheType'] ?? 'salon',
+        ]);
+
         return [
             'businessId' => $businessId,
             'userId' => $userId,
         ];
     }
 
-    public function update(string $id, array $data): Business
+    public function update(string $id, array $data, string $actorId): Business
     {
         $business = Business::find($id);
         if (!$business) {
             throw new NotFoundHttpException('Negocio no encontrado.');
         }
 
+        $changes = $this->diffChanges($business, $data);
+
         $business->update($data + ['updated_at' => now()]);
+
+        if ($changes !== []) {
+            $this->logAudit($actorId, 'update_business', $id, null, [
+                'business_name' => $business->name,
+                'changes' => $changes,
+            ]);
+        }
+
         return $business->fresh();
     }
 
-    public function destroy(string $id): void
+    /**
+     * Field-by-field [before, after] pairs for whatever the request actually changed — 'features'
+     * gets its own nested diff (only the flags that flipped) since a blanket before/after of the
+     * whole features object would bury the one toggle someone actually needs to find later.
+     */
+    private function diffChanges(Business $business, array $data): array
+    {
+        $changes = [];
+
+        foreach ($data as $key => $newValue) {
+            if ($key === 'features' && is_array($newValue)) {
+                $oldFeatures = $business->features ?? [];
+                $featureChanges = [];
+                foreach ($newValue as $feature => $enabled) {
+                    $wasEnabled = $oldFeatures[$feature] ?? null;
+                    if ($wasEnabled !== $enabled) {
+                        $featureChanges[$feature] = [$wasEnabled, $enabled];
+                    }
+                }
+                if ($featureChanges !== []) {
+                    $changes['features'] = $featureChanges;
+                }
+                continue;
+            }
+
+            $oldValue = $business->{$key} ?? null;
+            if ($oldValue !== $newValue) {
+                $changes[$key] = [$oldValue, $newValue];
+            }
+        }
+
+        return $changes;
+    }
+
+    public function destroy(string $id, string $actorId): void
     {
         $business = Business::find($id);
         if (!$business) {
@@ -113,9 +163,13 @@ class SuperadminService
             'active' => false,
             'updated_at' => now(),
         ]);
+
+        $this->logAudit($actorId, 'delete_business', $id, null, [
+            'business_name' => $business->name,
+        ]);
     }
 
-    public function suspend(string $id): void
+    public function suspend(string $id, string $actorId): void
     {
         $business = Business::find($id);
         if (!$business) {
@@ -126,9 +180,13 @@ class SuperadminService
         Profile::where('business_id', $id)
             ->where('role', '!=', 'superadmin')
             ->update(['active' => false, 'updated_at' => now()]);
+
+        $this->logAudit($actorId, 'suspend_business', $id, null, [
+            'business_name' => $business->name,
+        ]);
     }
 
-    public function resume(string $id): void
+    public function resume(string $id, string $actorId): void
     {
         $business = Business::find($id);
         if (!$business) {
@@ -139,6 +197,10 @@ class SuperadminService
         Profile::where('business_id', $id)
             ->where('role', '!=', 'superadmin')
             ->update(['active' => true, 'updated_at' => now()]);
+
+        $this->logAudit($actorId, 'resume_business', $id, null, [
+            'business_name' => $business->name,
+        ]);
     }
 
     public function admins(string $businessId): Collection
@@ -246,13 +308,24 @@ class SuperadminService
         ];
     }
 
-    /** Most recent superadmin actions, optionally scoped to one business. */
-    public function auditLogs(?string $businessId = null, int $limit = 50): Collection
+    /**
+     * Most recent superadmin actions — every business by default, or scoped to one. Eager-loads
+     * actor/business so the frontend never has to resolve a bare UUID into a name itself.
+     */
+    public function auditLogs(?string $businessId = null, ?string $action = null, int $limit = 50): Collection
     {
-        $query = SuperadminAuditLog::query()->orderByDesc('created_at')->limit($limit);
+        $query = SuperadminAuditLog::query()
+            ->with(['actor:id,full_name,email', 'business:id,name'])
+            ->orderByDesc('created_at')
+            ->limit($limit);
+
         if ($businessId) {
             $query->where('business_id', $businessId);
         }
+        if ($action) {
+            $query->where('action', $action);
+        }
+
         return $query->get();
     }
 

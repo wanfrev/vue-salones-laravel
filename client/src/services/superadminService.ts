@@ -19,6 +19,8 @@ export type SuperadminAuditLogEntry = {
   target_profile_id: string | null
   metadata: Record<string, unknown> | null
   created_at: string
+  actor?: { id: string; full_name: string; email: string | null } | null
+  business?: { id: string; name: string } | null
 }
 
 export type CreateBusinessInput = {
@@ -36,6 +38,7 @@ export type CreateBusinessResult = {
 export const superadminKeys = {
   businesses: () => ['superadmin', 'businesses'] as const,
   businessAdmins: (businessId: string) => ['superadmin', 'business-admins', businessId] as const,
+  globalAuditLogs: (action?: string | null) => ['superadmin', 'audit-logs', action ?? 'all'] as const,
 }
 
 // ── READ ──
@@ -146,6 +149,69 @@ export const impersonateBusinessAdmin = async (
 
 export const listAuditLogs = async (businessId: string): Promise<SuperadminAuditLogEntry[]> => {
   return apiRequest<SuperadminAuditLogEntry[]>('GET', `/admin/businesses/${businessId}/audit-logs`)
+}
+
+/** Every superadmin action across every business — backs the standalone "Auditoría" page. */
+export const listGlobalAuditLogs = async (action?: string | null): Promise<SuperadminAuditLogEntry[]> => {
+  const params = new URLSearchParams()
+  if (action) params.set('action', action)
+  const qs = params.toString()
+  return apiRequest<SuperadminAuditLogEntry[]>('GET', `/admin/audit-logs${qs ? `?${qs}` : ''}`)
+}
+
+// ── Shared with both the per-business "Actividad reciente" panel and the global Auditoría page ──
+
+export const AUDIT_ACTION_LABELS: Record<string, string> = {
+  create_business: 'Negocio creado',
+  update_business: 'Negocio actualizado',
+  delete_business: 'Negocio eliminado',
+  suspend_business: 'Negocio suspendido',
+  resume_business: 'Negocio reactivado',
+  reset_admin_password: 'Contraseña restablecida',
+  impersonate_admin: 'Sesión de soporte iniciada',
+}
+
+export function describeAuditAction(log: SuperadminAuditLogEntry): string {
+  return AUDIT_ACTION_LABELS[log.action] ?? log.action
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  active: 'Activo',
+  name: 'Nombre',
+  niche_type: 'Nicho',
+  timezone: 'Zona horaria',
+  currency: 'Moneda',
+  ves_exchange_rate: 'Tasa VES',
+  multi_branch_enabled: 'Multi-sucursal',
+  phone: 'Teléfono',
+  address: 'Dirección',
+}
+
+/** "Nombre: A → B, Activo: true → false" — the one-line summary of an update_business diff. */
+export function describeAuditChanges(log: SuperadminAuditLogEntry): string | null {
+  const changes = log.metadata?.changes as Record<string, unknown> | undefined
+  if (!changes) return null
+
+  const parts: string[] = []
+  for (const [field, value] of Object.entries(changes)) {
+    if (field === 'features') {
+      const featureChanges = value as Record<string, [unknown, unknown]>
+      for (const [feature, [wasOn, isOn]] of Object.entries(featureChanges)) {
+        parts.push(`${feature}: ${wasOn ? 'activo' : 'inactivo'} → ${isOn ? 'activo' : 'inactivo'}`)
+      }
+      continue
+    }
+    const [before, after] = value as [unknown, unknown]
+    const label = FIELD_LABELS[field] ?? field
+    parts.push(`${label}: ${formatAuditValue(before)} → ${formatAuditValue(after)}`)
+  }
+  return parts.join(', ')
+}
+
+function formatAuditValue(value: unknown): string {
+  if (value === null || value === undefined) return '—'
+  if (typeof value === 'boolean') return value ? 'Sí' : 'No'
+  return String(value)
 }
 
 export const suspendBusiness = async (businessId: string): Promise<void> => {

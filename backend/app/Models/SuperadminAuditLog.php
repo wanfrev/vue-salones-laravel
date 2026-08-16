@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SuperadminAuditLog extends Model
 {
@@ -22,5 +23,20 @@ class SuperadminAuditLog extends Model
         return [
             'metadata' => 'json',
         ];
+    }
+
+    public function actor(): BelongsTo
+    {
+        return $this->belongsTo(Profile::class, 'actor_id');
+    }
+
+    public function business(): BelongsTo
+    {
+        return $this->belongsTo(Business::class, 'business_id');
+    }
+
+    public function targetProfile(): BelongsTo
+    {
+        return $this->belongsTo(Profile::class, 'target_profile_id');
     }
 }
