@@ -145,21 +145,56 @@ export function buildThermalReceiptTXT(data: ReceiptData): string {
 }
 
 /**
- * Genera el TXT y dispara la descarga en el navegador.
+ * Genera el HTML y abre el diálogo de impresión directamente.
  */
-export function printThermalReceiptTXT(data: ReceiptData, filename = 'factura.txt'): void {
+export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): void {
   const txtContent = buildThermalReceiptTXT(data)
-  const blob = new Blob([txtContent], { type: 'text/plain;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
   
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  
-  setTimeout(() => {
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }, 100)
+  // En lugar de descargar un TXT, generamos un documento HTML con una fuente monospace
+  // estricta y márgenes en cero, y abrimos el diálogo de impresión del navegador.
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Recibo</title>
+<style>
+  @page {
+    margin: 0;
+    size: 58mm auto;
+  }
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    line-height: 1.2;
+    background: white;
+    color: black;
+    width: 58mm; /* Ancho de la impresora */
+    white-space: pre-wrap; /* Respeta los espacios y saltos de línea */
+    word-break: break-all;
+  }
+  .content {
+    padding: 2mm;
+    margin: 0;
+  }
+</style>
+</head>
+<body>
+  <div class="content">${txtContent.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+  <script>
+    window.onload = function() {
+      window.print();
+      setTimeout(function() { window.close(); }, 500);
+    }
+  </script>
+</body>
+</html>`
+
+  const printWindow = window.open('', '_blank', 'width=300,height=600')
+  if (printWindow) {
+    printWindow.document.open()
+    printWindow.document.write(html)
+    printWindow.document.close()
+  }
 }
