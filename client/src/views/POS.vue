@@ -1033,7 +1033,8 @@ const performPrintReceipt = async (transactionIds?: string[]) => {
     tip: tipAmount.value > 0 ? tipAmount.value : undefined,
     total: grandTotal.value,
     method: paymentMethod.value,
-    currency: paymentMethod.value === 'mixed' || paymentMethod.value === 'cash' || paymentMethod.value === 'card' ? 'USD' : 'VES'
+    currency: 'VES',
+    exchangeRate: exchangeRate.value
   }
   
   await printReceipt(data, `Factura_${data.receiptNumber ?? Date.now()}.txt`)

@@ -21,10 +21,17 @@ export interface ReceiptData {
   total: number
   method: string
   currency: string
+  exchangeRate?: number
 }
 
 export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): void {
-  const formatMoney = (amount: number) => `$${amount.toFixed(2)}`
+  const rate = data.exchangeRate ?? 1
+  const formatMoney = (amount: number) => {
+    // Si la cantidad viene en USD, se multiplica por la tasa para forzar Bs.
+    // Si ya estuviera en Bs, rate podría ser 1. Asumimos siempre que amount * rate da Bs.
+    const val = amount * rate
+    return `Bs ${val.toFixed(2)}`
+  }
 
   let itemsHtml = ''
   
@@ -191,10 +198,6 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
       <tr class="bold avoid-break">
         <td>TOTAL:</td>
         <td class="text-right">${formatMoney(data.total)}</td>
-      </tr>
-      <tr class="avoid-break">
-        <td>PAGO:</td>
-        <td class="text-right">${formatMethod(data.method)}</td>
       </tr>
     </table>
     

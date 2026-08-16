@@ -37,7 +37,7 @@ const emit = defineEmits<{
   delete: [transactionIds: string[]]
 }>()
 
-const { formatUSD, formatSecondary } = useCurrency()
+const { formatUSD, formatSecondary, exchangeRate } = useCurrency()
 const businessStore = useBusinessStore()
 const t = computed(() => businessStore.terminology)
 
@@ -62,8 +62,8 @@ watch(() => props.paymentData, (data) => {
     db
       .from('inventory_movements')
       .select('id, product_id, products(name, unit_price), quantity, unit_cost')
-      .eq('reference_type', 'appointment')
-      .eq('reference_id', data.appointmentId)
+      .eq('appointment_id', data.appointmentId)
+      .eq('reference_type', 'service')
       .then(({ data: items }: any) => {
         appointmentProducts.value = (items ?? []).map((m: any) => {
           const price = Number(m.products?.unit_price ?? 0)
@@ -130,9 +130,16 @@ const loadGroupMembers = async () => {
 
 watch(() => mode.value, (m) => { if (m === 'factura') loadGroupMembers() })
 
+const allServices = computed(() => {
+  if (props.cita && props.cita.is_group_appointment) {
+    return groupMembers.value.map(c => ({ service: c.service, price: c.price }))
+  }
+  return props.cita ? [{ service: props.cita.service, price: props.cita.price }] : []
+})
+
 const onRollback = () => {
-  const apptId = props.cita?.id
   const pd = props.paymentData
+  const apptId = pd?.appointmentId || props.cita?.id
   const prefill = pd ? {
     paymentMethod: pd.method,
     paymentAmount: pd.amount,
@@ -141,8 +148,6 @@ const onRollback = () => {
     tipAmount: pd.tipAmount ?? 0,
     notes: pd.notes ?? null,
     breakdown: pd.breakdown ?? null,
-    clientName: pd.clientName ?? null,
-    employeeName: pd.employeeName ?? null,
     products: appointmentProducts.value.map(p => ({
       productId: p.productId,
       productName: p.productName,
@@ -175,7 +180,8 @@ const printReceipt = async () => {
     tip: pd.tipAmount > 0 ? pd.tipAmount : undefined,
     total: pd.amount,
     method: pd.method,
-    currency: pd.currency
+    currency: 'VES',
+    exchangeRate: pd.exchangeRate || exchangeRate.value
   }
   
   await printThermalReceipt(data, `Factura_${data.receiptNumber ?? Date.now()}.txt`)
