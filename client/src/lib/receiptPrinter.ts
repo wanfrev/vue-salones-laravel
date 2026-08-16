@@ -30,11 +30,11 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   const processItems = (items: ReceiptItem[]) => {
     for (const item of items) {
       itemsHtml += `
-        <div class="item">
-          <div class="item-qty">${item.qty}</div>
-          <div class="item-desc">${item.name}</div>
-          <div class="item-price">${formatMoney(item.price)}</div>
-        </div>
+        <tr>
+          <td class="qty-col">${item.qty}</td>
+          <td class="desc-col">${item.name}</td>
+          <td class="price-col">${formatMoney(item.price)}</td>
+        </tr>
       `
     }
   }
@@ -53,63 +53,56 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   }
   body {
     margin: 0;
-    padding: 2mm 4mm 2mm 0; /* Padding derecho para evitar que el texto toque el borde y se corte */
+    /* Ajustamos el padding: 0 arriba/abajo, 3mm a la derecha para proteger los montos */
+    padding: 0 3mm 0 1mm;
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 11px; /* Letra un poco más pequeña para que quepa bien en 58mm */
-    line-height: 1.4; /* Interlineado fijo para evitar letras sobrepuestas */
-    background: white;
+    font-size: 11px;
+    font-weight: bold; /* Negrita evita que la impresora térmica corte la letra por falta de tinta */
+    line-height: 1.15; /* Interlineado muy compacto pero seguro */
     color: black;
     width: 100%;
+    max-width: 48mm;
     box-sizing: border-box;
+    /* Apagar el suavizado de fuentes evita las líneas blancas horizontales en impresoras térmicas */
+    -webkit-font-smoothing: none;
+    text-rendering: optimizeSpeed;
   }
   .text-center { text-align: center; }
-  .bold { font-weight: bold; }
+  .text-right { text-align: right; }
   .divider { 
     border-top: 1px dashed black; 
-    margin: 4px 0; 
+    margin: 3px 0; 
   }
-  .flex-between {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-  }
-  .item {
-    display: flex;
-    align-items: flex-start;
-    margin-bottom: 4px;
-  }
-  .item-qty {
-    width: 15%;
-    text-align: left;
-  }
-  .item-desc {
-    width: 55%;
-    text-align: left;
-    padding-right: 2px;
-    word-break: break-word;
-  }
-  .item-price {
-    width: 30%;
-    text-align: right;
-  }
-  .total-row {
-    font-size: 13px;
-    font-weight: bold;
-    margin-top: 4px;
-  }
-  .meta-row {
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
     margin-bottom: 2px;
   }
-  .footer {
-    margin-top: 10px;
-    margin-bottom: 10px;
+  th, td {
+    padding: 1px 0;
+    vertical-align: top;
+    word-wrap: break-word;
   }
+  .qty-col { width: 15%; }
+  .desc-col { width: 55%; padding-right: 2px; }
+  .price-col { width: 30%; text-align: right; }
+  
+  .meta-row { margin-bottom: 1px; }
+  .totals-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2px;
+  }
+  .totals-table td { padding: 1px 0; }
+  .total-row { font-size: 13px; }
+  .footer { margin-top: 8px; margin-bottom: 15px; }
 </style>
 </head>
 <body>
   <!-- Header -->
-  <div class="text-center bold" style="font-size: 13px; margin-bottom: 2px;">${data.businessName}</div>
-  ${data.branchName ? `<div class="text-center" style="margin-bottom: 2px;">${data.branchName}</div>` : ''}
+  <div class="text-center" style="font-size: 13px; margin-bottom: 1px;">${data.businessName}</div>
+  ${data.branchName ? `<div class="text-center" style="margin-bottom: 1px;">${data.branchName}</div>` : ''}
   <div class="divider"></div>
 
   <!-- Meta -->
@@ -119,37 +112,43 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   ${data.employeeName ? `<div class="meta-row">Atiende: ${data.employeeName}</div>` : ''}
   <div class="divider"></div>
 
-  <!-- Table Header -->
-  <div class="item bold" style="margin-bottom: 4px;">
-    <div class="item-qty">CANT</div>
-    <div class="item-desc">DESCRIP</div>
-    <div class="item-price">TOTAL</div>
-  </div>
-  
-  <!-- Items -->
-  ${itemsHtml}
+  <!-- Items Table -->
+  <table>
+    <thead>
+      <tr>
+        <th class="qty-col text-left">CANT</th>
+        <th class="desc-col text-left">DESCRIP</th>
+        <th class="price-col">TOTAL</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${itemsHtml}
+    </tbody>
+  </table>
 
   <div class="divider"></div>
 
   <!-- Totals -->
-  ${(data.tip ?? 0) > 0 ? `
-    <div class="flex-between meta-row">
-      <span>SUBTOTAL:</span>
-      <span>${formatMoney(data.subtotal)}</span>
-    </div>
-    <div class="flex-between meta-row">
-      <span>PROPINA:</span>
-      <span>${formatMoney(data.tip!)}</span>
-    </div>
-  ` : ''}
-  <div class="flex-between total-row">
-    <span>TOTAL:</span>
-    <span>${formatMoney(data.total)}</span>
-  </div>
-  <div class="flex-between meta-row" style="margin-top: 4px;">
-    <span>PAGO:</span>
-    <span class="text-right">${formatMethod(data.method)}</span>
-  </div>
+  <table class="totals-table">
+    ${(data.tip ?? 0) > 0 ? `
+      <tr>
+        <td>SUBTOTAL:</td>
+        <td class="text-right">${formatMoney(data.subtotal)}</td>
+      </tr>
+      <tr>
+        <td>PROPINA:</td>
+        <td class="text-right">${formatMoney(data.tip!)}</td>
+      </tr>
+    ` : ''}
+    <tr class="total-row">
+      <td>TOTAL:</td>
+      <td class="text-right">${formatMoney(data.total)}</td>
+    </tr>
+    <tr>
+      <td>PAGO:</td>
+      <td class="text-right">${formatMethod(data.method)}</td>
+    </tr>
+  </table>
   
   <div class="divider"></div>
   <div class="text-center footer">¡Gracias por su compra!</div>
