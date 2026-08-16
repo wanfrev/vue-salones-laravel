@@ -69,6 +69,12 @@ class StaffingReportController
             return response()->json(['weeks' => [], 'employees' => []]);
         }
 
+        // Laravel's `boolean` rule only accepts true/false/0/1/'0'/'1' — not the literal query
+        // string "true"/"false" the frontend sends (`?active=${active.value}`) — so this must be
+        // normalized before validate() or every request here fails validation and the UI falls
+        // back to its "no employees" empty state, indistinguishable from a genuinely empty result.
+        $request->merge(['active' => filter_var($request->query('active'), FILTER_VALIDATE_BOOL)]);
+
         $data = $request->validate([
             'year' => 'required|integer|min:2000|max:2100',
             'active' => 'required|boolean',
