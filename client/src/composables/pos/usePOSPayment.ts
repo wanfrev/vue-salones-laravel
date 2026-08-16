@@ -265,7 +265,7 @@ export function usePOSPayment() {
     members?: any[]
     groupPrice?: number
     tipAllocations?: Record<string, number>
-  }): Promise<boolean> => {
+  }): Promise<{ success: boolean; transactionIds?: string[] }> => {
     const { isGroup, groupIds, members, groupPrice, tipAllocations } = params
     const method = paymentMethod.value
     const notes = paymentNotes.value
@@ -374,11 +374,11 @@ export function usePOSPayment() {
     }
 
     try {
-      await recordSaleMutation.mutateAsync(payloads)
+      const results = await recordSaleMutation.mutateAsync(payloads)
       reset()
-      return true
+      return { success: true, transactionIds: results }
     } catch {
-      return false
+      return { success: false }
     }
   }
 
@@ -389,7 +389,7 @@ export function usePOSPayment() {
     clientId?: string | null
     clientNameInput?: string | null
     clientPhoneInput?: string | null
-  }): Promise<boolean> => {
+  }): Promise<{ success: boolean; transactionIds?: string[] }> => {
     const method = paymentMethod.value
     const notes = paymentNotes.value
     const pMethodObj = paymentMethods.value.find(m => m.value === method)
@@ -414,7 +414,7 @@ export function usePOSPayment() {
     }
 
     try {
-      await directSaleMutation.mutateAsync({
+      const txId = await directSaleMutation.mutateAsync({
         totalAmount: params.totalAmount,
         method: method as PaymentMethod,
         products: params.products,
@@ -426,10 +426,10 @@ export function usePOSPayment() {
         clientPhoneInput: params.clientPhoneInput || null,
       })
       reset()
-      return true
+      return { success: true, transactionIds: [txId] }
     } catch (err) {
       console.error('[POS Checkout Error]', err)
-      return false
+      return { success: false }
     }
   }
 
@@ -449,7 +449,7 @@ export function usePOSPayment() {
     products: POSProductItem[]
     exchangeRate: number
     tipAmount?: number
-  }): Promise<boolean> => {
+  }): Promise<{ success: boolean; transactionIds?: string[] }> => {
     const method = paymentMethod.value
     const notes = paymentNotes.value
     const pMethodObj = paymentMethods.value.find(m => m.value === method)
@@ -475,7 +475,7 @@ export function usePOSPayment() {
     }
 
     try {
-      await directServiceSaleMutation.mutateAsync({
+      const txId = await directServiceSaleMutation.mutateAsync({
         services: params.services,
         serviceId: params.serviceId,
         employeeId: params.employeeId,
@@ -491,9 +491,9 @@ export function usePOSPayment() {
         tipAmount: params.tipAmount,
       })
       reset()
-      return true
+      return { success: true, transactionIds: [txId] }
     } catch {
-      return false
+      return { success: false }
     }
   }
 
