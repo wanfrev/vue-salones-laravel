@@ -30,7 +30,7 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   const processItems = (items: ReceiptItem[]) => {
     for (const item of items) {
       itemsHtml += `
-        <tr>
+        <tr class="avoid-break">
           <td class="qty-col">${item.qty}</td>
           <td class="desc-col">${item.name}</td>
           <td class="price-col">${formatMoney(item.price)}</td>
@@ -48,49 +48,65 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
 <meta charset="UTF-8">
 <title>Recibo</title>
 <style>
-  /* Regla de impresión maestra */
-  @media print { 
+  /* 1. Forzar Monocromo y Apagar Suavizado */
+  @media print {
     @page { 
       margin: 0 !important; 
       size: 58mm auto; 
-    } 
-    body { 
+    }
+    html, body {
       margin: 0 !important; 
-      padding: 0 !important; 
-      width: 100%; 
-    } 
+      padding: 0 !important;
+    }
+    body {
+      color: #000000 !important;
+      background-color: #FFFFFF !important;
+      -webkit-font-smoothing: none !important;
+      text-rendering: optimizeSpeed !important;
+    }
   }
 
-  /* Fuentes limpias sin renderizado borroso */
+  /* 2. Márgenes en Cero y Estructura Principal */
   body {
     margin: 0;
     padding: 0;
-    text-rendering: optimizeSpeed; 
-    -webkit-font-smoothing: none;
-    background: white;
   }
 
-  /* Contenedor fluido pero restringido */
   .receipt-container {
-    width: 100%; 
-    max-width: 190px; 
-    margin: 0; 
-    padding: 0; 
-    font-family: monospace; 
-    font-size: 11px; 
-    text-align: left; 
-    color: #000;
-    line-height: 1.2;
+    max-width: 185px; /* Restricción estricta sugerida para impresoras 58mm */
+    text-align: left;
+    box-sizing: border-box;
+    padding: 2px; /* Margen de seguridad interno muy sutil */
+    margin: 0;
+  }
+
+  /* 3. Interlineado Compacto y Tipografía */
+  body, .receipt-container {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 10px;
+    line-height: 1.1;
+  }
+
+  p, h1, h2, h3, h4, h5, h6, hr, div {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+
+  .title {
+    font-size: 11px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 2px;
   }
   
   .text-center { text-align: center; }
   .text-right { text-align: right; }
   .bold { font-weight: bold; }
-  
+
   hr.divider { 
     border: none; 
     border-top: 1px dashed #000; 
-    margin: 4px 0; 
+    margin: 3px 0; 
   }
   
   table {
@@ -102,43 +118,47 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   
   th, td {
     vertical-align: top;
+    padding: 1px 0;
   }
   
   .qty-col { width: 15%; text-align: left; }
   .desc-col { width: 55%; text-align: left; word-break: break-word; }
   .price-col { width: 30%; text-align: right; }
   
-  .meta-row { margin: 2px 0; }
+  .meta-row { margin-bottom: 2px; }
   
-  /* Estructura de totales con Flexbox */
-  .flex-row {
-    display: flex; 
-    justify-content: space-between; 
+  .totals-table {
     width: 100%;
-    margin: 2px 0;
+    border-collapse: collapse;
+    margin-top: 2px;
   }
-  
   .footer { margin-top: 6px; margin-bottom: 12px; }
+
+  /* 4. Bloqueo de Paginación Web */
+  .avoid-break, .receipt-container {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
 </style>
 </head>
 <body>
-  <div class="receipt-container">
+  <div class="receipt-container avoid-break">
     <!-- Header -->
-    <div class="text-center bold meta-row">${data.businessName}</div>
-    ${data.branchName ? `<div class="text-center meta-row">${data.branchName}</div>` : ''}
+    <div class="title avoid-break">${data.businessName}</div>
+    ${data.branchName ? `<div class="text-center meta-row avoid-break">${data.branchName}</div>` : ''}
     <hr class="divider">
 
     <!-- Meta -->
-    ${data.receiptNumber ? `<div class="meta-row">Factura: ${data.receiptNumber}</div>` : ''}
-    <div class="meta-row">Fecha: ${data.date}</div>
-    ${data.clientName ? `<div class="meta-row">Cliente: ${data.clientName}</div>` : ''}
-    ${data.employeeName ? `<div class="meta-row">Atiende: ${data.employeeName}</div>` : ''}
+    ${data.receiptNumber ? `<div class="meta-row avoid-break">Factura: ${data.receiptNumber}</div>` : ''}
+    <div class="meta-row avoid-break">Fecha: ${data.date}</div>
+    ${data.clientName ? `<div class="meta-row avoid-break">Cliente: ${data.clientName}</div>` : ''}
+    ${data.employeeName ? `<div class="meta-row avoid-break">Atiende: ${data.employeeName}</div>` : ''}
     <hr class="divider">
 
     <!-- Items Table -->
     <table>
       <thead>
-        <tr>
+        <tr class="avoid-break">
           <th class="qty-col">CANT</th>
           <th class="desc-col">DESCRIP</th>
           <th class="price-col">TOTAL</th>
@@ -152,27 +172,29 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
     <hr class="divider">
 
     <!-- Totals -->
-    ${(data.tip ?? 0) > 0 ? `
-      <div class="flex-row">
-        <span>SUBTOTAL:</span>
-        <span>${formatMoney(data.subtotal)}</span>
-      </div>
-      <div class="flex-row">
-        <span>PROPINA:</span>
-        <span>${formatMoney(data.tip!)}</span>
-      </div>
-    ` : ''}
-    <div class="flex-row bold">
-      <span>TOTAL:</span>
-      <span>${formatMoney(data.total)}</span>
-    </div>
-    <div class="flex-row">
-      <span>PAGO:</span>
-      <span>${formatMethod(data.method)}</span>
-    </div>
+    <table class="totals-table">
+      ${(data.tip ?? 0) > 0 ? `
+        <tr class="avoid-break">
+          <td>SUBTOTAL:</td>
+          <td class="text-right">${formatMoney(data.subtotal)}</td>
+        </tr>
+        <tr class="avoid-break">
+          <td>PROPINA:</td>
+          <td class="text-right">${formatMoney(data.tip!)}</td>
+        </tr>
+      ` : ''}
+      <tr class="bold avoid-break">
+        <td>TOTAL:</td>
+        <td class="text-right">${formatMoney(data.total)}</td>
+      </tr>
+      <tr class="avoid-break">
+        <td>PAGO:</td>
+        <td class="text-right">${formatMethod(data.method)}</td>
+      </tr>
+    </table>
     
     <hr class="divider">
-    <div class="text-center footer">¡Gracias por su compra!</div>
+    <div class="text-center footer avoid-break">¡Gracias por su compra!</div>
   </div>
   
   <script>
