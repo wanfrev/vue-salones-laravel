@@ -224,6 +224,23 @@ class StaffingTimesheetService
         return $timesheet->fresh(['entries.employee']);
     }
 
+    /** Marks an approved week's payroll as actually paid out to the employees. */
+    public function markPaid(string $id, string $businessId): StaffingTimesheet
+    {
+        $timesheet = $this->findForBusiness($id, $businessId);
+
+        if ($timesheet->status !== StaffingTimesheet::STATUS_APPROVED) {
+            throw new RuntimeException('Solo una semana aprobada puede marcarse como pagada.');
+        }
+
+        $timesheet->update([
+            'status' => StaffingTimesheet::STATUS_PAID,
+            'updated_at' => now(),
+        ]);
+
+        return $timesheet->fresh(['entries.employee']);
+    }
+
     public function destroy(string $id, string $businessId): void
     {
         $timesheet = $this->findForBusiness($id, $businessId);

@@ -5,17 +5,31 @@ import { mapEmpleadoFormToProfileUpdate, mapEmpleadoFormToScheduleBlocks, mapPro
 import type { EmployeeProfile } from '../mappers/equipoMapper'
 import type { Empleado, EmpleadoFormData } from '../types/empleado'
 
+export type EmployeeActiveFilter = 'active' | 'inactive' | 'all'
+
 export const equipoKeys = {
-  all: (businessId?: string | null, branchId?: string | null) => ['equipo', businessId, branchId] as const,
+  all: (businessId?: string | null, branchId?: string | null, activeFilter?: EmployeeActiveFilter) =>
+    ['equipo', businessId, branchId, activeFilter ?? 'active'] as const,
 }
 
-export const listEquipo = async (businessId: string, branchId?: string | null): Promise<Empleado[]> => {
-  const { data, error } = await db
+export const listEquipo = async (
+  businessId: string,
+  branchId?: string | null,
+  activeFilter: EmployeeActiveFilter = 'active',
+): Promise<Empleado[]> => {
+  let query = db
     .from('profiles')
     .select('*, employee_schedules(*)')
     .eq('business_id', businessId)
     .in('role', ['empleado', 'encargado', 'cajero'])
     .order('full_name')
+
+  if (activeFilter !== 'active') {
+    // Backend interprets this literally ('inactive' | 'all') — see ProfileService::list().
+    query = query.eq('active', activeFilter)
+  }
+
+  const { data, error } = await query
 
   if (error) throw error
 

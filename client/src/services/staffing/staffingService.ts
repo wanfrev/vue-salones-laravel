@@ -355,6 +355,10 @@ export const saveTimesheetWeek = async (
 export const approveTimesheet = (id: string): Promise<StaffingTimesheet> =>
   apiRequest<StaffingTimesheet>('POST', `/staffing-timesheets/${id}/approve`)
 
+/** Marks an already-approved week as actually paid out to the employees. */
+export const markTimesheetPaid = (id: string): Promise<StaffingTimesheet> =>
+  apiRequest<StaffingTimesheet>('POST', `/staffing-timesheets/${id}/mark-paid`)
+
 /** Only a draft can be deleted — an approved week is payroll history. */
 export const deleteTimesheet = async (id: string): Promise<void> => {
   const { error } = await db.from('staffing_timesheets').delete().eq('id', id)

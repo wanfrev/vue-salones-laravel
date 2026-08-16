@@ -26,7 +26,7 @@
       </div>
 
       <span v-if="currentWeek" class="rounded-full px-2.5 py-1 text-xs font-semibold"
-        :class="currentWeek.status === 'draft' ? 'bg-warning/10 text-warning' : 'bg-success/10 text-success'">
+        :class="currentWeek.status === 'draft' ? 'bg-warning/10 text-warning' : currentWeek.status === 'approved' ? 'bg-info/10 text-info' : 'bg-success/10 text-success'">
         {{ currentWeek.status === 'draft' ? 'Borrador' : currentWeek.status === 'approved' ? 'Aprobada' : 'Pagada' }}
       </span>
     </div>
@@ -164,6 +164,11 @@
           class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
           @click="handlePrintInvoice">
           Ver factura #{{ existingInvoice.invoice_number }}
+        </button>
+        <button v-if="currentWeek?.status === 'approved'" type="button" :disabled="timesheets.markPaidMutation.isPending.value"
+          class="rounded-lg bg-success px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-success/90 disabled:cursor-not-allowed disabled:opacity-60"
+          @click="handleMarkPaid">
+          {{ timesheets.markPaidMutation.isPending.value ? 'Marcando...' : 'Marcar como pagada' }}
         </button>
       </div>
     </template>
@@ -451,6 +456,10 @@ const handleSave = async () => {
 
 const handleApprove = async () => {
   if (currentWeek.value) await timesheets.approve(currentWeek.value.id)
+}
+
+const handleMarkPaid = async () => {
+  if (currentWeek.value) await timesheets.markPaid(currentWeek.value.id)
 }
 
 const handleGenerateInvoice = async () => {

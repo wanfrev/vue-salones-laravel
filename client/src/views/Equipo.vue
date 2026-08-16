@@ -30,6 +30,10 @@
     </template>
   </div>
 
+  <div v-if="isStaffing" class="mb-4 max-w-xs">
+    <SegmentedTabs :tabs="employeeStatusTabs" :model-value="employeeActiveFilter" @update:model-value="employeeActiveFilter = $event as EmployeeActiveFilter" />
+  </div>
+
   <EmployeeGrid
     :employees="visibleTeam" :show-all="showAll" :has-more="hasMoreThanDefault" :total-count="team.length"
     :get-initials="getInitials" :is-staffing="isStaffing" :companies-by-id="companiesById" :show-agenda="showAgenda"
@@ -110,7 +114,7 @@ import { useAuth } from '../composables/common/useAuth'
 import { useNotification } from '../composables/common/useNotification'
 import { useCurrency } from '../composables/common/useCurrency'
 import { usePeriodSelection } from '../composables/finanzas/usePeriodSelection'
-import { deleteEmpleado, equipoKeys, listEquipo, saveEmpleado } from '../services/equipoService'
+import { deleteEmpleado, equipoKeys, listEquipo, saveEmpleado, type EmployeeActiveFilter } from '../services/equipoService'
 import { listStaffingCompanies, staffingCompanyKeys } from '../services/staffing/staffingService'
 import { useBusinessStore } from '../store/business'
 import { getInitials, formatMethod, formatTime24to12 } from '../lib/formatters'
@@ -121,6 +125,7 @@ import { useEmployeePayments } from '../composables/empleados/useEmployeePayment
 import { useQueryClient } from '@tanstack/vue-query'
 import { employeePaymentKeys } from '../services/employeePaymentsService'
 import { StatCard } from '../components/common'
+import SegmentedTabs from '../components/common/SegmentedTabs.vue'
 import EmployeeGrid from '../components/common/EmployeeGrid.vue'
 import EmployeePaymentModal from '../components/equipo/EmployeePaymentModal.vue'
 import EmployeeConsumptionModal from '../components/equipo/EmployeeConsumptionModal.vue'
@@ -139,6 +144,13 @@ const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 const isStaffing = computed(() => businessStore.hasCapability('staffing.timesheets'))
 const showAgenda = computed(() => businessStore.hasFeature('agenda'))
+
+const employeeActiveFilter = ref<EmployeeActiveFilter>('active')
+const employeeStatusTabs = [
+  { key: 'active', label: 'Activos' },
+  { key: 'inactive', label: 'Inactivos' },
+  { key: 'all', label: 'Todos' },
+]
 
 const { data: staffingCompanies } = useQuery({
   queryKey: computed(() => staffingCompanyKeys.all(businessId.value)),
@@ -187,8 +199,8 @@ const onPaymentSaved = async () => {
 
 const { items: rawTeam, handleSave: handleSaveEmpleado, handleDelete: handleDeleteEmpleado, isSaving } = useCrud<Empleado, EmpleadoFormData>({
   businessId, branchId,
-  queryKey: (id, brId) => equipoKeys.all(id, brId),
-  queryFn: (id, brId) => listEquipo(id, brId),
+  queryKey: (id, brId) => equipoKeys.all(id, brId, isStaffing.value ? employeeActiveFilter.value : undefined),
+  queryFn: (id, brId) => listEquipo(id, brId, isStaffing.value ? employeeActiveFilter.value : 'active'),
   saveFn: (id, data, brId) => saveEmpleado(data, id, brId),
   deleteFn: (id) => deleteEmpleado(id),
   entityName: 'Empleado', modalRef: empleadoModalRef,

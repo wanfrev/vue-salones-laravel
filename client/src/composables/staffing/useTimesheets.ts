@@ -7,6 +7,7 @@ import {
   deleteTimesheet,
   listCompanyEmployees,
   listStaffingTimesheets,
+  markTimesheetPaid,
   saveTimesheetWeek,
   staffingTimesheetKeys,
   type TimesheetEntryInput,
@@ -75,6 +76,18 @@ export function useTimesheets(businessId: Ref<string | null>, companyId: Ref<str
     },
   })
 
+  const markPaidMutation = useMutation({
+    mutationFn: (id: string) => markTimesheetPaid(id),
+    onSuccess: async () => {
+      await invalidate()
+      success('Semana marcada como pagada')
+    },
+    onError: (err) => {
+      saveError.value = translateError(err)
+      showError(saveError.value)
+    },
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteTimesheet(id),
     onSuccess: async () => {
@@ -105,6 +118,16 @@ export function useTimesheets(businessId: Ref<string | null>, companyId: Ref<str
     }
   }
 
+  const markPaid = async (id: string) => {
+    saveError.value = ''
+    try {
+      await markPaidMutation.mutateAsync(id)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   return {
     employees,
     employeesLoading,
@@ -114,8 +137,10 @@ export function useTimesheets(businessId: Ref<string | null>, companyId: Ref<str
     saveError,
     saveMutation,
     approveMutation,
+    markPaidMutation,
     save,
     approve,
+    markPaid,
     remove: (id: string) => deleteMutation.mutate(id),
   }
 }

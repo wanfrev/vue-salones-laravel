@@ -2,7 +2,7 @@
   <ModalBase :is-open="isOpen" :title="`Recibo de Pago — ${employeeName}`" size="xl" @close="emit('close')">
     <div id="admin-recibo-printable" class="space-y-6">
       <!-- Header / Employee Info Card -->
-      <div class="rounded-xl border border-border bg-surface p-4 sm:p-6">
+      <div v-if="!isStaffingView" class="rounded-xl border border-border bg-surface p-4 sm:p-6">
         <div class="text-center border-b border-border pb-4 mb-4">
           <h2 class="text-xl font-bold text-text">{{ businessName || 'Salón' }}</h2>
           <p class="text-xs text-text-muted mt-0.5">Recibo de Pago de Empleado</p>
@@ -248,6 +248,155 @@
           </div>
         </template>
       </div>
+
+      <!-- Staffing niche: hours/company/OT recibo, weekly -->
+      <div v-else class="rounded-xl border border-border bg-surface p-4 sm:p-6">
+        <div class="text-center border-b border-border pb-4 mb-4">
+          <h2 class="text-xl font-bold text-text">{{ businessName || 'Delta Work Force' }}</h2>
+          <p class="text-xs text-text-muted mt-0.5">Recibo de Pago de Empleado</p>
+        </div>
+
+        <div class="flex items-center gap-4 mb-4">
+          <div class="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-base font-bold text-primary shrink-0">
+            {{ initials }}
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold text-text text-base">{{ employeeName }}</p>
+            <p class="text-xs text-text-muted truncate">
+              {{ staffingCompanyName }}<template v-if="props.employee?.role || props.employee?.staffingRole"> · {{ props.employee.role || props.employee.staffingRole }}</template>
+            </p>
+          </div>
+        </div>
+
+        <div v-if="loadingStaffingWeeks" class="flex items-center justify-center py-8">
+          <svg class="h-6 w-6 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+        </div>
+
+        <p v-else-if="employeeWeeks.length === 0" class="py-8 text-center text-sm text-text-muted">
+          Este empleado todavía no tiene horas cargadas en Nómina.
+        </p>
+
+        <template v-else>
+          <!-- Week Navigator -->
+          <div class="mb-5 no-print flex items-center justify-center gap-2">
+            <button type="button" @click="goToOlderWeek" :disabled="isOldestWeek"
+              class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Semana anterior">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <span class="text-sm font-semibold text-text min-w-[160px] text-center">{{ selectedWeekLabel }}</span>
+            <button type="button" @click="goToNewerWeek" :disabled="isLatestWeek"
+              class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+              title="Semana siguiente">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          <div class="hidden print:block text-center font-bold text-sm mb-4 text-text">
+            Semana: {{ selectedWeekLabel }}
+          </div>
+
+          <div class="flex justify-center mb-5">
+            <span class="rounded-full px-3 py-1 text-xs font-semibold"
+              :class="selectedWeekStatus === 'paid' ? 'bg-success/10 text-success' : selectedWeekStatus === 'approved' ? 'bg-info/10 text-info' : 'bg-warning/10 text-warning'">
+              {{ selectedWeekStatus === 'paid' ? 'Pagada' : selectedWeekStatus === 'approved' ? 'Aprobada — pago pendiente' : 'Borrador — sin aprobar' }}
+            </span>
+          </div>
+
+          <!-- Summary Cards -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+            <div class="rounded-lg bg-bg-secondary p-3">
+              <p class="text-xs text-text-muted uppercase tracking-wider">Horas totales</p>
+              <p class="text-xl font-bold text-text mt-0.5">{{ selectedEntry?.total_hours?.toFixed(2) ?? '0.00' }}</p>
+            </div>
+            <div class="rounded-lg bg-bg-secondary p-3">
+              <p class="text-xs text-text-muted uppercase tracking-wider">Horas regulares</p>
+              <p class="text-xl font-bold text-text mt-0.5">{{ selectedEntry?.regular_hours?.toFixed(2) ?? '0.00' }}</p>
+            </div>
+            <div class="rounded-lg bg-bg-secondary p-3">
+              <p class="text-xs text-text-muted uppercase tracking-wider">Horas OT</p>
+              <p class="text-xl font-bold text-text mt-0.5">{{ selectedEntry?.overtime_hours?.toFixed(2) ?? '0.00' }}</p>
+            </div>
+            <div class="rounded-lg bg-bg-secondary p-3">
+              <p class="text-xs text-text-muted uppercase tracking-wider">Total a cobrar</p>
+              <p class="text-xl font-bold text-primary mt-0.5">{{ formatUSD(selectedEntry?.payout ?? 0) }}</p>
+            </div>
+          </div>
+
+          <!-- Breakdown -->
+          <div class="space-y-2 mb-6">
+            <div class="flex justify-between py-2 text-sm">
+              <span class="text-text-muted">Pago regular ({{ selectedEntry?.regular_hours?.toFixed(2) ?? '0.00' }}h × {{ formatUSD(selectedEntry?.pay_rate ?? 0) }}/h)</span>
+              <span class="font-medium text-text">{{ formatUSD((selectedEntry?.regular_hours ?? 0) * (selectedEntry?.pay_rate ?? 0)) }}</span>
+            </div>
+            <div v-if="(selectedEntry?.overtime_hours ?? 0) > 0" class="flex justify-between py-2 text-sm">
+              <span class="text-text-muted">Pago overtime ({{ selectedEntry?.overtime_hours?.toFixed(2) }}h)</span>
+              <span class="font-medium text-text">{{ formatUSD(overtimePay) }}</span>
+            </div>
+            <div class="flex justify-between py-2 text-sm">
+              <span class="text-text-muted">Bruto (gross)</span>
+              <span class="font-medium text-text">{{ formatUSD(selectedEntry?.gross ?? 0) }}</span>
+            </div>
+            <div v-if="(selectedEntry?.tax_withheld ?? 0) > 0" class="flex justify-between py-2 text-sm">
+              <span class="text-text-muted">Retención</span>
+              <span class="font-medium text-danger">-{{ formatUSD(selectedEntry?.tax_withheld ?? 0) }}</span>
+            </div>
+            <div v-if="(selectedEntry?.pre_tax_deduction ?? 0) > 0" class="flex justify-between py-2 text-sm">
+              <span class="text-text-muted">Deducción</span>
+              <span class="font-medium text-danger">-{{ formatUSD(selectedEntry?.pre_tax_deduction ?? 0) }}</span>
+            </div>
+            <div v-if="(selectedEntry?.fixed_fees ?? 0) > 0" class="flex justify-between py-2 text-sm">
+              <span class="text-text-muted">Fee fijo</span>
+              <span class="font-medium text-danger">-{{ formatUSD(selectedEntry?.fixed_fees ?? 0) }}</span>
+            </div>
+            <div v-if="(selectedEntry?.adjustment ?? 0) !== 0" class="flex justify-between py-2 text-sm">
+              <span class="text-text-muted">Ajuste</span>
+              <span class="font-medium" :class="(selectedEntry?.adjustment ?? 0) > 0 ? 'text-success' : 'text-danger'">
+                {{ (selectedEntry?.adjustment ?? 0) > 0 ? '+' : '' }}{{ formatUSD(selectedEntry?.adjustment ?? 0) }}
+              </span>
+            </div>
+            <div class="border-t border-border pt-3 flex justify-between">
+              <span class="font-semibold text-text text-base">Total a cobrar</span>
+              <span class="font-bold text-primary text-lg">{{ formatUSD(selectedEntry?.payout ?? 0) }}</span>
+            </div>
+          </div>
+
+          <!-- Historial de semanas -->
+          <div class="border-t border-border pt-4 mb-4 no-print">
+            <button type="button" @click="showHistory = !showHistory" class="flex w-full items-center justify-between text-left">
+              <span class="text-xs font-semibold uppercase tracking-wider text-text-muted">Historial de semanas</span>
+              <svg :class="['h-4 w-4 text-text-muted transition-transform', showHistory ? 'rotate-180' : '']"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            <div v-if="showHistory" class="mt-3 space-y-2">
+              <button type="button" v-for="week in otherWeeks" :key="week.timesheet.id"
+                @click="selectWeek(week.timesheet.week_start)"
+                class="flex w-full items-center justify-between rounded-lg border border-border bg-bg-secondary/50 p-3 text-left transition-colors hover:bg-bg-secondary">
+                <div>
+                  <p class="text-sm font-semibold text-text">{{ weekLabel(week.timesheet.week_start, week.timesheet.week_end) }}</p>
+                  <p class="text-xs text-text-muted">{{ week.entry.total_hours.toFixed(2) }}h ({{ week.entry.regular_hours.toFixed(2) }} reg + {{ week.entry.overtime_hours.toFixed(2) }} OT)</p>
+                </div>
+                <div class="text-right">
+                  <p class="text-sm font-bold text-text">{{ formatUSD(week.entry.payout) }}</p>
+                  <p class="text-xs" :class="week.timesheet.status === 'paid' ? 'text-success' : 'text-warning'">
+                    {{ week.timesheet.status === 'paid' ? 'Pagada' : week.timesheet.status === 'approved' ? 'Pendiente' : 'Borrador' }}
+                  </p>
+                </div>
+              </button>
+            </div>
+          </div>
+        </template>
+      </div>
     </div>
 
     <template #footer>
@@ -275,7 +424,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import ModalBase from '../common/ModalBase.vue'
 import SegmentedTabs from '../common/SegmentedTabs.vue'
@@ -286,6 +435,10 @@ import { useBusinessStore } from '../../store/business'
 import { getInitials, parseLocalDate } from '../../lib/formatters'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { dashboardKeys, listEmployeeTransactions, listEmployeePayments } from '../../services/employeeDashboardService'
+import {
+  listStaffingCompanies, listStaffingTimesheets, staffingCompanyKeys, staffingTimesheetKeys,
+} from '../../services/staffing/staffingService'
+import type { StaffingTimesheet, StaffingTimesheetEntry } from '../../types/database'
 
 const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
@@ -305,6 +458,90 @@ const employeeId = computed(() => props.employee?.id ?? '')
 const employeeName = computed(() => props.employee?.name || props.employee?.full_name || 'Empleado')
 const branchId = computed(() => businessStore.currentBranchId)
 const businessName = computed(() => businessStore.business?.name ?? '')
+
+// ── Staffing niche: hours/company/OT recibo, one row per week ──────────────
+const isStaffingView = computed(() => businessStore.hasCapability('staffing.timesheets'))
+
+const { data: staffingCompaniesData } = useQuery({
+  queryKey: computed(() => staffingCompanyKeys.all(businessId.value)),
+  queryFn: () => listStaffingCompanies(businessId.value!, null, 'all'),
+  enabled: computed(() => props.isOpen && isStaffingView.value && !!businessId.value),
+})
+const staffingCompanyName = computed(() => {
+  const id = props.employee?.staffingCompanyId
+  if (!id) return 'Sin empresa'
+  return (staffingCompaniesData.value ?? []).find(c => c.id === id)?.name ?? 'Sin empresa'
+})
+
+const { data: staffingTimesheetsData, isLoading: loadingStaffingWeeks } = useQuery({
+  queryKey: computed(() => staffingTimesheetKeys.byCompany(businessId.value, props.employee?.staffingCompanyId ?? null)),
+  queryFn: () => listStaffingTimesheets(businessId.value!, props.employee!.staffingCompanyId!),
+  enabled: computed(() => props.isOpen && isStaffingView.value && !!businessId.value && !!props.employee?.staffingCompanyId),
+})
+
+interface EmployeeWeek { timesheet: StaffingTimesheet; entry: StaffingTimesheetEntry }
+
+/** This employee's entry from every week their company has run payroll, most recent first. */
+const employeeWeeks = computed<EmployeeWeek[]>(() => {
+  const sheets = staffingTimesheetsData.value ?? []
+  const empId = props.employee?.id
+  if (!empId) return []
+  return sheets
+    .map(ts => ({ timesheet: ts, entry: (ts.entries ?? []).find(e => e.employee_id === empId) }))
+    .filter((w): w is EmployeeWeek => !!w.entry)
+    .sort((a, b) => b.timesheet.week_start.localeCompare(a.timesheet.week_start))
+})
+
+// Tracked by week_start (not index) so it survives the list re-sorting/refetching underneath it.
+const selectedWeekStart = ref<string | null>(null)
+watch(() => props.employee?.id, () => { selectedWeekStart.value = null })
+
+const selectedWeekIdx = computed(() => {
+  if (employeeWeeks.value.length === 0) return -1
+  if (!selectedWeekStart.value) return 0
+  const idx = employeeWeeks.value.findIndex(w => w.timesheet.week_start.slice(0, 10) === selectedWeekStart.value)
+  return idx === -1 ? 0 : idx
+})
+
+const selectedWeek = computed(() => selectedWeekIdx.value >= 0 ? employeeWeeks.value[selectedWeekIdx.value] : null)
+const selectedEntry = computed(() => selectedWeek.value?.entry ?? null)
+const selectedWeekStatus = computed(() => selectedWeek.value?.timesheet.status ?? 'draft')
+
+function weekLabel(start: string, end: string): string {
+  const s = parseLocalDate(start.slice(0, 10))
+  const e = parseLocalDate(end.slice(0, 10))
+  return `${s.getDate()} ${MONTHS_ES[s.getMonth()].slice(0, 3)} - ${e.getDate()} ${MONTHS_ES[e.getMonth()].slice(0, 3)} ${e.getFullYear()}`
+}
+
+const selectedWeekLabel = computed(() =>
+  selectedWeek.value ? weekLabel(selectedWeek.value.timesheet.week_start, selectedWeek.value.timesheet.week_end) : '—'
+)
+
+const isLatestWeek = computed(() => selectedWeekIdx.value <= 0)
+const isOldestWeek = computed(() => selectedWeekIdx.value === employeeWeeks.value.length - 1)
+
+function goToOlderWeek() {
+  if (isOldestWeek.value || selectedWeekIdx.value === -1) return
+  selectedWeekStart.value = employeeWeeks.value[selectedWeekIdx.value + 1].timesheet.week_start.slice(0, 10)
+}
+function goToNewerWeek() {
+  if (isLatestWeek.value) return
+  selectedWeekStart.value = employeeWeeks.value[selectedWeekIdx.value - 1].timesheet.week_start.slice(0, 10)
+}
+function selectWeek(weekStart: string) {
+  selectedWeekStart.value = weekStart.slice(0, 10)
+  showHistory.value = false
+}
+
+const otherWeeks = computed(() => employeeWeeks.value.filter((_, i) => i !== selectedWeekIdx.value))
+
+/** entry.gross already nets out pre_tax_deduction — add it back to isolate the OT-only amount. */
+const overtimePay = computed(() => {
+  const e = selectedEntry.value
+  if (!e) return 0
+  const regularAmount = e.regular_hours * e.pay_rate
+  return e.gross - regularAmount + e.pre_tax_deduction
+})
 
 const selectedPeriod = ref<'all' | 'day' | 'week' | 'month'>('month')
 const selectedDate = ref(new Date())
@@ -478,7 +715,7 @@ const dateParams = computed(() => selectedPeriod.value !== 'all'
 const { data: earningsData, isLoading: loadingEarnings } = useQuery({
   queryKey: computed(() => dashboardKeys.earnings(businessId.value, employeeId.value, branchId.value, dateParams.value.start, dateParams.value.end)),
   queryFn: () => listEmployeeTransactions(businessId.value!, employeeId.value!, branchId.value, dateParams.value.start, dateParams.value.end),
-  enabled: computed(() => props.isOpen && !!businessId.value && !!employeeId.value),
+  enabled: computed(() => props.isOpen && !isStaffingView.value && !!businessId.value && !!employeeId.value),
   staleTime: 0,
 })
 const earnings = computed(() => earningsData.value ?? [])
@@ -532,7 +769,7 @@ const totalEarnedVES = computed(() =>
 const { data: paymentsData } = useQuery({
   queryKey: computed(() => dashboardKeys.payments(businessId.value, employeeId.value, branchId.value, dateParams.value.start, dateParams.value.end)),
   queryFn: () => listEmployeePayments(businessId.value!, employeeId.value!, branchId.value, dateParams.value.start, dateParams.value.end),
-  enabled: computed(() => props.isOpen && !!businessId.value && !!employeeId.value),
+  enabled: computed(() => props.isOpen && !isStaffingView.value && !!businessId.value && !!employeeId.value),
   staleTime: 0,
 })
 const payments = computed(() => paymentsData.value ?? [])

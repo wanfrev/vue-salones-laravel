@@ -1,14 +1,18 @@
 <template>
   <div class="mb-4 grid grid-cols-1 gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
     <div v-for="member in employees" :key="member.id"
-      class="group rounded-xl border border-border bg-surface p-4 shadow-sm transition-theme hover:shadow-md hover:border-border-strong sm:p-5">
+      class="group rounded-xl border border-border bg-surface p-4 shadow-sm transition-theme hover:shadow-md hover:border-border-strong sm:p-5"
+      :class="{ 'opacity-60': member.active === false }">
       <div class="flex items-start gap-3">
         <div
           class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/10 to-primary/5 text-sm font-bold text-primary transition-theme group-hover:scale-105 group-hover:shadow-sm">
           {{ getInitials(member.name) }}
         </div>
         <div class="min-w-0 flex-1 pt-0.5">
-          <h3 class="font-semibold text-text">{{ member.name }}</h3>
+          <div class="flex items-center gap-2">
+            <h3 class="font-semibold text-text truncate">{{ member.name }}</h3>
+            <span v-if="member.active === false" class="shrink-0 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger">Inactivo</span>
+          </div>
           <p class="text-xs text-text-muted">{{ member.role }}</p>
           <p v-if="member.email" class="text-xs text-text-muted truncate mt-0.5">{{ member.email }}</p>
         </div>
