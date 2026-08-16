@@ -84,7 +84,8 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   body, .receipt-container {
     font-family: 'Courier New', Courier, monospace;
     font-size: 10px;
-    line-height: 1.1;
+    line-height: 1.3 !important;
+    font-weight: bold !important;
   }
 
   p, h1, h2, h3, h4, h5, h6, hr, div {
@@ -94,9 +95,11 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
 
   .title {
     font-size: 11px;
-    font-weight: bold;
+    font-weight: bold !important;
     text-align: center;
     margin-bottom: 2px;
+    padding-top: 2px;
+    padding-bottom: 2px;
   }
   
   .text-center { text-align: center; }
@@ -114,6 +117,7 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
     table-layout: fixed;
     border-collapse: collapse;
     margin: 2px 0;
+    font-weight: bold !important;
   }
   
   th, td {
