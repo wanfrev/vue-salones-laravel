@@ -22,26 +22,98 @@ export interface ReceiptData {
   currency: string
 }
 
-export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): void {
+function centerText(text: string, width: number): string {
+  if (text.length >= width) return text.substring(0, width)
+  const leftPad = Math.floor((width - text.length) / 2)
+  const rightPad = width - text.length - leftPad
+  return ' '.repeat(leftPad) + text + ' '.repeat(rightPad)
+}
+
+function justifyText(left: string, right: string, width: number): string {
+  const combinedLength = left.length + right.length
+  if (combinedLength >= width) {
+    const maxLeft = width - right.length - 1
+    return left.substring(0, maxLeft > 0 ? maxLeft : 0) + ' ' + right
+  }
+  return left + ' '.repeat(width - combinedLength) + right
+}
+
+function padRight(text: string, length: number): string {
+  if (text.length >= length) return text.substring(0, length)
+  return text + ' '.repeat(length - text.length)
+}
+
+function padLeft(text: string, length: number): string {
+  if (text.length >= length) return text.substring(0, length)
+  return ' '.repeat(length - text.length) + text
+}
+
+const WIDTH = 32 // 32 columnas es estándar para impresoras térmicas de 58mm
+
+export function buildThermalReceiptTXT(data: ReceiptData): string {
+  const lines: string[] = []
+
+  const addDivider = () => lines.push('-'.repeat(WIDTH))
+  const addLine = (text: string) => lines.push(text)
+
+  addLine(centerText(data.businessName, WIDTH))
+  if (data.branchName) addLine(centerText(data.branchName, WIDTH))
+  addDivider()
+
+  if (data.receiptNumber) addLine(`Factura: ${data.receiptNumber}`)
+  addLine(`Fecha: ${data.date}`)
+  if (data.clientName) addLine(`Cliente: ${data.clientName}`)
+  if (data.employeeName) addLine(`Atiende: ${data.employeeName}`)
+  addDivider()
+
   const formatMoney = (amount: number) => `$${amount.toFixed(2)}`
 
-  let itemsHtml = ''
+  addLine('CANT DESCRIPCION        TOTAL')
   
   const processItems = (items: ReceiptItem[]) => {
     for (const item of items) {
-      itemsHtml += `
-        <tr>
-          <td class="qty-col">${item.qty}</td>
-          <td class="desc-col">${item.name}</td>
-          <td class="price-col">${formatMoney(item.price)}</td>
-        </tr>
-      `
+      const qtyStr = padRight(String(item.qty), 4)
+      const priceStr = padLeft(formatMoney(item.price), 8)
+      
+      const descMaxWidth = WIDTH - qtyStr.length - priceStr.length - 1
+      const descParts = item.name.match(new RegExp(`.{1,${descMaxWidth}}`, 'g')) || []
+      
+      for (let i = 0; i < descParts.length; i++) {
+        if (i === 0) {
+          addLine(`${qtyStr} ${padRight(descParts[i], descMaxWidth)} ${priceStr}`)
+        } else {
+          addLine(`     ${descParts[i]}`)
+        }
+      }
     }
   }
 
   if (data.services && data.services.length > 0) processItems(data.services)
   if (data.products && data.products.length > 0) processItems(data.products)
 
+  addDivider()
+
+  if ((data.tip ?? 0) > 0) {
+    addLine(justifyText('SUBTOTAL:', formatMoney(data.subtotal), WIDTH))
+    addLine(justifyText('PROPINA:', formatMoney(data.tip!), WIDTH))
+  }
+  
+  addLine(justifyText('TOTAL:', formatMoney(data.total), WIDTH))
+  addLine(justifyText('PAGO:', formatMethod(data.method), WIDTH))
+  
+  addDivider()
+  addLine(centerText('¡Gracias por su compra!', WIDTH))
+  addLine('')
+  addLine('')
+  
+  return lines.join('\n')
+}
+
+export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): void {
+  const txtContent = buildThermalReceiptTXT(data)
+  
+  // Imprimir usando un bloque <pre> puro. Esto evita por completo el motor de layout complejo (tablas, flexbox)
+  // y forza valores de pixeles enteros (12px, 14px) para evitar el error de rasterizado (líneas blancas) en Windows.
   const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -53,106 +125,28 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
   }
   body {
     margin: 0;
-    /* Ajustamos el padding: 0 arriba/abajo, 3mm a la derecha para proteger los montos */
-    padding: 0 3mm 0 1mm;
-    font-family: Arial, Helvetica, sans-serif;
-    font-size: 11px;
-    font-weight: bold; /* Negrita evita que la impresora térmica corte la letra por falta de tinta */
-    line-height: 1.15; /* Interlineado muy compacto pero seguro */
+    padding: 0;
+    background: white;
+  }
+  pre {
+    margin: 0;
+    padding: 4px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px; /* Pixeles exactos */
+    line-height: 14px; /* Pixeles exactos para evitar interpolación del driver (líneas blancas) */
     color: black;
+    white-space: pre-wrap;
+    word-break: break-all;
     width: 100%;
-    max-width: 48mm;
-    box-sizing: border-box;
-    /* Apagar el suavizado de fuentes evita las líneas blancas horizontales en impresoras térmicas */
+    max-width: 200px;
+    overflow: hidden;
+    /* Apagar anti-aliasing */
     -webkit-font-smoothing: none;
-    text-rendering: optimizeSpeed;
   }
-  .text-center { text-align: center; }
-  .text-right { text-align: right; }
-  .divider { 
-    border-top: 1px dashed black; 
-    margin: 3px 0; 
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-    margin-bottom: 2px;
-  }
-  th, td {
-    padding: 1px 0;
-    vertical-align: top;
-    word-wrap: break-word;
-  }
-  .qty-col { width: 15%; }
-  .desc-col { width: 55%; padding-right: 2px; }
-  .price-col { width: 30%; text-align: right; }
-  
-  .meta-row { margin-bottom: 1px; }
-  .totals-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 2px;
-  }
-  .totals-table td { padding: 1px 0; }
-  .total-row { font-size: 13px; }
-  .footer { margin-top: 8px; margin-bottom: 15px; }
 </style>
 </head>
 <body>
-  <!-- Header -->
-  <div class="text-center" style="font-size: 13px; margin-bottom: 1px;">${data.businessName}</div>
-  ${data.branchName ? `<div class="text-center" style="margin-bottom: 1px;">${data.branchName}</div>` : ''}
-  <div class="divider"></div>
-
-  <!-- Meta -->
-  ${data.receiptNumber ? `<div class="meta-row">Factura: ${data.receiptNumber}</div>` : ''}
-  <div class="meta-row">Fecha: ${data.date}</div>
-  ${data.clientName ? `<div class="meta-row">Cliente: ${data.clientName}</div>` : ''}
-  ${data.employeeName ? `<div class="meta-row">Atiende: ${data.employeeName}</div>` : ''}
-  <div class="divider"></div>
-
-  <!-- Items Table -->
-  <table>
-    <thead>
-      <tr>
-        <th class="qty-col text-left">CANT</th>
-        <th class="desc-col text-left">DESCRIP</th>
-        <th class="price-col">TOTAL</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${itemsHtml}
-    </tbody>
-  </table>
-
-  <div class="divider"></div>
-
-  <!-- Totals -->
-  <table class="totals-table">
-    ${(data.tip ?? 0) > 0 ? `
-      <tr>
-        <td>SUBTOTAL:</td>
-        <td class="text-right">${formatMoney(data.subtotal)}</td>
-      </tr>
-      <tr>
-        <td>PROPINA:</td>
-        <td class="text-right">${formatMoney(data.tip!)}</td>
-      </tr>
-    ` : ''}
-    <tr class="total-row">
-      <td>TOTAL:</td>
-      <td class="text-right">${formatMoney(data.total)}</td>
-    </tr>
-    <tr>
-      <td>PAGO:</td>
-      <td class="text-right">${formatMethod(data.method)}</td>
-    </tr>
-  </table>
-  
-  <div class="divider"></div>
-  <div class="text-center footer">¡Gracias por su compra!</div>
-  
+  <pre>${txtContent}</pre>
   <script>
     window.onload = function() {
       setTimeout(function() {
