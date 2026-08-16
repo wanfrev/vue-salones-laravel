@@ -130,12 +130,6 @@ const loadGroupMembers = async () => {
 
 watch(() => mode.value, (m) => { if (m === 'factura') loadGroupMembers() })
 
-const allServices = computed(() => {
-  if (props.cita && props.cita.is_group_appointment) {
-    return groupMembers.value.map(c => ({ service: c.service, price: c.price }))
-  }
-  return props.cita ? [{ service: props.cita.service, price: props.cita.price }] : []
-})
 
 const onRollback = () => {
   const pd = props.paymentData
