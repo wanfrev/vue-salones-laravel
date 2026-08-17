@@ -6,6 +6,7 @@ use App\Models\Business;
 use App\Models\Profile;
 use App\Models\SuperadminAuditLog;
 use App\Models\User;
+use App\Support\NicheRegistry;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -19,6 +20,44 @@ class SuperadminService
         return Business::whereNull('deleted_at')
             ->orderByDesc('created_at')
             ->get();
+    }
+
+    /**
+     * Every active business's resolved features, grouped by niche — the "these 3 businesses have
+     * gift_cards on, these 5 don't" view. Locked features are left out entirely (see
+     * NicheRegistry::configurableFeatures) since they can't actually drift within a niche.
+     */
+    public function featuresMatrix(): array
+    {
+        $businesses = Business::whereNull('deleted_at')
+            ->orderBy('name')
+            ->get(['id', 'name', 'niche_type', 'features', 'active']);
+
+        $byNiche = $businesses->groupBy(fn (Business $b) => $b->niche_type ?? 'sin_nicho');
+
+        return $byNiche->map(function (Collection $group, string $nicheType) {
+            $featureKeys = NicheRegistry::configurableFeatures($nicheType === 'sin_nicho' ? null : $nicheType);
+
+            return [
+                'niche' => $nicheType,
+                'features' => $featureKeys,
+                'businesses' => $group->map(function (Business $business) use ($featureKeys, $nicheType) {
+                    $resolved = NicheRegistry::resolveFeatures(
+                        $nicheType === 'sin_nicho' ? null : $nicheType,
+                        $business->features
+                    );
+
+                    return [
+                        'id' => $business->id,
+                        'name' => $business->name,
+                        'active' => $business->active,
+                        'features' => collect($featureKeys)
+                            ->mapWithKeys(fn (string $key) => [$key => (bool) ($resolved[$key] ?? false)])
+                            ->all(),
+                    ];
+                })->values(),
+            ];
+        })->values()->all();
     }
 
     public function listSuperadmins(): Collection

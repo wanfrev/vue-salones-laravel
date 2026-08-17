@@ -202,4 +202,10 @@ class SuperadminController
             return response()->json(['error' => ['message' => $e->getMessage()]], 404);
         }
     }
+
+    /** "These 3 businesses have gift_cards on, these 5 don't" — grouped by niche. */
+    public function featuresMatrix(): JsonResponse
+    {
+        return response()->json($this->superadminService->featuresMatrix());
+    }
 }

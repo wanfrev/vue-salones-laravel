@@ -24,6 +24,11 @@
             :class="route.name === 'superadmin-accounts' ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-bg-secondary hover:text-text'">
             Superadmins
           </router-link>
+          <router-link to="/superadmin/features"
+            class="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+            :class="route.name === 'superadmin-features' ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-bg-secondary hover:text-text'">
+            Features
+          </router-link>
           <button
             @click="handleLogout"
             :disabled="loading"

@@ -42,6 +42,23 @@ class NicheRegistry
         return self::definition($nicheType)['capabilities'] ?? [];
     }
 
+    /** The full feature vocabulary — every key any niche could possibly toggle. */
+    public static function allFeatureKeys(): array
+    {
+        return array_keys(config('niches.default_features', []));
+    }
+
+    /**
+     * Feature keys a business in this niche can actually differ on. Locked features are excluded
+     * — every business in the niche has the same value by construction, so showing them next to
+     * genuinely configurable flags would bury the drift someone's actually looking for.
+     */
+    public static function configurableFeatures(?string $nicheType): array
+    {
+        $locked = array_keys(self::definition($nicheType)['feature_locks'] ?? []);
+        return array_values(array_diff(self::allFeatureKeys(), $locked));
+    }
+
     public static function hasCapability(?string $nicheType, string $capability): bool
     {
         return in_array($capability, self::capabilities($nicheType), true);

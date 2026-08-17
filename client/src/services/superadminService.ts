@@ -261,3 +261,22 @@ export const revokeSuperadmin = async (id: string): Promise<void> => {
 export const restoreSuperadmin = async (id: string): Promise<void> => {
   await apiRequest('POST', `/admin/superadmins/${id}/restore`)
 }
+
+// ── Features matrix ──
+
+export type FeatureMatrixBusiness = {
+  id: string
+  name: string
+  active: boolean
+  features: Record<string, boolean>
+}
+
+export type FeatureMatrixNiche = {
+  niche: string
+  features: string[]
+  businesses: FeatureMatrixBusiness[]
+}
+
+export const getFeaturesMatrix = async (): Promise<FeatureMatrixNiche[]> => {
+  return apiRequest<FeatureMatrixNiche[]>('GET', '/admin/features-matrix')
+}

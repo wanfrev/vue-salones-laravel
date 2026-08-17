@@ -399,5 +399,6 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::post('/superadmins', [SuperadminController::class, 'storeSuperadmin']);
         Route::post('/superadmins/{id}/revoke', [SuperadminController::class, 'revokeSuperadmin']);
         Route::post('/superadmins/{id}/restore', [SuperadminController::class, 'restoreSuperadmin']);
+        Route::get('/features-matrix', [SuperadminController::class, 'featuresMatrix']);
     });
 });
