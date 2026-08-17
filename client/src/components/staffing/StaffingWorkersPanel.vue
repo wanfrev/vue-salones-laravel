@@ -66,7 +66,9 @@ const { items: team, handleSave: handleSaveEmpleado, handleDelete: handleDeleteE
   entityName: 'Trabajador',
 })
 
-const workers = computed(() => team.value.filter(e => e.staffingCompanyId === props.companyId))
+const workers = computed(() =>
+  team.value.filter(e => e.staffingAssignments?.some(a => a.companyId === props.companyId))
+)
 
 const modal = useModal('empleado-form-modal')
 const openNew = () => modal.open({ workerMode: true, presetCompanyId: props.companyId })

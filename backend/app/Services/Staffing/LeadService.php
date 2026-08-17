@@ -56,7 +56,7 @@ class LeadService
 
     /**
      * The admin CRM sidebar roster: every non-staffing-worker employee (a "vendedora" — plain
-     * `empleado`/`encargado` without a `staffing_company_id`) and how many leads she owns, in
+     * `empleado`/`encargado` with no client-company assignments) and how many leads she owns, in
      * one aggregated query rather than N+1 counts.
      *
      * @return list<array{id: string, name: string, leadCount: int}>
@@ -66,7 +66,7 @@ class LeadService
         $vendedoras = Profile::query()
             ->where('business_id', $businessId)
             ->whereIn('role', ['empleado', 'encargado'])
-            ->whereNull('staffing_company_id')
+            ->whereDoesntHave('staffingCompanyEmployees')
             ->orderBy('full_name')
             ->get(['id', 'full_name']);
 

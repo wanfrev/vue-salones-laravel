@@ -71,9 +71,14 @@ class Profile extends Model
         return $this->hasMany(EmployeeSchedule::class, 'employee_id');
     }
 
-    public function staffingCompany(): BelongsTo
+    /**
+     * Current company assignments — a staffing worker can have more than one at once, each with
+     * its own role (rates are per company+role). Replaces the old single staffing_company_id/
+     * staffing_role columns, which stay in the DB unused rather than being dropped.
+     */
+    public function staffingCompanyEmployees(): HasMany
     {
-        return $this->belongsTo(StaffingCompany::class, 'staffing_company_id');
+        return $this->hasMany(StaffingCompanyEmployee::class, 'employee_id');
     }
 
     /**

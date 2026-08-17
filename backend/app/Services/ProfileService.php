@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\EmployeeSchedule;
 use App\Models\Profile;
+use App\Models\StaffingCompanyEmployee;
 use App\Models\User;
+use App\Services\Staffing\StaffingCompanyEmployeeService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -13,6 +15,10 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ProfileService
 {
+    public function __construct(
+        private StaffingCompanyEmployeeService $companyEmployees,
+    ) {}
+
     public function find(string $id): Profile
     {
         $profile = Profile::find($id);
@@ -48,9 +54,23 @@ class ProfileService
             $query->where('disable_agenda', filter_var($disableAgenda, FILTER_VALIDATE_BOOL));
         }
 
-        return $query->get()->map(function ($profile) {
+        $profiles = $query->get();
+
+        // One query for every assignment in the business rather than N+1 per profile.
+        $assignmentsByEmployee = StaffingCompanyEmployee::with('company:id,name')
+            ->where('business_id', $businessId)
+            ->get()
+            ->groupBy('employee_id');
+
+        return $profiles->map(function ($profile) use ($assignmentsByEmployee) {
             $data = $profile->toArray();
             $data['employee_schedules'] = $profile->schedules?->toArray() ?? [];
+            $data['staffing_assignments'] = ($assignmentsByEmployee->get($profile->id) ?? collect())
+                ->map(fn (StaffingCompanyEmployee $a) => [
+                    'company_id' => $a->company_id,
+                    'company_name' => $a->company?->name,
+                    'role' => $a->role,
+                ])->values();
             return $data;
         });
     }
@@ -99,8 +119,6 @@ class ProfileService
                 'can_access_suppliers' => $data['can_access_suppliers'] ?? false,
                 'can_access_finanzas' => $data['can_access_finanzas'] ?? false,
                 'can_access_requirements' => $data['can_access_requirements'] ?? false,
-                'staffing_company_id' => $data['staffing_company_id'] ?? null,
-                'staffing_role' => $data['staffing_role'] ?? null,
                 'staffing_tax_rate' => $data['staffing_tax_rate'] ?? null,
                 'ssn' => $data['ssn'] ?? null,
                 'address' => $data['address'] ?? null,
@@ -115,6 +133,10 @@ class ProfileService
             ]);
 
             $this->syncSchedules($user->id, $data['schedules'] ?? []);
+
+            if (array_key_exists('staffing_assignments', $data)) {
+                $this->companyEmployees->syncForEmployee($user->id, $businessId, $data['staffing_assignments'] ?? []);
+            }
 
             DB::commit();
         } catch (\Throwable $e) {
@@ -192,7 +214,7 @@ class ProfileService
                 $profileFields['can_access_requirements'] = $data['can_access_requirements'];
             }
             foreach ([
-                'staffing_company_id', 'staffing_role', 'staffing_tax_rate', 'ssn', 'address',
+                'staffing_tax_rate', 'ssn', 'address',
                 'bank_name', 'bank_account_holder', 'bank_account_type', 'payment_method',
                 'bank_routing_number', 'bank_account_number', 'payroll_card_number',
             ] as $staffingField) {
@@ -209,6 +231,10 @@ class ProfileService
             if (array_key_exists('schedules', $data)) {
                 EmployeeSchedule::where('employee_id', $id)->delete();
                 $this->syncSchedules($id, $data['schedules'] ?? []);
+            }
+
+            if (array_key_exists('staffing_assignments', $data)) {
+                $this->companyEmployees->syncForEmployee($id, $businessId, $data['staffing_assignments'] ?? []);
             }
 
             return Profile::with('schedules')->find($id);

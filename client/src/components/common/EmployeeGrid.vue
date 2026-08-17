@@ -18,15 +18,15 @@
         </div>
       </div>
 
-      <div class="mt-4 grid grid-cols-2 gap-2">
+      <div class="mt-4" :class="isStaffing ? 'space-y-1.5' : 'grid grid-cols-2 gap-2'">
         <template v-if="isStaffing">
-          <div class="rounded-lg bg-gradient-to-br from-bg-secondary/80 to-bg-secondary/40 p-2.5 text-center">
-            <p class="truncate text-sm font-semibold text-text">{{ companyNameFor(member) }}</p>
-            <p class="text-xs text-text-muted">Empresa</p>
-          </div>
-          <div class="rounded-lg bg-gradient-to-br from-bg-secondary/80 to-bg-secondary/40 p-2.5 text-center">
-            <p class="truncate text-sm font-semibold text-text">{{ member.role || '—' }}</p>
-            <p class="text-xs text-text-muted">Rol</p>
+          <p v-if="!member.staffingAssignments?.length" class="rounded-lg bg-gradient-to-br from-bg-secondary/80 to-bg-secondary/40 p-2.5 text-center text-xs text-text-muted">
+            Sin empresa asignada
+          </p>
+          <div v-for="assignment in member.staffingAssignments" :key="assignment.companyId"
+            class="flex items-center justify-between gap-2 rounded-lg bg-gradient-to-br from-bg-secondary/80 to-bg-secondary/40 px-2.5 py-2">
+            <span class="truncate text-sm font-semibold text-text">{{ assignment.companyName || 'Empresa' }}</span>
+            <span class="shrink-0 truncate text-xs text-text-muted">{{ assignment.role }}</span>
           </div>
         </template>
         <template v-else>
@@ -84,18 +84,16 @@
 </template>
 
 <script setup lang="ts">
-const props = withDefaults(defineProps<{
+withDefaults(defineProps<{
   employees: any[]
   showAll: boolean
   hasMore: boolean
   totalCount: number
   getInitials: (name?: string) => string
   isStaffing?: boolean
-  companiesById?: Record<string, string>
   showAgenda?: boolean
 }>(), {
   isStaffing: false,
-  companiesById: () => ({}),
   showAgenda: true,
 })
 
@@ -105,7 +103,4 @@ defineEmits<{
   viewRecibo: [employee: any]
   toggleShowAll: []
 }>()
-
-const companyNameFor = (member: any): string =>
-  (member.staffingCompanyId && props.companiesById[member.staffingCompanyId]) || 'Sin empresa'
 </script>
