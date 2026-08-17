@@ -19,6 +19,20 @@ class ProfileService
         private StaffingCompanyEmployeeService $companyEmployees,
     ) {}
 
+    /**
+     * Gates every staffing_company_employees touch below — outside the staffing niche this table
+     * is always empty, so skipping it isn't just an optimization, it keeps every other niche's
+     * employee list/save from ever running a query against a table that has nothing to do with them.
+     */
+    private function isStaffingBusiness(): bool
+    {
+        if (!app()->bound(BusinessContext::class)) {
+            return false;
+        }
+
+        return app(BusinessContext::class)->hasCapability('staffing.timesheets');
+    }
+
     public function find(string $id): Profile
     {
         $profile = Profile::find($id);
@@ -56,11 +70,14 @@ class ProfileService
 
         $profiles = $query->get();
 
-        // One query for every assignment in the business rather than N+1 per profile.
-        $assignmentsByEmployee = StaffingCompanyEmployee::with('company:id,name')
-            ->where('business_id', $businessId)
-            ->get()
-            ->groupBy('employee_id');
+        // One query for every assignment in the business rather than N+1 per profile — skipped
+        // entirely outside staffing, where this table is always empty for this business anyway.
+        $assignmentsByEmployee = $this->isStaffingBusiness()
+            ? StaffingCompanyEmployee::with('company:id,name')
+                ->where('business_id', $businessId)
+                ->get()
+                ->groupBy('employee_id')
+            : collect();
 
         return $profiles->map(function ($profile) use ($assignmentsByEmployee) {
             $data = $profile->toArray();
@@ -134,7 +151,10 @@ class ProfileService
 
             $this->syncSchedules($user->id, $data['schedules'] ?? []);
 
-            if (array_key_exists('staffing_assignments', $data)) {
+            // The generic (non-staffing) employee form always sends this key too, as an empty
+            // array — the niche check is what keeps a salon/spa/tienda save from ever writing to
+            // a table that has nothing to do with them.
+            if ($this->isStaffingBusiness() && array_key_exists('staffing_assignments', $data)) {
                 $this->companyEmployees->syncForEmployee($user->id, $businessId, $data['staffing_assignments'] ?? []);
             }
 
@@ -233,7 +253,7 @@ class ProfileService
                 $this->syncSchedules($id, $data['schedules'] ?? []);
             }
 
-            if (array_key_exists('staffing_assignments', $data)) {
+            if ($this->isStaffingBusiness() && array_key_exists('staffing_assignments', $data)) {
                 $this->companyEmployees->syncForEmployee($id, $businessId, $data['staffing_assignments'] ?? []);
             }
 
