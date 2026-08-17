@@ -1042,7 +1042,8 @@ const performPrintReceipt = async (transactions?: Array<{ id: string, receipt_co
   shouldPrintReceipt.value = false
 }
 
-const confirmPayment = async () => {
+const confirmPayment = async (shouldPrint?: boolean) => {
+  if (shouldPrint !== undefined) shouldPrintReceipt.value = shouldPrint
   showConfirmModal.value = false
   if (activeSaleType.value === 'retail_only' || (activeSaleType.value === 'appointment' && !selectedAppointment.value && cart.value.length > 0)) { 
     const result = await processDirectSale({
