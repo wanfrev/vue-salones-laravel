@@ -237,10 +237,11 @@ const employeePaymentTotal = computed(() => {
   return (employeePaymentsCtx.paymentsMade.value ?? []).reduce((sum, p) => sum + Number(p.amount ?? 0), 0)
 })
 
-// Staffing: Ingresos = invoiced hours (nómina's invoice_total) + manual entries. Gastos =
-// employer cost (net paid to employees + taxes + fees — adjustments already folded into net)
-// plus the normal manual "Gastos Operativos" ledger. Ganancia = the nómina margin alone, not
-// reduced by manual gastos — it's what staffing services made before any other overhead. No
+// Staffing: Ingresos = paid invoices (staffingFinance.invoiceTotal — 'paid' invoices in full,
+// 'partial' ones for what's been abonado) + manual entries. Gastos = employer cost (net paid to
+// employees + taxes + fees — adjustments already folded into net) plus the normal manual
+// "Gastos Operativos" ledger. Ganancia = the nómina margin alone (billed-hours basis, not
+// reduced by manual gastos) — it's what staffing services made before any other overhead. No
 // separate "ganancia neta" for this niche (see KpiCards' isStaffing prop).
 const incomeTotal = computed(() => isStaffing.value ? staffingFinance.incomeTotal.value : summaryCtx.incomeTotal.value)
 const expenseTotal = computed(() => isStaffing.value
@@ -259,7 +260,7 @@ const toggleCard = (card: 'income' | 'expense' | 'net' | 'profit') => { activeCa
 const staffingIncomeBreakdown = computed(() => ({
   title: 'Desglose de Ingresos', usdTotal: incomeTotal.value, vesTotal: 0,
   usdItems: [
-    { label: 'Facturado (horas trabajadas)', amount: staffingFinance.invoiceTotal.value },
+    { label: 'Facturas pagadas', amount: staffingFinance.invoiceTotal.value },
     { label: 'Ingresos manuales', amount: staffingFinance.manualIncomeTotal.value },
   ].filter(i => i.amount > 0),
   vesItems: [],
@@ -279,7 +280,7 @@ const staffingExpenseBreakdown = computed(() => ({
 const staffingProfitBreakdown = computed(() => ({
   title: 'Desglose de Ganancia', usdTotal: profitTotal.value, vesTotal: 0,
   usdItems: [
-    { label: 'Facturado (+)', amount: staffingFinance.invoiceTotal.value + staffingFinance.manualIncomeTotal.value },
+    { label: 'Facturas pagadas (+)', amount: staffingFinance.invoiceTotal.value + staffingFinance.manualIncomeTotal.value },
     { label: 'Costo de nómina (-)', amount: -staffingFinance.employerCost.value },
   ],
   vesItems: [],
