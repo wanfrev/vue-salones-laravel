@@ -2,7 +2,12 @@
   <div class="rounded-xl border border-border bg-surface p-3">
     <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
       <p class="text-sm font-semibold text-text">Nómina por semana</p>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="relative">
+          <MagnifierIcon class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+          <input v-model="search" type="text" placeholder="Buscar empresa..."
+            class="w-40 rounded-lg border border-border bg-surface py-1.5 pl-8 pr-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-48" />
+        </div>
         <select v-model.number="month" class="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-text">
           <option v-for="(label, i) in MONTH_LABELS" :key="i" :value="i + 1">{{ label }}</option>
         </select>
@@ -28,6 +33,10 @@
       Sin empresas registradas.
     </p>
 
+    <p v-else-if="filteredCompanies.length === 0" class="py-8 text-center text-sm text-text-muted">
+      Ninguna empresa coincide con "{{ search }}".
+    </p>
+
     <div v-else class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
@@ -40,7 +49,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-border">
-          <tr v-for="company in report.companies.value" :key="company.companyId">
+          <tr v-for="company in filteredCompanies" :key="company.companyId">
             <td class="whitespace-nowrap px-3 py-2 font-medium text-text">{{ company.name }}</td>
             <td v-for="week in report.weeks.value" :key="week.week_start" class="px-1 py-1 text-right">
               <button type="button"
@@ -59,9 +68,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, toRef } from 'vue'
+import { computed, ref, toRef } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
+import { ArrowLeftIcon, ArrowRightIcon, MagnifierIcon } from '@solar-icons/vue/linear'
 import { useStaffingMonthlyReport } from '../../composables/staffing/useStaffingMonthlyReport'
 import { useCurrency } from '../../composables/common/useCurrency'
 
@@ -83,4 +92,11 @@ const year = ref(new Date().getFullYear())
 const month = ref(new Date().getMonth() + 1)
 
 const report = useStaffingMonthlyReport(toRef(props, 'businessId'), year, month)
+
+const search = ref('')
+const filteredCompanies = computed(() => {
+  const term = search.value.trim().toLowerCase()
+  if (!term) return report.companies.value
+  return report.companies.value.filter(c => c.name.toLowerCase().includes(term))
+})
 </script>

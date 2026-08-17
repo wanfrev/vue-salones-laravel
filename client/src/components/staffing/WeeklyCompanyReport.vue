@@ -2,7 +2,12 @@
   <div class="rounded-xl border border-border bg-surface p-3">
     <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
       <p class="text-sm font-semibold text-text">Resultados semanales</p>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="relative">
+          <MagnifierIcon class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+          <input v-model="search" type="text" placeholder="Buscar empresa o proyecto..."
+            class="w-44 rounded-lg border border-border bg-surface py-1.5 pl-8 pr-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-56" />
+        </div>
         <label class="text-xs font-semibold uppercase tracking-wider text-text-muted" for="weekly-report-week">Semana desde</label>
         <input id="weekly-report-week" v-model="weekStart" type="date"
           class="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-text" />
@@ -14,6 +19,10 @@
 
     <p v-else-if="report.rows.value.length === 0" class="py-8 text-center text-sm text-text-muted">
       Sin empresas registradas.
+    </p>
+
+    <p v-else-if="filteredRows.length === 0" class="py-8 text-center text-sm text-text-muted">
+      Ninguna empresa coincide con "{{ search }}".
     </p>
 
     <div v-else class="overflow-x-auto">
@@ -33,7 +42,7 @@
           </tr>
         </thead>
         <tbody class="divide-y divide-border">
-          <tr v-for="row in report.rows.value" :key="row.companyId">
+          <tr v-for="row in filteredRows" :key="row.companyId">
             <td class="px-3 py-2">
               <select
                 class="rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
@@ -72,10 +81,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, toRef } from 'vue'
+import { computed, ref, toRef } from 'vue'
 import { useStaffingWeeklyReport } from '../../composables/staffing/useStaffingWeeklyReport'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { formatDateUS, toISODate } from '../../lib/formatters'
+import { MagnifierIcon } from '@solar-icons/vue/linear'
 import type { StaffingWeeklyReportEstado, StaffingWeeklyReportRow } from '../../services/staffing/staffingService'
 
 const props = defineProps<{ businessId: string | null }>()
@@ -109,6 +119,15 @@ const defaultWeekStart = (): string => {
 const weekStart = ref(defaultWeekStart())
 
 const report = useStaffingWeeklyReport(toRef(props, 'businessId'), weekStart)
+
+const search = ref('')
+const filteredRows = computed(() => {
+  const term = search.value.trim().toLowerCase()
+  if (!term) return report.rows.value
+  return report.rows.value.filter(r =>
+    r.name.toLowerCase().includes(term) || (r.proyecto ?? '').toLowerCase().includes(term)
+  )
+})
 
 const handleExpenseChange = async (companyId: string, event: Event) => {
   const amount = Number((event.target as HTMLInputElement).value) || 0
