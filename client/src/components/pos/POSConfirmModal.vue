@@ -8,7 +8,11 @@ defineProps<{
   isProcessing: boolean
 }>()
 
-const emit = defineEmits<{ cancel: []; confirm: [] }>()
+const emit = defineEmits<{
+  cancel: []
+  confirm: [shouldPrint: boolean]
+}>()
+
 const { formatVESInline } = useCurrency()
 </script>
 
@@ -27,14 +31,38 @@ const { formatVESInline } = useCurrency()
           <p class="text-sm text-text-muted mt-1" v-if="clientName">{{ clientName }}</p>
         </div>
 
-        <div class="rounded-xl bg-bg-secondary p-4 mb-4 text-center">
+        <div class="rounded-xl bg-bg-secondary p-4 mb-5 text-center">
           <p class="text-3xl font-extrabold text-text tabular-nums">${{ grandTotal.toFixed(2) }}</p>
           <p class="text-sm text-text-muted mt-0.5">{{ formatVESInline(grandTotal) }} Bs</p>
         </div>
 
-        <div class="flex items-center gap-2">
-          <button @click="$emit('cancel')" class="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary">Cancelar</button>
-          <button @click="$emit('confirm')" :disabled="isProcessing" class="flex-1 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:opacity-60">{{ isProcessing ? 'Procesando...' : `Cobrar $${grandTotal.toFixed(2)}` }}</button>
+        <div class="space-y-2.5">
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              @click="$emit('confirm', false)"
+              :disabled="isProcessing"
+              class="flex items-center justify-center rounded-xl border border-border bg-bg-secondary px-3 py-3 text-sm font-bold text-text transition-theme hover:bg-bg-tertiary disabled:opacity-60"
+            >
+              {{ isProcessing ? 'Procesando...' : 'Cobrar' }}
+            </button>
+            <button
+              @click="$emit('confirm', true)"
+              :disabled="isProcessing"
+              class="flex items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-3 text-sm font-bold text-text-inverse transition-theme hover:bg-primary-hover disabled:opacity-60"
+            >
+              <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              <span class="truncate">Cobrar e imprimir</span>
+            </button>
+          </div>
+          <button
+            @click="$emit('cancel')"
+            :disabled="isProcessing"
+            class="w-full rounded-xl py-2 text-xs font-semibold text-text-muted transition-theme hover:text-text hover:bg-bg-secondary disabled:opacity-60"
+          >
+            Cancelar
+          </button>
         </div>
       </div>
     </div>
