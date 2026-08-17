@@ -973,10 +973,55 @@ const showConfirmModal = ref(false)
 const shouldPrintReceipt = ref(false)
 const showPrinterSettings = ref(false)
 
+const receiptBranchName = computed(() => {
+  if (!businessStore.isMultiBranch || businessStore.branches.length <= 1) {
+    return undefined
+  }
+  const branch = businessStore.branches.find(b => b.id === branchId.value)
+  if (!branch?.name) return undefined
+
+  const bName = (businessStore.business?.name || '').trim().toLowerCase()
+  const brName = branch.name.trim().toLowerCase()
+
+  if (brName === bName || brName.includes(bName) || brName === 'principal' || brName === 'sucursal principal') {
+    return undefined
+  }
+
+  return branch.name
+})
+
 const confirmClientName = computed(() => {
-  if (activeSaleType.value === 'retail_only') return retailClientId.value ? retailClientSearch.value : null
-  if (activeSaleType.value === 'direct_service') return directServiceClientId.value ? directServiceClientSearch.value : null
-  return (selectedAppointment.value?.client?.full_name ?? selectedAppointment.value?.clients?.full_name) || null
+  if (activeSaleType.value === 'retail_only') {
+    return retailClientSearch.value?.trim() || null
+  }
+  if (activeSaleType.value === 'direct_service') {
+    return directServiceClientSearch.value?.trim() || null
+  }
+  const appt = selectedAppointment.value
+  if (!appt) return null
+  return appt.client?.full_name || appt.clients?.full_name || appt.client_name || appt.client_full_name || null
+})
+
+const confirmEmployeeName = computed(() => {
+  if (activeSaleType.value === 'direct_service') {
+    if (directServicesList.value.length === 0) return authStore.profile?.full_name || null
+    const names = [...new Set(directServicesList.value.map(s => s.employeeName).filter(Boolean))]
+    return names.length > 0 ? names.join(', ') : (authStore.profile?.full_name || null)
+  }
+
+  if (activeSaleType.value === 'appointment' && selectedAppointment.value) {
+    const appt = selectedAppointment.value
+    if (appt.isGroup && Array.isArray(appt.members) && appt.members.length > 0) {
+      const names = [...new Set(appt.members.map((m: any) => m.employeeName).filter(Boolean))]
+      return names.length > 0 ? names.join(', ') : null
+    }
+    const empName = appt.employee_profile?.full_name ?? appt.profiles?.full_name ?? appt.employee_name
+    const asstName = appt.assistant_profile?.full_name ?? appt.assistant_name
+    if (empName && asstName) return `${empName} (+ ${asstName})`
+    return empName || authStore.profile?.full_name || null
+  }
+
+  return authStore.profile?.full_name || null
 })
 
 const handleProcessPayment = () => { 
@@ -1023,11 +1068,11 @@ const performPrintReceipt = async (transactions?: Array<{ id: string, receipt_co
 
   const data: ReceiptData = {
     businessName: businessStore.business?.name ?? 'Negocio',
-    branchName: businessStore.branches.find(b => b.id === branchId.value)?.name,
+    branchName: receiptBranchName.value,
     receiptNumber: tx?.receipt_code || (txId ? txId.substring(0, 8).toUpperCase() : undefined),
     date: new Date().toLocaleString('es-VE'),
     clientName: confirmClientName.value || undefined,
-    employeeName: activeSaleType.value === 'direct_service' && directServicesList.value.length === 1 ? directServicesList.value[0].employeeName : undefined,
+    employeeName: confirmEmployeeName.value || undefined,
     services: servicesList,
     products: cart.value.map(c => ({ name: c.productName, qty: c.quantity, price: c.unitPrice })),
     subtotal: grandTotal.value - tipAmount.value,
