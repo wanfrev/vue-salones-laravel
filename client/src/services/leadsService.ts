@@ -65,6 +65,8 @@ export interface LeadFormData {
 export interface VendedoraRow {
   id: string
   name: string
+  phone: string | null
+  email: string | null
   leadCount: number
 }
 

@@ -40,7 +40,7 @@
     </div>
 
     <div v-if="showOwner || lead.phone" class="mt-2.5 flex items-center justify-between gap-2 border-t border-border-subtle pt-2 pl-1.5">
-      <span v-if="showOwner" class="flex min-w-0 items-center gap-1.5" title="Vendedora">
+      <span v-if="showOwner" class="flex min-w-0 items-center gap-1.5" title="Vendedor">
         <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary">
           {{ getInitials(lead.ownerName) }}
         </span>

@@ -3,7 +3,7 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6" @click.self="emit('close')">
       <div class="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-xl">
         <div class="mb-5">
-          <h2 class="text-lg font-semibold text-text">Agregar vendedora</h2>
+          <h2 class="text-lg font-semibold text-text">Agregar vendedor</h2>
           <p class="text-sm text-text-muted">Queda con acceso propio al CRM — solo ve sus propios leads.</p>
         </div>
 
@@ -83,7 +83,7 @@ const submit = async () => {
       can_create_clients: false,
       can_access_consultorio: false,
     })
-    success('Vendedora creada')
+    success('Vendedor creado')
     emit('created')
     emit('close')
   } catch (err) {

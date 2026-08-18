@@ -128,7 +128,7 @@
           <thead>
             <tr class="border-b border-border bg-bg-secondary text-left text-[10px] uppercase tracking-wider text-text-muted">
               <th class="sticky left-0 z-10 bg-bg-secondary px-3 py-2.5">Elemento</th>
-              <th class="px-3 py-2.5">Vendedora</th>
+              <th class="px-3 py-2.5">Vendedor</th>
               <th class="px-3 py-2.5">Ubicación</th>
               <th class="px-3 py-2.5">Correo</th>
               <th class="px-3 py-2.5">Teléfono</th>

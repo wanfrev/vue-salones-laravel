@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\Staffing\StaffingCompanyPaymentController;
 use App\Http\Controllers\Api\Staffing\StaffingCompanyRateController;
 use App\Http\Controllers\Api\Staffing\StaffingInvoiceController;
 use App\Http\Controllers\Api\Staffing\StaffingManualIncomeController;
+use App\Http\Controllers\Api\Staffing\EmployeeAssetController;
 use App\Http\Controllers\Api\Staffing\StaffingReportController;
 use App\Http\Controllers\Api\Staffing\StaffingTaxEntityController;
 use App\Http\Controllers\Api\Staffing\StaffingTaxEntryController;
@@ -308,6 +309,15 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::delete('/leads/{id}', [LeadController::class, 'destroy']);
         // Admin-only sidebar roster — checked inside the controller, same pattern as index().
         Route::get('/leads/vendedoras', [LeadController::class, 'vendedoras']);
+    });
+
+    // Staffing CRM — admin-only vendedor management: the material assets (vehicle, phone, etc.)
+    // assigned to them. Unlike the /leads group above, this IS admin-panel-gated — a vendedor
+    // manages her own leads but shouldn't reassign her own gear.
+    Route::middleware(['capability:staffing.crm', 'admin-panel'])->group(function () {
+        Route::get('/employee-assets', [EmployeeAssetController::class, 'index']);
+        Route::post('/employee-assets', [EmployeeAssetController::class, 'store']);
+        Route::delete('/employee-assets/{id}', [EmployeeAssetController::class, 'destroy']);
     });
 
     // Finanzas
