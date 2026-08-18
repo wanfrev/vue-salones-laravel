@@ -936,3 +936,48 @@ const triggerPrint = () => {
   window.print()
 }
 </script>
+
+<style>
+@media print {
+  @page { size: auto; margin: 12mm; }
+
+  html, body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Print only the recibo. Guarded by :has() so this rule (global the moment this component's
+     chunk loads) only takes effect while the modal is actually open — without it, printing any
+     OTHER page later in the same session would go blank too, since #admin-recibo-printable
+     wouldn't exist to re-show anything. */
+  body:has(#admin-recibo-printable) * {
+    visibility: hidden;
+  }
+
+  #admin-recibo-printable,
+  #admin-recibo-printable * {
+    visibility: visible;
+  }
+
+  /* ModalBase renders this content inside a fixed-height, scrollable panel (its "Body" div is
+     max-h-[60vh] + overflow-y-auto — see ModalBase.vue) — only whatever was scrolled into view
+     made it into the printed page, cutting the rest off. `position: fixed` escapes that
+     ancestor's overflow/height clipping entirely and re-anchors the recibo to the printed page
+     instead of the modal's on-screen scroll box. */
+  #admin-recibo-printable {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    width: 100%;
+    margin: 0;
+  }
+
+  /* Was already used throughout the template (period selector, company picker, week navigator,
+     history toggle) but had no matching rule anywhere — this is what actually makes it work. */
+  .no-print {
+    display: none !important;
+  }
+}
+</style>
