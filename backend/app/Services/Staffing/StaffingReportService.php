@@ -366,25 +366,40 @@ class StaffingReportService
     }
 
     /**
-     * Finanzas > Resumen for the staffing niche: what invoiced hours brought in, what running
-     * payroll actually cost the agency, and the margin between them — summed across every
-     * timesheet whose week starts inside the given date range. Deliberately the same
-     * invoice_total/employer_cost/margin columns StaffingPayrollCalculator persisted per entry,
-     * not re-derived, so this always agrees with the nómina/invoice screens for the same weeks.
+     * Finanzas > Resumen for the staffing niche. Ingresos = paid invoices, not billed hours: an
+     * invoice only contributes once money has actually come in — 'paid' invoices count their full
+     * total, 'partial' invoices count only what's been abonado so far, and 'sent' invoices (billed
+     * but not yet collected) contribute nothing. Scoped by the invoice's issue_date (the week/work
+     * it bills for), matching how the rest of Finanzas buckets a period. Gastos (employer_cost) and
+     * Ganancia (margin) stay on the payroll-run basis (timesheet week_start) — this method only
+     * changes what counts as Ingresos.
      *
      * @return array{invoiceTotal: float, employerCost: float, margin: float}
      */
     public function financeSummaryForPeriod(string $businessId, string $periodStart, string $periodEnd): array
     {
+        $invoiceRows = DB::table('staffing_invoices as si')
+            ->leftJoin('staffing_company_payments as scp', 'scp.invoice_id', '=', 'si.id')
+            ->where('si.business_id', $businessId)
+            ->whereIn('si.status', [StaffingInvoice::STATUS_PAID, StaffingInvoice::STATUS_PARTIAL])
+            ->whereBetween('si.issue_date', [$periodStart, $periodEnd])
+            ->groupBy('si.id', 'si.status', 'si.total')
+            ->selectRaw('si.status, si.total, COALESCE(SUM(scp.amount), 0) as paid_amount')
+            ->get();
+
+        $invoiceTotal = (float) $invoiceRows->sum(
+            fn ($row) => $row->status === StaffingInvoice::STATUS_PAID ? (float) $row->total : (float) $row->paid_amount
+        );
+
         $row = DB::table('staffing_timesheet_entries as ste')
             ->join('staffing_timesheets as st', 'st.id', '=', 'ste.timesheet_id')
             ->where('st.business_id', $businessId)
             ->whereBetween('st.week_start', [$periodStart, $periodEnd])
-            ->selectRaw('SUM(ste.invoice_total) as invoice_total, SUM(ste.employer_cost) as employer_cost, SUM(ste.margin) as margin')
+            ->selectRaw('SUM(ste.employer_cost) as employer_cost, SUM(ste.margin) as margin')
             ->first();
 
         return [
-            'invoiceTotal' => (float) ($row->invoice_total ?? 0.0),
+            'invoiceTotal' => $invoiceTotal,
             'employerCost' => (float) ($row->employer_cost ?? 0.0),
             'margin' => (float) ($row->margin ?? 0.0),
         ];

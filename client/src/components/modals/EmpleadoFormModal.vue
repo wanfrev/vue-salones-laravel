@@ -384,7 +384,7 @@ const defaultFormData: EmpleadoFormData = {
   canAccessSuppliers: false,
   canAccessFinanzas: false,
   canAccessRequirements: false,
-  staffingCompanyId: '',
+  staffingAssignments: [],
   staffingTaxRate: null,
   address: '',
   ssn: '',
@@ -395,6 +395,7 @@ const defaultFormData: EmpleadoFormData = {
   bankRoutingNumber: '',
   bankAccountNumber: '',
   payrollCardNumber: '',
+  active: true,
 }
 
 const formData = ref<EmpleadoFormData>({ ...defaultFormData })
@@ -408,10 +409,11 @@ const editingSsnLast4 = ref<string | null>(null)
 
 const isFormValid = computed(() => {
   const nameValid = formData.value.name.trim().length >= 2
-  const roleValid = formData.value.systemRole === 'encargado' ? true : formData.value.role !== ''
   if (isStaffing.value) {
-    return nameValid && roleValid && formData.value.staffingCompanyId !== ''
+    const assignments = formData.value.staffingAssignments
+    return nameValid && assignments.length > 0 && assignments.every(a => a.companyId !== '' && a.role.trim() !== '')
   }
+  const roleValid = formData.value.systemRole === 'encargado' ? true : formData.value.role !== ''
   const emailValid = formData.value.email.trim().length >= 5
   const pwd = formData.value.password
   const passwordValid = pwd.length === 0 ? isEditing.value : pwd.length >= 6
@@ -452,7 +454,7 @@ watch(
         canAccessSuppliers: empleado.canAccessSuppliers ?? false,
         canAccessFinanzas: empleado.canAccessFinanzas ?? false,
         canAccessRequirements: empleado.canAccessRequirements ?? false,
-        staffingCompanyId: empleado.staffingCompanyId ?? '',
+        staffingAssignments: empleado.staffingAssignments ?? [],
         staffingTaxRate: empleado.staffingTaxRate ?? null,
         address: empleado.address ?? '',
         bankName: empleado.bankName ?? '',
@@ -464,14 +466,16 @@ watch(
         bankAccountNumber: '',
         payrollCardNumber: '',
         ssn: '',
+        active: empleado.active ?? true,
       }
       editingBankAccountLast4.value = empleado.bankAccountLast4 ?? null
       editingPayrollCardLast4.value = empleado.payrollCardLast4 ?? null
       editingSsnLast4.value = empleado.ssnLast4 ?? null
     } else {
+      const presetCompanyId = modalData.value?.presetCompanyId
       formData.value = {
         ...defaultFormData,
-        staffingCompanyId: modalData.value?.presetCompanyId ?? '',
+        staffingAssignments: presetCompanyId ? [{ companyId: presetCompanyId, role: '' }] : [],
       }
       editingBankAccountLast4.value = null
       editingPayrollCardLast4.value = null

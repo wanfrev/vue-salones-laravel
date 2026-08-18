@@ -19,6 +19,8 @@ export type SuperadminAuditLogEntry = {
   target_profile_id: string | null
   metadata: Record<string, unknown> | null
   created_at: string
+  actor?: { id: string; full_name: string; email: string | null } | null
+  business?: { id: string; name: string } | null
 }
 
 export type CreateBusinessInput = {
@@ -33,9 +35,25 @@ export type CreateBusinessResult = {
   invitedUserId: string
 }
 
+export type SuperadminAccount = {
+  id: string
+  full_name: string
+  email: string | null
+  active: boolean
+  created_at: string
+}
+
+export type CreateSuperadminInput = {
+  fullName: string
+  email: string
+  password: string
+}
+
 export const superadminKeys = {
   businesses: () => ['superadmin', 'businesses'] as const,
   businessAdmins: (businessId: string) => ['superadmin', 'business-admins', businessId] as const,
+  globalAuditLogs: (action?: string | null) => ['superadmin', 'audit-logs', action ?? 'all'] as const,
+  superadmins: () => ['superadmin', 'accounts'] as const,
 }
 
 // ── READ ──
@@ -148,10 +166,117 @@ export const listAuditLogs = async (businessId: string): Promise<SuperadminAudit
   return apiRequest<SuperadminAuditLogEntry[]>('GET', `/admin/businesses/${businessId}/audit-logs`)
 }
 
+/** Every superadmin action across every business — backs the standalone "Auditoría" page. */
+export const listGlobalAuditLogs = async (action?: string | null): Promise<SuperadminAuditLogEntry[]> => {
+  const params = new URLSearchParams()
+  if (action) params.set('action', action)
+  const qs = params.toString()
+  return apiRequest<SuperadminAuditLogEntry[]>('GET', `/admin/audit-logs${qs ? `?${qs}` : ''}`)
+}
+
+// ── Shared with both the per-business "Actividad reciente" panel and the global Auditoría page ──
+
+export const AUDIT_ACTION_LABELS: Record<string, string> = {
+  create_business: 'Negocio creado',
+  update_business: 'Negocio actualizado',
+  delete_business: 'Negocio eliminado',
+  suspend_business: 'Negocio suspendido',
+  resume_business: 'Negocio reactivado',
+  reset_admin_password: 'Contraseña restablecida',
+  impersonate_admin: 'Sesión de soporte iniciada',
+  create_superadmin: 'Superadmin creado',
+  revoke_superadmin: 'Superadmin revocado',
+  restore_superadmin: 'Superadmin restaurado',
+}
+
+export function describeAuditAction(log: SuperadminAuditLogEntry): string {
+  return AUDIT_ACTION_LABELS[log.action] ?? log.action
+}
+
+const FIELD_LABELS: Record<string, string> = {
+  active: 'Activo',
+  name: 'Nombre',
+  niche_type: 'Nicho',
+  timezone: 'Zona horaria',
+  currency: 'Moneda',
+  ves_exchange_rate: 'Tasa VES',
+  multi_branch_enabled: 'Multi-sucursal',
+  phone: 'Teléfono',
+  address: 'Dirección',
+}
+
+/** "Nombre: A → B, Activo: true → false" — the one-line summary of an update_business diff. */
+export function describeAuditChanges(log: SuperadminAuditLogEntry): string | null {
+  const changes = log.metadata?.changes as Record<string, unknown> | undefined
+  if (!changes) return null
+
+  const parts: string[] = []
+  for (const [field, value] of Object.entries(changes)) {
+    if (field === 'features') {
+      const featureChanges = value as Record<string, [unknown, unknown]>
+      for (const [feature, [wasOn, isOn]] of Object.entries(featureChanges)) {
+        parts.push(`${feature}: ${wasOn ? 'activo' : 'inactivo'} → ${isOn ? 'activo' : 'inactivo'}`)
+      }
+      continue
+    }
+    const [before, after] = value as [unknown, unknown]
+    const label = FIELD_LABELS[field] ?? field
+    parts.push(`${label}: ${formatAuditValue(before)} → ${formatAuditValue(after)}`)
+  }
+  return parts.join(', ')
+}
+
+function formatAuditValue(value: unknown): string {
+  if (value === null || value === undefined) return '—'
+  if (typeof value === 'boolean') return value ? 'Sí' : 'No'
+  return String(value)
+}
+
 export const suspendBusiness = async (businessId: string): Promise<void> => {
   await apiRequest('POST', `/admin/businesses/${businessId}/suspend`)
 }
 
 export const resumeBusiness = async (businessId: string): Promise<void> => {
   await apiRequest('POST', `/admin/businesses/${businessId}/resume`)
+}
+
+// ── Superadmin account management ──
+
+export const listSuperadmins = async (): Promise<SuperadminAccount[]> => {
+  return apiRequest<SuperadminAccount[]>('GET', '/admin/superadmins')
+}
+
+export const createSuperadmin = async (input: CreateSuperadminInput): Promise<SuperadminAccount> => {
+  return apiRequest<SuperadminAccount>('POST', '/admin/superadmins', {
+    fullName: input.fullName.trim(),
+    email: input.email.trim().toLowerCase(),
+    password: input.password,
+  })
+}
+
+export const revokeSuperadmin = async (id: string): Promise<void> => {
+  await apiRequest('POST', `/admin/superadmins/${id}/revoke`)
+}
+
+export const restoreSuperadmin = async (id: string): Promise<void> => {
+  await apiRequest('POST', `/admin/superadmins/${id}/restore`)
+}
+
+// ── Features matrix ──
+
+export type FeatureMatrixBusiness = {
+  id: string
+  name: string
+  active: boolean
+  features: Record<string, boolean>
+}
+
+export type FeatureMatrixNiche = {
+  niche: string
+  features: string[]
+  businesses: FeatureMatrixBusiness[]
+}
+
+export const getFeaturesMatrix = async (): Promise<FeatureMatrixNiche[]> => {
+  return apiRequest<FeatureMatrixNiche[]>('GET', '/admin/features-matrix')
 }

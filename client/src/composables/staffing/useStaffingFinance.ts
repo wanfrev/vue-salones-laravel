@@ -11,13 +11,14 @@ import {
 } from '../../services/staffing/staffingService'
 
 /**
- * Finanzas > Resumen for the staffing niche. Ingresos = invoiced hours (nómina's own
- * invoice_total, not appointment/POS cobros — this niche has none) plus manual entries.
- * Gastos = what running payroll actually cost the agency (employer_cost: net paid to
- * employees + taxes + fees, adjustments already folded into net) plus the business's normal
- * manual "Gastos Operativos" ledger (passed in from useExpenses, not duplicated here).
- * Ganancia = the nómina margin alone (invoice - employer cost) — not reduced by manual
- * expenses, since it represents what staffing services made before any other overhead.
+ * Finanzas > Resumen for the staffing niche. Ingresos = paid invoices (staffing_invoices with
+ * status 'paid' counted in full, 'partial' counted for what's been abonado so far — billed but
+ * unpaid 'sent' invoices don't count) plus manual entries. Gastos = what running payroll
+ * actually cost the agency (employer_cost: net paid to employees + taxes + fees, adjustments
+ * already folded into net) plus the business's normal manual "Gastos Operativos" ledger
+ * (passed in from useExpenses, not duplicated here). Ganancia = the nómina margin alone
+ * (billed-hours basis, invoice - employer cost) — not reduced by manual expenses, since it
+ * represents what staffing services made before any other overhead.
  */
 export function useStaffingFinance(businessId: Ref<string | null>, periodStart: Ref<string>, periodEnd: Ref<string>) {
   const queryClient = useQueryClient()

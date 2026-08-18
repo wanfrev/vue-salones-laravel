@@ -132,7 +132,7 @@
               <span class="text-text-muted">Comisión del empleado</span>
               <span class="font-medium text-text">{{ payInfo.percentage }}%</span>
             </div>
-            <div v-if="payInfo && payInfo.type === 'percentage' && earningsWithVESComputed.length > 0" class="flex justify-between py-2 text-sm">
+            <div v-if="payInfo && payInfo.type !== 'salary' && earningsWithVESComputed.length > 0" class="flex justify-between py-2 text-sm">
               <span class="text-text-muted">Ganancia por comisión</span>
               <div class="text-right">
                 <span class="font-medium text-text">${{ totalVariableEarned }}</span>
@@ -263,9 +263,20 @@
           <div class="min-w-0 flex-1">
             <p class="font-semibold text-text text-base">{{ employeeName }}</p>
             <p class="text-xs text-text-muted truncate">
-              {{ staffingCompanyName }}<template v-if="props.employee?.role || props.employee?.staffingRole"> · {{ props.employee.role || props.employee.staffingRole }}</template>
+              {{ staffingCompanyName }}<template v-if="selectedAssignment?.role"> · {{ selectedAssignment.role }}</template>
             </p>
           </div>
+        </div>
+
+        <!-- Company picker — only shown when the employee is assigned to more than one -->
+        <div v-if="employeeCompanies.length > 1" class="mb-4 no-print">
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted">Empresa</label>
+          <select :value="activeCompanyId" @change="selectedCompanyId = ($event.target as HTMLSelectElement).value"
+            class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20">
+            <option v-for="a in employeeCompanies" :key="a.companyId" :value="a.companyId">
+              {{ a.companyName || 'Empresa' }} — {{ a.role }}
+            </option>
+          </select>
         </div>
 
         <div v-if="loadingStaffingWeeks" class="flex items-center justify-center py-8">
@@ -435,10 +446,9 @@ import { useBusinessStore } from '../../store/business'
 import { getInitials, parseLocalDate } from '../../lib/formatters'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { dashboardKeys, listEmployeeTransactions, listEmployeePayments } from '../../services/employeeDashboardService'
-import {
-  listStaffingCompanies, listStaffingTimesheets, staffingCompanyKeys, staffingTimesheetKeys,
-} from '../../services/staffing/staffingService'
+import { listStaffingTimesheets, staffingTimesheetKeys } from '../../services/staffing/staffingService'
 import type { StaffingTimesheet, StaffingTimesheetEntry } from '../../types/database'
+import type { StaffingAssignment } from '../../types/empleado'
 
 const MONTHS_ES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
@@ -462,21 +472,29 @@ const businessName = computed(() => businessStore.business?.name ?? '')
 // ── Staffing niche: hours/company/OT recibo, one row per week ──────────────
 const isStaffingView = computed(() => businessStore.hasCapability('staffing.timesheets'))
 
-const { data: staffingCompaniesData } = useQuery({
-  queryKey: computed(() => staffingCompanyKeys.all(businessId.value)),
-  queryFn: () => listStaffingCompanies(businessId.value!, null, 'all'),
-  enabled: computed(() => props.isOpen && isStaffingView.value && !!businessId.value),
-})
-const staffingCompanyName = computed(() => {
-  const id = props.employee?.staffingCompanyId
-  if (!id) return 'Sin empresa'
-  return (staffingCompaniesData.value ?? []).find(c => c.id === id)?.name ?? 'Sin empresa'
-})
+/** Every company this employee is currently assigned to — the source for the company picker. */
+const employeeCompanies = computed(() => props.employee?.staffingAssignments ?? [])
+
+// Which company's recibo is showing. Tracked by id (not index) so it survives the assignment
+// list re-sorting/refetching underneath it; reset whenever a different employee's modal opens.
+const selectedCompanyId = ref<string | null>(null)
+watch(() => props.employee?.id, () => { selectedCompanyId.value = null })
+
+const activeCompanyId = computed(() =>
+  selectedCompanyId.value && employeeCompanies.value.some((a: StaffingAssignment) => a.companyId === selectedCompanyId.value)
+    ? selectedCompanyId.value
+    : employeeCompanies.value[0]?.companyId ?? null
+)
+
+const selectedAssignment = computed(() =>
+  employeeCompanies.value.find((a: StaffingAssignment) => a.companyId === activeCompanyId.value) ?? null
+)
+const staffingCompanyName = computed(() => selectedAssignment.value?.companyName || 'Sin empresa')
 
 const { data: staffingTimesheetsData, isLoading: loadingStaffingWeeks } = useQuery({
-  queryKey: computed(() => staffingTimesheetKeys.byCompany(businessId.value, props.employee?.staffingCompanyId ?? null)),
-  queryFn: () => listStaffingTimesheets(businessId.value!, props.employee!.staffingCompanyId!),
-  enabled: computed(() => props.isOpen && isStaffingView.value && !!businessId.value && !!props.employee?.staffingCompanyId),
+  queryKey: computed(() => staffingTimesheetKeys.byCompany(businessId.value, activeCompanyId.value)),
+  queryFn: () => listStaffingTimesheets(businessId.value!, activeCompanyId.value),
+  enabled: computed(() => props.isOpen && isStaffingView.value && !!businessId.value && !!activeCompanyId.value),
 })
 
 interface EmployeeWeek { timesheet: StaffingTimesheet; entry: StaffingTimesheetEntry }
@@ -746,7 +764,7 @@ const totalBilledVES = computed(() =>
 )
 
 const totalVariableEarned = computed(() =>
-  earnings.value.reduce((sum, r) => sum + r.employeeEarnings, 0).toFixed(2)
+  earnings.value.reduce((sum, r) => sum + Math.max(0, r.employeeEarnings - (r.tipAmount ?? 0)), 0).toFixed(2)
 )
 
 const totalTip = computed(() =>
@@ -756,9 +774,10 @@ const totalTip = computed(() =>
 const totalEarned = computed(() => {
   let total = 0
   for (const r of earnings.value) {
-    total += r.employeeEarnings
+    total += Math.max(0, r.employeeEarnings - (r.tipAmount ?? 0))
   }
   total += baseSalaryForPeriod.value
+  total += totalTip.value
   return total.toFixed(2)
 })
 

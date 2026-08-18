@@ -46,8 +46,11 @@ class ProfileController
     private function staffingFieldRules(): array
     {
         return [
-            'staffing_company_id' => 'nullable|uuid|exists:staffing_companies,id',
-            'staffing_role' => 'nullable|string|max:120',
+            // A staffing worker can be assigned to more than one client company at once, each
+            // with its own role (rates are per company+role) — see StaffingCompanyEmployeeService.
+            'staffing_assignments' => 'nullable|array',
+            'staffing_assignments.*.company_id' => 'required_with:staffing_assignments|uuid|exists:staffing_companies,id',
+            'staffing_assignments.*.role' => 'required_with:staffing_assignments|string|max:120',
             // Fraction (0.07 = 7%) overriding the company's tax_brackets for this employee only.
             'staffing_tax_rate' => 'nullable|numeric|min:0|max:1',
             'ssn' => 'nullable|string|max:11',

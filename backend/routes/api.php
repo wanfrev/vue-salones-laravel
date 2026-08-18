@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\Staffing\StaffingCompanyPaymentController;
 use App\Http\Controllers\Api\Staffing\StaffingCompanyRateController;
 use App\Http\Controllers\Api\Staffing\StaffingInvoiceController;
 use App\Http\Controllers\Api\Staffing\StaffingManualIncomeController;
+use App\Http\Controllers\Api\Staffing\EmployeeAssetController;
 use App\Http\Controllers\Api\Staffing\StaffingReportController;
 use App\Http\Controllers\Api\Staffing\StaffingTaxEntityController;
 use App\Http\Controllers\Api\Staffing\StaffingTaxEntryController;
@@ -310,6 +311,15 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::get('/leads/vendedoras', [LeadController::class, 'vendedoras']);
     });
 
+    // Staffing CRM — admin-only vendedor management: the material assets (vehicle, phone, etc.)
+    // assigned to them. Unlike the /leads group above, this IS admin-panel-gated — a vendedor
+    // manages her own leads but shouldn't reassign her own gear.
+    Route::middleware(['capability:staffing.crm', 'admin-panel'])->group(function () {
+        Route::get('/employee-assets', [EmployeeAssetController::class, 'index']);
+        Route::post('/employee-assets', [EmployeeAssetController::class, 'store']);
+        Route::delete('/employee-assets/{id}', [EmployeeAssetController::class, 'destroy']);
+    });
+
     // Finanzas
     Route::get('/finanzas/summary', [FinancialSummaryController::class, 'summary']);
     Route::get('/finanzas/transactions', [FinancialSummaryController::class, 'transactions']);
@@ -394,5 +404,11 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::put('/businesses/{id}/admins/{profileId}/password', [SuperadminController::class, 'resetAdminPassword']);
         Route::post('/businesses/{id}/admins/{profileId}/impersonate', [SuperadminController::class, 'impersonate']);
         Route::get('/businesses/{id}/audit-logs', [SuperadminController::class, 'auditLogs']);
+        Route::get('/audit-logs', [SuperadminController::class, 'globalAuditLogs']);
+        Route::get('/superadmins', [SuperadminController::class, 'superadmins']);
+        Route::post('/superadmins', [SuperadminController::class, 'storeSuperadmin']);
+        Route::post('/superadmins/{id}/revoke', [SuperadminController::class, 'revokeSuperadmin']);
+        Route::post('/superadmins/{id}/restore', [SuperadminController::class, 'restoreSuperadmin']);
+        Route::get('/features-matrix', [SuperadminController::class, 'featuresMatrix']);
     });
 });

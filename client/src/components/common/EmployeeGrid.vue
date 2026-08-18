@@ -11,22 +11,33 @@
         <div class="min-w-0 flex-1 pt-0.5">
           <div class="flex items-center gap-2">
             <h3 class="font-semibold text-text truncate">{{ member.name }}</h3>
-            <span v-if="member.active === false" class="shrink-0 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger">Inactivo</span>
+            <button v-if="isStaffing" type="button" @click="$emit('toggleActive', member)"
+              class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold transition-theme"
+              :class="member.active === false ? 'bg-danger/10 text-danger hover:bg-danger/20' : 'bg-success/10 text-success hover:bg-success/20'"
+              :title="member.active === false ? 'Activar empleado' : 'Desactivar empleado'">
+              {{ member.active === false ? 'Inactivo' : 'Activo' }}
+            </button>
+            <span v-else-if="member.active === false" class="shrink-0 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger">Inactivo</span>
           </div>
           <p class="text-xs text-text-muted">{{ member.role }}</p>
           <p v-if="member.email" class="text-xs text-text-muted truncate mt-0.5">{{ member.email }}</p>
         </div>
       </div>
 
-      <div class="mt-4 grid grid-cols-2 gap-2">
+      <div class="mt-4" :class="isStaffing ? 'space-y-1.5' : 'grid grid-cols-2 gap-2'">
         <template v-if="isStaffing">
-          <div class="rounded-lg bg-gradient-to-br from-bg-secondary/80 to-bg-secondary/40 p-2.5 text-center">
-            <p class="truncate text-sm font-semibold text-text">{{ companyNameFor(member) }}</p>
-            <p class="text-xs text-text-muted">Empresa</p>
-          </div>
-          <div class="rounded-lg bg-gradient-to-br from-bg-secondary/80 to-bg-secondary/40 p-2.5 text-center">
-            <p class="truncate text-sm font-semibold text-text">{{ member.role || '—' }}</p>
-            <p class="text-xs text-text-muted">Rol</p>
+          <p v-if="!member.staffingAssignments?.length" class="rounded-lg bg-gradient-to-br from-bg-secondary/80 to-bg-secondary/40 p-2.5 text-center text-xs text-text-muted">
+            Sin empresa asignada
+          </p>
+          <div v-for="assignment in member.staffingAssignments" :key="assignment.companyId"
+            class="flex items-center gap-2.5 rounded-lg bg-gradient-to-br from-bg-secondary/80 to-bg-secondary/40 px-2.5 py-2">
+            <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V7l8-4v18M13 21V7m8 14V11l-4-2v12M9 9h.01M9 12h.01M9 15h.01" />
+              </svg>
+            </div>
+            <span class="min-w-0 flex-1 truncate text-sm font-semibold text-text">{{ assignment.companyName || 'Empresa' }}</span>
+            <span class="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{{ assignment.role }}</span>
           </div>
         </template>
         <template v-else>
@@ -84,18 +95,16 @@
 </template>
 
 <script setup lang="ts">
-const props = withDefaults(defineProps<{
+withDefaults(defineProps<{
   employees: any[]
   showAll: boolean
   hasMore: boolean
   totalCount: number
   getInitials: (name?: string) => string
   isStaffing?: boolean
-  companiesById?: Record<string, string>
   showAgenda?: boolean
 }>(), {
   isStaffing: false,
-  companiesById: () => ({}),
   showAgenda: true,
 })
 
@@ -103,9 +112,7 @@ defineEmits<{
   edit: [employee: any]
   viewAgenda: [employee: any]
   viewRecibo: [employee: any]
+  toggleActive: [employee: any]
   toggleShowAll: []
 }>()
-
-const companyNameFor = (member: any): string =>
-  (member.staffingCompanyId && props.companiesById[member.staffingCompanyId]) || 'Sin empresa'
 </script>

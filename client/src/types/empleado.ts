@@ -1,3 +1,9 @@
+export interface StaffingAssignment {
+  companyId: string
+  companyName?: string
+  role: string
+}
+
 export interface Empleado {
   id: string
   name: string
@@ -28,10 +34,10 @@ export interface Empleado {
   canAccessSuppliers?: boolean
   canAccessFinanzas?: boolean
   canAccessRequirements?: boolean
-  // Staffing niche only. The employee has no login — pay comes from the company + role
-  // assignment below, resolved against that company's rate card.
-  staffingCompanyId?: string | null
-  staffingRole?: string
+  // Staffing niche only. The employee has no login — pay comes from the companies + role
+  // assignments below, each resolved against that company's own rate card. An employee can be
+  // assigned to more than one company at once.
+  staffingAssignments?: StaffingAssignment[]
   /** Fraction (0.07 = 7%). Null means "use the company's tax_brackets". */
   staffingTaxRate?: number | null
   address?: string
@@ -72,9 +78,9 @@ export interface EmpleadoFormData {
   canAccessSuppliers: boolean
   canAccessFinanzas: boolean
   canAccessRequirements: boolean
-  // Staffing niche only. No separate "staffing role" input — `role` above (the existing
-  // Rol/Puesto field, backed by businessStore.jobTitles) doubles as the rate-card role.
-  staffingCompanyId: string
+  // Staffing niche only — one or more (company, role) assignments. Role is per-company since
+  // rates are (company, role), not a single value on the employee.
+  staffingAssignments: StaffingAssignment[]
   staffingTaxRate: number | null
   address: string
   // Write-only, same convention as the bank/card numbers below: typing a value changes what's
@@ -89,4 +95,5 @@ export interface EmpleadoFormData {
   bankRoutingNumber: string
   bankAccountNumber: string
   payrollCardNumber: string
+  active: boolean
 }

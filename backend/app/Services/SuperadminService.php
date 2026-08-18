@@ -6,6 +6,7 @@ use App\Models\Business;
 use App\Models\Profile;
 use App\Models\SuperadminAuditLog;
 use App\Models\User;
+use App\Support\NicheRegistry;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -21,7 +22,148 @@ class SuperadminService
             ->get();
     }
 
-    public function store(array $data): array
+    /**
+     * Every active business's resolved features, grouped by niche — the "these 3 businesses have
+     * gift_cards on, these 5 don't" view. Locked features are left out entirely (see
+     * NicheRegistry::configurableFeatures) since they can't actually drift within a niche.
+     */
+    public function featuresMatrix(): array
+    {
+        $businesses = Business::whereNull('deleted_at')
+            ->orderBy('name')
+            ->get(['id', 'name', 'niche_type', 'features', 'active']);
+
+        $byNiche = $businesses->groupBy(fn (Business $b) => $b->niche_type ?? 'sin_nicho');
+
+        return $byNiche->map(function (Collection $group, string $nicheType) {
+            $featureKeys = NicheRegistry::configurableFeatures($nicheType === 'sin_nicho' ? null : $nicheType);
+
+            return [
+                'niche' => $nicheType,
+                'features' => $featureKeys,
+                'businesses' => $group->map(function (Business $business) use ($featureKeys, $nicheType) {
+                    $resolved = NicheRegistry::resolveFeatures(
+                        $nicheType === 'sin_nicho' ? null : $nicheType,
+                        $business->features
+                    );
+
+                    return [
+                        'id' => $business->id,
+                        'name' => $business->name,
+                        'active' => $business->active,
+                        'features' => collect($featureKeys)
+                            ->mapWithKeys(fn (string $key) => [$key => (bool) ($resolved[$key] ?? false)])
+                            ->all(),
+                    ];
+                })->values(),
+            ];
+        })->values()->all();
+    }
+
+    public function listSuperadmins(): Collection
+    {
+        return Profile::where('role', 'superadmin')
+            ->select('id', 'full_name', 'email', 'active', 'created_at')
+            ->orderBy('full_name')
+            ->get();
+    }
+
+    public function createSuperadmin(array $data, string $actorId): Profile
+    {
+        $email = strtolower(trim($data['email']));
+
+        if (User::where('email', $email)->exists()) {
+            throw new HttpException(422, 'Ya existe un usuario registrado con este correo electrónico.');
+        }
+
+        $userId = Str::uuid()->toString();
+
+        DB::beginTransaction();
+        try {
+            User::create([
+                'id' => $userId,
+                'name' => $data['fullName'],
+                'email' => $email,
+                'password' => $data['password'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            Profile::create([
+                'id' => $userId,
+                'business_id' => null,
+                'full_name' => $data['fullName'],
+                'role' => 'superadmin',
+                'email' => $email,
+                'active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw new HttpException(500, 'No fue posible crear el superadmin: ' . $e->getMessage());
+        }
+
+        $profile = Profile::find($userId);
+
+        $this->logAudit($actorId, 'create_superadmin', null, $userId, [
+            'admin_name' => $profile->full_name,
+            'admin_email' => $profile->email,
+        ]);
+
+        return $profile;
+    }
+
+    /**
+     * Deactivates a superadmin and kills any session they're currently holding. Guarded against
+     * the two ways this could accidentally lock everyone out of /superadmin: revoking your own
+     * account, or revoking the last active one — either leaves nobody able to undo it.
+     */
+    public function revokeSuperadmin(string $id, string $actorId): void
+    {
+        if ($id === $actorId) {
+            throw new HttpException(422, 'No puedes revocar tu propia cuenta de superadmin.');
+        }
+
+        $profile = Profile::where('id', $id)->where('role', 'superadmin')->first();
+        if (!$profile) {
+            throw new NotFoundHttpException('Superadmin no encontrado.');
+        }
+
+        $activeCount = Profile::where('role', 'superadmin')->where('active', true)->count();
+        if ($profile->active && $activeCount <= 1) {
+            throw new HttpException(422, 'No puedes revocar el único superadmin activo — quedarían fuera todos los accesos.');
+        }
+
+        $profile->update(['active' => false, 'updated_at' => now()]);
+
+        $user = User::find($id);
+        $user?->tokens()->delete();
+
+        $this->logAudit($actorId, 'revoke_superadmin', null, $id, [
+            'admin_name' => $profile->full_name,
+            'admin_email' => $profile->email,
+        ]);
+    }
+
+    public function restoreSuperadmin(string $id, string $actorId): void
+    {
+        $profile = Profile::where('id', $id)->where('role', 'superadmin')->first();
+        if (!$profile) {
+            throw new NotFoundHttpException('Superadmin no encontrado.');
+        }
+
+        $profile->update(['active' => true, 'updated_at' => now()]);
+
+        $this->logAudit($actorId, 'restore_superadmin', null, $id, [
+            'admin_name' => $profile->full_name,
+            'admin_email' => $profile->email,
+        ]);
+    }
+
+    public function store(array $data, string $actorId): array
     {
         $email = strtolower(trim($data['ownerEmail']));
 
@@ -79,24 +221,74 @@ class SuperadminService
             throw new HttpException(500, 'No fue posible crear el negocio: ' . $e->getMessage());
         }
 
+        $this->logAudit($actorId, 'create_business', $businessId, null, [
+            'business_name' => $data['name'],
+            'owner_email' => $email,
+            'niche_type' => $data['nicheType'] ?? 'salon',
+        ]);
+
         return [
             'businessId' => $businessId,
             'userId' => $userId,
         ];
     }
 
-    public function update(string $id, array $data): Business
+    public function update(string $id, array $data, string $actorId): Business
     {
         $business = Business::find($id);
         if (!$business) {
             throw new NotFoundHttpException('Negocio no encontrado.');
         }
 
+        $changes = $this->diffChanges($business, $data);
+
         $business->update($data + ['updated_at' => now()]);
+
+        if ($changes !== []) {
+            $this->logAudit($actorId, 'update_business', $id, null, [
+                'business_name' => $business->name,
+                'changes' => $changes,
+            ]);
+        }
+
         return $business->fresh();
     }
 
-    public function destroy(string $id): void
+    /**
+     * Field-by-field [before, after] pairs for whatever the request actually changed — 'features'
+     * gets its own nested diff (only the flags that flipped) since a blanket before/after of the
+     * whole features object would bury the one toggle someone actually needs to find later.
+     */
+    private function diffChanges(Business $business, array $data): array
+    {
+        $changes = [];
+
+        foreach ($data as $key => $newValue) {
+            if ($key === 'features' && is_array($newValue)) {
+                $oldFeatures = $business->features ?? [];
+                $featureChanges = [];
+                foreach ($newValue as $feature => $enabled) {
+                    $wasEnabled = $oldFeatures[$feature] ?? null;
+                    if ($wasEnabled !== $enabled) {
+                        $featureChanges[$feature] = [$wasEnabled, $enabled];
+                    }
+                }
+                if ($featureChanges !== []) {
+                    $changes['features'] = $featureChanges;
+                }
+                continue;
+            }
+
+            $oldValue = $business->{$key} ?? null;
+            if ($oldValue !== $newValue) {
+                $changes[$key] = [$oldValue, $newValue];
+            }
+        }
+
+        return $changes;
+    }
+
+    public function destroy(string $id, string $actorId): void
     {
         $business = Business::find($id);
         if (!$business) {
@@ -113,9 +305,13 @@ class SuperadminService
             'active' => false,
             'updated_at' => now(),
         ]);
+
+        $this->logAudit($actorId, 'delete_business', $id, null, [
+            'business_name' => $business->name,
+        ]);
     }
 
-    public function suspend(string $id): void
+    public function suspend(string $id, string $actorId): void
     {
         $business = Business::find($id);
         if (!$business) {
@@ -126,9 +322,13 @@ class SuperadminService
         Profile::where('business_id', $id)
             ->where('role', '!=', 'superadmin')
             ->update(['active' => false, 'updated_at' => now()]);
+
+        $this->logAudit($actorId, 'suspend_business', $id, null, [
+            'business_name' => $business->name,
+        ]);
     }
 
-    public function resume(string $id): void
+    public function resume(string $id, string $actorId): void
     {
         $business = Business::find($id);
         if (!$business) {
@@ -139,6 +339,10 @@ class SuperadminService
         Profile::where('business_id', $id)
             ->where('role', '!=', 'superadmin')
             ->update(['active' => true, 'updated_at' => now()]);
+
+        $this->logAudit($actorId, 'resume_business', $id, null, [
+            'business_name' => $business->name,
+        ]);
     }
 
     public function admins(string $businessId): Collection
@@ -246,13 +450,24 @@ class SuperadminService
         ];
     }
 
-    /** Most recent superadmin actions, optionally scoped to one business. */
-    public function auditLogs(?string $businessId = null, int $limit = 50): Collection
+    /**
+     * Most recent superadmin actions — every business by default, or scoped to one. Eager-loads
+     * actor/business so the frontend never has to resolve a bare UUID into a name itself.
+     */
+    public function auditLogs(?string $businessId = null, ?string $action = null, int $limit = 50): Collection
     {
-        $query = SuperadminAuditLog::query()->orderByDesc('created_at')->limit($limit);
+        $query = SuperadminAuditLog::query()
+            ->with(['actor:id,full_name,email', 'business:id,name'])
+            ->orderByDesc('created_at')
+            ->limit($limit);
+
         if ($businessId) {
             $query->where('business_id', $businessId);
         }
+        if ($action) {
+            $query->where('action', $action);
+        }
+
         return $query->get();
     }
 

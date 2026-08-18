@@ -56,19 +56,19 @@ class LeadService
 
     /**
      * The admin CRM sidebar roster: every non-staffing-worker employee (a "vendedora" — plain
-     * `empleado`/`encargado` without a `staffing_company_id`) and how many leads she owns, in
+     * `empleado`/`encargado` with no client-company assignments) and how many leads she owns, in
      * one aggregated query rather than N+1 counts.
      *
-     * @return list<array{id: string, name: string, leadCount: int}>
+     * @return list<array{id: string, name: string, phone: ?string, email: ?string, leadCount: int}>
      */
     public function vendedoraRoster(string $businessId): array
     {
         $vendedoras = Profile::query()
             ->where('business_id', $businessId)
             ->whereIn('role', ['empleado', 'encargado'])
-            ->whereNull('staffing_company_id')
+            ->whereDoesntHave('staffingCompanyEmployees')
             ->orderBy('full_name')
-            ->get(['id', 'full_name']);
+            ->get(['id', 'full_name', 'phone', 'email']);
 
         if ($vendedoras->isEmpty()) {
             return [];
@@ -83,6 +83,8 @@ class LeadService
         return $vendedoras->map(fn (Profile $v) => [
             'id' => $v->id,
             'name' => $v->full_name,
+            'phone' => $v->phone,
+            'email' => $v->email,
             'leadCount' => (int) ($counts[$v->id] ?? 0),
         ])->all();
     }

@@ -36,8 +36,9 @@
 
   <EmployeeGrid
     :employees="visibleTeam" :show-all="showAll" :has-more="hasMoreThanDefault" :total-count="team.length"
-    :get-initials="getInitials" :is-staffing="isStaffing" :companies-by-id="companiesById" :show-agenda="showAgenda"
-    @edit="handleEditEmpleado" @view-agenda="handleViewAgenda" @view-recibo="handleOpenRecibo" @toggle-show-all="showAll = !showAll"
+    :get-initials="getInitials" :is-staffing="isStaffing" :show-agenda="showAgenda"
+    @edit="handleEditEmpleado" @view-agenda="handleViewAgenda" @view-recibo="handleOpenRecibo"
+    @toggle-active="handleToggleActive" @toggle-show-all="showAll = !showAll"
   />
 
   <!--
@@ -107,7 +108,6 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
 import { useCrud } from '../composables/empleados/useCrud'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/common/useAuth'
@@ -115,7 +115,7 @@ import { useNotification } from '../composables/common/useNotification'
 import { useCurrency } from '../composables/common/useCurrency'
 import { usePeriodSelection } from '../composables/finanzas/usePeriodSelection'
 import { deleteEmpleado, equipoKeys, listEquipo, saveEmpleado, type EmployeeActiveFilter } from '../services/equipoService'
-import { listStaffingCompanies, staffingCompanyKeys } from '../services/staffing/staffingService'
+import { adminUpdateEmployee } from '../services/adminService'
 import { useBusinessStore } from '../store/business'
 import { getInitials, formatMethod, formatTime24to12 } from '../lib/formatters'
 import { resolvePeriodDates } from '../lib/periodUtils'
@@ -151,15 +151,6 @@ const employeeStatusTabs = [
   { key: 'inactive', label: 'Inactivos' },
   { key: 'all', label: 'Todos' },
 ]
-
-const { data: staffingCompanies } = useQuery({
-  queryKey: computed(() => staffingCompanyKeys.all(businessId.value)),
-  queryFn: () => listStaffingCompanies(businessId.value!, null, 'all'),
-  enabled: computed(() => !!businessId.value && isStaffing.value),
-})
-const companiesById = computed<Record<string, string>>(() =>
-  Object.fromEntries((staffingCompanies.value ?? []).map(c => [c.id, c.name])),
-)
 
 const selectedReciboEmployee = ref<any>(null)
 const showReciboModal = ref(false)
@@ -215,7 +206,7 @@ const { items: rawTeam, handleSave: handleSaveEmpleado, handleDelete: handleDele
 
 // Staffing workers placed at client companies belong in the main list for staffing businesses.
 // For other business types, we filter them out so they don't pollute the generic team list.
-const team = computed(() => isStaffing.value ? rawTeam.value : rawTeam.value.filter(e => !e.staffingCompanyId))
+const team = computed(() => isStaffing.value ? rawTeam.value : rawTeam.value.filter(e => !e.staffingAssignments?.length))
 
 const teamForPayroll = computed(() => team.value.filter(e => !e.isCajero))
 
@@ -239,6 +230,18 @@ const empleadosMixto = computed(() => team.value.filter(e => e.payType === 'mixe
 const handleNewEmpleado = () => empleadoModalRef.value?.open()
 const handleEditEmpleado = (e: Empleado) => empleadoModalRef.value?.open(e)
 const handleViewAgenda = (e: Empleado) => { router.push('/admin?employee=' + e.id) }
+
+const { success: notifySuccess, error: notifyError } = useNotification()
+const handleToggleActive = async (e: Empleado) => {
+  const nextActive = e.active === false
+  try {
+    await adminUpdateEmployee(e.id, { active: nextActive })
+    await queryClient.invalidateQueries({ queryKey: equipoKeys.all(businessId.value, branchId.value, isStaffing.value ? employeeActiveFilter.value : undefined), exact: false })
+    notifySuccess(nextActive ? 'Empleado activado' : 'Empleado desactivado')
+  } catch {
+    notifyError('No se pudo actualizar el estado del empleado')
+  }
+}
 
 const { formatUSD, formatSecondary, formatVESEs } = useCurrency()
 const employeeDebtSummary = computed(() => {

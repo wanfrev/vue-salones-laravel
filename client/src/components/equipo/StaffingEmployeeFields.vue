@@ -1,5 +1,29 @@
 <template>
   <div class="space-y-4">
+    <label v-if="isEditing" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+      <div class="flex-1">
+        <p class="text-sm font-medium text-text">Empleado activo</p>
+        <p class="text-xs text-text-muted">Un empleado inactivo no aparece en Nómina ni puede recibir horas nuevas.</p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        :aria-checked="active"
+        @click="active = !active"
+        :class="[
+          'relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2',
+          active ? 'bg-primary border-primary' : 'bg-border border-border'
+        ]"
+      >
+        <span
+          :class="[
+            'inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform',
+            active ? 'translate-x-4' : 'translate-x-0'
+          ]"
+        />
+      </button>
+    </label>
+
     <p class="text-xs font-semibold uppercase tracking-wider text-primary">Información Personal</p>
 
     <FormInput
@@ -43,40 +67,66 @@
     />
 
     <div class="mt-8 border-t border-border pt-6 space-y-4">
-      <p class="text-xs font-semibold uppercase tracking-wider text-primary">Empresa y pago</p>
-
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <FormDropdown
-          v-model="companyId"
-          label="Empresa"
-          placeholder="Selecciona la empresa donde trabaja"
-          :options="companyOptions"
-          required
-        />
-        
-        <FormDropdown
-          v-model="role"
-          label="Rol / Puesto"
-          placeholder="Seleccionar rol..."
-          :options="roleOptions"
-          required
-        />
+      <div class="flex items-center justify-between">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-wider text-primary">Empresas y pago</p>
+          <p class="text-xs text-text-muted">Puede estar asignado a más de una empresa a la vez, cada una con su propio rol.</p>
+        </div>
+        <button type="button"
+          class="shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
+          @click="addAssignment">
+          + Agregar empresa
+        </button>
       </div>
 
-      <p v-if="companyId && role && !resolvedRate" class="text-xs text-warning">
-        Esta empresa no tiene una tarifa configurada para "{{ role }}" todavía — agrégala en Empresas
-        antes de cargar horas.
+      <p v-if="assignments.length === 0" class="text-xs text-warning">
+        Agrega al menos una empresa para poder asignarle horas.
       </p>
-      <div v-else-if="resolvedRate" class="space-y-1 rounded-lg bg-bg-secondary/60 px-3 py-2 text-xs text-text-secondary">
-        <p>
-          Regular (hasta {{ resolvedRate.overtimeThresholdHours ?? 40 }}h/sem): gana
-          <span class="font-semibold text-text">{{ formatUSD(resolvedRate.payRate) }}/h</span>
-          · se cobra a la empresa <span class="font-semibold text-text">{{ formatUSD(resolvedRate.billRate) }}/h</span>
+
+      <div v-for="(assignment, index) in assignments" :key="index"
+        class="space-y-2 rounded-xl border border-border/70 bg-bg-secondary/20 p-3">
+        <div class="flex items-start gap-2">
+          <div class="grid flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
+            <FormDropdown
+              :model-value="assignment.companyId"
+              @update:model-value="setAssignmentCompany(index, $event as string)"
+              label="Empresa"
+              placeholder="Selecciona la empresa"
+              :options="companyOptions"
+              required
+            />
+            <FormDropdown
+              :model-value="assignment.role"
+              @update:model-value="setAssignmentRole(index, $event as string)"
+              label="Rol / Puesto"
+              placeholder="Seleccionar rol..."
+              :options="roleOptionsFor(assignment.companyId)"
+              required
+            />
+          </div>
+          <button type="button"
+            class="mt-6 shrink-0 rounded-lg p-2 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+            title="Quitar empresa"
+            @click="removeAssignment(index)">
+            <TrashBin2Icon class="h-4 w-4" />
+          </button>
+        </div>
+
+        <p v-if="assignment.companyId && assignment.role && !resolvedRateFor(assignment)" class="text-xs text-warning">
+          Esta empresa no tiene una tarifa configurada para "{{ assignment.role }}" todavía — agrégala en Empresas
+          antes de cargar horas.
         </p>
-        <p>
-          Overtime: gana <span class="font-semibold text-text">{{ formatUSD(effectiveOvertimePayRate) }}/h</span>
-          · se cobra a la empresa <span class="font-semibold text-text">{{ formatUSD(effectiveOvertimeBillRate) }}/h</span>
-        </p>
+        <div v-else-if="resolvedRateFor(assignment)" class="space-y-1 rounded-lg bg-bg-secondary/60 px-3 py-2 text-xs text-text-secondary">
+          <p>
+            Regular (hasta {{ resolvedRateFor(assignment)!.overtimeThresholdHours ?? 40 }}h/sem): gana
+            <span class="font-semibold text-text">{{ formatUSD(resolvedRateFor(assignment)!.payRate) }}/h</span>
+            · se cobra a la empresa <span class="font-semibold text-text">{{ formatUSD(resolvedRateFor(assignment)!.billRate) }}/h</span>
+          </p>
+          <p>
+            Overtime: gana <span class="font-semibold text-text">{{ formatUSD(effectiveOvertimePayRate(assignment)) }}/h</span>
+            · se cobra a la empresa <span class="font-semibold text-text">{{ formatUSD(effectiveOvertimeBillRate(assignment)) }}/h</span>
+          </p>
+        </div>
       </div>
     </div>
 
@@ -88,8 +138,8 @@
         max="100"
         step="0.1"
         label="% de tax (opcional)"
-        :placeholder="companyTaxHint ? `Vacío = ${companyTaxHint}` : 'Vacío = 0%'"
-        hint="Solo si este empleado necesita un porcentaje distinto al de la empresa."
+        :placeholder="companyTaxHint ? `Vacío = ${companyTaxHint}` : 'Vacío = el % de cada empresa'"
+        hint="Solo si este empleado necesita un porcentaje distinto al de sus empresas."
       />
     </div>
 
@@ -136,8 +186,9 @@ import { computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { FormInput, FormDropdown } from '../forms'
 import { useCurrency } from '../../composables/common/useCurrency'
-import { listStaffingCompanies, listStaffingRates, staffingCompanyKeys, staffingRateKeys } from '../../services/staffing/staffingService'
-import type { EmpleadoFormData } from '../../types/empleado'
+import { listStaffingCompanies, listStaffingRates, staffingCompanyKeys, staffingRateKeys, type StaffingRateRow } from '../../services/staffing/staffingService'
+import type { EmpleadoFormData, StaffingAssignment } from '../../types/empleado'
+import { TrashBin2Icon } from '@solar-icons/vue/linear'
 
 const PAYMENT_METHOD_OPTIONS = [
   { value: 'direct_deposit', label: 'Depósito directo' },
@@ -172,15 +223,12 @@ const field = <K extends keyof EmpleadoFormData>(key: K) => computed<EmpleadoFor
   set: (value) => emit('update:modelValue', { ...props.formData, [key]: value }),
 })
 
+const active = field('active')
 const name = field('name')
 const phone = field('phone')
 const email = field('email')
-const companyId = field('staffingCompanyId')
 const staffingTaxRate = field('staffingTaxRate')
-const role = computed({
-  get: () => props.formData.role,
-  set: (val) => emit('update:modelValue', { ...props.formData, role: val })
-})
+const assignments = field('staffingAssignments')
 const address = field('address')
 const ssn = field('ssn')
 const bankName = field('bankName')
@@ -201,45 +249,61 @@ const companyOptions = computed(() =>
   (companies.value ?? []).map(c => ({ value: c.id, label: c.name })),
 )
 
-const { data: rates } = useQuery({
-  queryKey: computed(() => staffingRateKeys.byCompany(props.businessId, companyId.value || null)),
-  queryFn: () => listStaffingRates(props.businessId!, companyId.value || null),
-  enabled: computed(() => !!props.businessId && !!companyId.value),
+// Every rate for the whole business, fetched once — cheaper than one query per assignment row,
+// and rows filter it client-side by their own company.
+const { data: allRates } = useQuery({
+  queryKey: computed(() => staffingRateKeys.all(props.businessId)),
+  queryFn: () => listStaffingRates(props.businessId!),
+  enabled: computed(() => !!props.businessId),
 })
 
-const roleOptions = computed(() => {
-  if (!rates.value) return []
-  return rates.value.map(r => ({ value: r.role, label: r.role }))
-})
+const roleOptionsFor = (companyId: string) => {
+  if (!companyId || !allRates.value) return []
+  return allRates.value.filter(r => r.companyId === companyId).map(r => ({ value: r.role, label: r.role }))
+}
 
-const resolvedRate = computed(() =>
-  (rates.value ?? []).find(r => r.role === role.value && r.active) ?? null,
-)
+const resolvedRateFor = (assignment: StaffingAssignment): StaffingRateRow | null =>
+  (allRates.value ?? []).find(r => r.companyId === assignment.companyId && r.role === assignment.role && r.active) ?? null
 
 // Mirrors StaffingPayrollCalculator::overtimeMultiplierFor — an explicit OT rate on the role
 // wins outright, otherwise it's payRate/billRate times the role's own multiplier override or
 // the company-wide default of 1.5x (see StaffingTermsFactory).
-const effectiveOvertimePayRate = computed(() => {
-  const rate = resolvedRate.value
+const effectiveOvertimePayRate = (assignment: StaffingAssignment): number => {
+  const rate = resolvedRateFor(assignment)
   if (!rate) return 0
   return rate.overtimePayRate ?? rate.payRate * (rate.overtimeMultiplier ?? 1.5)
-})
-const effectiveOvertimeBillRate = computed(() => {
-  const rate = resolvedRate.value
+}
+const effectiveOvertimeBillRate = (assignment: StaffingAssignment): number => {
+  const rate = resolvedRateFor(assignment)
   if (!rate) return 0
   return rate.overtimeBillRate ?? rate.billRate * (rate.overtimeMultiplier ?? 1.5)
-})
+}
 
-const selectedCompany = computed(() => (companies.value ?? []).find(c => c.id === companyId.value) ?? null)
+const addAssignment = () => {
+  assignments.value = [...assignments.value, { companyId: '', role: '' }]
+}
+const removeAssignment = (index: number) => {
+  assignments.value = assignments.value.filter((_, i) => i !== index)
+}
+const setAssignmentCompany = (index: number, companyId: string) => {
+  // Changing the company invalidates whatever role was picked — that role belonged to the old
+  // company's rate card and almost never exists on the new one too.
+  assignments.value = assignments.value.map((a, i) => i === index ? { ...a, companyId, role: '' } : a)
+}
+const setAssignmentRole = (index: number, role: string) => {
+  assignments.value = assignments.value.map((a, i) => i === index ? { ...a, role } : a)
+}
 
-/** What "vacío" resolves to, so the admin isn't guessing which rate actually applies. */
+/**
+ * What "vacío" resolves to. Only meaningful with exactly one company assigned — with two or
+ * more, each can have a different tax rate, so there's no single number to preview here.
+ */
 const companyTaxHint = computed(() => {
-  const rate = selectedCompany.value?.taxRate
-  if (rate == null || rate === 0) return 'sin retención'
-  return `${Math.round(rate * 1000) / 10}%`
+  if (assignments.value.length !== 1) return null
+  const company = (companies.value ?? []).find(c => c.id === assignments.value[0].companyId)
+  if (!company) return null
+  return company.taxRate === 0 ? 'sin retención' : `${Math.round(company.taxRate * 1000) / 10}%`
 })
-
-
 
 // Stored as a fraction (0.07) but edited as a percentage (7) — same convention as the
 // company's own tax brackets in Empresas.vue. FormInput emits '' (not null) when cleared.

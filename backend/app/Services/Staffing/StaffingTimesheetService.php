@@ -24,6 +24,7 @@ class StaffingTimesheetService
         private StaffingRateService $rates,
         private StaffingTermsFactory $termsFactory,
         private StaffingPayrollCalculator $calculator,
+        private StaffingCompanyEmployeeService $companyEmployees,
     ) {}
 
     public function list(string $businessId, ?string $companyId = null): Collection
@@ -40,16 +41,13 @@ class StaffingTimesheetService
     }
 
     /**
-     * The employees available to load hours for on a given company — active, staffing niche,
-     * and pinned to this company via profile.staffing_company_id (set on the employee form).
+     * The employees available to load hours for on a given company — active and currently
+     * assigned there. An employee can be assigned to more than one company at once; this only
+     * returns the ones assigned to *this* one, each carrying their role at this company.
      */
     public function employeesForCompany(string $businessId, string $companyId): Collection
     {
-        return Profile::where('business_id', $businessId)
-            ->where('staffing_company_id', $companyId)
-            ->where('active', true)
-            ->orderBy('full_name')
-            ->get();
+        return $this->companyEmployees->employeesForCompany($businessId, $companyId);
     }
 
     /**
@@ -108,9 +106,14 @@ class StaffingTimesheetService
                     throw new NotFoundHttpException('Empleado no encontrado.');
                 }
 
-                $rate = $this->rates->resolveFor($businessId, $company->id, $employee->staffing_role);
+                // The role — and therefore the rate — is per (employee, company), not a single
+                // value on the profile: the same person can hold a different role at another
+                // client company they're also assigned to.
+                $role = $this->companyEmployees->roleForEmployeeAtCompany($employee->id, $company->id);
+
+                $rate = $this->rates->resolveFor($businessId, $company->id, $role);
                 if (!$rate) {
-                    $missing[] = $employee->full_name . ' (' . ($employee->staffing_role ?: 'sin rol') . ')';
+                    $missing[] = $employee->full_name . ' (' . ($role ?: 'sin rol') . ')';
                     continue;
                 }
 

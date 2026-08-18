@@ -11,7 +11,12 @@
         </button>
       </div>
 
-      <div v-if="view === 'employee'" class="flex items-center gap-3">
+      <div v-if="view === 'employee'" class="flex flex-wrap items-center gap-3">
+        <div class="relative">
+          <MagnifierIcon class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+          <input v-model="employeeSearch" type="text" placeholder="Buscar empleado..."
+            class="w-40 rounded-lg border border-border bg-surface py-1.5 pl-8 pr-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-48" />
+        </div>
         <div class="flex gap-1">
           <button v-for="tab in TABS" :key="tab.label" type="button"
             class="relative px-3 py-1.5 text-xs font-semibold transition-theme"
@@ -37,6 +42,11 @@
       </div>
 
       <div v-else class="flex flex-wrap items-center gap-2">
+        <div class="relative">
+          <MagnifierIcon class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+          <input v-model="companySearch" type="text" placeholder="Buscar empresa..."
+            class="w-40 rounded-lg border border-border bg-surface py-1.5 pl-8 pr-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-48" />
+        </div>
         <div class="flex gap-1">
           <button v-for="p in PERIOD_TABS" :key="p.value" type="button"
             class="relative px-3 py-1.5 text-xs font-semibold transition-theme"
@@ -79,6 +89,10 @@
         Sin empleados {{ active ? 'activos' : 'inactivos' }}.
       </p>
 
+      <p v-else-if="filteredEmployees.length === 0" class="py-8 text-center text-sm text-text-muted">
+        Ningún empleado coincide con "{{ employeeSearch }}".
+      </p>
+
       <div v-else class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
@@ -93,7 +107,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
-            <tr v-for="employee in matrix.employees.value" :key="employee.employeeId">
+            <tr v-for="employee in filteredEmployees" :key="employee.employeeId">
               <td class="sticky left-0 z-10 whitespace-nowrap bg-surface px-3 py-2 font-medium text-text">
                 {{ employee.name }}
               </td>
@@ -124,6 +138,10 @@
         Sin empresas registradas.
       </p>
 
+      <p v-else-if="filteredCompanyHours.length === 0" class="py-8 text-center text-sm text-text-muted">
+        Ninguna empresa coincide con "{{ companySearch }}".
+      </p>
+
       <div v-else class="overflow-x-auto">
         <table class="w-full text-sm">
           <thead>
@@ -135,7 +153,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
-            <tr v-for="row in companyHours.rows.value" :key="row.companyId">
+            <tr v-for="row in filteredCompanyHours" :key="row.companyId">
               <td class="whitespace-nowrap px-3 py-2 font-medium text-text">{{ row.name }}</td>
               <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ row.activeHours.toFixed(2) }}</td>
               <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ row.inactiveHours.toFixed(2) }}</td>
@@ -149,8 +167,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, toRef } from 'vue'
-import { ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
+import { computed, ref, toRef } from 'vue'
+import { ArrowLeftIcon, ArrowRightIcon, MagnifierIcon } from '@solar-icons/vue/linear'
 import { useEmployeeHoursMatrix } from '../../composables/staffing/useEmployeeHoursMatrix'
 import { useCompanyHoursSummary } from '../../composables/staffing/useCompanyHoursSummary'
 import { formatDateUS, toISODate } from '../../lib/formatters'
@@ -185,6 +203,13 @@ const year = ref(new Date().getFullYear())
 const active = ref(true)
 const matrix = useEmployeeHoursMatrix(toRef(props, 'businessId'), year, active)
 
+const employeeSearch = ref('')
+const filteredEmployees = computed(() => {
+  const term = employeeSearch.value.trim().toLowerCase()
+  if (!term) return matrix.employees.value
+  return matrix.employees.value.filter(e => e.name.toLowerCase().includes(term))
+})
+
 const period = ref<StaffingHoursPeriod>('week')
 const hoursYear = ref(new Date().getFullYear())
 const month = ref(new Date().getMonth() + 1)
@@ -197,4 +222,11 @@ const defaultWeekStart = (): string => {
 const weekStart = ref(defaultWeekStart())
 
 const companyHours = useCompanyHoursSummary(toRef(props, 'businessId'), period, hoursYear, month, weekStart)
+
+const companySearch = ref('')
+const filteredCompanyHours = computed(() => {
+  const term = companySearch.value.trim().toLowerCase()
+  if (!term) return companyHours.rows.value
+  return companyHours.rows.value.filter(r => r.name.toLowerCase().includes(term))
+})
 </script>

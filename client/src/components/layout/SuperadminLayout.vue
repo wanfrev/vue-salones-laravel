@@ -8,13 +8,35 @@
           </div>
           <span class="text-sm font-bold text-text">SaaS Control</span>
         </router-link>
-        <button
-          @click="handleLogout"
-          :disabled="loading"
-          class="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-secondary hover:text-text transition-colors disabled:opacity-50"
-        >
-          Cerrar sesión
-        </button>
+        <nav class="flex items-center gap-1">
+          <router-link to="/superadmin"
+            class="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+            :class="route.name === 'superadmin' ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-bg-secondary hover:text-text'">
+            Negocios
+          </router-link>
+          <router-link to="/superadmin/audit-log"
+            class="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+            :class="route.name === 'superadmin-audit-log' ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-bg-secondary hover:text-text'">
+            Auditoría
+          </router-link>
+          <router-link to="/superadmin/accounts"
+            class="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+            :class="route.name === 'superadmin-accounts' ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-bg-secondary hover:text-text'">
+            Superadmins
+          </router-link>
+          <router-link to="/superadmin/features"
+            class="rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
+            :class="route.name === 'superadmin-features' ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-bg-secondary hover:text-text'">
+            Features
+          </router-link>
+          <button
+            @click="handleLogout"
+            :disabled="loading"
+            class="ml-1 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-bg-secondary hover:text-text transition-colors disabled:opacity-50"
+          >
+            Cerrar sesión
+          </button>
+        </nav>
       </div>
     </header>
 
@@ -25,8 +47,10 @@
 </template>
 
 <script setup lang="ts">
+import { useRoute } from 'vue-router'
 import { useAuth } from '../../composables/common/useAuth'
 
+const route = useRoute()
 const { logout, loading } = useAuth()
 
 function handleLogout() {
