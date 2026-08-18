@@ -121,7 +121,7 @@
               <span class="text-text-muted">Comisión del empleado</span>
               <span class="font-medium text-text">{{ payInfo.percentage }}%</span>
             </div>
-            <div v-if="payInfo && payInfo.type === 'percentage' && earningsWithVESComputed.length > 0" class="flex justify-between py-2 text-sm">
+            <div v-if="payInfo && payInfo.type !== 'salary' && earningsWithVESComputed.length > 0" class="flex justify-between py-2 text-sm">
               <span class="text-text-muted">Ganancia por comisión</span>
               <div class="text-right">
                 <span class="font-medium text-text">${{ totalVariableEarned }}</span>
@@ -471,7 +471,7 @@ const totalBilledVES = computed(() =>
 )
 
 const totalVariableEarned = computed(() =>
-  earnings.value.reduce((sum, r) => sum + r.employeeEarnings, 0).toFixed(2)
+  earnings.value.reduce((sum, r) => sum + Math.max(0, r.employeeEarnings - (r.tipAmount ?? 0)), 0).toFixed(2)
 )
 
 const totalTip = computed(() =>
@@ -481,9 +481,10 @@ const totalTip = computed(() =>
 const totalEarned = computed(() => {
   let total = 0
   for (const r of earnings.value) {
-    total += r.employeeEarnings
+    total += Math.max(0, r.employeeEarnings - (r.tipAmount ?? 0))
   }
   total += baseSalaryForPeriod.value
+  total += totalTip.value
   return total.toFixed(2)
 })
 
