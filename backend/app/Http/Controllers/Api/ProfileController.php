@@ -51,6 +51,9 @@ class ProfileController
             'staffing_assignments' => 'nullable|array',
             'staffing_assignments.*.company_id' => 'required_with:staffing_assignments|uuid|exists:staffing_companies,id',
             'staffing_assignments.*.role' => 'required_with:staffing_assignments|string|max:120',
+            // Only meaningful for companies whose rate card splits a role's pay by shift — most
+            // assignments leave this null.
+            'staffing_assignments.*.shift' => 'nullable|in:dia,tarde,noche',
             // Fraction (0.07 = 7%) overriding the company's tax_brackets for this employee only.
             'staffing_tax_rate' => 'nullable|numeric|min:0|max:1',
             'ssn' => 'nullable|string|max:11',

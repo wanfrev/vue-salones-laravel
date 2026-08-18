@@ -3,7 +3,7 @@ import { handleDbError } from '../../lib/errors'
 import { staffingCompanyFormSchema, staffingCompanyPaymentFormSchema, staffingRateFormSchema } from '../../lib/validation'
 import type {
   Profile, StaffingCompany, StaffingCompanyBalance, StaffingCompanyPayment, StaffingCompanyRate,
-  StaffingInvoice, StaffingTimesheet,
+  StaffingInvoice, StaffingTaxBracket, StaffingTimesheet,
 } from '../../types/database'
 
 export const staffingCompanyKeys = {
@@ -51,6 +51,14 @@ export type TaxDestination = 'remitted' | 'retained'
 export type PayoutRounding = 'floor' | 'cent' | 'exact'
 export type StaffingCompanyStatus = 'active' | 'inactive' | 'on_hold'
 
+/** A role's rate only needs a shift when the company pays that role differently by time of day. */
+export type ShiftValue = 'dia' | 'tarde' | 'noche'
+export const SHIFT_OPTIONS: { value: ShiftValue; label: string }[] = [
+  { value: 'dia', label: 'Día' },
+  { value: 'tarde', label: 'Tarde' },
+  { value: 'noche', label: 'Noche' },
+]
+
 export interface StaffingCompanyRow {
   id: string
   name: string
@@ -65,6 +73,8 @@ export interface StaffingCompanyRow {
   contactEmail: string
   paymentTermsDays: number
   taxRate: number
+  /** Tiered withholding — wins over taxRate when set (e.g. 3.5% under $500, 7% at/above). */
+  taxBrackets: StaffingTaxBracket[] | null
   payoutRounding: PayoutRounding
   notes: string
   active: boolean
@@ -75,6 +85,8 @@ export interface StaffingRateRow {
   id: string
   companyId: string
   role: string
+  /** Null = this role isn't split by shift. */
+  shift: ShiftValue | null
   payRate: number
   billRate: number
   /** What the agency keeps per hour, before withholdings. The reason the business exists. */
@@ -100,8 +112,10 @@ export interface StaffingCompanyFormData {
   contactEmail: string
   paymentTermsDays: number
   taxRate: number
+  taxBrackets: StaffingTaxBracket[] | null
   roles: {
     role: string
+    shift?: ShiftValue | null
     payRate: number
     billRate: number
     overtimeThresholdHours: number
@@ -116,6 +130,7 @@ export interface StaffingCompanyFormData {
 export interface StaffingRateFormData {
   companyId: string
   role: string
+  shift?: ShiftValue | null
   payRate: number
   billRate: number
   overtimeThresholdHours: number | null
@@ -140,6 +155,7 @@ const toCompanyRow = (row: StaffingCompany): StaffingCompanyRow => ({
   contactEmail: row.contact_email ?? '',
   paymentTermsDays: Number(row.payment_terms_days ?? 15),
   taxRate: Number(row.tax_rate ?? 0.04),
+  taxBrackets: row.tax_brackets ?? null,
   payoutRounding: (row.payout_rounding as PayoutRounding) || 'cent',
   notes: row.notes ?? '',
   active: row.active,
@@ -150,6 +166,7 @@ const toRateRow = (row: StaffingCompanyRate): StaffingRateRow => ({
   id: row.id,
   companyId: row.company_id,
   role: row.role,
+  shift: (row.shift as ShiftValue | null) ?? null,
   payRate: Number(row.pay_rate ?? 0),
   billRate: Number(row.bill_rate ?? 0),
   hourlyMargin: Number(row.bill_rate ?? 0) - Number(row.pay_rate ?? 0),
@@ -213,6 +230,7 @@ export const saveStaffingCompany = async (
     contact_email: parsed.data.contactEmail || null,
     payment_terms_days: parsed.data.paymentTermsDays,
     tax_rate: parsed.data.taxRate,
+    tax_brackets: parsed.data.taxBrackets,
     payout_rounding: parsed.data.payoutRounding,
     status: parsed.data.status,
     notes: parsed.data.notes || null,
@@ -268,6 +286,7 @@ export const saveStaffingRate = async (
   const payload = {
     company_id: parsed.data.companyId,
     role: parsed.data.role,
+    shift: parsed.data.shift ?? null,
     pay_rate: parsed.data.payRate,
     bill_rate: parsed.data.billRate,
     overtime_threshold_hours: parsed.data.overtimeThresholdHours,

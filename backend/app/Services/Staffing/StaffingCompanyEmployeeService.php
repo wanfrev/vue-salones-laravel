@@ -30,7 +30,7 @@ class StaffingCompanyEmployeeService
      * we diff it" contract as ProfileService::syncSchedules. Wholesale delete+recreate is simpler
      * and safe here: nothing else references a staffing_company_employees row by its own id.
      *
-     * @param list<array{company_id: string, role: string}> $assignments
+     * @param list<array{company_id: string, role: string, shift?: string|null}> $assignments
      */
     public function syncForEmployee(string $employeeId, string $businessId, array $assignments): void
     {
@@ -48,6 +48,7 @@ class StaffingCompanyEmployeeService
                     'company_id' => $assignment['company_id'],
                     'employee_id' => $employeeId,
                     'role' => $assignment['role'],
+                    'shift' => $assignment['shift'] ?? null,
                 ]);
             }
         });
@@ -77,6 +78,7 @@ class StaffingCompanyEmployeeService
             ->get()
             ->map(function (Profile $employee) use ($assignments) {
                 $employee->staffing_role = $assignments[$employee->id]->role;
+                $employee->staffing_shift = $assignments[$employee->id]->shift;
                 return $employee;
             });
     }
@@ -86,6 +88,13 @@ class StaffingCompanyEmployeeService
         return StaffingCompanyEmployee::where('employee_id', $employeeId)
             ->where('company_id', $companyId)
             ->value('role');
+    }
+
+    public function shiftForEmployeeAtCompany(string $employeeId, string $companyId): ?string
+    {
+        return StaffingCompanyEmployee::where('employee_id', $employeeId)
+            ->where('company_id', $companyId)
+            ->value('shift');
     }
 
     /** Every company this employee is currently assigned to, with the role held at each. */
@@ -98,6 +107,7 @@ class StaffingCompanyEmployeeService
                 'companyId' => $a->company_id,
                 'companyName' => $a->company?->name,
                 'role' => $a->role,
+                'shift' => $a->shift,
             ]);
     }
 }
