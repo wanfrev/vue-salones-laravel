@@ -272,6 +272,9 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     Route::middleware(['capability:staffing.reports', 'admin-panel'])->group(function () {
         Route::get('/staffing-reports/monthly-payroll', [StaffingReportController::class, 'monthlyPayroll']);
         Route::get('/staffing-reports/weekly', [StaffingReportController::class, 'weeklyReport']);
+        // The "lista de depósitos" — every direct-deposit payout due for an approved/paid week,
+        // across every client company, to guide the bank run.
+        Route::get('/staffing-reports/deposit-list', [StaffingReportController::class, 'depositList']);
         Route::get('/staffing-reports/employee-hours', [StaffingReportController::class, 'employeeHours']);
         Route::get('/staffing-reports/company-hours', [StaffingReportController::class, 'companyHours']);
         Route::post('/staffing-weekly-expenses', [StaffingWeeklyExpenseController::class, 'store']);

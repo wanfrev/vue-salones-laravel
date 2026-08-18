@@ -607,6 +607,25 @@ export interface StaffingFinanceSummary {
 export const getStaffingFinanceSummary = (periodStart: string, periodEnd: string): Promise<StaffingFinanceSummary> =>
   apiRequest<StaffingFinanceSummary>('GET', `/staffing-reports/finance-summary?period_start=${periodStart}&period_end=${periodEnd}`)
 
+export interface StaffingDepositListRow {
+  employeeId: string
+  employeeName: string
+  /** Bank account holder — may differ from the employee (e.g. a family member's account). */
+  titular: string
+  bankName: string | null
+  companyName: string
+  shift: ShiftValue | null
+  amount: number
+}
+
+/**
+ * One row per (employee, company) direct-deposit payout due for an already-approved/paid week —
+ * the "lista de depósitos" that guides the bank run, generated off the same numbers nómina
+ * already computed rather than copied onto paper by hand.
+ */
+export const getStaffingDepositList = (weekStart: string): Promise<StaffingDepositListRow[]> =>
+  apiRequest<StaffingDepositListRow[]>('GET', `/staffing-reports/deposit-list?week_start=${weekStart}`)
+
 export interface StaffingManualIncomeRow {
   id: string
   incomeDate: string

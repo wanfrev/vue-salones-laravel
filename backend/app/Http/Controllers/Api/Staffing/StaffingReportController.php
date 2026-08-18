@@ -134,6 +134,27 @@ class StaffingReportController
         );
     }
 
+    /**
+     * "Lista de depósitos" for a week: one row per (employee, company) whose payout is due by
+     * direct deposit — the same list the agency used to hand-copy onto paper before running to
+     * the bank. See StaffingReportService::depositListForWeek for the eligibility rules.
+     */
+    public function depositList(Request $request): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json([]);
+        }
+
+        $data = $request->validate([
+            'week_start' => 'required|date',
+        ]);
+
+        return response()->json(
+            $this->reports->depositListForWeek($p->business_id, $data['week_start'])
+        );
+    }
+
     public function annualTaxReport(Request $request): JsonResponse
     {
         $p = $request->user()?->load('profile')?->profile;
