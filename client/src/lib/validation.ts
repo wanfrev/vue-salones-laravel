@@ -123,6 +123,7 @@ export const supplierPaymentFormSchema = z.object({
 
 const staffingCompanyRoleSchema = z.object({
   role: z.string().min(1, 'El rol es requerido'),
+  shift: z.enum(['dia', 'tarde', 'noche']).nullable().optional().default(null),
   payRate: z.number().min(0, 'La tarifa no puede ser negativa'),
   billRate: z.number().min(0, 'La tarifa no puede ser negativa'),
   overtimeThresholdHours: z.number().min(0, 'Las horas no pueden ser negativas').default(40),
@@ -149,6 +150,10 @@ export const staffingCompanyFormSchema = z.object({
   contactEmail: z.string().email('El email no es válido').or(z.literal('')).default(''),
   paymentTermsDays: z.number().int().min(0).max(365).default(15),
   taxRate: z.number().min(0, 'El porcentaje no puede ser negativo').max(1, 'Usa una fracción: 0.04 = 4%').default(0.04),
+  taxBrackets: z.array(z.object({
+    threshold: z.number().min(0).nullable(),
+    rate: z.number().min(0).max(1),
+  })).nullable().default(null),
   roles: z.array(staffingCompanyRoleSchema).default([]),
   payoutRounding: z.enum(['floor', 'cent', 'exact']).default('cent'),
   status: z.enum(['active', 'inactive', 'on_hold']).default('active'),
@@ -158,6 +163,7 @@ export const staffingCompanyFormSchema = z.object({
 export const staffingRateFormSchema = z.object({
   companyId: z.string().min(1, 'Selecciona una empresa'),
   role: z.string().min(1, 'El rol es requerido'),
+  shift: z.enum(['dia', 'tarde', 'noche']).nullable().optional().default(null),
   payRate: z.number().min(0, 'La tarifa no puede ser negativa'),
   billRate: z.number().min(0, 'La tarifa no puede ser negativa'),
   overtimeThresholdHours: z.number().min(0).max(168).nullable().default(null),

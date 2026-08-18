@@ -20,6 +20,7 @@
         <thead>
           <tr class="border-b border-border text-left text-[10px] uppercase tracking-wider text-text-muted">
             <th class="pb-2 pr-3">Rol</th>
+            <th class="pb-2 pr-3">Turno</th>
             <th class="pb-2 pr-3 text-right"># Empleados</th>
             <th class="pb-2 pr-3 text-right">Paga Reg</th>
             <th class="pb-2 pr-3 text-right">Cobra Reg</th>
@@ -33,7 +34,11 @@
         <tbody class="divide-y divide-border">
           <tr v-for="rate in rates" :key="rate.id" class="text-sm">
             <td class="py-2 pr-3 font-medium text-text">{{ rate.role }}</td>
-            <td class="py-2 pr-3 text-right tabular-nums text-text-secondary">{{ employeeCountByRole[rate.role] ?? 0 }}</td>
+            <td class="py-2 pr-3 text-text-secondary">
+              <span v-if="rate.shift" class="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">{{ shiftLabel(rate.shift) }}</span>
+              <span v-else class="text-text-muted">—</span>
+            </td>
+            <td class="py-2 pr-3 text-right tabular-nums text-text-secondary">{{ employeeCountByRoleShift[rateKey(rate.role, rate.shift)] ?? 0 }}</td>
             <td class="py-2 pr-3 text-right tabular-nums text-text-secondary">{{ formatUSD(rate.payRate) }}</td>
             <td class="py-2 pr-3 text-right tabular-nums text-text-secondary">{{ formatUSD(rate.billRate) }}</td>
             <td class="py-2 pr-3 text-right tabular-nums font-semibold"
@@ -59,7 +64,7 @@
           </tr>
 
           <tr v-if="rates.length === 0">
-            <td colspan="9" class="py-3 text-center text-xs text-text-muted">
+            <td colspan="10" class="py-3 text-center text-xs text-text-muted">
               Sin tarifas todavía. Agrega el primer rol abajo.
             </td>
           </tr>
@@ -77,6 +82,17 @@
         <datalist id="staffing-job-titles">
           <option v-for="title in jobTitles" :key="title" :value="title" />
         </datalist>
+      </div>
+
+      <div class="w-28">
+        <label :for="`shift-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" title="Solo si este rol paga distinto según el turno">
+          Turno
+        </label>
+        <select :id="`shift-${companyId}`" v-model="draft.shift"
+          class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30">
+          <option :value="null">General</option>
+          <option v-for="opt in SHIFT_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+        </select>
       </div>
 
       <div class="w-20">
@@ -139,7 +155,7 @@ import { useRateCard } from '../../composables/staffing/useRateCard'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { TrashBin2Icon } from '@solar-icons/vue/linear'
-import { listCompanyEmployees, staffingTimesheetKeys, type StaffingRateFormData } from '../../services/staffing/staffingService'
+import { listCompanyEmployees, staffingTimesheetKeys, SHIFT_OPTIONS, type StaffingRateFormData } from '../../services/staffing/staffingService'
 
 const props = defineProps<{
   businessId: string | null
@@ -161,11 +177,16 @@ const { data: companyEmployees } = useQuery({
   enabled: computed(() => !!props.businessId && !!props.companyId),
 })
 
-const employeeCountByRole = computed<Record<string, number>>(() => {
+// Keyed by role+shift, not just role — two rate rows can share a role name (día vs noche), and
+// counting employees by role alone would double-count them under both.
+const rateKey = (role: string, shift?: string | null) => `${role}|${shift ?? ''}`
+const shiftLabel = (shift: string) => SHIFT_OPTIONS.find(o => o.value === shift)?.label ?? shift
+
+const employeeCountByRoleShift = computed<Record<string, number>>(() => {
   const counts: Record<string, number> = {}
   for (const employee of companyEmployees.value ?? []) {
-    const role = employee.staffing_role || ''
-    counts[role] = (counts[role] ?? 0) + 1
+    const key = rateKey(employee.staffing_role || '', employee.staffing_shift)
+    counts[key] = (counts[key] ?? 0) + 1
   }
   return counts
 })
@@ -173,6 +194,7 @@ const employeeCountByRole = computed<Record<string, number>>(() => {
 const emptyDraft = (): StaffingRateFormData => ({
   companyId: props.companyId,
   role: '',
+  shift: null,
   payRate: 0,
   billRate: 0,
   overtimeThresholdHours: 40,

@@ -21,7 +21,7 @@ class StaffingCompanyEmployee extends Model
     protected $table = 'staffing_company_employees';
 
     protected $fillable = [
-        'id', 'business_id', 'company_id', 'employee_id', 'role',
+        'id', 'business_id', 'company_id', 'employee_id', 'role', 'shift',
     ];
 
     public function company(): BelongsTo

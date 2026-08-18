@@ -25,6 +25,7 @@ const emptyForm = (): StaffingCompanyFormData => ({
   contactEmail: '',
   paymentTermsDays: 15,
   taxRate: 0.04,
+  taxBrackets: null,
   roles: [],
   payoutRounding: 'cent',
   status: 'active',
@@ -78,6 +79,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
       contactEmail: company.contactEmail,
       paymentTermsDays: company.paymentTermsDays,
       taxRate: company.taxRate,
+      taxBrackets: company.taxBrackets,
       roles: [],
       payoutRounding: company.payoutRounding,
       status: company.status,
@@ -90,6 +92,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
         const rates = await listStaffingRates(businessId.value, company.id)
         form.value.roles = rates.map(r => ({
           role: r.role,
+          shift: r.shift,
           payRate: r.payRate,
           billRate: r.billRate,
           overtimeThresholdHours: r.overtimeThresholdHours ?? 40,
@@ -135,6 +138,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
           await saveStaffingRate(businessId.value!, {
             companyId: savedCompany.id,
             role: role.role,
+            shift: role.shift ?? null,
             payRate: role.payRate,
             billRate: role.billRate,
             overtimeThresholdHours: role.overtimeThresholdHours,
@@ -166,6 +170,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
   const addRole = () => {
     form.value.roles.push({
       role: '',
+      shift: null,
       payRate: 0,
       billRate: 0,
       overtimeThresholdHours: 40,
