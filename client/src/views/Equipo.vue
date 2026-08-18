@@ -37,7 +37,8 @@
   <EmployeeGrid
     :employees="visibleTeam" :show-all="showAll" :has-more="hasMoreThanDefault" :total-count="team.length"
     :get-initials="getInitials" :is-staffing="isStaffing" :show-agenda="showAgenda"
-    @edit="handleEditEmpleado" @view-agenda="handleViewAgenda" @view-recibo="handleOpenRecibo" @toggle-show-all="showAll = !showAll"
+    @edit="handleEditEmpleado" @view-agenda="handleViewAgenda" @view-recibo="handleOpenRecibo"
+    @toggle-active="handleToggleActive" @toggle-show-all="showAll = !showAll"
   />
 
   <!--
@@ -114,6 +115,7 @@ import { useNotification } from '../composables/common/useNotification'
 import { useCurrency } from '../composables/common/useCurrency'
 import { usePeriodSelection } from '../composables/finanzas/usePeriodSelection'
 import { deleteEmpleado, equipoKeys, listEquipo, saveEmpleado, type EmployeeActiveFilter } from '../services/equipoService'
+import { adminUpdateEmployee } from '../services/adminService'
 import { useBusinessStore } from '../store/business'
 import { getInitials, formatMethod, formatTime24to12 } from '../lib/formatters'
 import { resolvePeriodDates } from '../lib/periodUtils'
@@ -228,6 +230,18 @@ const empleadosMixto = computed(() => team.value.filter(e => e.payType === 'mixe
 const handleNewEmpleado = () => empleadoModalRef.value?.open()
 const handleEditEmpleado = (e: Empleado) => empleadoModalRef.value?.open(e)
 const handleViewAgenda = (e: Empleado) => { router.push('/admin?employee=' + e.id) }
+
+const { success: notifySuccess, error: notifyError } = useNotification()
+const handleToggleActive = async (e: Empleado) => {
+  const nextActive = e.active === false
+  try {
+    await adminUpdateEmployee(e.id, { active: nextActive })
+    await queryClient.invalidateQueries({ queryKey: equipoKeys.all(businessId.value, branchId.value, isStaffing.value ? employeeActiveFilter.value : undefined), exact: false })
+    notifySuccess(nextActive ? 'Empleado activado' : 'Empleado desactivado')
+  } catch {
+    notifyError('No se pudo actualizar el estado del empleado')
+  }
+}
 
 const { formatUSD, formatSecondary, formatVESEs } = useCurrency()
 const employeeDebtSummary = computed(() => {

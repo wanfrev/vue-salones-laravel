@@ -11,7 +11,13 @@
         <div class="min-w-0 flex-1 pt-0.5">
           <div class="flex items-center gap-2">
             <h3 class="font-semibold text-text truncate">{{ member.name }}</h3>
-            <span v-if="member.active === false" class="shrink-0 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger">Inactivo</span>
+            <button v-if="isStaffing" type="button" @click="$emit('toggleActive', member)"
+              class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold transition-theme"
+              :class="member.active === false ? 'bg-danger/10 text-danger hover:bg-danger/20' : 'bg-success/10 text-success hover:bg-success/20'"
+              :title="member.active === false ? 'Activar empleado' : 'Desactivar empleado'">
+              {{ member.active === false ? 'Inactivo' : 'Activo' }}
+            </button>
+            <span v-else-if="member.active === false" class="shrink-0 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger">Inactivo</span>
           </div>
           <p class="text-xs text-text-muted">{{ member.role }}</p>
           <p v-if="member.email" class="text-xs text-text-muted truncate mt-0.5">{{ member.email }}</p>
@@ -106,6 +112,7 @@ defineEmits<{
   edit: [employee: any]
   viewAgenda: [employee: any]
   viewRecibo: [employee: any]
+  toggleActive: [employee: any]
   toggleShowAll: []
 }>()
 </script>
