@@ -103,15 +103,6 @@
               :options="roleOptionsFor(assignment.companyId)"
               required
             />
-            <FormDropdown
-              v-if="shiftOptionsFor(assignment.companyId, assignment.role).length > 0"
-              :model-value="assignment.shift ?? ''"
-              @update:model-value="setAssignmentShift(index, $event as string)"
-              label="Turno"
-              placeholder="Seleccionar turno..."
-              :options="shiftOptionsFor(assignment.companyId, assignment.role)"
-              required
-            />
           </div>
           <button type="button"
             class="mt-6 shrink-0 rounded-lg p-2 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
@@ -195,7 +186,7 @@ import { computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { FormInput, FormDropdown } from '../forms'
 import { useCurrency } from '../../composables/common/useCurrency'
-import { listStaffingCompanies, listStaffingRates, staffingCompanyKeys, staffingRateKeys, SHIFT_OPTIONS, type StaffingRateRow } from '../../services/staffing/staffingService'
+import { listStaffingCompanies, listStaffingRates, staffingCompanyKeys, staffingRateKeys, type StaffingRateRow } from '../../services/staffing/staffingService'
 import type { EmpleadoFormData, StaffingAssignment } from '../../types/empleado'
 import { TrashBin2Icon } from '@solar-icons/vue/linear'
 
@@ -268,24 +259,11 @@ const { data: allRates } = useQuery({
 
 const roleOptionsFor = (companyId: string) => {
   if (!companyId || !allRates.value) return []
-  // A role can have several rate rows (one per shift) — dedupe so it only appears once here.
-  const roles = new Set(allRates.value.filter(r => r.companyId === companyId).map(r => r.role))
-  return [...roles].map(role => ({ value: role, label: role }))
-}
-
-// Only shown when this (company, role) actually has more than one shift-specific rate — most
-// roles have a single, shift-less rate and never need this picker at all.
-const shiftOptionsFor = (companyId: string, role: string) => {
-  if (!companyId || !role || !allRates.value) return []
-  const shifts = allRates.value.filter(r => r.companyId === companyId && r.role === role && r.shift)
-  return shifts.map(r => ({ value: r.shift as string, label: SHIFT_OPTIONS.find(o => o.value === r.shift)?.label ?? r.shift as string }))
+  return allRates.value.filter(r => r.companyId === companyId).map(r => ({ value: r.role, label: r.role }))
 }
 
 const resolvedRateFor = (assignment: StaffingAssignment): StaffingRateRow | null =>
-  (allRates.value ?? []).find(r =>
-    r.companyId === assignment.companyId && r.role === assignment.role && r.active
-    && r.shift === (assignment.shift ?? null)
-  ) ?? null
+  (allRates.value ?? []).find(r => r.companyId === assignment.companyId && r.role === assignment.role && r.active) ?? null
 
 // Mirrors StaffingPayrollCalculator::overtimeMultiplierFor — an explicit OT rate on the role
 // wins outright, otherwise it's payRate/billRate times the role's own multiplier override or
@@ -302,7 +280,7 @@ const effectiveOvertimeBillRate = (assignment: StaffingAssignment): number => {
 }
 
 const addAssignment = () => {
-  assignments.value = [...assignments.value, { companyId: '', role: '', shift: null }]
+  assignments.value = [...assignments.value, { companyId: '', role: '' }]
 }
 const removeAssignment = (index: number) => {
   assignments.value = assignments.value.filter((_, i) => i !== index)
@@ -310,14 +288,10 @@ const removeAssignment = (index: number) => {
 const setAssignmentCompany = (index: number, companyId: string) => {
   // Changing the company invalidates whatever role was picked — that role belonged to the old
   // company's rate card and almost never exists on the new one too.
-  assignments.value = assignments.value.map((a, i) => i === index ? { ...a, companyId, role: '', shift: null } : a)
+  assignments.value = assignments.value.map((a, i) => i === index ? { ...a, companyId, role: '' } : a)
 }
 const setAssignmentRole = (index: number, role: string) => {
-  // A new role's shift options are almost never the same set as the old role's — reset it too.
-  assignments.value = assignments.value.map((a, i) => i === index ? { ...a, role, shift: null } : a)
-}
-const setAssignmentShift = (index: number, shift: string) => {
-  assignments.value = assignments.value.map((a, i) => i === index ? { ...a, shift: shift || null } : a)
+  assignments.value = assignments.value.map((a, i) => i === index ? { ...a, role } : a)
 }
 
 /**

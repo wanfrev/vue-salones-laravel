@@ -32,7 +32,6 @@ export const mapProfileToEmpleado = (
     companyId: a.company_id,
     companyName: a.company_name ?? undefined,
     role: a.role,
-    shift: a.shift ?? null,
   }))
   return {
     id: profile.id,
@@ -109,7 +108,7 @@ export const mapEmpleadoFormToProfileUpdate = (data: EmpleadoFormData) => ({
   role: data.systemRole === 'cajero' ? 'empleado' : data.systemRole,
   // Staffing niche only. Always sent (even empty) so removing every assignment actually clears
   // them — see ProfileService::update, which only touches this when the key is present at all.
-  staffing_assignments: data.staffingAssignments.map(a => ({ company_id: a.companyId, role: a.role.trim(), shift: a.shift ?? null })),
+  staffing_assignments: data.staffingAssignments.map(a => ({ company_id: a.companyId, role: a.role.trim() })),
   // Null clears the override back to "use the company's tax_brackets" — always sent, unlike
   // the write-only bank/card fields below, since an admin re-editing this record can see and
   // blank it deliberately.

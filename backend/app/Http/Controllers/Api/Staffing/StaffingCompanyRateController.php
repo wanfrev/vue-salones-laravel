@@ -35,8 +35,6 @@ class StaffingCompanyRateController
         $data = $request->validate([
             'company_id' => 'required|uuid',
             'role' => 'required|string|max:120',
-            // Only companies that pay a role differently by shift set this — most rates leave it null.
-            'shift' => 'nullable|in:dia,tarde,noche',
             'pay_rate' => 'required|numeric|min:0',
             'bill_rate' => 'required|numeric|min:0',
             // Null falls back to the company's own overtime terms — see StaffingTermsFactory.
@@ -61,7 +59,6 @@ class StaffingCompanyRateController
 
         $data = $request->validate([
             'role' => 'sometimes|string|max:120',
-            'shift' => 'nullable|in:dia,tarde,noche',
             'pay_rate' => 'sometimes|numeric|min:0',
             'bill_rate' => 'sometimes|numeric|min:0',
             'overtime_threshold_hours' => 'nullable|numeric|min:0|max:168',

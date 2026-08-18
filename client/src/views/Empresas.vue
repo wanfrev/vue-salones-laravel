@@ -195,40 +195,13 @@
             <section class="space-y-3">
               <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Reglas de nómina</p>
 
-              <div>
-                <label class="mb-1 block text-sm font-medium text-text">Retención (Tax)</label>
-                <SegmentedTabs :tabs="TAX_MODE_TABS" :model-value="taxMode" @update:model-value="setTaxMode" />
-              </div>
-
-              <div v-if="taxMode === 'flat'">
-                <label class="mb-1 block text-sm font-medium text-text" for="emp-tax">Retención (Tax %)</label>
-                <input id="emp-tax" v-model.number="taxRatePercent" type="number" min="0" max="100" step="0.1"
-                  class="max-w-[10rem]" :class="inputClass" />
-                <p class="mt-1 text-[10px] text-text-muted">Se aparta del pago de nómina.</p>
-              </div>
-
-              <div v-else class="grid gap-3 rounded-xl border border-border p-3 sm:grid-cols-3">
+              <div class="grid gap-3 sm:grid-cols-3">
                 <div>
-                  <label class="mb-1 block text-sm font-medium text-text" for="emp-tax-threshold">Umbral ($)</label>
-                  <input id="emp-tax-threshold" v-model.number="taxTierThreshold" type="number" min="0" step="1"
+                  <label class="mb-1 block text-sm font-medium text-text" for="emp-tax">Retención (Tax %)</label>
+                  <input id="emp-tax" v-model.number="taxRatePercent" type="number" min="0" max="100" step="0.1"
                     :class="inputClass" />
+                  <p class="mt-1 text-[10px] text-text-muted">Se aparta del pago de nómina.</p>
                 </div>
-                <div>
-                  <label class="mb-1 block text-sm font-medium text-text" for="emp-tax-low">% si es menor al umbral</label>
-                  <input id="emp-tax-low" v-model.number="taxTierLowPercent" type="number" min="0" max="100" step="0.1"
-                    :class="inputClass" />
-                </div>
-                <div>
-                  <label class="mb-1 block text-sm font-medium text-text" for="emp-tax-high">% si es igual o mayor</label>
-                  <input id="emp-tax-high" v-model.number="taxTierHighPercent" type="number" min="0" max="100" step="0.1"
-                    :class="inputClass" />
-                </div>
-                <p class="text-[10px] text-text-muted sm:col-span-3">
-                  Ej: {{ taxTierLowPercent }}% si el pago semanal es menor a ${{ taxTierThreshold }}, {{ taxTierHighPercent }}% si es ${{ taxTierThreshold }} o más.
-                </p>
-              </div>
-
-              <div class="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label class="mb-1 block text-sm font-medium text-text" for="emp-terms">Plazo de pago (días)</label>
                   <input id="emp-terms" v-model.number="ctx.form.value.paymentTermsDays" type="number" min="0" max="365"
@@ -264,13 +237,6 @@
                       Rol / Cargo
                     </label>
                     <input v-model="role.role" type="text" :class="inputClass" placeholder="Ej: Operario" required />
-                  </div>
-                  <div class="w-28 shrink-0">
-                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" title="Solo si este rol paga distinto según el turno">Turno</label>
-                    <select v-model="role.shift" :class="inputClass">
-                      <option :value="null">General</option>
-                      <option v-for="opt in SHIFT_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                    </select>
                   </div>
                   <div class="w-20 shrink-0">
                     <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" title="Horas Regulares antes de OT">Hrs Reg</label>
@@ -335,12 +301,11 @@ import { useEmpresas } from '../composables/staffing/useEmpresas'
 import { getInitials } from '../lib/formatters'
 import { FeatureGate } from '../components/common'
 import { FormDropdown } from '../components/forms'
-import SegmentedTabs from '../components/common/SegmentedTabs.vue'
 import RateCardEditor from '../components/staffing/RateCardEditor.vue'
 import BillingPanel from '../components/staffing/BillingPanel.vue'
 import StaffingWorkersPanel from '../components/staffing/StaffingWorkersPanel.vue'
 import HeadcountMatrix from '../components/staffing/HeadcountMatrix.vue'
-import { SHIFT_OPTIONS, type StaffingCompanyRow, type StaffingCompanyStatus } from '../services/staffing/staffingService'
+import type { StaffingCompanyRow, StaffingCompanyStatus } from '../services/staffing/staffingService'
 import { BuildingsIcon, AddCircleIcon, PenIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
 
 const inputClass =
@@ -397,47 +362,6 @@ const taxRatePercent = computed({
   get: () => Math.round(ctx.form.value.taxRate * 10000) / 100,
   set: (val: number | string) => {
     ctx.form.value.taxRate = val === '' || val == null ? 0 : Number(val) / 100
-  }
-})
-
-// "Escalonada" is only ever the two-tier shape described by the client (a flat % under a
-// threshold, a higher flat % from it up — e.g. DYKE's 3.5%/7% at $500). The engine
-// (TaxRule::tiered) supports any number of brackets, but no UI has ever needed more than two, so
-// this editor stays a fixed low/high pair rather than a general N-bracket builder.
-const TAX_MODE_TABS = [
-  { key: 'flat', label: 'Retención plana' },
-  { key: 'tiered', label: 'Retención escalonada' },
-]
-const taxMode = computed<'flat' | 'tiered'>(() => ctx.form.value.taxBrackets && ctx.form.value.taxBrackets.length >= 2 ? 'tiered' : 'flat')
-const setTaxMode = (mode: string) => {
-  if (mode === 'tiered') {
-    ctx.form.value.taxBrackets = ctx.form.value.taxBrackets && ctx.form.value.taxBrackets.length >= 2
-      ? ctx.form.value.taxBrackets
-      : [{ threshold: 500, rate: 0.035 }, { threshold: null, rate: 0.07 }]
-  } else {
-    ctx.form.value.taxBrackets = null
-  }
-}
-
-const taxTierThreshold = computed({
-  get: () => ctx.form.value.taxBrackets?.[0]?.threshold ?? 500,
-  set: (val: number | string) => {
-    if (!ctx.form.value.taxBrackets) return
-    ctx.form.value.taxBrackets[0].threshold = val === '' || val == null ? 0 : Number(val)
-  }
-})
-const taxTierLowPercent = computed({
-  get: () => Math.round((ctx.form.value.taxBrackets?.[0]?.rate ?? 0) * 10000) / 100,
-  set: (val: number | string) => {
-    if (!ctx.form.value.taxBrackets) return
-    ctx.form.value.taxBrackets[0].rate = val === '' || val == null ? 0 : Number(val) / 100
-  }
-})
-const taxTierHighPercent = computed({
-  get: () => Math.round((ctx.form.value.taxBrackets?.[1]?.rate ?? 0) * 10000) / 100,
-  set: (val: number | string) => {
-    if (!ctx.form.value.taxBrackets) return
-    ctx.form.value.taxBrackets[1].rate = val === '' || val == null ? 0 : Number(val) / 100
   }
 })
 

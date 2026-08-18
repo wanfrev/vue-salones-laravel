@@ -16,7 +16,7 @@ class StaffingCompanyRate extends Model
 
     protected $fillable = [
         'id', 'business_id', 'company_id',
-        'role', 'shift', 'pay_rate', 'bill_rate',
+        'role', 'pay_rate', 'bill_rate',
         'overtime_threshold_hours', 'overtime_multiplier',
         'overtime_pay_rate', 'overtime_bill_rate', 'active',
     ];
