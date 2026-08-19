@@ -16,6 +16,7 @@
         </button>
       </div>
       <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+        <InvitationsButton />
         <NotificationBell />
         <div class="relative">
           <button @click="profileOpen = !profileOpen" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary">
@@ -64,6 +65,7 @@ import lumaLogoLight from '../../assets/Luma.svg'
 import lumaLogoDark from '../../assets/Luma blanco.svg'
 import Sidebar from './Sidebar.vue'
 import NotificationBell from '../common/NotificationBell.vue'
+import InvitationsButton from '../agenda/InvitationsButton.vue'
 import { BranchSwitcher } from '../common'
 import GlobalLoading from '../common/GlobalLoading.vue'
 import DailyExchangeRateModal from '../common/DailyExchangeRateModal.vue'

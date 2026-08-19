@@ -19,6 +19,7 @@
         <button @click="refresh" :disabled="isRefreshing" title="Recargar datos" class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed">
           <RefreshIcon :size="16" :class="{ 'animate-spin': isRefreshing }" />
         </button>
+        <InvitationsButton />
         <NotificationBell />
         <div class="relative">
           <button @click="profileOpen = !profileOpen" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary">
@@ -71,6 +72,7 @@ import lumaLogoLight from '../../assets/Luma.svg'
 import lumaLogoDark from '../../assets/Luma blanco.svg'
 import Sidebar from './Sidebar.vue'
 import NotificationBell from '../common/NotificationBell.vue'
+import InvitationsButton from '../agenda/InvitationsButton.vue'
 import { BranchSwitcher } from '../common'
 import GlobalLoading from '../common/GlobalLoading.vue'
 import DailyExchangeRateModal from '../common/DailyExchangeRateModal.vue'

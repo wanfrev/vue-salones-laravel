@@ -71,25 +71,7 @@
         </div>
       </div>
       <div class="flex flex-wrap items-center gap-1 sm:gap-1.5">
-        <button
-          v-if="canManageInvitations"
-          @click="openInvitations"
-          class="relative flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-orange-600 dark:text-orange-400 border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 hover:bg-orange-100 dark:hover:bg-orange-950/40 transition-colors sm:text-[11px]"
-        >
-          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-          Invitaciones
-          <span v-if="invitationsCount > 0" class="absolute -top-1.5 -right-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">{{ invitationsCount }}</span>
-        </button>
-        <button
-          v-if="businessStore.hasFeature('enable_public_booking') && !isEmployee"
-          @click="copyShareLink"
-          class="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium border border-primary/30 bg-primary-light text-primary hover:bg-primary/15 transition-colors sm:text-[11px]"
-        >
-          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-          </svg>
-          Link
-        </button>
+        <ShareLinkButton :employees="shareLinkEmployees" />
         <span v-for="l in legend" :key="l.label" class="flex items-center gap-1 rounded-md px-1.5 py-0.5">
           <span class="h-2 w-2 rounded-full" :style="{ background: l.color }"></span>
           <span class="text-[10px] font-medium text-text-muted sm:text-[11px]">{{ l.label }}</span>
@@ -334,7 +316,6 @@
       </div>
     </Teleport>
   </div>
-  <PendingInvitationsModal ref="invitationsModalRef" />
 </template>
 
 <script setup lang="ts">
@@ -342,29 +323,17 @@ import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAgenda } from '../../composables/agenda/useAgenda'
 import { useAuthStore } from '../../store/auth'
-import { useBusinessStore } from '../../store/business'
 import { isAdminPanelRole } from '../../constants/roles'
 import { normalizeAppointmentStatus, getStatusLabel, dateToHHmm, dateToHHmm12, toISODate, getInitials, parseLocalDate } from '../../lib/formatters'
 import { mapAppointmentToCita } from '../../mappers/agendaMapper'
-import { usePendingInvitations } from '../../composables/agenda/usePendingInvitations'
-import PendingInvitationsModal from './PendingInvitationsModal.vue'
+import ShareLinkButton from './ShareLinkButton.vue'
 import AgendaMonthView from './AgendaMonthView.vue'
 import AgendaYearView from './AgendaYearView.vue'
-import { useNotification } from '../../composables/common/useNotification'
 import type { Cita } from '../../types/cita'
 
 const route = useRoute()
 const authStore = useAuthStore()
-const businessStore = useBusinessStore()
-const { success } = useNotification()
 const isAdmin = computed(() => isAdminPanelRole(authStore.role ?? undefined))
-const isEmployee = computed(() => authStore.role === 'empleado')
-const canManageInvitations = computed(() => {
-  const role = authStore.role
-  if (!role) return false
-  if (role === 'admin' || role === 'superadmin') return businessStore.hasFeature('enable_public_booking')
-  return (authStore.profile as any)?.can_create_appointments !== false
-})
 
 const props = defineProps<{
   initialDate?: string
@@ -380,6 +349,8 @@ const emit = defineEmits<{
 }>()
 
 const { selectedEmployeeId, setDateRange, employees, loadingEmployees, services, appointments, appointmentsError } = useAgenda()
+
+const shareLinkEmployees = computed(() => (employees.value ?? []).map((e: any) => ({ id: e.id, label: e.full_name })))
 
 const serviceMap = computed(() => new Map((services.value ?? []).map((s: any) => [s.id, s])))
 const employeeMap = computed(() => new Map((employees.value ?? []).map((e: any) => [e.id, e])))
@@ -417,8 +388,6 @@ const selectedDate = ref(toISODate(new Date()))
 const gridContainer = ref<HTMLElement | null>(null)
 const statusMenu = ref<{ appointmentId: string; currentStatus: string; x: number; y: number } | null>(null)
 const empDropdownOpen = ref(false)
-const invitationsModalRef = ref<InstanceType<typeof PendingInvitationsModal> | null>(null)
-const { count: invitationsCount } = usePendingInvitations()
 
 // Mobile viewport width for responsive decisions
 const windowWidth = ref(window.innerWidth)
@@ -733,23 +702,6 @@ onMounted(() => {
   if (props.initialDate) goToDate(props.initialDate)
 })
 
-function openInvitations() {
-  invitationsModalRef.value?.open()
-}
-
-function copyShareLink() {
-  const origin = window.location.origin
-  const slug = businessStore.business?.slug || 'salon'
-  const empId = selectedEmployeeId.value && selectedEmployeeId.value !== 'all'
-    ? selectedEmployeeId.value
-    : authStore.profile?.id
-  const link = `${origin}/reservar/${slug}?empleado=${empId}`
-  navigator.clipboard.writeText(link).then(() => {
-    success('Link copiado al portapapeles')
-  }).catch(() => {
-    prompt('Copia este link:', link)
-  })
-}
 </script>
 
 <style scoped>

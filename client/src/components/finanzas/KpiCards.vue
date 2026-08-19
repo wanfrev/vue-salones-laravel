@@ -3,7 +3,7 @@
     <div class="flex flex-col gap-5 sm:flex-row sm:items-stretch sm:justify-between sm:gap-x-8">
       <!-- Ingresos — métrica hero, con acento propio -->
       <button type="button" :class="[
-        'group flex items-start gap-2.5 rounded-lg border-l-[3px] pl-3.5 text-left transition-theme',
+        'group flex items-start gap-2.5 rounded-lg border-y-0 border-r-0 border-l-[3px] bg-transparent p-0 pl-3.5 text-left transition-theme',
         activeCard === 'income' ? 'border-success' : 'border-success/30 hover:border-success'
       ]" @click="$emit('click-income')">
         <div>
@@ -22,9 +22,9 @@
       </button>
 
       <!-- métricas secundarias — divididas por líneas finas, con identidad de color propia -->
-      <div class="grid grid-cols-2 gap-x-6 gap-y-5 border-t border-border pt-5 sm:flex sm:flex-1 sm:justify-end sm:gap-x-8 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-8">
+      <div class="grid grid-cols-2 gap-x-6 gap-y-5 border-t border-border pt-5 sm:flex sm:flex-1 sm:items-start sm:justify-end sm:gap-x-8 sm:border-t-0 sm:border-l sm:pt-0 sm:pl-8">
         <button type="button" :class="[
-          'group flex items-center gap-1 text-left transition-theme',
+          'group flex items-center gap-1 border-0 bg-transparent p-0 text-left transition-theme',
           activeCard === 'expense' ? 'text-warning' : 'text-text hover:text-warning'
         ]" @click="$emit('click-expense')">
           <div>
@@ -40,7 +40,7 @@
 
         <!-- Ganancia bruta — Tienda y Staffing (para staffing, es la única "ganancia": el margen de la nómina) -->
         <button v-if="isTienda || isStaffing" type="button" :class="[
-          'group flex items-center gap-1 text-left transition-theme',
+          'group flex items-center gap-1 border-0 bg-transparent p-0 text-left transition-theme',
           activeCard === 'profit' ? 'text-indigo-500' : 'text-text hover:text-indigo-500'
         ]" @click="$emit('click-profit')">
           <div>
@@ -56,7 +56,7 @@
 
         <!-- "Ganancia Neta" no existe para Staffing — la ganancia bruta de la nómina ya es la cifra que importa. -->
         <button v-if="!isStaffing" type="button" :class="[
-          'group flex items-center gap-1 text-left transition-theme',
+          'group flex items-center gap-1 border-0 bg-transparent p-0 text-left transition-theme',
           activeCard === 'net' ? 'text-info' : 'text-text hover:text-info'
         ]" @click="$emit('click-net')">
           <div>
