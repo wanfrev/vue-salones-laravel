@@ -131,8 +131,9 @@ class AppointmentController
         $appointment->load(['client', 'service', 'employeeProfile', 'assistantProfile']);
         EntityChanged::safe($businessId, 'appointment', 'created', $appointment->id);
 
-        $creatorProfileId = $request->user()?->profile?->id;
-        $notifiedProfiles = $creatorProfileId ? [$creatorProfileId] : [];
+        // Creator gets notified too — creating an appointment for yourself (or for someone else)
+        // still lands a "Nueva cita agendada" confirmation in the bell, same as everyone else.
+        $notifiedProfiles = [];
         $notifService = app(NotificationService::class);
         $clientName = $appointment->client?->full_name ?? 'Cliente';
         $serviceName = $appointment->service?->name ?? 'Servicio';
@@ -160,8 +161,8 @@ class AppointmentController
             'appointment_time' => $startTime,
         ];
 
-        // Notify assigned employee (skip if already notified)
-        if ($appointment->employee_id && $appointment->employee_id !== $creatorProfileId && !in_array($appointment->employee_id, $existingNotifications)) {
+        // Notify assigned employee (skip only if already notified — e.g. a retry)
+        if ($appointment->employee_id && !in_array($appointment->employee_id, $existingNotifications)) {
             $rows[] = $base + [
                 'profile_id' => $appointment->employee_id,
                 'title' => 'Nueva cita agendada',
@@ -169,12 +170,12 @@ class AppointmentController
             ];
             $notifiedProfiles[] = $appointment->employee_id;
         } else if ($appointment->employee_id) {
-            \Illuminate\Support\Facades\Log::info("[AppointmentController] Skipped notification for employee {$appointment->employee_id} (creator or duplicate)");
+            \Illuminate\Support\Facades\Log::info("[AppointmentController] Skipped notification for employee {$appointment->employee_id} (duplicate)");
             $notifiedProfiles[] = $appointment->employee_id;
         }
 
-        // Notify assistant if assigned (and different from creator)
-        if ($appointment->assistant_employee_id && $appointment->assistant_employee_id !== $creatorProfileId && !in_array($appointment->assistant_employee_id, $existingNotifications)) {
+        // Notify assistant if assigned
+        if ($appointment->assistant_employee_id && !in_array($appointment->assistant_employee_id, $existingNotifications)) {
             $rows[] = $base + [
                 'profile_id' => $appointment->assistant_employee_id,
                 'title' => 'Nueva cita como asistente',
