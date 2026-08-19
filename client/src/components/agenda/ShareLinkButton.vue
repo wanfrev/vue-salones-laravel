@@ -15,7 +15,20 @@
     </button>
     <Transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
       <div v-if="dropdownOpen" class="absolute right-0 top-full z-50 mt-1.5 w-56 rounded-xl border border-border bg-surface p-1.5 shadow-xl">
-        <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider px-2.5 py-1.5">Selecciona empleado</p>
+        <button
+          @click="copyGeneralShareLink"
+          class="flex items-center gap-2.5 w-full rounded-lg px-2.5 py-2 text-sm transition-colors hover:bg-bg-secondary text-left"
+        >
+          <div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary flex-shrink-0">
+            <LinkIcon class="h-3 w-3" />
+          </div>
+          <span class="truncate text-text">
+            Cualquier empleado
+            <span class="block text-[10px] text-text-muted">El cliente elige con quién atenderse</span>
+          </span>
+        </button>
+        <div class="my-1 h-px bg-border"></div>
+        <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider px-2.5 py-1.5">Un empleado específico</p>
         <button
           v-for="emp in employees"
           :key="emp.id"
@@ -72,5 +85,17 @@ function copyDefaultShareLink() {
   if (defaultEmpId) {
     copyShareLink(defaultEmpId)
   }
+}
+
+function copyGeneralShareLink() {
+  dropdownOpen.value = false
+  const origin = window.location.origin
+  const slug = businessStore.business?.slug || 'salon'
+  const link = `${origin}/reservar/${slug}`
+  navigator.clipboard.writeText(link).then(() => {
+    success('Link de reserva copiado — el cliente elige el empleado')
+  }).catch(() => {
+    prompt('Copia este link:', link)
+  })
 }
 </script>

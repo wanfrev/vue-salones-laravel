@@ -47,6 +47,10 @@ export const getBusinessPublic = async (slug: string) =>
 export const getEmployeePublic = async (slug: string, employeeId: string) =>
   apiRequest<PublicEmployee>('GET', `/public/business/${slug}/employee/${employeeId}`)
 
+/** Every bookable employee — used when the invitation link doesn't pin one and the client picks. */
+export const listPublicEmployees = async (slug: string) =>
+  apiRequest<PublicEmployee[]>('GET', `/public/business/${slug}/employees`)
+
 export const listPublicServices = async (slug: string) =>
   apiRequest<PublicService[]>('GET', `/public/business/${slug}/services`)
 

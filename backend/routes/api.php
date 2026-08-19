@@ -69,6 +69,7 @@ Route::post('/auth/login', [AuthController::class, 'login'])->middleware('thrott
 Route::prefix('public')->group(function () {
     Route::get('/business/{slug}', [PublicBookingController::class, 'business']);
     Route::get('/business/{slug}/employee/{employeeId}', [PublicBookingController::class, 'employee']);
+    Route::get('/business/{slug}/employees', [PublicBookingController::class, 'employees']);
     Route::get('/business/{slug}/services', [PublicBookingController::class, 'services']);
     Route::get('/business/{slug}/calendar/{employeeId}', [PublicBookingController::class, 'calendar']);
     Route::post('/business/{slug}/request', [PublicBookingController::class, 'request']);

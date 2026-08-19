@@ -58,8 +58,32 @@
 
       <!-- Content -->
       <div v-else class="content-area">
-        <!-- STEP 0: Día -->
-        <div v-if="currentStep === 0" class="step-view">
+        <!-- STEP EMPLEADO (solo cuando el link no trae uno fijo) -->
+        <div v-if="!hasPresetEmployee && currentStep === stepEmployee" class="step-view">
+          <p class="step-hint">¿Con quién te gustaría atenderte?</p>
+
+          <div v-if="loadingEmployeesList" class="flex-1 flex items-center justify-center"><div class="spinner" /></div>
+          <div v-else-if="(employeesList ?? []).length === 0" class="flex-1 flex items-center justify-center">
+            <p class="text-xs text-text-muted">No hay empleados disponibles.</p>
+          </div>
+          <div v-else class="svc-list">
+            <button
+              v-for="emp in (employeesList ?? [])"
+              :key="emp.id"
+              type="button"
+              class="svc-item"
+              @click="onSelectEmployee(emp)"
+            >
+              <span class="emp-avatar" :style="{ background: primaryColor }">{{ getInitials(emp.full_name) }}</span>
+              <span class="svc-info">
+                <span class="svc-name">{{ emp.full_name }}</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP Día -->
+        <div v-else-if="currentStep === stepDay" class="step-view">
           <div class="cal-head">
             <button type="button" @click="prevMonth" :disabled="!canGoPrevMonth" class="cal-nav-btn" :class="{ 'opacity-20': !canGoPrevMonth }">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
@@ -88,16 +112,16 @@
           </div>
         </div>
 
-        <!-- STEP 1: Horario -->
-        <div v-else-if="currentStep === 1" class="step-view">
-          <button type="button" class="back-link" @click="goToStep(0)">← {{ formatDateLabel(selectedDate) }}</button>
+        <!-- STEP Horario -->
+        <div v-else-if="currentStep === stepTime" class="step-view">
+          <button type="button" class="back-link" @click="goToStep(stepDay)">← {{ formatDateLabel(selectedDate) }}</button>
           <p class="step-hint">{{ freeSlots.length }} horario{{ freeSlots.length !== 1 ? 's' : '' }} disponible{{ freeSlots.length !== 1 ? 's' : '' }}</p>
 
           <div v-if="loadingCalendar" class="flex-1 flex items-center justify-center"><div class="spinner" /></div>
           <div v-else-if="!hasSchedule" class="flex-1 flex flex-col items-center justify-center text-center gap-2">
             <p class="font-semibold text-text text-sm">Sin horario este día</p>
             <p class="text-xs text-text-muted">{{ employeeName || 'El profesional' }} no atiende.</p>
-            <button type="button" class="text-xs font-semibold" :style="{ color: primaryColor }" @click="goToStep(0)">Elegir otro día</button>
+            <button type="button" class="text-xs font-semibold" :style="{ color: primaryColor }" @click="goToStep(stepDay)">Elegir otro día</button>
           </div>
           <div v-else-if="freeSlots.length === 0" class="flex-1 flex items-center justify-center">
             <p class="text-sm text-text-muted">No hay horarios libres.</p>
@@ -115,10 +139,10 @@
           </div>
         </div>
 
-        <!-- STEP 2: Servicios (multi-select) -->
-        <div v-else-if="currentStep === 2" class="step-view">
+        <!-- STEP Servicios (multi-select) -->
+        <div v-else-if="currentStep === stepServices" class="step-view">
           <div class="svc-top">
-            <button type="button" class="back-link" @click="goToStep(1)">
+            <button type="button" class="back-link" @click="goToStep(stepTime)">
               ← {{ formatDateLabel(selectedDate) }} · {{ pendingSlot ? formatSlotTime(pendingSlot) : '' }}
             </button>
             <span class="text-[10px] sm:text-xs text-text-muted font-medium shrink-0">{{ formatDuration(availableMinutes) }} disp.</span>
@@ -169,9 +193,9 @@
           </button>
         </div>
 
-        <!-- STEP 3: Confirmar -->
-        <div v-else-if="currentStep === 3" class="step-view">
-          <button type="button" class="back-link" @click="goToStep(2)">← Cambiar servicios</button>
+        <!-- STEP Confirmar -->
+        <div v-else-if="currentStep === stepConfirm" class="step-view">
+          <button type="button" class="back-link" @click="goToStep(stepServices)">← Cambiar servicios</button>
           <p class="text-sm font-bold text-text">Confirma tu reserva</p>
 
           <div class="summary">
@@ -222,8 +246,8 @@
           </button>
         </div>
 
-        <!-- STEP 4: Éxito -->
-        <div v-else-if="currentStep === 4" class="step-view success-view">
+        <!-- STEP Éxito -->
+        <div v-else-if="currentStep === stepSuccess" class="step-view success-view">
           <div class="success-circle" :style="{ background: `${primaryColor}15` }">
             <svg class="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" :style="{ color: primaryColor }">
               <path d="M5 13l4 4L19 7" class="success-path" />
@@ -239,7 +263,7 @@
         </div>
       </div>
 
-      <footer v-if="business && publicBookingEnabled && currentStep !== 4" class="footer">
+      <footer v-if="business && publicBookingEnabled && currentStep !== stepSuccess" class="footer">
         <p class="text-[10px] text-text-muted/40">{{ business.name }} recibirá tu solicitud.</p>
       </footer>
     </div>
@@ -254,11 +278,12 @@ import { useThemeStore } from '../../store/theme'
 import {
   getBusinessPublic,
   getEmployeePublic,
+  listPublicEmployees,
   listPublicServices,
   submitBookingRequest,
   getCalendarData,
 } from '../../services/publicBookingService'
-import type { PublicService } from '../../services/publicBookingService'
+import type { PublicEmployee, PublicService } from '../../services/publicBookingService'
 import logoLight from '../../assets/Luma.svg'
 import logoDark from '../../assets/Luma blanco.svg'
 
@@ -266,6 +291,9 @@ const route = useRoute()
 const themeStore = useThemeStore()
 const slug = computed(() => route.params.slug as string)
 const presetEmployeeId = ref(String(route.query.empleado || ''))
+const hasPresetEmployee = computed(() => !!presetEmployeeId.value)
+const pickedEmployee = ref<PublicEmployee | null>(null)
+const effectiveEmployeeId = computed(() => presetEmployeeId.value || pickedEmployee.value?.id || '')
 
 const logo = computed(() => (themeStore.isDark ? logoDark : logoLight))
 const isDarkEffective = computed(() => themeStore.isDark)
@@ -278,7 +306,21 @@ const maxCalStr = maxCal.toISOString().slice(0, 10)
 
 const calendarMonth = ref(new Date(today.getFullYear(), today.getMonth(), 1))
 const selectedDate = ref(todayStr)
-const steps = ['Día', 'Horario', 'Servicios', 'Confirmar', 'Listo'] as const
+
+// The "Empleado" step only exists when the invitation link doesn't already pin one — every
+// other step index shifts by one to make room for it.
+const steps = computed(() =>
+  hasPresetEmployee.value
+    ? ['Día', 'Horario', 'Servicios', 'Confirmar', 'Listo']
+    : ['Empleado', 'Día', 'Horario', 'Servicios', 'Confirmar', 'Listo'],
+)
+const stepOffset = computed(() => (hasPresetEmployee.value ? 0 : 1))
+const stepEmployee = 0
+const stepDay = computed(() => stepOffset.value)
+const stepTime = computed(() => 1 + stepOffset.value)
+const stepServices = computed(() => 2 + stepOffset.value)
+const stepConfirm = computed(() => 3 + stepOffset.value)
+const stepSuccess = computed(() => 4 + stepOffset.value)
 
 const canGoPrevMonth = computed(() => {
   const cm = calendarMonth.value
@@ -376,7 +418,19 @@ const { data: employeeData } = useQuery({
   enabled: computed(() => !!presetEmployeeId.value && !!business.value),
   staleTime: 5 * 60 * 1000,
 })
-const employeeName = computed(() => employeeData.value?.full_name || '')
+const employeeName = computed(() => employeeData.value?.full_name || pickedEmployee.value?.full_name || '')
+
+const { data: employeesList, isLoading: loadingEmployeesList } = useQuery({
+  queryKey: computed(() => ['pb-emps', slug.value] as const),
+  queryFn: () => listPublicEmployees(slug.value),
+  enabled: computed(() => !hasPresetEmployee.value && !!business.value),
+  staleTime: 5 * 60 * 1000,
+})
+
+function onSelectEmployee(emp: PublicEmployee) {
+  pickedEmployee.value = emp
+  advanceTo(stepDay.value)
+}
 
 const { data: services } = useQuery({
   queryKey: computed(() => ['pb-svcs', slug.value] as const),
@@ -390,9 +444,9 @@ const dateRange = computed(() => ({
   to: `${selectedDate.value}T23:59:59`,
 }))
 const { data: calendarData, isLoading: loadingCalendar } = useQuery({
-  queryKey: computed(() => ['pb-cal', slug.value, presetEmployeeId.value, selectedDate.value] as const),
-  queryFn: () => getCalendarData(slug.value, presetEmployeeId.value, dateRange.value.from, dateRange.value.to),
-  enabled: computed(() => !!presetEmployeeId.value && !!business.value && currentStep.value >= 1),
+  queryKey: computed(() => ['pb-cal', slug.value, effectiveEmployeeId.value, selectedDate.value] as const),
+  queryFn: () => getCalendarData(slug.value, effectiveEmployeeId.value, dateRange.value.from, dateRange.value.to),
+  enabled: computed(() => !!effectiveEmployeeId.value && !!business.value && currentStep.value >= stepDay.value),
   staleTime: 0,
 })
 
@@ -477,7 +531,7 @@ function onSelectDay(c: CalCell) {
   selectedDate.value = c.dateStr
   pendingSlot.value = null
   chosenServices.value = []
-  advanceTo(1)
+  advanceTo(stepTime.value)
 }
 
 function onSelectTime(s: FreeSlot) {
@@ -485,7 +539,7 @@ function onSelectTime(s: FreeSlot) {
   if (totalSelectedDuration.value > Math.floor(s.availableMs / 60000)) {
     chosenServices.value = []
   }
-  advanceTo(2)
+  advanceTo(stepServices.value)
 }
 
 function isServiceSelected(svc: PublicService) {
@@ -502,7 +556,7 @@ function toggleService(svc: PublicService) {
 
 function goToConfirm() {
   if (!canConfirm.value) return
-  advanceTo(3)
+  advanceTo(stepConfirm.value)
 }
 
 function formatSlotTime(s: FreeSlot | null) {
@@ -530,8 +584,8 @@ function getInitials(n: string) {
 
 async function submitRequest() {
   if (!chosenServices.value.length || !pendingSlot.value) return
-  if (!presetEmployeeId.value) {
-    submitError.value = 'Falta el empleado en el enlace de invitación.'
+  if (!effectiveEmployeeId.value) {
+    submitError.value = 'Falta elegir un empleado.'
     return
   }
   if (!nameValid.value) {
@@ -543,12 +597,12 @@ async function submitRequest() {
   submitError.value = ''
   try {
     await submitBookingRequest(slug.value, {
-      employee_id: presetEmployeeId.value,
+      employee_id: effectiveEmployeeId.value,
       service_ids: chosenServices.value.map(s => s.id),
       start_time: pendingSlot.value.start,
       client_name: clientName.value.trim(),
     })
-    advanceTo(4)
+    advanceTo(stepSuccess.value)
   } catch (e: unknown) {
     const err = e as { message?: string; data?: { message?: string } }
     const msg = String(err?.message || err?.data?.message || '')
