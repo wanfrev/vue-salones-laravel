@@ -11,7 +11,7 @@
       :class="[
         'relative inline-flex h-6 w-11 items-center rounded-full transition-theme focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-surface',
         'disabled:cursor-not-allowed',
-        modelValue ? (disabled ? 'bg-primary/40' : 'bg-primary') : (disabled ? 'bg-bg-secondary/60' : 'bg-bg-secondary'),
+        modelValue ? (disabled ? 'bg-primary/40' : 'bg-primary') : (disabled ? 'bg-border-strong/50' : 'bg-border-strong'),
       ]">
       <span :class="[
         'inline-block h-4 w-4 transform rounded-full bg-text-inverse transition-theme shadow-sm',
