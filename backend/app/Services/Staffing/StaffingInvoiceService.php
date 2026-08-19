@@ -116,4 +116,33 @@ class StaffingInvoiceService
 
         return $invoice;
     }
+
+    /**
+     * Undoes a facturación mistake: deletes the invoice and reopens its week (back to draft) so
+     * the nómina can be edited again — invoicing is what locked it (saveWeek refuses anything
+     * that isn't a draft). Any abonos already recorded against this invoice are not deleted; the
+     * FK (`onDelete: set null`) just unlinks them into on-account payments for the company, so
+     * the money already received stays on the books.
+     *
+     * @return string|null the reopened timesheet's id, for the caller to broadcast
+     */
+    public function destroy(string $id, string $businessId): ?string
+    {
+        return DB::transaction(function () use ($id, $businessId) {
+            $invoice = StaffingInvoice::where('business_id', $businessId)->find($id);
+            if (!$invoice) {
+                throw new NotFoundHttpException('Factura no encontrada.');
+            }
+
+            $timesheet = StaffingTimesheet::find($invoice->timesheet_id);
+
+            $invoice->delete();
+
+            if ($timesheet && $timesheet->status !== StaffingTimesheet::STATUS_DRAFT) {
+                $timesheet->update(['status' => StaffingTimesheet::STATUS_DRAFT, 'updated_at' => now()]);
+            }
+
+            return $timesheet?->id;
+        });
+    }
 }

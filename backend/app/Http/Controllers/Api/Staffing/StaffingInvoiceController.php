@@ -55,6 +55,21 @@ class StaffingInvoiceController
         return response()->json($invoice, 201);
     }
 
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        }
+
+        $timesheetId = $this->invoices->destroy($id, $p->business_id);
+
+        EntityChanged::safe($p->business_id, 'staffing_invoice', 'deleted', $id);
+        EntityChanged::safe($p->business_id, 'staffing_timesheet', 'updated', $timesheetId);
+
+        return response()->json(null, 204);
+    }
+
     public function balance(Request $request, string $companyId): JsonResponse
     {
         $p = $request->user()?->load('profile')?->profile;

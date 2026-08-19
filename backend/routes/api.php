@@ -271,6 +271,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::get('/staffing-invoices', [StaffingInvoiceController::class, 'index']);
         Route::get('/staffing-invoices/{id}', [StaffingInvoiceController::class, 'show']);
         Route::post('/staffing-invoices/generate', [StaffingInvoiceController::class, 'generate']);
+        Route::delete('/staffing-invoices/{id}', [StaffingInvoiceController::class, 'destroy']);
         Route::get('/staffing-companies/{companyId}/balance', [StaffingInvoiceController::class, 'balance']);
 
         Route::get('/staffing-company-payments', [StaffingCompanyPaymentController::class, 'index']);

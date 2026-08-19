@@ -5,12 +5,14 @@ import { translateError } from '../../lib/errors'
 import {
   createCompanyPayment,
   deleteCompanyPayment,
+  deleteStaffingInvoice,
   generateStaffingInvoice,
   getCompanyBalance,
   listCompanyPayments,
   listStaffingInvoices,
   staffingCompanyPaymentKeys,
   staffingInvoiceKeys,
+  staffingTimesheetKeys,
   type StaffingCompanyPaymentFormData,
 } from '../../services/staffing/staffingService'
 
@@ -45,6 +47,9 @@ export function useBilling(businessId: Ref<string | null>, companyId: Ref<string
       queryClient.invalidateQueries({ queryKey: staffingInvoiceKeys.byCompany(businessId.value, companyId.value), exact: false }),
       queryClient.invalidateQueries({ queryKey: staffingInvoiceKeys.balance(businessId.value, companyId.value), exact: false }),
       queryClient.invalidateQueries({ queryKey: staffingCompanyPaymentKeys.byCompany(businessId.value, companyId.value), exact: false }),
+      // Deleting an invoice reopens its week to draft — the "Horas trabajadas" tab needs to
+      // pick that status change up too.
+      queryClient.invalidateQueries({ queryKey: staffingTimesheetKeys.byCompany(businessId.value, companyId.value), exact: false }),
     ])
 
   const generateMutation = useMutation({
@@ -80,6 +85,15 @@ export function useBilling(businessId: Ref<string | null>, companyId: Ref<string
     onError: (err) => showError(translateError(err)),
   })
 
+  const deleteInvoiceMutation = useMutation({
+    mutationFn: (id: string) => deleteStaffingInvoice(id),
+    onSuccess: async () => {
+      await invalidateAll()
+      success('Factura eliminada — la semana volvió a borrador y ya puede editarse')
+    },
+    onError: (err) => showError(translateError(err)),
+  })
+
   const generateInvoice = async (timesheetId: string) => {
     saveError.value = ''
     try {
@@ -109,8 +123,10 @@ export function useBilling(businessId: Ref<string | null>, companyId: Ref<string
     saveError,
     generateMutation,
     paymentMutation,
+    deleteInvoiceMutation,
     generateInvoice,
     addPayment,
     removePayment: (id: string) => deletePaymentMutation.mutate(id),
+    removeInvoice: (id: string) => deleteInvoiceMutation.mutate(id),
   }
 }

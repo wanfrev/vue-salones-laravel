@@ -45,10 +45,14 @@
                   {{ STATUS_LABELS[invoice.status] }}
                 </span>
               </td>
-              <td class="px-3 py-2 text-right">
+              <td class="px-3 py-2 text-right whitespace-nowrap">
                 <button type="button" title="Imprimir" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
                   @click="handlePrint(invoice.id)">
                   <PrinterIcon class="h-4 w-4" />
+                </button>
+                <button type="button" title="Eliminar factura" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+                  @click="handleDeleteInvoice(invoice)">
+                  <TrashBin2Icon class="h-4 w-4" />
                 </button>
               </td>
             </tr>
@@ -173,5 +177,11 @@ const submitPayment = async () => {
 const handlePrint = async (invoiceId: string) => {
   const full = await getStaffingInvoice(invoiceId)
   printStaffingInvoice(full, businessStore.business?.name || 'Delta Work Force')
+}
+
+const handleDeleteInvoice = (invoice: { id: string; invoice_number: string }) => {
+  if (window.confirm(`¿Eliminar la factura #${invoice.invoice_number}? La semana volverá a borrador para poder editar la nómina. Los abonos ya registrados no se eliminan, quedan como pago a cuenta.`)) {
+    billing.removeInvoice(invoice.id)
+  }
 }
 </script>
