@@ -331,6 +331,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     Route::middleware(['capability:staffing.crm', 'admin-panel'])->group(function () {
         Route::get('/employee-assets', [EmployeeAssetController::class, 'index']);
         Route::post('/employee-assets', [EmployeeAssetController::class, 'store']);
+        Route::put('/employee-assets/{id}', [EmployeeAssetController::class, 'update']);
         Route::delete('/employee-assets/{id}', [EmployeeAssetController::class, 'destroy']);
     });
 

@@ -1,7 +1,7 @@
 <template>
   <div class="bg-bg-secondary p-1 rounded-xl border border-border-subtle inline-flex items-center gap-0.5 self-start"
     :class="{ 'sm:self-auto': $slots.extra || !$slots.default }">
-    <button v-for="tab in tabs" :key="tab.key" @click="$emit('update:modelValue', tab.key)" :class="[
+    <button v-for="tab in tabs" :key="tab.key" type="button" @click="$emit('update:modelValue', tab.key)" :class="[
       'px-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 flex items-center gap-2',
       modelValue === tab.key
         ? 'bg-surface text-text shadow-sm shadow-black/5 border border-border font-semibold'
