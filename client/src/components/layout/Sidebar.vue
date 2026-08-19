@@ -16,15 +16,15 @@
           :key="link.to"
           :to="link.to"
           :class="[
-            'group mb-0.5 flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-theme',
+            'group mb-0.5 flex items-center gap-3 rounded-lg border-l-2 py-2.5 pr-3 pl-2.5 text-sm font-medium transition-theme',
             isActive(link.to)
-              ? 'bg-primary text-text-inverse shadow-sm'
-              : 'text-text-secondary hover:bg-bg-secondary hover:text-text'
+              ? 'border-primary bg-primary/10 text-text'
+              : 'border-transparent text-text-secondary hover:bg-bg-secondary hover:text-text'
           ]"
         >
           <span :class="[
             'flex h-7 w-7 items-center justify-center rounded-md transition-theme',
-            isActive(link.to) ? 'bg-white/20' : 'bg-bg-secondary group-hover:bg-border'
+            isActive(link.to) ? 'text-primary' : 'bg-bg-secondary group-hover:bg-border'
           ]">
             <component :is="link.icon" class="h-4 w-4" />
           </span>

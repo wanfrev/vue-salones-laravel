@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 /* Class-based dark mode so ThemeStore's .dark class on <html> drives Tailwind's dark: utilities */
@@ -61,23 +61,23 @@
 
 /* Tokens Modo Oscuro */
 .dark {
-  /* Colores de Fondo */
-  --color-bg: #121212;
-  --color-bg-secondary: #1a1a1a;
-  --color-surface: #202020;
-  --color-surface-elevated: #2a2a2a;
-  --color-surface-muted: #181818;
+  /* Colores de Fondo — carbón profundo, no negro plano */
+  --color-bg: #121316;
+  --color-bg-secondary: #17181b;
+  --color-surface: #1a1b1f;
+  --color-surface-elevated: #1e1f24;
+  --color-surface-muted: #17181b;
 
   /* Colores de Texto */
-  --color-text: #f8fafc;
-  --color-text-secondary: #d4d4d8;
-  --color-text-muted: #a1a1aa;
-  --color-text-inverse: #121212;
+  --color-text: #f2f3f1;
+  --color-text-secondary: #b7bbc2;
+  --color-text-muted: #83878e;
+  --color-text-inverse: #121316;
 
-  /* Colores de Borde */
-  --color-border: #323232;
-  --color-border-subtle: #262626;
-  --color-border-strong: #4b4b4b;
+  /* Colores de Borde — sutiles, translúcidos en vez de grises sólidos */
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-subtle: rgba(255, 255, 255, 0.05);
+  --color-border-strong: rgba(255, 255, 255, 0.16);
 
   /* Colores Primarios en verde del sistema */
   --color-primary: #869C84;
@@ -144,7 +144,7 @@
   --shadow-xl: var(--shadow-xl);
 
   /* Tipografia */
-  --font-sans: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* ============================================================

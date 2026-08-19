@@ -8,7 +8,7 @@
           <template v-if="isDirectService && !selectedAppointment">
             <div class="flex items-center justify-between text-sm mb-2 pb-2 border-b border-border">
               <span class="text-text-muted">Cliente</span>
-              <span class="font-medium text-text">{{ retailClientName || 'Servicio Directo' }}</span>
+              <span class="font-medium text-text">{{ toTitleCase(retailClientName) || 'Servicio Directo' }}</span>
             </div>
             <div v-if="directServicesList && directServicesList.length > 0" class="space-y-2">
               <div
@@ -19,7 +19,7 @@
                 <div class="flex-1 min-w-0 pr-2">
                   <p class="font-medium text-text text-xs truncate">{{ item.serviceName }}</p>
                   <p class="text-text-muted text-[11px] truncate">
-                    {{ item.employeeName }}<template v-if="item.assistantEmployeeName"> + {{ item.assistantEmployeeName }}</template>
+                    {{ toTitleCase(item.employeeName) }}<template v-if="item.assistantEmployeeName"> + {{ toTitleCase(item.assistantEmployeeName) }}</template>
                   </p>
                 </div>
                 <span class="font-semibold text-text text-xs shrink-0 tabular-nums">${{ item.price }}</span>
@@ -30,7 +30,7 @@
           <template v-else-if="isRetailOnly && !selectedAppointment">
             <div class="flex items-center justify-between text-sm">
               <span class="text-text-muted">Cliente</span>
-              <span class="font-medium text-text">{{ retailClientName || 'Venta Directa / Mostrador' }}</span>
+              <span class="font-medium text-text">{{ toTitleCase(retailClientName) || 'Venta Directa / Mostrador' }}</span>
             </div>
             <div class="flex items-center justify-between text-sm mt-1">
               <span class="text-text-muted">Servicio</span>
@@ -40,7 +40,7 @@
           <template v-else-if="selectedAppointment">
             <div class="flex items-center justify-between text-sm mt-1">
               <span class="text-text-muted">Cliente</span>
-              <span class="font-medium text-text">{{ selectedAppointment.client?.full_name || selectedAppointment.clients?.full_name || '—' }}</span>
+              <span class="font-medium text-text">{{ toTitleCase(selectedAppointment.client?.full_name || selectedAppointment.clients?.full_name) || '—' }}</span>
             </div>
             <div v-if="selectedAppointment.appointment_date" class="flex items-center justify-between text-sm mt-1">
               <span class="text-text-muted">Fecha</span>
@@ -51,13 +51,13 @@
                 <div
                   v-for="(m, i) in selectedAppointment.members"
                   :key="i"
-                  class="flex items-center justify-between text-sm"
+                  class="flex items-center justify-between gap-2 text-sm"
                 >
-                  <div class="flex-1 min-w-0">
-                    <span class="text-text truncate">{{ m.serviceName }}</span>
-                    <span class="text-text-muted ml-1 text-xs">· {{ m.employeeName }}</span>
+                  <div class="flex min-w-0 flex-1 items-baseline gap-1">
+                    <span class="min-w-0 truncate text-text">{{ m.serviceName }}</span>
+                    <span class="shrink-0 text-xs text-text-muted">· {{ toTitleCase(m.employeeName) }}</span>
                   </div>
-                  <span class="font-medium text-text text-xs shrink-0 ml-2 tabular-nums">${{ m.price }}</span>
+                  <span class="font-medium text-text text-xs shrink-0 tabular-nums">${{ m.price }}</span>
                 </div>
               </div>
             </template>
@@ -68,11 +68,11 @@
               </div>
               <div class="flex items-center justify-between text-sm mt-1">
                 <span class="text-text-muted">Empleado</span>
-                <span class="font-medium text-text">{{ (selectedAppointment.employee_profile?.full_name ?? selectedAppointment.profiles?.full_name) || '—' }}</span>
+                <span class="font-medium text-text">{{ toTitleCase(selectedAppointment.employee_profile?.full_name ?? selectedAppointment.profiles?.full_name) || '—' }}</span>
               </div>
               <div v-if="selectedAppointment.assistant_employee_id" class="flex items-center justify-between text-sm mt-1">
                 <span class="text-text-muted">Asistente</span>
-                <span class="font-medium text-text">{{ (selectedAppointment.assistant_profile?.full_name) || '—' }} ({{ selectedAppointment.assistant_percentage ?? 0 }}%)</span>
+                <span class="font-medium text-text">{{ toTitleCase(selectedAppointment.assistant_profile?.full_name) || '—' }} ({{ selectedAppointment.assistant_percentage ?? 0 }}%)</span>
               </div>
             </template>
           </template>
@@ -274,7 +274,7 @@
                 </button>
               </div>
               <div v-for="participant in tipParticipants" :key="participant.employeeId" class="grid grid-cols-[1fr_auto] items-center gap-2">
-                <span class="text-xs text-text truncate">{{ participant.employeeName }}</span>
+                <span class="text-xs text-text truncate">{{ toTitleCase(participant.employeeName) }}</span>
                 <input
                   :value="tipAllocations[participant.employeeId] ?? 0"
                   @input="$emit('update:tip-allocation', participant.employeeId, Number(($event.target as HTMLInputElement).value) || 0)"
@@ -478,7 +478,7 @@
 import { computed, nextTick, ref } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { DualAmount } from '../common'
-import { formatDate } from '../../lib/formatters'
+import { formatDate, toTitleCase } from '../../lib/formatters'
 import { useAuth } from '../../composables/common/useAuth'
 import { useGiftCards } from '../../composables/giftCards/useGiftCards'
 import { useBusinessStore } from '../../store/business'

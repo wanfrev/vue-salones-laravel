@@ -1,6 +1,7 @@
 import { db, apiRequest } from '../lib/api'
 import { clienteFormSchema } from '../lib/validation'
 import { mapClienteFormToClientInsert, mapClientToCliente } from '../mappers/clientesMapper'
+import { toTitleCase } from '../lib/formatters'
 import type { Client } from '../types/database'
 import type { Cliente, ClienteFormData } from '../types/cliente'
 
@@ -119,7 +120,7 @@ export const searchClients = async (
   }
 
   const results = await apiRequest<Client[]>('GET', path)
-  return results.map(c => ({ id: c.id, full_name: c.full_name, phone: c.phone, client_code: c.client_code }))
+  return results.map(c => ({ id: c.id, full_name: toTitleCase(c.full_name), phone: c.phone, client_code: c.client_code }))
 }
 
 export const findOrCreateClientByPhone = async (

@@ -1,4 +1,4 @@
-import { normalizeAppointmentStatus, getStatusLabel, getStatusColor } from '../lib/formatters'
+import { normalizeAppointmentStatus, getStatusLabel, getStatusColor, toTitleCase } from '../lib/formatters'
 import type { AppointmentWithRelations, Service } from '../types/database'
 import type { Cita, CitaFormData, CitaFormServiceItem } from '../types/cita'
 import { useBusinessStore } from '../store/business'
@@ -53,7 +53,7 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
     // Pinia not active (e.g. unit tests)
   }
 
-  const clientName = client?.full_name ?? (appointment as any).clientName ?? defaultClientLabel
+  const clientName = toTitleCase(client?.full_name) || (appointment as any).clientName || defaultClientLabel
   const clientPhone = hidePhoneForEmployee ? '' : (client?.phone ?? (appointment as any).clientPhone ?? '')
 
   let associatedProducts = parseAssociatedProducts(appointment.associated_products ?? (appointment as any).associatedProducts)
@@ -76,9 +76,9 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
     serviceId: appointment.service_id,
     service: service?.name ?? (appointment as any).service ?? 'Servicio',
     employeeId: appointment.employee_id,
-    employee: employee?.full_name ?? (appointment as any).employee ?? 'Empleado',
+    employee: toTitleCase(employee?.full_name) || (appointment as any).employee || 'Empleado',
     assistantId: appointment.assistant_employee_id ?? (appointment as any).assistantId ?? undefined,
-    assistantName: assistant?.full_name ?? (appointment as any).assistantName ?? undefined,
+    assistantName: toTitleCase(assistant?.full_name) || (appointment as any).assistantName || undefined,
     assistantPercentage: appointment.assistant_percentage != null ? Number(appointment.assistant_percentage) : undefined,
     employeePercentageOverride: appointment.employee_percentage_override != null ? Number(appointment.employee_percentage_override) : undefined,
     isFixedCommissionOverride: appointment.is_fixed_commission_override ?? false,
