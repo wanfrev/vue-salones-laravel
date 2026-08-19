@@ -214,11 +214,13 @@ describe('resolveNavigation — meta.gate: feature (replaces the /dashboard/clie
     expect(resolveNavigation(clientesTarget, makeCtx({ hasFeature: () => true }))).toBeUndefined()
   })
 
-  it('bounces to historial, not agenda, when the blocked employee also has no agenda feature', () => {
+  it('bounces to recibo, not agenda, when the blocked employee also has no agenda/servicios feature', () => {
     // Guards against a redirect loop: /dashboard/agenda is itself gated on `agenda`, so
-    // sending an agenda-less employee there would bounce a second time.
+    // sending an agenda-less employee there would bounce a second time. Recibo (not historial)
+    // because historial is a service-history list — meaningless with servicios off too (the
+    // staffing/tienda case), whereas recibo has no gate and applies to any employee.
     const result = resolveNavigation(clientesTarget, makeCtx({ hasFeature: () => false }))
-    expect(result).toBe('/dashboard/historial')
+    expect(result).toBe('/dashboard/recibo')
   })
 })
 

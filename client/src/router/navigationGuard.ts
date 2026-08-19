@@ -39,7 +39,7 @@ export interface NavContext {
  * Returns a redirect path, or undefined to allow navigation.
  */
 export function resolveNavigation(to: NavTarget, ctx: NavContext): string | undefined {
-  const resolveHome = () => resolveHomeByRole(ctx.role ?? undefined, ctx.profile?.disable_agenda, ctx.hasFeature('agenda'), ctx.hasFeature('pos'))
+  const resolveHome = () => resolveHomeByRole(ctx.role ?? undefined, ctx.profile?.disable_agenda, ctx.hasFeature('agenda'), ctx.hasFeature('pos'), ctx.hasFeature('servicios'), ctx.hasCapability('staffing.timesheets'))
 
   if (ctx.loading) {
     if (to.meta.public) return undefined
