@@ -30,7 +30,8 @@ const { count } = usePendingInvitations()
 
 const canManageInvitations = computed(() => {
   const role = authStore.role
-  if (!role || !businessStore.hasFeature('enable_public_booking')) return false
+  // Invitaciones son solicitudes de cita por link público — no aplica a nichos sin agenda (staffing, tienda).
+  if (!role || !businessStore.hasFeature('agenda') || !businessStore.hasFeature('enable_public_booking')) return false
   if (role === 'admin' || role === 'superadmin') return true
   return (authStore.profile as any)?.can_create_appointments !== false
 })
