@@ -19,21 +19,28 @@ export const useAuthStore = defineStore('auth', () => {
   let authUnsubscribe: (() => void) | null = null
 
   const isAuthenticated = computed(() => !!session.value && !!user.value)
+  // The synthetic cajero encoding (role='empleado' + disable_agenda + disable_inventory_edit)
+  // was designed for the tienda niche's cashier. It also happens to match staffing's
+  // "vendedora" employees (NuevaVendedoraModal sets both flags for an unrelated reason — hiding
+  // agenda/inventory, which staffing doesn't have anyway) — without this guard they'd get
+  // misclassified as cajero and force-routed to /admin/pos, a screen staffing has locked off
+  // entirely (pos feature is locked false for that niche), leaving them stuck. Requiring the
+  // business to actually have POS available scopes the encoding back to where it's meaningful.
+  const isSyntheticCajero = (p: AuthProfile): boolean =>
+    p.role === 'empleado' && !!p.disable_agenda && !!p.disable_inventory_edit && useBusinessStore().hasFeature('pos')
+
   const role = computed<Role | null>(() => {
     const p = profile.value
     if (!p) return null
     if (p.role === 'cajero') return 'cajero' as Role
-    if (p.disable_agenda && p.disable_inventory_edit && p.role === 'empleado') {
-      return 'cajero' as Role
-    }
+    if (isSyntheticCajero(p)) return 'cajero' as Role
     return p.role ?? null
   })
   const isCajeroProfile = computed(() => {
     const p = profile.value
     if (!p) return false
     if (p.role === 'cajero') return true
-    if (p.role === 'empleado' && p.disable_agenda && p.disable_inventory_edit) return true
-    return false
+    return isSyntheticCajero(p)
   })
   const businessId = computed(() => profile.value?.business_id ?? null)
   const disableInventoryEdit = computed(() => {

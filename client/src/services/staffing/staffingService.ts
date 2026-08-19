@@ -407,6 +407,12 @@ export const generateStaffingInvoice = (timesheetId: string): Promise<StaffingIn
 export const getCompanyBalance = (companyId: string): Promise<StaffingCompanyBalance> =>
   apiRequest<StaffingCompanyBalance>('GET', `/staffing-companies/${companyId}/balance`)
 
+/** Deletes an invoice and reopens its week to draft so the nómina can be edited again. */
+export const deleteStaffingInvoice = async (id: string): Promise<void> => {
+  const { error } = await db.from('staffing_invoices').delete().eq('id', id)
+  if (error) handleDbError(error, 'Error al eliminar la factura')
+}
+
 export interface StaffingCompanyPaymentFormData {
   companyId: string
   invoiceId: string

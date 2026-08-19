@@ -54,6 +54,27 @@ class PublicBookingController extends Controller
         return response()->json($employee);
     }
 
+    /**
+     * Every bookable employee for the "any employee" flow — the invitation link doesn't pin one,
+     * so the client picks from this list before day/time (schedule and free slots depend on who).
+     */
+    public function employees(string $slug): JsonResponse
+    {
+        $business = $this->findActiveBusiness($slug);
+        if (!$business) return response()->json(['message' => 'Negocio no encontrado'], 404);
+
+        $employees = DB::table('profiles')
+            ->where('business_id', $business->id)
+            ->where('role', 'empleado')
+            ->where('active', true)
+            ->where('disable_agenda', false)
+            ->select('id', 'full_name', 'avatar_url')
+            ->orderBy('full_name')
+            ->get();
+
+        return response()->json($employees);
+    }
+
     public function services(string $slug): JsonResponse
     {
         $business = Business::where('slug', $slug)->where('active', true)->first();

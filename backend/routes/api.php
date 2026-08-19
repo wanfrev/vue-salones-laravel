@@ -69,6 +69,7 @@ Route::post('/auth/login', [AuthController::class, 'login'])->middleware('thrott
 Route::prefix('public')->group(function () {
     Route::get('/business/{slug}', [PublicBookingController::class, 'business']);
     Route::get('/business/{slug}/employee/{employeeId}', [PublicBookingController::class, 'employee']);
+    Route::get('/business/{slug}/employees', [PublicBookingController::class, 'employees']);
     Route::get('/business/{slug}/services', [PublicBookingController::class, 'services']);
     Route::get('/business/{slug}/calendar/{employeeId}', [PublicBookingController::class, 'calendar']);
     Route::post('/business/{slug}/request', [PublicBookingController::class, 'request']);
@@ -271,6 +272,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::get('/staffing-invoices', [StaffingInvoiceController::class, 'index']);
         Route::get('/staffing-invoices/{id}', [StaffingInvoiceController::class, 'show']);
         Route::post('/staffing-invoices/generate', [StaffingInvoiceController::class, 'generate']);
+        Route::delete('/staffing-invoices/{id}', [StaffingInvoiceController::class, 'destroy']);
         Route::get('/staffing-companies/{companyId}/balance', [StaffingInvoiceController::class, 'balance']);
 
         Route::get('/staffing-company-payments', [StaffingCompanyPaymentController::class, 'index']);
