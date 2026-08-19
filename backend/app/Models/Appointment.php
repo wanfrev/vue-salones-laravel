@@ -24,7 +24,7 @@ class Appointment extends Model
         'employee_percentage_override', 'assistant_percentage',
         'is_fixed_commission_override', 'employee_amount_override', 'assistant_amount_override',
         'duration_override', 'diagnosis', 'treatment', 'associated_products', 'clinical_history',
-        'reminder_sent_at', 'reminder_1h_sent_at', 'pending_reminder_sent_at',
+        'reminder_sent_at', 'reminder_1h_sent_at', 'pending_reminder_sent_at', 'reminders_sent',
     ];
 
     protected function casts(): array
@@ -34,6 +34,7 @@ class Appointment extends Model
             'end_time' => 'datetime',
             'associated_products' => 'array',
             'clinical_history' => 'array',
+            'reminders_sent' => 'array',
         ];
     }
 

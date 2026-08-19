@@ -285,11 +285,59 @@
               <FormToggle
                 :model-value="!!businessStore.features.reminder_24h_enabled"
                 @update:model-value="handleToggleFeature('reminder_24h_enabled')"
-                label="Recordatorios internos 24h y 1h"
-                hint="Notifica en la campanita 24h y 1h antes de cada cita. No requiere WhatsApp."
+                label="Recordatorios internos de citas"
+                hint="Notifica en la campanita con la anticipación que elijas para cada cita. No requiere WhatsApp."
                 :disabled="updatingFeatures"
                 class="py-3.5 border-b border-border-subtle"
               />
+              <div v-if="businessStore.features.reminder_24h_enabled" class="py-3.5 border-b border-border-subtle">
+                <span class="text-xs text-text-secondary">Avisar con estas anticipaciones antes de cada cita:</span>
+                <div class="mt-2.5 flex flex-wrap items-center gap-2">
+                  <span
+                    v-for="(offset, idx) in reminderOffsets"
+                    :key="idx"
+                    class="flex items-center gap-1.5 rounded-full bg-surface-elevated border border-border-strong pl-3 pr-1.5 py-1 text-xs font-bold text-text"
+                  >
+                    {{ formatOffsetLabel(offset) }}
+                    <button
+                      type="button"
+                      @click="removeReminderOffset(idx)"
+                      :disabled="updatingFeatures"
+                      class="flex h-4 w-4 items-center justify-center rounded-full text-text-muted hover:bg-danger/10 hover:text-danger"
+                      aria-label="Quitar recordatorio"
+                    >
+                      ×
+                    </button>
+                  </span>
+                  <span v-if="reminderOffsets.length === 0" class="text-xs text-text-muted italic">Sin recordatorios configurados — no se enviará ninguno.</span>
+                </div>
+                <div class="mt-2.5 flex items-center gap-2">
+                  <input
+                    v-model="newOffsetValue"
+                    type="number"
+                    min="0.1"
+                    max="720"
+                    step="0.5"
+                    placeholder="Ej. 24"
+                    class="w-20 rounded-md border border-border-strong bg-surface px-2 py-1.5 text-xs font-semibold text-text outline-none focus:border-primary"
+                  />
+                  <select
+                    v-model="newOffsetUnit"
+                    class="rounded-md border border-border-strong bg-surface px-2 py-1.5 text-xs font-semibold text-text outline-none focus:border-primary"
+                  >
+                    <option value="hours">horas antes</option>
+                    <option value="minutes">minutos antes</option>
+                  </select>
+                  <button
+                    type="button"
+                    @click="addReminderOffset"
+                    :disabled="updatingFeatures || !newOffsetValue"
+                    class="rounded-md border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs font-bold text-primary hover:bg-primary/20 disabled:opacity-50"
+                  >
+                    + Agregar
+                  </button>
+                </div>
+              </div>
               <FormToggle
                 v-if="businessStore.features.whatsapp_available"
                 :model-value="!!businessStore.features.whatsapp_reminders_enabled"
@@ -721,6 +769,65 @@ const showNewPassword = ref(false)
 const passwordLoading = ref(false)
 const passwordError = ref('')
 const passwordSuccess = ref('')
+
+const reminderOffsets = ref<number[]>(
+  Array.isArray(businessStore.features.appointment_reminder_offsets_hours)
+    ? [...businessStore.features.appointment_reminder_offsets_hours].sort((a: number, b: number) => b - a)
+    : [24, 1]
+)
+const newOffsetValue = ref<string>('')
+const newOffsetUnit = ref<'hours' | 'minutes'>('hours')
+
+function formatOffsetLabel(hours: number): string {
+  if (hours < 1) {
+    const minutes = Math.round(hours * 60)
+    return `${minutes} ${minutes === 1 ? 'minuto' : 'minutos'} antes`
+  }
+  if (Number.isInteger(hours)) {
+    return `${hours} ${hours === 1 ? 'hora' : 'horas'} antes`
+  }
+  return `${hours} horas antes`
+}
+
+async function saveReminderOffsets() {
+  if (!businessId.value) return
+  updatingFeatures.value = true
+  try {
+    const updatedFeatures = { ...businessStore.features, appointment_reminder_offsets_hours: reminderOffsets.value }
+    const res = await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness(res as any)
+    success('Recordatorios de citas actualizados')
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar los recordatorios')
+  } finally {
+    updatingFeatures.value = false
+  }
+}
+
+function addReminderOffset() {
+  const raw = parseFloat(newOffsetValue.value)
+  if (isNaN(raw) || raw <= 0) return
+  const hours = newOffsetUnit.value === 'minutes' ? raw / 60 : raw
+  const rounded = Math.round(hours * 100) / 100
+  if (rounded > 720) {
+    showError('La anticipación máxima es de 720 horas (30 días).')
+    return
+  }
+  if (reminderOffsets.value.some(o => Math.abs(o - rounded) < 0.001)) {
+    newOffsetValue.value = ''
+    return
+  }
+  reminderOffsets.value = [...reminderOffsets.value, rounded].sort((a, b) => b - a)
+  newOffsetValue.value = ''
+  saveReminderOffsets()
+}
+
+function removeReminderOffset(idx: number) {
+  reminderOffsets.value = reminderOffsets.value.filter((_, i) => i !== idx)
+  saveReminderOffsets()
+}
 
 const pendingNotificationHour = ref<number | null>(businessStore.features.pending_notifications_hour ?? 9)
 

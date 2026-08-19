@@ -37,198 +37,107 @@ class GenerateReminders extends Command
 
         \Illuminate\Support\Facades\Log::info('[reminders:generate] STARTING at ' . $now->toIso8601String());
 
-        // 1. Generate reminders: appointments starting in ~24h
-        $this->info('[reminders:generate] Checking appointments in ~24h window...');
+        // 1. Generate reminders: appointments starting in ~N hours, N configurable per business
+        $this->info('[reminders:generate] Checking appointments against configured reminder offsets...');
 
-        $in22h = $now->copy()->addHours(22);
-        $in26h = $now->copy()->addHours(26);
+        $reminderBusinesses = Business::where('active', true)->get();
 
-        $appointments = Appointment::with(['client', 'service', 'employeeProfile', 'pet'])
-            ->whereNull('reminder_sent_at')
-            ->whereIn('status', ['pending', 'confirmed'])
-            ->whereBetween('start_time', [$in22h, $in26h])
-            ->get();
-
-        \Illuminate\Support\Facades\Log::info("[reminders:generate] 24h window ({$in22h->toIso8601String()} to {$in26h->toIso8601String()}): found {$appointments->count()} appointments");
-
-        if ($this->option('debug')) {
-            foreach ($appointments as $appt) {
-                $this->line("  - Appointment {$appt->id}: {$appt->client?->full_name} — {$appt->service?->name} at {$appt->start_time} (status: {$appt->status})");
+        foreach ($reminderBusinesses as $business) {
+            $bizFeatures = $business->features ?? [];
+            if (isset($bizFeatures['reminder_24h_enabled']) && !$bizFeatures['reminder_24h_enabled']) {
+                continue;
             }
-        }
 
-        if ($appointments->isNotEmpty()) {
-            $appointmentIds = [];
+            $offsets = $this->reminderOffsetsFor($bizFeatures);
+            if (empty($offsets)) {
+                continue;
+            }
 
-            foreach ($appointments as $appt) {
-                $client = $appt->client;
-                $service = $appt->service;
-                if (!$client || !$service) {
-                    \Illuminate\Support\Facades\Log::warning("[reminders:generate] 24h: Skipping appointment {$appt->id} — missing client or service");
+            foreach ($offsets as $offsetHours) {
+                $toleranceMinutes = max(10, (int) round($offsetHours * 60 * 0.1));
+                $windowStart = $now->copy()->addMinutes($offsetHours * 60 - $toleranceMinutes);
+                $windowEnd = $now->copy()->addMinutes($offsetHours * 60 + $toleranceMinutes);
+
+                $appointments = Appointment::with(['client', 'service', 'employeeProfile', 'pet'])
+                    ->where('business_id', $business->id)
+                    ->whereIn('status', ['pending', 'confirmed'])
+                    ->whereBetween('start_time', [$windowStart, $windowEnd])
+                    ->get()
+                    ->filter(fn (Appointment $appt) => !in_array($offsetHours, $appt->reminders_sent ?? [], false));
+
+                \Illuminate\Support\Facades\Log::info("[reminders:generate] Business {$business->id}, offset {$offsetHours}h window ({$windowStart->toIso8601String()} to {$windowEnd->toIso8601String()}): found {$appointments->count()} appointments");
+
+                if ($this->option('debug')) {
+                    foreach ($appointments as $appt) {
+                        $this->line("  - [{$offsetHours}h] Appointment {$appt->id}: {$appt->client?->full_name} — {$appt->service?->name} at {$appt->start_time} (status: {$appt->status})");
+                    }
+                }
+
+                if ($appointments->isEmpty()) {
                     continue;
                 }
 
-                // Check if internal reminders are enabled for this business
-                $biz = Business::find($appt->business_id);
-                $bizFeatures = $biz?->features ?? [];
-                if (isset($bizFeatures['reminder_24h_enabled']) && !$bizFeatures['reminder_24h_enabled']) {
-                    \Illuminate\Support\Facades\Log::debug("[reminders:generate] 24h: Skipping appointment {$appt->id} — reminder_24h_enabled is false for business {$appt->business_id}");
-                    continue;
-                }
+                $appointmentIds = [];
+                $label = $this->formatOffsetLabel($offsetHours);
 
-                // Skip 24h reminder if a new_appointment notification already exists for this appointment
-                // (the user was already notified at creation time, avoid duplicate perception)
-                $existingNewApptNotif = \App\Models\Notification::where('business_id', $appt->business_id)
-                    ->where('appointment_id', $appt->id)
-                    ->where('type', 'new_appointment')
-                    ->exists();
+                foreach ($appointments as $appt) {
+                    $client = $appt->client;
+                    $service = $appt->service;
+                    if (!$client || !$service) {
+                        \Illuminate\Support\Facades\Log::warning("[reminders:generate] {$offsetHours}h: Skipping appointment {$appt->id} — missing client or service");
+                        continue;
+                    }
 
-                if ($existingNewApptNotif) {
-                    \Illuminate\Support\Facades\Log::info("[reminders:generate] 24h: Skipping appointment {$appt->id} — already has a new_appointment notification");
+                    $notifications = [];
+
+                    $baseData = [
+                        'business_id' => $appt->business_id,
+                        'branch_id' => $appt->branch_id,
+                        'appointment_id' => $appt->id,
+                        'type' => 'reminder',
+                        'title' => "Recordatorio de cita ({$label})",
+                        'message' => "El cliente {$client->full_name} tiene cita de {$service->name}",
+                        'client_name' => $client->full_name,
+                        'client_phone' => $client->phone,
+                        'service_name' => $service->name,
+                        'appointment_time' => $appt->start_time,
+                        'metadata' => [
+                            'type' => 'reminder_offset',
+                            'offset_hours' => $offsetHours,
+                            'whatsapp_link' => $this->whatsappService->generateWhatsAppLink($client->phone),
+                        ],
+                    ];
+
+                    if ($appt->employee_id) {
+                        $notifications[] = array_merge($baseData, [
+                            'profile_id' => $appt->employee_id,
+                        ]);
+                    }
+
+                    $admins = $this->getAdminsToNotify($appt->business_id, $appt->branch_id, $appt->employee_id);
+
+                    foreach ($admins as $admin) {
+                        $notifications[] = array_merge($baseData, [
+                            'profile_id' => $admin->id,
+                        ]);
+                    }
+
+                    $totalGenerated += $this->notificationService->createMany($notifications)->count();
+
+                    $appt->reminders_sent = array_merge($appt->reminders_sent ?? [], [$offsetHours]);
+                    $appt->save();
+
                     $appointmentIds[] = $appt->id;
                     $affectedBusinesses[$appt->business_id] = true;
-                    continue;
                 }
 
-                $notifications = [];
-
-                $baseData = [
-                    'business_id' => $appt->business_id,
-                    'branch_id' => $appt->branch_id,
-                    'appointment_id' => $appt->id,
-                    'type' => 'reminder',
-                    'title' => 'Recordatorio de cita (24 horas)',
-                    'message' => "El cliente {$client->full_name} tiene cita de {$service->name}",
-                    'client_name' => $client->full_name,
-                    'client_phone' => $client->phone,
-                    'service_name' => $service->name,
-                    'appointment_time' => $appt->start_time,
-                    'metadata' => [
-                        'type' => 'reminder_24h',
-                        'whatsapp_link' => $this->whatsappService->generateWhatsAppLink($client->phone),
-                    ],
-                ];
-
-                $notifications[] = array_merge($baseData, [
-                    'profile_id' => $appt->employee_id,
-                ]);
-
-                $admins = $this->getAdminsToNotify($appt->business_id, $appt->branch_id, $appt->employee_id);
-
-                foreach ($admins as $admin) {
-                    $notifications[] = array_merge($baseData, [
-                        'profile_id' => $admin->id,
-                    ]);
+                if (!empty($appointmentIds)) {
+                    $this->sendWhatsAppReminders($appointments->whereIn('id', $appointmentIds), $whatsappBizIds, $whatsappSent);
                 }
-
-                $totalGenerated += $this->notificationService->createMany($notifications)->count();
-
-                $appointmentIds[] = $appt->id;
-                $affectedBusinesses[$appt->business_id] = true;
-            }
-
-            if (!empty($appointmentIds)) {
-                $this->sendWhatsAppReminders($appointments->whereIn('id', $appointmentIds), $whatsappBizIds, $whatsappSent);
-
-                Appointment::whereIn('id', $appointmentIds)->update([
-                    'reminder_sent_at' => now(),
-                ]);
             }
         }
 
-        $this->info("[reminders:generate] {$totalGenerated} reminder (24h) notifications generated.");
-
-        // 2. Generate reminders: appointments starting in ~1h
-        $this->info('[reminders:generate] Checking appointments in ~1h window...');
-
-        $in50m = $now->copy()->addMinutes(50);
-        $in70m = $now->copy()->addMinutes(70);
-
-        $appointmentsIn1h = Appointment::with(['client', 'service', 'employeeProfile', 'pet'])
-            ->whereNull('reminder_1h_sent_at')
-            ->whereIn('status', ['pending', 'confirmed'])
-            ->whereBetween('start_time', [$in50m, $in70m])
-            ->get();
-
-        \Illuminate\Support\Facades\Log::info("[reminders:generate] 1h window ({$in50m->toIso8601String()} to {$in70m->toIso8601String()}): found {$appointmentsIn1h->count()} appointments");
-
-        if ($appointmentsIn1h->isNotEmpty()) {
-            $appointmentIds1h = [];
-
-            foreach ($appointmentsIn1h as $appt) {
-                $client = $appt->client;
-                $service = $appt->service;
-                if (!$client || !$service) {
-                    \Illuminate\Support\Facades\Log::warning("[reminders:generate] 1h: Skipping appointment {$appt->id} — missing client or service");
-                    continue;
-                }
-
-                $biz = Business::find($appt->business_id);
-                $bizFeatures = $biz?->features ?? [];
-                if (isset($bizFeatures['reminder_24h_enabled']) && !$bizFeatures['reminder_24h_enabled']) {
-                    continue;
-                }
-
-                // Skip 1h reminder if a new_appointment notification already exists
-                $existingNewApptNotif = \App\Models\Notification::where('business_id', $appt->business_id)
-                    ->where('appointment_id', $appt->id)
-                    ->where('type', 'new_appointment')
-                    ->exists();
-
-                if ($existingNewApptNotif) {
-                    \Illuminate\Support\Facades\Log::info("[reminders:generate] 1h: Skipping appointment {$appt->id} — already has a new_appointment notification");
-                    $appointmentIds1h[] = $appt->id;
-                    $affectedBusinesses[$appt->business_id] = true;
-                    continue;
-                }
-
-                $notifications = [];
-
-                $baseData = [
-                    'business_id' => $appt->business_id,
-                    'branch_id' => $appt->branch_id,
-                    'appointment_id' => $appt->id,
-                    'type' => 'reminder',
-                    'title' => 'Recordatorio de cita (1 hora)',
-                    'message' => "El cliente {$client->full_name} tiene cita de {$service->name} en 1 hora",
-                    'client_name' => $client->full_name,
-                    'client_phone' => $client->phone,
-                    'service_name' => $service->name,
-                    'appointment_time' => $appt->start_time,
-                    'metadata' => [
-                        'type' => 'reminder_1h',
-                        'whatsapp_link' => $this->whatsappService->generateWhatsAppLink($client->phone),
-                    ],
-                ];
-
-                $notifications[] = array_merge($baseData, [
-                    'profile_id' => $appt->employee_id,
-                ]);
-
-                $admins = $this->getAdminsToNotify($appt->business_id, $appt->branch_id, $appt->employee_id);
-
-                foreach ($admins as $admin) {
-                    $notifications[] = array_merge($baseData, [
-                        'profile_id' => $admin->id,
-                    ]);
-                }
-
-                $totalGenerated += $this->notificationService->createMany($notifications)->count();
-
-                $appointmentIds1h[] = $appt->id;
-                $affectedBusinesses[$appt->business_id] = true;
-            }
-
-            if (!empty($appointmentIds1h)) {
-                $this->sendWhatsAppReminders($appointmentsIn1h->whereIn('id', $appointmentIds1h), $whatsappBizIds, $whatsappSent);
-
-                Appointment::whereIn('id', $appointmentIds1h)->update([
-                    'reminder_1h_sent_at' => now(),
-                ]);
-            }
-        }
-
-        $this->info("[reminders:generate] {$totalGenerated} total reminders (24h + 1h) generated.");
+        $this->info("[reminders:generate] {$totalGenerated} reminder notifications generated.");
 
         // 3. Generate pending appointments reminders (configurable hour)
         $this->info('[reminders:generate] Checking pending appointments for notifications...');
@@ -489,6 +398,48 @@ class GenerateReminders extends Command
                 $query->where('id', '!=', $excludeProfileId);
             })
             ->get();
+    }
+
+    /**
+     * Admin-configurable list of "hours before" reminder offsets, from
+     * businesses.features.appointment_reminder_offsets_hours. Falls back to the
+     * historical 24h + 1h pair when the business hasn't configured anything.
+     * Values are clamped to a sane range and de-duplicated.
+     *
+     * @return float[]
+     */
+    private function reminderOffsetsFor(array $bizFeatures): array
+    {
+        $raw = $bizFeatures['appointment_reminder_offsets_hours'] ?? [24, 1];
+
+        if (!is_array($raw)) {
+            return [];
+        }
+
+        $offsets = [];
+        foreach ($raw as $value) {
+            $hours = (float) $value;
+            if ($hours > 0 && $hours <= 720) {
+                $offsets[] = round($hours, 2);
+            }
+        }
+
+        return array_values(array_unique($offsets));
+    }
+
+    private function formatOffsetLabel(float $hours): string
+    {
+        if ($hours < 1) {
+            $minutes = (int) round($hours * 60);
+            return "{$minutes} " . ($minutes === 1 ? 'minuto' : 'minutos');
+        }
+
+        if (floor($hours) == $hours) {
+            $whole = (int) $hours;
+            return "{$whole} " . ($whole === 1 ? 'hora' : 'horas');
+        }
+
+        return rtrim(rtrim(number_format($hours, 2), '0'), '.') . ' horas';
     }
 
 }
