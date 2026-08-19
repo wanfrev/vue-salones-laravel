@@ -276,6 +276,8 @@
         </div>
       </div>
 
+      <EmployeeDocumentsSection v-if="isStaffing && isEditing && modalData?.empleado?.id" :employee-id="modalData.empleado.id" />
+
       <div v-if="isEditing" class="border-t border-border mt-6 pt-4">
         <button
           type="button"
@@ -306,6 +308,7 @@ import { FormInput, FormDropdown } from '../forms'
 import SalaryConfig from '../equipo/SalaryConfig.vue'
 import ScheduleEditor from '../equipo/ScheduleEditor.vue'
 import StaffingEmployeeFields from '../equipo/StaffingEmployeeFields.vue'
+import EmployeeDocumentsSection from '../equipo/EmployeeDocumentsSection.vue'
 
 const MODAL_ID = 'empleado-form-modal'
 

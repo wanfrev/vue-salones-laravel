@@ -30,11 +30,9 @@
     </template>
   </div>
 
-  <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-    <div v-if="isStaffing">
-      <SegmentedTabs :tabs="employeeStatusTabs" :model-value="employeeActiveFilter" @update:model-value="employeeActiveFilter = $event as EmployeeActiveFilter" />
-    </div>
-    <div class="relative flex-1 sm:max-w-xs" :class="{ 'sm:ml-auto': !isStaffing }">
+  <div v-if="isStaffing" class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <SegmentedTabs :tabs="employeeStatusTabs" :model-value="employeeActiveFilter" @update:model-value="employeeActiveFilter = $event as EmployeeActiveFilter" />
+    <div class="relative flex-1 sm:max-w-xs">
       <input
         v-model="searchQuery"
         type="text"
@@ -47,7 +45,7 @@
     </div>
   </div>
 
-  <p v-if="searchQuery.trim() && filteredTeam.length === 0" class="mb-5 rounded-xl border border-border bg-surface p-4 text-center text-sm text-text-muted">
+  <p v-if="isStaffing && searchQuery.trim() && filteredTeam.length === 0" class="mb-5 rounded-xl border border-border bg-surface p-4 text-center text-sm text-text-muted">
     Ningún {{ (businessStore.terminology.employee || 'empleado').toLowerCase() }} coincide con "{{ searchQuery.trim() }}".
   </p>
 

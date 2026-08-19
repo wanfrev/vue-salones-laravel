@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\EmployeeCommissionController;
+use App\Http\Controllers\Api\EmployeeDocumentController;
 use App\Http\Controllers\Api\EmployeePaymentController;
 use App\Http\Controllers\Api\EmployeeScheduleController;
 use App\Http\Controllers\Api\ExpenseController;
@@ -129,6 +130,16 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     Route::post('/employee-schedules', [EmployeeScheduleController::class, 'store']);
     Route::put('/employee-schedules/{id}', [EmployeeScheduleController::class, 'update']);
     Route::delete('/employee-schedules/{id}', [EmployeeScheduleController::class, 'destroy']);
+
+    // Employee documents — scanned IDs, work letters, etc. attached to a profile. Staffing-only
+    // for now (that's the only niche that asked for it) and admin-only in every direction
+    // (including download): personal documents, never surfaced on the employee's own dashboard.
+    Route::middleware(['capability:staffing.timesheets', 'admin-panel'])->group(function () {
+        Route::get('/employee-documents', [EmployeeDocumentController::class, 'index']);
+        Route::post('/employee-documents', [EmployeeDocumentController::class, 'store']);
+        Route::delete('/employee-documents/{id}', [EmployeeDocumentController::class, 'destroy']);
+        Route::get('/employee-documents/{id}/download', [EmployeeDocumentController::class, 'download']);
+    });
 
     // Services
     Route::middleware('feature:servicios')->group(function () {
