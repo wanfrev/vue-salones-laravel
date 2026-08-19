@@ -1,11 +1,11 @@
 ﻿<template>
   <AppLayout>
     <template #header-actions>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-1 sm:gap-2">
         <button
           @click="handleNewCita"
           :aria-label="`Nueva ${t.appointment?.toLowerCase() || 'cita'}`"
-          class="flex items-center gap-1 rounded-lg bg-primary px-2 py-2 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover sm:gap-2 sm:px-4"
+          class="flex items-center gap-1 rounded-lg bg-primary px-1.5 py-2 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover sm:gap-2 sm:px-4"
         >
           <AddCircleIcon class="h-4 w-4" />
           <span class="hidden sm:inline">Nueva {{ t.appointment?.toLowerCase() || 'cita' }}</span>
@@ -13,7 +13,7 @@
         <button
           v-if="businessStore.hasFeature('enable_public_booking')"
           @click="copyShareLink"
-          class="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-light px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+          class="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-light px-2 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 sm:px-3"
           title="Compartir link de reserva"
         >
           <LinkIcon class="h-3.5 w-3.5" />

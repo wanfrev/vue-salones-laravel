@@ -5,7 +5,7 @@
         <button
           v-if="businessStore.hasFeature('enable_public_booking')"
           @click="copyShareLink"
-          class="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-light px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+          class="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-light px-2 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 sm:px-3"
           title="Compartir link de reserva"
         >
           <LinkIcon class="h-3.5 w-3.5" />

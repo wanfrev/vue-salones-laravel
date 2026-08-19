@@ -2,22 +2,22 @@
   <div class="min-h-screen bg-bg">
     <!-- Top Header -->
     <header class="fixed left-0 right-0 top-0 z-50 bg-surface border-b border-border pt-[var(--safe-top)]">
-      <div class="flex h-16 items-center justify-between px-2 sm:px-4">
+      <div class="flex h-16 items-center justify-between px-1.5 sm:px-4">
       <div class="flex items-center gap-1 sm:gap-2 min-w-0">
         <button @click="isSidebarOpen = !isSidebarOpen" class="rounded-lg p-2 text-text-secondary transition-theme hover:bg-bg-secondary shrink-0 lg:hidden">
           <HamburgerMenuIcon :size="24" />
         </button>
         <img :src="lumaLogo" alt="Luma" class="-ml-1 h-7 w-auto object-contain shrink-0" />
         <div class="flex flex-col min-w-0">
-          <span class="text-sm font-semibold text-text leading-tight truncate max-w-[120px] sm:max-w-[200px]">{{ businessName }}</span>
+          <span class="text-sm font-semibold text-text leading-tight truncate max-w-[84px] sm:max-w-[200px]">{{ businessName }}</span>
           <span class="text-[10px] text-text-muted uppercase tracking-wide">{{ roleLabel }}</span>
         </div>
         <BranchSwitcher v-if="businessStore.isMultiBranch && !isEmployee && !isEncargado" class="shrink-0" />
       </div>
       <div class="flex items-center gap-1 sm:gap-2 shrink-0">
         <slot name="header-actions" />
-        <button @click="refresh" :disabled="isRefreshing" title="Recargar datos" class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed">
-          <RefreshIcon :size="16" :class="{ 'animate-spin': isRefreshing }" />
+        <button @click="refresh" :disabled="isRefreshing" title="Recargar datos" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed">
+          <RefreshIcon :size="18" :class="{ 'animate-spin': isRefreshing }" />
         </button>
         <InvitationsButton />
         <NotificationBell />

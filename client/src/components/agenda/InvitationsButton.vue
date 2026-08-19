@@ -3,7 +3,7 @@
     <button
       @click="modalRef?.open()"
       title="Invitaciones pendientes"
-      class="relative rounded-lg p-2 text-orange-600 transition-theme hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/30"
+      class="relative rounded-lg p-1.5 text-orange-600 transition-theme hover:bg-orange-50 dark:text-orange-400 dark:hover:bg-orange-950/30"
     >
       <BellIcon :size="20" />
       <span v-if="count > 0"
