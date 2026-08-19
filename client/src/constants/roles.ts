@@ -28,12 +28,26 @@ export const isCajero = (value?: string): boolean => value === ROLES.CAJERO
 
 export const isEncargado = (value?: string): boolean => value === ROLES.ENCARGADO
 
-export const resolveHomeByRole = (role?: string, disableAgenda?: boolean, hasAgendaFeature: boolean = true, hasPosFeature: boolean = false): string => {
+export const resolveHomeByRole = (
+  role?: string,
+  disableAgenda?: boolean,
+  hasAgendaFeature: boolean = true,
+  hasPosFeature: boolean = false,
+  hasServiciosFeature: boolean = true,
+  hasStaffingCapability: boolean = false,
+): string => {
   if (role === ROLES.EMPLEADO && (disableAgenda || !hasAgendaFeature)) {
-    return '/dashboard/historial'
+    // "Historial" is a service-history list — meaningless for niches with no servicios at all
+    // (staffing, tienda). Recibo has no gate and applies to every employee regardless of niche,
+    // so it's the one screen that's always a safe landing page.
+    return hasServiciosFeature ? '/dashboard/historial' : '/dashboard/recibo'
   }
   if (isAdminPanelRole(role)) {
     if (!hasAgendaFeature) {
+      // '/admin' (Agenda) is gated on the agenda feature, so a niche without it needs its own
+      // landing page instead. Staffing's closest equivalent to "the main thing you manage" is
+      // Empresas (the client companies); tienda's is POS; anything else falls back to Clientes.
+      if (hasStaffingCapability) return '/admin/empresas'
       return hasPosFeature ? '/admin/pos' : '/admin/clientes'
     }
   }

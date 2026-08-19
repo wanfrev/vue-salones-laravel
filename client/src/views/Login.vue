@@ -87,6 +87,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/common/useAuth'
 import { resolveHomeByRole } from '../constants/roles'
+import { useBusinessStore } from '../store/business'
 import { useThemeStore } from '../store/theme'
 import {
   LetterIcon,
@@ -101,6 +102,7 @@ import loginBackground from '../assets/Fondo.jpg'
 
 const router = useRouter()
 const { loading, errorMessage, login, authStore } = useAuth()
+const businessStore = useBusinessStore()
 const themeStore = useThemeStore()
 
 const email = ref('')
@@ -119,7 +121,14 @@ const submitLogin = async () => {
 
   const ok = await login(email.value, password.value)
   if (ok) {
-    router.push(resolveHomeByRole(authStore.role ?? undefined, authStore.profile?.disable_agenda))
+    router.push(resolveHomeByRole(
+      authStore.role ?? undefined,
+      authStore.profile?.disable_agenda,
+      businessStore.hasFeature('agenda'),
+      businessStore.hasFeature('pos'),
+      businessStore.hasFeature('servicios'),
+      businessStore.hasCapability('staffing.timesheets'),
+    ))
   }
 }
 </script>
