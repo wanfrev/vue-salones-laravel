@@ -1,6 +1,6 @@
 <template>
   <div class="card-hairline rounded-2xl p-4 sm:p-6">
-    <div class="grid grid-cols-1 gap-x-8 gap-y-7 md:grid-cols-2">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
 
       <!-- Ingresos -->
       <button type="button" :class="[
@@ -12,7 +12,7 @@
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-success"></span>
             Ingresos
           </p>
-          <p class="mt-1.5 text-5xl font-extrabold leading-none tabular-nums text-text xl:text-6xl">{{ formatUSD(incomeTotal) }}</p>
+          <p class="mt-1.5 text-2xl font-extrabold leading-none tabular-nums text-text xl:text-3xl">{{ formatUSD(incomeTotal) }}</p>
           <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span v-if="tipsTotal && tipsTotal > 0" class="text-xs font-semibold text-primary">+{{ formatUSD(tipsTotal) }} propinas</span>
             <span v-if="isLoading" class="h-3.5 w-24 rounded bg-bg-secondary animate-pulse" />
@@ -32,8 +32,8 @@
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-warning"></span>
             Gastos
           </p>
-          <p v-if="isLoading" class="mt-1.5 h-11 w-32 rounded bg-bg-secondary animate-pulse sm:h-14" />
-          <p v-else class="mt-1.5 text-5xl font-extrabold leading-none tabular-nums text-text xl:text-6xl">{{ formatUSD(expenseTotal) }}</p>
+          <p v-if="isLoading" class="mt-1.5 h-6 w-28 rounded bg-bg-secondary animate-pulse sm:h-7" />
+          <p v-else class="mt-1.5 text-2xl font-extrabold leading-none tabular-nums text-text xl:text-3xl">{{ formatUSD(expenseTotal) }}</p>
         </div>
         <svg :class="['mt-1 h-4 w-4 shrink-0 text-text-muted/50 transition-transform duration-300 group-hover:text-warning', activeCard === 'expense' && 'rotate-180 text-warning']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
@@ -48,8 +48,8 @@
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500"></span>
             Ganancia
           </p>
-          <p v-if="isLoading" class="mt-1.5 h-11 w-32 rounded bg-bg-secondary animate-pulse sm:h-14" />
-          <p v-else class="mt-1.5 text-5xl font-extrabold leading-none tabular-nums text-text xl:text-6xl">{{ formatUSD(profitTotal ?? 0) }}</p>
+          <p v-if="isLoading" class="mt-1.5 h-6 w-28 rounded bg-bg-secondary animate-pulse sm:h-7" />
+          <p v-else class="mt-1.5 text-2xl font-extrabold leading-none tabular-nums text-text xl:text-3xl">{{ formatUSD(profitTotal ?? 0) }}</p>
         </div>
         <svg :class="['mt-1 h-4 w-4 shrink-0 text-text-muted/50 transition-transform duration-300 group-hover:text-indigo-500', activeCard === 'profit' && 'rotate-180 text-indigo-500']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
@@ -64,8 +64,8 @@
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-info"></span>
             Ganancia neta
           </p>
-          <p v-if="isLoading" class="mt-1.5 h-11 w-32 rounded bg-bg-secondary animate-pulse sm:h-14" />
-          <p v-else class="mt-1.5 text-5xl font-extrabold leading-none tabular-nums text-text xl:text-6xl">{{ formatUSD(netTotal) }}</p>
+          <p v-if="isLoading" class="mt-1.5 h-6 w-28 rounded bg-bg-secondary animate-pulse sm:h-7" />
+          <p v-else class="mt-1.5 text-2xl font-extrabold leading-none tabular-nums text-text xl:text-3xl">{{ formatUSD(netTotal) }}</p>
         </div>
         <svg :class="['mt-1 h-4 w-4 shrink-0 text-text-muted/50 transition-transform duration-300 group-hover:text-info', activeCard === 'net' && 'rotate-180 text-info']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
@@ -77,7 +77,7 @@
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"></span>
             Margen
           </p>
-          <p class="mt-1.5 text-5xl font-extrabold leading-none tabular-nums text-text xl:text-6xl">{{ formatPercentage(margin) }}</p>
+          <p class="mt-1.5 text-2xl font-extrabold leading-none tabular-nums text-text xl:text-3xl">{{ formatPercentage(margin) }}</p>
         </div>
       </div>
 
