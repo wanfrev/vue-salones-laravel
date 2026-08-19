@@ -1,6 +1,6 @@
 <template>
   <div class="border-b border-border pb-4">
-    <div class="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-x-8">
       <!-- Ingresos — métrica hero -->
       <button type="button" :class="[
         'group flex items-start gap-2 rounded-lg text-left transition-theme',
@@ -19,7 +19,7 @@
       </button>
 
       <!-- métricas secundarias — fila compacta -->
-      <div class="flex flex-1 flex-wrap justify-between gap-x-6 gap-y-4 sm:justify-end sm:gap-x-10">
+      <div class="grid grid-cols-2 gap-x-6 gap-y-4 sm:flex sm:flex-1 sm:flex-wrap sm:justify-end sm:gap-x-10">
         <button type="button" :class="[
           'group flex items-center gap-1 border-b-2 pb-0.5 text-left transition-theme',
           activeCard === 'expense' ? 'border-warning text-warning' : 'border-transparent text-text hover:text-warning'
