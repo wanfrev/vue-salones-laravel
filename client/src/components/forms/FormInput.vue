@@ -11,7 +11,7 @@
       <input :id="inputId" :type="inputType" :value="modelValue" @input="handleInput" @blur="$emit('blur', $event)"
         @focus="$emit('focus', $event)" :placeholder="placeholder" :required="required" :disabled="disabled"
         :readonly="readonly" :autocomplete="autocomplete" :class="[
-          'w-full min-w-0 max-w-full rounded-xl border bg-surface text-text outline-none transition-theme',
+          'w-full min-w-0 max-w-full rounded-xl border bg-surface-elevated text-text outline-none transition-theme',
           'focus:border-primary focus:ring-2 focus:ring-primary/20',
           'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary',
           error ? 'border-danger focus:border-danger focus:ring-danger/20' : 'border-border hover:border-border-strong',

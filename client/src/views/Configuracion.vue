@@ -1,448 +1,426 @@
 <template>
   <header class="mb-6 lg:mb-8">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
-        <SettingsIcon class="h-3.5 w-3.5" />
-        <span>Configuración</span>
-      </div>
+    <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
+      <SettingsIcon class="h-3.5 w-3.5" />
+      <span>Configuración</span>
     </div>
   </header>
 
-  <div class="space-y-5 lg:space-y-6">
+  <div class="flex flex-col gap-6 lg:flex-row lg:gap-10">
 
-    <!-- ═══════════ GENERAL ═══════════ -->
-    <section class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-900/30 text-amber-600">
-          <SettingsIcon class="h-5 w-5" />
-        </div>
-        <div>
-          <h2 class="text-base font-semibold text-text">General</h2>
-          <p class="text-xs text-text-muted">Apariencia, seguridad y preferencias básicas</p>
-        </div>
-      </div>
+    <!-- Desktop: in-page side nav -->
+    <nav class="hidden lg:block w-56 shrink-0">
+      <p class="mb-3 px-2.5 text-[10.5px] font-bold uppercase tracking-widest text-text-muted">Secciones</p>
+      <button
+        v-for="s in sections" :key="s.id"
+        @click="activeSection = s.id"
+        class="mb-0.5 flex w-full items-center gap-2.5 rounded-lg border-l-2 py-2.5 pr-3 pl-2.5 text-left text-[13.5px] font-medium transition-theme"
+        :class="activeSection === s.id ? [s.activeBorder, s.activeBg, 'text-text font-semibold'] : 'border-transparent text-text-secondary hover:bg-bg-secondary hover:text-text'"
+      >
+        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" :class="s.iconBg">
+          <svg class="h-3.5 w-3.5" :class="s.iconText" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" :d="s.icon" />
+          </svg>
+        </span>
+        {{ s.label }}
+      </button>
+    </nav>
 
-      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <!-- Tema -->
-        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-5">
-          <h3 class="text-sm font-semibold text-text mb-3 flex items-center gap-2">
-            <svg class="h-4 w-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            Tema
-          </h3>
-          <div class="flex flex-wrap gap-3">
-            <button
-              v-for="opt in themeOptions" :key="opt.value"
-              @click="themeStore.setMode(opt.value)"
-              class="flex flex-1 flex-col items-center gap-2 rounded-xl border-2 p-3.5 transition-all duration-200 cursor-pointer min-w-[90px]"
-              :class="themeStore.mode === opt.value ? 'border-primary bg-primary/5 shadow-sm shadow-primary/10' : 'border-border hover:border-border-strong hover:bg-surface'"
-            >
-              <component :is="opt.icon" class="h-6 w-6 transition-colors" :class="themeStore.mode === opt.value ? 'text-primary' : 'text-text-muted'" />
-              <span class="text-xs font-semibold" :class="themeStore.mode === opt.value ? 'text-primary' : 'text-text'">{{ opt.label }}</span>
-            </button>
+    <!-- Mobile / tablet: horizontal pill row -->
+    <div class="flex gap-2 overflow-x-auto pb-1 lg:hidden">
+      <button
+        v-for="s in sections" :key="s.id"
+        @click="activeSection = s.id"
+        class="flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-theme"
+        :class="activeSection === s.id ? [s.activeBorderSolid, s.activeBg, 'text-text'] : 'border-border text-text-secondary'"
+      >
+        <svg class="h-3.5 w-3.5" :class="activeSection === s.id ? s.iconText : 'text-text-muted'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" :d="s.icon" />
+        </svg>
+        {{ s.shortLabel || s.label }}
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="min-w-0 flex-1 pb-8">
+
+      <!-- ═══════════ GENERAL ═══════════ -->
+      <div v-if="activeSection === 'general'">
+        <div class="mb-7">
+          <h1 class="text-lg font-bold text-text">General</h1>
+          <p class="text-xs text-text-muted mt-0.5">Apariencia, seguridad y preferencias básicas de tu cuenta.</p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-8 lg:grid-cols-2">
+          <!-- Tema -->
+          <div>
+            <h3 class="text-sm font-semibold text-text mb-1">Tema</h3>
+            <p class="text-xs text-text-muted mb-3.5">Elige cómo se ve el sistema en este dispositivo.</p>
+            <div class="flex flex-wrap gap-3">
+              <button
+                v-for="opt in themeOptions" :key="opt.value"
+                @click="themeStore.setMode(opt.value)"
+                class="card-hairline flex flex-1 flex-col items-center gap-2 rounded-xl p-3.5 transition-all duration-200 cursor-pointer min-w-[90px]"
+                :class="themeStore.mode === opt.value ? 'border-primary' : 'hover:border-border-strong'"
+                :style="themeStore.mode === opt.value ? { backgroundColor: 'rgba(134, 156, 132, 0.1)' } : {}"
+              >
+                <component :is="opt.icon" class="h-6 w-6 transition-colors" :class="themeStore.mode === opt.value ? 'text-primary' : 'text-text-muted'" />
+                <span class="text-xs font-semibold" :class="themeStore.mode === opt.value ? 'text-primary' : 'text-text'">{{ opt.label }}</span>
+              </button>
+            </div>
           </div>
-        </div>
 
-        <!-- Cambiar clave -->
-        <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-5">
-          <h3 class="text-sm font-semibold text-text mb-3 flex items-center gap-2">
-            <svg class="h-4 w-4 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-            </svg>
-            Cambiar clave
-          </h3>
-          <form @submit.prevent="handleChangePassword" class="space-y-3">
-            <div class="space-y-2.5">
-              <div class="relative">
-                <input
-                  v-model="passwordForm.currentPassword"
-                  :type="showCurrentPassword ? 'text' : 'password'"
-                  required
-                  placeholder="Contraseña actual"
-                  class="w-full rounded-lg border border-border bg-surface pl-9 pr-9 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-text-muted disabled:opacity-50"
-                  :disabled="passwordLoading"
-                />
-                <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-                </svg>
-                <button type="button" @click="showCurrentPassword = !showCurrentPassword"
-                  class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted hover:text-text transition-colors"
-                  :disabled="passwordLoading" tabindex="-1">
-                  <EyeIcon v-if="!showCurrentPassword" class="h-4 w-4" />
-                  <EyeClosedIcon v-else class="h-4 w-4" />
+          <!-- Cambiar clave -->
+          <div>
+            <h3 class="text-sm font-semibold text-text mb-1">Cambiar contraseña</h3>
+            <p class="text-xs text-text-muted mb-3.5">Usa al menos 6 caracteres.</p>
+            <form @submit.prevent="handleChangePassword" class="space-y-3">
+              <div class="space-y-2.5">
+                <div class="relative">
+                  <input
+                    v-model="passwordForm.currentPassword"
+                    :type="showCurrentPassword ? 'text' : 'password'"
+                    required
+                    placeholder="Contraseña actual"
+                    class="w-full rounded-lg border border-border bg-surface-elevated pl-9 pr-9 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-text-muted disabled:opacity-50"
+                    :disabled="passwordLoading"
+                  />
+                  <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+                  </svg>
+                  <button type="button" @click="showCurrentPassword = !showCurrentPassword"
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted hover:text-text transition-colors"
+                    :disabled="passwordLoading" tabindex="-1">
+                    <EyeIcon v-if="!showCurrentPassword" class="h-4 w-4" />
+                    <EyeClosedIcon v-else class="h-4 w-4" />
+                  </button>
+                </div>
+                <div class="relative">
+                  <input
+                    v-model="passwordForm.newPassword"
+                    :type="showNewPassword ? 'text' : 'password'"
+                    required minlength="6"
+                    placeholder="Nueva clave (mín. 6 caracteres)"
+                    class="w-full rounded-lg border border-border bg-surface-elevated pl-9 pr-9 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-text-muted disabled:opacity-50"
+                    :disabled="passwordLoading"
+                  />
+                  <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                  </svg>
+                  <button type="button" @click="showNewPassword = !showNewPassword"
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted hover:text-text transition-colors"
+                    :disabled="passwordLoading" tabindex="-1">
+                    <EyeIcon v-if="!showNewPassword" class="h-4 w-4" />
+                    <EyeClosedIcon v-else class="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <p v-if="passwordError" class="text-xs text-danger">{{ passwordError }}</p>
+                <p v-else-if="passwordSuccess" class="text-xs text-success font-medium">{{ passwordSuccess }}</p>
+                <span v-else></span>
+                <button
+                  type="submit"
+                  :disabled="passwordLoading || !passwordForm.currentPassword || !passwordForm.newPassword || passwordForm.newPassword.length < 6"
+                  class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shadow-sm shadow-primary/15 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg v-if="passwordLoading" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Actualizar
                 </button>
               </div>
-              <div class="relative">
-                <input
-                  v-model="passwordForm.newPassword"
-                  :type="showNewPassword ? 'text' : 'password'"
-                  required minlength="6"
-                  placeholder="Nueva clave (mín. 6 caracteres)"
-                  class="w-full rounded-lg border border-border bg-surface pl-9 pr-9 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 placeholder:text-text-muted disabled:opacity-50"
-                  :disabled="passwordLoading"
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ WHATSAPP ═══════════ -->
+      <div v-else-if="activeSection === 'whatsapp'">
+        <div class="mb-7">
+          <h1 class="text-lg font-bold text-text">WhatsApp</h1>
+          <p class="text-xs text-text-muted mt-0.5">Configuración de WhatsApp para recordatorios automáticos.</p>
+        </div>
+        <WhatsAppSettings />
+      </div>
+
+      <!-- ═══════════ PERMISOS Y FUNCIONALIDADES ═══════════ -->
+      <div v-else-if="activeSection === 'permisos'">
+        <div class="mb-7">
+          <h1 class="text-lg font-bold text-text">Permisos y funcionalidades</h1>
+          <p class="text-xs text-text-muted mt-0.5">Controla qué pueden hacer tus encargados y empleados dentro del sistema.</p>
+        </div>
+
+        <div class="space-y-6">
+          <!-- Encargados -->
+          <div v-if="showEncargadosSection">
+            <div class="flex items-center gap-2 mb-1">
+              <svg class="h-3.5 w-3.5 text-warning shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+              </svg>
+              <span class="text-[10.5px] font-bold text-text-muted uppercase tracking-widest">Encargados</span>
+            </div>
+            <div class="pl-[22px]">
+              <FormToggle
+                v-if="businessStore.features.inventario"
+                :model-value="!!businessStore.features.disable_manager_inventory_edit"
+                @update:model-value="toggleManagerInventoryEdit"
+                label="Desactivar edición de inventario"
+                hint="Los encargados solo podrán ver el inventario y vender en el POS, sin ajustar cantidades ni costos."
+                :disabled="updatingFeatures"
+                class="py-3.5 border-b border-border-subtle"
+              />
+              <FormToggle
+                v-if="!businessStore.isSingleCurrency"
+                :model-value="!!businessStore.features.encargados_change_exchange_rate"
+                @update:model-value="handleToggleEncargadoExchangeRate"
+                label="Permitir cambiar la tasa del día"
+                hint="Los encargados podrán modificar la tasa de cambio principal Bs/$"
+                :disabled="updatingFeatures"
+                class="py-3.5 border-b border-border-subtle"
+              />
+              <FormToggle
+                v-if="!businessStore.isSingleCurrency"
+                :model-value="!!businessStore.features.encargados_change_employee_rate"
+                @update:model-value="handleToggleEncargadoEmployeeRate"
+                label="Permitir cambiar tasa de empleados"
+                hint="Los encargados podrán modificar la tasa Bs asignada a cada empleado"
+                :disabled="updatingFeatures"
+                class="py-3.5 border-b border-border-subtle"
+              />
+              <FormToggle
+                v-if="businessStore.features.agenda"
+                :model-value="!!businessStore.features.disable_employee_commission_edit"
+                @update:model-value="handleToggleDisableCommissionEdit"
+                label="Bloquear edición de comisiones"
+                hint="Encargados y empleados NO podrán modificar porcentajes de ganancia en las citas"
+                :disabled="updatingFeatures"
+                class="py-3.5 last:border-b-0"
+              />
+            </div>
+          </div>
+
+          <div v-if="showEncargadosSection" class="h-px bg-border"></div>
+
+          <!-- Empleados -->
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <svg class="h-3.5 w-3.5 text-warning shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+              </svg>
+              <span class="text-[10.5px] font-bold text-text-muted uppercase tracking-widest">Empleados</span>
+            </div>
+            <div class="pl-[22px]">
+              <FormToggle
+                :model-value="!!businessStore.features.employees_see_clients"
+                @update:model-value="handleToggleEmployeesSeeClients"
+                label="Permitir módulo de clientes"
+                hint="Los empleados tendrán acceso al módulo de Clientes en su menú lateral"
+                :disabled="updatingFeatures"
+                class="py-3.5 border-b border-border-subtle"
+              />
+              <FormToggle
+                :model-value="!!businessStore.features.hide_client_phone_from_employees"
+                @update:model-value="handleToggleHideClientPhone"
+                label="Ocultar teléfono y email de clientes"
+                hint="Los empleados no verán datos de contacto de clientes. No impedirá crear citas."
+                :disabled="updatingFeatures"
+                class="py-3.5 last:border-b-0"
+              />
+            </div>
+          </div>
+
+          <div v-if="showPosVentasSection" class="h-px bg-border"></div>
+
+          <!-- POS y Ventas -->
+          <div v-if="showPosVentasSection">
+            <div class="flex items-center gap-2 mb-1">
+              <svg class="h-3.5 w-3.5 text-warning shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+              </svg>
+              <span class="text-[10.5px] font-bold text-text-muted uppercase tracking-widest">POS y ventas</span>
+            </div>
+            <div class="pl-[22px]">
+              <FormToggle
+                v-if="businessStore.features.agenda"
+                :model-value="!!businessStore.features.pos_direct_service_sale"
+                @update:model-value="handleToggleDirectServiceSale"
+                label="Cobro directo de servicios en POS"
+                hint="Permite cobrar servicios al instante sin necesidad de agendar una cita previamente"
+                :disabled="updatingFeatures"
+                class="py-3.5 border-b border-border-subtle"
+              />
+              <FormToggle
+                v-if="businessStore.features.manual_reports && businessStore.features.pos"
+                :model-value="!!businessStore.features.daily_report_autofill_from_pos"
+                @update:model-value="handleToggleDailyReportAutofill"
+                label="Traer del POS en el Reporte Diario"
+                hint="Habilita el botón que llena los montos por método de pago del Reporte Diario con lo cobrado ese día en el POS"
+                :disabled="updatingFeatures"
+                class="py-3.5 last:border-b-0"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════════ NOTIFICACIONES ═══════════ -->
+      <div v-else-if="activeSection === 'notificaciones'">
+        <div class="mb-7">
+          <h1 class="text-lg font-bold text-text">Notificaciones y recordatorios</h1>
+          <p class="text-xs text-text-muted mt-0.5">Alertas automáticas, recordatorios de citas y reservas públicas por link.</p>
+        </div>
+
+        <div class="space-y-6">
+          <!-- Recordatorios de citas -->
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <svg class="h-3.5 w-3.5 text-info shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span class="text-[10.5px] font-bold text-text-muted uppercase tracking-widest">Recordatorios de citas</span>
+            </div>
+            <div class="pl-[22px]">
+              <FormToggle
+                :model-value="!!businessStore.features.reminder_24h_enabled"
+                @update:model-value="handleToggleFeature('reminder_24h_enabled')"
+                label="Recordatorios internos 24h y 1h"
+                hint="Notifica en la campanita 24h y 1h antes de cada cita. No requiere WhatsApp."
+                :disabled="updatingFeatures"
+                class="py-3.5 border-b border-border-subtle"
+              />
+              <FormToggle
+                v-if="businessStore.features.whatsapp_available"
+                :model-value="!!businessStore.features.whatsapp_reminders_enabled"
+                @update:model-value="handleToggleFeature('whatsapp_reminders_enabled')"
+                label="Recordatorios por WhatsApp"
+                hint="Envía los mismos recordatorios por WhatsApp. Requiere conectarlo en la sección WhatsApp."
+                :disabled="updatingFeatures"
+                class="py-3.5 border-b border-border-subtle"
+              />
+              <div class="py-3.5">
+                <FormToggle
+                  :model-value="!!businessStore.features.pending_notifications_enabled"
+                  @update:model-value="togglePendingNotifications"
+                  label="Resumen de citas sin confirmar"
+                  hint="Recibe un resumen diario de las citas que aún no han sido confirmadas."
+                  :disabled="updatingFeatures"
                 />
-                <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                <div v-if="businessStore.features.pending_notifications_enabled" class="mt-3 rounded-lg bg-surface-elevated p-3 flex items-center gap-2.5 flex-wrap">
+                  <span class="text-xs text-text-secondary">Enviar todos los días a las</span>
+                  <select
+                    :value="pendingNotificationHour12"
+                    @change="handlePendingHourSelect($event)"
+                    :disabled="updatingFeatures"
+                    class="rounded-md border border-border-strong bg-surface pl-2.5 pr-7 py-1.5 text-xs font-bold text-text outline-none focus:border-primary appearance-none"
+                    style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;10&quot; height=&quot;10&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;%2383878e&quot; stroke-width=&quot;2&quot;><path d=&quot;M6 9l6 6 6-6&quot;/></svg>'); background-repeat: no-repeat; background-position: right 8px center;"
+                  >
+                    <option v-for="h in hours12" :key="h.value" :value="h.value">{{ h.label }}</option>
+                  </select>
+                  <button
+                    @click="toggleAmPm"
+                    :disabled="updatingFeatures"
+                    class="rounded-md border border-border-strong px-2.5 py-1.5 text-xs font-bold transition-colors hover:bg-bg-secondary min-w-[42px]"
+                    :class="isPM ? 'bg-primary/10 text-primary border-primary/30' : 'text-text-secondary'"
+                  >
+                    {{ isPM ? 'PM' : 'AM' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="h-px bg-border"></div>
+
+          <!-- Reservas públicas -->
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <svg class="h-3.5 w-3.5 text-info shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              <span class="text-[10.5px] font-bold text-text-muted uppercase tracking-widest">Reservas públicas</span>
+            </div>
+            <div class="pl-[22px]">
+              <FormToggle
+                :model-value="!!businessStore.features.enable_public_booking"
+                @update:model-value="handleToggleFeature('enable_public_booking')"
+                label="Reservas por link público"
+                hint="Permite que clientes agenden citas mediante un link compartible. Los empleados podrán enviar invitaciones desde su agenda."
+                :disabled="updatingFeatures"
+                class="py-3.5"
+              />
+            </div>
+          </div>
+
+          <template v-if="pushSupported">
+            <div class="h-px bg-border"></div>
+
+            <!-- Push -->
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <svg class="h-3.5 w-3.5 text-info shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
-                <button type="button" @click="showNewPassword = !showNewPassword"
-                  class="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-text-muted hover:text-text transition-colors"
-                  :disabled="passwordLoading" tabindex="-1">
-                  <EyeIcon v-if="!showNewPassword" class="h-4 w-4" />
-                  <EyeClosedIcon v-else class="h-4 w-4" />
+                <span class="text-[10.5px] font-bold text-text-muted uppercase tracking-widest">Notificaciones push</span>
+              </div>
+              <div class="pl-[22px] py-3.5 flex items-start justify-between gap-3 flex-wrap">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2 mb-1 flex-wrap">
+                    <p class="text-sm font-semibold text-text">En este navegador</p>
+                    <span
+                      class="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-bold border"
+                      :class="pushPermission === 'granted' ? 'bg-success/10 border-success/30 text-success' : pushPermission === 'denied' ? 'bg-danger/10 border-danger/30 text-danger' : 'bg-bg-secondary border-border text-text-muted'"
+                    >
+                      <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>
+                      {{ pushPermission === 'granted' ? 'Activadas' : pushPermission === 'denied' ? 'Bloqueadas' : 'No configuradas' }}
+                    </span>
+                  </div>
+                  <p class="text-xs text-text-muted max-w-md">
+                    <template v-if="pushPermission === 'granted'">Recibirás alertas de nuevas citas y recordatorios aunque tengas la app en segundo plano.</template>
+                    <template v-else-if="pushPermission === 'denied'">Las notificaciones están bloqueadas. Ve a Ajustes del navegador para permitirlas.</template>
+                    <template v-else>Recibe recordatorios y alertas directamente en tu pantalla, incluso con la app cerrada.</template>
+                  </p>
+                </div>
+                <button
+                  v-if="pushPermission === 'granted'"
+                  @click="handleDisablePush" :disabled="pushLoading"
+                  class="shrink-0 rounded-lg border border-border-strong px-2.5 py-1.5 text-[11px] font-semibold text-text-secondary hover:bg-danger/10 hover:text-danger hover:border-danger/30 disabled:opacity-50 transition-colors"
+                >
+                  <svg v-if="pushLoading" class="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  <span v-else>Desactivar</span>
+                </button>
+                <button
+                  v-else-if="pushPermission === 'denied'"
+                  disabled
+                  class="shrink-0 rounded-lg border border-border px-2.5 py-1.5 text-[11px] font-medium text-text-muted cursor-not-allowed opacity-50"
+                >Bloqueado</button>
+                <button
+                  v-else
+                  @click="handleEnablePush" :disabled="pushLoading"
+                  class="shrink-0 rounded-lg bg-primary px-2.5 py-1.5 text-[11px] font-semibold text-text-inverse hover:bg-primary-hover disabled:opacity-50 transition-colors"
+                >
+                  <svg v-if="pushLoading" class="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                  <span v-else>Activar</span>
                 </button>
               </div>
             </div>
-            <div class="flex items-center justify-between gap-3">
-              <p v-if="passwordError" class="text-xs text-danger">{{ passwordError }}</p>
-              <p v-else-if="passwordSuccess" class="text-xs text-success font-medium">{{ passwordSuccess }}</p>
-              <span v-else></span>
-              <button
-                type="submit"
-                :disabled="passwordLoading || !passwordForm.currentPassword || !passwordForm.newPassword || passwordForm.newPassword.length < 6"
-                class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shadow-sm shadow-primary/15 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <svg v-if="passwordLoading" class="h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                Actualizar
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════ WHATSAPP (solo si superadmin lo habilitó y el nicho maneja citas) ═══════════ -->
-    <section v-if="businessStore.features.whatsapp_available && businessStore.features.agenda" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-green-100 dark:bg-green-900/30 text-green-600">
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
-          </svg>
-        </div>
-        <div>
-          <h2 class="text-base font-semibold text-text">WhatsApp</h2>
-          <p class="text-xs text-text-muted">Configuración de WhatsApp para recordatorios automáticos</p>
-        </div>
-      </div>
-      <WhatsAppSettings />
-    </section>
-
-    <!-- ═══════════ PERMISOS Y FUNCIONALIDADES (admin) ═══════════ -->
-    <section v-if="isAdmin" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600">
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-          </svg>
-        </div>
-        <div>
-          <h2 class="text-base font-semibold text-text">Permisos y Funcionalidades</h2>
-          <p class="text-xs text-text-muted">Controla qué pueden hacer tus encargados y empleados</p>
+          </template>
         </div>
       </div>
 
-      <div class="space-y-8">
-        <!-- Subcategoría: Encargados (solo si hay algo de esto que aplique al nicho) -->
-        <div v-if="showEncargadosSection">
-          <div class="flex items-center gap-2.5 mb-2 px-1">
-            <svg class="h-4 w-4 text-purple-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-            <span class="text-[11px] font-bold text-text-secondary uppercase tracking-widest">Encargados</span>
-          </div>
-          <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
-            <FormToggle
-              v-if="businessStore.features.inventario"
-              :model-value="!!businessStore.features.disable_manager_inventory_edit"
-              @update:model-value="toggleManagerInventoryEdit"
-              label="Desactivar edición de inventario"
-              hint="Los encargados solo podrán ver el inventario y vender en el POS, sin ajustar cantidades ni costos."
-              :disabled="updatingFeatures"
-              class="px-5 py-5"
-            />
-            <FormToggle
-              v-if="!businessStore.isSingleCurrency"
-              :model-value="!!businessStore.features.encargados_change_exchange_rate"
-              @update:model-value="handleToggleEncargadoExchangeRate"
-              label="Permitir cambiar la tasa del día"
-              hint="Los encargados podrán modificar la tasa de cambio principal Bs/$"
-              :disabled="updatingFeatures"
-              class="px-5 py-5"
-            />
-            <FormToggle
-              v-if="!businessStore.isSingleCurrency"
-              :model-value="!!businessStore.features.encargados_change_employee_rate"
-              @update:model-value="handleToggleEncargadoEmployeeRate"
-              label="Permitir cambiar tasa de empleados"
-              hint="Los encargados podrán modificar la tasa Bs asignada a cada empleado"
-              :disabled="updatingFeatures"
-              class="px-5 py-5"
-            />
-            <FormToggle
-              v-if="businessStore.features.agenda"
-              :model-value="!!businessStore.features.disable_employee_commission_edit"
-              @update:model-value="handleToggleDisableCommissionEdit"
-              label="Bloquear edición de comisiones"
-              hint="Encargados y empleados NO podrán modificar porcentajes de ganancia en las citas"
-              :disabled="updatingFeatures"
-              class="px-5 py-5"
-            />
-          </div>
-        </div>
-
-        <!-- Subcategoría: Empleados -->
-        <div>
-          <div class="flex items-center gap-2.5 mb-2 px-1">
-            <svg class="h-4 w-4 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-            </svg>
-            <span class="text-[11px] font-bold text-text-secondary uppercase tracking-widest">Empleados</span>
-          </div>
-          <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
-            <FormToggle
-              :model-value="!!businessStore.features.employees_see_clients"
-              @update:model-value="handleToggleEmployeesSeeClients"
-              label="Permitir módulo de clientes"
-              hint="Los empleados tendrán acceso al módulo de Clientes en su menú lateral"
-              :disabled="updatingFeatures"
-              class="px-5 py-5"
-            />
-            <FormToggle
-              :model-value="!!businessStore.features.hide_client_phone_from_employees"
-              @update:model-value="handleToggleHideClientPhone"
-              label="Ocultar teléfono y email de clientes"
-              hint="Los empleados no verán datos de contacto de clientes. No impedirá crear citas."
-              :disabled="updatingFeatures"
-              class="px-5 py-5"
-            />
-          </div>
-        </div>
-
-        <!-- Subcategoría: POS y Ventas (solo si hay algo de esto que aplique al nicho) -->
-        <div v-if="showPosVentasSection">
-          <div class="flex items-center gap-2.5 mb-2 px-1">
-            <svg class="h-4 w-4 text-rose-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-            </svg>
-            <span class="text-[11px] font-bold text-text-secondary uppercase tracking-widest">POS y Ventas</span>
-          </div>
-          <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
-            <FormToggle
-              v-if="businessStore.features.agenda"
-              :model-value="!!businessStore.features.pos_direct_service_sale"
-              @update:model-value="handleToggleDirectServiceSale"
-              label="Cobro directo de servicios en POS"
-              hint="Permite cobrar servicios al instante sin necesidad de agendar una cita previamente"
-              :disabled="updatingFeatures"
-              class="px-5 py-5"
-            />
-            <FormToggle
-              v-if="businessStore.features.manual_reports && businessStore.features.pos"
-              :model-value="!!businessStore.features.daily_report_autofill_from_pos"
-              @update:model-value="handleToggleDailyReportAutofill"
-              label="Traer del POS en el Reporte Diario"
-              hint="Habilita el botón que llena los montos por método de pago del Reporte Diario con lo cobrado ese día en el POS"
-              :disabled="updatingFeatures"
-              class="px-5 py-5"
-            />
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ═══════════ NOTIFICACIONES (solo si el nicho maneja citas/agenda) ═══════════ -->
-    <section v-if="businessStore.features.agenda" class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
-      <div class="flex items-center gap-3 mb-6">
-        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600">
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-          </svg>
-        </div>
-        <div>
-          <h2 class="text-base font-semibold text-text">Notificaciones y recordatorios</h2>
-          <p class="text-xs text-text-muted">Configura alertas, recordatorios automáticos y reservas públicas</p>
-        </div>
-      </div>
-
-      <div class="rounded-xl border border-border-subtle bg-bg-secondary/40 p-5 space-y-1 divide-y divide-border-subtle">
-
-        <!-- Recordatorios internos 24h y 1h -->
-        <div class="py-4 first:pt-0 last:pb-0">
-          <div class="flex items-center justify-between mb-2">
-            <label class="text-sm font-semibold text-text">Recordatorios internos de cita</label>
-            <button
-              @click="handleToggleFeature('reminder_24h_enabled')"
-              :disabled="updatingFeatures"
-              class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200"
-              :class="businessStore.features.reminder_24h_enabled ? 'bg-primary shadow-sm' : 'bg-zinc-300 dark:bg-zinc-600'"
-            >
-              <span
-                class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200"
-                :class="businessStore.features.reminder_24h_enabled ? 'translate-x-5' : 'translate-x-0.5'"
-              />
-            </button>
-          </div>
-          <p class="text-xs text-text-muted">Notifica en la campanita 24h y 1h antes de cada cita. No requiere WhatsApp.</p>
-        </div>
-
-        <!-- Recordatorios por WhatsApp (solo si superadmin lo habilitó) -->
-        <div v-if="businessStore.features.whatsapp_available" class="py-4 first:pt-0 last:pb-0">
-          <div class="flex items-center justify-between mb-2">
-            <label class="text-sm font-semibold text-text">Recordatorios por WhatsApp</label>
-            <button
-              @click="handleToggleFeature('whatsapp_reminders_enabled')"
-              :disabled="updatingFeatures"
-              class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-              :class="businessStore.features.whatsapp_reminders_enabled ? 'bg-primary shadow-sm' : 'bg-zinc-300 dark:bg-zinc-600'"
-            >
-              <span
-                class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200"
-                :class="businessStore.features.whatsapp_reminders_enabled ? 'translate-x-5' : 'translate-x-0.5'"
-              />
-            </button>
-          </div>
-          <p class="text-xs text-text-muted">Envía recordatorios 24h y 1h antes por WhatsApp. Requiere conectar WhatsApp en la sección de abajo.</p>
-        </div>
-
-        <!-- Recordatorios de citas pendientes -->
-        <div class="py-4 first:pt-0 last:pb-0">
-          <div class="flex items-center justify-between mb-2">
-            <label class="text-sm font-semibold text-text">Recordatorio de citas sin confirmar</label>
-            <button
-              @click="togglePendingNotifications(!businessStore.features.pending_notifications_enabled)"
-              :disabled="updatingFeatures"
-              class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-              :class="businessStore.features.pending_notifications_enabled ? 'bg-primary shadow-sm' : 'bg-zinc-300 dark:bg-zinc-600'"
-            >
-              <span
-                class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200"
-                :class="businessStore.features.pending_notifications_enabled ? 'translate-x-5' : 'translate-x-0.5'"
-              />
-            </button>
-          </div>
-          <p class="text-xs text-text-muted mb-1">Recibe un resumen diario de las citas que aún no han sido confirmadas</p>
-
-          <div v-if="businessStore.features.pending_notifications_enabled" class="mt-3">
-            <label class="text-xs font-medium text-text-secondary mb-1.5 block">Recibir resumen de citas pendientes a las:</label>
-            <div class="flex items-center gap-2">
-              <select
-                :value="pendingNotificationHour12"
-                @change="handlePendingHourSelect($event)"
-                :disabled="updatingFeatures"
-                class="rounded-lg border border-border bg-surface pl-3 pr-8 py-2 text-sm font-medium text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 appearance-none"
-                style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;12&quot; height=&quot;12&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;%236b7280&quot; stroke-width=&quot;2&quot;><path d=&quot;M6 9l6 6 6-6&quot;/></svg>'); background-repeat: no-repeat; background-position: right 8px center;"
-              >
-                <option v-for="h in hours12" :key="h.value" :value="h.value">{{ h.label }}</option>
-              </select>
-              <button
-                @click="toggleAmPm"
-                :disabled="updatingFeatures"
-                class="rounded-lg border border-border px-3 py-2 text-xs font-semibold transition-colors hover:bg-bg-secondary min-w-[44px]"
-                :class="isPM ? 'bg-primary/10 text-primary border-primary/30' : 'bg-surface text-text-secondary'"
-              >
-                {{ isPM ? 'PM' : 'AM' }}
-              </button>
-            </div>
-            <p class="text-[11px] text-text-muted mt-1.5 flex items-center gap-1">
-              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-              Todos los días a las {{ displayNotificationHour }}
-            </p>
-          </div>
-        </div>
-
-        <!-- Reservas públicas / Invitaciones -->
-        <div class="py-4 first:pt-0 last:pb-0">
-          <div class="flex items-center justify-between mb-2">
-            <label class="text-sm font-semibold text-text">Reservas públicas por link</label>
-            <button
-              @click="handleToggleFeature('enable_public_booking')"
-              :disabled="updatingFeatures"
-              class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-              :class="businessStore.features.enable_public_booking ? 'bg-primary shadow-sm' : 'bg-zinc-300 dark:bg-zinc-600'"
-            >
-              <span
-                class="inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200"
-                :class="businessStore.features.enable_public_booking ? 'translate-x-5' : 'translate-x-0.5'"
-              />
-            </button>
-          </div>
-          <p class="text-xs text-text-muted">Permite que clientes agenden citas mediante un link compartible. Los empleados podrán enviar invitaciones desde su agenda.</p>
-        </div>
-
-        <!-- Notificaciones Push -->
-        <div v-if="pushSupported" class="py-4 first:pt-0 last:pb-0">
-          <div class="flex items-center justify-between mb-2">
-            <label class="text-sm font-semibold text-text">Notificaciones Push</label>
-            <div class="flex items-center gap-2">
-              <span
-                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
-                :class="pushPermission === 'granted' ? 'bg-success/10 text-success' : pushPermission === 'denied' ? 'bg-danger/10 text-danger' : 'bg-bg-secondary text-text-muted'"
-              >
-                {{ pushPermission === 'granted' ? 'Activadas' : pushPermission === 'denied' ? 'Bloqueadas' : 'No configuradas' }}
-              </span>
-              <button
-                v-if="pushPermission === 'granted'"
-                @click="handleDisablePush" :disabled="pushLoading"
-                class="rounded-lg border border-border px-2.5 py-1 text-[11px] font-medium text-text-secondary hover:bg-danger/10 hover:text-danger hover:border-danger/30 disabled:opacity-50 transition-colors"
-              >
-                <svg v-if="pushLoading" class="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                <span v-else>Desactivar</span>
-              </button>
-              <button
-                v-else-if="pushPermission === 'denied'"
-                disabled
-                class="rounded-lg border border-border px-2.5 py-1 text-[11px] font-medium text-text-muted cursor-not-allowed opacity-50"
-              >Bloqueado</button>
-              <button
-                v-else
-                @click="handleEnablePush" :disabled="pushLoading"
-                class="rounded-lg bg-primary px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-colors"
-              >
-                <svg v-if="pushLoading" class="h-3 w-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" /><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                <span v-else>Activar</span>
-              </button>
-            </div>
-          </div>
-          <p class="text-xs text-text-muted">
-            <template v-if="pushPermission === 'granted'">
-              Recibirás alertas de nuevas citas y recordatorios aunque tengas la app en segundo plano.
-            </template>
-            <template v-else-if="pushPermission === 'denied'">
-              Las notificaciones están bloqueadas. Ve a Ajustes del navegador para permitirlas.
-            </template>
-            <template v-else>
-              Recibe recordatorios y alertas directamente en tu pantalla, incluso con la app cerrada.
-            </template>
-          </p>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ═══════════ SUCURSALES ═══════════ -->
-    <template v-if="businessStore.isMultiBranch">
-
-      <section class="rounded-2xl border border-border bg-surface p-5 sm:p-6 shadow-sm">
-        <div class="flex items-center gap-3 mb-6">
-          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600">
-            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-            </svg>
-          </div>
-          <div class="flex-1">
-            <h2 class="text-base font-semibold text-text">Sucursales</h2>
-            <p class="text-xs text-text-muted">Gestiona las ubicaciones físicas de tu negocio</p>
+      <!-- ═══════════ SUCURSALES ═══════════ -->
+      <div v-else-if="activeSection === 'sucursales'">
+        <div class="mb-7 flex items-start justify-between gap-3">
+          <div>
+            <h1 class="text-lg font-bold text-text">Sucursales</h1>
+            <p class="text-xs text-text-muted mt-0.5">Gestiona las ubicaciones físicas de tu negocio.</p>
           </div>
           <button
             @click="branchesCtx.openNew()"
-            class="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shadow-sm shadow-primary/20"
+            class="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shadow-sm shadow-primary/20"
           >
-            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
+            <AddCircleIcon class="h-3.5 w-3.5" />
             Nueva
           </button>
         </div>
@@ -468,16 +446,16 @@
           <div
             v-for="branch in branchesCtx.branches.value"
             :key="branch.id"
-            class="group rounded-xl border border-border bg-bg-secondary/50 p-4 transition-all duration-200 hover:border-border-strong hover:shadow-sm"
+            class="card-hairline group rounded-xl p-4 transition-all duration-200 hover:border-border-strong"
           >
             <div class="flex items-start justify-between mb-2">
               <div class="flex items-center gap-2.5 min-w-0">
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-500">
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5a7.5 7.5 0 1115 0c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5z" />
+                    <circle cx="12" cy="10.5" r="3" />
                   </svg>
-                </div>
+                </span>
                 <div class="min-w-0">
                   <p class="text-sm font-semibold text-text truncate">{{ branch.name }}</p>
                   <p v-if="branch.address" class="text-xs text-text-muted truncate">{{ branch.address }}</p>
@@ -492,7 +470,7 @@
             <div class="flex gap-2">
               <button
                 @click="branchesCtx.openEdit(branch)"
-                class="flex-1 rounded-lg border border-border py-1.5 text-xs font-medium text-text-secondary transition-theme hover:bg-surface hover:text-text"
+                class="flex-1 rounded-lg border border-border py-1.5 text-xs font-medium text-text-secondary transition-theme hover:bg-surface-elevated hover:text-text"
               >Editar</button>
               <button
                 v-if="!branch.is_default"
@@ -508,19 +486,20 @@
             </div>
           </div>
         </div>
-      </section>
-    </template>
+      </div>
 
-      <BranchFormModal
-        :is-open="branchesCtx.showModal.value"
-        :is-editing="!!branchesCtx.editingId.value"
-        :form="branchesCtx.form.value"
-        :save-error="branchesCtx.saveError.value"
-        :save-mutation="branchesCtx.saveMutation"
-        @close="branchesCtx.closeModal()"
-        @save="branchesCtx.handleSave()"
-      />
+    </div>
   </div>
+
+  <BranchFormModal
+    :is-open="branchesCtx.showModal.value"
+    :is-editing="!!branchesCtx.editingId.value"
+    :form="branchesCtx.form.value"
+    :save-error="branchesCtx.saveError.value"
+    :save-mutation="branchesCtx.saveMutation"
+    @close="branchesCtx.closeModal()"
+    @save="branchesCtx.handleSave()"
+  />
 </template>
 
 <script setup lang="ts">
@@ -529,9 +508,9 @@ import { useAuth } from '../composables/common/useAuth'
 import { useBusinessStore } from '../store/business'
 import { useBranches } from '../composables/common/useBranches'
 import { useNotification } from '../composables/common/useNotification'
-import { SettingsIcon, EyeIcon, EyeClosedIcon, LockIcon, ShieldIcon, UserIcon, TrashBin2Icon, BellIcon, ClockCircleIcon, AddCircleIcon } from '@solar-icons/vue/linear'
+import { SettingsIcon, EyeIcon, EyeClosedIcon, AddCircleIcon } from '@solar-icons/vue/linear'
 import { useThemeStore, type ThemeMode } from '../store/theme'
-import { SectionCard, EmptyState } from '../components/common'
+import { EmptyState } from '../components/common'
 import { FormToggle } from '../components/forms'
 import { BranchFormModal } from '../components/modals'
 import WhatsAppSettings from '../components/settings/WhatsAppSettings.vue'
@@ -548,6 +527,26 @@ const isAdmin = computed(() => authStore.role === 'admin' || authStore.role === 
 const branchesCtx = useBranches(businessId)
 const updatingFeatures = ref(false)
 
+const activeSection = ref('general')
+
+const SECTION_ICONS = {
+  general: 'M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1h.1a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1zM15 12a3 3 0 11-6 0 3 3 0 016 0z',
+  whatsapp: 'M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z',
+  permisos: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+  notificaciones: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9',
+  sucursales: 'M4.5 10.5a7.5 7.5 0 1115 0c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5zM15 10.5a3 3 0 11-6 0 3 3 0 016 0z',
+} as const
+
+// Cada punto de acceso a la izquierda lleva un color de identidad propio, tomado de la
+// misma paleta que ya usa el resto del sistema (semánticos + índigo, ya en uso en KpiCards).
+const SECTION_STYLES: Record<string, { iconBg: string; iconText: string; activeBorder: string; activeBorderSolid: string; activeBg: string }> = {
+  general: { iconBg: 'bg-primary/10', iconText: 'text-primary', activeBorder: 'border-primary', activeBorderSolid: 'border-primary', activeBg: 'bg-primary/10' },
+  whatsapp: { iconBg: 'bg-success/10', iconText: 'text-success', activeBorder: 'border-success', activeBorderSolid: 'border-success', activeBg: 'bg-success/10' },
+  permisos: { iconBg: 'bg-warning/10', iconText: 'text-warning', activeBorder: 'border-warning', activeBorderSolid: 'border-warning', activeBg: 'bg-warning/10' },
+  notificaciones: { iconBg: 'bg-info/10', iconText: 'text-info', activeBorder: 'border-info', activeBorderSolid: 'border-info', activeBg: 'bg-info/10' },
+  sucursales: { iconBg: 'bg-indigo-500/10', iconText: 'text-indigo-500', activeBorder: 'border-indigo-500', activeBorderSolid: 'border-indigo-500', activeBg: 'bg-indigo-500/10' },
+}
+
 // Each toggle below only means something for niches with the matching capability — a
 // tienda/staffing business has no agenda, no dual currency, etc. Hiding the whole
 // subcategory (not just the individual toggles) avoids leaving an empty bordered box.
@@ -557,6 +556,17 @@ const showEncargadosSection = computed(() =>
 const showPosVentasSection = computed(() =>
   businessStore.features.agenda || (businessStore.features.manual_reports && businessStore.features.pos)
 )
+
+const sections = computed(() => {
+  const list = [
+    { id: 'general', label: 'General', shortLabel: 'General', visible: true },
+    { id: 'whatsapp', label: 'WhatsApp', shortLabel: 'WhatsApp', visible: businessStore.features.whatsapp_available && businessStore.features.agenda },
+    { id: 'permisos', label: 'Permisos y funcionalidades', shortLabel: 'Permisos', visible: isAdmin.value },
+    { id: 'notificaciones', label: 'Notificaciones', shortLabel: 'Notif.', visible: businessStore.features.agenda },
+    { id: 'sucursales', label: 'Sucursales', shortLabel: 'Sucursales', visible: businessStore.isMultiBranch },
+  ]
+  return list.filter(s => s.visible).map(s => ({ ...s, icon: SECTION_ICONS[s.id as keyof typeof SECTION_ICONS], ...SECTION_STYLES[s.id] }))
+})
 
 async function handleToggleEncargadoExchangeRate(val: boolean) {
   if (!businessId.value) return
@@ -726,13 +736,6 @@ const pendingNotificationHour12 = computed(() => {
   return h > 12 ? h - 12 : h
 })
 
-const displayNotificationHour = computed(() => {
-  const h = pendingNotificationHour.value ?? 9
-  const h12 = h === 0 || h === 12 ? 12 : h > 12 ? h - 12 : h
-  const ampm = h >= 12 ? 'PM' : 'AM'
-  return `${h12}:00 ${ampm}`
-})
-
 function toggleAmPm() {
   if (pendingNotificationHour.value === null) return
   const current = pendingNotificationHour.value
@@ -894,5 +897,4 @@ async function handleToggleFeature(featureKey: string) {
     updatingFeatures.value = false
   }
 }
-
 </script>

@@ -13,7 +13,7 @@ export default {
         'pure-white': '#FFFFFF',
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', 'sans-serif'],
       },
     },
   },

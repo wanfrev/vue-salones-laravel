@@ -7,7 +7,7 @@
     <div class="relative">
       <select :id="selectId" :value="modelValue" @change="handleChange" @blur="$emit('blur', $event)"
         :required="required" :disabled="disabled" :class="[
-          'w-full appearance-none rounded-xl border bg-surface text-text outline-none transition-theme',
+          'w-full appearance-none rounded-xl border bg-surface-elevated text-text outline-none transition-theme',
           'focus:border-primary focus:ring-2 focus:ring-primary/20',
           'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary',
           error ? 'border-danger focus:border-danger focus:ring-danger/20' : 'border-border hover:border-border-strong',

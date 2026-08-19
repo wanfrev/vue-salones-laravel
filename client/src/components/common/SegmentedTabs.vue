@@ -4,7 +4,7 @@
     <button v-for="tab in tabs" :key="tab.key" type="button" @click="$emit('update:modelValue', tab.key)" :class="[
       'px-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 flex items-center gap-2',
       modelValue === tab.key
-        ? 'bg-surface text-text shadow-sm shadow-black/5 border border-border font-semibold'
+        ? 'bg-surface text-text shadow-md shadow-black/20 font-semibold'
         : 'text-text-secondary hover:text-text hover:bg-surface/40'
     ]">
       <svg v-if="tab.icon" class="h-3.5 w-3.5" :class="modelValue === tab.key ? iconColorClass(tab) : ''" fill="none"

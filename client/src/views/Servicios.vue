@@ -62,32 +62,26 @@
   </header>
 
   <!-- Stats -->
-  <div class="mb-5 grid grid-cols-2 gap-2 sm:gap-3 lg:mb-8 lg:grid-cols-4">
-    <StatCard
-      icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-      icon-color="primary"
-      :value="totalServicios"
-      label="Activos"
-    />
-    <StatCard
-      icon="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-      icon-color="success"
-      :value="totalCategorias"
-      label="Categorías"
-    />
-    <StatCard
-      icon="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-      icon-color="warning"
-      :value="totalCitasMes"
-      label="Citas del Mes"
-    />
-    <StatCard
-      icon="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-      icon-color="info"
-      :value="formatUSD(precioPromedioNumerico)"
-      :sublabel="formatVESInline(precioPromedioNumerico) + ' Bs'"
-      label="Precio Promedio"
-    />
+  <div class="mb-5 flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-x-8 lg:mb-8">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">{{ businessStore.terminology.service || 'Servicio' }}s activos</p>
+      <p class="mt-1 text-4xl font-extrabold leading-none tabular-nums text-text sm:text-5xl">{{ totalServicios }}</p>
+    </div>
+    <div class="grid grid-cols-3 gap-x-4 gap-y-3 sm:flex sm:gap-x-8">
+      <div>
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Categorías</p>
+        <p class="mt-1 text-xl font-bold tabular-nums text-text">{{ totalCategorias }}</p>
+      </div>
+      <div>
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Citas del mes</p>
+        <p class="mt-1 text-xl font-bold tabular-nums text-text">{{ totalCitasMes }}</p>
+      </div>
+      <div>
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Precio promedio</p>
+        <p class="mt-1 text-xl font-bold tabular-nums text-text">{{ formatUSD(precioPromedioNumerico) }}</p>
+        <p class="text-[11px] text-text-muted">{{ formatVESInline(precioPromedioNumerico) }} Bs</p>
+      </div>
+    </div>
   </div>
 
   <!-- Category Tabs -->
@@ -293,7 +287,7 @@ import { useCategoryCRUD } from '../composables/common/useCategoryCRUD'
 import { usePagination } from '../composables/common/usePagination'
 import { useBusinessStore } from '../store/business'
 import { ServicioFormModal } from '../components/modals'
-import { ModalBase, StatCard, EmptyState } from '../components/common'
+import { ModalBase, EmptyState } from '../components/common'
 import ServiceCard from '../components/servicios/ServiceCard.vue'
 import { deleteServicio, listServicios, saveServicio, serviciosKeys } from '../services/serviciosService'
 import { addBusinessCategory } from '../services/equipoService'

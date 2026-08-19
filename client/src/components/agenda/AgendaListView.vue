@@ -89,7 +89,7 @@
               <td class="px-4 py-3">
                 <span
                   :class="['inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold', getStatusColor(cita.status)]">
-                  <span class="h-1.5 w-1.5 rounded-full currentColor opacity-70"></span>
+                  <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>
                   {{ cita.statusLabel }}
                 </span>
               </td>
@@ -132,7 +132,7 @@
                 <p class="font-semibold text-sm text-text truncate">{{ cita.clientName }}</p>
                 <span
                   :class="['inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold', getStatusColor(cita.status)]">
-                  <span class="h-1.5 w-1.5 rounded-full currentColor opacity-70"></span>
+                  <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>
                   {{ cita.statusLabel }}
                 </span>
               </div>

@@ -3,18 +3,9 @@
     <template #header-actions>
       <div class="flex items-center gap-2">
         <button
-          v-if="canManageInvitations"
-          @click="openInvitations"
-          class="relative flex items-center gap-1.5 rounded-lg border border-orange-200 dark:border-orange-800 bg-orange-50 dark:bg-orange-950/20 px-3 py-1.5 text-xs font-semibold text-orange-700 dark:text-orange-400 transition-colors hover:bg-orange-100 dark:hover:bg-orange-950/40"
-        >
-          <BellIcon class="h-3.5 w-3.5" />
-          <span class="hidden sm:inline">Invitaciones</span>
-          <span v-if="invitationsCount > 0" class="absolute -top-1.5 -right-1.5 flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">{{ invitationsCount }}</span>
-        </button>
-        <button
           v-if="businessStore.hasFeature('enable_public_booking')"
           @click="copyShareLink"
-          class="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-light px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+          class="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary-light px-2 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 sm:px-3"
           title="Compartir link de reserva"
         >
           <LinkIcon class="h-3.5 w-3.5" />
@@ -41,7 +32,6 @@
     @save="handleSaveCita"
     @delete="handleDeleteCita"
   />
-  <PendingInvitationsModal ref="invitationsModalRef" />
 </template>
 
 <script setup lang="ts">
@@ -52,15 +42,13 @@ import { useNotification } from '../../composables/common/useNotification'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { useAppointmentMutations } from '../../composables/agenda/useAppointmentMutations'
-import { usePendingInvitations } from '../../composables/agenda/usePendingInvitations'
 import { listServicios, serviciosKeys } from '../../services/serviciosService'
 import { listEquipo, equipoKeys } from '../../services/equipoService'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import AgendaCalendar from '../../components/agenda/AgendaCalendar.vue'
 import { toISODate, dateToHHmm } from '../../lib/formatters'
-import { BellIcon, LinkIcon } from '@solar-icons/vue/linear'
+import { LinkIcon } from '@solar-icons/vue/linear'
 import { CitaFormModal } from '../../components/modals'
-import PendingInvitationsModal from '../../components/agenda/PendingInvitationsModal.vue'
 import type { Cita } from '../../types/cita'
 
 const authStore = useAuthStore()
@@ -71,11 +59,7 @@ const businessStore = useBusinessStore()
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 
-const canManageInvitations = computed(() => (authStore.profile as any)?.can_create_appointments !== false && businessStore.hasFeature('enable_public_booking'))
-
 const citaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
-const invitationsModalRef = ref<InstanceType<typeof PendingInvitationsModal> | null>(null)
-const { count: invitationsCount } = usePendingInvitations()
 
 const { data: serviciosData } = useQuery({
   queryKey: computed(() => serviciosKeys.all(businessId.value, branchId.value)),
@@ -140,7 +124,4 @@ function copyShareLink() {
   })
 }
 
-function openInvitations() {
-  invitationsModalRef.value?.open()
-}
 </script>

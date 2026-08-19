@@ -31,7 +31,7 @@
         v-model="searchQuery"
         type="text"
         placeholder="Buscar por nombre, código, teléfono o email..."
-        class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
+        class="w-full rounded-lg border border-border bg-surface-elevated pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
       />
       <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
         <MagnifierIcon class="h-4 w-4" />
@@ -53,7 +53,7 @@
     <div
       v-for="client in paginatedData"
       :key="client.id"
-      class="rounded-xl border border-border bg-surface p-4 transition-theme"
+      class="card-hairline rounded-xl p-4 transition-theme"
       @click="handleViewAgenda(client)"
     >
       <div class="flex items-start gap-3">
@@ -66,7 +66,7 @@
             <span v-if="client.code" class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10">{{ client.code }}</span>
           </div>
           <p class="text-xs text-text-muted">{{ client.phone }}</p>
-          <p class="text-xs text-text-muted">Última visita: {{ client.lastVisit }}</p>
+          <p class="text-xs text-text-muted">Última visita: {{ lastVisitLabel(client) }}</p>
         </div>
         <div class="text-right shrink-0">
           <p class="text-sm font-bold tabular-nums text-text">${{ client.totalSpent }}</p>
@@ -94,7 +94,7 @@
   </div>
 
   <!-- Desktop: Client Table -->
-  <div class="hidden lg:block overflow-hidden rounded-lg border border-border bg-surface sm:rounded-xl">
+  <div class="hidden lg:block">
     <div class="overflow-x-auto">
       <table class="w-full">
         <thead>
@@ -119,16 +119,16 @@
                     <p class="text-sm font-medium text-text truncate">{{ client.name }}</p>
                     <span v-if="client.code" class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10">{{ client.code }}</span>
                   </div>
-                  <p class="text-xs text-slate-400">Desde {{ client.joinDate }}</p>
+                  <p class="text-xs text-text-muted">Desde {{ client.joinDate ? formatDateHuman(client.joinDate) : '—' }}</p>
                 </div>
               </div>
             </td>
             <td class="px-4 py-3">
-              <div class="text-xs text-slate-500">{{ client.phone }}</div>
-              <div v-if="client.email" class="text-xs text-slate-400 truncate max-w-40">{{ client.email }}</div>
+              <div class="text-xs text-text-secondary">{{ client.phone }}</div>
+              <div v-if="client.email" class="text-xs text-text-muted truncate max-w-40">{{ client.email }}</div>
             </td>
             <td class="px-4 py-3">
-              <span class="text-xs text-slate-500">{{ client.lastVisit }}</span>
+              <span class="text-xs text-text-secondary">{{ lastVisitLabel(client) }}</span>
             </td>
             <td class="px-4 py-3">
               <span class="text-sm font-medium tabular-nums text-text">{{ client.totalAppointments }}</span>
@@ -240,7 +240,7 @@ import { useAuth } from '../composables/common/useAuth'
 import { useNotification } from '../composables/common/useNotification'
 import { useBusinessStore } from '../store/business'
 import { clientesKeys, deleteCliente, listClientes, saveCliente } from '../services/clientesService'
-import { getInitials, sanitizePhone } from '../lib/formatters'
+import { getInitials, sanitizePhone, formatDateHuman } from '../lib/formatters'
 import ClientStats from '../components/clients/ClientStats.vue'
 import { ClienteFormModal } from '../components/modals'
 import { FilterDrawer } from '../components/filters'
@@ -312,6 +312,9 @@ const openFilterDrawer = () => {
   filterDrawerRef.value?.setFilters(getFilterDrawerDefaults())
   filterDrawerRef.value?.open()
 }
+
+const lastVisitLabel = (client: Cliente) =>
+  client.lastVisit && client.lastVisit !== 'Sin visitas' ? formatDateHuman(client.lastVisit) : 'Sin visitas'
 
 const handleWhatsApp = (cliente: Cliente) => {
   const phone = sanitizePhone(cliente.phone)

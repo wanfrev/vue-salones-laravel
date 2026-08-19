@@ -3,6 +3,22 @@ export function getInitials(name?: string): string {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 }
 
+const TITLE_CASE_LOWERCASE_WORDS = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'e'])
+
+/** "mariemma diaz" / "YANET CHACON" -> "Mariemma Diaz" / "Yanet Chacon". Keeps Spanish connector words lowercase unless they open the name. */
+export function toTitleCase(value?: string | null): string {
+  if (!value) return ''
+  return value
+    .trim()
+    .toLowerCase()
+    .split(/\s+/)
+    .map((word, i) => {
+      if (i > 0 && TITLE_CASE_LOWERCASE_WORDS.has(word)) return word
+      return word.charAt(0).toUpperCase() + word.slice(1)
+    })
+    .join(' ')
+}
+
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
   cash: 'Efectivo ($)',
   cash_ves: 'Efectivo (Bs)',
@@ -36,16 +52,16 @@ export function getStatusLabel(status: string): string {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  confirmed: 'bg-warning/10 text-warning',
-  pending: 'bg-danger/10 text-danger',
-  cancelled: 'bg-danger/10 text-danger',
-  paid: 'bg-success/10 text-success',
-  completed: 'bg-success/10 text-success',
-  no_show: 'bg-danger/10 text-danger',
+  confirmed: 'bg-warning/10 text-warning border border-warning/30',
+  pending: 'bg-danger/10 text-danger border border-danger/30',
+  cancelled: 'bg-danger/10 text-danger border border-danger/30',
+  paid: 'bg-success/10 text-success border border-success/30',
+  completed: 'bg-success/10 text-success border border-success/30',
+  no_show: 'bg-danger/10 text-danger border border-danger/30',
 }
 
 export function getStatusColor(status: string): string {
-  return STATUS_COLORS[status] ?? 'bg-bg-secondary text-text-muted'
+  return STATUS_COLORS[status] ?? 'bg-bg-secondary text-text-muted border border-border'
 }
 
 export function normalizeAppointmentStatus(appt: { status: string; payment_status: string }): string {
@@ -101,6 +117,15 @@ export function formatDate(date: string | Date, format: keyof typeof DATE_FORMAT
     return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getFullYear()).slice(-2)}`
   }
   return formatDdMmYy(d)
+}
+
+const SHORT_MONTHS_ES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+
+/** "2026-08-15" / "2026-08-15T16:00:00+00:00" -> "15 Ago 2026". Drops time/timezone — for read-only display, not sorting or inputs. */
+export function formatDateHuman(date: string | Date): string {
+  const d = toLocalDate(date)
+  if (Number.isNaN(d.getTime())) return String(date)
+  return `${d.getDate()} ${SHORT_MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`
 }
 
 export function formatTime(date: string | Date): string {

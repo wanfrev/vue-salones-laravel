@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import {
   getInitials,
+  toTitleCase,
   formatMethod,
   getStatusLabel,
   getStatusColor,
   normalizeAppointmentStatus,
   formatDate,
+  formatDateHuman,
   formatTime,
   toISODate,
   sanitizePhone,
@@ -63,9 +65,36 @@ describe('getStatusLabel', () => {
 
 describe('getStatusColor', () => {
   it('returns correct tailwind classes', () => {
-    expect(getStatusColor('confirmed')).toBe('bg-warning/10 text-warning')
-    expect(getStatusColor('pending')).toBe('bg-danger/10 text-danger')
-    expect(getStatusColor('cancelled')).toBe('bg-danger/10 text-danger')
+    expect(getStatusColor('confirmed')).toBe('bg-warning/10 text-warning border border-warning/30')
+    expect(getStatusColor('pending')).toBe('bg-danger/10 text-danger border border-danger/30')
+    expect(getStatusColor('cancelled')).toBe('bg-danger/10 text-danger border border-danger/30')
+  })
+})
+
+describe('toTitleCase', () => {
+  it('title-cases lowercase and uppercase names', () => {
+    expect(toTitleCase('mariemma diaz')).toBe('Mariemma Diaz')
+    expect(toTitleCase('YANET CHACON')).toBe('Yanet Chacon')
+  })
+
+  it('keeps Spanish connector words lowercase unless first', () => {
+    expect(toTitleCase('maria de los angeles')).toBe('Maria de los Angeles')
+  })
+
+  it('returns empty string for empty/null input', () => {
+    expect(toTitleCase()).toBe('')
+    expect(toTitleCase('')).toBe('')
+  })
+})
+
+describe('formatDateHuman', () => {
+  it('formats to "D Mon YYYY" in Spanish', () => {
+    expect(formatDateHuman('2026-08-15')).toBe('15 Ago 2026')
+    expect(formatDateHuman('2026-01-01')).toBe('1 Ene 2026')
+  })
+
+  it('returns original value for invalid date', () => {
+    expect(formatDateHuman('not-a-date')).toBe('not-a-date')
   })
 })
 

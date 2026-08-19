@@ -1,7 +1,7 @@
 <template>
   <div class="lg:hidden space-y-3 mb-4">
     <div v-for="producto in products" :key="producto.id"
-      class="group rounded-xl border border-border bg-surface p-4 space-y-3 shadow-sm transition-shadow duration-200 hover:shadow-md">
+      class="card-hairline group rounded-xl p-4 space-y-3 shadow-sm transition-shadow duration-200 hover:shadow-md">
       <div class="flex items-start justify-between">
         <div class="flex items-center gap-2 min-w-0">
           <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 transition-transform duration-300 group-hover:scale-105">
@@ -62,7 +62,7 @@
     </div>
   </div>
 
-  <div class="hidden lg:block rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
+  <div class="hidden lg:block">
     <div class="overflow-x-auto">
       <table class="w-full">
         <thead>

@@ -1,12 +1,13 @@
 import type { Client } from '../types/database'
 import type { Cliente, ClienteFormData } from '../types/cliente'
+import { toTitleCase } from '../lib/formatters'
 
 export const mapClientToCliente = (
   client: Client,
   stats?: { lastVisit?: string; totalAppointments?: number; totalSpent?: number }
 ): Cliente => ({
   id: client.id,
-  name: client.full_name,
+  name: toTitleCase(client.full_name),
   phone: client.phone,
   email: client.email ?? '',
   code: client.client_code ?? '',

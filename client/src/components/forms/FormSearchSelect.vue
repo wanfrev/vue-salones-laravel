@@ -6,7 +6,7 @@
     </label>
     <div ref="containerRef" class="relative">
       <button type="button" @click="toggleOpen" :disabled="disabled" :class="[
-        'w-full rounded-xl border bg-surface text-left outline-none transition-theme',
+        'w-full rounded-xl border bg-surface-elevated text-left outline-none transition-theme',
         'focus:border-primary focus:ring-2 focus:ring-primary/20',
         'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary',
         error ? 'border-danger focus:border-danger focus:ring-danger/20' : 'border-border hover:border-border-strong',

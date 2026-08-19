@@ -1,62 +1,21 @@
 <template>
-  <section class="mb-4 grid grid-cols-2 gap-2 lg:mb-4 lg:grid-cols-4 lg:gap-3">
-    <div
-      class="rounded-lg border border-border bg-surface p-3 transition-theme hover:border-border-strong sm:rounded-xl sm:p-4">
-      <div class="flex items-center gap-2.5">
-        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary sm:h-9 sm:w-9">
-          <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-        </div>
-        <div>
-          <p class="text-xl font-bold tabular-nums text-text sm:text-2xl">{{ totalClientes }}</p>
-          <p class="text-xs text-text-muted">Total</p>
-        </div>
-      </div>
+  <section class="mb-5 flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-x-8 lg:mb-6">
+    <div>
+      <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Total clientes</p>
+      <p class="mt-1 text-4xl font-extrabold leading-none tabular-nums text-text sm:text-5xl">{{ totalClientes }}</p>
     </div>
-    <div
-      class="rounded-lg border border-border bg-surface p-3 transition-theme hover:border-border-strong sm:rounded-xl sm:p-4">
-      <div class="flex items-center gap-2.5">
-        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success sm:h-9 sm:w-9">
-          <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <div>
-          <p class="text-xl font-bold tabular-nums text-text sm:text-2xl">{{ clientesRecientes }}</p>
-          <p class="text-xs text-text-muted">Recientes</p>
-        </div>
+    <div class="grid grid-cols-3 gap-x-4 gap-y-3 sm:flex sm:gap-x-8">
+      <div>
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Recientes</p>
+        <p class="mt-1 text-xl font-bold tabular-nums text-text">{{ clientesRecientes }}</p>
       </div>
-    </div>
-    <div
-      class="rounded-lg border border-border bg-surface p-3 transition-theme hover:border-border-strong sm:rounded-xl sm:p-4">
-      <div class="flex items-center gap-2.5">
-        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-warning/10 text-warning sm:h-9 sm:w-9">
-          <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <div>
-          <p class="text-xl font-bold tabular-nums text-text sm:text-2xl">{{ clientesConHistorial }}</p>
-          <p class="text-xs text-text-muted">Con historial</p>
-        </div>
+      <div>
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Con historial</p>
+        <p class="mt-1 text-xl font-bold tabular-nums text-text">{{ clientesConHistorial }}</p>
       </div>
-    </div>
-    <div
-      class="rounded-lg border border-border bg-surface p-3 transition-theme hover:border-border-strong sm:rounded-xl sm:p-4">
-      <div class="flex items-center gap-2.5">
-        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-danger/10 text-danger sm:h-9 sm:w-9">
-          <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
-        <div>
-          <p class="text-xl font-bold tabular-nums text-text sm:text-2xl">{{ clientesSinVisitar }}</p>
-          <p class="text-xs text-text-muted">Sin visitar +{{ daysSinceVisitFilter }}d</p>
-        </div>
+      <div>
+        <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Sin visitar +{{ daysSinceVisitFilter }}d</p>
+        <p class="mt-1 text-xl font-bold tabular-nums text-warning">{{ clientesSinVisitar }}</p>
       </div>
     </div>
   </section>

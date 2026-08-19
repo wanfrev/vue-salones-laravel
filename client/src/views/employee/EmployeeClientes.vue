@@ -50,7 +50,7 @@
                     </div>
                     <div class="min-w-0">
                       <p class="text-sm font-medium text-text truncate">{{ client.name }}</p>
-                      <p class="text-xs text-text-muted">Desde {{ client.joinDate }}</p>
+                      <p class="text-xs text-text-muted">Desde {{ client.joinDate ? formatDateHuman(client.joinDate) : '—' }}</p>
                     </div>
                   </div>
                 </td>
@@ -60,7 +60,7 @@
                   <span v-if="hidePhoneFromEmployee" class="text-xs text-text-muted italic">Oculto</span>
                 </td>
                 <td class="px-4 py-3">
-                  <span class="text-xs text-text-secondary">{{ client.lastVisit }}</span>
+                  <span class="text-xs text-text-secondary">{{ lastVisitLabel(client) }}</span>
                 </td>
                 <td class="px-4 py-3">
                   <span class="text-sm font-medium tabular-nums text-text">{{ client.totalAppointments }}</span>
@@ -154,7 +154,7 @@ import { useClientFilters } from '../../composables/common/useClientFilters'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { clientesKeys, listClientes, saveCliente } from '../../services/clientesService'
-import { getInitials, sanitizePhone } from '../../lib/formatters'
+import { getInitials, sanitizePhone, formatDateHuman } from '../../lib/formatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import ClienteFormModal from '../../components/modals/ClienteFormModal.vue'
 import type { Cliente } from '../../types/cliente'
@@ -202,6 +202,9 @@ const {
   paginationEnd,
   totalPages,
 } = useClientFilters(clients)
+
+const lastVisitLabel = (client: Cliente) =>
+  client.lastVisit && client.lastVisit !== 'Sin visitas' ? formatDateHuman(client.lastVisit) : 'Sin visitas'
 
 const handleViewClient = (cliente: Cliente) => {
   router.push(`/dashboard/clientes/${cliente.id}`)

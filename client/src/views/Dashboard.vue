@@ -67,10 +67,11 @@
               <td class="px-4 py-3 text-center">
                 <span
                   :class="[
-                    'inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold',
+                    'inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold',
                     getStatusColor(appt.status)
                   ]"
                 >
+                  <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70"></span>
                   {{ getStatusLabel(appt.status) }}
                 </span>
               </td>

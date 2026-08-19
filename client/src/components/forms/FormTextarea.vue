@@ -7,7 +7,7 @@
     <textarea :id="textareaId" :value="modelValue" @input="handleInput" @blur="$emit('blur', $event)"
       :placeholder="placeholder" :required="required" :disabled="disabled" :readonly="readonly" :rows="rows"
       :maxlength="maxlength" :class="[
-        'w-full resize-none rounded-xl border bg-surface text-text outline-none transition-theme',
+        'w-full resize-none rounded-xl border bg-surface-elevated text-text outline-none transition-theme',
         'focus:border-primary focus:ring-2 focus:ring-primary/20',
         'disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-bg-secondary',
         error ? 'border-danger focus:border-danger focus:ring-danger/20' : 'border-border hover:border-border-strong',
