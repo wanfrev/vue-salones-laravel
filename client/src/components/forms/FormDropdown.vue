@@ -6,7 +6,7 @@
     </label>
     <div class="relative">
       <button type="button" @click="toggleDropdown" :disabled="disabled"
-        class="w-full flex items-center gap-2 rounded-xl border bg-surface text-text outline-none transition-colors text-left"
+        class="w-full flex items-center gap-2 rounded-xl border bg-surface-elevated text-text outline-none transition-colors text-left"
         :class="[
           isOpen ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-border-strong',
           error ? 'border-danger focus:border-danger focus:ring-danger/20' : '',

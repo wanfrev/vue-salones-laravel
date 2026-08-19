@@ -31,7 +31,7 @@
         v-model="searchQuery"
         type="text"
         placeholder="Buscar por nombre, código, teléfono o email..."
-        class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
+        class="w-full rounded-lg border border-border bg-surface-elevated pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
       />
       <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
         <MagnifierIcon class="h-4 w-4" />
@@ -53,7 +53,7 @@
     <div
       v-for="client in paginatedData"
       :key="client.id"
-      class="rounded-xl border border-border bg-surface p-4 transition-theme"
+      class="card-hairline rounded-xl p-4 transition-theme"
       @click="handleViewAgenda(client)"
     >
       <div class="flex items-start gap-3">
@@ -94,7 +94,7 @@
   </div>
 
   <!-- Desktop: Client Table -->
-  <div class="hidden lg:block overflow-hidden rounded-lg border border-border bg-surface sm:rounded-xl">
+  <div class="hidden lg:block">
     <div class="overflow-x-auto">
       <table class="w-full">
         <thead>

@@ -16,9 +16,9 @@
           :key="link.to"
           :to="link.to"
           :class="[
-            'group mb-0.5 flex items-center gap-3 rounded-lg border-l-2 py-2.5 pr-3 pl-2.5 text-sm font-medium transition-theme',
+            'group mb-0.5 flex items-center gap-3 rounded-lg border-l-[3px] py-2.5 pr-3 pl-2 text-sm font-medium transition-theme',
             isActive(link.to)
-              ? 'border-primary bg-primary/10 text-text'
+              ? 'border-primary bg-bg-secondary text-text'
               : 'border-transparent text-text-secondary hover:bg-bg-secondary hover:text-text'
           ]"
         >

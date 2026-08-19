@@ -61,22 +61,22 @@
 
 /* Tokens Modo Oscuro */
 .dark {
-  /* Colores de Fondo — carbón profundo, no negro plano */
-  --color-bg: #121316;
+  /* Colores de Fondo — profundidad por capas: sistema < panel < input, sin bordes marcando el salto */
+  --color-bg: #0E0F12;
   --color-bg-secondary: #17181b;
-  --color-surface: #1a1b1f;
-  --color-surface-elevated: #1e1f24;
-  --color-surface-muted: #17181b;
+  --color-surface: #14161B;
+  --color-surface-elevated: #1B1E26;
+  --color-surface-muted: #14161B;
 
   /* Colores de Texto */
   --color-text: #f2f3f1;
   --color-text-secondary: #b7bbc2;
   --color-text-muted: #83878e;
-  --color-text-inverse: #121316;
+  --color-text-inverse: #0E0F12;
 
-  /* Colores de Borde — sutiles, translúcidos en vez de grises sólidos */
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-subtle: rgba(255, 255, 255, 0.05);
+  /* Colores de Borde — casi imperceptibles */
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-subtle: rgba(255, 255, 255, 0.04);
   --color-border-strong: rgba(255, 255, 255, 0.16);
 
   /* Colores Primarios en verde del sistema */
@@ -243,6 +243,16 @@ body {
 
 .bg-gradient-primary {
   background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+}
+
+/* Tarjeta con borde casi imperceptible + un leve degradado que le da volumen desde
+   arriba, en vez del borde gris opaco plano. Solo agrega fondo/borde — no toca layout,
+   así que puede reemplazar "border border-border bg-surface" en cualquier tarjeta sin
+   tocar su contenido. */
+.card-hairline {
+  border: 1px solid var(--color-border);
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0) 100%);
+  background-color: var(--color-surface);
 }
 
 /* ============================================================

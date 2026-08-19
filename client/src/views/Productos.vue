@@ -31,7 +31,7 @@
         v-model="searchQuery"
         type="text"
         placeholder="Buscar producto por nombre o SKU..."
-        class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
+        class="w-full rounded-lg border border-border bg-surface-elevated pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
       />
       <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
         <MagnifierIcon class="h-4 w-4" />
@@ -42,7 +42,7 @@
         v-model="movementSearch"
         type="text"
         placeholder="Buscar en movimientos..."
-        class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
+        class="w-full rounded-lg border border-border bg-surface-elevated pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
       />
       <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
         <MagnifierIcon class="h-4 w-4" />
