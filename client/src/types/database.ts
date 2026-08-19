@@ -76,8 +76,10 @@ export interface Profile {
   // company", set server-side per request rather than read off the profile row.
   staffing_company_id?: string | null
   staffing_role?: string | null
-  /** Every client company this employee is currently assigned to, each with its own role. */
-  staffing_assignments?: { company_id: string; company_name?: string | null; role: string }[]
+  /** Set alongside staffing_role on company-scoped responses — this employee's shift at THAT company. */
+  staffing_shift?: string | null
+  /** Every client company this employee is currently assigned to, each with its own role (and shift, if the company's rate card splits by shift). */
+  staffing_assignments?: { company_id: string; company_name?: string | null; role: string; shift?: string | null }[]
   staffing_tax_rate?: number | null
   address?: string | null
   bank_name?: string | null
@@ -433,6 +435,8 @@ export interface StaffingCompanyRate {
   business_id: string
   company_id: string
   role: string
+  /** Null = this role isn't split by shift. 'dia' | 'tarde' | 'noche' otherwise. */
+  shift: string | null
   pay_rate: number
   bill_rate: number
   /** Null = use the company's overtime terms. See StaffingPayrollCalculator's override lookup. */

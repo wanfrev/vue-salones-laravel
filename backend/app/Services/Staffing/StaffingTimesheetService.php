@@ -108,10 +108,13 @@ class StaffingTimesheetService
 
                 // The role — and therefore the rate — is per (employee, company), not a single
                 // value on the profile: the same person can hold a different role at another
-                // client company they're also assigned to.
+                // client company they're also assigned to. Shift works the same way: fixed on
+                // the assignment, not chosen per week, for companies that split a role's pay by
+                // día/tarde/noche.
                 $role = $this->companyEmployees->roleForEmployeeAtCompany($employee->id, $company->id);
+                $shift = $this->companyEmployees->shiftForEmployeeAtCompany($employee->id, $company->id);
 
-                $rate = $this->rates->resolveFor($businessId, $company->id, $role);
+                $rate = $this->rates->resolveFor($businessId, $company->id, $role, $shift);
                 if (!$rate) {
                     $missing[] = $employee->full_name . ' (' . ($role ?: 'sin rol') . ')';
                     continue;

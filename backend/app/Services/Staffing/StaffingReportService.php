@@ -8,6 +8,7 @@ use App\Models\StaffingCompanyPayment;
 use App\Models\StaffingInvoice;
 use App\Models\StaffingTaxEntity;
 use App\Models\StaffingTaxEntry;
+use App\Models\StaffingTimesheet;
 use App\Models\StaffingWeeklyExpense;
 use DateTimeImmutable;
 use DateTimeInterface;
@@ -363,6 +364,53 @@ class StaffingReportService
                 'totalHours' => $active + $inactive,
             ];
         })->all();
+    }
+
+    /**
+     * "Lista de depósitos" for a week: one row per (employee, company) ready to hand to the bank —
+     * the agency used to copy this onto paper by hand off the approved nómina sheets. Scoped to
+     * `payment_method = 'direct_deposit'` (a payroll-card employee has nothing to deposit) and to
+     * timesheets already 'approved' or 'paid' (a draft's numbers can still change — the point of
+     * this list is to guide money actually leaving the bank, not a preview). `shift` comes off the
+     * employee's assignment at that company, not the timesheet entry itself — see
+     * StaffingCompanyEmployee — so the frontend can fold it into the company label the way the
+     * agency's own paper sheet does ("BENSON GDI NOCHE").
+     *
+     * @return list<array{employeeId: string, employeeName: string, titular: string, bankName: ?string, companyName: string, shift: ?string, amount: float}>
+     */
+    public function depositListForWeek(string $businessId, string $weekStart): array
+    {
+        $rows = DB::table('staffing_timesheet_entries as ste')
+            ->join('staffing_timesheets as st', 'st.id', '=', 'ste.timesheet_id')
+            ->join('profiles as p', 'p.id', '=', 'ste.employee_id')
+            ->join('staffing_companies as sc', 'sc.id', '=', 'st.company_id')
+            ->leftJoin('staffing_company_employees as sce', function ($join) {
+                $join->on('sce.company_id', '=', 'st.company_id')
+                    ->on('sce.employee_id', '=', 'ste.employee_id');
+            })
+            ->where('st.business_id', $businessId)
+            ->where('st.week_start', $weekStart)
+            ->whereIn('st.status', [StaffingTimesheet::STATUS_APPROVED, StaffingTimesheet::STATUS_PAID])
+            ->where('p.payment_method', 'direct_deposit')
+            ->where('ste.payout', '>', 0)
+            ->orderBy('p.full_name')
+            ->orderBy('sc.name')
+            ->select(
+                'p.id as employee_id', 'p.full_name', 'p.bank_account_holder', 'p.bank_name',
+                'sc.name as company_name', 'sce.shift', 'ste.payout'
+            )
+            ->get();
+
+        return $rows->map(fn ($row) => [
+            'employeeId' => $row->employee_id,
+            'employeeName' => $row->full_name,
+            // No separate account holder on file — the deposit goes to the employee's own account.
+            'titular' => $row->bank_account_holder ?: $row->full_name,
+            'bankName' => $row->bank_name,
+            'companyName' => $row->company_name,
+            'shift' => $row->shift,
+            'amount' => (float) $row->payout,
+        ])->all();
     }
 
     /**

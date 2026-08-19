@@ -87,6 +87,7 @@ class ProfileService
                     'company_id' => $a->company_id,
                     'company_name' => $a->company?->name,
                     'role' => $a->role,
+                    'shift' => $a->shift,
                 ])->values();
             return $data;
         });

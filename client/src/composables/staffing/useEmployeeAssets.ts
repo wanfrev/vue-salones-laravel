@@ -6,6 +6,7 @@ import {
   createEmployeeAsset,
   deleteEmployeeAsset,
   listEmployeeAssets,
+  updateEmployeeAsset,
   type AssetType,
 } from '../../services/staffing/employeeAssetsService'
 
@@ -32,6 +33,16 @@ export function useEmployeeAssets(employeeId: Ref<string | null>) {
     onError: (err) => showError(translateError(err)),
   })
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, assetType, description }: { id: string; assetType: AssetType; description: string }) =>
+      updateEmployeeAsset(id, assetType, description),
+    onSuccess: async () => {
+      await invalidate()
+      success('Bien actualizado')
+    },
+    onError: (err) => showError(translateError(err)),
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteEmployeeAsset(id),
     onSuccess: async () => {
@@ -45,6 +56,7 @@ export function useEmployeeAssets(employeeId: Ref<string | null>) {
     assets: computed(() => data.value ?? []),
     isLoading,
     createMutation,
+    updateMutation,
     deleteMutation,
   }
 }

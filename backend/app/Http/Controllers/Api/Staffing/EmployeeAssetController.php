@@ -48,6 +48,24 @@ class EmployeeAssetController
         return response()->json($asset, 201);
     }
 
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        }
+
+        $data = $request->validate([
+            'asset_type' => 'required|string|in:vehiculo,telefono,laptop,otro',
+            'description' => 'required|string|max:255',
+        ]);
+
+        $asset = $this->assets->update($id, $data, $p->business_id);
+        EntityChanged::safe($p->business_id, 'employee_asset', 'updated', $asset->id);
+
+        return response()->json($asset);
+    }
+
     public function destroy(Request $request, string $id): JsonResponse
     {
         $p = $request->user()?->load('profile')?->profile;

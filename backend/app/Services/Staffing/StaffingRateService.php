@@ -25,18 +25,22 @@ class StaffingRateService
     }
 
     /**
-     * Upsert by (company, role) rather than insert. The unique index makes a second POST for the
-     * same role a constraint violation, and "save the rate card" from the UI naturally re-sends
-     * roles that already exist.
+     * Upsert by (company, role, shift) rather than insert. The unique index makes a second POST
+     * for the same role+shift a constraint violation, and "save the rate card" from the UI
+     * naturally re-sends roles that already exist. `shift` null means "this role isn't split by
+     * shift" — most companies never set it, same as before shift existed.
      */
     public function store(array $data, string $businessId): StaffingCompanyRate
     {
         // Ownership check: refuses to attach a rate to another tenant's company.
         $this->companies->findForBusiness($data['company_id'], $businessId);
 
+        $shift = $data['shift'] ?? null;
+
         $existing = StaffingCompanyRate::where('business_id', $businessId)
             ->where('company_id', $data['company_id'])
             ->where('role', $data['role'])
+            ->where('shift', $shift)
             ->first();
 
         if ($existing) {
@@ -59,6 +63,7 @@ class StaffingRateService
             'business_id' => $businessId,
             'company_id' => $data['company_id'],
             'role' => $data['role'],
+            'shift' => $shift,
             'pay_rate' => $data['pay_rate'],
             'bill_rate' => $data['bill_rate'],
             'overtime_threshold_hours' => $data['overtime_threshold_hours'] ?? null,
@@ -85,11 +90,12 @@ class StaffingRateService
     }
 
     /**
-     * The rate an employee earns and bills at, from their company + role. Returns null when the
-     * role has no entry — callers must treat that as "cannot compute payroll for this person"
-     * rather than defaulting to zero, which would silently pay someone nothing.
+     * The rate an employee earns and bills at, from their company + role (+ shift, when the
+     * company splits that role's pay by shift). Returns null when there's no matching entry —
+     * callers must treat that as "cannot compute payroll for this person" rather than defaulting
+     * to zero, which would silently pay someone nothing.
      */
-    public function resolveFor(string $businessId, ?string $companyId, ?string $role): ?StaffingCompanyRate
+    public function resolveFor(string $businessId, ?string $companyId, ?string $role, ?string $shift = null): ?StaffingCompanyRate
     {
         if (!$companyId || !$role) {
             return null;
@@ -98,6 +104,7 @@ class StaffingRateService
         return StaffingCompanyRate::where('business_id', $businessId)
             ->where('company_id', $companyId)
             ->where('role', $role)
+            ->where('shift', $shift)
             ->where('active', true)
             ->first();
     }

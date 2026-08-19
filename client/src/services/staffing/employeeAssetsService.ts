@@ -49,5 +49,17 @@ export const createEmployeeAsset = async (
   return toEmployeeAsset(row)
 }
 
+export const updateEmployeeAsset = async (
+  id: string,
+  assetType: AssetType,
+  description: string,
+): Promise<EmployeeAsset> => {
+  const row = await apiRequest<EmployeeAssetRow>('PUT', `/employee-assets/${id}`, {
+    asset_type: assetType,
+    description,
+  })
+  return toEmployeeAsset(row)
+}
+
 export const deleteEmployeeAsset = (id: string): Promise<void> =>
   apiRequest<void>('DELETE', `/employee-assets/${id}`)

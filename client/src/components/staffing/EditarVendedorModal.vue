@@ -19,6 +19,11 @@
             <label class="mb-1 block text-sm font-medium text-text" for="edit-vend-email">Correo electrónico</label>
             <input id="edit-vend-email" v-model="form.email" type="email" :class="inputClass" />
           </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-text" for="edit-vend-password">Nueva contraseña</label>
+            <input id="edit-vend-password" v-model="form.password" type="password" minlength="6"
+              placeholder="Dejar vacío para mantener la actual" :class="inputClass" />
+          </div>
 
           <p v-if="error" class="text-sm text-danger">{{ error }}</p>
 
@@ -39,15 +44,42 @@
 
           <ul v-else class="mb-3 space-y-1.5">
             <li v-for="a in assetsCtx.assets.value" :key="a.id"
-              class="flex items-center gap-2 rounded-lg bg-gradient-to-br from-bg-secondary/80 to-bg-secondary/40 px-2.5 py-2">
-              <span class="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                {{ assetTypeLabel(a.assetType) }}
-              </span>
-              <span class="min-w-0 flex-1 truncate text-sm text-text">{{ a.description }}</span>
-              <button type="button" class="shrink-0 rounded-md p-1 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
-                title="Quitar bien" @click="assetsCtx.deleteMutation.mutate(a.id)">
-                <TrashBin2Icon class="h-4 w-4" />
-              </button>
+              class="rounded-lg bg-gradient-to-br from-bg-secondary/80 to-bg-secondary/40 px-2.5 py-2">
+              <div v-if="editingAssetId === a.id" class="flex flex-wrap items-end gap-2">
+                <div class="w-28 shrink-0">
+                  <label class="mb-1 block text-[10px] font-medium text-text-muted" :for="`edit-asset-type-${a.id}`">Tipo</label>
+                  <select :id="`edit-asset-type-${a.id}`" v-model="editDraft.assetType" :class="inputClass">
+                    <option v-for="opt in ASSET_TYPE_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                  </select>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <label class="mb-1 block text-[10px] font-medium text-text-muted" :for="`edit-asset-desc-${a.id}`">Detalle</label>
+                  <input :id="`edit-asset-desc-${a.id}`" v-model="editDraft.description" type="text" :class="inputClass" />
+                </div>
+                <button type="button" :disabled="!editDraft.description.trim() || assetsCtx.updateMutation.isPending.value"
+                  class="shrink-0 rounded-md bg-primary px-2.5 py-2 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+                  @click="saveAssetEdit(a.id)">
+                  Guardar
+                </button>
+                <button type="button" class="shrink-0 rounded-md border border-border px-2.5 py-2 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
+                  @click="cancelAssetEdit">
+                  Cancelar
+                </button>
+              </div>
+              <div v-else class="flex items-center gap-2">
+                <span class="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                  {{ assetTypeLabel(a.assetType) }}
+                </span>
+                <span class="min-w-0 flex-1 truncate text-sm text-text">{{ a.description }}</span>
+                <button type="button" class="shrink-0 rounded-md p-1 text-text-muted transition-theme hover:bg-primary/10 hover:text-primary"
+                  title="Editar bien" @click="startAssetEdit(a)">
+                  <PenIcon class="h-4 w-4" />
+                </button>
+                <button type="button" class="shrink-0 rounded-md p-1 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+                  title="Quitar bien" @click="assetsCtx.deleteMutation.mutate(a.id)">
+                  <TrashBin2Icon class="h-4 w-4" />
+                </button>
+              </div>
             </li>
           </ul>
 
@@ -92,9 +124,9 @@ import { adminUpdateEmployee } from '../../services/adminService'
 import { deleteEmpleado } from '../../services/equipoService'
 import { useNotification } from '../../composables/common/useNotification'
 import { useEmployeeAssets } from '../../composables/staffing/useEmployeeAssets'
-import { ASSET_TYPE_OPTIONS, type AssetType } from '../../services/staffing/employeeAssetsService'
+import { ASSET_TYPE_OPTIONS, type AssetType, type EmployeeAsset } from '../../services/staffing/employeeAssetsService'
 import { translateError } from '../../lib/errors'
-import { TrashBin2Icon } from '@solar-icons/vue/linear'
+import { TrashBin2Icon, PenIcon } from '@solar-icons/vue/linear'
 import type { VendedoraRow } from '../../services/leadsService'
 
 const props = defineProps<{ vendedor: VendedoraRow }>()
@@ -109,6 +141,7 @@ const form = reactive({
   name: props.vendedor.name,
   phone: props.vendedor.phone ?? '',
   email: props.vendedor.email ?? '',
+  password: '',
 })
 const saving = ref(false)
 const error = ref('')
@@ -121,8 +154,12 @@ const submit = async () => {
       full_name: form.name.trim(),
       email: form.email.trim(),
       phone: form.phone.trim() || null,
+      // Write-only, like everywhere else this pattern is used (bank numbers, SSN) — omit the
+      // key entirely rather than sending '', so leaving it blank never clobbers the password.
+      ...(form.password.trim() ? { password: form.password.trim() } : {}),
     })
     success('Vendedor actualizado')
+    form.password = ''
     emit('updated')
   } catch (err) {
     error.value = translateError(err)
@@ -141,6 +178,25 @@ const addAsset = () => {
   assetsCtx.createMutation.mutate(
     { assetType: newAsset.assetType, description: newAsset.description.trim() },
     { onSuccess: () => { newAsset.description = '' } },
+  )
+}
+
+const editingAssetId = ref<string | null>(null)
+const editDraft = reactive({ assetType: 'vehiculo' as AssetType, description: '' })
+
+const startAssetEdit = (asset: EmployeeAsset) => {
+  editingAssetId.value = asset.id
+  editDraft.assetType = asset.assetType
+  editDraft.description = asset.description
+}
+const cancelAssetEdit = () => {
+  editingAssetId.value = null
+}
+const saveAssetEdit = (id: string) => {
+  if (!editDraft.description.trim()) return
+  assetsCtx.updateMutation.mutate(
+    { id, assetType: editDraft.assetType, description: editDraft.description.trim() },
+    { onSuccess: () => { editingAssetId.value = null } },
   )
 }
 

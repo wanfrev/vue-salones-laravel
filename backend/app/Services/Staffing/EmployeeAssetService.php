@@ -28,13 +28,29 @@ class EmployeeAssetService
         ]);
     }
 
+    public function update(string $id, array $data, string $businessId): EmployeeAsset
+    {
+        $asset = $this->findForBusiness($id, $businessId);
+        $asset->update([
+            'asset_type' => $data['asset_type'],
+            'description' => $data['description'],
+        ]);
+
+        return $asset->fresh();
+    }
+
     public function destroy(string $id, string $businessId): void
+    {
+        $this->findForBusiness($id, $businessId)->delete();
+    }
+
+    public function findForBusiness(string $id, string $businessId): EmployeeAsset
     {
         $asset = EmployeeAsset::find($id);
         if (!$asset || $asset->business_id !== $businessId) {
             throw new NotFoundHttpException('Bien asignado no encontrado.');
         }
 
-        $asset->delete();
+        return $asset;
     }
 }

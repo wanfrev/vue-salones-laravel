@@ -30,9 +30,24 @@
     </template>
   </div>
 
-  <div v-if="isStaffing" class="mb-4 max-w-xs">
+  <div v-if="isStaffing" class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
     <SegmentedTabs :tabs="employeeStatusTabs" :model-value="employeeActiveFilter" @update:model-value="employeeActiveFilter = $event as EmployeeActiveFilter" />
+    <div class="relative flex-1 sm:max-w-xs">
+      <input
+        v-model="searchQuery"
+        type="text"
+        :placeholder="`Buscar ${(businessStore.terminology.employee || 'empleado').toLowerCase()}...`"
+        class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
+      />
+      <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
+        <MagnifierIcon class="h-4 w-4" />
+      </div>
+    </div>
   </div>
+
+  <p v-if="isStaffing && searchQuery.trim() && filteredTeam.length === 0" class="mb-5 rounded-xl border border-border bg-surface p-4 text-center text-sm text-text-muted">
+    Ningún {{ (businessStore.terminology.employee || 'empleado').toLowerCase() }} coincide con "{{ searchQuery.trim() }}".
+  </p>
 
   <EmployeeGrid
     :employees="visibleTeam" :show-all="showAll" :has-more="hasMoreThanDefault" :total-count="team.length"
@@ -133,7 +148,7 @@ import EmployeeReciboModal from '../components/equipo/EmployeeReciboModal.vue'
 import EmployeeRateModal from '../components/equipo/EmployeeRateModal.vue'
 import GestionTabs from '../components/equipo/GestionTabs.vue'
 import type { Empleado, EmpleadoFormData } from '../types/empleado'
-import { UsersGroupRoundedIcon, DollarIcon, AddCircleIcon } from '@solar-icons/vue/linear'
+import { UsersGroupRoundedIcon, DollarIcon, AddCircleIcon, MagnifierIcon } from '@solar-icons/vue/linear'
 
 const router = useRouter()
 const { authStore } = useAuth()
@@ -212,10 +227,28 @@ const teamForPayroll = computed(() => team.value.filter(e => !e.isCajero))
 
 const showEmployeeRateModal = ref(false)
 
+const searchQuery = ref('')
+const filteredTeam = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return team.value
+  return team.value.filter(e =>
+    e.name.toLowerCase().includes(q) ||
+    (e.role || '').toLowerCase().includes(q) ||
+    (e.email || '').toLowerCase().includes(q) ||
+    (e.phone || '').toLowerCase().includes(q) ||
+    (e.staffingAssignments || []).some(a => (a.companyName || '').toLowerCase().includes(q))
+  )
+})
+
 const DEFAULT_VISIBLE = 4
 const showAll = ref(false)
-const hasMoreThanDefault = computed(() => team.value.length > DEFAULT_VISIBLE)
-const visibleTeam = computed(() => showAll.value ? team.value : team.value.slice(0, DEFAULT_VISIBLE))
+// Searching shows every match at once — hiding a result the admin just searched for behind
+// "ver todos" would defeat the point of the search bar.
+const hasMoreThanDefault = computed(() => !searchQuery.value.trim() && team.value.length > DEFAULT_VISIBLE)
+const visibleTeam = computed(() => {
+  if (searchQuery.value.trim() || showAll.value) return filteredTeam.value
+  return filteredTeam.value.slice(0, DEFAULT_VISIBLE)
+})
 
 const teamSchedule = computed(() => team.value.filter(m => m.schedule).map(m => ({
   id: m.id, name: m.name, start: m.schedule?.start ?? '', end: m.schedule?.end ?? '',
