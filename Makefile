@@ -1,14 +1,9 @@
 # Luma (Salones) — Makefile para desarrollo local
+#
+# Redis debe estar corriendo nativo (no vía Docker) tanto en local como
+# en el servidor — verifica con `redis-cli ping`.
 
-.PHONY: up down install dev backend frontend reverb worker all
-
-# ─── Docker ────────────────────────────────────────────────────────
-
-up:
-	docker compose up -d redis
-
-down:
-	docker compose down
+.PHONY: install dev backend frontend reverb worker all
 
 # ─── Instalación ───────────────────────────────────────────────────
 
@@ -36,16 +31,8 @@ frontend:
 # ─── Todo a la vez ─────────────────────────────────────────────────
 
 dev:
-	@echo "Iniciando Luma en 4 terminales..."
-	@echo "1. docker compose up -d redis"
-	@echo "2. php artisan serve --port=8000"
-	@echo "3. php artisan reverb:start"
-	@echo "4. npm run dev"
-	@echo "5. php artisan queue:work (opcional)"
-
-all: up
-	@echo "Redis iniciado. Ahora abrí 4 terminales y ejecutá:"
-	@echo "  make backend"
-	@echo "  make reverb"
-	@echo "  make frontend"
-	@echo "  make worker"
+	@echo "Iniciando Luma en 4 terminales (asegurate de que Redis esté corriendo)..."
+	@echo "1. make backend"
+	@echo "2. make reverb"
+	@echo "3. make frontend"
+	@echo "4. make worker (opcional)"

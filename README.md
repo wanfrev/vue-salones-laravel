@@ -1,64 +1,47 @@
-# Sistema de Salones
+# Luma — Sistema de gestión para negocios de servicios
 
-App de gestión para salones de belleza: agenda, clientes con historial,
-finanzas (% local + % empleada) y auto-agendamiento público por link.
-
-Pensada multi-tenant: un superadmin puede manejar varios salones; cada
-salón tiene su admin y sus empleadas.
+SaaS multi-tenant para negocios de servicios (salones, spas, barberías,
+veterinarias, pet spas), staffing (nómina/empresas) y tiendas (POS sin
+agenda). Un mismo código base sirve a todos los "nichos" — el
+comportamiento se adapta por configuración, no por ramas de código
+separadas. Ver [`agents.md`](./agents.md) para la arquitectura completa,
+convenciones y dominio de negocio.
 
 ## Stack
 
-- **Frontend**: Vue 3 + Vite + Tailwind v4 + Pinia + Vue Router + Tanstack Query
-- **Backend**: Supabase (Postgres + Auth + RLS + Edge Functions)
-- **PWA**: vite-plugin-pwa
+- **Backend**: Laravel (PHP 8.4) + PostgreSQL, autohospedado en VPS
+- **Frontend**: Vue 3 + Vite + TypeScript + Tailwind + Pinia + TanStack Query
+- **Tiempo real**: Laravel Reverb (WebSockets)
 
 ## Estructura
 
 ```
 .
-├── client/      # SPA Vue 3
-└── supabase/    # esquema, RLS y funciones (ver supabase/README.md)
+├── backend/   # API Laravel
+└── client/    # SPA Vue 3
 ```
 
-## Quickstart
-
-### 1. Provisiona Supabase
-
-Sigue [`supabase/README.md`](./supabase/README.md) para:
-
-- Aplicar las migraciones (CLI o dashboard).
-- Cargar el seed demo (opcional).
-- Crear el primer superadmin.
-
-### 2. Levanta el client
+## Quickstart (desarrollo local)
 
 ```bash
+# Backend
+cd backend
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+
+# Frontend
 cd client
-cp .env.example .env       # edita con tu URL y anon key de Supabase
-npm install --legacy-peer-deps
-npm run dev
+npm install
+cp .env.example .env
 ```
 
-Abre [http://localhost:5173](http://localhost:5173) e inicia sesión con el
-correo del usuario que creaste en Supabase Auth.
+Levanta ambos con [`dev.bat`](./dev.bat) (Windows) o manualmente:
 
-## Estado del proyecto
+```bash
+cd backend && php artisan serve --port=8000
+cd client && npm run dev
+```
 
-| Pieza | Estado |
-|---|---|
-| Esquema multi-tenant + RLS | Listo |
-| Funciones de booking público | Listas (RPC, sin UI todavía) |
-| Auth Supabase + guards | Listo (login con email/password) |
-| Vistas Admin / Dashboard | Placeholder — falta agenda, clientes, finanzas |
-| Recordatorios WhatsApp 24h | Esquema preparado, proveedor sin decidir |
-
-## Roadmap inmediato
-
-1. UI de agenda (calendario semanal con estados por color).
-2. CRUD de servicios, empleadas y horarios.
-3. Booking público en `/book/:slug` usando las RPC ya creadas.
-4. Vista de clientes con historial.
-5. Finanzas: cuadre diario/semanal/mensual.
-6. Edge Function programada para recordatorios WhatsApp.
-# vue-salones-laravel
-# vue-salones-laravel
+Abre [http://localhost:5173](http://localhost:5173).
