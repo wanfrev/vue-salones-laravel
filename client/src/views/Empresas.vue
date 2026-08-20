@@ -38,6 +38,15 @@
     <HeadcountMatrix v-if="showMatrix" class="mb-4" :business-id="businessId" :status="activeStatusTab" />
 
     <template v-else>
+      <div class="mb-4">
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Buscar empresa por nombre o sitio..."
+          class="w-full max-w-md rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+        />
+      </div>
+
       <div v-if="ctx.isLoading.value" class="flex items-center justify-center py-16">
         <svg class="h-7 w-7 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
@@ -51,8 +60,12 @@
         <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-secondary">
           <BuildingsIcon class="h-7 w-7 text-text-muted" />
         </div>
-        <p class="text-lg font-semibold text-text">No hay empresas {{ STATUS_TAB_LABELS[activeStatusTab].toLowerCase() }}</p>
-        <p class="mt-1 text-sm text-text-muted">Registra la primera empresa para poder cargar horas y facturar.</p>
+        <p class="text-lg font-semibold text-text">
+          {{ searchQuery ? 'Sin resultados' : 'No hay empresas ' + STATUS_TAB_LABELS[activeStatusTab].toLowerCase() }}
+        </p>
+        <p class="mt-1 text-sm text-text-muted">
+          {{ searchQuery ? 'Prueba con otro término de búsqueda.' : 'Registra la primera empresa para poder cargar horas y facturar.' }}
+        </p>
       </div>
 
       <div v-else class="space-y-3">
@@ -441,7 +454,17 @@ const taxTierHighPercent = computed({
   }
 })
 
-const filteredCompanies = computed(() => ctx.companiesByStatus.value[activeStatusTab.value])
+const searchQuery = ref('')
+const filteredCompanies = computed(() => {
+  const list = ctx.companiesByStatus.value[activeStatusTab.value] ?? []
+  if (!searchQuery.value.trim()) return list
+  const q = searchQuery.value.toLowerCase().trim()
+  return list.filter(c =>
+    (c.name || '').toLowerCase().includes(q) ||
+    (c.legalName || '').toLowerCase().includes(q) ||
+    (c.workSite || '').toLowerCase().includes(q)
+  )
+})
 const showMatrix = ref(false)
 
 const expandedId = ref<string | null>(null)

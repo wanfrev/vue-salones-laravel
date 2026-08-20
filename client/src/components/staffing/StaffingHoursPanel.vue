@@ -5,10 +5,13 @@
         <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted" for="hours-company">
           Empresa
         </label>
-        <select id="hours-company" v-model="selectedCompanyId" :class="inputClass">
-          <option value="" disabled>Selecciona una empresa</option>
-          <option v-for="c in companies" :key="c.id" :value="c.id">{{ c.name }}</option>
-        </select>
+        <FormSearchSelect
+          id="hours-company"
+          v-model="selectedCompanyId"
+          :options="companyOptions"
+          placeholder="Selecciona una empresa"
+          search-placeholder="Buscar empresa..."
+        />
       </div>
 
       <div>
@@ -193,6 +196,7 @@ import {
   getStaffingInvoice, listStaffingCompanies, listStaffingRates, staffingCompanyKeys, staffingRateKeys,
 } from '../../services/staffing/staffingService'
 import type { StaffingRateRow, TimesheetEntryInput } from '../../services/staffing/staffingService'
+import { FormSearchSelect } from '../../components/forms'
 import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
 import { formatDateUS, toISODate } from '../../lib/formatters'
 import type { StaffingTimesheetEntry } from '../../types/database'
@@ -219,6 +223,10 @@ const { data: companies } = useQuery({
   queryFn: () => listStaffingCompanies(props.businessId!),
   enabled: computed(() => !!props.businessId),
 })
+
+const companyOptions = computed(() =>
+  (companies.value ?? []).map(c => ({ value: c.id, label: c.name }))
+)
 
 const selectedCompanyId = ref(props.initialCompanyId || '')
 const companyId = computed(() => selectedCompanyId.value || null)
