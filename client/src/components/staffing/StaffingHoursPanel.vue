@@ -195,7 +195,7 @@ import { useBilling } from '../../composables/staffing/useBilling'
 import {
   getStaffingInvoice, listStaffingCompanies, listStaffingRates, staffingCompanyKeys, staffingRateKeys,
 } from '../../services/staffing/staffingService'
-import type { StaffingRateRow, TimesheetEntryInput } from '../../services/staffing/staffingService'
+import type { StaffingCompanyRow, StaffingRateRow, TimesheetEntryInput } from '../../services/staffing/staffingService'
 import { FormSearchSelect } from '../../components/forms'
 import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
 import { formatDateUS, toISODate } from '../../lib/formatters'
@@ -342,6 +342,33 @@ const isDirty = (employeeId: string): boolean => {
     || saved.adjustment !== row.adjustment
 }
 
+/**
+ * Mirrors TaxRule::amountFor / StaffingTermsFactory::taxRuleFor server-side: a manually set
+ * per-employee rate always wins as a flat rate; otherwise tiered brackets win over the company's
+ * flat taxRate when present. Brackets are ordered with an EXCLUSIVE upper `threshold` — the first
+ * one the base falls under wins, and a null threshold is the catch-all.
+ */
+const taxFor = (
+  gross: number,
+  employeeTaxRate: number | null | undefined,
+  company: StaffingCompanyRow | undefined,
+): number => {
+  const base = Math.max(0, gross)
+  if (employeeTaxRate != null) return base * employeeTaxRate
+
+  const brackets = company?.taxBrackets
+  if (brackets && brackets.length > 0) {
+    for (const bracket of brackets) {
+      if (bracket.threshold === null || base < bracket.threshold) {
+        return base * bracket.rate
+      }
+    }
+    return 0
+  }
+
+  return base * (company?.taxRate ?? 0)
+}
+
 const roundPayout = (net: number, mode: string): number => {
   if (mode === 'exact') return net
   if (mode === 'floor' && net > 0) return Math.floor(net)
@@ -400,8 +427,7 @@ const rowFor = (employeeId: string): DisplayRow | null => {
   const overtimeAmount = overtimeHours * overtimePayRate
   const gross = regularAmount + overtimeAmount - (row.preTaxDeduction || 0)
 
-  const taxRate = employee.staffing_tax_rate ?? company?.taxRate ?? 0
-  const tax = Math.max(0, gross) * taxRate
+  const tax = taxFor(gross, employee.staffing_tax_rate, company)
   const net = gross - tax - (row.fixedFees || 0) + (row.adjustment || 0)
   const payout = roundPayout(net, company?.payoutRounding ?? 'cent')
 
