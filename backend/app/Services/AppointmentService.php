@@ -55,6 +55,11 @@ class AppointmentService
             $cleanStatus = is_array($status)
                 ? array_map(fn($s) => preg_replace('/^(gte|lte|gt|lt|eq|in|neq)\./i', '', $s), (array) $status)
                 : preg_replace('/^(gte|lte|gt|lt|eq|in|neq)\./i', '', $status);
+            // PostgREST "in.(a,b,c)" syntax leaves a parenthesized, comma-separated
+            // string after stripping the operator prefix — split it into real values.
+            if (is_string($cleanStatus) && preg_match('/^\((.*)\)$/', $cleanStatus, $m)) {
+                $cleanStatus = explode(',', $m[1]);
+            }
             $query->whereIn('status', (array) $cleanStatus);
         }
         if ($groupId) {
