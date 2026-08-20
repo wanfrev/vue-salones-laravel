@@ -80,9 +80,12 @@ class StaffingInvoiceService
      */
     private function nextInvoiceNumber(string $businessId): string
     {
-        $count = StaffingInvoice::where('business_id', $businessId)->count();
+        $maxNumber = DB::table('staffing_invoices')
+            ->where('business_id', $businessId)
+            ->selectRaw('MAX(CAST(invoice_number AS INTEGER)) as max_num')
+            ->value('max_num');
 
-        return (string) (1000 + $count + 1);
+        return (string) (($maxNumber ?? 1000) + 1);
     }
 
     /**
