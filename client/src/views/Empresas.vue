@@ -388,19 +388,20 @@ const activeStatusTab = ref<StaffingCompanyStatus>('active')
 
 
 const ROUNDING_OPTIONS = [
-  { value: 'cent', label: 'Al centavo' },
-  { value: 'floor', label: 'Al entero inferior' },
-  { value: 'exact', label: 'Exacto (no redondea)' },
+  { value: 'exact', label: 'Exacto (se respetan los decimales)' },
+  { value: 'round', label: 'Redondeo (5 o más hacia arriba)' },
+  { value: 'floor', label: 'Sin decimales (mantiene enteros, elimina decimales)' },
 ]
 
 const ROUNDING_LABELS: Record<string, string> = {
-  cent: 'Al centavo',
-  floor: 'Dólar entero',
-  exact: 'Exacto',
+  exact: 'Exacto (se respetan los decimales)',
+  cent: 'Exacto (se respetan los decimales)', // support legacy
+  round: 'Redondeo entero',
+  floor: 'Sin decimales',
 }
 
 // A row saved before a mode existed (or by hand) must not render "undefined" in the list.
-const roundingLabel = (mode: string) => ROUNDING_LABELS[mode] ?? 'Al centavo'
+const roundingLabel = (mode: string) => ROUNDING_LABELS[mode] ?? 'Exacto (se respetan los decimales)'
 
 const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)

@@ -48,7 +48,7 @@ export const staffingReportKeys = {
 }
 
 export type TaxDestination = 'remitted' | 'retained'
-export type PayoutRounding = 'floor' | 'cent' | 'exact'
+export type PayoutRounding = 'floor' | 'cent' | 'exact' | 'round'
 export type StaffingCompanyStatus = 'active' | 'inactive' | 'on_hold'
 
 /** A role's rate only needs a shift when the company pays that role differently by time of day. */

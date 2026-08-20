@@ -155,7 +155,7 @@ export const staffingCompanyFormSchema = z.object({
     rate: z.number().min(0).max(1),
   })).nullable().default(null),
   roles: z.array(staffingCompanyRoleSchema).default([]),
-  payoutRounding: z.enum(['floor', 'cent', 'exact']).default('cent'),
+  payoutRounding: z.enum(['floor', 'cent', 'exact', 'round']).default('cent'),
   status: z.enum(['active', 'inactive', 'on_hold']).default('active'),
   notes: z.string().default(''),
 })

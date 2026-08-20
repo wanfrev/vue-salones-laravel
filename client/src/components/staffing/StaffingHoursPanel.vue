@@ -386,12 +386,6 @@ const isDirty = (employeeId: string): boolean => {
     || saved.adjustment !== row.adjustment
 }
 
-/**
- * Mirrors TaxRule::amountFor / StaffingTermsFactory::taxRuleFor server-side: a manually set
- * per-employee rate always wins as a flat rate; otherwise tiered brackets win over the company's
- * flat taxRate when present. Brackets are ordered with an EXCLUSIVE upper `threshold` — the first
- * one the base falls under wins, and a null threshold is the catch-all.
- */
 const taxFor = (
   gross: number,
   employeeTaxRate: number | null | undefined,
@@ -415,7 +409,10 @@ const taxFor = (
 
 const roundPayout = (net: number, mode: string): number => {
   if (mode === 'exact') return net
-  if (mode === 'floor' && net > 0) return Math.floor(net)
+  if (net > 0) {
+    if (mode === 'floor') return Math.floor(net)
+    if (mode === 'round') return Math.round(net)
+  }
   return Math.round(net * 100) / 100
 }
 
@@ -499,14 +496,15 @@ const rowFor = (employeeId: string): DisplayRow | null => {
 }
 
 const ROUNDING_LABELS: Record<string, string> = {
-  cent: 'Al centavo',
-  floor: 'Dólar entero',
-  exact: 'Exacto',
+  exact: 'Exacto (se respetan los decimales)',
+  cent: 'Exacto (se respetan los decimales)', // support legacy
+  round: 'Redondeo entero',
+  floor: 'Sin decimales',
 }
 
 const roundingLabel = computed(() => {
   const company = (companies.value ?? []).find(c => c.id === selectedCompanyId.value)
-  return company ? (ROUNDING_LABELS[company.payoutRounding] ?? 'Al centavo') : '—'
+  return company ? (ROUNDING_LABELS[company.payoutRounding] ?? 'Exacto (se respetan los decimales)') : '—'
 })
 
 const totals = computed(() => {

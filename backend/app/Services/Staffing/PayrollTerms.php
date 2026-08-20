@@ -17,6 +17,9 @@ final class PayrollTerms
     /** Pay the exact computed amount, fractions of a cent included. */
     public const PAYOUT_EXACT = 'exact';
 
+    /** Round to the nearest integer (standard rounding). */
+    public const PAYOUT_ROUND = 'round';
+
     public function __construct(
         public readonly TaxRule $taxRule,
         public readonly float $overtimeThresholdHours = 40.0,

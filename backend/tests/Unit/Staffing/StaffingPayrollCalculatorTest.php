@@ -331,6 +331,36 @@ class StaffingPayrollCalculatorTest extends TestCase
         $this->assertEqualsWithDelta(30.00, $invoice->overtimeBillRate, self::TOLERANCE);
     }
 
+    public function test_payout_rounding_modes(): void
+    {
+        $entry = new TimesheetEntry('Test Employee', 40.0, 15.22, 20.0); // Gross is 608.80
+
+        // 1. Exact mode (payout equals net)
+        $termsExact = new PayrollTerms(taxRule: TaxRule::none(), payoutRounding: PayrollTerms::PAYOUT_EXACT);
+        $payrollExact = $this->calculator->payroll($entry, $termsExact);
+        $this->assertEqualsWithDelta(608.80, $payrollExact->payout, self::TOLERANCE);
+
+        // 2. Floor mode (drops cents, keeping integer)
+        $termsFloor = new PayrollTerms(taxRule: TaxRule::none(), payoutRounding: PayrollTerms::PAYOUT_FLOOR);
+        $payrollFloor = $this->calculator->payroll($entry, $termsFloor);
+        $this->assertEqualsWithDelta(608.00, $payrollFloor->payout, self::TOLERANCE);
+
+        // 3. Round mode (standard nearest integer rounding, e.g., 608.80 rounds to 609.00)
+        $termsRound = new PayrollTerms(taxRule: TaxRule::none(), payoutRounding: PayrollTerms::PAYOUT_ROUND);
+        $payrollRound = $this->calculator->payroll($entry, $termsRound);
+        $this->assertEqualsWithDelta(609.00, $payrollRound->payout, self::TOLERANCE);
+
+        // Test round mode for rounding down (e.g., gross 15.22 * 10 = 152.20 rounds to 152.00)
+        $entryRoundDown = new TimesheetEntry('Test Employee', 10.0, 15.22, 20.0);
+        $payrollRoundDown = $this->calculator->payroll($entryRoundDown, $termsRound);
+        $this->assertEqualsWithDelta(152.00, $payrollRoundDown->payout, self::TOLERANCE);
+
+        // Test round mode for rounding exactly at 0.5 (e.g., 15.25 * 10 = 152.50 rounds to 153.00)
+        $entryRoundHalf = new TimesheetEntry('Test Employee', 10.0, 15.25, 20.0);
+        $payrollRoundHalf = $this->calculator->payroll($entryRoundHalf, $termsRound);
+        $this->assertEqualsWithDelta(153.00, $payrollRoundHalf->payout, self::TOLERANCE);
+    }
+
     /** @return list<TimesheetEntry> */
     private function dykeEntries(): array
     {

@@ -79,6 +79,7 @@ class StaffingTermsFactory
         return match ($company->payout_rounding) {
             PayrollTerms::PAYOUT_FLOOR => PayrollTerms::PAYOUT_FLOOR,
             PayrollTerms::PAYOUT_EXACT => PayrollTerms::PAYOUT_EXACT,
+            PayrollTerms::PAYOUT_ROUND => PayrollTerms::PAYOUT_ROUND,
             default => PayrollTerms::PAYOUT_CENT,
         };
     }

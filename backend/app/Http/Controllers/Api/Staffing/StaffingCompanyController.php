@@ -105,7 +105,8 @@ class StaffingCompanyController
             'payout_rounding' => 'nullable|in:'
                 . PayrollTerms::PAYOUT_FLOOR . ','
                 . PayrollTerms::PAYOUT_CENT . ','
-                . PayrollTerms::PAYOUT_EXACT,
+                . PayrollTerms::PAYOUT_EXACT . ','
+                . PayrollTerms::PAYOUT_ROUND,
             'notes' => 'nullable|string',
             'active' => 'boolean',
             'status' => 'nullable|in:active,inactive,on_hold',
