@@ -39,6 +39,7 @@ class ProductService
             'unit' => $data['unit'] ?? 'unit',
             'unit_cost' => $data['unit_cost'] ?? 0,
             'unit_price' => $data['unit_price'] ?? 0,
+            'unit_price_2' => $data['unit_price_2'] ?? null,
             'reorder_point' => $data['reorder_point'] ?? 0,
             'active' => $data['active'] ?? true,
             'is_sellable' => $data['is_sellable'] ?? true,
