@@ -378,9 +378,9 @@ class StaffingReportService
      *
      * @return list<array{employeeId: string, employeeName: string, titular: string, bankName: ?string, companyName: string, shift: ?string, amount: float}>
      */
-    public function depositListForWeek(string $businessId, string $weekStart): array
+    public function depositListForWeek(string $businessId, string $weekStart, ?string $companyId = null): array
     {
-        $rows = DB::table('staffing_timesheet_entries as ste')
+        $query = DB::table('staffing_timesheet_entries as ste')
             ->join('staffing_timesheets as st', 'st.id', '=', 'ste.timesheet_id')
             ->join('profiles as p', 'p.id', '=', 'ste.employee_id')
             ->join('staffing_companies as sc', 'sc.id', '=', 'st.company_id')
@@ -392,8 +392,13 @@ class StaffingReportService
             ->where('st.week_start', $weekStart)
             ->whereIn('st.status', [StaffingTimesheet::STATUS_APPROVED, StaffingTimesheet::STATUS_PAID])
             ->where('p.payment_method', 'direct_deposit')
-            ->where('ste.payout', '>', 0)
-            ->orderBy('p.full_name')
+            ->where('ste.payout', '>', 0);
+
+        if ($companyId) {
+            $query->where('st.company_id', $companyId);
+        }
+
+        $rows = $query->orderBy('p.full_name')
             ->orderBy('sc.name')
             ->select(
                 'p.id as employee_id', 'p.full_name', 'p.bank_account_holder', 'p.bank_name',

@@ -10,27 +10,42 @@
           </router-link>
           <span class="text-text-muted/40">/</span>
           <h1 class="text-lg font-bold text-text">{{ business.name }}</h1>
-          <span class="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase"
+          <span v-if="business.deleted_at" class="rounded-full bg-danger/10 px-2 py-0.5 text-[10px] font-bold uppercase text-danger">
+            Eliminado
+          </span>
+          <span v-else class="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase"
             :class="business.active ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'">
             {{ business.active ? 'Activo' : 'Inactivo' }}
           </span>
         </div>
         <div class="flex items-center gap-2">
-          <button @click="openEdit" class="rounded-xl border border-border px-3 py-2 text-xs font-semibold text-text-secondary hover:bg-bg-secondary transition-colors">
-            Editar datos
-          </button>
-          <button v-if="business.active" @click="confirmSuspend" :disabled="isSuspending"
-            class="rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-600 hover:bg-amber-500/20 transition-colors disabled:opacity-50">
-            {{ isSuspending ? '...' : 'Suspender' }}
-          </button>
-          <button v-else @click="confirmResume" :disabled="isResuming"
-            class="rounded-xl bg-success/10 px-3 py-2 text-xs font-semibold text-success hover:bg-success/20 transition-colors disabled:opacity-50">
-            {{ isResuming ? '...' : 'Reactivar' }}
-          </button>
-          <button @click="confirmDelete" :disabled="isDeleting"
-            class="rounded-xl border border-danger/20 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors">
-            Eliminar
-          </button>
+          <template v-if="business.deleted_at">
+            <button @click="confirmRestore" :disabled="isRestoring"
+              class="rounded-xl bg-success/10 px-3 py-2 text-xs font-semibold text-success hover:bg-success/20 transition-colors disabled:opacity-50">
+              {{ isRestoring ? '...' : 'Restaurar' }}
+            </button>
+            <button @click="openPurge"
+              class="rounded-xl border border-danger/20 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors">
+              Purgar permanentemente
+            </button>
+          </template>
+          <template v-else>
+            <button @click="openEdit" class="rounded-xl border border-border px-3 py-2 text-xs font-semibold text-text-secondary hover:bg-bg-secondary transition-colors">
+              Editar datos
+            </button>
+            <button v-if="business.active" @click="confirmSuspend" :disabled="isSuspending"
+              class="rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-600 hover:bg-amber-500/20 transition-colors disabled:opacity-50">
+              {{ isSuspending ? '...' : 'Suspender' }}
+            </button>
+            <button v-else @click="confirmResume" :disabled="isResuming"
+              class="rounded-xl bg-success/10 px-3 py-2 text-xs font-semibold text-success hover:bg-success/20 transition-colors disabled:opacity-50">
+              {{ isResuming ? '...' : 'Reactivar' }}
+            </button>
+            <button @click="confirmDelete" :disabled="isDeleting"
+              class="rounded-xl border border-danger/20 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors">
+              Eliminar
+            </button>
+          </template>
         </div>
       </div>
 
@@ -260,6 +275,34 @@
         </div>
       </Transition>
     </Teleport>
+
+    <!-- Purge Modal -->
+    <Teleport to="body">
+      <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
+        <div v-if="showPurgeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4" @click.self="closePurge">
+          <div class="w-full max-w-md rounded-2xl border border-danger/30 bg-surface p-6 shadow-2xl" @click.stop>
+            <h2 class="text-base font-bold text-danger mb-1">Purgar "{{ business?.name }}" permanentemente</h2>
+            <p class="text-xs text-text-muted mb-4 leading-relaxed">
+              Esto borra el negocio y absolutamente todos sus datos — clientes, citas, transacciones,
+              empleados, inventario, facturas, todo. <b class="text-text">No se puede deshacer.</b>
+            </p>
+            <label class="block text-xs font-semibold text-text mb-1">
+              Escribe <span class="font-mono text-danger">{{ business?.name }}</span> para confirmar
+            </label>
+            <input v-model="purgeConfirmInput" type="text" autocomplete="off"
+              class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-danger focus:ring-2 focus:ring-danger/10 transition-all" />
+            <p v-if="purgeError" class="mt-2 text-xs text-danger">{{ purgeError }}</p>
+            <div class="flex justify-end gap-2 pt-4">
+              <button type="button" @click="closePurge" class="rounded-xl border border-border px-4 py-2.5 text-xs font-semibold text-text-secondary hover:bg-bg-secondary transition-colors">Cancelar</button>
+              <button type="button" :disabled="isPurging || purgeConfirmInput !== business?.name" @click="handlePurge"
+                class="rounded-xl bg-danger px-4 py-2.5 text-xs font-bold text-white hover:bg-danger/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                {{ isPurging ? 'Purgando...' : 'Purgar permanentemente' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </SuperadminLayout>
 </template>
 
@@ -270,7 +313,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { formatDate } from '../lib/formatters'
 import { useNotification } from '../composables/common/useNotification'
 import {
-  deleteBusiness, listBusinessAdmins, listBusinesses,
+  deleteBusiness, listBusinessAdmins, listBusinesses, purgeBusiness, restoreBusiness,
   resumeBusiness, suspendBusiness, updateBusiness, superadminKeys,
 } from '../services/superadminService'
 import { listBranches, branchesKeys } from '../services/branchesService'
@@ -288,8 +331,8 @@ const router = useRouter()
 const businessId = computed(() => route.params.id as string)
 
 const { data: businessesData } = useQuery({
-  queryKey: superadminKeys.businesses(),
-  queryFn: listBusinesses,
+  queryKey: [...superadminKeys.businesses(), true] as const,
+  queryFn: () => listBusinesses(true),
 })
 
 const business = computed<Business | undefined>(() =>
@@ -415,10 +458,32 @@ const { mutateAsync: deleteBiz, isPending: isDeleting } = useMutation({
   onSuccess: () => { success('Negocio eliminado'); router.push('/superadmin') },
   onError: (err) => showError(translateError(err, 'Error al eliminar')),
 })
+const { mutateAsync: restoreBiz, isPending: isRestoring } = useMutation({
+  mutationFn: restoreBusiness,
+  onSuccess: () => { success('Negocio restaurado'); queryClient.invalidateQueries({ queryKey: superadminKeys.businesses() }).catch(() => {}) },
+  onError: (err) => showError(translateError(err, 'Error al restaurar')),
+})
+
+const showPurgeModal = ref(false)
+const purgeConfirmInput = ref('')
+const purgeError = ref('')
+const openPurge = () => { purgeConfirmInput.value = ''; purgeError.value = ''; showPurgeModal.value = true }
+const closePurge = () => { showPurgeModal.value = false }
+
+const { mutateAsync: purgeBiz, isPending: isPurging } = useMutation({
+  mutationFn: () => purgeBusiness(business.value!.id, purgeConfirmInput.value),
+  onSuccess: () => { success('Negocio purgado permanentemente'); router.push('/superadmin') },
+  onError: (err) => { purgeError.value = translateError(err, 'Error al purgar') },
+})
+const handlePurge = () => {
+  if (!business.value || purgeConfirmInput.value !== business.value.name) return
+  purgeBiz()
+}
 
 const confirmSuspend = () => { if (business.value) window.confirm(`¿Suspender "${business.value.name}"?`) && suspendBiz(business.value.id) }
 const confirmResume = () => { if (business.value) window.confirm(`¿Reactivar "${business.value.name}"?`) && resumeBiz(business.value.id) }
-const confirmDelete = () => { if (business.value) window.confirm(`¿Eliminar "${business.value.name}"?\n\nSe borrará TODO. Esta acción no se puede deshacer.`) && deleteBiz(business.value.id) }
+const confirmDelete = () => { if (business.value) window.confirm(`¿Eliminar "${business.value.name}"?\n\nEl negocio se ocultará y sus usuarios se desactivarán, pero sus datos NO se borran todavía — podrás restaurarlo, o purgarlo permanentemente después.`) && deleteBiz(business.value.id) }
+const confirmRestore = () => { if (business.value) window.confirm(`¿Restaurar "${business.value.name}"? Volverá a aparecer en la lista de negocios.`) && restoreBiz(business.value.id) }
 
 function getInitials(name: string): string {
   return name.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() || '').join('')

@@ -246,7 +246,7 @@ export const saveStaffingCompany = async (
   return toCompanyRow(saved as StaffingCompany)
 }
 
-/** Soft delete — past payroll references this company's rate card. */
+/** Permanently deletes a staffing company. */
 export const deleteStaffingCompany = async (id: string): Promise<void> => {
   const { error } = await db.from('staffing_companies').delete().eq('id', id)
   if (error) handleDbError(error, 'Error al eliminar la empresa')
@@ -629,8 +629,12 @@ export interface StaffingDepositListRow {
  * the "lista de depósitos" that guides the bank run, generated off the same numbers nómina
  * already computed rather than copied onto paper by hand.
  */
-export const getStaffingDepositList = (weekStart: string): Promise<StaffingDepositListRow[]> =>
-  apiRequest<StaffingDepositListRow[]>('GET', `/staffing-reports/deposit-list?week_start=${weekStart}`)
+export const getStaffingDepositList = (weekStart: string, companyId?: string | null): Promise<StaffingDepositListRow[]> => {
+  const url = companyId
+    ? `/staffing-reports/deposit-list?week_start=${weekStart}&company_id=${companyId}`
+    : `/staffing-reports/deposit-list?week_start=${weekStart}`
+  return apiRequest<StaffingDepositListRow[]>('GET', url)
+}
 
 export interface StaffingManualIncomeRow {
   id: string

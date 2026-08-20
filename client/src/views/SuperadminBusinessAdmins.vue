@@ -173,7 +173,7 @@ const { success: showSuccess, error: showError } = useNotification()
 
 const { data: businessesData } = useQuery({
   queryKey: superadminKeys.businesses(),
-  queryFn: listBusinesses,
+  queryFn: () => listBusinesses(),
 })
 const business = computed<Business | undefined>(() =>
   businessesData.value?.find((b: Business) => b.id === businessId.value)

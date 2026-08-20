@@ -69,13 +69,19 @@
 
       <!-- Business List -->
       <div class="rounded-2xl border border-border bg-surface p-6">
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center justify-between mb-4 gap-3">
           <div>
             <h2 class="text-base font-bold text-text">Negocios registrados</h2>
             <p class="text-xs text-text-muted">{{ filteredBusinesses.length }} de {{ businessesCount }}</p>
           </div>
-          <input v-model="search" type="search" placeholder="Buscar..."
-            class="w-44 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-text-muted/50 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
+          <div class="flex items-center gap-2">
+            <label class="flex items-center gap-1.5 text-xs font-medium text-text-secondary cursor-pointer select-none">
+              <input v-model="showDeleted" type="checkbox" class="rounded border-border" />
+              Ver eliminados
+            </label>
+            <input v-model="search" type="search" placeholder="Buscar..."
+              class="w-44 rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-text-muted/50 outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
+          </div>
         </div>
 
         <div class="space-y-2 max-h-[440px] overflow-y-auto -mx-2 px-2">
@@ -88,7 +94,10 @@
             <div class="min-w-0 flex-1">
               <div class="flex items-center gap-2">
                 <h3 class="text-sm font-semibold text-text group-hover:text-primary transition-colors truncate">{{ biz.name }}</h3>
-                <span class="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase"
+                <span v-if="biz.deleted_at" class="shrink-0 rounded-full bg-danger/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-danger">
+                  Eliminado
+                </span>
+                <span v-else class="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase"
                   :class="biz.active ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'">
                   {{ biz.active ? 'Activo' : 'Inactivo' }}
                 </span>
@@ -140,17 +149,20 @@ const registeredNiches = creatableNiches()
 const form = ref({ businessName: '', ownerEmail: '', ownerPassword: '', nicheType: '' })
 const search = ref('')
 const formError = ref('')
+const showDeleted = ref(false)
 
 const { data: businessesData } = useQuery({
-  queryKey: superadminKeys.businesses(),
-  queryFn: listBusinesses,
+  queryKey: computed(() => [...superadminKeys.businesses(), showDeleted.value] as const),
+  queryFn: () => listBusinesses(showDeleted.value),
 })
 
 const businesses = computed<Business[]>(() => businessesData.value ?? [])
-const businessesCount = computed(() => businesses.value.length)
-const activeCount = computed(() => businesses.value.filter(b => b.active).length)
-const inactiveCount = computed(() => businesses.value.filter(b => !b.active).length)
-const nichesCount = computed(() => new Set(businesses.value.map(b => b.niche_type).filter(Boolean)).size)
+// Stats are always about live (non-deleted) businesses, regardless of the "Ver eliminados" toggle.
+const liveBusinesses = computed(() => businesses.value.filter(b => !b.deleted_at))
+const businessesCount = computed(() => liveBusinesses.value.length)
+const activeCount = computed(() => liveBusinesses.value.filter(b => b.active).length)
+const inactiveCount = computed(() => liveBusinesses.value.filter(b => !b.active).length)
+const nichesCount = computed(() => new Set(liveBusinesses.value.map(b => b.niche_type).filter(Boolean)).size)
 
 const { mutateAsync: createBusiness, isPending: isCreating } = useMutation({
   mutationFn: createBusinessWithOwner,

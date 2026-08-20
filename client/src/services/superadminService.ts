@@ -1,4 +1,4 @@
-import { db, apiRequest } from '../lib/api'
+import { apiRequest, db } from '../lib/api'
 import type { ApiUser } from '../lib/api'
 import type { Business } from '../types/database'
 import type { AuthProfile } from '../types/auth'
@@ -58,14 +58,11 @@ export const superadminKeys = {
 
 // ── READ ──
 
-export const listBusinesses = async (): Promise<Business[]> => {
-  const { data, error } = await db
-    .from('admin/businesses')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (error) throw new Error(error.message || 'Error al listar negocios')
-  return (data ?? []) as Business[]
+/** Server already orders by created_at desc — `includeDeleted` surfaces soft-deleted
+ *  (`deleted_at` set) businesses too, for the "Restaurar" / "Purgar permanentemente" flows. */
+export const listBusinesses = async (includeDeleted = false): Promise<Business[]> => {
+  const qs = includeDeleted ? '?include_deleted=1' : ''
+  return apiRequest<Business[]>('GET', `/admin/businesses${qs}`)
 }
 
 export const listBusinessAdmins = async (businessId: string): Promise<AuthProfile[]> => {
@@ -135,6 +132,20 @@ export const deleteBusiness = async (businessId: string): Promise<void> => {
   await apiRequest<void>('DELETE', `/admin/businesses/${businessId}`)
 }
 
+/** Undoes deleteBusiness — clears deleted_at so the business shows up in the normal list again. */
+export const restoreBusiness = async (businessId: string): Promise<void> => {
+  await apiRequest('POST', `/admin/businesses/${businessId}/restore`)
+}
+
+/**
+ * The real, irreversible delete. Only works on a business already soft-deleted (deleteBusiness
+ * called first), and requires typing its exact name — the backend re-checks both, this isn't
+ * just a UI gate.
+ */
+export const purgeBusiness = async (businessId: string, confirmName: string): Promise<void> => {
+  await apiRequest('POST', `/admin/businesses/${businessId}/purge`, { confirm_name: confirmName })
+}
+
 /**
  * Sets a new password for a business admin. Write-only by nature — passwords are stored
  * one-way hashed (bcrypt), so there is no counterpart function to read one back.
@@ -180,6 +191,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   create_business: 'Negocio creado',
   update_business: 'Negocio actualizado',
   delete_business: 'Negocio eliminado',
+  restore_business: 'Negocio restaurado',
+  purge_business: 'Negocio purgado permanentemente',
   suspend_business: 'Negocio suspendido',
   resume_business: 'Negocio reactivado',
   reset_admin_password: 'Contraseña restablecida',

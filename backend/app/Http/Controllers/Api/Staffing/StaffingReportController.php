@@ -148,10 +148,11 @@ class StaffingReportController
 
         $data = $request->validate([
             'week_start' => 'required|date',
+            'company_id' => 'nullable|uuid',
         ]);
 
         return response()->json(
-            $this->reports->depositListForWeek($p->business_id, $data['week_start'])
+            $this->reports->depositListForWeek($p->business_id, $data['week_start'], $data['company_id'] ?? null)
         );
     }
 
