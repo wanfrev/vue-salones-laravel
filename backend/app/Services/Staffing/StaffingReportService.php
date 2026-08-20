@@ -518,7 +518,7 @@ class StaffingReportService
                     'companyName' => $employee->staffingCompany?->name,
                     'phone' => $employee->phone,
                     'address' => $employee->address,
-                    'ssn' => $employee->ssn,
+                    'ssn' => rescue(fn() => $employee->ssn, null, false),
                     'ssnLast4' => $employee->ssn_last4,
                     'status' => $annualTax?->status ?? 'BLANK',
                     'globalFilePath' => $annualTax?->file_path,
