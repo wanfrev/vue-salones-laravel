@@ -246,7 +246,7 @@ export const saveStaffingCompany = async (
   return toCompanyRow(saved as StaffingCompany)
 }
 
-/** Soft delete — past payroll references this company's rate card. */
+/** Permanently deletes a staffing company. */
 export const deleteStaffingCompany = async (id: string): Promise<void> => {
   const { error } = await db.from('staffing_companies').delete().eq('id', id)
   if (error) handleDbError(error, 'Error al eliminar la empresa')

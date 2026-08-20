@@ -83,13 +83,12 @@ class StaffingCompanyService
     }
 
     /**
-     * Deactivates instead of deleting. A company's rate card is referenced by past payroll, and
-     * a cascade would take that history with it.
+     * Permanently deletes a staffing company.
      */
     public function destroy(string $id, string $businessId): void
     {
         $company = $this->findForBusiness($id, $businessId);
-        $company->update(['status' => StaffingCompany::STATUS_INACTIVE, 'updated_at' => now()]);
+        $company->delete();
     }
 
     public function findForBusiness(string $id, string $businessId): StaffingCompany

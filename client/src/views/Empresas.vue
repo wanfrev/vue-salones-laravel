@@ -90,7 +90,7 @@
               @click="ctx.openEdit(company)">
               <PenIcon class="h-4 w-4" />
             </button>
-            <button title="Desactivar"
+            <button title="Eliminar"
               class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
               @click="confirmDelete(company)">
               <TrashBin2Icon class="h-4 w-4" />
@@ -452,7 +452,7 @@ const toggle = (id: string) => {
 }
 
 const confirmDelete = (company: StaffingCompanyRow) => {
-  if (window.confirm(`¿Desactivar ${company.name}? Su historial de nómina se conserva.`)) {
+  if (window.confirm(`¿Estás seguro de eliminar la empresa "${company.name}"? Esta acción no se puede deshacer.`)) {
     ctx.handleDelete(company.id)
   }
 }
