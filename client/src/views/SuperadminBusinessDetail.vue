@@ -455,7 +455,14 @@ const { mutateAsync: resumeBiz, isPending: isResuming } = useMutation({
 })
 const { mutateAsync: deleteBiz, isPending: isDeleting } = useMutation({
   mutationFn: deleteBusiness,
-  onSuccess: () => { success('Negocio eliminado'); router.push('/superadmin') },
+  onSuccess: () => {
+    success('Negocio eliminado')
+    // The list query caches for 5min (queryClient.ts) — without this, landing back on
+    // /superadmin right after would show the pre-delete list, active/inactive badge and all,
+    // until the cache happened to expire on its own.
+    queryClient.invalidateQueries({ queryKey: superadminKeys.businesses() }).catch(() => {})
+    router.push('/superadmin')
+  },
   onError: (err) => showError(translateError(err, 'Error al eliminar')),
 })
 const { mutateAsync: restoreBiz, isPending: isRestoring } = useMutation({
