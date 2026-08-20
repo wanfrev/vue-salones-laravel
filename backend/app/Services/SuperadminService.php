@@ -10,16 +10,20 @@ use App\Support\NicheRegistry;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use RuntimeException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class SuperadminService
 {
-    public function businesses(): Collection
+    public function businesses(bool $includeDeleted = false): Collection
     {
-        return Business::whereNull('deleted_at')
-            ->orderByDesc('created_at')
-            ->get();
+        $query = Business::query();
+        if (!$includeDeleted) {
+            $query->whereNull('deleted_at');
+        }
+
+        return $query->orderByDesc('created_at')->get();
     }
 
     /**
@@ -309,6 +313,76 @@ class SuperadminService
         $this->logAudit($actorId, 'delete_business', $id, null, [
             'business_name' => $business->name,
         ]);
+    }
+
+    /**
+     * Undoes destroy(): clears deleted_at so the business is visible again in the normal list.
+     * Leaves `active` as-is (still false) — the existing suspend/resume toggle handles that
+     * separately, so this method only owns the "hidden vs visible" axis.
+     */
+    public function restore(string $id, string $actorId): void
+    {
+        $business = Business::find($id);
+        if (!$business) {
+            throw new NotFoundHttpException('Negocio no encontrado.');
+        }
+
+        $business->update(['deleted_at' => null, 'updated_at' => now()]);
+
+        $this->logAudit($actorId, 'restore_business', $id, null, [
+            'business_name' => $business->name,
+        ]);
+    }
+
+    /**
+     * The real, irreversible delete — everything destroy() only pretended to do. Requires the
+     * business to already be soft-deleted (destroy() called first) and the caller to type its
+     * exact name, so this can never be one misclick away like destroy() reads as today.
+     *
+     * All ~37 business_id foreign keys across the schema are ON DELETE CASCADE (verified against
+     * the live DB, not just migration history — some FKs were added by later migrations), so
+     * deleting the business row itself cascades through appointments, clients, transactions,
+     * inventory, staffing data, everything. The one thing that does NOT cascade is `users`: the
+     * FK runs profiles.id -> users.id (a user owns its profile, not the other way around), so
+     * without this explicit cleanup every employee/admin's login row would survive as an orphan
+     * forever — still holding their email, blocking it from ever being reused.
+     *
+     * Does not touch superadmin_audit_logs — that table has no FK to businesses at all, by
+     * design, so the record that this business ever existed (and was purged) outlives the purge.
+     */
+    public function purge(string $id, string $actorId, string $confirmName): void
+    {
+        $business = Business::find($id);
+        if (!$business) {
+            throw new NotFoundHttpException('Negocio no encontrado.');
+        }
+        if (!$business->deleted_at) {
+            throw new RuntimeException('Primero elimina el negocio — el borrado permanente solo aplica a negocios ya eliminados.');
+        }
+        if (trim($confirmName) !== $business->name) {
+            throw new RuntimeException('El nombre no coincide.');
+        }
+
+        $businessName = $business->name;
+
+        DB::transaction(function () use ($id, $business, $actorId, $businessName) {
+            // Capture profile ids before they're gone, but delete the business FIRST: its
+            // business_id cascade sweeps profiles AND every table that references a profile
+            // (employee_payments.created_by, staffing_timesheets.created_by, etc.) together, in
+            // one statement, so Postgres resolves the dependency order itself. Deleting `users`
+            // first (profiles.id -> users.id cascades onto profiles) hits those same
+            // profile-referencing FKs — created_by columns are ON DELETE NO ACTION, not
+            // cascade — while the rows that reference them are still very much alive.
+            $profileIds = Profile::where('business_id', $id)->pluck('id');
+
+            $business->delete();
+
+            User::whereIn('id', $profileIds)->delete();
+
+            $this->logAudit($actorId, 'purge_business', $id, null, [
+                'business_name' => $businessName,
+            ]);
+        });
     }
 
     public function suspend(string $id, string $actorId): void

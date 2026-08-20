@@ -32,6 +32,7 @@ class BusinessResource extends JsonResource
             'resolved_features' => NicheRegistry::resolveFeatures($this->niche_type, $this->features),
             'multi_branch_enabled' => $this->multi_branch_enabled,
             'active' => $this->active,
+            'deleted_at' => $this->deleted_at,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

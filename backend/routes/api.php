@@ -417,6 +417,8 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::delete('/businesses/{id}', [SuperadminController::class, 'destroy']);
         Route::post('/businesses/{id}/suspend', [SuperadminController::class, 'suspend']);
         Route::post('/businesses/{id}/resume', [SuperadminController::class, 'resume']);
+        Route::post('/businesses/{id}/restore', [SuperadminController::class, 'restore']);
+        Route::post('/businesses/{id}/purge', [SuperadminController::class, 'purge']);
         Route::get('/businesses/{id}/admins', [SuperadminController::class, 'admins']);
         Route::put('/businesses/{id}/admins/{profileId}/password', [SuperadminController::class, 'resetAdminPassword']);
         Route::post('/businesses/{id}/admins/{profileId}/impersonate', [SuperadminController::class, 'impersonate']);

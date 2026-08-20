@@ -10,6 +10,7 @@ use App\Services\BusinessService;
 use App\Services\SuperadminService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 class SuperadminController
 {
@@ -18,10 +19,12 @@ class SuperadminController
         private BusinessService $businessService,
     ) {}
 
-    public function businesses(): JsonResponse
+    public function businesses(Request $request): JsonResponse
     {
         return response()->json(
-            BusinessResource::collection($this->superadminService->businesses())
+            BusinessResource::collection(
+                $this->superadminService->businesses($request->boolean('include_deleted'))
+            )
         );
     }
 
@@ -65,6 +68,27 @@ class SuperadminController
     public function destroy(Request $request, string $id): JsonResponse
     {
         $this->superadminService->destroy($id, $request->user()->id);
+        return response()->json(null, 204);
+    }
+
+    public function restore(Request $request, string $id): JsonResponse
+    {
+        $this->superadminService->restore($id, $request->user()->id);
+        return response()->json(['success' => true]);
+    }
+
+    public function purge(Request $request, string $id): JsonResponse
+    {
+        $validated = $request->validate([
+            'confirm_name' => ['required', 'string'],
+        ]);
+
+        try {
+            $this->superadminService->purge($id, $request->user()->id, $validated['confirm_name']);
+        } catch (RuntimeException $e) {
+            return response()->json(['error' => ['message' => $e->getMessage()]], 422);
+        }
+
         return response()->json(null, 204);
     }
 
