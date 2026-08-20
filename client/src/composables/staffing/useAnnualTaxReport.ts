@@ -7,7 +7,11 @@ import {
   downloadTaxEntryFile,
   getAnnualTaxReport,
   saveTaxEntry,
+  saveAnnualTaxGlobal,
+  updateStaffingEmployeeProfile,
+  downloadGlobalTaxFile,
   type StaffingTaxEntryFormData,
+  type StaffingAnnualTaxGlobalFormData,
 } from '../../services/staffing/staffingService'
 
 const queryKey = (businessId: string | null, year: number) => ['staffing-annual-tax', businessId, year] as const
@@ -59,9 +63,35 @@ export function useAnnualTaxReport(businessId: Ref<string | null>, year: Ref<num
     }
   }
 
+  const saveGlobalMutation = useMutation({
+    mutationFn: (form: StaffingAnnualTaxGlobalFormData) => saveAnnualTaxGlobal(form),
+    onSuccess: async () => {
+      await invalidate()
+      success('Datos globales guardados')
+    },
+    onError: (err) => showError(translateError(err)),
+  })
+
+  const updateEmployeeMutation = useMutation({
+    mutationFn: ({ employeeId, data }: { employeeId: string; data: any }) => updateStaffingEmployeeProfile(employeeId, data),
+    onSuccess: async () => {
+      await invalidate()
+      success('Datos del empleado actualizados')
+    },
+    onError: (err) => showError(translateError(err)),
+  })
+
   const downloadFile = async (entryId: string, fallbackFilename: string) => {
     try {
       await downloadTaxEntryFile(entryId, fallbackFilename)
+    } catch (err) {
+      showError(translateError(err))
+    }
+  }
+
+  const downloadGlobalFile = async (employeeId: string, fallbackFilename: string) => {
+    try {
+      await downloadGlobalTaxFile(employeeId, fallbackFilename)
     } catch (err) {
       showError(translateError(err))
     }
@@ -75,7 +105,10 @@ export function useAnnualTaxReport(businessId: Ref<string | null>, year: Ref<num
     saveMutation,
     deleteMutation,
     saveEntry,
+    saveGlobalEntry: async (form: any) => saveGlobalMutation.mutateAsync(form),
+    updateEmployee: async (employeeId: string, data: any) => updateEmployeeMutation.mutateAsync({ employeeId, data }),
     removeEntry: (id: string) => deleteMutation.mutate(id),
     downloadFile,
+    downloadGlobalFile,
   }
 }

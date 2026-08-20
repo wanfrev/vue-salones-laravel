@@ -478,6 +478,11 @@ class StaffingReportService
         $entries = StaffingTaxEntry::where('business_id', $businessId)
             ->where('year', $year)
             ->get();
+            
+        $annualTaxes = \App\Models\StaffingAnnualTax::where('business_id', $businessId)
+            ->where('year', $year)
+            ->get()
+            ->keyBy('employee_id');
 
         // employee_id => tax_entity_id => entry
         $byEmployeeAndEntity = [];
@@ -490,7 +495,7 @@ class StaffingReportService
                 'id' => $e->id,
                 'name' => $e->name,
             ])->all(),
-            'employees' => $employees->map(function (Profile $employee) use ($byEmployeeAndEntity, $entities) {
+            'employees' => $employees->map(function (Profile $employee) use ($byEmployeeAndEntity, $entities, $annualTaxes) {
                 $entriesByEntity = [];
                 foreach ($entities as $entity) {
                     $entry = $byEmployeeAndEntity[$employee->id][$entity->id] ?? null;
@@ -503,14 +508,22 @@ class StaffingReportService
                     ] : null;
                 }
 
+                $annualTax = $annualTaxes->get($employee->id);
+
                 return [
                     'employeeId' => $employee->id,
                     'name' => $employee->full_name,
                     'active' => (bool) $employee->active,
+                    'companyId' => $employee->staffing_company_id,
                     'companyName' => $employee->staffingCompany?->name,
                     'phone' => $employee->phone,
                     'address' => $employee->address,
+                    'ssn' => $employee->ssn,
                     'ssnLast4' => $employee->ssn_last4,
+                    'status' => $annualTax?->status ?? 'BLANK',
+                    'globalFilePath' => $annualTax?->file_path,
+                    'globalFileName' => $annualTax?->file_original_name,
+                    'globalFileDate' => $annualTax?->file_date?->format('Y-m-d'),
                     'entriesByEntity' => $entriesByEntity,
                 ];
             })->all(),

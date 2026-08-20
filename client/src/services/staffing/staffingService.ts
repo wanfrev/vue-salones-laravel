@@ -744,14 +744,22 @@ export interface StaffingAnnualTaxEntry {
   entryDate: string | null
 }
 
+export type StaffingAnnualTaxStatus = 'BLANK' | 'SENT_TO_EMPLOYEE' | 'SENT_TO_ACCOUNTANT' | 'PENDING_TO_SEND'
+
 export interface StaffingAnnualTaxEmployeeRow {
   employeeId: string
   name: string
   active: boolean
+  companyId: string | null
   companyName: string | null
   phone: string | null
   address: string | null
+  ssn: string | null
   ssnLast4: string | null
+  status: StaffingAnnualTaxStatus
+  globalFilePath: string | null
+  globalFileName: string | null
+  globalFileDate: string | null
   entriesByEntity: Record<string, StaffingAnnualTaxEntry | null>
 }
 
@@ -787,6 +795,31 @@ export const saveTaxEntry = (data: StaffingTaxEntryFormData): Promise<void> => {
 
 export const deleteTaxEntry = (id: string): Promise<void> =>
   apiRequest('DELETE', `/staffing-tax-entries/${id}`)
+
+export interface StaffingAnnualTaxGlobalFormData {
+  employeeId: string
+  year: number
+  status?: StaffingAnnualTaxStatus
+  fileDate?: string
+  file?: File | null
+}
+
+export const saveAnnualTaxGlobal = (data: StaffingAnnualTaxGlobalFormData): Promise<void> => {
+  const form = new FormData()
+  form.set('employee_id', data.employeeId)
+  form.set('year', String(data.year))
+  if (data.status) form.set('status', data.status)
+  if (data.fileDate) form.set('file_date', data.fileDate)
+  if (data.file) form.set('file', data.file)
+
+  return apiUpload('POST', '/staffing-annual-taxes', form)
+}
+
+export const updateStaffingEmployeeProfile = (employeeId: string, data: { staffing_company_id?: string | null, phone?: string | null, address?: string | null, ssn?: string | null }): Promise<void> =>
+  apiRequest('PUT', `/staffing-annual-taxes/employee/${employeeId}`, data)
+
+export const downloadGlobalTaxFile = (employeeId: string, fallbackFilename: string): Promise<void> =>
+  apiDownloadFile(`/staffing-annual-taxes/${employeeId}/download`, fallbackFilename)
 
 /** Fetches the attached document as a blob (auth header) and triggers a browser save. */
 export const downloadTaxEntryFile = (entryId: string, fallbackFilename: string): Promise<void> =>

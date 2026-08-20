@@ -312,6 +312,11 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::delete('/staffing-tax-entries/{id}', [StaffingTaxEntryController::class, 'destroy']);
         // Never served from a public disk/URL — see the controller docblock.
         Route::get('/staffing-tax-entries/{id}/download', [StaffingTaxEntryController::class, 'download']);
+
+        // Annual Taxes (Global state & file per employee/year)
+        Route::post('/staffing-annual-taxes', [\App\Http\Controllers\Api\Staffing\StaffingAnnualTaxController::class, 'store']);
+        Route::get('/staffing-annual-taxes/{id}/download', [\App\Http\Controllers\Api\Staffing\StaffingAnnualTaxController::class, 'download']);
+        Route::put('/staffing-annual-taxes/employee/{employeeId}', [\App\Http\Controllers\Api\Staffing\StaffingAnnualTaxController::class, 'updateEmployee']);
     });
 
     // Staffing CRM — leads registered by sales reps. No `admin-panel` here on purpose: a plain
