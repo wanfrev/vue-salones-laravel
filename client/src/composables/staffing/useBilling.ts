@@ -8,8 +8,10 @@ import {
   deleteStaffingInvoice,
   generateStaffingInvoice,
   getCompanyBalance,
+  getStaffingProjects,
   listCompanyPayments,
   listStaffingInvoices,
+  staffingCompanyKeys,
   staffingCompanyPaymentKeys,
   staffingInvoiceKeys,
   staffingTimesheetKeys,
@@ -27,6 +29,13 @@ export function useBilling(businessId: Ref<string | null>, companyId: Ref<string
   const { data: invoices, isLoading: invoicesLoading } = useQuery({
     queryKey: computed(() => staffingInvoiceKeys.byCompany(businessId.value, companyId.value)),
     queryFn: () => listStaffingInvoices(businessId.value!, companyId.value),
+    enabled,
+  })
+
+  // So the invoice table can show/filter by project name instead of a bare id.
+  const { data: projects } = useQuery({
+    queryKey: computed(() => staffingCompanyKeys.projects(businessId.value, companyId.value)),
+    queryFn: () => getStaffingProjects(companyId.value!),
     enabled,
   })
 
@@ -116,6 +125,7 @@ export function useBilling(businessId: Ref<string | null>, companyId: Ref<string
   return {
     invoices,
     invoicesLoading,
+    projects,
     balance,
     balanceLoading,
     payments,

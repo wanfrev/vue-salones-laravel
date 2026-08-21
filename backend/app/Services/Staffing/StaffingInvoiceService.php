@@ -21,14 +21,18 @@ class StaffingInvoiceService
 {
     public function __construct(private StaffingCompanyService $companies) {}
 
-    public function list(string $businessId, ?string $companyId = null): Collection
+    public function list(string $businessId, ?string $companyId = null, ?string $projectId = null): Collection
     {
-        $query = StaffingInvoice::with('company')
+        $query = StaffingInvoice::with(['company', 'project'])
             ->where('business_id', $businessId)
             ->orderByDesc('issue_date');
 
         if ($companyId) {
             $query->where('company_id', $companyId);
+        }
+
+        if ($projectId) {
+            $query->where('project_id', $projectId);
         }
 
         return $query->get();

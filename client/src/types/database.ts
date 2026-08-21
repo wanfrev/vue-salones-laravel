@@ -504,6 +504,7 @@ export interface StaffingInvoice {
   id: string
   business_id: string
   company_id: string
+  project_id: string | null
   timesheet_id: string
   invoice_number: string
   issue_date: string
