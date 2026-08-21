@@ -23,6 +23,7 @@ export interface EmployeeInput {
   can_access_suppliers?: boolean
   can_access_finanzas?: boolean
   can_access_requirements?: boolean
+  can_add_purchase_invoice?: boolean
   active?: boolean
   /** A staffing worker can be assigned to more than one client company at once, each with its own role. */
   staffing_assignments?: { company_id: string; role: string }[]
@@ -73,6 +74,7 @@ export const adminCreateEmployee = async (input: EmployeeInput): Promise<{ id: s
       can_access_suppliers: input.can_access_suppliers ?? false,
       can_access_finanzas: input.can_access_finanzas ?? false,
       can_access_requirements: input.can_access_requirements ?? false,
+      can_add_purchase_invoice: input.can_add_purchase_invoice ?? false,
       staffing_assignments: input.staffing_assignments ?? [],
       staffing_tax_rate: input.staffing_tax_rate ?? null,
       address: input.address || null,

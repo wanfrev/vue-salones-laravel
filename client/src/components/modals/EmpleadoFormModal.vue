@@ -206,6 +206,18 @@
             </button>
           </label>
 
+          <label v-if="formData.systemRole !== 'encargado' && businessStore.features.inventario && formData.canAccessInventory && !formData.disableInventoryEdit" class="ml-4 flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-text">Puede agregar facturas de compra</p>
+              <p class="text-xs text-text-muted">Permite registrar facturas de mercancía entrante y generar su PDF</p>
+            </div>
+            <button type="button" role="switch" :aria-checked="formData.canAddPurchaseInvoice"
+              @click="formData.canAddPurchaseInvoice = !formData.canAddPurchaseInvoice"
+              :class="['relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2', formData.canAddPurchaseInvoice ? 'bg-primary border-primary' : 'bg-border border-border']">
+              <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAddPurchaseInvoice ? 'translate-x-4' : 'translate-x-0']" />
+            </button>
+          </label>
+
           <label v-if="formData.systemRole !== 'encargado' && businessStore.features.pos" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
               <p class="text-sm font-medium text-text">Puede acceder al POS</p>
@@ -387,6 +399,7 @@ const defaultFormData: EmpleadoFormData = {
   canAccessSuppliers: false,
   canAccessFinanzas: false,
   canAccessRequirements: false,
+  canAddPurchaseInvoice: false,
   staffingAssignments: [],
   staffingTaxRate: null,
   address: '',
@@ -457,6 +470,7 @@ watch(
         canAccessSuppliers: empleado.canAccessSuppliers ?? false,
         canAccessFinanzas: empleado.canAccessFinanzas ?? false,
         canAccessRequirements: empleado.canAccessRequirements ?? false,
+        canAddPurchaseInvoice: empleado.canAddPurchaseInvoice ?? false,
         staffingAssignments: empleado.staffingAssignments ?? [],
         staffingTaxRate: empleado.staffingTaxRate ?? null,
         address: empleado.address ?? '',
@@ -515,6 +529,7 @@ watch(
       formData.value.canAccessSuppliers = false
       formData.value.canAccessFinanzas = false
       formData.value.canAccessRequirements = false
+      formData.value.canAddPurchaseInvoice = false
     }
   }
 )
@@ -526,7 +541,19 @@ watch(
 watch(
   () => formData.value.canAccessInventory,
   (canAccess) => {
-    if (!canAccess) formData.value.disableInventoryEdit = true
+    if (!canAccess) {
+      formData.value.disableInventoryEdit = true
+      formData.value.canAddPurchaseInvoice = false
+    }
+  }
+)
+
+// Adding purchase invoices requires edit access — turning edit off shouldn't leave this
+// granted-but-hidden underneath it.
+watch(
+  () => formData.value.disableInventoryEdit,
+  (disabled) => {
+    if (disabled) formData.value.canAddPurchaseInvoice = false
   }
 )
 

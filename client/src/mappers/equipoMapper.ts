@@ -71,6 +71,7 @@ export const mapProfileToEmpleado = (
     canAccessSuppliers: profile.can_access_suppliers ?? false,
     canAccessFinanzas: profile.can_access_finanzas ?? false,
     canAccessRequirements: profile.can_access_requirements ?? false,
+    canAddPurchaseInvoice: profile.can_add_purchase_invoice ?? false,
     staffingAssignments,
     staffingTaxRate: profile.staffing_tax_rate ?? null,
     address: profile.address ?? '',
@@ -107,6 +108,7 @@ export const mapEmpleadoFormToProfileUpdate = (data: EmpleadoFormData) => ({
   can_access_suppliers: data.systemRole === 'cajero' ? false : data.canAccessSuppliers,
   can_access_finanzas: data.systemRole === 'cajero' ? false : data.canAccessFinanzas,
   can_access_requirements: data.systemRole === 'cajero' ? false : data.canAccessRequirements,
+  can_add_purchase_invoice: data.systemRole === 'cajero' ? false : data.canAddPurchaseInvoice,
   role: data.systemRole === 'cajero' ? 'empleado' : data.systemRole,
   // Staffing niche only. Always sent (even empty) so removing every assignment actually clears
   // them — see ProfileService::update, which only touches this when the key is present at all.

@@ -80,6 +80,7 @@ export const saveEmpleado = async (
       can_access_suppliers: profileUpdate.can_access_suppliers,
       can_access_finanzas: profileUpdate.can_access_finanzas,
       can_access_requirements: profileUpdate.can_access_requirements,
+      can_add_purchase_invoice: profileUpdate.can_add_purchase_invoice,
       staffing_assignments: profileUpdate.staffing_assignments,
       staffing_tax_rate: profileUpdate.staffing_tax_rate,
       address: profileUpdate.address,

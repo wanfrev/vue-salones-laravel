@@ -23,6 +23,7 @@ export interface AuthProfile {
   can_access_suppliers?: boolean
   can_access_finanzas?: boolean
   can_access_requirements?: boolean
+  can_add_purchase_invoice?: boolean
 }
 
 export interface LoginCredentials {

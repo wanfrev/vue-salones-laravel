@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\PushSubscriptionController;
 use App\Http\Controllers\Api\ProductCategoryController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProfileController;
+use App\Http\Controllers\Api\PurchaseInvoiceController;
 use App\Http\Controllers\Api\QzController;
 use App\Http\Controllers\Api\RequirementController;
 use App\Http\Controllers\Api\ServiceController;
@@ -215,6 +216,14 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
             Route::post('/inventory/adjust', [InventoryController::class, 'adjust']);
             Route::post('/inventory/sell', [InventoryController::class, 'sell']);
             Route::post('/inventory-locations', [InventoryController::class, 'storeLocation']);
+        });
+        Route::middleware('perm:inventory')->group(function () {
+            Route::get('/purchase-invoices', [PurchaseInvoiceController::class, 'index']);
+            Route::get('/purchase-invoices/{id}', [PurchaseInvoiceController::class, 'show']);
+        });
+        // Separate, admin-granted permission — an employee can have inventory-edit without this.
+        Route::middleware('perm:purchase-invoice')->group(function () {
+            Route::post('/purchase-invoices', [PurchaseInvoiceController::class, 'store']);
         });
     });
 
