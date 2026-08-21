@@ -36,6 +36,8 @@ export interface Business {
   currency: string
   ves_exchange_rate: number
   employee_ves_rate: number | null
+  product_price1_markup?: number
+  product_price2_markup?: number
   niche_type: string
   theme_config: ThemeConfig
   terminology: Terminology
