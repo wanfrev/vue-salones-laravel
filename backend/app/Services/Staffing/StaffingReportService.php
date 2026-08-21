@@ -519,7 +519,7 @@ class StaffingReportService
                     'status' => $annualTax?->status ? strtoupper($annualTax->status) : 'BLANK',
                     'globalFilePath' => $annualTax?->file_path,
                     'globalFileName' => $annualTax?->file_original_name,
-                    'globalFileDate' => $annualTax?->file_date?->toDateString(),
+                    'globalFileDate' => ($annualTax?->file_date instanceof \DateTimeInterface) ? $annualTax->file_date->format('Y-m-d') : null,
                     'entriesByEntity' => $entriesByEntity,
                 ];
             })->all(),
