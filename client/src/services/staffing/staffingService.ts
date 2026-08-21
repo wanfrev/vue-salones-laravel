@@ -224,9 +224,9 @@ export const createStaffingCompany = (data: Partial<StaffingCompanyRow>): Promis
   apiRequest('POST', '/staffing-companies', data)
 
 export const saveStaffingCompany = async (
-  id: string | null,
-  data: StaffingCompanyFormData,
   businessId: string,
+  data: StaffingCompanyFormData & { id?: string | null },
+  _branchId?: string | null,
 ): Promise<StaffingCompanyRow> => {
   const parsed = staffingCompanyFormSchema.safeParse(data)
   if (!parsed.success) {
@@ -254,8 +254,8 @@ export const saveStaffingCompany = async (
     active: parsed.data.status === 'active',
   }
 
-  const { data: saved, error } = id
-    ? await db.from('staffing_companies').update(payload).eq('id', id).select('*').single()
+  const { data: saved, error } = data.id
+    ? await db.from('staffing_companies').update(payload).eq('id', data.id).select('*').single()
     : await db.from('staffing_companies').insert(payload).select('*').single()
 
   if (error) handleDbError(error, 'Error al guardar la empresa')
