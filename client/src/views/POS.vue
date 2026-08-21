@@ -301,6 +301,7 @@
         @process-payment-print="handleProcessPaymentPrint"
         @set-price-index="setPriceIndex"
         @increment-qty="incrementQty" @decrement-qty="decrementQty" @set-quantity="setQuantity" @remove-item="removeItem"
+        @add-suggested-product="addProduct"
       />
     </div>
   </div>
@@ -366,6 +367,7 @@
             @process-payment-print="handleMobileProcessPaymentPrint"
             @set-price-index="setPriceIndex"
             @increment-qty="incrementQty" @decrement-qty="decrementQty" @set-quantity="setQuantity" @remove-item="removeItem"
+            @add-suggested-product="addProduct"
           />
           </div>
         </div>

@@ -26,6 +26,10 @@ export function isTiendaNiche(nicheType?: string | null): boolean {
   return nicheType === 'tienda'
 }
 
+export function isStaffingNiche(nicheType?: string | null): boolean {
+  return nicheType === 'staffing'
+}
+
 /** @deprecated kept for back-compat; prefer isPetNiche()/getNiche(x).capabilities */
 export const PET_NICHE_TYPES = ['dog_spa', 'vet']
 

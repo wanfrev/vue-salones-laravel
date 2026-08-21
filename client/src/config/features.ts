@@ -25,6 +25,7 @@ export const DEFAULT_FEATURES = {
   whatsapp_available: false,
   whatsapp_reminders_enabled: true,
   reminder_24h_enabled: true,
+  payroll_locked_exchange_rate: false,
 }
 
 export type FeatureKey = keyof typeof DEFAULT_FEATURES

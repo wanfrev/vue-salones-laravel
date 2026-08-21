@@ -181,6 +181,11 @@
       <p v-if="timesheets.saveError.value" class="text-sm text-danger">{{ timesheets.saveError.value }}</p>
 
       <div v-if="(timesheets.employees.value ?? []).length > 0" class="flex flex-wrap items-center justify-end gap-2">
+        <button type="button"
+          class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
+          @click="handlePrintPayroll">
+          Imprimir nómina
+        </button>
         <button v-if="currentWeek?.status === 'draft'" type="button"
           class="rounded-lg border border-danger/30 px-4 py-2 text-sm font-semibold text-danger transition-theme hover:bg-danger/10"
           @click="removeWeek">
@@ -236,6 +241,7 @@ import {
 import type { StaffingCompanyRow, StaffingRateRow, TimesheetEntryInput } from '../../services/staffing/staffingService'
 import { FormSearchSelect } from '../../components/forms'
 import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
+import { printStaffingPayroll } from '../../lib/staffingPayrollPrint'
 import { formatDateUS, toISODate } from '../../lib/formatters'
 import type { StaffingTimesheetEntry } from '../../types/database'
 import { MagnifierIcon } from '@solar-icons/vue/linear'
@@ -583,6 +589,54 @@ const handleMarkPaid = async () => {
 
 const handleGenerateInvoice = async () => {
   if (currentWeek.value) await billing.generateInvoice(currentWeek.value.id)
+}
+
+const statusLabel = computed(() => {
+  if (!currentWeek.value) return 'Sin guardar'
+  return currentWeek.value.status === 'draft' ? 'Borrador' : currentWeek.value.status === 'approved' ? 'Aprobada' : 'Pagada'
+})
+
+const handlePrintPayroll = () => {
+  const company = activeCompany.value
+  if (!company) return
+
+  const printRows = filteredEmployees.value
+    .map(employee => {
+      const row = rowFor(employee.id)
+      if (!row) return null
+      const gridRow = grid.value[employee.id]
+      return {
+        employeeName: employee.full_name,
+        role: employee.staffing_role || '',
+        totalHours: gridRow?.totalHours || 0,
+        regularHours: row.regularHours,
+        payRate: row.payRate,
+        billRate: row.billRate,
+        regularAmount: row.regularAmount,
+        overtimeHours: row.overtimeHours,
+        overtimeRate: row.overtimeRate,
+        overtimeAmount: row.overtimeAmount,
+        deduction: gridRow?.preTaxDeduction || 0,
+        fixedFees: gridRow?.fixedFees || 0,
+        adjustment: gridRow?.adjustment || 0,
+        gross: row.gross,
+        taxPercent: row.taxPercent,
+        payout: row.payout,
+        invoiceTotal: row.invoiceTotal,
+        margin: row.margin,
+      }
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null)
+
+  printStaffingPayroll({
+    agencyName: businessStore.business?.name || 'Delta Work Force',
+    companyName: company.name,
+    projectName: (projects.value ?? []).find(p => p.id === selectedProjectId.value)?.name ?? null,
+    weekStart: weekStartInput.value,
+    weekEnd: weekEnd.value,
+    statusLabel: statusLabel.value,
+    rows: printRows,
+  })
 }
 
 const handlePrintInvoice = async () => {

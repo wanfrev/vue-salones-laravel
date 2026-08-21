@@ -232,6 +232,27 @@
           </div>
         </div>
 
+        <div v-if="isRetailNiche && suggestedProducts.length > 0" class="rounded-lg border border-dashed border-border bg-bg-secondary/40 p-2.5 space-y-1.5">
+          <p class="text-xs font-medium text-text-secondary">También suelen llevar</p>
+          <div
+            v-for="product in suggestedProducts"
+            :key="product.id"
+            class="flex items-center justify-between gap-2 text-sm"
+          >
+            <div class="min-w-0 flex-1">
+              <p class="truncate text-text">{{ product.name }}</p>
+              <p class="text-xs text-text-muted">{{ formatDual(Number(product.unit_price ?? 0)) }}</p>
+            </div>
+            <button
+              type="button"
+              @click="$emit('add-suggested-product', product)"
+              class="shrink-0 rounded-lg border border-primary/30 px-2.5 py-1 text-xs font-medium text-primary transition-theme hover:bg-primary/10"
+            >
+              + Agregar
+            </button>
+          </div>
+        </div>
+
         <div class="border-t border-border-subtle pt-3 space-y-2">
           <div class="flex items-center justify-between text-sm">
             <span class="text-text-muted">Subtotal servicios</span>
@@ -481,6 +502,7 @@ import { DualAmount } from '../common'
 import { formatDate, toTitleCase } from '../../lib/formatters'
 import { useAuth } from '../../composables/common/useAuth'
 import { useGiftCards } from '../../composables/giftCards/useGiftCards'
+import { useProductSuggestions } from '../../composables/pos/useProductSuggestions'
 import { useBusinessStore } from '../../store/business'
 import type { PaymentMethod } from '../../types/database'
 import type { PaymentBreakdownItem, POSProductItem } from '../../types/pos'
@@ -550,6 +572,7 @@ const emit = defineEmits<{
   'remove-item': [idx: number]
   'update:are-products-included': [value: boolean]
   'update:selected-gift-card-id': [value: string | null]
+  'add-suggested-product': [product: any]
 }>()
 
 const { formatDual, formatUSD, formatVES } = useCurrency()
@@ -558,6 +581,9 @@ const businessId = computed(() => authStore.businessId)
 const { activeGiftCards } = useGiftCards(businessId)
 const businessStore = useBusinessStore()
 const isRetailNiche = computed(() => !businessStore.features.agenda)
+
+const cartRef = computed(() => props.cart)
+const { suggestions: suggestedProducts } = useProductSuggestions(cartRef)
 
 const needsGiftCardSelect = computed(() =>
   businessStore.features.gift_cards &&

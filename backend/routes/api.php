@@ -396,6 +396,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     Route::middleware(['feature:pos', 'perm:pos'])->group(function () {
         Route::get('/pos/pending', [PosController::class, 'pendingAppointments']);
         Route::get('/pos/products', [PosController::class, 'saleableProducts']);
+        Route::get('/pos/products/{productId}/suggestions', [PosController::class, 'frequentlyBoughtTogether']);
         Route::post('/pos/sale', [PosController::class, 'recordSale']);
         Route::post('/pos/direct-sale', [PosController::class, 'directSale']);
         Route::post('/pos/direct-service-sale', [PosController::class, 'directServiceSale']);

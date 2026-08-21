@@ -30,6 +30,11 @@ export type EmployeeBalance = {
   pay_type?: string | null
   pay_percentage?: number
   employee_ves_rate?: number
+  /** Bs totals computed with each service's own exchange rate (locked to the day it was sold). */
+  commission_bs?: number
+  tips_bs?: number
+  total_earned_bs?: number
+  pending_bs_estimated?: number
 }
 
 export const listEmployeePayments = async (

@@ -318,6 +318,23 @@
               class="w-full mt-1 rounded-lg border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary transition-theme hover:bg-primary/10">
               Pagar saldo pendiente
             </button>
+
+            <div v-if="businessStore.features.payroll_locked_exchange_rate"
+              class="mt-2 rounded-lg border border-dashed border-border bg-surface p-2.5 space-y-1.5">
+              <p class="text-xs font-medium text-text-secondary">Desglose en Bs (tasa del día de cada servicio)</p>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-text-muted">Comisión</span>
+                <span class="font-medium text-text">{{ formatVESEs(selectedBalance.commission_bs ?? 0) }}</span>
+              </div>
+              <div v-if="(selectedBalance.tips_bs ?? 0) > 0" class="flex items-center justify-between text-xs">
+                <span class="text-text-muted">Propina</span>
+                <span class="font-medium text-text">{{ formatVESEs(selectedBalance.tips_bs ?? 0) }}</span>
+              </div>
+              <div class="flex items-center justify-between text-xs border-t border-border-subtle pt-1.5">
+                <span class="text-text-muted">Saldo pendiente (estimado)</span>
+                <span class="font-medium text-text">{{ formatVESEs(selectedBalance.pending_bs_estimated ?? 0) }}</span>
+              </div>
+            </div>
           </div>
 
           <div class="grid grid-cols-3 gap-3">

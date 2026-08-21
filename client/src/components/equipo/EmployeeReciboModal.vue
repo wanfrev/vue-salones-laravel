@@ -781,8 +781,14 @@ const totalEarned = computed(() => {
   return total.toFixed(2)
 })
 
+const totalEarnedBsLocked = computed(() =>
+  earningsWithVES.value.reduce((sum, r) => sum + r.vesEarnings, 0) + baseSalaryForPeriod.value * activeRate.value
+)
+
 const totalEarnedVES = computed(() =>
-  formatEmployeeVES(Number(totalEarned.value))
+  businessStore.features.payroll_locked_exchange_rate
+    ? formatVESEs(totalEarnedBsLocked.value)
+    : formatEmployeeVES(Number(totalEarned.value))
 )
 
 const { data: paymentsData } = useQuery({

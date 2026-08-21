@@ -7,6 +7,8 @@ import type { POSProductItem, PaymentBreakdownItem } from '../types/pos'
 export const posKeys = {
   pending: (businessId?: string | null, branchId?: string | null) => ['pos-pending', businessId, branchId] as const,
   products: (businessId?: string | null, branchId?: string | null) => ['pos-products', businessId, branchId] as const,
+  suggestions: (businessId?: string | null, branchId?: string | null, productId?: string | null) =>
+    ['pos-product-suggestions', businessId, branchId, productId] as const,
 }
 
 export const listPendingAppointments = async (businessId: string, branchId?: string | null) => {
@@ -68,6 +70,13 @@ export const listSaleableProducts = async (businessId: string, branchId?: string
   if (branchId) params.set('branch_id', branchId)
   const qs = params.toString()
   return await apiRequest<any[]>('GET', `/pos/products${qs ? `?${qs}` : ''}`)
+}
+
+export const getFrequentlyBoughtTogether = async (businessId: string, productId: string, branchId?: string | null) => {
+  const params = new URLSearchParams()
+  if (branchId) params.set('branch_id', branchId)
+  const qs = params.toString()
+  return await apiRequest<any[]>('GET', `/pos/products/${productId}/suggestions${qs ? `?${qs}` : ''}`)
 }
 
 export const recordSale = async (params: {
