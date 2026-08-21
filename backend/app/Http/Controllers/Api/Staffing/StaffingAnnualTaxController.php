@@ -89,6 +89,12 @@ class StaffingAnnualTaxController extends Controller
             'ssn' => 'nullable|string|max:15',
         ]);
         
+        if (array_key_exists('ssn', $validated)) {
+            if ($validated['ssn'] === '' || $validated['ssn'] === null || $validated['ssn'] === $employee->ssn_last4) {
+                unset($validated['ssn']);
+            }
+        }
+        
         $employee->fill($validated);
         $employee->save();
         

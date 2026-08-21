@@ -161,6 +161,7 @@
             <div>
               <label class="mb-1 block text-sm font-medium text-text">SSN</label>
               <input v-model="editProfileForm.ssn" type="text"
+                placeholder="Dejar vacío para mantener el actual"
                 class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
             </div>
             <div>
@@ -339,7 +340,7 @@ const editProfileForm = ref({
 const openEditProfile = (employee: StaffingAnnualTaxEmployeeRow) => {
   editProfileForm.value = {
     staffing_company_id: employee.companyId || null,
-    ssn: employee.ssn || '',
+    ssn: '',
     phone: employee.phone || '',
     address: employee.address || ''
   }

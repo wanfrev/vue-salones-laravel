@@ -3,6 +3,7 @@
 namespace App\Services\Staffing;
 
 use App\Models\Profile;
+use App\Models\StaffingAnnualTax;
 use App\Models\StaffingCompany;
 use App\Models\StaffingCompanyPayment;
 use App\Models\StaffingInvoice;
@@ -457,11 +458,6 @@ class StaffingReportService
             'margin' => (float) ($row->margin ?? 0.0),
         ];
     }
-
-    /**
-     * The annual taxes report: every employee (active + inactive), the configured tax entities
-     * as columns, and each employee's amount/document for the given year in those columns.
-     *
      * @return array{entities: list<array>, employees: list<array>}
      */
     public function annualTaxReport(string $businessId, int $year): array
@@ -479,7 +475,7 @@ class StaffingReportService
             ->where('year', $year)
             ->get();
             
-        $annualTaxes = \App\Models\StaffingAnnualTax::where('business_id', $businessId)
+        $annualTaxes = StaffingAnnualTax::where('business_id', $businessId)
             ->where('year', $year)
             ->get()
             ->keyBy('employee_id');
@@ -520,10 +516,10 @@ class StaffingReportService
                     'address' => $employee->address,
                     'ssn' => rescue(fn() => $employee->ssn, null, false),
                     'ssnLast4' => $employee->ssn_last4,
-                    'status' => $annualTax?->status ?? 'BLANK',
+                    'status' => $annualTax?->status ? strtoupper($annualTax->status) : 'BLANK',
                     'globalFilePath' => $annualTax?->file_path,
                     'globalFileName' => $annualTax?->file_original_name,
-                    'globalFileDate' => $annualTax?->file_date?->format('Y-m-d'),
+                    'globalFileDate' => $annualTax?->file_date?->toDateString(),
                     'entriesByEntity' => $entriesByEntity,
                 ];
             })->all(),
