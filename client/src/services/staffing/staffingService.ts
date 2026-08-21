@@ -201,14 +201,75 @@ const toRateRow = (row: StaffingCompanyRate): StaffingRateRow => ({
 export const getStaffingCompanies = (): Promise<StaffingCompanyRow[]> =>
   apiRequest('GET', '/staffing-companies')
 
+export const listStaffingCompanies = async (
+  businessId: string,
+  _branchId?: string | null,
+  status: StaffingCompanyStatus | 'all' = 'all',
+): Promise<StaffingCompanyRow[]> => {
+  let query = db.from('staffing_companies').select('*').eq('business_id', businessId)
+  
+  if (status !== 'all') {
+    query = query.eq('status', status)
+  }
+  
+  query = query.order('name', { ascending: true })
+
+  const { data, error } = await query
+  if (error) handleDbError(error, 'Error al cargar las empresas')
+
+  return ((data ?? []) as StaffingCompany[]).map(toCompanyRow)
+}
+
 export const createStaffingCompany = (data: Partial<StaffingCompanyRow>): Promise<StaffingCompanyRow> =>
   apiRequest('POST', '/staffing-companies', data)
+
+export const saveStaffingCompany = async (
+  id: string | null,
+  data: StaffingCompanyFormData,
+  businessId: string,
+): Promise<StaffingCompanyRow> => {
+  const parsed = staffingCompanyFormSchema.safeParse(data)
+  if (!parsed.success) {
+    throw new Error(parsed.error.issues.map(e => e.message).join('. '))
+  }
+
+  const payload = {
+    business_id: businessId,
+    name: parsed.data.name,
+    legal_name: parsed.data.legalName || null,
+    address: parsed.data.address || null,
+    city: parsed.data.city || null,
+    state: parsed.data.state || null,
+    zip: parsed.data.zip || null,
+    work_site: parsed.data.workSite || null,
+    contact_name: parsed.data.contactName || null,
+    contact_phone: parsed.data.contactPhone || null,
+    contact_email: parsed.data.contactEmail || null,
+    payment_terms_days: parsed.data.paymentTermsDays,
+    tax_rate: parsed.data.taxRate,
+    tax_brackets: parsed.data.taxBrackets,
+    payout_rounding: parsed.data.payoutRounding,
+    status: parsed.data.status,
+    notes: parsed.data.notes || null,
+    active: parsed.data.status === 'active',
+  }
+
+  const { data: saved, error } = id
+    ? await db.from('staffing_companies').update(payload).eq('id', id).select('*').single()
+    : await db.from('staffing_companies').insert(payload).select('*').single()
+
+  if (error) handleDbError(error, 'Error al guardar la empresa')
+
+  return toCompanyRow(saved as StaffingCompany)
+}
 
 export const updateStaffingCompany = (id: string, data: Partial<StaffingCompanyRow>): Promise<StaffingCompanyRow> =>
   apiRequest('PUT', `/staffing-companies/${id}`, data)
 
-export const deleteStaffingCompany = (id: string): Promise<void> =>
-  apiRequest('DELETE', `/staffing-companies/${id}`)
+export const deleteStaffingCompany = async (id: string): Promise<void> => {
+  const { error } = await db.from('staffing_companies').delete().eq('id', id)
+  if (error) handleDbError(error, 'Error al eliminar la empresa')
+}
 
 export const getStaffingAllProjects = (): Promise<StaffingProject[]> =>
   apiRequest('GET', '/staffing-projects')
