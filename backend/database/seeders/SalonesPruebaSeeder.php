@@ -8,12 +8,20 @@ use Illuminate\Support\Str;
 
 /**
  * Negocio de prueba de nicho "mixto" (barbería + salón + spa) para probar el flujo completo:
- * agenda, POS, inventario, proveedores, IVA/descuento y devoluciones. Login: salones@prueba.com.
+ * agenda, POS, inventario y proveedores. Login: salones@prueba.com.
+ *
+ * Solo se ejecuta con `php artisan db:seed --class=SalonesPruebaSeeder` — no está registrado en
+ * DatabaseSeeder, así que un `db:seed` genérico tampoco lo dispara.
  */
 class SalonesPruebaSeeder extends Seeder
 {
     public function run(): void
     {
+        if (app()->environment('production')) {
+            $this->command->error('SalonesPruebaSeeder no corre en producción (datos de prueba, solo para staging/local).');
+            return;
+        }
+
         $uuid = fn() => Str::uuid()->toString();
         $now = now();
 
@@ -24,6 +32,10 @@ class SalonesPruebaSeeder extends Seeder
             return;
         }
 
+        // Todo o nada: si algo falla a mitad de camino, no debe quedar un negocio a medias
+        // (perfil sin empleados, sin productos, etc.) que además bloquee un reintento limpio
+        // porque el chequeo de arriba ya encuentra el usuario.
+        DB::transaction(function () use ($uuid, $now, $adminEmail) {
         $bizId = $uuid();
         $adminId = $uuid();
         $branchId = $uuid();
@@ -265,7 +277,8 @@ class SalonesPruebaSeeder extends Seeder
         DB::table('transactions')->insert([
             'id' => $uuid(), 'business_id' => $bizId, 'branch_id' => $branchId,
             'appointment_id' => null, 'total_amount' => $saleTotal, 'local_amount' => $saleTotal,
-            'local_percentage' => 100, 'employee_percentage' => 0,
+            'employee_amount' => 0, 'assistant_amount' => 0,
+            'local_percentage' => 100, 'employee_percentage' => 0, 'assistant_percentage' => 0,
             'method' => 'cash', 'exchange_rate_used' => 1,
             'notes' => 'Venta directa — Mostrador',
             'paid_at' => $saleDate, 'created_by' => $adminId, 'created_at' => $saleDate,
@@ -319,5 +332,6 @@ class SalonesPruebaSeeder extends Seeder
         $this->command->info('✅ ¡Negocio "Salones Prueba" (nicho mixto) listo!');
         $this->command->info('   Admin: salones@prueba.com / password');
         $this->command->info('   Empleados: luis.barbero@prueba.com, carla.estilista@prueba.com, etc. / password');
+        });
     }
 }
