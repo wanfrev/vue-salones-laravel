@@ -323,6 +323,54 @@
               </div>
             </section>
 
+            <section class="space-y-3">
+              <div class="flex items-center justify-between border-b border-border pb-1.5">
+                <p class="text-xs font-semibold uppercase tracking-wider text-primary">Proyectos (Opcional)</p>
+                <button type="button"
+                  class="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
+                  @click="ctx.form.value.projects ? ctx.form.value.projects.push({ name: '', active: true }) : (ctx.form.value.projects = [{ name: '', active: true }])">
+                  + Agregar proyecto
+                </button>
+              </div>
+
+              <div class="space-y-2">
+                <div v-for="(proj, i) in ctx.form.value.projects" :key="i"
+                  class="flex items-center gap-3 rounded-xl border border-border/70 bg-bg-secondary/10 p-3">
+                  <div class="flex-1">
+                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Nombre del Proyecto</label>
+                    <input v-model="proj.name" type="text" :class="inputClass" placeholder="Ej: Fase 1, Site B..." required />
+                  </div>
+                  <div class="flex flex-col items-center shrink-0">
+                    <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Activo</label>
+                    <button
+                      type="button"
+                      role="switch"
+                      :aria-checked="proj.active"
+                      @click="proj.active = !proj.active"
+                      :class="[
+                        'relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2 mt-1.5',
+                        proj.active ? 'bg-primary border-primary' : 'bg-border border-border'
+                      ]"
+                    >
+                      <span
+                        :class="[
+                          'inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform',
+                          proj.active ? 'translate-x-4' : 'translate-x-0'
+                        ]"
+                      />
+                    </button>
+                  </div>
+                  <div class="flex items-center pb-0.5 shrink-0 mt-4">
+                    <button type="button"
+                      class="rounded-lg p-2 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+                      @click="ctx.form.value.projects?.splice(i, 1)">
+                      <TrashBin2Icon class="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
             <div>
               <label class="mb-1 block text-sm font-medium text-text" for="emp-notes">Notas</label>
               <textarea id="emp-notes" v-model="ctx.form.value.notes" rows="2" :class="inputClass" />

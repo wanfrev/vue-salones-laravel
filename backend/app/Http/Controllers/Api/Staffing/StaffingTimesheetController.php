@@ -21,8 +21,13 @@ class StaffingTimesheetController
             return response()->json([]);
         }
 
+        $projectId = $request->project_id;
+        if ($projectId === 'null' || $projectId === 'undefined' || $projectId === '') {
+            $projectId = null;
+        }
+
         return response()->json(
-            $this->timesheets->list($p->business_id, $request->company_id, $request->project_id)
+            $this->timesheets->list($p->business_id, $request->company_id, $projectId)
         );
     }
 
@@ -33,8 +38,13 @@ class StaffingTimesheetController
             return response()->json([]);
         }
 
+        $projectId = $request->project_id;
+        if ($projectId === 'null' || $projectId === 'undefined' || $projectId === '') {
+            $projectId = null;
+        }
+
         return response()->json(
-            $this->timesheets->employeesForCompany($p->business_id, $companyId, $request->project_id)
+            $this->timesheets->employeesForCompany($p->business_id, $companyId, $projectId)
         );
     }
 

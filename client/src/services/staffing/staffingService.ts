@@ -141,6 +141,7 @@ export interface StaffingCompanyFormData {
   payoutRounding: PayoutRounding
   status: StaffingCompanyStatus
   notes: string
+  projects?: { id?: string; name: string; active?: boolean }[]
 }
 
 export interface StaffingRateFormData {
@@ -349,15 +350,21 @@ export interface TimesheetEntryInput {
   adjustment?: number
 }
 
-export const listCompanyEmployees = (_businessId: string, companyId: string): Promise<Profile[]> =>
-  apiRequest<Profile[]>('GET', `/staffing-companies/${companyId}/employees`)
+export const listCompanyEmployees = (_businessId: string, companyId: string, projectId?: string | null): Promise<Profile[]> => {
+  const url = projectId
+    ? `/staffing-companies/${companyId}/employees?project_id=${projectId}`
+    : `/staffing-companies/${companyId}/employees`
+  return apiRequest<Profile[]>('GET', url)
+}
 
 export const listStaffingTimesheets = async (
   businessId: string,
   companyId?: string | null,
+  projectId?: string | null,
 ): Promise<StaffingTimesheet[]> => {
   let query = db.from('staffing_timesheets').select('*').eq('business_id', businessId)
   if (companyId) query = query.eq('company_id', companyId)
+  if (projectId) query = query.eq('project_id', projectId)
 
   const { data, error } = await query
   if (error) handleDbError(error, 'Error al cargar las semanas')
@@ -370,10 +377,11 @@ export const saveTimesheetWeek = async (
   weekStart: string,
   weekEnd: string,
   entries: TimesheetEntryInput[],
+  projectId?: string | null,
 ): Promise<StaffingTimesheet> => {
   const payload = {
     company_id: companyId,
-    project_id: projectId,
+    project_id: projectId || null,
     week_start: weekStart,
     week_end: weekEnd,
     entries: entries.map(e => ({
