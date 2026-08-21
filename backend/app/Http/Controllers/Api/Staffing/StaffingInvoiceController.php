@@ -22,7 +22,7 @@ class StaffingInvoiceController
         }
 
         return response()->json(
-            $this->invoices->list($p->business_id, $request->company_id)
+            $this->invoices->list($p->business_id, $request->company_id, $request->project_id)
         );
     }
 

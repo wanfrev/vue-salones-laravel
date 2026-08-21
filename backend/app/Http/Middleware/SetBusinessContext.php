@@ -63,6 +63,7 @@ class SetBusinessContext
             canAccessSuppliers: (bool) $profile->can_access_suppliers,
             canAccessRequirements: (bool) $profile->can_access_requirements,
             disableInventoryEdit: (bool) $profile->disable_inventory_edit,
+            canAddPurchaseInvoice: (bool) $profile->can_add_purchase_invoice,
         );
 
         app()->instance(BusinessContext::class, $context);

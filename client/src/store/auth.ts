@@ -49,6 +49,15 @@ export const useAuthStore = defineStore('auth', () => {
     }
     return !!(profile.value as any)?.disable_inventory_edit
   })
+  // Admin/encargado can always add purchase invoices; a plain empleado/cajero needs inventory
+  // write access AND the dedicated flag an admin explicitly granted them — mirrors
+  // BusinessContext::hasProfilePermission('purchase-invoice') on the backend exactly.
+  const canAddPurchaseInvoice = computed(() => {
+    const p = profile.value
+    if (!p) return false
+    if (p.role === 'admin' || p.role === 'encargado' || p.role === 'superadmin') return true
+    return !!p.can_access_inventory && !disableInventoryEdit.value && !!p.can_add_purchase_invoice
+  })
 
   const isProfileHardFailure = (err: unknown): boolean => {
     const msg = err instanceof Error ? err.message : String(err ?? '')
@@ -60,7 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
   const loadProfile = async (userId: string, userRole?: string | null) => {
     const { data, error } = await db
       .from('profiles')
-      .select('id, business_id, branch_id, full_name, role, phone, avatar_url, active, pay_type, pay_percentage, base_salary, disable_agenda, disable_inventory_edit, employee_ves_rate, can_create_appointments, can_create_clients, can_access_consultorio, can_access_inventory, can_access_pos, can_access_suppliers, can_access_finanzas, can_access_requirements')
+      .select('id, business_id, branch_id, full_name, role, phone, avatar_url, active, pay_type, pay_percentage, base_salary, disable_agenda, disable_inventory_edit, employee_ves_rate, can_create_appointments, can_create_clients, can_access_consultorio, can_access_inventory, can_access_pos, can_access_suppliers, can_access_finanzas, can_access_requirements, can_add_purchase_invoice')
       .eq('id', userId)
       .maybeSingle()
 
@@ -122,6 +131,7 @@ export const useAuthStore = defineStore('auth', () => {
       can_access_suppliers: (authProfile as any).can_access_suppliers ?? false,
       can_access_finanzas: (authProfile as any).can_access_finanzas ?? false,
       can_access_requirements: (authProfile as any).can_access_requirements ?? false,
+      can_add_purchase_invoice: (authProfile as any).can_add_purchase_invoice ?? false,
     }
   }
 
@@ -356,6 +366,7 @@ export const useAuthStore = defineStore('auth', () => {
     isCajeroProfile,
     businessId,
     disableInventoryEdit,
+    canAddPurchaseInvoice,
     initialize,
     signIn,
     signOut,

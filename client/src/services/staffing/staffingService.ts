@@ -437,9 +437,11 @@ export const deleteTimesheet = async (id: string): Promise<void> => {
 export const listStaffingInvoices = async (
   businessId: string,
   companyId?: string | null,
+  projectId?: string | null,
 ): Promise<StaffingInvoice[]> => {
   let query = db.from('staffing_invoices').select('*').eq('business_id', businessId)
   if (companyId) query = query.eq('company_id', companyId)
+  if (projectId) query = query.eq('project_id', projectId)
 
   const { data, error } = await query
   if (error) handleDbError(error, 'Error al cargar las facturas')

@@ -16,6 +16,14 @@
           <SettingsIcon class="h-5 w-5" />
         </button>
         <button
+          v-if="canAddPurchaseInvoice"
+          @click="purchaseInvoiceModalRef?.open()"
+          class="flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-text shadow-sm transition-theme hover:bg-bg-secondary"
+        >
+          <BillListIcon class="h-4 w-4" />
+          <span>Agregar factura</span>
+        </button>
+        <button
           v-if="!disableInventoryEdit"
           @click="safeOpenProductModal()"
           class="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover"
@@ -236,6 +244,7 @@
   </ModalBase>
 
   <InventorySettingsModal ref="settingsModalRef" />
+  <PurchaseInvoiceModal ref="purchaseInvoiceModalRef" />
   </FeatureGate>
 </template>
 
@@ -253,8 +262,9 @@ import ProductoFormModal from '../components/modals/ProductoFormModal.vue'
 import ProductStockAdjustModal from '../components/productos/ProductStockAdjustModal.vue'
 import ProductGrid from '../components/productos/ProductGrid.vue'
 import InventorySettingsModal from '../components/productos/InventorySettingsModal.vue'
+import PurchaseInvoiceModal from '../components/productos/PurchaseInvoiceModal.vue'
 import { ModalBase, FeatureGate } from '../components/common'
-import { BoxIcon, AddCircleIcon, MagnifierIcon, SettingsIcon } from '@solar-icons/vue/linear'
+import { BoxIcon, AddCircleIcon, MagnifierIcon, SettingsIcon, BillListIcon } from '@solar-icons/vue/linear'
 import { isTiendaNiche } from '../config/niches'
 
 const { authStore } = useAuth()
@@ -262,9 +272,11 @@ const businessStore = useBusinessStore()
 const branchId = computed(() => businessStore.currentBranchId)
 const businessId = computed(() => authStore.businessId)
 const disableInventoryEdit = computed(() => authStore.disableInventoryEdit)
+const canAddPurchaseInvoice = computed(() => authStore.canAddPurchaseInvoice)
 const isTienda = computed(() => isTiendaNiche(businessStore.business?.niche_type || ''))
 
 const settingsModalRef = ref<InstanceType<typeof InventorySettingsModal> | null>(null)
+const purchaseInvoiceModalRef = ref<InstanceType<typeof PurchaseInvoiceModal> | null>(null)
 
 const safeOpenSettingsModal = () => {
   if (disableInventoryEdit.value) return

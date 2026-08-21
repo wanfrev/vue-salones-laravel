@@ -37,6 +37,7 @@ export interface Empleado {
   canAccessSuppliers?: boolean
   canAccessFinanzas?: boolean
   canAccessRequirements?: boolean
+  canAddPurchaseInvoice?: boolean
   // Staffing niche only. The employee has no login — pay comes from the companies + role
   // assignments below, each resolved against that company's own rate card. An employee can be
   // assigned to more than one company at once.
@@ -81,6 +82,7 @@ export interface EmpleadoFormData {
   canAccessSuppliers: boolean
   canAccessFinanzas: boolean
   canAccessRequirements: boolean
+  canAddPurchaseInvoice: boolean
   // Staffing niche only — one or more (company, role) assignments. Role is per-company since
   // rates are (company, role), not a single value on the employee.
   staffingAssignments: StaffingAssignment[]

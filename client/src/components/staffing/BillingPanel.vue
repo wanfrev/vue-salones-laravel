@@ -18,15 +18,27 @@
     </div>
 
     <div>
-      <p class="mb-2 text-sm font-semibold text-text">Facturas</p>
+      <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <p class="text-sm font-semibold text-text">Facturas</p>
+        <select v-if="projectOptions.length" v-model="projectFilter"
+          class="rounded-md border border-border-strong bg-surface px-2 py-1 text-xs font-medium text-text outline-none focus:border-primary">
+          <option value="">Todos los proyectos</option>
+          <option value="__general__">General (sin proyecto)</option>
+          <option v-for="p in projectOptions" :key="p.id" :value="p.id">{{ p.name }}</option>
+        </select>
+      </div>
       <div v-if="(billing.invoices.value ?? []).length === 0" class="rounded-lg bg-surface px-3 py-3 text-center text-xs text-text-muted">
         Sin facturas todavía. Se generan desde una semana aprobada en "Horas trabajadas".
+      </div>
+      <div v-else-if="filteredInvoices.length === 0" class="rounded-lg bg-surface px-3 py-3 text-center text-xs text-text-muted">
+        Sin facturas para este proyecto.
       </div>
       <div v-else class="overflow-x-auto rounded-lg border border-border bg-surface">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-border text-left text-[10px] uppercase tracking-wider text-text-muted">
               <th class="px-3 py-2">#</th>
+              <th class="px-3 py-2">Proyecto</th>
               <th class="px-3 py-2">Emitida</th>
               <th class="px-3 py-2">Vence</th>
               <th class="px-3 py-2 text-right">Total</th>
@@ -35,8 +47,14 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
-            <tr v-for="invoice in billing.invoices.value" :key="invoice.id">
+            <tr v-for="invoice in filteredInvoices" :key="invoice.id">
               <td class="px-3 py-2 font-medium text-text">{{ invoice.invoice_number }}</td>
+              <td class="px-3 py-2 text-text-secondary">
+                <span v-if="invoice.project_id" class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                  {{ projectNameById[invoice.project_id] ?? 'Proyecto' }}
+                </span>
+                <span v-else class="text-text-muted">General</span>
+              </td>
               <td class="px-3 py-2 text-text-secondary">{{ formatDateUS(invoice.issue_date.slice(0, 10)) }}</td>
               <td class="px-3 py-2 text-text-secondary">{{ formatDateUS(invoice.due_date.slice(0, 10)) }}</td>
               <td class="px-3 py-2 text-right tabular-nums text-text">{{ formatUSD(invoice.total) }}</td>
@@ -126,7 +144,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, toRef } from 'vue'
+import { computed, ref, toRef } from 'vue'
 import { PrinterIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
@@ -150,6 +168,20 @@ const { formatUSD } = useCurrency()
 const businessStore = useBusinessStore()
 
 const billing = useBilling(toRef(props, 'businessId'), toRef(props, 'companyId'))
+
+const projectOptions = computed(() => billing.projects.value ?? [])
+const projectNameById = computed(() =>
+  Object.fromEntries(projectOptions.value.map(p => [p.id, p.name])),
+)
+
+/** '' = todos, '__general__' = sin proyecto, cualquier otro valor = ese proyecto. */
+const projectFilter = ref('')
+const filteredInvoices = computed(() => {
+  const invoices = billing.invoices.value ?? []
+  if (!projectFilter.value) return invoices
+  if (projectFilter.value === '__general__') return invoices.filter(i => !i.project_id)
+  return invoices.filter(i => i.project_id === projectFilter.value)
+})
 
 const statusClass = (status: string) => ({
   sent: 'bg-warning/10 text-warning',
