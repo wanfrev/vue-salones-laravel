@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { PenIcon, TrashBin2Icon, AddCircleIcon } from '@solar-icons/vue/linear'
 import {
   getStaffingProjects,
   createStaffingProject,
@@ -9,10 +10,7 @@ import {
   staffingCompanyKeys,
   type StaffingProject,
 } from '../../services/staffing/staffingService'
-import { useNotification } from '../common/useNotification'
-import PenIcon from '../icons/PenIcon.vue'
-import TrashBin2Icon from '../icons/TrashBin2Icon.vue'
-import AddCircleIcon from '../icons/AddCircleIcon.vue'
+import { useNotification } from '../../composables/common/useNotification'
 
 const props = defineProps<{
   companyId: string
