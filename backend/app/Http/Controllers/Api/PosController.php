@@ -7,6 +7,7 @@ use App\Http\Requests\ProcessSaleRequest;
 use App\Http\Requests\DirectSaleRequest;
 use App\Http\Requests\DirectServiceSaleRequest;
 use App\Services\PosService;
+use App\Services\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,6 +15,7 @@ class PosController
 {
     public function __construct(
         private PosService $posService,
+        private ProductService $productService,
     ) {}
 
     private function resolveBusinessId(Request $request): ?string
@@ -46,6 +48,16 @@ class PosController
 
         return response()->json(
             $this->posService->getSaleableProducts($businessId, $request->get('branch_id'))
+        );
+    }
+
+    public function frequentlyBoughtTogether(Request $request, string $productId): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
+
+        return response()->json(
+            $this->productService->frequentlyBoughtWith($businessId, $productId, $request->get('branch_id'))
         );
     }
 
