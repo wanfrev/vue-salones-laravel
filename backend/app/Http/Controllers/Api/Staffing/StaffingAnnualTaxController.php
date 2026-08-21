@@ -95,6 +95,26 @@ class StaffingAnnualTaxController extends Controller
             }
         }
         
+        if (array_key_exists('staffing_company_id', $validated)) {
+            $companyId = $validated['staffing_company_id'];
+            unset($validated['staffing_company_id']);
+            
+            if ($companyId) {
+                $exists = \App\Models\StaffingCompanyEmployee::where('employee_id', $employee->id)
+                    ->where('company_id', $companyId)
+                    ->exists();
+                if (!$exists) {
+                    \App\Models\StaffingCompanyEmployee::create([
+                        'id' => \Illuminate\Support\Str::uuid()->toString(),
+                        'business_id' => $businessId,
+                        'company_id' => $companyId,
+                        'employee_id' => $employee->id,
+                        'role' => 'Staff', // Default role when assigned quickly from taxes
+                    ]);
+                }
+            }
+        }
+        
         $employee->fill($validated);
         $employee->save();
         

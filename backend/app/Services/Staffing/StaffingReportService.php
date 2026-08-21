@@ -466,7 +466,7 @@ class StaffingReportService
             ->orderBy('name')
             ->get();
 
-        $employees = Profile::with('staffingCompany')
+        $employees = Profile::with('staffingCompanyEmployees.company')
             ->where('business_id', $businessId)
             ->orderBy('full_name')
             ->get();
@@ -510,8 +510,8 @@ class StaffingReportService
                     'employeeId' => $employee->id,
                     'name' => $employee->full_name,
                     'active' => (bool) $employee->active,
-                    'companyId' => $employee->staffing_company_id,
-                    'companyName' => $employee->staffingCompany?->name,
+                    'companyId' => $employee->staffingCompanyEmployees->first()?->company_id,
+                    'companyName' => $employee->staffingCompanyEmployees->first()?->company?->name,
                     'phone' => $employee->phone,
                     'address' => $employee->address,
                     'ssn' => rescue(fn() => $employee->ssn, null, false),
