@@ -41,19 +41,33 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
               </svg>
             </button>
-            <button v-for="option in filteredOptions" :key="option.value" type="button" @click="selectOption(option.value)" :disabled="option.disabled"
-              class="flex items-center gap-2.5 w-full rounded-lg px-2.5 py-2 text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              :class="modelValue === option.value ? 'bg-primary/10 text-primary font-medium' : 'text-text hover:bg-bg-secondary'">
-              <div v-if="option.icon" class="flex h-6 w-6 items-center justify-center rounded-full flex-shrink-0"
-                :class="modelValue === option.value ? 'bg-primary/20 text-primary' : 'bg-bg-secondary text-text-secondary'">
-                <span class="text-[10px] font-bold">{{ option.icon }}</span>
-              </div>
-              <span class="flex-1 text-left whitespace-normal break-words">{{ option.label }}</span>
-              <span v-if="option.sublabel" class="text-[11px] text-text-muted whitespace-nowrap shrink-0 ml-1">{{ option.sublabel }}</span>
-              <svg v-if="modelValue === option.value" class="h-4 w-4 flex-shrink-0 text-primary ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </button>
+            <div v-for="option in filteredOptions" :key="option.value" class="flex items-center gap-1">
+              <button type="button" @click="selectOption(option.value)" :disabled="option.disabled"
+                class="flex flex-1 min-w-0 items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                :class="modelValue === option.value ? 'bg-primary/10 text-primary font-medium' : 'text-text hover:bg-bg-secondary'">
+                <div v-if="option.icon" class="flex h-6 w-6 items-center justify-center rounded-full flex-shrink-0"
+                  :class="modelValue === option.value ? 'bg-primary/20 text-primary' : 'bg-bg-secondary text-text-secondary'">
+                  <span class="text-[10px] font-bold">{{ option.icon }}</span>
+                </div>
+                <span class="flex-1 min-w-0 text-left whitespace-normal break-words">{{ option.label }}</span>
+                <span v-if="option.sublabel" class="text-[11px] text-text-muted whitespace-nowrap shrink-0 ml-1">{{ option.sublabel }}</span>
+                <svg v-if="modelValue === option.value" class="h-4 w-4 flex-shrink-0 text-primary ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </button>
+              <button v-if="option.editable" type="button" @click.stop="handleEdit(option.value)" title="Editar categoría"
+                class="flex-shrink-0 rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+              <button v-if="option.editable" type="button" @click.stop="handleDelete(option.value)" title="Eliminar categoría"
+                class="flex-shrink-0 rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-danger">
+                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
             <div v-if="filteredOptions.length === 0" class="px-3 py-4 text-center text-sm text-text-muted">
               Sin resultados
             </div>
@@ -75,6 +89,7 @@ export interface DropdownOption {
   disabled?: boolean
   icon?: string
   sublabel?: string
+  editable?: boolean
 }
 
 export type DropdownSize = 'sm' | 'md' | 'lg'
@@ -99,6 +114,8 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
+  'edit-option': [value: string | number]
+  'delete-option': [value: string | number]
 }>()
 
 const isOpen = ref(false)
@@ -135,6 +152,18 @@ const selectOption = (value: string | number) => {
   emit('update:modelValue', value as string)
   isOpen.value = false
   searchQuery.value = ''
+}
+
+const handleEdit = (value: string | number) => {
+  isOpen.value = false
+  searchQuery.value = ''
+  emit('edit-option', value)
+}
+
+const handleDelete = (value: string | number) => {
+  isOpen.value = false
+  searchQuery.value = ''
+  emit('delete-option', value)
 }
 
 const handleClickOutside = (e: MouseEvent) => {

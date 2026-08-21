@@ -194,6 +194,10 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
             Route::delete('/products/{id}', [ProductController::class, 'destroy']);
             Route::post('/products/categories', [ProductCategoryController::class, 'store']);
             Route::post('/product-categories', [ProductCategoryController::class, 'store']);
+            Route::put('/products/categories/{id}', [ProductCategoryController::class, 'update']);
+            Route::put('/product-categories/{id}', [ProductCategoryController::class, 'update']);
+            Route::delete('/products/categories/{id}', [ProductCategoryController::class, 'destroy']);
+            Route::delete('/product-categories/{id}', [ProductCategoryController::class, 'destroy']);
         });
     });
 

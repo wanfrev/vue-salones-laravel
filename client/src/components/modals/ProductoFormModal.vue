@@ -22,14 +22,40 @@
           @blur="handleBlur('name')"
         />
         <FormDropdown
-          v-if="!showingCustomCategory"
+          v-if="!showingCustomCategory && !editingCategoryId"
           v-model="formData.categoryId"
           label="Categoría"
           placeholder="Seleccionar categoría..."
           :options="categoryOptions"
           searchable
           :error="errors.categoryId"
+          @edit-option="startEditCategory"
+          @delete-option="handleDeleteCategory"
         />
+        <div v-else-if="editingCategoryId" class="flex gap-2">
+          <FormInput
+            v-model="editingCategoryName"
+            label="Editar categoría"
+            placeholder="Nombre de la categoría..."
+            required
+            class="flex-1"
+          />
+          <button
+            type="button"
+            class="mt-6 shrink-0 rounded-lg border border-border px-3 py-2 text-sm text-text-muted transition-theme hover:bg-bg-secondary"
+            @click="cancelEditCategory"
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            class="mt-6 shrink-0 rounded-lg bg-primary px-3 py-2 text-sm text-white transition-theme hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="isSavingCategoryEdit || !editingCategoryName.trim()"
+            @click="saveEditCategory"
+          >
+            Guardar
+          </button>
+        </div>
         <div v-else class="flex gap-2">
           <FormInput
             v-model="newCategoryName"
@@ -142,7 +168,8 @@ import { ref, computed, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useModal } from '../../composables/common/useModal'
 import { useNotification } from '../../composables/common/useNotification'
-import { listProductCategories, createProductCategory, productosKeys } from '../../services/productosService'
+import { listProductCategories, createProductCategory, updateProductCategory, deleteProductCategory, productosKeys } from '../../services/productosService'
+import { confirmAction } from '../../lib/confirmDialog'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { useFormValidation } from '../../composables/common/useFormValidation'
@@ -168,7 +195,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const { isOpen, modalData, close } = useModal(MODAL_ID)
-const { error: showError } = useNotification()
+const { error: showError, success: showSuccess } = useNotification()
 const authStore = useAuthStore()
 const businessStore = useBusinessStore()
 
@@ -192,7 +219,7 @@ const categoryOptions = computed(() => {
   const cats = categoriesData.value ?? []
   return [
     { value: '', label: 'Sin categoría' },
-    ...cats.map(mapCategoryToOption),
+    ...cats.map(cat => ({ ...mapCategoryToOption(cat), editable: true })),
     { value: '__new__', label: '+ Agregar nuevo' },
   ]
 })
@@ -200,6 +227,61 @@ const categoryOptions = computed(() => {
 const cancelCustomCategory = () => {
   showingCustomCategory.value = false
   newCategoryName.value = ''
+}
+
+const editingCategoryId = ref('')
+const editingCategoryName = ref('')
+const isSavingCategoryEdit = ref(false)
+
+const startEditCategory = (value: string | number) => {
+  const cat = (categoriesData.value ?? []).find(c => c.id === value)
+  if (!cat) return
+  editingCategoryId.value = String(value)
+  editingCategoryName.value = cat.name
+}
+
+const cancelEditCategory = () => {
+  editingCategoryId.value = ''
+  editingCategoryName.value = ''
+}
+
+const saveEditCategory = async () => {
+  const name = editingCategoryName.value.trim()
+  if (!name || !editingCategoryId.value) return
+  isSavingCategoryEdit.value = true
+  try {
+    await updateProductCategory(editingCategoryId.value, name)
+    if (queryClient) {
+      await queryClient.invalidateQueries({ queryKey: productosKeys.categories(businessId.value, branchId.value) })
+    }
+    showSuccess('Categoría actualizada')
+    cancelEditCategory()
+  } catch (err) {
+    console.error('Error updating category:', err)
+    showError('No se pudo actualizar la categoría')
+  } finally {
+    isSavingCategoryEdit.value = false
+  }
+}
+
+const handleDeleteCategory = async (value: string | number) => {
+  const cat = (categoriesData.value ?? []).find(c => c.id === value)
+  if (!cat) return
+  const confirmed = await confirmAction(`¿Eliminar la categoría "${cat.name}"? Los productos que la usan quedarán sin categoría.`)
+  if (!confirmed) return
+  try {
+    await deleteProductCategory(String(value))
+    if (formData.value.categoryId === value) {
+      formData.value.categoryId = ''
+    }
+    if (queryClient) {
+      await queryClient.invalidateQueries({ queryKey: productosKeys.categories(businessId.value, branchId.value) })
+    }
+    showSuccess('Categoría eliminada')
+  } catch (err) {
+    console.error('Error deleting category:', err)
+    showError('No se pudo eliminar la categoría')
+  }
 }
 
 const statusOptions = [
