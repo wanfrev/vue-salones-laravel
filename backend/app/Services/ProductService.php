@@ -101,6 +101,44 @@ class ProductService
         ]);
     }
 
+    public function updateCategory(string $id, array $data, string $businessId): ProductCategory
+    {
+        $category = $this->findCategoryForBusiness($id, $businessId);
+        $category->update([
+            'name' => $data['name'],
+            'description' => array_key_exists('description', $data) ? $data['description'] : $category->description,
+            'updated_at' => now(),
+        ]);
+        return $category->fresh();
+    }
+
+    public function destroyCategory(string $id, string $businessId, ?string $reassignToId = null): void
+    {
+        $category = $this->findCategoryForBusiness($id, $businessId);
+
+        if ($reassignToId) {
+            $this->findCategoryForBusiness($reassignToId, $businessId);
+            Product::where('business_id', $businessId)
+                ->where('category_id', $id)
+                ->update(['category_id' => $reassignToId, 'updated_at' => now()]);
+        } else {
+            Product::where('business_id', $businessId)
+                ->where('category_id', $id)
+                ->update(['category_id' => null, 'updated_at' => now()]);
+        }
+
+        $category->delete();
+    }
+
+    public function findCategoryForBusiness(string $id, string $businessId): ProductCategory
+    {
+        $category = ProductCategory::find($id);
+        if (!$category || $category->business_id !== $businessId) {
+            throw new NotFoundHttpException('Categoría no encontrada.');
+        }
+        return $category;
+    }
+
     public function findForBusiness(string $id, string $businessId): Product
     {
         $product = Product::find($id);

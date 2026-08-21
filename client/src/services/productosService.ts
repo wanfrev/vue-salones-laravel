@@ -1,4 +1,4 @@
-import { db } from '../lib/api'
+import { db, apiRequest } from '../lib/api'
 import { ensureDefaultLocation, createInitialStock } from '../business/productWorkflow'
 import { mapProductToProducto, mapProductoFormToProductInsert } from '../mappers/productosMapper'
 import type { Product, ProductCategory } from '../types/database'
@@ -116,6 +116,14 @@ export const createProductCategory = async (businessId: string, name: string, br
 
   if (error) throw error
   return data as ProductCategory
+}
+
+export const updateProductCategory = async (id: string, name: string): Promise<ProductCategory> => {
+  return apiRequest<ProductCategory>('PUT', `/product-categories/${id}`, { name: name.trim() })
+}
+
+export const deleteProductCategory = async (id: string, reassignToId?: string | null): Promise<void> => {
+  await apiRequest<{ success: boolean }>('DELETE', `/product-categories/${id}`, reassignToId ? { reassign_to: reassignToId } : undefined)
 }
 
 export const deleteProducto = async (id: string): Promise<void> => {

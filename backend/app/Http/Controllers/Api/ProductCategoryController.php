@@ -52,4 +52,31 @@ class ProductCategoryController
         EntityChanged::safe($businessId, 'product_category', 'created', $category->id);
         return response()->json($category, 201);
     }
+
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+        ]);
+
+        $category = $this->productService->updateCategory($id, $data, $businessId);
+        EntityChanged::safe($businessId, 'product_category', 'updated', $category->id);
+        return response()->json($category);
+    }
+
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+
+        $reassignToId = $request->input('reassign_to') ?: null;
+
+        $this->productService->destroyCategory($id, $businessId, $reassignToId);
+        EntityChanged::safe($businessId, 'product_category', 'deleted', $id);
+        return response()->json(['success' => true]);
+    }
 }
