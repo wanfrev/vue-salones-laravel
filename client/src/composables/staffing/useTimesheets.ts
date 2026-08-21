@@ -41,9 +41,17 @@ export function useTimesheets(businessId: Ref<string | null>, companyId: Ref<str
    * week_start as a full ISO datetime ("2026-08-10T00:00:00.000000Z"), not the bare "2026-08-10"
    * the <input type="date"> works with, so a strict `===` here never matched anything and every
    * previously-saved week silently looked empty.
+   *
+   * Also matches on project_id (null-safe): `timesheets` can hold every project's sheets for
+   * this company at once (see listStaffingTimesheets), and saveTimesheetWeek scopes its
+   * find-or-create by (company, project, week) — without this check, viewing "General" for a
+   * week that only has a project-specific sheet would show that project's hours, and saving
+   * would then create a *different* general sheet instead of updating what was actually shown.
    */
   const findWeek = (weekStart: string) =>
-    (timesheets.value ?? []).find(t => t.week_start.slice(0, 10) === weekStart) ?? null
+    (timesheets.value ?? []).find(t =>
+      t.week_start.slice(0, 10) === weekStart && (t.project_id ?? null) === (projectId.value ?? null)
+    ) ?? null
 
   const invalidate = () =>
     queryClient.invalidateQueries({

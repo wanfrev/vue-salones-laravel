@@ -65,13 +65,14 @@ class StaffingCompanyEmployeeService
     {
         $query = StaffingCompanyEmployee::where('business_id', $businessId)
             ->where('company_id', $companyId);
-            
+
+        // Only narrow by project when the caller actually asked for one (e.g. entering hours for
+        // a specific project) — unscoped callers like RateCardEditor's headcount still expect
+        // every employee assigned to the company, project or not.
         if ($projectId) {
             $query->where('project_id', $projectId);
-        } else {
-            $query->whereNull('project_id');
         }
-            
+
         $assignments = $query->get()->keyBy('employee_id');
 
         if ($assignments->isEmpty()) {

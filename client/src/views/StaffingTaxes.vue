@@ -112,7 +112,7 @@
                 {{ employee.address || '—' }}
               </td>
               <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary cursor-pointer hover:bg-bg-secondary transition-theme" title="Editar" @click="openEditProfile(employee)">
-                {{ employee.ssn || '—' }}
+                {{ employee.ssnLast4 ? `•••-••-${employee.ssnLast4}` : '—' }}
               </td>
               
               <td class="whitespace-nowrap px-3 py-2.5 text-center">

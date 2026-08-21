@@ -487,6 +487,7 @@ export interface StaffingTimesheet {
   id: string
   business_id: string
   company_id: string
+  project_id: string | null
   week_start: string
   week_end: string
   status: 'draft' | 'approved' | 'paid'

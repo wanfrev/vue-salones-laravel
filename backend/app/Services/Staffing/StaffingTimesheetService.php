@@ -35,8 +35,10 @@ class StaffingTimesheetService
 
         if ($companyId) {
             $query->where('company_id', $companyId);
-        }
-        if ($projectId) {
+            // Scoped to one company (the Nómina hours-entry view): match the project tab exactly,
+            // including "General" (null) — mirrors saveWeek's find-or-create lookup so the week a
+            // user sees here is always the same record a save would touch. An unscoped business-
+            // wide listing (no companyId) keeps returning everything, project or not.
             $query->where('project_id', $projectId);
         }
 

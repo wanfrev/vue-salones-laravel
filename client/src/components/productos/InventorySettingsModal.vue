@@ -77,7 +77,7 @@ const handleSubmit = async () => {
       product_price2_markup: Number(formData.value.product_price2_markup)
     }
     
-    await apiRequest('PUT', `/api/businesses/${authStore.businessId}`, payload)
+    await apiRequest('PUT', `/businesses/${authStore.businessId}`, payload)
     
     // Update local store
     businessStore.updateBusiness(payload)

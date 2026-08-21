@@ -202,10 +202,15 @@ const toRateRow = (row: StaffingCompanyRate): StaffingRateRow => ({
 export const getStaffingCompanies = (): Promise<StaffingCompanyRow[]> =>
   apiRequest('GET', '/staffing-companies')
 
+/**
+ * Defaults to 'active' so callers that only ever want active companies (StaffingHoursPanel.vue,
+ * StaffingEmployeeFields.vue, Nomina.vue) keep seeing exactly that without passing a status. Pass
+ * 'all' explicitly for the Empresas screen's own tabbed list.
+ */
 export const listStaffingCompanies = async (
   businessId: string,
   _branchId?: string | null,
-  status: StaffingCompanyStatus | 'all' = 'all',
+  status: StaffingCompanyStatus | 'all' = 'active',
 ): Promise<StaffingCompanyRow[]> => {
   let query = db.from('staffing_companies').select('*').eq('business_id', businessId)
   
@@ -272,17 +277,39 @@ export const deleteStaffingCompany = async (id: string): Promise<void> => {
   if (error) handleDbError(error, 'Error al eliminar la empresa')
 }
 
-export const getStaffingAllProjects = (): Promise<StaffingProject[]> =>
-  apiRequest('GET', '/staffing-projects')
+interface StaffingProjectApiRow {
+  id: string
+  company_id: string
+  name: string
+  active: boolean
+}
 
-export const getStaffingProjects = (companyId: string): Promise<StaffingProject[]> =>
-  apiRequest('GET', `/staffing-companies/${companyId}/projects`)
+const toProjectRow = (row: StaffingProjectApiRow): StaffingProject => ({
+  id: row.id,
+  companyId: row.company_id,
+  name: row.name,
+  active: row.active,
+})
 
-export const createStaffingProject = (companyId: string, data: StaffingProjectFormData): Promise<StaffingProject> =>
-  apiRequest('POST', `/staffing-companies/${companyId}/projects`, data)
+export const getStaffingAllProjects = async (): Promise<StaffingProject[]> => {
+  const rows = await apiRequest<StaffingProjectApiRow[]>('GET', '/staffing-projects')
+  return rows.map(toProjectRow)
+}
 
-export const updateStaffingProject = (companyId: string, id: string, data: Partial<StaffingProjectFormData>): Promise<StaffingProject> =>
-  apiRequest('PUT', `/staffing-companies/${companyId}/projects/${id}`, data)
+export const getStaffingProjects = async (companyId: string): Promise<StaffingProject[]> => {
+  const rows = await apiRequest<StaffingProjectApiRow[]>('GET', `/staffing-companies/${companyId}/projects`)
+  return rows.map(toProjectRow)
+}
+
+export const createStaffingProject = async (companyId: string, data: StaffingProjectFormData): Promise<StaffingProject> => {
+  const row = await apiRequest<StaffingProjectApiRow>('POST', `/staffing-companies/${companyId}/projects`, data)
+  return toProjectRow(row)
+}
+
+export const updateStaffingProject = async (companyId: string, id: string, data: Partial<StaffingProjectFormData>): Promise<StaffingProject> => {
+  const row = await apiRequest<StaffingProjectApiRow>('PUT', `/staffing-companies/${companyId}/projects/${id}`, data)
+  return toProjectRow(row)
+}
 
 export const deleteStaffingProject = (companyId: string, id: string): Promise<void> =>
   apiRequest('DELETE', `/staffing-companies/${companyId}/projects/${id}`)
@@ -765,7 +792,6 @@ export interface StaffingAnnualTaxEmployeeRow {
   companyName: string | null
   phone: string | null
   address: string | null
-  ssn: string | null
   ssnLast4: string | null
   status: StaffingAnnualTaxStatus
   globalFilePath: string | null

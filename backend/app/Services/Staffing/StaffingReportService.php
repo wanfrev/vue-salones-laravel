@@ -183,6 +183,9 @@ class StaffingReportService
             return [];
         }
 
+        // A company can have more than one timesheet in the same week now — one per project, plus
+        // an optional general one — so these are grouped (not keyed 1:1) per company and summed
+        // below, instead of collapsing to whichever row happened to come back last.
         $entryTotals = DB::table('staffing_timesheet_entries as ste')
             ->join('staffing_timesheets as st', 'st.id', '=', 'ste.timesheet_id')
             ->where('st.business_id', $businessId)
@@ -190,9 +193,9 @@ class StaffingReportService
             ->selectRaw('st.company_id, st.id as timesheet_id, SUM(ste.payout) as nomina, SUM(ste.invoice_total) as invoice, COUNT(DISTINCT ste.employee_id) as headcount')
             ->groupBy('st.company_id', 'st.id')
             ->get()
-            ->keyBy('company_id');
+            ->groupBy('company_id');
 
-        $timesheetIds = $entryTotals->pluck('timesheet_id')->filter()->values();
+        $timesheetIds = $entryTotals->flatten(1)->pluck('timesheet_id')->filter()->values();
 
         $invoicesByTimesheet = StaffingInvoice::where('business_id', $businessId)
             ->whereIn('timesheet_id', $timesheetIds)
@@ -214,10 +217,10 @@ class StaffingReportService
             ->keyBy('company_id');
 
         return $companies->map(function (StaffingCompany $company) use ($entryTotals, $invoicesByTimesheet, $paidByInvoice, $expensesByCompany) {
-            $entry = $entryTotals->get($company->id);
-            $nomina = $entry ? (float) $entry->nomina : 0.0;
-            $invoiceTotal = $entry ? (float) $entry->invoice : 0.0;
-            $headcount = $entry ? (int) $entry->headcount : 0;
+            $entries = $entryTotals->get($company->id) ?? collect();
+            $nomina = (float) $entries->sum('nomina');
+            $invoiceTotal = (float) $entries->sum('invoice');
+            $headcount = (int) $entries->sum('headcount');
 
             $grossProfit = $invoiceTotal - $nomina;
             $overheadRate = $company->agency_overhead_rate ?? 0.04;
@@ -228,11 +231,19 @@ class StaffingReportService
 
             $total = $grossProfit - $overhead - $otrosGastos;
 
-            $invoice = $entry ? $invoicesByTimesheet->get($entry->timesheet_id) : null;
+            // A company can have several timesheets this week now (one per project) — collect
+            // every invoice tied to any of them. 'paid' only when all are fully paid, 'pending'
+            // if at least one invoice exists but isn't, 'no_invoice' when none of them are billed.
+            $invoicesForWeek = $entries
+                ->map(fn ($entry) => $invoicesByTimesheet->get($entry->timesheet_id))
+                ->filter();
             $autoEstado = 'no_invoice';
-            if ($invoice) {
-                $paid = $paidByInvoice->get($invoice->id)?->paid ?? 0.0;
-                $autoEstado = (float) $paid >= (float) $invoice->total ? 'paid' : 'pending';
+            if ($invoicesForWeek->isNotEmpty()) {
+                $allPaid = $invoicesForWeek->every(function ($invoice) use ($paidByInvoice) {
+                    $paid = $paidByInvoice->get($invoice->id)?->paid ?? 0.0;
+                    return (float) $paid >= (float) $invoice->total;
+                });
+                $autoEstado = $allPaid ? 'paid' : 'pending';
             }
             // The PDF wants "estado" both auto-filled and editable — an admin's manual override
             // (e.g. paid outside the app) wins over the computed value, null means "automático".
@@ -458,6 +469,8 @@ class StaffingReportService
             'margin' => (float) ($row->margin ?? 0.0),
         ];
     }
+
+    /**
      * @return array{entities: list<array>, employees: list<array>}
      */
     public function annualTaxReport(string $businessId, int $year): array
@@ -514,7 +527,6 @@ class StaffingReportService
                     'companyName' => $employee->staffingCompanyEmployees->first()?->company?->name,
                     'phone' => $employee->phone,
                     'address' => $employee->address,
-                    'ssn' => rescue(fn() => $employee->ssn, null, false),
                     'ssnLast4' => $employee->ssn_last4,
                     'status' => $annualTax?->status ? strtoupper($annualTax->status) : 'BLANK',
                     'globalFilePath' => $annualTax?->file_path,
