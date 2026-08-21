@@ -1,5 +1,6 @@
 export interface StaffingAssignment {
   companyId: string
+  projectId?: string | null
   companyName?: string
   role: string
   /** Only meaningful when the company's rate card splits this role's pay by shift. */

@@ -3,6 +3,7 @@
 namespace App\Services\Staffing;
 
 use App\Models\Profile;
+use App\Models\StaffingAnnualTax;
 use App\Models\StaffingCompany;
 use App\Models\StaffingCompanyPayment;
 use App\Models\StaffingInvoice;
@@ -182,6 +183,9 @@ class StaffingReportService
             return [];
         }
 
+        // A company can have more than one timesheet in the same week now — one per project, plus
+        // an optional general one — so these are grouped (not keyed 1:1) per company and summed
+        // below, instead of collapsing to whichever row happened to come back last.
         $entryTotals = DB::table('staffing_timesheet_entries as ste')
             ->join('staffing_timesheets as st', 'st.id', '=', 'ste.timesheet_id')
             ->where('st.business_id', $businessId)
@@ -189,9 +193,9 @@ class StaffingReportService
             ->selectRaw('st.company_id, st.id as timesheet_id, SUM(ste.payout) as nomina, SUM(ste.invoice_total) as invoice, COUNT(DISTINCT ste.employee_id) as headcount')
             ->groupBy('st.company_id', 'st.id')
             ->get()
-            ->keyBy('company_id');
+            ->groupBy('company_id');
 
-        $timesheetIds = $entryTotals->pluck('timesheet_id')->filter()->values();
+        $timesheetIds = $entryTotals->flatten(1)->pluck('timesheet_id')->filter()->values();
 
         $invoicesByTimesheet = StaffingInvoice::where('business_id', $businessId)
             ->whereIn('timesheet_id', $timesheetIds)
@@ -213,10 +217,10 @@ class StaffingReportService
             ->keyBy('company_id');
 
         return $companies->map(function (StaffingCompany $company) use ($entryTotals, $invoicesByTimesheet, $paidByInvoice, $expensesByCompany) {
-            $entry = $entryTotals->get($company->id);
-            $nomina = $entry ? (float) $entry->nomina : 0.0;
-            $invoiceTotal = $entry ? (float) $entry->invoice : 0.0;
-            $headcount = $entry ? (int) $entry->headcount : 0;
+            $entries = $entryTotals->get($company->id) ?? collect();
+            $nomina = (float) $entries->sum('nomina');
+            $invoiceTotal = (float) $entries->sum('invoice');
+            $headcount = (int) $entries->sum('headcount');
 
             $grossProfit = $invoiceTotal - $nomina;
             $overheadRate = $company->agency_overhead_rate ?? 0.04;
@@ -227,11 +231,19 @@ class StaffingReportService
 
             $total = $grossProfit - $overhead - $otrosGastos;
 
-            $invoice = $entry ? $invoicesByTimesheet->get($entry->timesheet_id) : null;
+            // A company can have several timesheets this week now (one per project) — collect
+            // every invoice tied to any of them. 'paid' only when all are fully paid, 'pending'
+            // if at least one invoice exists but isn't, 'no_invoice' when none of them are billed.
+            $invoicesForWeek = $entries
+                ->map(fn ($entry) => $invoicesByTimesheet->get($entry->timesheet_id))
+                ->filter();
             $autoEstado = 'no_invoice';
-            if ($invoice) {
-                $paid = $paidByInvoice->get($invoice->id)?->paid ?? 0.0;
-                $autoEstado = (float) $paid >= (float) $invoice->total ? 'paid' : 'pending';
+            if ($invoicesForWeek->isNotEmpty()) {
+                $allPaid = $invoicesForWeek->every(function ($invoice) use ($paidByInvoice) {
+                    $paid = $paidByInvoice->get($invoice->id)?->paid ?? 0.0;
+                    return (float) $paid >= (float) $invoice->total;
+                });
+                $autoEstado = $allPaid ? 'paid' : 'pending';
             }
             // The PDF wants "estado" both auto-filled and editable — an admin's manual override
             // (e.g. paid outside the app) wins over the computed value, null means "automático".
@@ -459,9 +471,6 @@ class StaffingReportService
     }
 
     /**
-     * The annual taxes report: every employee (active + inactive), the configured tax entities
-     * as columns, and each employee's amount/document for the given year in those columns.
-     *
      * @return array{entities: list<array>, employees: list<array>}
      */
     public function annualTaxReport(string $businessId, int $year): array
@@ -470,7 +479,7 @@ class StaffingReportService
             ->orderBy('name')
             ->get();
 
-        $employees = Profile::with('staffingCompany')
+        $employees = Profile::with('staffingCompanyEmployees.company')
             ->where('business_id', $businessId)
             ->orderBy('full_name')
             ->get();
@@ -478,6 +487,11 @@ class StaffingReportService
         $entries = StaffingTaxEntry::where('business_id', $businessId)
             ->where('year', $year)
             ->get();
+            
+        $annualTaxes = StaffingAnnualTax::where('business_id', $businessId)
+            ->where('year', $year)
+            ->get()
+            ->keyBy('employee_id');
 
         // employee_id => tax_entity_id => entry
         $byEmployeeAndEntity = [];
@@ -490,7 +504,7 @@ class StaffingReportService
                 'id' => $e->id,
                 'name' => $e->name,
             ])->all(),
-            'employees' => $employees->map(function (Profile $employee) use ($byEmployeeAndEntity, $entities) {
+            'employees' => $employees->map(function (Profile $employee) use ($byEmployeeAndEntity, $entities, $annualTaxes) {
                 $entriesByEntity = [];
                 foreach ($entities as $entity) {
                     $entry = $byEmployeeAndEntity[$employee->id][$entity->id] ?? null;
@@ -503,14 +517,21 @@ class StaffingReportService
                     ] : null;
                 }
 
+                $annualTax = $annualTaxes->get($employee->id);
+
                 return [
                     'employeeId' => $employee->id,
                     'name' => $employee->full_name,
                     'active' => (bool) $employee->active,
-                    'companyName' => $employee->staffingCompany?->name,
+                    'companyId' => $employee->staffingCompanyEmployees->first()?->company_id,
+                    'companyName' => $employee->staffingCompanyEmployees->first()?->company?->name,
                     'phone' => $employee->phone,
                     'address' => $employee->address,
                     'ssnLast4' => $employee->ssn_last4,
+                    'status' => $annualTax?->status ? strtoupper($annualTax->status) : 'BLANK',
+                    'globalFilePath' => $annualTax?->file_path,
+                    'globalFileName' => $annualTax?->file_original_name,
+                    'globalFileDate' => ($annualTax?->file_date instanceof \DateTimeInterface) ? $annualTax->file_date->format('Y-m-d') : null,
                     'entriesByEntity' => $entriesByEntity,
                 ];
             })->all(),

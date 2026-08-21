@@ -66,6 +66,11 @@ class Profile extends Model
         return $this->belongsTo(Business::class);
     }
 
+    public function staffingCompany(): BelongsTo
+    {
+        return $this->belongsTo(StaffingCompany::class, 'staffing_company_id');
+    }
+
     public function schedules(): HasMany
     {
         return $this->hasMany(EmployeeSchedule::class, 'employee_id');

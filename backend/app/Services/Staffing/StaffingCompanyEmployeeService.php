@@ -20,7 +20,7 @@ class StaffingCompanyEmployeeService
     /** @return Collection<int, StaffingCompanyEmployee> */
     public function assignmentsForEmployee(string $employeeId): Collection
     {
-        return StaffingCompanyEmployee::with('company:id,name')
+        return StaffingCompanyEmployee::with(['company:id,name', 'project:id,name'])
             ->where('employee_id', $employeeId)
             ->get();
     }
@@ -30,7 +30,7 @@ class StaffingCompanyEmployeeService
      * we diff it" contract as ProfileService::syncSchedules. Wholesale delete+recreate is simpler
      * and safe here: nothing else references a staffing_company_employees row by its own id.
      *
-     * @param list<array{company_id: string, role: string, shift?: string|null}> $assignments
+     * @param list<array{company_id: string, project_id?: string|null, role: string, shift?: string|null}> $assignments
      */
     public function syncForEmployee(string $employeeId, string $businessId, array $assignments): void
     {
@@ -46,6 +46,7 @@ class StaffingCompanyEmployeeService
                     'id' => Str::uuid()->toString(),
                     'business_id' => $businessId,
                     'company_id' => $assignment['company_id'],
+                    'project_id' => $assignment['project_id'] ?? null,
                     'employee_id' => $employeeId,
                     'role' => $assignment['role'],
                     'shift' => $assignment['shift'] ?? null,
@@ -60,12 +61,19 @@ class StaffingCompanyEmployeeService
      * existing consumers (StaffingHoursPanel's rate lookup, RateCardEditor's headcount) keep
      * working against the same Profile-shaped response they always have.
      */
-    public function employeesForCompany(string $businessId, string $companyId): Collection
+    public function employeesForCompany(string $businessId, string $companyId, ?string $projectId = null): Collection
     {
-        $assignments = StaffingCompanyEmployee::where('business_id', $businessId)
-            ->where('company_id', $companyId)
-            ->get()
-            ->keyBy('employee_id');
+        $query = StaffingCompanyEmployee::where('business_id', $businessId)
+            ->where('company_id', $companyId);
+
+        // Only narrow by project when the caller actually asked for one (e.g. entering hours for
+        // a specific project) — unscoped callers like RateCardEditor's headcount still expect
+        // every employee assigned to the company, project or not.
+        if ($projectId) {
+            $query->where('project_id', $projectId);
+        }
+
+        $assignments = $query->get()->keyBy('employee_id');
 
         if ($assignments->isEmpty()) {
             return collect();

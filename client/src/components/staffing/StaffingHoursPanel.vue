@@ -14,6 +14,19 @@
         />
       </div>
 
+      <div class="min-w-[180px]" v-if="projectOptions.length > 0">
+        <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted" for="hours-project">
+          Proyecto
+        </label>
+        <FormSearchSelect
+          id="hours-project"
+          v-model="selectedProjectId"
+          :options="projectOptions"
+          placeholder="General (Sin proyecto)"
+          search-placeholder="Buscar proyecto..."
+        />
+      </div>
+
       <div>
         <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted" for="hours-week-start">
           Semana desde
@@ -47,40 +60,64 @@
         Esta empresa no tiene empleados asignados todavía. Asígnalos desde su ficha en Equipo.
       </p>
 
-      <div v-else class="overflow-hidden rounded-xl border border-border bg-surface">
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-border bg-bg-secondary text-left text-[10px] uppercase tracking-wider text-text-muted">
-                <th class="px-3 py-2.5">Empleado</th>
-                <th class="px-3 py-2.5 text-right">Horas totales</th>
-                <th class="px-3 py-2.5 text-right">Horas regulares</th>
-                <th class="px-3 py-2.5 text-right">Pay rate</th>
-                <th class="px-3 py-2.5 text-right">Bill rate</th>
-                <th class="px-3 py-2.5 text-right">Total regular</th>
-                <th class="px-3 py-2.5 text-right">Horas OT</th>
-                <th class="px-3 py-2.5 text-right">OT rate</th>
-                <th class="px-3 py-2.5 text-right">Bill rate OT</th>
-                <th class="px-3 py-2.5 text-right">Total OT</th>
-                <th class="px-3 py-2.5 text-right">Deducción</th>
-                <th class="px-3 py-2.5 text-right">Fee fijo</th>
-                <th class="px-3 py-2.5 text-right">Ajuste</th>
-                <th class="px-3 py-2.5 text-right">Total semanal</th>
-                <th class="px-3 py-2.5 text-right">% retención</th>
-                <th class="px-3 py-2.5 text-right">Total</th>
-                <th class="px-3 py-2.5 text-right">Redondeo</th>
-                <th class="px-3 py-2.5 text-right">Factura</th>
-                <th class="px-3 py-2.5 text-right">Margen</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-border">
-              <template v-for="employee in timesheets.employees.value" :key="employee.id">
-                <tr>
-                  <td class="px-3 py-2.5">
-                    <p class="font-medium text-text">{{ employee.full_name }}</p>
-                    <p class="text-xs text-text-muted">{{ employee.staffing_role || 'Sin rol' }}</p>
+      <div v-else class="space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-bg-secondary/40 p-3 rounded-xl border border-border">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Empleados ({{ (timesheets.employees.value ?? []).length }})</span>
+            <span v-if="employeeSearch.trim() && filteredEmployees.length !== (timesheets.employees.value ?? []).length" class="text-xs text-text-muted">
+              — {{ filteredEmployees.length }} coincidentes
+            </span>
+          </div>
+          <div class="relative">
+            <MagnifierIcon class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+            <input
+              v-model="employeeSearch"
+              type="text"
+              placeholder="Buscar empleado..."
+              class="w-40 rounded-lg border border-border bg-surface py-1.5 pl-8 pr-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-48"
+            />
+          </div>
+        </div>
+
+        <div class="overflow-hidden rounded-xl border border-border bg-surface">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-border bg-bg-secondary text-left text-[10px] uppercase tracking-wider text-text-muted">
+                  <th class="px-3 py-2.5">Empleado</th>
+                  <th class="px-3 py-2.5 text-right">Horas totales</th>
+                  <th class="px-3 py-2.5 text-right">Horas regulares</th>
+                  <th class="px-3 py-2.5 text-right">Pay rate</th>
+                  <th class="px-3 py-2.5 text-right">Bill rate</th>
+                  <th class="px-3 py-2.5 text-right">Total regular</th>
+                  <th class="px-3 py-2.5 text-right">Horas OT</th>
+                  <th class="px-3 py-2.5 text-right">OT rate</th>
+                  <th class="px-3 py-2.5 text-right">Bill rate OT</th>
+                  <th class="px-3 py-2.5 text-right">Total OT</th>
+                  <th class="px-3 py-2.5 text-right">Deducción</th>
+                  <th class="px-3 py-2.5 text-right">Fee fijo</th>
+                  <th class="px-3 py-2.5 text-right">Ajuste</th>
+                  <th class="px-3 py-2.5 text-right">Total semanal</th>
+                  <th class="px-3 py-2.5 text-right">% retención</th>
+                  <th class="px-3 py-2.5 text-right">Total</th>
+                  <th class="px-3 py-2.5 text-right">Redondeo</th>
+                  <th class="px-3 py-2.5 text-right">Factura</th>
+                  <th class="px-3 py-2.5 text-right">Margen</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-border">
+                <tr v-if="filteredEmployees.length === 0">
+                  <td colspan="19" class="py-10 text-center text-sm text-text-muted bg-surface">
+                    No se encontraron empleados que coincidan con la búsqueda.
                   </td>
-                  <td class="px-3 py-2">
+                </tr>
+                <template v-else v-for="employee in filteredEmployees" :key="employee.id">
+                  <tr>
+                    <td class="px-3 py-2.5">
+                      <p class="font-medium text-text">{{ employee.full_name }}</p>
+                      <p class="text-xs text-text-muted">{{ employee.staffing_role || 'Sin rol' }}</p>
+                    </td>
+                    <td class="px-3 py-2">
                     <input v-model.number="grid[employee.id].totalHours" type="number" min="0" max="168" step="0.01"
                       :disabled="isReadOnly" :class="cellInputClass" />
                   </td>
@@ -139,6 +176,7 @@
           </table>
         </div>
       </div>
+      </div>
 
       <p v-if="timesheets.saveError.value" class="text-sm text-danger">{{ timesheets.saveError.value }}</p>
 
@@ -193,13 +231,14 @@ import { useBusinessStore } from '../../store/business'
 import { useTimesheets } from '../../composables/staffing/useTimesheets'
 import { useBilling } from '../../composables/staffing/useBilling'
 import {
-  getStaffingInvoice, listStaffingCompanies, listStaffingRates, staffingCompanyKeys, staffingRateKeys,
+  getStaffingInvoice, listStaffingCompanies, listStaffingRates, getStaffingProjects, staffingCompanyKeys, staffingRateKeys,
 } from '../../services/staffing/staffingService'
 import type { StaffingCompanyRow, StaffingRateRow, TimesheetEntryInput } from '../../services/staffing/staffingService'
 import { FormSearchSelect } from '../../components/forms'
 import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
 import { formatDateUS, toISODate } from '../../lib/formatters'
 import type { StaffingTimesheetEntry } from '../../types/database'
+import { MagnifierIcon } from '@solar-icons/vue/linear'
 
 const inputClass =
   'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30'
@@ -228,23 +267,64 @@ const companyOptions = computed(() =>
   (companies.value ?? []).map(c => ({ value: c.id, label: c.name }))
 )
 
-const selectedCompanyId = ref(props.initialCompanyId || '')
-const companyId = computed(() => selectedCompanyId.value || null)
+const selectedCompanyId = ref<string | null>(props.initialCompanyId ?? null)
+const selectedProjectId = ref<string | null>(null)
+
+const { data: projects } = useQuery({
+  queryKey: computed(() => staffingCompanyKeys.projects(props.businessId, selectedCompanyId.value)),
+  queryFn: () => getStaffingProjects(selectedCompanyId.value!),
+  enabled: computed(() => !!props.businessId && !!selectedCompanyId.value),
+})
+
+const projectOptions = computed(() => {
+  const opts = (projects.value ?? [])
+    .filter(p => p.active)
+    .map(p => ({ value: p.id, label: p.name }))
+  return [{ value: '', label: 'General (Sin proyecto)' }, ...opts]
+})
+
+watch(selectedCompanyId, () => {
+  selectedProjectId.value = null
+})
+
+const activeCompany = computed<StaffingCompanyRow | null>(() => (companies.value ?? []).find(c => c.id === selectedCompanyId.value) || null)
 
 // The rate card for the selected company — needed to estimate pay/OT/invoice live, before the
 // admin ever clicks "Guardar y calcular".
 const { data: rates } = useQuery({
-  queryKey: computed(() => staffingRateKeys.byCompany(props.businessId, companyId.value)),
-  queryFn: () => listStaffingRates(props.businessId!, companyId.value!),
-  enabled: computed(() => !!props.businessId && !!companyId.value),
+  queryKey: computed(() => staffingRateKeys.byCompany(props.businessId, selectedCompanyId.value)),
+  queryFn: () => listStaffingRates(props.businessId!, selectedCompanyId.value!),
+  enabled: computed(() => !!props.businessId && !!selectedCompanyId.value),
 })
 
-const timesheets = useTimesheets(businessId, companyId)
-const billing = useBilling(businessId, companyId)
+const timesheets = useTimesheets(businessId, selectedCompanyId, selectedProjectId)
+const billing = useBilling(businessId, selectedCompanyId)
+
+const ratesLoading = computed(() => !rates.value && !!selectedCompanyId.value)
+// Wait until both the company is picked and its specific rate card is fully loaded.
+const isReady = computed(() => !!selectedCompanyId.value && !ratesLoading.value)
 
 const existingInvoice = computed(() =>
   (billing.invoices.value ?? []).find(i => i.timesheet_id === currentWeek.value?.id) ?? null,
 )
+
+const employeeSearch = ref('')
+
+// Reset search query when changing company to prevent confusing UI state
+watch(selectedCompanyId, () => {
+  employeeSearch.value = ''
+})
+
+const filteredEmployees = computed(() => {
+  const list = timesheets.employees.value ?? []
+  const query = employeeSearch.value.trim().toLowerCase()
+  if (!query) return list
+  return list.filter(e => {
+    const nameMatch = e.full_name?.toLowerCase().includes(query)
+    const roleMatch = e.staffing_role?.toLowerCase().includes(query)
+    return nameMatch || roleMatch
+  })
+})
 
 /**
  * Defaults to the most recent Sunday, matching the FROM/TO convention on the source sheets.
@@ -342,12 +422,6 @@ const isDirty = (employeeId: string): boolean => {
     || saved.adjustment !== row.adjustment
 }
 
-/**
- * Mirrors TaxRule::amountFor / StaffingTermsFactory::taxRuleFor server-side: a manually set
- * per-employee rate always wins as a flat rate; otherwise tiered brackets win over the company's
- * flat taxRate when present. Brackets are ordered with an EXCLUSIVE upper `threshold` — the first
- * one the base falls under wins, and a null threshold is the catch-all.
- */
 const taxFor = (
   gross: number,
   employeeTaxRate: number | null | undefined,
@@ -371,7 +445,10 @@ const taxFor = (
 
 const roundPayout = (net: number, mode: string): number => {
   if (mode === 'exact') return net
-  if (mode === 'floor' && net > 0) return Math.floor(net)
+  if (net > 0) {
+    if (mode === 'floor') return Math.floor(net)
+    if (mode === 'round') return Math.round(net)
+  }
   return Math.round(net * 100) / 100
 }
 
@@ -455,14 +532,15 @@ const rowFor = (employeeId: string): DisplayRow | null => {
 }
 
 const ROUNDING_LABELS: Record<string, string> = {
-  cent: 'Al centavo',
-  floor: 'Dólar entero',
-  exact: 'Exacto',
+  exact: 'Exacto (se respetan los decimales)',
+  cent: 'Exacto (se respetan los decimales)', // support legacy
+  round: 'Redondeo entero',
+  floor: 'Sin decimales',
 }
 
 const roundingLabel = computed(() => {
   const company = (companies.value ?? []).find(c => c.id === selectedCompanyId.value)
-  return company ? (ROUNDING_LABELS[company.payoutRounding] ?? 'Al centavo') : '—'
+  return company ? (ROUNDING_LABELS[company.payoutRounding] ?? 'Exacto (se respetan los decimales)') : '—'
 })
 
 const totals = computed(() => {

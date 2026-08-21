@@ -50,6 +50,7 @@ class ProfileController
             // with its own role (rates are per company+role) — see StaffingCompanyEmployeeService.
             'staffing_assignments' => 'nullable|array',
             'staffing_assignments.*.company_id' => 'required_with:staffing_assignments|uuid|exists:staffing_companies,id',
+            'staffing_assignments.*.project_id' => 'nullable|uuid|exists:staffing_projects,id',
             'staffing_assignments.*.role' => 'required_with:staffing_assignments|string|max:120',
             // Only meaningful for companies whose rate card splits a role's pay by shift — most
             // assignments leave this null.

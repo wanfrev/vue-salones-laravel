@@ -21,7 +21,7 @@ class StaffingCompanyEmployee extends Model
     protected $table = 'staffing_company_employees';
 
     protected $fillable = [
-        'id', 'business_id', 'company_id', 'employee_id', 'role', 'shift',
+        'id', 'business_id', 'company_id', 'project_id', 'employee_id', 'role', 'shift',
     ];
 
     public function company(): BelongsTo
@@ -32,5 +32,10 @@ class StaffingCompanyEmployee extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Profile::class, 'employee_id');
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(StaffingProject::class, 'project_id');
     }
 }

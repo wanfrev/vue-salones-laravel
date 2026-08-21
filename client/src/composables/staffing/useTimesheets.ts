@@ -18,20 +18,20 @@ import {
  * already exist, and saving/approving a week. Mirrors the NOMINA sheet's "one company, one week,
  * a row per employee" shape.
  */
-export function useTimesheets(businessId: Ref<string | null>, companyId: Ref<string | null>) {
+export function useTimesheets(businessId: Ref<string | null>, companyId: Ref<string | null>, projectId: Ref<string | null>) {
   const queryClient = useQueryClient()
   const { success, error: showError } = useNotification()
   const saveError = ref('')
 
   const { data: employees, isLoading: employeesLoading } = useQuery({
-    queryKey: computed(() => staffingTimesheetKeys.employees(businessId.value, companyId.value)),
-    queryFn: () => listCompanyEmployees(businessId.value!, companyId.value!),
+    queryKey: computed(() => ['staffing-company-employees', businessId.value, companyId.value, projectId.value]),
+    queryFn: () => listCompanyEmployees(businessId.value!, companyId.value!, projectId.value!),
     enabled: computed(() => !!businessId.value && !!companyId.value),
   })
 
   const { data: timesheets, isLoading: timesheetsLoading } = useQuery({
-    queryKey: computed(() => staffingTimesheetKeys.byCompany(businessId.value, companyId.value)),
-    queryFn: () => listStaffingTimesheets(businessId.value!, companyId.value),
+    queryKey: computed(() => ['staffing-timesheets', businessId.value, companyId.value, projectId.value]),
+    queryFn: () => listStaffingTimesheets(businessId.value!, companyId.value, projectId.value!),
     enabled: computed(() => !!businessId.value && !!companyId.value),
   })
 
@@ -41,19 +41,27 @@ export function useTimesheets(businessId: Ref<string | null>, companyId: Ref<str
    * week_start as a full ISO datetime ("2026-08-10T00:00:00.000000Z"), not the bare "2026-08-10"
    * the <input type="date"> works with, so a strict `===` here never matched anything and every
    * previously-saved week silently looked empty.
+   *
+   * Also matches on project_id (null-safe): `timesheets` can hold every project's sheets for
+   * this company at once (see listStaffingTimesheets), and saveTimesheetWeek scopes its
+   * find-or-create by (company, project, week) — without this check, viewing "General" for a
+   * week that only has a project-specific sheet would show that project's hours, and saving
+   * would then create a *different* general sheet instead of updating what was actually shown.
    */
   const findWeek = (weekStart: string) =>
-    (timesheets.value ?? []).find(t => t.week_start.slice(0, 10) === weekStart) ?? null
+    (timesheets.value ?? []).find(t =>
+      t.week_start.slice(0, 10) === weekStart && (t.project_id ?? null) === (projectId.value ?? null)
+    ) ?? null
 
   const invalidate = () =>
     queryClient.invalidateQueries({
-      queryKey: staffingTimesheetKeys.byCompany(businessId.value, companyId.value),
+      queryKey: ['staffing-timesheets', businessId.value, companyId.value],
       exact: false,
     })
 
   const saveMutation = useMutation({
     mutationFn: (input: { weekStart: string; weekEnd: string; entries: TimesheetEntryInput[] }) =>
-      saveTimesheetWeek(companyId.value!, input.weekStart, input.weekEnd, input.entries),
+      saveTimesheetWeek(companyId.value!, input.weekStart, input.weekEnd, input.entries, projectId.value!),
     onSuccess: async () => {
       await invalidate()
       success('Horas guardadas')

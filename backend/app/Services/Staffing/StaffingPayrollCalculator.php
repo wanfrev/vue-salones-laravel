@@ -82,8 +82,13 @@ class StaffingPayrollCalculator
         if ($mode === PayrollTerms::PAYOUT_EXACT) {
             return $net;
         }
-        if ($mode === PayrollTerms::PAYOUT_FLOOR && $net > 0) {
-            return floor($net);
+        if ($net > 0.0) {
+            if ($mode === PayrollTerms::PAYOUT_FLOOR) {
+                return floor($net);
+            }
+            if ($mode === PayrollTerms::PAYOUT_ROUND) {
+                return round($net);
+            }
         }
 
         return round($net, 2);

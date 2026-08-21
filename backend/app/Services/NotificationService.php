@@ -40,10 +40,16 @@ class NotificationService
 
     public function list(string $businessId, string $profileId, ?bool $unreadOnly = false, string $role = 'empleado', ?string $branchId = null): Collection
     {
+        // Sin leer: un negocio activo puede acumular cientos de avisos entre
+        // que uno se genera y alguien lo revisa (nuevas citas, stock, etc.),
+        // así que el límite se relaja bastante para que un recordatorio no
+        // termine enterrado por debajo de esos avisos de menor prioridad.
+        $limit = $unreadOnly ? 500 : 100;
+
         $query = Notification::with('branch')
             ->where('business_id', $businessId)
             ->orderByDesc('created_at')
-            ->limit(100);
+            ->limit($limit);
 
         $this->applyAccessFilter($query, $role, $profileId, $branchId);
 

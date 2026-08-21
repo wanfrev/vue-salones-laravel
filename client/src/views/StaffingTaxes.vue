@@ -76,28 +76,55 @@
               <th class="px-3 py-2.5">Teléfono</th>
               <th class="px-3 py-2.5">Dirección</th>
               <th class="px-3 py-2.5">SSN</th>
+              <th class="px-3 py-2.5">Archivo</th>
+              <th class="px-3 py-2.5">Fecha</th>
               <th v-for="entity in report.entities.value" :key="entity.id" class="px-3 py-2.5 text-right">
                 {{ entity.name }}
               </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border">
-            <tr v-for="employee in report.employees.value" :key="employee.employeeId">
-              <td class="sticky left-0 z-10 whitespace-nowrap bg-surface px-3 py-2.5 font-medium text-text">
+            <tr v-for="employee in report.employees.value" :key="employee.employeeId" class="hover:bg-bg-secondary/30 transition-theme group">
+              <td class="sticky left-0 z-10 whitespace-nowrap bg-surface group-hover:bg-bg-secondary/30 transition-theme px-3 py-2.5 font-medium text-text">
                 {{ employee.name }}
               </td>
               <td class="px-3 py-2.5">
-                <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                  :class="employee.active ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'">
-                  {{ employee.active ? 'Activo' : 'Inactivo' }}
-                </span>
+                <select :value="employee.status"
+                  @change="updateStatus(employee, $event)"
+                  class="rounded-md px-2 py-1 text-[10px] font-semibold outline-none cursor-pointer appearance-none text-center min-w-[120px]"
+                  :class="statusColors[employee.status]">
+                  <option value="BLANK">EN BLANCO</option>
+                  <option value="SENT_TO_EMPLOYEE">ENVIADO A EMPLEADO</option>
+                  <option value="SENT_TO_ACCOUNTANT">ENVIADO A CONTADOR</option>
+                  <option value="PENDING_TO_SEND">POR ENVIAR</option>
+                </select>
               </td>
-              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ employee.companyName || '—' }}</td>
-              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ employee.phone || '—' }}</td>
-              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ employee.address || '—' }}</td>
-              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">
+              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary cursor-pointer hover:bg-bg-secondary transition-theme" title="Editar" @click="openEditProfile(employee)">
+                <span v-if="employee.companyName" class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                  {{ employee.companyName }}
+                </span>
+                <span v-else>—</span>
+              </td>
+              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary cursor-pointer hover:bg-bg-secondary transition-theme" title="Editar" @click="openEditProfile(employee)">
+                {{ employee.phone || '—' }}
+              </td>
+              <td class="px-3 py-2.5 text-text-secondary cursor-pointer hover:bg-bg-secondary transition-theme max-w-[200px] truncate" title="Editar" @click="openEditProfile(employee)">
+                {{ employee.address || '—' }}
+              </td>
+              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary cursor-pointer hover:bg-bg-secondary transition-theme" title="Editar" @click="openEditProfile(employee)">
                 {{ employee.ssnLast4 ? `•••-••-${employee.ssnLast4}` : '—' }}
               </td>
+              
+              <td class="whitespace-nowrap px-3 py-2.5 text-center">
+                <button type="button" @click="openGlobalFileModal(employee)" class="text-text-muted hover:text-primary transition-theme inline-flex items-center gap-1 p-1 rounded hover:bg-bg-secondary">
+                  <PaperclipIcon v-if="employee.globalFilePath" class="h-4 w-4 text-primary" />
+                  <span v-else class="text-[10px] font-medium uppercase">Subir</span>
+                </button>
+              </td>
+              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary text-xs">
+                {{ employee.globalFileDate || '—' }}
+              </td>
+
               <td v-for="entity in report.entities.value" :key="entity.id" class="px-3 py-2.5 text-right">
                 <button type="button"
                   class="inline-flex items-center gap-1 rounded-lg px-2 py-1 tabular-nums text-text-secondary transition-theme hover:bg-bg-secondary hover:text-primary"
@@ -112,6 +139,104 @@
       </div>
     </div>
 
+    <!-- Edit Profile Modal -->
+    <Teleport to="body">
+      <div v-if="editProfileModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6"
+        @click.self="editProfileModal = null">
+        <div class="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-xl">
+          <div class="mb-4">
+            <h2 class="text-lg font-semibold text-text">Editar Datos del Empleado</h2>
+            <p class="text-sm text-text-muted">{{ editProfileModal.employee.name }}</p>
+          </div>
+
+          <form class="space-y-4" @submit.prevent="submitEditProfile">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text">Compañía</label>
+              <select v-model="editProfileForm.staffing_company_id"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30">
+                <option :value="null">Ninguna</option>
+                <option v-for="c in companiesCtx.companies.value" :key="c.id" :value="c.id">{{ c.name }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text">SSN</label>
+              <input v-model="editProfileForm.ssn" type="text"
+                placeholder="Dejar vacío para mantener el actual"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text">Teléfono</label>
+              <input v-model="editProfileForm.phone" type="text"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text">Dirección</label>
+              <input v-model="editProfileForm.address" type="text"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            </div>
+
+            <div class="mt-6 flex items-center justify-end gap-3">
+              <button type="button"
+                class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
+                @click="editProfileModal = null">
+                Cancelar
+              </button>
+              <button type="submit"
+                class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-sm transition-theme hover:bg-primary-hover">
+                Guardar Cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Global File Modal -->
+    <Teleport to="body">
+      <div v-if="globalFileModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6"
+        @click.self="globalFileModal = null">
+        <div class="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-xl">
+          <div class="mb-4">
+            <h2 class="text-lg font-semibold text-text">Archivo de Impuestos</h2>
+            <p class="text-sm text-text-muted">{{ globalFileModal.employee.name }} · {{ year }}</p>
+          </div>
+
+          <form class="space-y-4" @submit.prevent="submitGlobalFile">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text">Fecha</label>
+              <input v-model="globalFileForm.fileDate" type="date"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text">Archivo</label>
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png" class="w-full text-sm text-text-secondary"
+                @change="onGlobalFileChange" />
+              <p v-if="globalFileModal.employee.globalFilePath" class="mt-1 flex items-center gap-2 text-xs text-text-muted">
+                <PaperclipIcon class="h-3.5 w-3.5" />
+                {{ globalFileModal.employee.globalFileName }}
+                <button type="button" class="font-semibold text-primary hover:underline" @click="downloadGlobalExisting">
+                  Descargar
+                </button>
+              </p>
+            </div>
+
+            <div class="mt-6 flex items-center justify-end gap-3">
+              <button type="button"
+                class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
+                @click="globalFileModal = null">
+                Cancelar
+              </button>
+              <button type="submit"
+                class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-sm transition-theme hover:bg-primary-hover">
+                Guardar Archivo
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Cell Modal -->
     <Teleport to="body">
       <div v-if="cellModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6"
         @click.self="cellModal = null">
@@ -171,8 +296,9 @@ import { useAuth } from '../composables/common/useAuth'
 import { FeatureGate } from '../components/common'
 import { useAnnualTaxReport } from '../composables/staffing/useAnnualTaxReport'
 import { useStaffingTaxEntities } from '../composables/staffing/useStaffingTaxEntities'
+import { useEmpresas } from '../composables/staffing/useEmpresas'
 import { useCurrency } from '../composables/common/useCurrency'
-import type { StaffingAnnualTaxEmployeeRow, StaffingTaxEntityRow } from '../services/staffing/staffingService'
+import type { StaffingAnnualTaxEmployeeRow, StaffingTaxEntityRow, StaffingAnnualTaxStatus } from '../services/staffing/staffingService'
 import { DocumentIcon, ArrowLeftIcon, ArrowRightIcon, CloseCircleIcon, PaperclipIcon } from '@solar-icons/vue/linear'
 
 const { authStore } = useAuth()
@@ -184,7 +310,85 @@ const showEntities = ref(false)
 
 const report = useAnnualTaxReport(businessId, year)
 const entitiesCtx = useStaffingTaxEntities(businessId)
+const companiesCtx = useEmpresas(businessId)
 
+const statusColors: Record<StaffingAnnualTaxStatus, string> = {
+  BLANK: 'bg-bg-secondary text-text-muted',
+  SENT_TO_EMPLOYEE: 'bg-success text-white',
+  SENT_TO_ACCOUNTANT: 'bg-warning text-white',
+  PENDING_TO_SEND: 'bg-danger text-white'
+}
+
+const updateStatus = async (employee: StaffingAnnualTaxEmployeeRow, event: Event) => {
+  const newStatus = (event.target as HTMLSelectElement).value as StaffingAnnualTaxStatus
+  await report.saveGlobalEntry({
+    employeeId: employee.employeeId,
+    year: year.value,
+    status: newStatus
+  })
+}
+
+// Edit Profile Modal
+const editProfileModal = ref<{ employee: StaffingAnnualTaxEmployeeRow } | null>(null)
+const editProfileForm = ref({
+  staffing_company_id: null as string | null,
+  ssn: '',
+  phone: '',
+  address: ''
+})
+
+const openEditProfile = (employee: StaffingAnnualTaxEmployeeRow) => {
+  editProfileForm.value = {
+    staffing_company_id: employee.companyId || null,
+    ssn: '',
+    phone: employee.phone || '',
+    address: employee.address || ''
+  }
+  editProfileModal.value = { employee }
+}
+
+const submitEditProfile = async () => {
+  if (!editProfileModal.value) return
+  await report.updateEmployee(editProfileModal.value.employee.employeeId, editProfileForm.value)
+  editProfileModal.value = null
+}
+
+// Global File Modal
+const globalFileModal = ref<{ employee: StaffingAnnualTaxEmployeeRow } | null>(null)
+const globalFileForm = ref({ fileDate: '' })
+const globalFile = ref<File | null>(null)
+
+const openGlobalFileModal = (employee: StaffingAnnualTaxEmployeeRow) => {
+  globalFileForm.value = { fileDate: employee.globalFileDate || '' }
+  globalFile.value = null
+  globalFileModal.value = { employee }
+}
+
+const onGlobalFileChange = (event: Event) => {
+  globalFile.value = (event.target as HTMLInputElement).files?.[0] ?? null
+}
+
+const submitGlobalFile = async () => {
+  if (!globalFileModal.value) return
+  await report.saveGlobalEntry({
+    employeeId: globalFileModal.value.employee.employeeId,
+    year: year.value,
+    fileDate: globalFileForm.value.fileDate || undefined,
+    file: globalFile.value
+  })
+  globalFileModal.value = null
+}
+
+const downloadGlobalExisting = () => {
+  if (globalFileModal.value?.employee.employeeId) {
+    report.downloadGlobalFile(
+      globalFileModal.value.employee.employeeId, 
+      globalFileModal.value.employee.globalFileName ?? 'documento'
+    )
+  }
+}
+
+// Entities Logic
 const newEntityName = ref('')
 const submitNewEntity = async () => {
   const name = newEntityName.value.trim()
@@ -198,6 +402,7 @@ const removeEntity = (id: string) => {
   }
 }
 
+// Cell Modal (Amounts per entity)
 const cellModal = ref<{ employee: StaffingAnnualTaxEmployeeRow; entity: StaffingTaxEntityRow } | null>(null)
 const cellForm = ref<{ amount: number; entryDate: string }>({ amount: 0, entryDate: '' })
 const cellFile = ref<File | null>(null)

@@ -13,6 +13,7 @@ class Business extends Model
     protected $fillable = [
         'id', 'name', 'slug', 'phone', 'address', 'timezone', 'currency',
         'ves_exchange_rate', 'employee_ves_rate', 'niche_type',
+        'product_price1_markup', 'product_price2_markup',
         'theme_config', 'terminology', 'job_titles', 'service_categories',
         'features', 'multi_branch_enabled', 'active', 'deleted_at',
         'whatsapp_enabled', 'whatsapp_instance_id', 'whatsapp_instance_status',
@@ -27,6 +28,8 @@ class Business extends Model
             'whatsapp_enabled' => 'boolean',
             'ves_exchange_rate' => 'float',
             'employee_ves_rate' => 'float',
+            'product_price1_markup' => 'float',
+            'product_price2_markup' => 'float',
             'theme_config' => 'json',
             'terminology' => 'json',
             'job_titles' => 'json',

@@ -96,6 +96,14 @@
               required
             />
             <FormDropdown
+              v-if="projectOptionsFor(assignment.companyId).length > 0"
+              :model-value="assignment.projectId ?? ''"
+              @update:model-value="setAssignmentProject(index, $event as string)"
+              label="Proyecto (Opcional)"
+              placeholder="General (Sin proyecto)"
+              :options="projectOptionsFor(assignment.companyId)"
+            />
+            <FormDropdown
               :model-value="assignment.role"
               @update:model-value="setAssignmentRole(index, $event as string)"
               label="Rol / Puesto"
@@ -195,7 +203,7 @@ import { computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { FormInput, FormDropdown } from '../forms'
 import { useCurrency } from '../../composables/common/useCurrency'
-import { listStaffingCompanies, listStaffingRates, staffingCompanyKeys, staffingRateKeys, SHIFT_OPTIONS, type StaffingRateRow } from '../../services/staffing/staffingService'
+import { listStaffingCompanies, listStaffingRates, getStaffingAllProjects, staffingCompanyKeys, staffingRateKeys, SHIFT_OPTIONS, type StaffingRateRow } from '../../services/staffing/staffingService'
 import type { EmpleadoFormData, StaffingAssignment } from '../../types/empleado'
 import { TrashBin2Icon } from '@solar-icons/vue/linear'
 
@@ -266,6 +274,19 @@ const { data: allRates } = useQuery({
   enabled: computed(() => !!props.businessId),
 })
 
+const { data: allProjects } = useQuery({
+  queryKey: computed(() => staffingCompanyKeys.allProjects(props.businessId)),
+  queryFn: () => getStaffingAllProjects(),
+  enabled: computed(() => !!props.businessId),
+})
+
+const projectOptionsFor = (companyId: string) => {
+  if (!companyId || !allProjects.value) return []
+  return allProjects.value
+    .filter(p => p.companyId === companyId && p.active)
+    .map(p => ({ value: p.id, label: p.name }))
+}
+
 const roleOptionsFor = (companyId: string) => {
   if (!companyId || !allRates.value) return []
   // A role can have several rate rows (one per shift) — dedupe so it only appears once here.
@@ -302,7 +323,7 @@ const effectiveOvertimeBillRate = (assignment: StaffingAssignment): number => {
 }
 
 const addAssignment = () => {
-  assignments.value = [...assignments.value, { companyId: '', role: '', shift: null }]
+  assignments.value = [...assignments.value, { companyId: '', projectId: null, role: '', shift: null }]
 }
 const removeAssignment = (index: number) => {
   assignments.value = assignments.value.filter((_, i) => i !== index)
@@ -310,7 +331,10 @@ const removeAssignment = (index: number) => {
 const setAssignmentCompany = (index: number, companyId: string) => {
   // Changing the company invalidates whatever role was picked — that role belonged to the old
   // company's rate card and almost never exists on the new one too.
-  assignments.value = assignments.value.map((a, i) => i === index ? { ...a, companyId, role: '', shift: null } : a)
+  assignments.value = assignments.value.map((a, i) => i === index ? { ...a, companyId, projectId: null, role: '', shift: null } : a)
+}
+const setAssignmentProject = (index: number, projectId: string) => {
+  assignments.value = assignments.value.map((a, i) => i === index ? { ...a, projectId: projectId || null } : a)
 }
 const setAssignmentRole = (index: number, role: string) => {
   // A new role's shift options are almost never the same set as the old role's — reset it too.

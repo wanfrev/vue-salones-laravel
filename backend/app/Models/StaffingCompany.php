@@ -62,4 +62,9 @@ class StaffingCompany extends Model
     {
         return $this->hasMany(StaffingCompanyRate::class, 'company_id');
     }
+
+    public function projects(): HasMany
+    {
+        return $this->hasMany(StaffingProject::class, 'company_id');
+    }
 }

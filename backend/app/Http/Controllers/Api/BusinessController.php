@@ -46,6 +46,8 @@ class BusinessController
         $data = $request->validate([
             'employee_ves_rate' => ['nullable', 'numeric', 'min:0'],
             'ves_exchange_rate' => ['nullable', 'numeric', 'min:0'],
+            'product_price1_markup' => ['nullable', 'numeric', 'min:0'],
+            'product_price2_markup' => ['nullable', 'numeric', 'min:0'],
             'job_titles' => ['nullable', 'array'],
             'service_categories' => ['nullable', 'array'],
             'terminology' => ['nullable', 'array'],

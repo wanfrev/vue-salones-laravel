@@ -345,37 +345,7 @@
                 label="Recordatorios por WhatsApp"
                 hint="Envía los mismos recordatorios por WhatsApp. Requiere conectarlo en la sección WhatsApp."
                 :disabled="updatingFeatures"
-                class="py-3.5 border-b border-border-subtle"
               />
-              <div class="py-3.5">
-                <FormToggle
-                  :model-value="!!businessStore.features.pending_notifications_enabled"
-                  @update:model-value="togglePendingNotifications"
-                  label="Resumen de citas sin confirmar"
-                  hint="Recibe un resumen diario de las citas que aún no han sido confirmadas."
-                  :disabled="updatingFeatures"
-                />
-                <div v-if="businessStore.features.pending_notifications_enabled" class="mt-3 rounded-lg bg-surface-elevated p-3 flex items-center gap-2.5 flex-wrap">
-                  <span class="text-xs text-text-secondary">Enviar todos los días a las</span>
-                  <select
-                    :value="pendingNotificationHour12"
-                    @change="handlePendingHourSelect($event)"
-                    :disabled="updatingFeatures"
-                    class="rounded-md border border-border-strong bg-surface pl-2.5 pr-7 py-1.5 text-xs font-bold text-text outline-none focus:border-primary appearance-none"
-                    style="background-image: url('data:image/svg+xml;utf8,<svg xmlns=&quot;http://www.w3.org/2000/svg&quot; width=&quot;10&quot; height=&quot;10&quot; viewBox=&quot;0 0 24 24&quot; fill=&quot;none&quot; stroke=&quot;%2383878e&quot; stroke-width=&quot;2&quot;><path d=&quot;M6 9l6 6 6-6&quot;/></svg>'); background-repeat: no-repeat; background-position: right 8px center;"
-                  >
-                    <option v-for="h in hours12" :key="h.value" :value="h.value">{{ h.label }}</option>
-                  </select>
-                  <button
-                    @click="toggleAmPm"
-                    :disabled="updatingFeatures"
-                    class="rounded-md border border-border-strong px-2.5 py-1.5 text-xs font-bold transition-colors hover:bg-bg-secondary min-w-[42px]"
-                    :class="isPM ? 'bg-primary/10 text-primary border-primary/30' : 'text-text-secondary'"
-                  >
-                    {{ isPM ? 'PM' : 'AM' }}
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
 
@@ -829,43 +799,6 @@ function removeReminderOffset(idx: number) {
   saveReminderOffsets()
 }
 
-const pendingNotificationHour = ref<number | null>(businessStore.features.pending_notifications_hour ?? 9)
-
-const hours12 = Array.from({ length: 12 }, (_, i) => ({
-  value: i + 1,
-  label: `${i + 1}:00`,
-}))
-
-const isPM = computed(() => (pendingNotificationHour.value ?? 9) >= 12)
-const pendingNotificationHour12 = computed(() => {
-  const h = pendingNotificationHour.value ?? 9
-  if (h === 0 || h === 12) return 12
-  return h > 12 ? h - 12 : h
-})
-
-function toggleAmPm() {
-  if (pendingNotificationHour.value === null) return
-  const current = pendingNotificationHour.value
-  if (current >= 12) {
-    pendingNotificationHour.value = current - 12
-  } else {
-    pendingNotificationHour.value = current + 12
-  }
-  handlePendingNotificationHourChange()
-}
-
-function handlePendingHourSelect(event: Event) {
-  const hour12 = parseInt((event.target as HTMLSelectElement).value, 10)
-  if (isNaN(hour12)) return
-  const base = isPM.value ? 12 : 0
-  if (hour12 === 12) {
-    pendingNotificationHour.value = isPM.value ? 12 : 0
-  } else {
-    pendingNotificationHour.value = base + hour12
-  }
-  handlePendingNotificationHourChange()
-}
-
 async function handleChangePassword() {
   passwordError.value = ''
   passwordSuccess.value = ''
@@ -932,48 +865,6 @@ async function toggleManagerInventoryEdit(val: boolean) {
     success(val ? 'Permiso activado: Desactivada edición de inventario para encargados' : 'Permiso desactivado: Permitida edición de inventario')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
-  } finally {
-    updatingFeatures.value = false
-  }
-}
-
-async function togglePendingNotifications(val: boolean) {
-  if (!businessId.value) return
-  updatingFeatures.value = true
-  try {
-    const updatedFeatures = { ...businessStore.features, pending_notifications_enabled: val }
-    if (!val) {
-      pendingNotificationHour.value = null
-    } else if (pendingNotificationHour.value === null) {
-      pendingNotificationHour.value = 9
-    }
-    ;(updatedFeatures as any).pending_notifications_hour = pendingNotificationHour.value
-    const res = await apiRequest('PUT', `/businesses/${businessId.value}`, {
-      features: updatedFeatures,
-    })
-    businessStore.updateBusiness(res as any)
-    success(val ? 'Notificaciones de citas pendientes activadas' : 'Notificaciones de citas pendientes desactivadas')
-  } catch (err: any) {
-    showError(err?.message ?? 'Error al actualizar las notificaciones')
-  } finally {
-    updatingFeatures.value = false
-  }
-}
-
-async function handlePendingNotificationHourChange() {
-  if (!businessId.value || pendingNotificationHour.value === null) return
-  updatingFeatures.value = true
-  try {
-    const hour = Math.max(0, Math.min(23, pendingNotificationHour.value))
-    pendingNotificationHour.value = hour
-    const updatedFeatures = { ...businessStore.features, pending_notifications_hour: hour }
-    const res = await apiRequest('PUT', `/businesses/${businessId.value}`, {
-      features: updatedFeatures,
-    })
-    businessStore.updateBusiness(res as any)
-    success(`Hora de notificación actualizada a las ${String(hour).padStart(2, '0')}:00`)
-  } catch (err: any) {
-    showError(err?.message ?? 'Error al actualizar la hora')
   } finally {
     updatingFeatures.value = false
   }

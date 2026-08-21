@@ -20,6 +20,8 @@ class BusinessResource extends JsonResource
             'currency' => $this->currency,
             'ves_exchange_rate' => $this->ves_exchange_rate,
             'employee_ves_rate' => $this->employee_ves_rate,
+            'product_price1_markup' => $this->product_price1_markup,
+            'product_price2_markup' => $this->product_price2_markup,
             'niche_type' => $this->niche_type,
             'theme_config' => $this->theme_config,
             'terminology' => $this->terminology,

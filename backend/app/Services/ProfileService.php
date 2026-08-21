@@ -73,7 +73,7 @@ class ProfileService
         // One query for every assignment in the business rather than N+1 per profile — skipped
         // entirely outside staffing, where this table is always empty for this business anyway.
         $assignmentsByEmployee = $this->isStaffingBusiness()
-            ? StaffingCompanyEmployee::with('company:id,name')
+            ? StaffingCompanyEmployee::with(['company:id,name', 'project:id,name'])
                 ->where('business_id', $businessId)
                 ->get()
                 ->groupBy('employee_id')
@@ -86,6 +86,8 @@ class ProfileService
                 ->map(fn (StaffingCompanyEmployee $a) => [
                     'company_id' => $a->company_id,
                     'company_name' => $a->company?->name,
+                    'project_id' => $a->project_id,
+                    'project_name' => $a->project?->name,
                     'role' => $a->role,
                     'shift' => $a->shift,
                 ])->values();

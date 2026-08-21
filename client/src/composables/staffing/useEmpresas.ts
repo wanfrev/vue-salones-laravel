@@ -8,6 +8,10 @@ import {
   saveStaffingCompany,
   saveStaffingRate,
   staffingCompanyKeys,
+  getStaffingProjects,
+  createStaffingProject,
+  updateStaffingProject,
+  deleteStaffingProject,
   type StaffingCompanyFormData,
   type StaffingCompanyRow,
 } from '../../services/staffing/staffingService'
@@ -30,6 +34,7 @@ const emptyForm = (): StaffingCompanyFormData => ({
   payoutRounding: 'cent',
   status: 'active',
   notes: '',
+  projects: [],
 })
 
 export function useEmpresas(businessId: Ref<string | null>) {
@@ -84,6 +89,7 @@ export function useEmpresas(businessId: Ref<string | null>) {
       payoutRounding: company.payoutRounding,
       status: company.status,
       notes: company.notes,
+      projects: [],
     }
     showModal.value = true
 
@@ -99,9 +105,16 @@ export function useEmpresas(businessId: Ref<string | null>) {
           overtimePayRate: r.overtimePayRate ?? undefined,
           overtimeBillRate: r.overtimeBillRate ?? undefined,
         }))
+
+        const projs = await getStaffingProjects(company.id)
+        form.value.projects = projs.map(p => ({
+          id: p.id,
+          name: p.name,
+          active: p.active,
+        }))
       }
     } catch (err) {
-      console.error('Error al cargar tarifas de la empresa:', err)
+      console.error('Error al cargar tarifas o proyectos de la empresa:', err)
     }
   }
 
@@ -151,6 +164,30 @@ export function useEmpresas(businessId: Ref<string | null>) {
             overtimePayRate: role.overtimePayRate || null,
             overtimeBillRate: role.overtimeBillRate || null,
           })
+        }
+      }
+
+      // Save projects:
+      const existingProjects = editingId.value
+        ? await getStaffingProjects(editingId.value)
+        : []
+
+      const currentProjects = form.value.projects || []
+
+      for (const p of currentProjects) {
+        if (!p.id) {
+          await createStaffingProject(savedCompany.id, { name: p.name, active: p.active ?? true })
+        } else {
+          const orig = existingProjects.find(ep => ep.id === p.id)
+          if (orig && (orig.name !== p.name || orig.active !== p.active)) {
+            await updateStaffingProject(savedCompany.id, p.id, { name: p.name, active: p.active })
+          }
+        }
+      }
+
+      for (const ep of existingProjects) {
+        if (!currentProjects.some(cp => cp.id === ep.id)) {
+          await deleteStaffingProject(savedCompany.id, ep.id)
         }
       }
 

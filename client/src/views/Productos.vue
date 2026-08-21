@@ -6,14 +6,24 @@
         <BoxIcon class="h-3.5 w-3.5" />
         <span class="font-medium uppercase tracking-wider">Inventario</span>
       </div>
-      <button
-        v-if="!disableInventoryEdit"
-        @click="safeOpenProductModal()"
-        class="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover"
-      >
-        <AddCircleIcon class="h-4 w-4" />
-        <span>Nuevo producto</span>
-      </button>
+      <div class="flex gap-2">
+        <button
+          v-if="!disableInventoryEdit && isTienda"
+          @click="safeOpenSettingsModal()"
+          class="flex items-center justify-center rounded-xl border border-border bg-surface p-2.5 text-text transition-theme hover:bg-bg-secondary"
+          title="Configuración de Inventario"
+        >
+          <SettingsIcon class="h-5 w-5" />
+        </button>
+        <button
+          v-if="!disableInventoryEdit"
+          @click="safeOpenProductModal()"
+          class="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover"
+        >
+          <AddCircleIcon class="h-4 w-4" />
+          <span>Nuevo producto</span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -224,6 +234,8 @@
       </div>
     </div>
   </ModalBase>
+
+  <InventorySettingsModal ref="settingsModalRef" />
   </FeatureGate>
 </template>
 
@@ -240,14 +252,24 @@ import ProductStats from '../components/productos/ProductStats.vue'
 import ProductoFormModal from '../components/modals/ProductoFormModal.vue'
 import ProductStockAdjustModal from '../components/productos/ProductStockAdjustModal.vue'
 import ProductGrid from '../components/productos/ProductGrid.vue'
+import InventorySettingsModal from '../components/productos/InventorySettingsModal.vue'
 import { ModalBase, FeatureGate } from '../components/common'
-import { BoxIcon, AddCircleIcon, MagnifierIcon } from '@solar-icons/vue/linear'
+import { BoxIcon, AddCircleIcon, MagnifierIcon, SettingsIcon } from '@solar-icons/vue/linear'
+import { isTiendaNiche } from '../config/niches'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
 const branchId = computed(() => businessStore.currentBranchId)
 const businessId = computed(() => authStore.businessId)
 const disableInventoryEdit = computed(() => authStore.disableInventoryEdit)
+const isTienda = computed(() => isTiendaNiche(businessStore.business?.niche_type || ''))
+
+const settingsModalRef = ref<InstanceType<typeof InventorySettingsModal> | null>(null)
+
+const safeOpenSettingsModal = () => {
+  if (disableInventoryEdit.value) return
+  settingsModalRef.value?.open()
+}
 
 const safeOpenProductModal = (producto?: any) => {
   if (disableInventoryEdit.value) return

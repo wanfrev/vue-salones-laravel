@@ -149,6 +149,7 @@ import { useFormValidation } from '../../composables/common/useFormValidation'
 import { productoFormSchema } from '../../lib/validation'
 import { mapCategoryToOption } from '../../mappers/productosMapper'
 import type { Producto, ProductoFormData } from '../../types/producto'
+import { isTiendaNiche } from '../../config/niches'
 import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormDropdown, FormTextarea, FormToggle } from '../forms'
 
@@ -174,6 +175,7 @@ const businessStore = useBusinessStore()
 const isEditing = computed(() => !!modalData.value?.producto)
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
+const isTienda = computed(() => isTiendaNiche(businessStore.business?.niche_type || ''))
 
 const queryClient = useQueryClient?.() || null
 
@@ -226,10 +228,13 @@ const { errors, isValid, validate, clearErrors, handleBlur } = useFormValidation
 
 const isFormValid = computed(() => isValid.value && formData.value.name.trim().length >= 2 && formData.value.unit.trim().length > 0)
 
+let isInternalUpdate = false
+
 watch(
   [isOpen, () => modalData.value?.producto],
   ([open, producto]) => {
     if (!open) return
+    isInternalUpdate = true
     if (producto) {
       formData.value = {
         name: producto.name || '',
@@ -252,8 +257,22 @@ watch(
       formData.value = { ...defaultFormData, isSellable: defaultSellable }
     }
     clearErrors()
+    setTimeout(() => { isInternalUpdate = false }, 50)
   },
   { immediate: true }
+)
+
+watch(
+  () => formData.value.unitCost,
+  (newCost) => {
+    if (isInternalUpdate) return
+    if (isTienda.value && newCost >= 0) {
+      const markup1 = businessStore.business?.product_price1_markup ?? 50
+      const markup2 = businessStore.business?.product_price2_markup ?? 70
+      formData.value.unitPrice = Number((newCost * (1 + markup1 / 100)).toFixed(2))
+      formData.value.unitPrice2 = Number((newCost * (1 + markup2 / 100)).toFixed(2))
+    }
+  }
 )
 
 watch(

@@ -36,6 +36,8 @@ export interface Business {
   currency: string
   ves_exchange_rate: number
   employee_ves_rate: number | null
+  product_price1_markup?: number
+  product_price2_markup?: number
   niche_type: string
   theme_config: ThemeConfig
   terminology: Terminology
@@ -485,6 +487,7 @@ export interface StaffingTimesheet {
   id: string
   business_id: string
   company_id: string
+  project_id: string | null
   week_start: string
   week_end: string
   status: 'draft' | 'approved' | 'paid'
