@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\WhatsAppController;
 use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\Staffing\StaffingCompanyController;
+use App\Http\Controllers\Api\Staffing\StaffingProjectController;
 use App\Http\Controllers\Api\Staffing\StaffingCompanyPaymentController;
 use App\Http\Controllers\Api\Staffing\StaffingCompanyRateController;
 use App\Http\Controllers\Api\Staffing\StaffingInvoiceController;
@@ -249,6 +250,13 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::post('/staffing-companies', [StaffingCompanyController::class, 'store']);
         Route::put('/staffing-companies/{id}', [StaffingCompanyController::class, 'update']);
         Route::delete('/staffing-companies/{id}', [StaffingCompanyController::class, 'destroy']);
+
+        Route::get('/staffing-companies/{companyId}/projects', [StaffingProjectController::class, 'index']);
+        Route::post('/staffing-companies/{companyId}/projects', [StaffingProjectController::class, 'store']);
+        Route::put('/staffing-companies/{companyId}/projects/{id}', [StaffingProjectController::class, 'update']);
+        Route::delete('/staffing-companies/{companyId}/projects/{id}', [StaffingProjectController::class, 'destroy']);
+        
+        Route::get('/staffing-projects', [StaffingProjectController::class, 'allForBusiness']);
 
         Route::get('/staffing-company-rates', [StaffingCompanyRateController::class, 'index']);
         Route::post('/staffing-company-rates', [StaffingCompanyRateController::class, 'store']);

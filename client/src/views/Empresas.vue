@@ -131,10 +131,17 @@
               @click="expandedTab = 'billing'">
               Facturación
             </button>
+            <button type="button"
+              class="rounded-t-lg px-3 py-1.5 text-xs font-semibold transition-theme"
+              :class="expandedTab === 'projects' ? 'bg-surface text-primary' : 'text-text-muted hover:text-text'"
+              @click="expandedTab = 'projects'">
+              Proyectos
+            </button>
           </div>
           <RateCardEditor v-if="expandedTab === 'rates'" :business-id="businessId" :company-id="company.id" />
           <StaffingWorkersPanel v-else-if="expandedTab === 'personal'" :business-id="businessId" :company-id="company.id" />
-          <BillingPanel v-else :business-id="businessId" :company-id="company.id" />
+          <BillingPanel v-else-if="expandedTab === 'billing'" :business-id="businessId" :company-id="company.id" />
+          <StaffingProjectsPanel v-else :company-id="company.id" />
         </template>
       </div>
       </div>
@@ -349,6 +356,7 @@ import { getInitials } from '../lib/formatters'
 import { FeatureGate } from '../components/common'
 import { FormDropdown } from '../components/forms'
 import SegmentedTabs from '../components/common/SegmentedTabs.vue'
+import StaffingProjectsPanel from '../components/staffing/StaffingProjectsPanel.vue'
 import RateCardEditor from '../components/staffing/RateCardEditor.vue'
 import BillingPanel from '../components/staffing/BillingPanel.vue'
 import StaffingWorkersPanel from '../components/staffing/StaffingWorkersPanel.vue'

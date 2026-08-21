@@ -20,7 +20,7 @@ class StaffingTimesheet extends Model
     protected $table = 'staffing_timesheets';
 
     protected $fillable = [
-        'id', 'business_id', 'company_id',
+        'id', 'business_id', 'company_id', 'project_id',
         'week_start', 'week_end', 'status', 'terms_snapshot', 'notes', 'created_by',
     ];
 
@@ -36,6 +36,11 @@ class StaffingTimesheet extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(StaffingCompany::class, 'company_id');
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(StaffingProject::class, 'project_id');
     }
 
     public function entries(): HasMany

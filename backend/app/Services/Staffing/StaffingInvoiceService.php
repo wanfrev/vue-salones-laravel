@@ -37,7 +37,7 @@ class StaffingInvoiceService
     public function generateFromTimesheet(string $businessId, string $timesheetId): StaffingInvoice
     {
         return DB::transaction(function () use ($businessId, $timesheetId) {
-            $timesheet = StaffingTimesheet::with('entries')->lockForUpdate()->find($timesheetId);
+            $timesheet = StaffingTimesheet::with(['entries', 'project'])->lockForUpdate()->find($timesheetId);
             if (!$timesheet || $timesheet->business_id !== $businessId) {
                 throw new NotFoundHttpException('Semana no encontrada.');
             }
@@ -58,11 +58,12 @@ class StaffingInvoiceService
                 'business_id' => $businessId,
                 'company_id' => $company->id,
                 'timesheet_id' => $timesheet->id,
+                'project_id' => $timesheet->project_id,
                 'invoice_number' => $this->nextInvoiceNumber($businessId),
                 'issue_date' => $issueDate,
                 'due_date' => now()->addDays($termsDays)->toDateString(),
                 'terms_days' => $termsDays,
-                'work_site' => $company->work_site,
+                'work_site' => $timesheet->project ? ($company->name . ' - ' . $timesheet->project->name) : $company->work_site,
                 'subtotal' => $total,
                 'total' => $total,
                 'status' => StaffingInvoice::STATUS_SENT,

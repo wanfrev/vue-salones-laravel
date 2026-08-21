@@ -20,7 +20,7 @@ class StaffingInvoice extends Model
     protected $table = 'staffing_invoices';
 
     protected $fillable = [
-        'id', 'business_id', 'company_id', 'timesheet_id',
+        'id', 'business_id', 'company_id', 'project_id', 'timesheet_id',
         'invoice_number', 'issue_date', 'due_date', 'terms_days', 'work_site',
         'subtotal', 'total', 'status',
     ];
@@ -39,6 +39,11 @@ class StaffingInvoice extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(StaffingCompany::class, 'company_id');
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(StaffingProject::class, 'project_id');
     }
 
     public function timesheet(): BelongsTo

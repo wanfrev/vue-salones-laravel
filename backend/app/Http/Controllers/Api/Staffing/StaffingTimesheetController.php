@@ -22,7 +22,7 @@ class StaffingTimesheetController
         }
 
         return response()->json(
-            $this->timesheets->list($p->business_id, $request->company_id)
+            $this->timesheets->list($p->business_id, $request->company_id, $request->project_id)
         );
     }
 
@@ -34,7 +34,7 @@ class StaffingTimesheetController
         }
 
         return response()->json(
-            $this->timesheets->employeesForCompany($p->business_id, $companyId)
+            $this->timesheets->employeesForCompany($p->business_id, $companyId, $request->project_id)
         );
     }
 
@@ -47,6 +47,7 @@ class StaffingTimesheetController
 
         $data = $request->validate([
             'company_id' => 'required|uuid',
+            'project_id' => 'nullable|uuid',
             'week_start' => 'required|date',
             'week_end' => 'required|date|after_or_equal:week_start',
             'entries' => 'required|array|min:1',
@@ -62,10 +63,11 @@ class StaffingTimesheetController
             $timesheet = $this->timesheets->saveWeek(
                 $p->business_id,
                 $data['company_id'],
+                $data['project_id'] ?? null,
                 $data['week_start'],
                 $data['week_end'],
                 $data['entries'],
-                $p->id,
+                $request->user()->id,
             );
         } catch (RuntimeException $e) {
             return response()->json(['error' => ['message' => $e->getMessage()]], 422);

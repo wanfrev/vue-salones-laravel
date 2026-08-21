@@ -27,14 +27,17 @@ class StaffingTimesheetService
         private StaffingCompanyEmployeeService $companyEmployees,
     ) {}
 
-    public function list(string $businessId, ?string $companyId = null): Collection
+    public function list(string $businessId, ?string $companyId = null, ?string $projectId = null): Collection
     {
-        $query = StaffingTimesheet::with(['entries.employee'])
+        $query = StaffingTimesheet::with(['entries.employee', 'project'])
             ->where('business_id', $businessId)
             ->orderByDesc('week_start');
 
         if ($companyId) {
             $query->where('company_id', $companyId);
+        }
+        if ($projectId) {
+            $query->where('project_id', $projectId);
         }
 
         return $query->get();
@@ -45,9 +48,9 @@ class StaffingTimesheetService
      * assigned there. An employee can be assigned to more than one company at once; this only
      * returns the ones assigned to *this* one, each carrying their role at this company.
      */
-    public function employeesForCompany(string $businessId, string $companyId): Collection
+    public function employeesForCompany(string $businessId, string $companyId, ?string $projectId = null): Collection
     {
-        return $this->companyEmployees->employeesForCompany($businessId, $companyId);
+        return $this->companyEmployees->employeesForCompany($businessId, $companyId, $projectId);
     }
 
     /**
@@ -61,6 +64,7 @@ class StaffingTimesheetService
     public function saveWeek(
         string $businessId,
         string $companyId,
+        ?string $projectId,
         string $weekStart,
         string $weekEnd,
         array $entries,
@@ -68,9 +72,10 @@ class StaffingTimesheetService
     ): StaffingTimesheet {
         $company = $this->companies->findForBusiness($companyId, $businessId);
 
-        return DB::transaction(function () use ($businessId, $company, $weekStart, $weekEnd, $entries, $createdBy) {
+        return DB::transaction(function () use ($businessId, $company, $projectId, $weekStart, $weekEnd, $entries, $createdBy) {
             $timesheet = StaffingTimesheet::where('business_id', $businessId)
                 ->where('company_id', $company->id)
+                ->where('project_id', $projectId)
                 ->where('week_start', $weekStart)
                 ->first();
 
@@ -83,6 +88,7 @@ class StaffingTimesheetService
                     'id' => Str::uuid()->toString(),
                     'business_id' => $businessId,
                     'company_id' => $company->id,
+                    'project_id' => $projectId,
                     'week_start' => $weekStart,
                     'week_end' => $weekEnd,
                     'status' => StaffingTimesheet::STATUS_DRAFT,

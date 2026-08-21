@@ -18,20 +18,20 @@ import {
  * already exist, and saving/approving a week. Mirrors the NOMINA sheet's "one company, one week,
  * a row per employee" shape.
  */
-export function useTimesheets(businessId: Ref<string | null>, companyId: Ref<string | null>) {
+export function useTimesheets(businessId: Ref<string | null>, companyId: Ref<string | null>, projectId: Ref<string | null>) {
   const queryClient = useQueryClient()
   const { success, error: showError } = useNotification()
   const saveError = ref('')
 
   const { data: employees, isLoading: employeesLoading } = useQuery({
-    queryKey: computed(() => staffingTimesheetKeys.employees(businessId.value, companyId.value)),
-    queryFn: () => listCompanyEmployees(businessId.value!, companyId.value!),
+    queryKey: computed(() => ['staffing-company-employees', businessId.value, companyId.value, projectId.value]),
+    queryFn: () => listCompanyEmployees(businessId.value!, companyId.value!, projectId.value!),
     enabled: computed(() => !!businessId.value && !!companyId.value),
   })
 
   const { data: timesheets, isLoading: timesheetsLoading } = useQuery({
-    queryKey: computed(() => staffingTimesheetKeys.byCompany(businessId.value, companyId.value)),
-    queryFn: () => listStaffingTimesheets(businessId.value!, companyId.value),
+    queryKey: computed(() => ['staffing-timesheets', businessId.value, companyId.value, projectId.value]),
+    queryFn: () => listStaffingTimesheets(businessId.value!, companyId.value, projectId.value!),
     enabled: computed(() => !!businessId.value && !!companyId.value),
   })
 
@@ -47,13 +47,13 @@ export function useTimesheets(businessId: Ref<string | null>, companyId: Ref<str
 
   const invalidate = () =>
     queryClient.invalidateQueries({
-      queryKey: staffingTimesheetKeys.byCompany(businessId.value, companyId.value),
+      queryKey: ['staffing-timesheets', businessId.value, companyId.value],
       exact: false,
     })
 
   const saveMutation = useMutation({
     mutationFn: (input: { weekStart: string; weekEnd: string; entries: TimesheetEntryInput[] }) =>
-      saveTimesheetWeek(companyId.value!, input.weekStart, input.weekEnd, input.entries),
+      saveTimesheetWeek(companyId.value!, input.weekStart, input.weekEnd, input.entries, projectId.value!),
     onSuccess: async () => {
       await invalidate()
       success('Horas guardadas')

@@ -9,6 +9,10 @@ import type {
 export const staffingCompanyKeys = {
   all: (businessId?: string | null, branchId?: string | null) =>
     ['staffing-companies', businessId, branchId] as const,
+  projects: (businessId?: string | null, companyId?: string | null) =>
+    ['staffing-company-projects', businessId, companyId] as const,
+  allProjects: (businessId?: string | null) =>
+    ['staffing-all-projects', businessId] as const,
 }
 
 export const staffingInvoiceKeys = {
@@ -81,6 +85,18 @@ export interface StaffingCompanyRow {
   status: StaffingCompanyStatus
 }
 
+export interface StaffingProject {
+  id: string
+  companyId: string
+  name: string
+  active: boolean
+}
+
+export interface StaffingProjectFormData {
+  name: string
+  active: boolean
+}
+
 export interface StaffingRateRow {
   id: string
   companyId: string
@@ -139,7 +155,12 @@ export interface StaffingRateFormData {
   overtimeBillRate?: number | null
 }
 
-
+export interface StaffingEmployeeAssignmentFormData {
+  companyId: string
+  projectId?: string | null
+  role: string
+  shift?: ShiftValue | null
+}
 
 const toCompanyRow = (row: StaffingCompany): StaffingCompanyRow => ({
   id: row.id,
@@ -177,80 +198,32 @@ const toRateRow = (row: StaffingCompanyRate): StaffingRateRow => ({
   active: row.active,
 })
 
-/**
- * Defaults to 'active' so the two call sites that only ever want active companies
- * (StaffingHoursPanel.vue, StaffingEmployeeFields.vue) keep seeing exactly what they saw before
- * the status tabs existed. Pass 'all' for the Empresas screen's own tabbed list.
- */
-export const listStaffingCompanies = async (
-  businessId: string,
-  branchId?: string | null,
-  status: StaffingCompanyStatus | 'all' = 'active',
-): Promise<StaffingCompanyRow[]> => {
-  let query = db
-    .from('staffing_companies')
-    .select('*')
-    .eq('business_id', businessId)
-    .order('name', { ascending: true })
+export const getStaffingCompanies = (): Promise<StaffingCompanyRow[]> =>
+  apiRequest('GET', '/staffing-companies')
 
-  if (status !== 'all') {
-    query = query.eq('status', status)
-  }
+export const createStaffingCompany = (data: Partial<StaffingCompanyRow>): Promise<StaffingCompanyRow> =>
+  apiRequest('POST', '/staffing-companies', data)
 
-  if (branchId) {
-    query = query.eq('branch_id', branchId)
-  }
+export const updateStaffingCompany = (id: string, data: Partial<StaffingCompanyRow>): Promise<StaffingCompanyRow> =>
+  apiRequest('PUT', `/staffing-companies/${id}`, data)
 
-  const { data, error } = await query
-  if (error) handleDbError(error, 'Error al cargar las empresas')
+export const deleteStaffingCompany = (id: string): Promise<void> =>
+  apiRequest('DELETE', `/staffing-companies/${id}`)
 
-  return ((data ?? []) as StaffingCompany[]).map(toCompanyRow)
-}
+export const getStaffingAllProjects = (): Promise<StaffingProject[]> =>
+  apiRequest('GET', '/staffing-projects')
 
-export const saveStaffingCompany = async (
-  _businessId: string,
-  data: StaffingCompanyFormData & { id?: string },
-  branchId?: string | null,
-): Promise<StaffingCompanyRow> => {
-  const parsed = staffingCompanyFormSchema.safeParse(data)
-  if (!parsed.success) {
-    throw new Error(parsed.error.issues.map(e => e.message).join('. '))
-  }
+export const getStaffingProjects = (companyId: string): Promise<StaffingProject[]> =>
+  apiRequest('GET', `/staffing-companies/${companyId}/projects`)
 
-  const payload = {
-    name: parsed.data.name,
-    legal_name: parsed.data.legalName || null,
-    address: parsed.data.address || null,
-    city: parsed.data.city || null,
-    state: parsed.data.state || null,
-    zip: parsed.data.zip || null,
-    work_site: parsed.data.workSite || null,
-    contact_name: parsed.data.contactName || null,
-    contact_phone: parsed.data.contactPhone || null,
-    contact_email: parsed.data.contactEmail || null,
-    payment_terms_days: parsed.data.paymentTermsDays,
-    tax_rate: parsed.data.taxRate,
-    tax_brackets: parsed.data.taxBrackets,
-    payout_rounding: parsed.data.payoutRounding,
-    status: parsed.data.status,
-    notes: parsed.data.notes || null,
-    branch_id: branchId ?? null,
-  }
+export const createStaffingProject = (companyId: string, data: StaffingProjectFormData): Promise<StaffingProject> =>
+  apiRequest('POST', `/staffing-companies/${companyId}/projects`, data)
 
-  const { data: saved, error } = data.id
-    ? await db.from('staffing_companies').update(payload).eq('id', data.id).select('*').single()
-    : await db.from('staffing_companies').insert(payload).select('*').single()
+export const updateStaffingProject = (companyId: string, id: string, data: Partial<StaffingProjectFormData>): Promise<StaffingProject> =>
+  apiRequest('PUT', `/staffing-companies/${companyId}/projects/${id}`, data)
 
-  if (error) handleDbError(error, 'Error al guardar la empresa')
-
-  return toCompanyRow(saved as StaffingCompany)
-}
-
-/** Permanently deletes a staffing company. */
-export const deleteStaffingCompany = async (id: string): Promise<void> => {
-  const { error } = await db.from('staffing_companies').delete().eq('id', id)
-  if (error) handleDbError(error, 'Error al eliminar la empresa')
-}
+export const deleteStaffingProject = (companyId: string, id: string): Promise<void> =>
+  apiRequest('DELETE', `/staffing-companies/${companyId}/projects/${id}`)
 
 export const listStaffingRates = async (
   businessId: string,
@@ -281,8 +254,6 @@ export const saveStaffingRate = async (
     throw new Error(parsed.error.issues.map(e => e.message).join('. '))
   }
 
-  // The backend upserts on (company, role), so a re-sent role updates instead of colliding
-  // with the unique index.
   const payload = {
     company_id: parsed.data.companyId,
     role: parsed.data.role,
@@ -309,7 +280,6 @@ export const deleteStaffingRate = async (id: string): Promise<void> => {
   if (error) handleDbError(error, 'Error al eliminar la tarifa')
 }
 
-/** Input for one employee's hours on a week — mirrors App\Services\Staffing\TimesheetEntry. */
 export interface TimesheetEntryInput {
   employeeId: string
   totalHours: number
@@ -318,11 +288,6 @@ export interface TimesheetEntryInput {
   adjustment?: number
 }
 
-/**
- * The employees assigned to a company (profile.staffing_company_id) — who the hours grid lists.
- * businessId isn't part of the URL — the backend resolves it from the authenticated profile —
- * but stays a parameter so the call site reads the same as every other staffing service function.
- */
 export const listCompanyEmployees = (_businessId: string, companyId: string): Promise<Profile[]> =>
   apiRequest<Profile[]>('GET', `/staffing-companies/${companyId}/employees`)
 
@@ -339,12 +304,6 @@ export const listStaffingTimesheets = async (
   return (data ?? []) as StaffingTimesheet[]
 }
 
-/**
- * Creates the draft for (company, week) if it doesn't exist yet, or replaces its entries if it
- * does — the caller always sends the full set of hours for the week, same as re-saving the sheet.
- * Runs the same calculator that reproduces the DYKE/HILTON/CWT spreadsheets exactly; the response
- * carries the computed regular/OT/gross/tax/net/payout/margin per employee.
- */
 export const saveTimesheetWeek = async (
   companyId: string,
   weekStart: string,
@@ -353,6 +312,7 @@ export const saveTimesheetWeek = async (
 ): Promise<StaffingTimesheet> => {
   const payload = {
     company_id: companyId,
+    project_id: projectId,
     week_start: weekStart,
     week_end: weekEnd,
     entries: entries.map(e => ({
@@ -364,21 +324,15 @@ export const saveTimesheetWeek = async (
     })),
   }
 
-  const { data, error } = await db.from('staffing_timesheets').insert(payload).select('*').single()
-  if (error) handleDbError(error, 'Error al guardar las horas')
-
-  return data as StaffingTimesheet
+  return apiRequest<StaffingTimesheet>('POST', '/staffing-timesheets', payload)
 }
 
-/** Freezes the company's current overtime/tax/rounding rules onto the week — see the model docblock. */
 export const approveTimesheet = (id: string): Promise<StaffingTimesheet> =>
   apiRequest<StaffingTimesheet>('POST', `/staffing-timesheets/${id}/approve`)
 
-/** Marks an already-approved week as actually paid out to the employees. */
 export const markTimesheetPaid = (id: string): Promise<StaffingTimesheet> =>
   apiRequest<StaffingTimesheet>('POST', `/staffing-timesheets/${id}/mark-paid`)
 
-/** Only a draft can be deleted — an approved week is payroll history. */
 export const deleteTimesheet = async (id: string): Promise<void> => {
   const { error } = await db.from('staffing_timesheets').delete().eq('id', id)
   if (error) handleDbError(error, 'Error al eliminar la semana')
@@ -400,14 +354,12 @@ export const listStaffingInvoices = async (
 export const getStaffingInvoice = (id: string): Promise<StaffingInvoice> =>
   apiRequest<StaffingInvoice>('GET', `/staffing-invoices/${id}`)
 
-/** One invoice per approved week — the total is whatever that week's entries already billed. */
 export const generateStaffingInvoice = (timesheetId: string): Promise<StaffingInvoice> =>
   apiRequest<StaffingInvoice>('POST', '/staffing-invoices/generate', { timesheet_id: timesheetId })
 
 export const getCompanyBalance = (companyId: string): Promise<StaffingCompanyBalance> =>
   apiRequest<StaffingCompanyBalance>('GET', `/staffing-companies/${companyId}/balance`)
 
-/** Deletes an invoice and reopens its week to draft so the nómina can be edited again. */
 export const deleteStaffingInvoice = async (id: string): Promise<void> => {
   const { error } = await db.from('staffing_invoices').delete().eq('id', id)
   if (error) handleDbError(error, 'Error al eliminar la factura')
@@ -483,7 +435,6 @@ export interface StaffingHeadcountMatrix {
   companies: StaffingHeadcountCompanyRow[]
 }
 
-/** Year-wide, per-company weekly headcount for the Empresas status tabs — 2 queries server-side. */
 export const getCompanyHeadcountMatrix = (
   year: number,
   status?: StaffingCompanyStatus | 'all',
@@ -550,7 +501,6 @@ export const saveWeeklyExpense = (data: StaffingWeeklyExpenseFormData): Promise<
     ...('estadoOverride' in data ? { estado_override: data.estadoOverride ?? null } : {}),
   })
 
-/** Inline "Proyecto" edit from the weekly report — a partial update, not the full company form. */
 export const updateStaffingCompanyWorkSite = async (id: string, workSite: string): Promise<void> => {
   const { error } = await db.from('staffing_companies').update({ work_site: workSite || null }).eq('id', id)
   if (error) handleDbError(error, 'Error al actualizar el proyecto')
@@ -575,7 +525,6 @@ export interface StaffingEmployeeHoursMatrix {
   employees: StaffingEmployeeHoursRow[]
 }
 
-/** Year-wide, per-employee weekly hours for the "Horas Reportadas" report tab. */
 export const getEmployeeHoursMatrix = (year: number, active: boolean): Promise<StaffingEmployeeHoursMatrix> =>
   apiRequest<StaffingEmployeeHoursMatrix>('GET', `/staffing-reports/employee-hours?year=${year}&active=${active}`)
 
@@ -589,7 +538,6 @@ export interface StaffingCompanyHoursRow {
   totalHours: number
 }
 
-/** Total hours per company for a week, a month, or a whole year — "Horas Reportadas > Por empresa". */
 export const getCompanyHoursSummary = (
   period: StaffingHoursPeriod,
   year: number,
@@ -609,7 +557,6 @@ export interface StaffingFinanceSummary {
   margin: number
 }
 
-/** Invoiced hours / employer cost / margin for a date range — Finanzas > Resumen (staffing). */
 export const getStaffingFinanceSummary = (periodStart: string, periodEnd: string): Promise<StaffingFinanceSummary> =>
   apiRequest<StaffingFinanceSummary>('GET', `/staffing-reports/finance-summary?period_start=${periodStart}&period_end=${periodEnd}`)
 
@@ -624,11 +571,6 @@ export interface StaffingDepositListRow {
   amount: number
 }
 
-/**
- * One row per (employee, company) direct-deposit payout due for an already-approved/paid week —
- * the "lista de depósitos" that guides the bank run, generated off the same numbers nómina
- * already computed rather than copied onto paper by hand.
- */
 export const getStaffingDepositList = (weekStart: string, companyId?: string | null): Promise<StaffingDepositListRow[]> => {
   const url = companyId
     ? `/staffing-reports/deposit-list?week_start=${weekStart}&company_id=${companyId}`
@@ -780,7 +722,6 @@ export interface StaffingTaxEntryFormData {
   file?: File | null
 }
 
-/** Multipart upsert by (employee, tax entity, year) — see StaffingTaxEntryController::store(). */
 export const saveTaxEntry = (data: StaffingTaxEntryFormData): Promise<void> => {
   const form = new FormData()
   form.set('employee_id', data.employeeId)

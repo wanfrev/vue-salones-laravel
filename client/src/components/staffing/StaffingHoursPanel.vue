@@ -14,6 +14,19 @@
         />
       </div>
 
+      <div class="min-w-[180px]" v-if="projectOptions.length > 0">
+        <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted" for="hours-project">
+          Proyecto
+        </label>
+        <FormSearchSelect
+          id="hours-project"
+          v-model="selectedProjectId"
+          :options="projectOptions"
+          placeholder="General (Sin proyecto)"
+          search-placeholder="Buscar proyecto..."
+        />
+      </div>
+
       <div>
         <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted" for="hours-week-start">
           Semana desde
@@ -218,7 +231,7 @@ import { useBusinessStore } from '../../store/business'
 import { useTimesheets } from '../../composables/staffing/useTimesheets'
 import { useBilling } from '../../composables/staffing/useBilling'
 import {
-  getStaffingInvoice, listStaffingCompanies, listStaffingRates, staffingCompanyKeys, staffingRateKeys,
+  getStaffingInvoice, listStaffingCompanies, listStaffingRates, getStaffingProjects, staffingCompanyKeys, staffingRateKeys,
 } from '../../services/staffing/staffingService'
 import type { StaffingCompanyRow, StaffingRateRow, TimesheetEntryInput } from '../../services/staffing/staffingService'
 import { FormSearchSelect } from '../../components/forms'
@@ -254,19 +267,42 @@ const companyOptions = computed(() =>
   (companies.value ?? []).map(c => ({ value: c.id, label: c.name }))
 )
 
-const selectedCompanyId = ref(props.initialCompanyId || '')
-const companyId = computed(() => selectedCompanyId.value || null)
+const selectedCompanyId = ref<string | null>(props.initialCompanyId ?? null)
+const selectedProjectId = ref<string | null>(null)
+
+const { data: projects } = useQuery({
+  queryKey: computed(() => staffingCompanyKeys.projects(props.businessId, selectedCompanyId.value)),
+  queryFn: () => getStaffingProjects(selectedCompanyId.value!),
+  enabled: computed(() => !!props.businessId && !!selectedCompanyId.value),
+})
+
+const projectOptions = computed(() => {
+  const opts = (projects.value ?? [])
+    .filter(p => p.active)
+    .map(p => ({ value: p.id, label: p.name }))
+  return [{ value: '', label: 'General (Sin proyecto)' }, ...opts]
+})
+
+watch(selectedCompanyId, () => {
+  selectedProjectId.value = null
+})
+
+const activeCompany = computed<StaffingCompanyRow | null>(() => (companies.value ?? []).find(c => c.id === selectedCompanyId.value) || null)
 
 // The rate card for the selected company — needed to estimate pay/OT/invoice live, before the
 // admin ever clicks "Guardar y calcular".
 const { data: rates } = useQuery({
-  queryKey: computed(() => staffingRateKeys.byCompany(props.businessId, companyId.value)),
-  queryFn: () => listStaffingRates(props.businessId!, companyId.value!),
-  enabled: computed(() => !!props.businessId && !!companyId.value),
+  queryKey: computed(() => staffingRateKeys.byCompany(props.businessId, selectedCompanyId.value)),
+  queryFn: () => listStaffingRates(props.businessId!, selectedCompanyId.value!),
+  enabled: computed(() => !!props.businessId && !!selectedCompanyId.value),
 })
 
-const timesheets = useTimesheets(businessId, companyId)
-const billing = useBilling(businessId, companyId)
+const timesheets = useTimesheets(businessId, selectedCompanyId, selectedProjectId)
+const billing = useBilling(businessId, selectedCompanyId)
+
+const ratesLoading = computed(() => !rates.value && !!selectedCompanyId.value)
+// Wait until both the company is picked and its specific rate card is fully loaded.
+const isReady = computed(() => !!selectedCompanyId.value && !ratesLoading.value)
 
 const existingInvoice = computed(() =>
   (billing.invoices.value ?? []).find(i => i.timesheet_id === currentWeek.value?.id) ?? null,
