@@ -94,7 +94,7 @@
 </template>
 
 <script setup lang="ts">
-import { BellIcon, ChatRoundDotsIcon, CalendarIcon, CheckCircleIcon, CalendarAddIcon, DangerTriangleIcon, BoxIcon, CupIcon, ClockCircleIcon } from '@solar-icons/vue/linear'
+import { BellIcon, ChatRoundDotsIcon, CalendarIcon, CheckCircleIcon, CalendarAddIcon, DangerTriangleIcon, BoxIcon, CupIcon } from '@solar-icons/vue/linear'
 import { useNotifications } from '../../composables/common/useNotifications'
 
 defineEmits<{ close: [] }>()
@@ -108,7 +108,6 @@ const typeStyle: Record<string, { icon: typeof BellIcon; bg: string; color: stri
   unpaid_alert: { icon: DangerTriangleIcon, bg: 'bg-warning/10', color: 'text-warning' },
   low_stock: { icon: BoxIcon, bg: 'bg-danger/10', color: 'text-danger' },
   pet_birthday: { icon: CupIcon, bg: 'bg-pink-500/10', color: 'text-pink-500' },
-  pending_appointments: { icon: ClockCircleIcon, bg: 'bg-amber-500/10', color: 'text-amber-500' },
 }
 
 const formatRelativeTime = (dateStr: string): string => {
