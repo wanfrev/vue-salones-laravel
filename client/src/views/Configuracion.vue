@@ -231,6 +231,28 @@
             </div>
           </div>
 
+          <div v-if="showPayrollRateSection" class="h-px bg-border"></div>
+
+          <!-- Nómina -->
+          <div v-if="showPayrollRateSection">
+            <div class="flex items-center gap-2 mb-1">
+              <svg class="h-3.5 w-3.5 text-warning shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .672-3 1.5S10.343 11 12 11s3 .672 3 1.5-1.343 1.5-3 1.5m0-6c1.11 0 2.08.402 2.599 1M12 8V6.5m0 1.5v6m0 0V17m0-1.5c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span class="text-[10.5px] font-bold text-text-muted uppercase tracking-widest">Nómina</span>
+            </div>
+            <div class="pl-[22px]">
+              <FormToggle
+                :model-value="!!businessStore.features.payroll_locked_exchange_rate"
+                @update:model-value="handleTogglePayrollLockedRate"
+                label="Pagar a empleados con la tasa del día del servicio"
+                hint="Los montos en Bs de comisiones y propinas se calculan con la tasa de cambio del día en que se realizó cada servicio, no la tasa actual."
+                :disabled="updatingFeatures"
+                class="py-3.5 last:border-b-0"
+              />
+            </div>
+          </div>
+
           <div v-if="showPosVentasSection" class="h-px bg-border"></div>
 
           <!-- POS y Ventas -->
@@ -509,6 +531,27 @@
     </div>
   </div>
 
+  <ModalBase
+    :is-open="showPayrollRateWarning"
+    title="Vas a cambiar el tipo de nómina"
+    subtitle="Este cambio afecta cómo se calculan los bolívares que se le deben a tus empleados"
+    variant="warning"
+    icon="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+    confirm-text="Sí, cambiar tipo de nómina"
+    cancel-text="Cancelar"
+    :is-loading="updatingFeatures"
+    @confirm="confirmPayrollRateWarning"
+    @cancel="cancelPayrollRateWarning"
+    @close="cancelPayrollRateWarning"
+  >
+    <p class="text-sm text-text-secondary">
+      A partir de ahora, los montos en bolívares de las comisiones y propinas de tus empleados se calcularán usando la tasa de cambio del día en que se realizó cada servicio, en lugar de la tasa actual. Esto también aplica a las comisiones ya generadas que aún no se han pagado, así que el saldo en Bs que ves hoy puede cambiar.
+    </p>
+    <p class="mt-3 text-sm text-text-secondary">
+      Puedes desactivar esta opción cuando quieras para volver al cálculo con la tasa actual.
+    </p>
+  </ModalBase>
+
   <BranchFormModal
     :is-open="branchesCtx.showModal.value"
     :is-editing="!!branchesCtx.editingId.value"
@@ -528,13 +571,14 @@ import { useBranches } from '../composables/common/useBranches'
 import { useNotification } from '../composables/common/useNotification'
 import { SettingsIcon, EyeIcon, EyeClosedIcon, AddCircleIcon } from '@solar-icons/vue/linear'
 import { useThemeStore, type ThemeMode } from '../store/theme'
-import { EmptyState } from '../components/common'
+import { EmptyState, ModalBase } from '../components/common'
 import { FormToggle } from '../components/forms'
 import { BranchFormModal } from '../components/modals'
 import WhatsAppSettings from '../components/settings/WhatsAppSettings.vue'
 import { requestNotificationPermission } from '../composables/common/useNotifications'
 import { unsubscribeFromPush, isPushSupported } from '../services/pushService'
 import { apiRequest } from '../lib/api'
+import { isTiendaNiche, isStaffingNiche } from '../config/niches'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
@@ -573,6 +617,9 @@ const showEncargadosSection = computed(() =>
 )
 const showPosVentasSection = computed(() =>
   businessStore.features.agenda || (businessStore.features.manual_reports && businessStore.features.pos)
+)
+const showPayrollRateSection = computed(() =>
+  !isTiendaNiche(businessStore.nicheType) && !isStaffingNiche(businessStore.nicheType) && !businessStore.isSingleCurrency
 )
 
 const sections = computed(() => {
@@ -613,6 +660,42 @@ async function handleToggleEncargadoEmployeeRate(val: boolean) {
     })
     businessStore.updateBusiness(res as any)
     success(val ? 'Permiso activado: Los encargados ya pueden modificar la tasa de empleados' : 'Permiso desactivado')
+  } catch (err: any) {
+    showError(err?.message ?? 'Error al actualizar el permiso')
+  } finally {
+    updatingFeatures.value = false
+  }
+}
+
+const showPayrollRateWarning = ref(false)
+
+function handleTogglePayrollLockedRate(val: boolean) {
+  if (!val) {
+    savePayrollLockedRate(false)
+    return
+  }
+  showPayrollRateWarning.value = true
+}
+
+function cancelPayrollRateWarning() {
+  showPayrollRateWarning.value = false
+}
+
+async function confirmPayrollRateWarning() {
+  await savePayrollLockedRate(true)
+  showPayrollRateWarning.value = false
+}
+
+async function savePayrollLockedRate(val: boolean) {
+  if (!businessId.value) return
+  updatingFeatures.value = true
+  try {
+    const updatedFeatures = { ...businessStore.features, payroll_locked_exchange_rate: val }
+    const res = await apiRequest('PUT', `/businesses/${businessId.value}`, {
+      features: updatedFeatures,
+    })
+    businessStore.updateBusiness(res as any)
+    success(val ? 'Tipo de nómina actualizado: se usará la tasa del día de cada servicio' : 'Tipo de nómina actualizado: se usará la tasa actual')
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
   } finally {

@@ -102,6 +102,8 @@ class EmployeeCommissionService
                 'profiles.employee_ves_rate',
                 DB::raw('COALESCE(SUM(transactions.employee_amount), 0) as commission'),
                 DB::raw('COALESCE(SUM(transactions.tip_amount), 0) as tips'),
+                DB::raw('COALESCE(SUM(transactions.employee_amount * transactions.exchange_rate_used), 0) as commission_bs'),
+                DB::raw('COALESCE(SUM(transactions.tip_amount * transactions.exchange_rate_used), 0) as tips_bs'),
             )
             ->groupBy('profiles.id', 'profiles.full_name', 'profiles.pay_type', 'profiles.pay_percentage', 'profiles.base_salary', 'profiles.employee_ves_rate');
 
@@ -152,6 +154,11 @@ class EmployeeCommissionService
             $totalEarned = $commission + $tips + $base;
             $pending = $totalEarned - $totalPaid - $totalConsumed;
 
+            $commissionBs = (float) $row->commission_bs;
+            $tipsBs = (float) $row->tips_bs;
+            $totalEarnedBs = $commissionBs + $tipsBs;
+            $pendingBsEstimated = $totalEarned > 0 ? $pending * ($totalEarnedBs / $totalEarned) : 0;
+
             $profileRate = (float) ($row->employee_ves_rate ?? 0);
             $businessRate = (float) (Business::where('id', $businessId)->value('employee_ves_rate') ?? 0);
             $employeeVesRate = $profileRate > 0 ? $profileRate : $businessRate;
@@ -169,6 +176,10 @@ class EmployeeCommissionService
                 'consumed' => round($totalConsumed, 2),
                 'pending' => round($pending, 2),
                 'employee_ves_rate' => round($employeeVesRate, 2),
+                'commission_bs' => round($commissionBs, 2),
+                'tips_bs' => round($tipsBs, 2),
+                'total_earned_bs' => round($totalEarnedBs, 2),
+                'pending_bs_estimated' => round($pendingBsEstimated, 2),
             ];
         })->values();
     }
@@ -208,6 +219,8 @@ class EmployeeCommissionService
             ->select(
                 DB::raw('COALESCE(SUM(transactions.employee_amount), 0) as commission'),
                 DB::raw('COALESCE(SUM(transactions.tip_amount), 0) as tips'),
+                DB::raw('COALESCE(SUM(transactions.employee_amount * transactions.exchange_rate_used), 0) as commission_bs'),
+                DB::raw('COALESCE(SUM(transactions.tip_amount * transactions.exchange_rate_used), 0) as tips_bs'),
             )
             ->first();
 
@@ -222,11 +235,15 @@ class EmployeeCommissionService
             ->select(
                 DB::raw('COALESCE(SUM(transactions.assistant_amount), 0) as commission'),
                 DB::raw('COALESCE(SUM(transactions.tip_amount), 0) as tips'),
+                DB::raw('COALESCE(SUM(transactions.assistant_amount * transactions.exchange_rate_used), 0) as commission_bs'),
+                DB::raw('COALESCE(SUM(transactions.tip_amount * transactions.exchange_rate_used), 0) as tips_bs'),
             )
             ->first();
 
         $commission = (float) ($mainEarned->commission ?? 0) + (float) ($assistantEarned->commission ?? 0);
         $tips = (float) ($mainEarned->tips ?? 0) + (float) ($assistantEarned->tips ?? 0);
+        $commissionBs = (float) ($mainEarned->commission_bs ?? 0) + (float) ($assistantEarned->commission_bs ?? 0);
+        $tipsBs = (float) ($mainEarned->tips_bs ?? 0) + (float) ($assistantEarned->tips_bs ?? 0);
 
         $profile = Profile::find($employeeId);
         $baseSalary = $profile ? (float) ($profile->base_salary ?? 0) : 0;
@@ -256,6 +273,9 @@ class EmployeeCommissionService
         $totalEarned = $commission + $tips + $baseSalary;
         $pending = $totalEarned - $totalPaid - $totalConsumed;
 
+        $totalEarnedBs = $commissionBs + $tipsBs;
+        $pendingBsEstimated = $totalEarned > 0 ? $pending * ($totalEarnedBs / $totalEarned) : 0;
+
         return [
             'commission' => round($commission, 2),
             'tips' => round($tips, 2),
@@ -267,6 +287,10 @@ class EmployeeCommissionService
             'pay_type' => $payType,
             'pay_percentage' => round($payPercentage, 2),
             'employee_ves_rate' => round($employeeVesRate, 2),
+            'commission_bs' => round($commissionBs, 2),
+            'tips_bs' => round($tipsBs, 2),
+            'total_earned_bs' => round($totalEarnedBs, 2),
+            'pending_bs_estimated' => round($pendingBsEstimated, 2),
         ];
     }
 
