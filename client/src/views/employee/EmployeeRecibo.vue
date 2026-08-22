@@ -98,6 +98,7 @@
             :earnings="earningsWithVESComputed"
             :show-all="showAllServices"
             :visible-limit="VISIBLE_SERVICES"
+            :show-locked-rate-info="!!businessStore.features.payroll_locked_exchange_rate"
             @toggle="showAllServices = !showAllServices"
           />
 

@@ -335,6 +335,7 @@ class EmployeeCommissionService
                 'transactions.tip_amount',
                 'transactions.paid_at',
                 'transactions.exchange_rate_used',
+                'transactions.payments_breakdown',
             )
             ->orderByDesc('appointments.start_time');
 
@@ -362,6 +363,20 @@ class EmployeeCommissionService
                 ? round($empAmount / $pct * 100, 2)
                 : (float) ($row->service_price ?? $row->total_amount ?? 0);
 
+            // Which currency the tip physically came in as, inferred from how the whole payment
+            // was collected — 'payments_breakdown' already records the currency (and Bs-entered
+            // amount) per payment split. A single-method payment attributes cleanly to the tip;
+            // a split ("mixed") payment can't say which part covered the tip, so it's left null.
+            $tipCurrency = null;
+            if ($tip > 0) {
+                $breakdown = json_decode($row->payments_breakdown ?? '[]', true) ?: [];
+                if (count($breakdown) === 1 && isset($breakdown[0]['currency'])) {
+                    $tipCurrency = $breakdown[0]['currency'];
+                } elseif (count($breakdown) > 1) {
+                    $tipCurrency = 'mixed';
+                }
+            }
+
             return [
                 'id' => $row->appointment_id,
                 'group_id' => $row->group_id ?? null,
@@ -377,6 +392,7 @@ class EmployeeCommissionService
                 'status' => $row->payment_status === 'paid' ? 'completed' : $row->status,
                 'payment_status' => $row->payment_status,
                 'exchange_rate_used' => (float) ($row->exchange_rate_used ?? 1),
+                'tip_currency' => $tipCurrency,
             ];
         });
     }
