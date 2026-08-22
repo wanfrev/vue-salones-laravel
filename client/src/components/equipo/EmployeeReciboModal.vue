@@ -139,11 +139,27 @@
                 <span class="font-medium text-text">${{ totalVariableEarned }}</span>
               </div>
             </div>
-            <div v-if="totalTip > 0" class="flex justify-between py-2 text-sm">
-              <span class="text-text-muted">Propinas recibidas</span>
-              <div class="text-right">
-                <span class="font-medium text-primary">${{ totalTip.toFixed(2) }}</span>
-                <p class="text-xs text-text-muted">{{ formatEmployeeVES(totalTip) }}</p>
+            <div v-if="totalTip > 0" class="py-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-text-muted">Propinas recibidas</span>
+                <div class="text-right">
+                  <span class="font-medium text-primary">${{ totalTip.toFixed(2) }}</span>
+                  <p class="text-xs text-text-muted">{{ formatEmployeeVES(totalTip) }}</p>
+                </div>
+              </div>
+              <div v-if="businessStore.features.payroll_locked_exchange_rate" class="mt-1.5 pl-2 space-y-1 border-l-2 border-border-subtle">
+                <div v-if="tipsUsdTotal > 0" class="flex justify-between text-xs">
+                  <span class="text-text-muted">En dólares</span>
+                  <span class="font-medium text-text">${{ tipsUsdTotal.toFixed(2) }}</span>
+                </div>
+                <div v-if="tipsVesTotal > 0" class="flex justify-between text-xs">
+                  <span class="text-text-muted">En bolívares</span>
+                  <span class="font-medium text-text">{{ formatVESEs(tipsVesTotal) }}</span>
+                </div>
+                <div v-if="tipsUnspecifiedTotal > 0" class="flex justify-between text-xs">
+                  <span class="text-text-muted">Sin moneda especificada</span>
+                  <span class="font-medium text-text">${{ tipsUnspecifiedTotal.toFixed(2) }}</span>
+                </div>
               </div>
             </div>
             <div class="border-t border-border pt-3 flex justify-between">
@@ -770,6 +786,22 @@ const totalVariableEarned = computed(() =>
 
 const totalTip = computed(() =>
   earnings.value.reduce((sum, r) => sum + (r.tipAmount ?? 0), 0)
+)
+
+const tipsUsdTotal = computed(() =>
+  earnings.value.filter(r => r.tipCurrency === 'USD').reduce((sum, r) => sum + (r.tipAmount ?? 0), 0)
+)
+
+const tipsVesTotal = computed(() =>
+  earnings.value
+    .filter(r => r.tipCurrency === 'VES')
+    .reduce((sum, r) => sum + (r.tipAmount ?? 0) * (r.exchangeRateUsed || 1), 0)
+)
+
+const tipsUnspecifiedTotal = computed(() =>
+  earnings.value
+    .filter(r => (r.tipAmount ?? 0) > 0 && r.tipCurrency !== 'USD' && r.tipCurrency !== 'VES')
+    .reduce((sum, r) => sum + (r.tipAmount ?? 0), 0)
 )
 
 const totalEarned = computed(() => {

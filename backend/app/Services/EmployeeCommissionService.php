@@ -104,6 +104,9 @@ class EmployeeCommissionService
                 DB::raw('COALESCE(SUM(transactions.tip_amount), 0) as tips'),
                 DB::raw('COALESCE(SUM(transactions.employee_amount * transactions.exchange_rate_used), 0) as commission_bs'),
                 DB::raw('COALESCE(SUM(transactions.tip_amount * transactions.exchange_rate_used), 0) as tips_bs'),
+                DB::raw("COALESCE(SUM(CASE WHEN transactions.tip_currency = 'USD' THEN transactions.tip_amount ELSE 0 END), 0) as tips_usd"),
+                DB::raw("COALESCE(SUM(CASE WHEN transactions.tip_currency = 'VES' THEN transactions.tip_amount * transactions.exchange_rate_used ELSE 0 END), 0) as tips_ves"),
+                DB::raw("COALESCE(SUM(CASE WHEN transactions.tip_amount > 0 AND (transactions.tip_currency IS NULL OR transactions.tip_currency NOT IN ('USD', 'VES')) THEN transactions.tip_amount ELSE 0 END), 0) as tips_unspecified"),
             )
             ->groupBy('profiles.id', 'profiles.full_name', 'profiles.pay_type', 'profiles.pay_percentage', 'profiles.base_salary', 'profiles.employee_ves_rate');
 
@@ -180,6 +183,9 @@ class EmployeeCommissionService
                 'tips_bs' => round($tipsBs, 2),
                 'total_earned_bs' => round($totalEarnedBs, 2),
                 'pending_bs_estimated' => round($pendingBsEstimated, 2),
+                'tips_usd' => round((float) $row->tips_usd, 2),
+                'tips_ves' => round((float) $row->tips_ves, 2),
+                'tips_unspecified' => round((float) $row->tips_unspecified, 2),
             ];
         })->values();
     }
@@ -221,6 +227,9 @@ class EmployeeCommissionService
                 DB::raw('COALESCE(SUM(transactions.tip_amount), 0) as tips'),
                 DB::raw('COALESCE(SUM(transactions.employee_amount * transactions.exchange_rate_used), 0) as commission_bs'),
                 DB::raw('COALESCE(SUM(transactions.tip_amount * transactions.exchange_rate_used), 0) as tips_bs'),
+                DB::raw("COALESCE(SUM(CASE WHEN transactions.tip_currency = 'USD' THEN transactions.tip_amount ELSE 0 END), 0) as tips_usd"),
+                DB::raw("COALESCE(SUM(CASE WHEN transactions.tip_currency = 'VES' THEN transactions.tip_amount * transactions.exchange_rate_used ELSE 0 END), 0) as tips_ves"),
+                DB::raw("COALESCE(SUM(CASE WHEN transactions.tip_amount > 0 AND (transactions.tip_currency IS NULL OR transactions.tip_currency NOT IN ('USD', 'VES')) THEN transactions.tip_amount ELSE 0 END), 0) as tips_unspecified"),
             )
             ->first();
 
@@ -237,6 +246,9 @@ class EmployeeCommissionService
                 DB::raw('COALESCE(SUM(transactions.tip_amount), 0) as tips'),
                 DB::raw('COALESCE(SUM(transactions.assistant_amount * transactions.exchange_rate_used), 0) as commission_bs'),
                 DB::raw('COALESCE(SUM(transactions.tip_amount * transactions.exchange_rate_used), 0) as tips_bs'),
+                DB::raw("COALESCE(SUM(CASE WHEN transactions.tip_currency = 'USD' THEN transactions.tip_amount ELSE 0 END), 0) as tips_usd"),
+                DB::raw("COALESCE(SUM(CASE WHEN transactions.tip_currency = 'VES' THEN transactions.tip_amount * transactions.exchange_rate_used ELSE 0 END), 0) as tips_ves"),
+                DB::raw("COALESCE(SUM(CASE WHEN transactions.tip_amount > 0 AND (transactions.tip_currency IS NULL OR transactions.tip_currency NOT IN ('USD', 'VES')) THEN transactions.tip_amount ELSE 0 END), 0) as tips_unspecified"),
             )
             ->first();
 
@@ -244,6 +256,9 @@ class EmployeeCommissionService
         $tips = (float) ($mainEarned->tips ?? 0) + (float) ($assistantEarned->tips ?? 0);
         $commissionBs = (float) ($mainEarned->commission_bs ?? 0) + (float) ($assistantEarned->commission_bs ?? 0);
         $tipsBs = (float) ($mainEarned->tips_bs ?? 0) + (float) ($assistantEarned->tips_bs ?? 0);
+        $tipsUsd = (float) ($mainEarned->tips_usd ?? 0) + (float) ($assistantEarned->tips_usd ?? 0);
+        $tipsVes = (float) ($mainEarned->tips_ves ?? 0) + (float) ($assistantEarned->tips_ves ?? 0);
+        $tipsUnspecified = (float) ($mainEarned->tips_unspecified ?? 0) + (float) ($assistantEarned->tips_unspecified ?? 0);
 
         $profile = Profile::find($employeeId);
         $baseSalary = $profile ? (float) ($profile->base_salary ?? 0) : 0;
@@ -291,6 +306,9 @@ class EmployeeCommissionService
             'tips_bs' => round($tipsBs, 2),
             'total_earned_bs' => round($totalEarnedBs, 2),
             'pending_bs_estimated' => round($pendingBsEstimated, 2),
+            'tips_usd' => round($tipsUsd, 2),
+            'tips_ves' => round($tipsVes, 2),
+            'tips_unspecified' => round($tipsUnspecified, 2),
         ];
     }
 

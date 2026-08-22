@@ -330,6 +330,22 @@
                 <span class="text-text-muted">Propina</span>
                 <span class="font-medium text-text">{{ formatVESEs(selectedBalance.tips_bs ?? 0) }}</span>
               </div>
+              <div v-if="(selectedBalance.tips_usd ?? 0) > 0 || (selectedBalance.tips_ves ?? 0) > 0 || (selectedBalance.tips_unspecified ?? 0) > 0"
+                class="pl-2 space-y-1 border-l-2 border-border-subtle">
+                <p class="text-[11px] text-text-muted">Propinas recibidas por moneda:</p>
+                <div v-if="(selectedBalance.tips_usd ?? 0) > 0" class="flex items-center justify-between text-[11px]">
+                  <span class="text-text-muted">En dólares</span>
+                  <span class="font-medium text-text">{{ formatUSD(selectedBalance.tips_usd ?? 0) }}</span>
+                </div>
+                <div v-if="(selectedBalance.tips_ves ?? 0) > 0" class="flex items-center justify-between text-[11px]">
+                  <span class="text-text-muted">En bolívares</span>
+                  <span class="font-medium text-text">{{ formatVESEs(selectedBalance.tips_ves ?? 0) }}</span>
+                </div>
+                <div v-if="(selectedBalance.tips_unspecified ?? 0) > 0" class="flex items-center justify-between text-[11px]">
+                  <span class="text-text-muted">Sin moneda especificada</span>
+                  <span class="font-medium text-text">{{ formatUSD(selectedBalance.tips_unspecified ?? 0) }}</span>
+                </div>
+              </div>
               <div class="flex items-center justify-between text-xs border-t border-border-subtle pt-1.5">
                 <span class="text-text-muted">Saldo pendiente (estimado)</span>
                 <span class="font-medium text-text">{{ formatVESEs(selectedBalance.pending_bs_estimated ?? 0) }}</span>

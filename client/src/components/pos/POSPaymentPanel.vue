@@ -277,7 +277,7 @@
             </div>
             <div class="flex items-center gap-2">
               <input
-                :value="tipInputDisplay"
+                :value="tipRawInput"
                 @input="handleTipInput"
                 type="number" min="0" step="0.01"
                 placeholder="0.00"
@@ -286,20 +286,20 @@
               <div v-if="businessStore.features.payroll_locked_exchange_rate" class="flex shrink-0 rounded-lg border border-border bg-bg-secondary/50 p-0.5">
                 <button
                   type="button"
-                  @click="$emit('update:tip-currency', 'USD')"
+                  @click="handleTipCurrencyChange('USD')"
                   class="rounded-md px-2.5 py-1.5 text-xs font-semibold transition-theme"
                   :class="tipCurrency === 'VES' ? 'text-text-muted hover:text-text' : 'bg-surface text-primary shadow-sm'"
                 >$</button>
                 <button
                   type="button"
-                  @click="$emit('update:tip-currency', 'VES')"
+                  @click="handleTipCurrencyChange('VES')"
                   class="rounded-md px-2.5 py-1.5 text-xs font-semibold transition-theme"
                   :class="tipCurrency === 'VES' ? 'bg-surface text-primary shadow-sm' : 'text-text-muted hover:text-text'"
                 >Bs</button>
               </div>
             </div>
             <p v-if="businessStore.features.payroll_locked_exchange_rate && tipCurrency === 'VES'" class="text-[11px] text-text-muted">
-              Registrando la propina en bolívares, a la tasa de hoy ({{ exchangeRate.toLocaleString('es-VE') }} Bs/$).
+              Propina registrada en bolívares — equivale a {{ formatUSD(tipAmount) }} a la tasa de hoy ({{ exchangeRate.toLocaleString('es-VE') }} Bs/$).
             </p>
 
             <div v-if="showTipAdjust && tipParticipants.length > 0" class="rounded-lg border border-border bg-bg-secondary/40 p-2.5 space-y-2">
@@ -515,7 +515,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { DualAmount } from '../common'
 import { formatDate, toTitleCase } from '../../lib/formatters'
@@ -606,18 +606,36 @@ const isRetailNiche = computed(() => !businessStore.features.agenda)
 const cartRef = computed(() => props.cart)
 const { suggestions: suggestedProducts } = useProductSuggestions(cartRef)
 
-const tipInputDisplay = computed(() => {
-  if (props.tipCurrency === 'VES') {
-    const bs = props.tipAmount * exchangeRate.value
-    return bs ? Number(bs.toFixed(2)) : ''
+// The exact number the cashier typed, in whatever currency is currently selected — kept as
+// local state so toggling $/Bs never rewrites what's on screen. `props.tipAmount` (always USD)
+// is derived from this and emitted upward; it's re-synced from the prop only on an *external*
+// reset/prefill (prop going to/from 0 while this box isn't already tracking something), never
+// as a side effect of our own emits.
+const tipRawInput = ref<number | ''>(props.tipAmount || '')
+
+watch(() => props.tipAmount, (val) => {
+  if (val === 0 && tipRawInput.value !== '' && Number(tipRawInput.value) !== 0) {
+    tipRawInput.value = ''
+  } else if (val > 0 && (tipRawInput.value === '' || Number(tipRawInput.value) === 0)) {
+    tipRawInput.value = val
   }
-  return props.tipAmount || ''
 })
 
-const handleTipInput = (e: Event) => {
-  const raw = Number((e.target as HTMLInputElement).value) || 0
-  const usd = props.tipCurrency === 'VES' ? raw / exchangeRate.value : raw
+const emitTipAmountFor = (currency: 'USD' | 'VES') => {
+  const rawNum = tipRawInput.value === '' ? 0 : Number(tipRawInput.value)
+  const usd = currency === 'VES' ? rawNum / exchangeRate.value : rawNum
   emit('update:tipAmount', Number(usd.toFixed(2)))
+}
+
+const handleTipInput = (e: Event) => {
+  const value = (e.target as HTMLInputElement).value
+  tipRawInput.value = value === '' ? '' : Number(value)
+  emitTipAmountFor(props.tipCurrency ?? 'USD')
+}
+
+const handleTipCurrencyChange = (currency: 'USD' | 'VES') => {
+  emit('update:tip-currency', currency)
+  emitTipAmountFor(currency)
 }
 
 const needsGiftCardSelect = computed(() =>

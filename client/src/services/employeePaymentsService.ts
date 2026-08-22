@@ -35,6 +35,10 @@ export type EmployeeBalance = {
   tips_bs?: number
   total_earned_bs?: number
   pending_bs_estimated?: number
+  /** Tips received, split by the currency they were actually paid in. */
+  tips_usd?: number
+  tips_ves?: number
+  tips_unspecified?: number
 }
 
 export const listEmployeePayments = async (
