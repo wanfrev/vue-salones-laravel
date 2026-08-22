@@ -326,7 +326,8 @@
                 <span class="text-text-muted">Comisión</span>
                 <span class="font-medium text-text">{{ formatVESEs(selectedBalance.commission_bs ?? 0) }}</span>
               </div>
-              <div v-if="(selectedBalance.tips_bs ?? 0) > 0" class="flex items-center justify-between text-xs">
+              <div v-if="(selectedBalance.tips_bs ?? 0) > 0 && !(selectedBalance.tips_usd ?? 0) && !(selectedBalance.tips_ves ?? 0) && !(selectedBalance.tips_unspecified ?? 0)"
+                class="flex items-center justify-between text-xs">
                 <span class="text-text-muted">Propina</span>
                 <span class="font-medium text-text">{{ formatVESEs(selectedBalance.tips_bs ?? 0) }}</span>
               </div>

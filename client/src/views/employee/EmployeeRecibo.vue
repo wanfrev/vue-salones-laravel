@@ -133,7 +133,7 @@
                 <span class="text-text-muted">Propinas recibidas</span>
                 <div class="text-right">
                   <span class="font-medium text-primary">${{ totalTip.toFixed(2) }}</span>
-                  <p class="text-xs text-text-muted">{{ formatEmployeeVES(totalTip) }}</p>
+                  <p v-if="!businessStore.features.payroll_locked_exchange_rate" class="text-xs text-text-muted">{{ formatEmployeeVES(totalTip) }}</p>
                 </div>
               </div>
               <div v-if="businessStore.features.payroll_locked_exchange_rate" class="mt-1.5 pl-2 space-y-1 border-l-2 border-border-subtle">
