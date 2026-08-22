@@ -336,6 +336,7 @@ class EmployeeCommissionService
                 'transactions.paid_at',
                 'transactions.exchange_rate_used',
                 'transactions.payments_breakdown',
+                'transactions.tip_currency',
             )
             ->orderByDesc('appointments.start_time');
 
@@ -363,17 +364,22 @@ class EmployeeCommissionService
                 ? round($empAmount / $pct * 100, 2)
                 : (float) ($row->service_price ?? $row->total_amount ?? 0);
 
-            // Which currency the tip physically came in as, inferred from how the whole payment
-            // was collected — 'payments_breakdown' already records the currency (and Bs-entered
-            // amount) per payment split. A single-method payment attributes cleanly to the tip;
-            // a split ("mixed") payment can't say which part covered the tip, so it's left null.
+            // Which currency the tip was physically paid in. Prefer the explicit value the
+            // cashier chose at checkout (transactions.tip_currency); older transactions
+            // predating that field fall back to inferring it from how the whole payment was
+            // collected — 'payments_breakdown' records the currency per payment split, which
+            // attributes cleanly to the tip only when there was a single payment method.
             $tipCurrency = null;
             if ($tip > 0) {
-                $breakdown = json_decode($row->payments_breakdown ?? '[]', true) ?: [];
-                if (count($breakdown) === 1 && isset($breakdown[0]['currency'])) {
-                    $tipCurrency = $breakdown[0]['currency'];
-                } elseif (count($breakdown) > 1) {
-                    $tipCurrency = 'mixed';
+                if (!empty($row->tip_currency)) {
+                    $tipCurrency = $row->tip_currency;
+                } else {
+                    $breakdown = json_decode($row->payments_breakdown ?? '[]', true) ?: [];
+                    if (count($breakdown) === 1 && isset($breakdown[0]['currency'])) {
+                        $tipCurrency = $breakdown[0]['currency'];
+                    } elseif (count($breakdown) > 1) {
+                        $tipCurrency = 'mixed';
+                    }
                 }
             }
 

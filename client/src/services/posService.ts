@@ -92,6 +92,7 @@ export const recordSale = async (params: {
   businessId: string
   branchId?: string | null
   tipAmount?: number
+  tipCurrency?: 'USD' | 'VES'
 }): Promise<{ id: string, receipt_code?: string }> => {
   const serviceAmount = params.serviceAmount ?? params.amount ?? 0
   const products = params.products ?? []
@@ -114,6 +115,7 @@ export const recordSale = async (params: {
     exchange_rate_used: params.exchangeRate,
     payments_breakdown: params.paymentsBreakdown,
     tip_amount: params.tipAmount ?? 0,
+    tip_currency: params.tipCurrency ?? null,
   })
 
   return response
@@ -201,6 +203,7 @@ export const recordDirectServiceSale = async (params: {
   businessId: string
   branchId?: string | null
   tipAmount?: number
+  tipCurrency?: 'USD' | 'VES'
 }): Promise<{ id: string, receipt_code?: string }> => {
   const products = params.products ?? []
   const productsPayload = products.map(p => ({
@@ -233,6 +236,7 @@ export const recordDirectServiceSale = async (params: {
     exchange_rate_used: params.exchangeRate,
     payments_breakdown: params.paymentsBreakdown,
     tip_amount: params.tipAmount ?? 0,
+    tip_currency: params.tipCurrency ?? null,
     branch_id: params.branchId || null,
   })
 

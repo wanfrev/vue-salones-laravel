@@ -37,6 +37,7 @@ class DirectServiceSaleRequest extends FormRequest
             'payments_breakdown.*.gift_card_id' => 'nullable|string',
             'payments_breakdown.*.giftCardId' => 'nullable|string',
             'tip_amount' => 'nullable|numeric|min:0',
+            'tip_currency' => 'nullable|in:USD,VES',
             'products_amount' => 'nullable|numeric|min:0',
             'branch_id' => 'nullable|uuid',
         ];

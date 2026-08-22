@@ -21,7 +21,7 @@ class Transaction extends Model
         'id', 'business_id', 'branch_id', 'appointment_id',
         'total_amount', 'local_amount', 'employee_amount', 'assistant_amount',
         'local_percentage', 'employee_percentage', 'assistant_percentage',
-        'method', 'exchange_rate_used', 'payments_breakdown', 'tip_amount',
+        'method', 'exchange_rate_used', 'payments_breakdown', 'tip_amount', 'tip_currency',
         'created_by', 'notes', 'paid_at', 'receipt_code',
     ];
 

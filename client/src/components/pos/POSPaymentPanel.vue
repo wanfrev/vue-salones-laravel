@@ -275,13 +275,32 @@
                 <span class="sm:hidden">Ajustar</span>
               </button>
             </div>
-            <input
-              :value="tipAmount || ''"
-              @input="$emit('update:tipAmount', Number(($event.target as HTMLInputElement).value) || 0)"
-              type="number" min="0" step="0.01"
-              placeholder="0.00"
-              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary"
-            />
+            <div class="flex items-center gap-2">
+              <input
+                :value="tipInputDisplay"
+                @input="handleTipInput"
+                type="number" min="0" step="0.01"
+                placeholder="0.00"
+                class="flex-1 min-w-0 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary"
+              />
+              <div v-if="businessStore.features.payroll_locked_exchange_rate" class="flex shrink-0 rounded-lg border border-border bg-bg-secondary/50 p-0.5">
+                <button
+                  type="button"
+                  @click="$emit('update:tip-currency', 'USD')"
+                  class="rounded-md px-2.5 py-1.5 text-xs font-semibold transition-theme"
+                  :class="tipCurrency === 'VES' ? 'text-text-muted hover:text-text' : 'bg-surface text-primary shadow-sm'"
+                >$</button>
+                <button
+                  type="button"
+                  @click="$emit('update:tip-currency', 'VES')"
+                  class="rounded-md px-2.5 py-1.5 text-xs font-semibold transition-theme"
+                  :class="tipCurrency === 'VES' ? 'bg-surface text-primary shadow-sm' : 'text-text-muted hover:text-text'"
+                >Bs</button>
+              </div>
+            </div>
+            <p v-if="businessStore.features.payroll_locked_exchange_rate && tipCurrency === 'VES'" class="text-[11px] text-text-muted">
+              Registrando la propina en bolívares, a la tasa de hoy ({{ exchangeRate.toLocaleString('es-VE') }} Bs/$).
+            </p>
 
             <div v-if="showTipAdjust && tipParticipants.length > 0" class="rounded-lg border border-border bg-bg-secondary/40 p-2.5 space-y-2">
               <div class="flex items-center justify-between text-xs">
@@ -530,6 +549,7 @@ const props = defineProps<{
   canPay: boolean
   notes: string
   tipAmount: number
+  tipCurrency?: 'USD' | 'VES'
   tipParticipants: TipParticipant[]
   tipAllocations: Record<string, number>
   tipAllocatedTotal: number
@@ -560,6 +580,7 @@ const emit = defineEmits<{
   'remove-split': [idx: number]
   'update:notes': [value: string]
   'update:tipAmount': [value: number]
+  'update:tip-currency': [currency: 'USD' | 'VES']
   'toggle-tip-adjust': []
   'set-equal-tip': []
   'update:tip-allocation': [employeeId: string, value: number]
@@ -575,7 +596,7 @@ const emit = defineEmits<{
   'add-suggested-product': [product: any]
 }>()
 
-const { formatDual, formatUSD, formatVES } = useCurrency()
+const { formatDual, formatUSD, formatVES, exchangeRate } = useCurrency()
 const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)
 const { activeGiftCards } = useGiftCards(businessId)
@@ -584,6 +605,20 @@ const isRetailNiche = computed(() => !businessStore.features.agenda)
 
 const cartRef = computed(() => props.cart)
 const { suggestions: suggestedProducts } = useProductSuggestions(cartRef)
+
+const tipInputDisplay = computed(() => {
+  if (props.tipCurrency === 'VES') {
+    const bs = props.tipAmount * exchangeRate.value
+    return bs ? Number(bs.toFixed(2)) : ''
+  }
+  return props.tipAmount || ''
+})
+
+const handleTipInput = (e: Event) => {
+  const raw = Number((e.target as HTMLInputElement).value) || 0
+  const usd = props.tipCurrency === 'VES' ? raw / exchangeRate.value : raw
+  emit('update:tipAmount', Number(usd.toFixed(2)))
+}
 
 const needsGiftCardSelect = computed(() =>
   businessStore.features.gift_cards &&

@@ -19,6 +19,8 @@ export function usePOSPayment() {
   const otherCurrency = ref<'USD' | 'VES'>('USD')
   const paymentNotes = ref('')
   const tipAmount = ref(0)
+  /** Which currency the cashier actually entered the tip in — display/capture only, `tipAmount` stays USD. */
+  const tipCurrency = ref<'USD' | 'VES'>('USD')
   const paymentsBreakdown = ref<PaymentBreakdownItem[]>([])
   const selectedGiftCardId = ref<string | null>(null)
 
@@ -79,6 +81,7 @@ export function usePOSPayment() {
     otherCurrency.value = 'USD'
     paymentNotes.value = ''
     tipAmount.value = 0
+    tipCurrency.value = 'USD'
     paymentsBreakdown.value = []
     selectedGiftCardId.value = null
   }
@@ -119,6 +122,7 @@ export function usePOSPayment() {
       exchangeRate: number
       paymentsBreakdown: PaymentBreakdownItem[]
       tipAmount?: number
+      tipCurrency?: 'USD' | 'VES'
     }>) => {
       const results = []
       for (const p of payloads) {
@@ -132,6 +136,7 @@ export function usePOSPayment() {
           exchangeRate: p.exchangeRate,
           paymentsBreakdown: p.paymentsBreakdown,
           tipAmount: p.tipAmount,
+          tipCurrency: p.tipCurrency,
           businessId: businessId.value!,
           branchId: branchId.value,
         })
@@ -223,6 +228,7 @@ export function usePOSPayment() {
       exchangeRate: number
       paymentsBreakdown: PaymentBreakdownItem[]
       tipAmount?: number
+      tipCurrency?: 'USD' | 'VES'
     }) => recordDirectServiceSale({
       services: params.services,
       serviceId: params.serviceId,
@@ -239,6 +245,7 @@ export function usePOSPayment() {
       businessId: businessId.value!,
       branchId: branchId.value,
       tipAmount: params.tipAmount,
+      tipCurrency: params.tipCurrency,
     }),
     onSuccess: () => {
       success('Cobro de servicio directo registrado correctamente')
@@ -284,6 +291,7 @@ export function usePOSPayment() {
       exchangeRate: number
       paymentsBreakdown: PaymentBreakdownItem[]
       tipAmount?: number
+      tipCurrency?: 'USD' | 'VES'
     }> = []
 
     if (isGroup && groupIds && groupIds.length > 1 && members && groupPrice) {
@@ -337,6 +345,7 @@ export function usePOSPayment() {
           exchangeRate: exchangeRt,
           paymentsBreakdown: memberBreakdown,
           tipAmount: memberTip,
+          tipCurrency: tipCurrency.value,
         })
       }
     } else {
@@ -370,6 +379,7 @@ export function usePOSPayment() {
         exchangeRate: exchangeRt,
         paymentsBreakdown: breakdown,
         tipAmount: params.tipAmount,
+        tipCurrency: tipCurrency.value,
       })
     }
 
@@ -489,6 +499,7 @@ export function usePOSPayment() {
         notes,
         paymentsBreakdown: breakdown,
         tipAmount: params.tipAmount,
+        tipCurrency: tipCurrency.value,
       })
       reset()
       return { success: true, transactions: [result] }
@@ -502,6 +513,7 @@ export function usePOSPayment() {
     otherCurrency,
     paymentNotes,
     tipAmount,
+    tipCurrency,
     isProcessing,
     paymentsBreakdown,
     paymentMethods,

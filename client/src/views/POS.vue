@@ -275,7 +275,7 @@
         :other-currency="otherCurrency" :payment-methods="paymentMethods"
         :mixed-methods="mixedMethods" :payments-breakdown="paymentsBreakdown"
         :split-remaining="splitRemaining" :is-processing="isProcessing" :can-pay="canPay"
-        :notes="paymentNotes" :tip-amount="tipAmount"
+        :notes="paymentNotes" :tip-amount="tipAmount" :tip-currency="tipCurrency"
         :tip-participants="tipParticipants" :tip-allocations="tipAllocations"
         :tip-allocated-total="tipAllocatedTotal" :tip-remaining="tipRemaining"
         :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
@@ -294,6 +294,7 @@
         @add-split="addSplit" @remove-split="removeSplit"
         @update:notes="paymentNotes = $event"
         @update:tip-amount="tipAmount = $event"
+        @update:tip-currency="tipCurrency = $event"
         @toggle-tip-adjust="showTipAdjust = !showTipAdjust"
         @set-equal-tip="setEqualTipAllocation"
         @update:tip-allocation="setTipAllocation"
@@ -341,7 +342,7 @@
             :other-currency="otherCurrency" :payment-methods="paymentMethods"
             :mixed-methods="mixedMethods" :payments-breakdown="paymentsBreakdown"
             :split-remaining="splitRemaining" :is-processing="isProcessing" :can-pay="canPay"
-            :notes="paymentNotes" :tip-amount="tipAmount"
+            :notes="paymentNotes" :tip-amount="tipAmount" :tip-currency="tipCurrency"
             :tip-participants="tipParticipants" :tip-allocations="tipAllocations"
             :tip-allocated-total="tipAllocatedTotal" :tip-remaining="tipRemaining"
             :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
@@ -360,6 +361,7 @@
             @add-split="addSplit" @remove-split="removeSplit"
             @update:notes="paymentNotes = $event"
             @update:tip-amount="tipAmount = $event"
+            @update:tip-currency="tipCurrency = $event"
             @toggle-tip-adjust="showTipAdjust = !showTipAdjust"
             @set-equal-tip="setEqualTipAllocation"
             @update:tip-allocation="setTipAllocation"
@@ -481,6 +483,7 @@ const {
   otherCurrency,
   paymentNotes,
   tipAmount,
+  tipCurrency,
   selectedGiftCardId,
   isProcessing: posIsProcessing,
   paymentMethods,
