@@ -75,8 +75,27 @@ class EmployeeCommissionService
      * USD-equivalent value (see usePOSPayment.ts), so summing it per `currency` and comparing is
      * enough to tell which currency dominated a mixed payment — no extra rate math needed for
      * that comparison. A transaction whose whole commission goes to the majority currency; an
-     * exact tie splits it 50/50; no breakdown at all (legacy rows) falls into "unspecified".
+     * exact tie splits it 50/50.
+     *
+     * Every payment always has a currency — a gift card is USD, `pago_movil` is Bs, etc. — so a
+     * transaction with no `payments_breakdown` recorded (older rows, or a single non-mixed
+     * method that never built one) still has a knowable currency via `transactions.method`. Only
+     * `mixed`/`other` with no breakdown at all is genuinely unresolvable, hence "unspecified".
      */
+    private const METHOD_CURRENCY = [
+        'cash' => 'USD',
+        'cash_ves' => 'VES',
+        'card' => 'USD',
+        'transfer' => 'VES',
+        'zelle' => 'USD',
+        'binance' => 'USD',
+        'cashea' => 'USD',
+        'pago_movil' => 'VES',
+        'gift_card' => 'USD',
+        'credito' => 'USD',
+        'punto_venta' => 'VES',
+    ];
+
     private function getCommissionCurrencyBreakdown(
         string $businessId,
         string $employeeId,
@@ -99,6 +118,7 @@ class EmployeeCommissionService
                 'transactions.assistant_amount',
                 'transactions.exchange_rate_used',
                 'transactions.payments_breakdown',
+                'transactions.method',
             );
 
         if ($branchId) {
@@ -136,7 +156,14 @@ class EmployeeCommissionService
             }
 
             if ($usdPortion <= 0 && $vesPortion <= 0) {
-                $unspecified += $amount;
+                $methodCurrency = self::METHOD_CURRENCY[$row->method] ?? null;
+                if ($methodCurrency === 'USD') {
+                    $usd += $amount;
+                } elseif ($methodCurrency === 'VES') {
+                    $vesBs += $amount * $rate;
+                } else {
+                    $unspecified += $amount;
+                }
             } elseif ($usdPortion > $vesPortion) {
                 $usd += $amount;
             } elseif ($vesPortion > $usdPortion) {
