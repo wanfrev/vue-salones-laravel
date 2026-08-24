@@ -32,6 +32,7 @@ return [
         'encargados_change_exchange_rate' => false,
         'encargados_change_employee_rate' => false,
         'disable_employee_commission_edit' => false,
+        'encargado_product_commission_enabled' => false,
         'manual_reports' => false,
         'daily_report_autofill_from_pos' => false,
         'pos_direct_service_sale' => false,

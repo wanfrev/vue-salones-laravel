@@ -276,6 +276,7 @@
             :formData="formData"
             :terminology="t"
             :errors="errors as any"
+            :show-product-commission="formData.systemRole === 'encargado' && !!businessStore.features.encargado_product_commission_enabled"
             @update:model-value="formData = $event"
           />
 
@@ -386,6 +387,7 @@ const defaultFormData: EmpleadoFormData = {
   payPercentage: 50,
   baseSalary: 0,
   salaryFrequency: 'monthly',
+  productCommissionPercentage: 0,
   activeDays: [1, 2, 3, 4, 5, 6],
   disableAgenda: false,
   // Read-only by default: a newly granted canAccessInventory shouldn't silently come with
@@ -459,6 +461,7 @@ watch(
         payPercentage: empleado.payPercentage || 0,
         baseSalary: empleado.baseSalary || 0,
         salaryFrequency: empleado.salaryFrequency || 'monthly',
+        productCommissionPercentage: empleado.productCommissionPercentage || 0,
         activeDays: [1, 2, 3, 4, 5, 6],
         disableAgenda: empleado.disableAgenda ?? false,
         disableInventoryEdit: empleado.disableInventoryEdit ?? false,

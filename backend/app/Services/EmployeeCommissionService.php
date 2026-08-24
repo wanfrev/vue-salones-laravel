@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Business;
 use App\Models\Profile;
+use App\Support\NicheRegistry;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -19,6 +20,44 @@ class EmployeeCommissionService
             return $endDate . ' 23:59:59';
         }
         return $endDate;
+    }
+
+    private function isProductCommissionEnabled(string $businessId): bool
+    {
+        $business = Business::find($businessId);
+        $features = NicheRegistry::resolveFeatures($business?->niche_type, $business?->features);
+        return (bool) ($features['encargado_product_commission_enabled'] ?? false);
+    }
+
+    /**
+     * Encargado commission on product sales — scoped to Venta Directa (counter sale, no
+     * appointment) transactions the encargado rang up themselves. Mixed service+product
+     * tickets don't persist a per-line sale price (inventory_movements only stores unit_cost),
+     * so there's no reliable amount to base a commission on outside of a pure product sale.
+     */
+    private function getDirectProductSales(
+        string $businessId,
+        string $employeeId,
+        ?string $branchId,
+        ?string $startDate,
+        ?string $endDate,
+    ): Collection {
+        $query = DB::table('transactions')
+            ->where('business_id', $businessId)
+            ->where('created_by', $employeeId)
+            ->whereNull('appointment_id')
+            ->select('id', 'paid_at', 'total_amount', 'exchange_rate_used', 'notes');
+
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
+        if ($startDate && $endDate) {
+            $query->whereBetween('paid_at', [$startDate, $this->normalizeEndDate($endDate)]);
+        }
+
+        return $query->get();
     }
 
     /**
@@ -147,31 +186,79 @@ class EmployeeCommissionService
 
         $paid = $paidQuery->get()->keyBy('employee_id');
 
-        return $earnings->map(function ($row) use ($paid, $businessId) {
-            $p = $paid->get($row->employee_id);
+        // Product-sale commission per encargado (Venta Directa only — see getDirectProductSales).
+        // Queried separately and merged by employee_id, since an encargado with product sales but
+        // no appointments in the period would never appear in $earnings otherwise.
+        $productByEmployee = collect();
+        if ($startDate && $endDate && $this->isProductCommissionEnabled($businessId)) {
+            $productQuery = DB::table('transactions')
+                ->join('profiles', 'transactions.created_by', '=', 'profiles.id')
+                ->where('transactions.business_id', $businessId)
+                ->where('profiles.role', 'encargado')
+                ->whereNull('transactions.appointment_id')
+                ->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)])
+                ->select(
+                    'profiles.id as employee_id',
+                    'profiles.full_name as employee_name',
+                    'profiles.pay_type',
+                    'profiles.pay_percentage',
+                    'profiles.base_salary',
+                    'profiles.employee_ves_rate',
+                    'profiles.product_commission_percentage',
+                    DB::raw('COALESCE(SUM(transactions.total_amount), 0) as product_sales_total'),
+                    DB::raw('COALESCE(SUM(transactions.total_amount * transactions.exchange_rate_used), 0) as product_sales_total_bs'),
+                )
+                ->groupBy(
+                    'profiles.id', 'profiles.full_name', 'profiles.pay_type', 'profiles.pay_percentage',
+                    'profiles.base_salary', 'profiles.employee_ves_rate', 'profiles.product_commission_percentage',
+                );
+
+            if ($branchId) {
+                $productQuery->where(function ($q) use ($branchId) {
+                    $q->whereNull('transactions.branch_id')->orWhere('transactions.branch_id', $branchId);
+                });
+            }
+
+            $productByEmployee = $productQuery->get()->keyBy('employee_id');
+        }
+
+        $employeeIds = $earnings->keys()->merge($productByEmployee->keys())->unique();
+
+        return $employeeIds->map(function ($employeeId) use ($earnings, $productByEmployee, $paid, $businessId) {
+            $row = $earnings->get($employeeId);
+            $productRow = $productByEmployee->get($employeeId);
+
+            $p = $paid->get($employeeId);
             $totalPaid = (float) ($p->paid ?? 0);
             $totalConsumed = (float) ($p->consumed ?? 0);
-            $commission = (float) $row->commission;
-            $tips = (float) $row->tips;
-            $base = (float) ($row->base_salary ?? 0);
+            $commission = (float) ($row?->commission ?? 0);
+            $commissionBs = (float) ($row?->commission_bs ?? 0);
+            $tips = (float) ($row?->tips ?? 0);
+            $tipsBs = (float) ($row?->tips_bs ?? 0);
+            $base = (float) ($row?->base_salary ?? $productRow?->base_salary ?? 0);
+
+            if ($productRow) {
+                $productPct = (float) ($productRow->product_commission_percentage ?? 0);
+                $commission += round((float) $productRow->product_sales_total * $productPct / 100, 2);
+                $commissionBs += round((float) $productRow->product_sales_total_bs * $productPct / 100, 2);
+            }
+
             $totalEarned = $commission + $tips + $base;
             $pending = $totalEarned - $totalPaid - $totalConsumed;
 
-            $commissionBs = (float) $row->commission_bs;
-            $tipsBs = (float) $row->tips_bs;
             $totalEarnedBs = $commissionBs + $tipsBs;
             $pendingBsEstimated = $totalEarned > 0 ? $pending * ($totalEarnedBs / $totalEarned) : 0;
 
-            $profileRate = (float) ($row->employee_ves_rate ?? 0);
+            $profileRate = (float) ($row?->employee_ves_rate ?? $productRow?->employee_ves_rate ?? 0);
             $businessRate = (float) (Business::where('id', $businessId)->value('employee_ves_rate') ?? 0);
             $employeeVesRate = $profileRate > 0 ? $profileRate : $businessRate;
 
             return [
-                'employee_id' => $row->employee_id,
-                'employee_name' => $row->employee_name,
-                'pay_type' => $row->pay_type,
-                'pay_percentage' => (float) ($row->pay_percentage ?? 0),
-                'base_salary' => (float) ($row->base_salary ?? 0),
+                'employee_id' => $employeeId,
+                'employee_name' => $row?->employee_name ?? $productRow?->employee_name ?? '',
+                'pay_type' => $row?->pay_type ?? $productRow?->pay_type ?? null,
+                'pay_percentage' => (float) ($row?->pay_percentage ?? $productRow?->pay_percentage ?? 0),
+                'base_salary' => $base,
                 'commission' => round($commission, 2),
                 'tips' => round($tips, 2),
                 'total' => round($totalEarned, 2),
@@ -183,9 +270,9 @@ class EmployeeCommissionService
                 'tips_bs' => round($tipsBs, 2),
                 'total_earned_bs' => round($totalEarnedBs, 2),
                 'pending_bs_estimated' => round($pendingBsEstimated, 2),
-                'tips_usd' => round((float) $row->tips_usd, 2),
-                'tips_ves' => round((float) $row->tips_ves, 2),
-                'tips_unspecified' => round((float) $row->tips_unspecified, 2),
+                'tips_usd' => round((float) ($row?->tips_usd ?? 0), 2),
+                'tips_ves' => round((float) ($row?->tips_ves ?? 0), 2),
+                'tips_unspecified' => round((float) ($row?->tips_unspecified ?? 0), 2),
             ];
         })->values();
     }
@@ -267,6 +354,15 @@ class EmployeeCommissionService
         $profileRate = $profile ? (float) ($profile->employee_ves_rate ?? 0) : 0;
         $businessRate = (float) (Business::where('id', $businessId)->value('employee_ves_rate') ?? 0);
         $employeeVesRate = $profileRate > 0 ? $profileRate : $businessRate;
+
+        $productPct = $profile ? (float) ($profile->product_commission_percentage ?? 0) : 0;
+        if ($profile && $profile->role === 'encargado' && $productPct > 0 && $this->isProductCommissionEnabled($businessId)) {
+            $productSales = $this->getDirectProductSales($businessId, $employeeId, $branchId, $startDate, $endDate);
+            $productCommission = round($productSales->sum('total_amount') * $productPct / 100, 2);
+            $productCommissionBs = round($productSales->sum(fn($row) => $row->total_amount * ($row->exchange_rate_used ?? 1)) * $productPct / 100, 2);
+            $commission += $productCommission;
+            $commissionBs += $productCommissionBs;
+        }
 
         // Paid
         $paid = DB::table('employee_payments')
@@ -368,7 +464,7 @@ class EmployeeCommissionService
             $query->whereBetween('appointments.start_time', [$startDate, $this->normalizeEndDate($endDate)]);
         }
 
-        return $query->get()->map(function ($row) use ($employeeId) {
+        $appointmentRows = $query->get()->map(function ($row) use ($employeeId) {
             $isAssistant = $row->assistant_employee_id === $employeeId;
             $pct = (float) ($isAssistant
                 ? ($row->assistant_percentage ?? 0)
@@ -419,5 +515,36 @@ class EmployeeCommissionService
                 'tip_currency' => $tipCurrency,
             ];
         });
+
+        $profile = Profile::find($employeeId);
+        $productPct = (float) ($profile?->product_commission_percentage ?? 0);
+        if ($profile && $profile->role === 'encargado' && $productPct > 0 && $this->isProductCommissionEnabled($businessId)) {
+            $productRows = $this->getDirectProductSales($businessId, $employeeId, $branchId, $startDate, $endDate)
+                ->map(function ($row) use ($productPct) {
+                    $total = (float) $row->total_amount;
+                    return [
+                        'id' => $row->id,
+                        'group_id' => null,
+                        'date' => $row->paid_at,
+                        'time' => $row->paid_at,
+                        'client_name' => $row->notes ?: '—',
+                        'service_name' => 'Venta de productos',
+                        'service_price' => $total,
+                        'amount' => $total,
+                        'percentage' => round($productPct, 1),
+                        'earnings' => round($total * $productPct / 100, 2),
+                        'tip_amount' => 0,
+                        'status' => 'completed',
+                        'payment_status' => 'paid',
+                        'exchange_rate_used' => (float) ($row->exchange_rate_used ?? 1),
+                        'tip_currency' => null,
+                    ];
+                });
+            $appointmentRows = $appointmentRows->concat($productRows)
+                ->sortByDesc('date')
+                ->values();
+        }
+
+        return $appointmentRows;
     }
 }

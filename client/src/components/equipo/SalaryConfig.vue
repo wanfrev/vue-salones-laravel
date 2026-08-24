@@ -22,6 +22,10 @@
           label="Sueldo base ($)" type="number" min="0" placeholder="0" :disabled="formData.payType === 'percentage'"
           :error="errors.baseSalary" />
       </div>
+      <FormInput v-if="showProductCommission" :model-value="formData.productCommissionPercentage?.toString() ?? ''"
+        @update:model-value="emit('update:modelValue', { ...formData, productCommissionPercentage: Number($event) || 0 })"
+        label="% comisión por venta de productos" type="number" min="0" max="100" placeholder="0"
+        :error="errors.productCommissionPercentage" />
     </div>
   </div>
 </template>
@@ -30,7 +34,10 @@
 import { FormInput, FormDropdown } from '../forms'
 import type { EmpleadoFormData } from '../../types/empleado'
 
-defineProps<{ formData: EmpleadoFormData; terminology: Record<string, string>; errors: Partial<Record<string, string>> }>()
+withDefaults(
+  defineProps<{ formData: EmpleadoFormData; terminology: Record<string, string>; errors: Partial<Record<string, string>>; showProductCommission?: boolean }>(),
+  { showProductCommission: false },
+)
 const emit = defineEmits<{ 'update:modelValue': [data: EmpleadoFormData] }>()
 
 const payTypeOptions = [

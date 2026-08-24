@@ -196,6 +196,15 @@
                 label="Bloquear edición de comisiones"
                 hint="Encargados y empleados NO podrán modificar porcentajes de ganancia en las citas"
                 :disabled="updatingFeatures"
+                class="py-3.5 border-b border-border-subtle"
+              />
+              <FormToggle
+                v-if="businessStore.features.pos"
+                :model-value="!!businessStore.features.encargado_product_commission_enabled"
+                @update:model-value="handleToggleFeature('encargado_product_commission_enabled')"
+                label="Comisión por venta de productos"
+                hint="Los encargados ganarán el % que les asignes sobre las ventas directas de productos que ellos mismos procesen en el POS"
+                :disabled="updatingFeatures"
                 class="py-3.5 last:border-b-0"
               />
             </div>
@@ -613,7 +622,7 @@ const SECTION_STYLES: Record<string, { iconBg: string; iconText: string; activeB
 // tienda/staffing business has no agenda, no dual currency, etc. Hiding the whole
 // subcategory (not just the individual toggles) avoids leaving an empty bordered box.
 const showEncargadosSection = computed(() =>
-  businessStore.features.inventario || !businessStore.isSingleCurrency || businessStore.features.agenda
+  businessStore.features.inventario || !businessStore.isSingleCurrency || businessStore.features.agenda || businessStore.features.pos
 )
 const showPosVentasSection = computed(() =>
   businessStore.features.agenda || (businessStore.features.manual_reports && businessStore.features.pos)
@@ -956,6 +965,7 @@ async function toggleManagerInventoryEdit(val: boolean) {
 const featureLabels: Record<string, string> = {
   reminder_24h_enabled: 'Recordatorios internos',
   whatsapp_reminders_enabled: 'Recordatorios por WhatsApp',
+  encargado_product_commission_enabled: 'Comisión por venta de productos',
   enable_public_booking: 'Reservas públicas',
 }
 
