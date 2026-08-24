@@ -71,11 +71,13 @@ class EmployeeCommissionService
      * Splits an employee's service commission by the currency the client actually paid in,
      * per appointment transaction — needed because `commission`/`commission_bs` are already a
      * USD-equivalent total and can't tell you how much of that was real dollars in hand vs. real
-     * bolívares. `payments_breakdown` already stores each payment split's `amount` as its
-     * USD-equivalent value (see usePOSPayment.ts), so summing it per `currency` and comparing is
-     * enough to tell which currency dominated a mixed payment — no extra rate math needed for
-     * that comparison. A transaction whose whole commission goes to the majority currency; an
-     * exact tie splits it 50/50.
+     * bolívares. Each `payments_breakdown` split's `inputAmount` is reliably populated (in that
+     * split's own `currency`) for both single-method and genuinely mixed payments — `amount`
+     * is NOT: the mixed-payment editor (POSPaymentPanel.vue) never writes it, so it's always 0
+     * there. Converting `inputAmount` per split (VES via this transaction's own day rate) and
+     * comparing the USD-equivalent totals is what actually tells us which currency dominated a
+     * mixed payment. A transaction's whole commission goes to the majority currency; an exact
+     * tie splits it 50/50.
      *
      * Every payment always has a currency — a gift card is USD, `pago_movil` is Bs, etc. — so a
      * transaction with no `payments_breakdown` recorded (older rows, or a single non-mixed
@@ -144,14 +146,20 @@ class EmployeeCommissionService
             $rate = (float) ($row->exchange_rate_used ?? 1);
             $breakdown = json_decode($row->payments_breakdown ?? '[]', true) ?: [];
 
+            // `amount` is meant to be each split's USD-equivalent, but the mixed-payment editor
+            // (POSPaymentPanel.vue) only ever writes `inputAmount` (in the split's own
+            // `currency`) — `amount` stays 0 for every genuinely mixed sale. `inputAmount` is
+            // reliable for both mixed and single-method splits, so convert from that instead,
+            // using this transaction's own day rate (same convention as `commission_bs`).
             $usdPortion = 0.0;
             $vesPortion = 0.0;
             foreach ($breakdown as $split) {
-                $splitAmount = (float) ($split['amount'] ?? 0);
-                if (($split['currency'] ?? null) === 'USD') {
-                    $usdPortion += $splitAmount;
-                } elseif (($split['currency'] ?? null) === 'VES') {
-                    $vesPortion += $splitAmount;
+                $currency = $split['currency'] ?? null;
+                $inputAmount = (float) ($split['inputAmount'] ?? $split['amount'] ?? 0);
+                if ($currency === 'USD') {
+                    $usdPortion += $inputAmount;
+                } elseif ($currency === 'VES') {
+                    $vesPortion += $rate > 0 ? $inputAmount / $rate : 0;
                 }
             }
 
