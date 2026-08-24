@@ -68,6 +68,7 @@ export interface Profile {
   pay_percentage?: number | null
   base_salary?: number | null
   salary_frequency?: 'weekly' | 'biweekly' | 'monthly' | null
+  product_commission_percentage?: number | null
   disable_agenda?: boolean
   disable_inventory_edit?: boolean
   can_access_finanzas?: boolean

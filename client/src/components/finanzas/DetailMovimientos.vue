@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
-import { isTiendaNiche } from '../../config/niches'
+import { hasRetailModule } from '../../config/niches'
 import { formatMethod } from '../../lib/formatters'
 import { useCrud } from '../../composables/empleados/useCrud'
 import { useCategoryCRUD } from '../../composables/common/useCategoryCRUD'
@@ -32,7 +32,7 @@ const props = defineProps<{
 const { formatUSD, formatSecondary, formatVESEs } = useCurrency()
 const router = useRouter()
 const detailBusinessStore = useBusinessStore()
-const isTienda = computed(() => isTiendaNiche(detailBusinessStore.nicheType))
+const isTienda = computed(() => hasRetailModule(detailBusinessStore.nicheType, detailBusinessStore.features))
 
 const allTabs = [
   { key: 'cobros' as const, label: 'Cobros de Citas', shortLabel: 'Cobros' },

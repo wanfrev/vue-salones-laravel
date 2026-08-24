@@ -46,7 +46,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuth } from '../../composables/common/useAuth'
 import { useBusinessStore } from '../../store/business'
-import { isAdminPanelRole } from '../../constants/roles'
+import { isAdminPanelRole, isEncargado } from '../../constants/roles'
 import { evaluateGate } from '../../router/gate'
 import { sidebarSections } from './sidebarLinks'
 import type { SidebarLink } from './sidebarLinks'
@@ -80,7 +80,15 @@ const visibleSections = computed(() =>
           if (link.to === '/admin/requerimientos' && authStore.profile?.can_access_requirements) return true
           return false
         }
-        if (link.employeeOnly && isAdmin.value) return false
+        if (link.employeeOnly && isAdmin.value) {
+          // Encargados earn commissions/salary like empleados, so they keep access to their own report.
+          const isEncargadoReport = isEncargado(authStore.role ?? undefined) &&
+            (link.to === '/dashboard/comisiones' || link.to === '/dashboard/recibo')
+          if (!isEncargadoReport) return false
+        }
+        if (link.employeeOnly && authStore.role === 'empleado' && businessStore.features.employees_recibo_only && link.to !== '/dashboard/recibo') {
+          return false
+        }
         return evaluateGate(link.gate, {
           profile: authStore.profile,
           hasFeature: (key) => businessStore.hasFeature(key),

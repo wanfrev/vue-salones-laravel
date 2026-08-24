@@ -16,7 +16,7 @@ class Profile extends Model
     protected $fillable = [
         'id', 'business_id', 'branch_id', 'full_name', 'role', 'phone', 'avatar_url',
         'active', 'email', 'job_title',
-        'pay_type', 'pay_percentage', 'base_salary', 'salary_frequency',
+        'pay_type', 'pay_percentage', 'base_salary', 'salary_frequency', 'product_commission_percentage',
         'employee_ves_rate',
         'disable_agenda', 'disable_inventory_edit',
         'can_create_appointments', 'can_create_clients',
@@ -54,6 +54,7 @@ class Profile extends Model
             'can_add_purchase_invoice' => 'boolean',
             'pay_percentage' => 'float',
             'base_salary' => 'float',
+            'product_commission_percentage' => 'float',
             'employee_ves_rate' => 'float',
             'staffing_tax_rate' => 'float',
             'bank_routing_number' => 'encrypted',

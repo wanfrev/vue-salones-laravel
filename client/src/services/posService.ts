@@ -9,6 +9,78 @@ export const posKeys = {
   products: (businessId?: string | null, branchId?: string | null) => ['pos-products', businessId, branchId] as const,
   suggestions: (businessId?: string | null, branchId?: string | null, productId?: string | null) =>
     ['pos-product-suggestions', businessId, branchId, productId] as const,
+  heldSales: (businessId?: string | null, branchId?: string | null) => ['pos-held-sales', businessId, branchId] as const,
+}
+
+export interface HeldSale {
+  id: string
+  business_id: string
+  branch_id: string | null
+  created_by: string | null
+  client_id: string | null
+  client_name: string | null
+  client_phone: string | null
+  cart: POSProductItem[]
+  payment_method: PaymentMethod | null
+  payment_currency: 'USD' | 'VES' | null
+  payments_breakdown: PaymentBreakdownItem[]
+  tip_amount: number
+  tip_currency: 'USD' | 'VES' | null
+  notes: string | null
+  custom_total_amount: number | null
+  custom_total_currency: 'USD' | 'VES' | null
+  are_products_included: boolean
+  total_amount: number
+  created_at: string
+}
+
+export const listHeldSales = async (businessId: string, branchId?: string | null): Promise<HeldSale[]> => {
+  const params = new URLSearchParams()
+  if (branchId) params.set('branch_id', branchId)
+  const qs = params.toString()
+  return await apiRequest<HeldSale[]>('GET', `/pos/held-sales${qs ? `?${qs}` : ''}`)
+}
+
+export const holdSale = async (params: {
+  branchId?: string | null
+  clientId?: string | null
+  clientName?: string | null
+  clientPhone?: string | null
+  cart: POSProductItem[]
+  paymentMethod: PaymentMethod
+  paymentCurrency: 'USD' | 'VES'
+  paymentsBreakdown: PaymentBreakdownItem[]
+  tipAmount?: number
+  tipCurrency?: 'USD' | 'VES'
+  notes?: string | null
+  customTotalAmount?: number | null
+  customTotalCurrency?: 'USD' | 'VES' | null
+  areProductsIncluded?: boolean
+}): Promise<HeldSale> => {
+  return await apiRequest<HeldSale>('POST', '/pos/held-sales', {
+    branch_id: params.branchId || null,
+    client_id: params.clientId || null,
+    client_name: params.clientName || null,
+    client_phone: params.clientPhone || null,
+    cart: params.cart,
+    payment_method: params.paymentMethod,
+    payment_currency: params.paymentCurrency,
+    payments_breakdown: params.paymentsBreakdown,
+    tip_amount: params.tipAmount ?? 0,
+    tip_currency: params.tipCurrency ?? null,
+    notes: params.notes || null,
+    custom_total_amount: params.customTotalAmount ?? null,
+    custom_total_currency: params.customTotalCurrency ?? null,
+    are_products_included: params.areProductsIncluded ?? false,
+  })
+}
+
+export const resumeHeldSale = async (id: string): Promise<HeldSale> => {
+  return await apiRequest<HeldSale>('POST', `/pos/held-sales/${id}/resume`)
+}
+
+export const cancelHeldSale = async (id: string): Promise<void> => {
+  await apiRequest('DELETE', `/pos/held-sales/${id}`)
 }
 
 export const listPendingAppointments = async (businessId: string, branchId?: string | null) => {
@@ -92,6 +164,7 @@ export const recordSale = async (params: {
   businessId: string
   branchId?: string | null
   tipAmount?: number
+  tipCurrency?: 'USD' | 'VES'
 }): Promise<{ id: string, receipt_code?: string }> => {
   const serviceAmount = params.serviceAmount ?? params.amount ?? 0
   const products = params.products ?? []
@@ -114,6 +187,7 @@ export const recordSale = async (params: {
     exchange_rate_used: params.exchangeRate,
     payments_breakdown: params.paymentsBreakdown,
     tip_amount: params.tipAmount ?? 0,
+    tip_currency: params.tipCurrency ?? null,
   })
 
   return response
@@ -201,6 +275,7 @@ export const recordDirectServiceSale = async (params: {
   businessId: string
   branchId?: string | null
   tipAmount?: number
+  tipCurrency?: 'USD' | 'VES'
 }): Promise<{ id: string, receipt_code?: string }> => {
   const products = params.products ?? []
   const productsPayload = products.map(p => ({
@@ -233,6 +308,7 @@ export const recordDirectServiceSale = async (params: {
     exchange_rate_used: params.exchangeRate,
     payments_breakdown: params.paymentsBreakdown,
     tip_amount: params.tipAmount ?? 0,
+    tip_currency: params.tipCurrency ?? null,
     branch_id: params.branchId || null,
   })
 

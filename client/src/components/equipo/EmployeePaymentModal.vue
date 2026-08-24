@@ -13,7 +13,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits(['close', 'payment-saved'])
-const { formatUSD, formatSecondary, employeeRate } = useCurrency()
+const { formatUSD, formatSecondary, formatVESEs, employeeRate } = useCurrency()
 const businessStore = useBusinessStore()
 
 const ctx = reactive(props.paymentsCtx)
@@ -214,6 +214,63 @@ const consumptionConvertedAmount = computed(() => {
               class="w-full rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/10">
               Pagar saldo pendiente ({{ formatUSD(pendingBalance) }})
             </button>
+
+            <div v-if="businessStore.features.payroll_locked_exchange_rate"
+              class="rounded-lg border border-dashed border-border bg-bg-secondary/40 p-3 space-y-1.5">
+              <p class="text-xs font-medium text-text-secondary">Desglose en Bs (tasa del día de cada servicio)</p>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-text-muted">Comisión</span>
+                <span class="font-medium text-text">{{ formatVESEs(balance.commission_bs ?? 0) }}</span>
+              </div>
+              <div v-if="(balance.tips_bs ?? 0) > 0 && !(balance.tips_usd ?? 0) && !(balance.tips_ves ?? 0) && !(balance.tips_unspecified ?? 0)"
+                class="flex items-center justify-between text-xs">
+                <span class="text-text-muted">Propina</span>
+                <span class="font-medium text-text">{{ formatVESEs(balance.tips_bs ?? 0) }}</span>
+              </div>
+              <div v-if="(balance.tips_usd ?? 0) > 0 || (balance.tips_ves ?? 0) > 0 || (balance.tips_unspecified ?? 0) > 0"
+                class="pl-2 space-y-1 border-l-2 border-border-subtle">
+                <p class="text-[11px] text-text-muted">Propinas recibidas por moneda:</p>
+                <div v-if="(balance.tips_usd ?? 0) > 0" class="flex items-center justify-between text-[11px]">
+                  <span class="text-text-muted">En dólares</span>
+                  <span class="font-medium text-text">{{ formatUSD(balance.tips_usd ?? 0) }}</span>
+                </div>
+                <div v-if="(balance.tips_ves ?? 0) > 0" class="flex items-center justify-between text-[11px]">
+                  <span class="text-text-muted">En bolívares</span>
+                  <span class="font-medium text-text">{{ formatVESEs(balance.tips_ves ?? 0) }}</span>
+                </div>
+                <div v-if="(balance.tips_unspecified ?? 0) > 0" class="flex items-center justify-between text-[11px]">
+                  <span class="text-text-muted">Sin moneda especificada</span>
+                  <span class="font-medium text-text">{{ formatUSD(balance.tips_unspecified ?? 0) }}</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between text-xs border-t border-border-subtle pt-1.5">
+                <span class="text-text-muted">Pendiente (estimado)</span>
+                <span class="font-medium text-text">{{ formatVESEs(balance.pending_bs_estimated ?? 0) }}</span>
+              </div>
+            </div>
+
+            <div v-if="businessStore.features.payroll_currency_breakdown_enabled"
+              class="rounded-lg border border-dashed border-border bg-bg-secondary/40 p-3 space-y-1.5">
+              <p class="text-xs font-medium text-text-secondary">Generó según moneda de cobro</p>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-text-muted">En dólares</span>
+                <span class="text-right">
+                  <span class="font-medium text-text">{{ formatUSD(balance.commission_usd_actual ?? 0) }}</span>
+                  <span class="block text-[10px] text-text-muted/70">≈ {{ formatSecondary(balance.commission_usd_actual ?? 0, effectiveRate) }}</span>
+                </span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-text-muted">En bolívares</span>
+                <span class="text-right">
+                  <span class="font-medium text-text">{{ formatVESEs(balance.commission_ves_actual_bs ?? 0) }}</span>
+                  <span class="block text-[10px] text-text-muted/70">≈ {{ formatUSD((balance.commission_ves_actual_bs ?? 0) / effectiveRate) }}</span>
+                </span>
+              </div>
+              <div v-if="(balance.commission_unspecified_actual ?? 0) > 0" class="flex items-center justify-between text-xs">
+                <span class="text-text-muted">Sin moneda especificada</span>
+                <span class="font-medium text-text">{{ formatUSD(balance.commission_unspecified_actual ?? 0) }}</span>
+              </div>
+            </div>
           </div>
 
           <div v-if="balance && !ctx.editingPaymentId" class="space-y-3">

@@ -91,17 +91,25 @@ class StaffingCompanyEmployeeService
             });
     }
 
-    public function roleForEmployeeAtCompany(string $employeeId, string $companyId): ?string
+    /**
+     * A worker can now hold more than one role at the same company (one per project/shift), so
+     * `$projectId` — when the caller has one, e.g. a project-scoped timesheet — disambiguates
+     * which assignment's role applies. Without it, this falls back to the first matching row,
+     * same as before multi-role-per-company was allowed.
+     */
+    public function roleForEmployeeAtCompany(string $employeeId, string $companyId, ?string $projectId = null): ?string
     {
         return StaffingCompanyEmployee::where('employee_id', $employeeId)
             ->where('company_id', $companyId)
+            ->when($projectId, fn ($q) => $q->where('project_id', $projectId))
             ->value('role');
     }
 
-    public function shiftForEmployeeAtCompany(string $employeeId, string $companyId): ?string
+    public function shiftForEmployeeAtCompany(string $employeeId, string $companyId, ?string $projectId = null): ?string
     {
         return StaffingCompanyEmployee::where('employee_id', $employeeId)
             ->where('company_id', $companyId)
+            ->when($projectId, fn ($q) => $q->where('project_id', $projectId))
             ->value('shift');
     }
 

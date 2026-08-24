@@ -70,6 +70,7 @@ export const saveEmpleado = async (
       pay_percentage: profileUpdate.pay_percentage,
       base_salary: profileUpdate.base_salary,
       salary_frequency: profileUpdate.salary_frequency || undefined,
+      product_commission_percentage: profileUpdate.product_commission_percentage,
       disable_agenda: data.systemRole === 'cajero' ? true : data.disableAgenda,
       disable_inventory_edit: data.systemRole === 'cajero' ? true : data.disableInventoryEdit,
       can_create_appointments: data.systemRole !== 'cajero' ? data.canCreateAppointments : false,

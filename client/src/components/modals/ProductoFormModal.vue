@@ -131,13 +131,13 @@
         />
         <FormInput
           v-model.number="formData.unitPrice"
-          :label="businessStore.features.agenda ? (formData.isSellable ? 'Precio de venta ($)' : 'Precio de venta ($) — opcional') : (formData.isSellable ? 'Precio de venta 1 ($)' : 'Precio de venta 1 ($) — opcional')"
+          :label="!isTienda ? (formData.isSellable ? 'Precio de venta ($)' : 'Precio de venta ($) — opcional') : (formData.isSellable ? 'Precio de venta 1 ($)' : 'Precio de venta 1 ($) — opcional')"
           type="number"
           placeholder="0.00"
           :error="errors.unitPrice"
         />
         <FormInput
-          v-if="!businessStore.features.agenda"
+          v-if="isTienda"
           v-model.number="formData.unitPrice2"
           label="Precio de venta 2 ($) — opcional"
           type="number"
@@ -176,7 +176,7 @@ import { useFormValidation } from '../../composables/common/useFormValidation'
 import { productoFormSchema } from '../../lib/validation'
 import { mapCategoryToOption } from '../../mappers/productosMapper'
 import type { Producto, ProductoFormData } from '../../types/producto'
-import { isTiendaNiche } from '../../config/niches'
+import { hasRetailModule } from '../../config/niches'
 import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormDropdown, FormTextarea, FormToggle } from '../forms'
 
@@ -202,7 +202,7 @@ const businessStore = useBusinessStore()
 const isEditing = computed(() => !!modalData.value?.producto)
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
-const isTienda = computed(() => isTiendaNiche(businessStore.business?.niche_type || ''))
+const isTienda = computed(() => hasRetailModule(businessStore.business?.niche_type || '', businessStore.features))
 
 const queryClient = useQueryClient?.() || null
 

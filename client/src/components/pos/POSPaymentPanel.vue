@@ -103,13 +103,16 @@
               v-for="(item, idx) in cart"
               :key="item.productId"
               class="rounded-lg bg-bg-secondary px-3"
-              :class="isRetailNiche ? 'py-2.5 space-y-2' : 'flex items-center justify-between gap-2 py-2'"
+              :class="isRetailOnly ? 'py-2.5 space-y-2' : 'flex items-center justify-between gap-2 py-2'"
             >
-              <!-- Retail (tienda/no-agenda): two-row card — name/subtotal on top, price/qty below.
-                   Splitting into two rows gives each element real width instead of cramming
-                   name + price + bigger touch-target qty controls into one line, which used to
-                   force formatDual's combined "$X / Y Bs" string to wrap mid-number. -->
-              <template v-if="isRetailNiche">
+              <!-- Retail sale (current tab is "venta al detal"): two-row card — name/subtotal on
+                   top, price/qty below. Splitting into two rows gives each element real width
+                   instead of cramming name + price + bigger touch-target qty controls into one
+                   line, which used to force formatDual's combined "$X / Y Bs" string to wrap
+                   mid-number. Keyed off the active sale type, not the agenda feature flag, so a
+                   business with both agenda and retail enabled still gets this layout while
+                   actually doing a retail sale. -->
+              <template v-if="isRetailOnly">
                 <div class="flex items-center justify-between gap-2">
                   <p class="flex-1 min-w-0 truncate text-sm sm:text-[15px] font-medium text-text">{{ item.productName }}</p>
                   <div class="flex items-center gap-1.5 shrink-0">
@@ -232,7 +235,7 @@
           </div>
         </div>
 
-        <div v-if="isRetailNiche && suggestedProducts.length > 0" class="rounded-lg border border-dashed border-border bg-bg-secondary/40 p-2.5 space-y-1.5">
+        <div v-if="isRetailOnly && suggestedProducts.length > 0" class="rounded-lg border border-dashed border-border bg-bg-secondary/40 p-2.5 space-y-1.5">
           <p class="text-xs font-medium text-text-secondary">También suelen llevar</p>
           <div
             v-for="product in suggestedProducts"
@@ -275,13 +278,32 @@
                 <span class="sm:hidden">Ajustar</span>
               </button>
             </div>
-            <input
-              :value="tipAmount || ''"
-              @input="$emit('update:tipAmount', Number(($event.target as HTMLInputElement).value) || 0)"
-              type="number" min="0" step="0.01"
-              placeholder="0.00"
-              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary"
-            />
+            <div class="flex items-center gap-2">
+              <input
+                :value="tipRawInput"
+                @input="handleTipInput"
+                type="number" min="0" step="0.01"
+                placeholder="0.00"
+                class="flex-1 min-w-0 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary"
+              />
+              <div v-if="businessStore.features.payroll_locked_exchange_rate" class="flex shrink-0 rounded-lg border border-border bg-bg-secondary/50 p-0.5">
+                <button
+                  type="button"
+                  @click="handleTipCurrencyChange('USD')"
+                  class="rounded-md px-2.5 py-1.5 text-xs font-semibold transition-theme"
+                  :class="tipCurrency === 'VES' ? 'text-text-muted hover:text-text' : 'bg-surface text-primary shadow-sm'"
+                >$</button>
+                <button
+                  type="button"
+                  @click="handleTipCurrencyChange('VES')"
+                  class="rounded-md px-2.5 py-1.5 text-xs font-semibold transition-theme"
+                  :class="tipCurrency === 'VES' ? 'bg-surface text-primary shadow-sm' : 'text-text-muted hover:text-text'"
+                >Bs</button>
+              </div>
+            </div>
+            <p v-if="businessStore.features.payroll_locked_exchange_rate && tipCurrency === 'VES'" class="text-[11px] text-text-muted">
+              Propina registrada en bolívares — equivale a {{ formatUSD(tipAmount) }} a la tasa de hoy ({{ exchangeRate.toLocaleString('es-VE') }} Bs/$).
+            </p>
 
             <div v-if="showTipAdjust && tipParticipants.length > 0" class="rounded-lg border border-border bg-bg-secondary/40 p-2.5 space-y-2">
               <div class="flex items-center justify-between text-xs">
@@ -317,7 +339,7 @@
               </div>
             </div>
           </div>
-          <div v-if="isRetailNiche" class="flex flex-col gap-2 border-t border-border pt-3 mt-1">
+          <div v-if="isRetailOnly" class="flex flex-col gap-2 border-t border-border pt-3 mt-1">
             <div class="flex items-center justify-between text-sm">
               <span class="font-medium text-text">Total Calculado</span>
               <div class="text-right leading-tight">
@@ -467,7 +489,19 @@
         ></textarea>
       </div>
 
-      <div class="pt-3 shrink-0 border-t border-border-subtle">
+      <div class="pt-3 shrink-0 border-t border-border-subtle space-y-2">
+        <button
+          v-if="isRetailOnly && hasRetailModule(businessStore.nicheType, businessStore.features) && cart.length > 0"
+          type="button"
+          @click="$emit('hold-sale')"
+          :disabled="isProcessing"
+          class="w-full flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary disabled:opacity-50"
+        >
+          <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          En espera
+        </button>
         <button
           @click="$emit('process-payment')"
           :disabled="isProcessing || !canPay"
@@ -496,7 +530,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { DualAmount } from '../common'
 import { formatDate, toTitleCase } from '../../lib/formatters'
@@ -504,6 +538,7 @@ import { useAuth } from '../../composables/common/useAuth'
 import { useGiftCards } from '../../composables/giftCards/useGiftCards'
 import { useProductSuggestions } from '../../composables/pos/useProductSuggestions'
 import { useBusinessStore } from '../../store/business'
+import { hasRetailModule } from '../../config/niches'
 import type { PaymentMethod } from '../../types/database'
 import type { PaymentBreakdownItem, POSProductItem } from '../../types/pos'
 
@@ -530,6 +565,7 @@ const props = defineProps<{
   canPay: boolean
   notes: string
   tipAmount: number
+  tipCurrency?: 'USD' | 'VES'
   tipParticipants: TipParticipant[]
   tipAllocations: Record<string, number>
   tipAllocatedTotal: number
@@ -560,6 +596,7 @@ const emit = defineEmits<{
   'remove-split': [idx: number]
   'update:notes': [value: string]
   'update:tipAmount': [value: number]
+  'update:tip-currency': [currency: 'USD' | 'VES']
   'toggle-tip-adjust': []
   'set-equal-tip': []
   'update:tip-allocation': [employeeId: string, value: number]
@@ -573,17 +610,49 @@ const emit = defineEmits<{
   'update:are-products-included': [value: boolean]
   'update:selected-gift-card-id': [value: string | null]
   'add-suggested-product': [product: any]
+  'hold-sale': []
 }>()
 
-const { formatDual, formatUSD, formatVES } = useCurrency()
+const { formatDual, formatUSD, formatVES, exchangeRate } = useCurrency()
 const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)
 const { activeGiftCards } = useGiftCards(businessId)
 const businessStore = useBusinessStore()
-const isRetailNiche = computed(() => !businessStore.features.agenda)
 
 const cartRef = computed(() => props.cart)
 const { suggestions: suggestedProducts } = useProductSuggestions(cartRef)
+
+// The exact number the cashier typed, in whatever currency is currently selected — kept as
+// local state so toggling $/Bs never rewrites what's on screen. `props.tipAmount` (always USD)
+// is derived from this and emitted upward; it's re-synced from the prop only on an *external*
+// reset/prefill (prop going to/from 0 while this box isn't already tracking something), never
+// as a side effect of our own emits.
+const tipRawInput = ref<number | ''>(props.tipAmount || '')
+
+watch(() => props.tipAmount, (val) => {
+  if (val === 0 && tipRawInput.value !== '' && Number(tipRawInput.value) !== 0) {
+    tipRawInput.value = ''
+  } else if (val > 0 && (tipRawInput.value === '' || Number(tipRawInput.value) === 0)) {
+    tipRawInput.value = val
+  }
+})
+
+const emitTipAmountFor = (currency: 'USD' | 'VES') => {
+  const rawNum = tipRawInput.value === '' ? 0 : Number(tipRawInput.value)
+  const usd = currency === 'VES' ? rawNum / exchangeRate.value : rawNum
+  emit('update:tipAmount', Number(usd.toFixed(2)))
+}
+
+const handleTipInput = (e: Event) => {
+  const value = (e.target as HTMLInputElement).value
+  tipRawInput.value = value === '' ? '' : Number(value)
+  emitTipAmountFor(props.tipCurrency ?? 'USD')
+}
+
+const handleTipCurrencyChange = (currency: 'USD' | 'VES') => {
+  emit('update:tip-currency', currency)
+  emitTipAmountFor(currency)
+}
 
 const needsGiftCardSelect = computed(() =>
   businessStore.features.gift_cards &&

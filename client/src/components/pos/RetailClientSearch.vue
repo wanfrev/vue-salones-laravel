@@ -67,5 +67,11 @@ defineExpose({
     localClientPhone.value = ''
     hasSelectedClient.value = false
   },
+  /** Impose a client name/phone from the parent — used when resuming a held sale. */
+  setClient({ name, phone }: { name: string; phone: string }) {
+    localClientSearch.value = name
+    localClientPhone.value = phone
+    hasSelectedClient.value = false
+  },
 })
 </script>

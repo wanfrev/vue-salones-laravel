@@ -196,6 +196,15 @@
                 label="Bloquear edición de comisiones"
                 hint="Encargados y empleados NO podrán modificar porcentajes de ganancia en las citas"
                 :disabled="updatingFeatures"
+                class="py-3.5 border-b border-border-subtle"
+              />
+              <FormToggle
+                v-if="businessStore.features.pos"
+                :model-value="!!businessStore.features.encargado_product_commission_enabled"
+                @update:model-value="handleToggleFeature('encargado_product_commission_enabled')"
+                label="Comisión por venta de productos"
+                hint="Los encargados ganarán el % que les asignes sobre las ventas directas de productos que ellos mismos procesen en el POS"
+                :disabled="updatingFeatures"
                 class="py-3.5 last:border-b-0"
               />
             </div>
@@ -226,6 +235,14 @@
                 label="Ocultar teléfono y email de clientes"
                 hint="Los empleados no verán datos de contacto de clientes. No impedirá crear citas."
                 :disabled="updatingFeatures"
+                class="py-3.5 border-b border-border-subtle"
+              />
+              <FormToggle
+                :model-value="!!businessStore.features.employees_recibo_only"
+                @update:model-value="handleToggleFeature('employees_recibo_only')"
+                label="Los empleados solo ven su recibo"
+                hint="Oculta Agenda, Historial, Comisiones, Clientes y todo lo demás del menú del empleado — solo queda Recibo. No afecta a encargados."
+                :disabled="updatingFeatures"
                 class="py-3.5 last:border-b-0"
               />
             </div>
@@ -247,6 +264,14 @@
                 @update:model-value="handleTogglePayrollLockedRate"
                 label="Pagar a empleados con la tasa del día del servicio"
                 hint="Los montos en Bs de comisiones y propinas se calculan con la tasa de cambio del día en que se realizó cada servicio, no la tasa actual."
+                :disabled="updatingFeatures"
+                class="py-3.5 border-b border-border-subtle"
+              />
+              <FormToggle
+                :model-value="!!businessStore.features.payroll_currency_breakdown_enabled"
+                @update:model-value="handleToggleFeature('payroll_currency_breakdown_enabled')"
+                label="Desglose de comisión por moneda de cobro"
+                hint="Al pagar nómina, muestra cuánto generó el empleado en dólares y cuánto en bolívares según cómo le cobraron a cada cliente"
                 :disabled="updatingFeatures"
                 class="py-3.5 last:border-b-0"
               />
@@ -613,7 +638,7 @@ const SECTION_STYLES: Record<string, { iconBg: string; iconText: string; activeB
 // tienda/staffing business has no agenda, no dual currency, etc. Hiding the whole
 // subcategory (not just the individual toggles) avoids leaving an empty bordered box.
 const showEncargadosSection = computed(() =>
-  businessStore.features.inventario || !businessStore.isSingleCurrency || businessStore.features.agenda
+  businessStore.features.inventario || !businessStore.isSingleCurrency || businessStore.features.agenda || businessStore.features.pos
 )
 const showPosVentasSection = computed(() =>
   businessStore.features.agenda || (businessStore.features.manual_reports && businessStore.features.pos)
@@ -956,6 +981,9 @@ async function toggleManagerInventoryEdit(val: boolean) {
 const featureLabels: Record<string, string> = {
   reminder_24h_enabled: 'Recordatorios internos',
   whatsapp_reminders_enabled: 'Recordatorios por WhatsApp',
+  encargado_product_commission_enabled: 'Comisión por venta de productos',
+  payroll_currency_breakdown_enabled: 'Desglose de comisión por moneda de cobro',
+  employees_recibo_only: 'Empleados solo ven su recibo',
   enable_public_booking: 'Reservas públicas',
 }
 

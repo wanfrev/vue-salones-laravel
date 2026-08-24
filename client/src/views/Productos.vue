@@ -265,7 +265,7 @@ import InventorySettingsModal from '../components/productos/InventorySettingsMod
 import PurchaseInvoiceModal from '../components/productos/PurchaseInvoiceModal.vue'
 import { ModalBase, FeatureGate } from '../components/common'
 import { BoxIcon, AddCircleIcon, MagnifierIcon, SettingsIcon, BillListIcon } from '@solar-icons/vue/linear'
-import { isTiendaNiche } from '../config/niches'
+import { hasRetailModule } from '../config/niches'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
@@ -273,7 +273,7 @@ const branchId = computed(() => businessStore.currentBranchId)
 const businessId = computed(() => authStore.businessId)
 const disableInventoryEdit = computed(() => authStore.disableInventoryEdit)
 const canAddPurchaseInvoice = computed(() => authStore.canAddPurchaseInvoice)
-const isTienda = computed(() => isTiendaNiche(businessStore.business?.niche_type || ''))
+const isTienda = computed(() => hasRetailModule(businessStore.business?.niche_type || '', businessStore.features))
 
 const settingsModalRef = ref<InstanceType<typeof InventorySettingsModal> | null>(null)
 const purchaseInvoiceModalRef = ref<InstanceType<typeof PurchaseInvoiceModal> | null>(null)

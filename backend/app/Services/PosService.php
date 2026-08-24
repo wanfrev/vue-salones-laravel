@@ -8,6 +8,7 @@ use App\Models\DailyReport;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\Client;
+use App\Support\NicheRegistry;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -115,6 +116,7 @@ class PosService
         string $businessId,
         string $createdBy,
         float $productsAmount = 0,
+        ?string $tipCurrency = null,
     ): string {
         $appointment = Appointment::with(['service', 'employeeProfile'])
             ->findOrFail($appointmentId);
@@ -147,7 +149,8 @@ class PosService
         return DB::transaction(function () use (
             $appointment, $appointmentId, $serviceAmount, $method, $products,
             $notes, $rate, $paymentsBreakdown, $tip, $businessId, $createdBy,
-            $employeePct, $localPct, $assistantPct, $effectivePrice, $productsAmount, $service
+            $employeePct, $localPct, $assistantPct, $effectivePrice, $productsAmount, $service,
+            $tipCurrency
         ) {
             $totalAmount = $serviceAmount + $productsAmount;
 
@@ -184,7 +187,7 @@ class PosService
 
             $receiptCode = null;
             $business = \App\Models\Business::find($businessId);
-            if ($business && in_array($business->niche_type, ['tienda', 'retail'])) {
+            if ($business && NicheRegistry::hasRetailModule($business->niche_type, $business->features)) {
                 $lastTx = Transaction::where('business_id', $businessId)
                     ->whereNotNull('receipt_code')
                     ->orderBy('receipt_code', 'desc')
@@ -219,6 +222,7 @@ class PosService
                 'created_by' => $createdBy,
                 'notes' => $notes,
                 'tip_amount' => $tip,
+                'tip_currency' => $tip > 0 ? $tipCurrency : null,
                 'paid_at' => now(),
             ]);
 
@@ -451,7 +455,7 @@ class PosService
         ) {
             $receiptCode = null;
             $business = \App\Models\Business::find($businessId);
-            if ($business && in_array($business->niche_type, ['tienda', 'retail'])) {
+            if ($business && NicheRegistry::hasRetailModule($business->niche_type, $business->features)) {
                 $lastTx = Transaction::where('business_id', $businessId)
                     ->whereNotNull('receipt_code')
                     ->orderBy('receipt_code', 'desc')
@@ -596,6 +600,7 @@ class PosService
         string $createdBy,
         float $productsAmount = 0,
         array $services = [],
+        ?string $tipCurrency = null,
     ): string {
         if (empty($services) && $serviceId && $employeeId) {
             $services = [[
@@ -640,7 +645,7 @@ class PosService
         return DB::transaction(function () use (
             $services, $clientId, $serviceAmount, $method, $products, $notes,
             $exchangeRate, $paymentsBreakdown, $tipAmount, $businessId, $branchId,
-            $createdBy, $productsAmount, $source
+            $createdBy, $productsAmount, $source, $tipCurrency
         ) {
             $groupId = count($services) > 1 ? Str::uuid()->toString() : null;
             $createdAppointments = [];
@@ -693,6 +698,7 @@ class PosService
                     exchangeRate: $exchangeRate,
                     paymentsBreakdown: $paymentsBreakdown,
                     tipAmount: $tipAmount,
+                    tipCurrency: $tipCurrency,
                     businessId: $businessId,
                     createdBy: $createdBy,
                     productsAmount: $productsAmount,
@@ -730,6 +736,7 @@ class PosService
                     exchangeRate: $exchangeRate,
                     paymentsBreakdown: $itemBreakdown,
                     tipAmount: $tipsPerAppt,
+                    tipCurrency: $tipCurrency,
                     businessId: $businessId,
                     createdBy: $createdBy,
                     productsAmount: $isFirst ? $productsAmount : 0,

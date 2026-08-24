@@ -48,6 +48,14 @@
                 <span class="text-xs font-medium text-text-secondary">{{ svc.employeePercentage }}%</span>
                 <span v-if="svc.tipAmount > 0" class="text-xs text-primary">+${{ svc.tipAmount.toFixed(2) }} prop</span>
               </div>
+              <div v-if="showLockedRateInfo" class="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-1 text-[11px] text-text-muted">
+                <span>Tasa del día: {{ formatRate(svc.exchangeRateUsed) }} Bs/$</span>
+                <template v-if="svc.tipAmount > 0">
+                  <span v-if="svc.tipCurrency === 'VES'">· Propina en Bs: {{ formatVESEs(svc.tipAmount * svc.exchangeRateUsed) }}</span>
+                  <span v-else-if="svc.tipCurrency === 'USD'">· Propina en $</span>
+                  <span v-else>· Propina: pago mixto</span>
+                </template>
+              </div>
             </div>
             <div class="text-right shrink-0 ml-3">
               <p class="font-semibold text-primary">${{ svc.employeeEarnings.toFixed(2) }}</p>
@@ -72,13 +80,19 @@
 import { computed, ref } from 'vue'
 import { formatDate, getInitials } from '../../lib/formatters'
 import { ArrowDownIcon } from '@solar-icons/vue/linear'
+import { useCurrency } from '../../composables/common/useCurrency'
 import type { EmployeeEarningRecord } from '../../services/employeeDashboardService'
 
 const props = defineProps<{
   earnings: EmployeeEarningRecord[]
   showAll: boolean
   visibleLimit?: number
+  /** Show each service's own exchange rate + the tip's original currency (payroll_locked_exchange_rate feature). */
+  showLockedRateInfo?: boolean
 }>()
+
+const { formatVESEs } = useCurrency()
+const formatRate = (rate: number) => rate.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 defineEmits<{ toggle: [] }>()
 
@@ -99,6 +113,8 @@ interface ServiceItem {
   employeePercentage: number
   employeeEarnings: number
   tipAmount: number
+  exchangeRateUsed: number
+  tipCurrency: 'USD' | 'VES' | 'mixed' | null
 }
 
 interface AppointmentGroup {
@@ -125,6 +141,8 @@ const groups = computed<AppointmentGroup[]>(() => {
       employeePercentage: r.employeePercentage,
       employeeEarnings: r.employeeEarnings,
       tipAmount: r.tipAmount,
+      exchangeRateUsed: r.exchangeRateUsed,
+      tipCurrency: r.tipCurrency,
     }
     if (existing) {
       existing.services.push(svc)

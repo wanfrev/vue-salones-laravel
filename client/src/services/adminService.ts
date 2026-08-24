@@ -13,6 +13,7 @@ export interface EmployeeInput {
   pay_percentage?: number
   base_salary?: number
   salary_frequency?: string
+  product_commission_percentage?: number
   disable_agenda?: boolean
   disable_inventory_edit?: boolean
   can_create_appointments?: boolean
@@ -64,6 +65,7 @@ export const adminCreateEmployee = async (input: EmployeeInput): Promise<{ id: s
       pay_percentage: input.pay_percentage ?? 50,
       base_salary: input.base_salary ?? 0,
       salary_frequency: input.salary_frequency || null,
+      product_commission_percentage: input.product_commission_percentage ?? 0,
       disable_agenda: input.disable_agenda ?? false,
       disable_inventory_edit: input.disable_inventory_edit ?? false,
       can_create_appointments: input.can_create_appointments ?? true,

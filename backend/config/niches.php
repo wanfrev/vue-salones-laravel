@@ -32,15 +32,22 @@ return [
         'encargados_change_exchange_rate' => false,
         'encargados_change_employee_rate' => false,
         'disable_employee_commission_edit' => false,
+        'encargado_product_commission_enabled' => false,
         'manual_reports' => false,
         'daily_report_autofill_from_pos' => false,
         'pos_direct_service_sale' => false,
         'enable_public_booking' => true,
         'hide_client_phone_from_employees' => false,
+        'employees_recibo_only' => false,
         'whatsapp_available' => false,
         'whatsapp_reminders_enabled' => true,
         'reminder_24h_enabled' => true,
         'payroll_locked_exchange_rate' => false,
+        'payroll_currency_breakdown_enabled' => false,
+        // Explicit opt-in for giving a non-tienda business full tienda-style retail treatment.
+        // Deliberately separate from pos/productos — those default `true` for every niche purely
+        // for nav visibility, so they can't signal that a business actually wants this experience.
+        'retail_module_enabled' => false,
     ],
 
     'niches' => [

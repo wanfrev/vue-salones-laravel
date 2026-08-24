@@ -1,5 +1,5 @@
 import type { Role } from '../constants/roles'
-import { isAdminPanelRole, resolveHomeByRole } from '../constants/roles'
+import { isAdminPanelRole, isEncargado, resolveHomeByRole } from '../constants/roles'
 import type { AuthProfile } from '../types/auth'
 import type { FeatureKey } from '../config/features'
 import type { Capability } from '../config/niches'
@@ -39,7 +39,7 @@ export interface NavContext {
  * Returns a redirect path, or undefined to allow navigation.
  */
 export function resolveNavigation(to: NavTarget, ctx: NavContext): string | undefined {
-  const resolveHome = () => resolveHomeByRole(ctx.role ?? undefined, ctx.profile?.disable_agenda, ctx.hasFeature('agenda'), ctx.hasFeature('pos'), ctx.hasFeature('servicios'), ctx.hasCapability('staffing.timesheets'))
+  const resolveHome = () => resolveHomeByRole(ctx.role ?? undefined, ctx.profile?.disable_agenda, ctx.hasFeature('agenda'), ctx.hasFeature('pos'), ctx.hasFeature('servicios'), ctx.hasCapability('staffing.timesheets'), ctx.hasFeature('employees_recibo_only'))
 
   if (ctx.loading) {
     if (to.meta.public) return undefined
@@ -84,6 +84,19 @@ export function resolveNavigation(to: NavTarget, ctx: NavContext): string | unde
   }
 
   if (to.path.startsWith('/dashboard/') && isAdminPanelRole(ctx.role ?? undefined)) {
+    // Encargados earn commissions/salary like empleados, so they can view their own report
+    // (Comisiones/Recibo/Pagos) even though every other /dashboard/* route stays blocked for them.
+    const isEncargadoReport = isEncargado(ctx.role ?? undefined) &&
+      (to.path === '/dashboard/comisiones' || to.path === '/dashboard/recibo' || to.path === '/dashboard/pagos')
+    if (!isEncargadoReport) {
+      return resolveHome()
+    }
+  }
+
+  // "Empleados solo ven su recibo" business setting: an allowlist role, same shape as the
+  // cajero block above — every /dashboard/* route except Recibo bounces home for a plain
+  // empleado when this is on.
+  if (to.path.startsWith('/dashboard/') && ctx.role === 'empleado' && ctx.hasFeature('employees_recibo_only') && to.path !== '/dashboard/recibo') {
     return resolveHome()
   }
 

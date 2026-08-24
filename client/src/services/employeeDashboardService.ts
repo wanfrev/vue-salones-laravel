@@ -34,6 +34,8 @@ export type EmployeeEarningRecord = {
   employeePercentage: number
   employeeEarnings: number
   tipAmount: number
+  /** Currency the tip was physically paid in that day — null/'mixed' when it can't be determined. */
+  tipCurrency: 'USD' | 'VES' | 'mixed' | null
 }
 
 export type EmployeePaymentHistoryRecord = {
@@ -85,6 +87,7 @@ export const listEmployeeTransactions = async (businessId: string, employeeId: s
     employeePercentage: Number(r.percentage ?? 0),
     employeeEarnings: Number(r.earnings ?? 0),
     tipAmount: Number(r.tip_amount ?? 0),
+    tipCurrency: r.tip_currency ?? null,
   })) as EmployeeEarningRecord[]
 }
 

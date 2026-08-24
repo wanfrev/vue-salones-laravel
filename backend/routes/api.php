@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PetController;
 use App\Http\Controllers\Api\PosController;
+use App\Http\Controllers\Api\PosHeldSaleController;
 use App\Http\Controllers\Api\PublicBookingController;
 use App\Http\Controllers\Api\PushSubscriptionController;
 
@@ -400,6 +401,12 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::post('/pos/sale', [PosController::class, 'recordSale']);
         Route::post('/pos/direct-sale', [PosController::class, 'directSale']);
         Route::post('/pos/direct-service-sale', [PosController::class, 'directServiceSale']);
+
+        // Compras en espera (tienda) — park an in-progress retail cart, resume or cancel it later.
+        Route::get('/pos/held-sales', [PosHeldSaleController::class, 'index']);
+        Route::post('/pos/held-sales', [PosHeldSaleController::class, 'store']);
+        Route::post('/pos/held-sales/{id}/resume', [PosHeldSaleController::class, 'resume']);
+        Route::delete('/pos/held-sales/{id}', [PosHeldSaleController::class, 'cancel']);
     });
 
     // Gift Cards

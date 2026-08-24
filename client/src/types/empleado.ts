@@ -25,6 +25,8 @@ export interface Empleado {
   payPercentage?: number
   baseSalary?: number
   salaryFrequency?: 'weekly' | 'biweekly' | 'monthly'
+  /** Encargados only, gated by the `encargado_product_commission_enabled` business feature. */
+  productCommissionPercentage?: number
   payTypeLabel: string
   payValueLabel: string
   disableAgenda?: boolean
@@ -71,6 +73,7 @@ export interface EmpleadoFormData {
   payPercentage: number
   baseSalary: number
   salaryFrequency: 'weekly' | 'biweekly' | 'monthly'
+  productCommissionPercentage: number
   activeDays: number[]
   disableAgenda: boolean
   disableInventoryEdit: boolean

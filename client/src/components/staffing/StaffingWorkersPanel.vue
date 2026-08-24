@@ -64,6 +64,11 @@ const { items: team, handleSave: handleSaveEmpleado, handleDelete: handleDeleteE
   saveFn: (id, data, brId) => saveEmpleado(data, id, brId),
   deleteFn: (id) => deleteEmpleado(id),
   entityName: 'Trabajador',
+  // The Nómina roster (useTimesheets) reads assignments from its own query key — without this,
+  // adding/editing a worker's company assignment here leaves it showing the stale roster.
+  extraInvalidations: [
+    (id) => ['staffing-company-employees', id],
+  ],
 })
 
 const workers = computed(() =>
