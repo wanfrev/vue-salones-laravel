@@ -34,7 +34,7 @@ export function useRealtime() {
     if (!businessId || payload.businessId !== businessId) return
 
     const queryKeyMap: Record<string, string[]> = {
-      profile: ['equipo', 'profiles', 'appointments', 'employee-payments', 'employee-earnings', 'finanzas-transactions'],
+      profile: ['equipo', 'profiles', 'appointments', 'employee-payments', 'employee-earnings', 'finanzas-transactions', 'staffing-company-employees', 'staffing-companies'],
       employee_payment: ['employee-payments', 'employee-earnings', 'finanzas-transactions', 'financial-summary'],
       branch: ['branches'],
       business: ['businesses'],

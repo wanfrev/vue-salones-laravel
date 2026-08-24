@@ -216,6 +216,10 @@ const { items: rawTeam, handleSave: handleSaveEmpleado, handleDelete: handleDele
     (id) => ['dashboard-payments', id],
     (id) => ['dashboard-history', id],
     (id) => ['employees', id, branchId.value],
+    // A staffing worker's company/role assignments are saved alongside the profile, but the
+    // Nómina roster (useTimesheets) is keyed by its own query — without this it silently keeps
+    // showing the stale roster for up to 5min after adding/editing an assignment.
+    (id) => ['staffing-company-employees', id],
   ],
 })
 

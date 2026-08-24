@@ -124,6 +124,8 @@ class ProfileController
             $profile = $this->profileService->store($data, $businessId);
             EntityChanged::safe($businessId, 'profile', 'created', $profile->id);
             return response()->json($profile, 201);
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            return response()->json(['error' => ['message' => 'Ese empleado ya tiene exactamente esa misma asignación (empresa, rol y turno). Cambia el rol/turno o elimina la duplicada.']], 422);
         } catch (\Throwable $e) {
             return response()->json(['error' => ['message' => $e->getMessage()]], 500);
         }
@@ -167,9 +169,15 @@ class ProfileController
             'schedules.*.end_time' => 'required|date_format:H:i',
         ], $this->staffingFieldRules()));
 
-        $profile = $this->profileService->update($id, $data, $businessId);
-        EntityChanged::safe($businessId, 'profile', 'updated', $id);
-        return response()->json($profile);
+        try {
+            $profile = $this->profileService->update($id, $data, $businessId);
+            EntityChanged::safe($businessId, 'profile', 'updated', $id);
+            return response()->json($profile);
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            return response()->json(['error' => ['message' => 'Ese empleado ya tiene exactamente esa misma asignación (empresa, rol y turno). Cambia el rol/turno o elimina la duplicada.']], 422);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => ['message' => $e->getMessage()]], 500);
+        }
     }
 
     public function show(Request $request, string $id): JsonResponse

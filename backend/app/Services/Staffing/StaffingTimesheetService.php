@@ -119,8 +119,8 @@ class StaffingTimesheetService
                 // client company they're also assigned to. Shift works the same way: fixed on
                 // the assignment, not chosen per week, for companies that split a role's pay by
                 // día/tarde/noche.
-                $role = $this->companyEmployees->roleForEmployeeAtCompany($employee->id, $company->id);
-                $shift = $this->companyEmployees->shiftForEmployeeAtCompany($employee->id, $company->id);
+                $role = $this->companyEmployees->roleForEmployeeAtCompany($employee->id, $company->id, $projectId);
+                $shift = $this->companyEmployees->shiftForEmployeeAtCompany($employee->id, $company->id, $projectId);
 
                 $rate = $this->rates->resolveFor($businessId, $company->id, $role, $shift);
                 if (!$rate) {
