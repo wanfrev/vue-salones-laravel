@@ -86,6 +86,25 @@ export function usePOSPayment() {
     selectedGiftCardId.value = null
   }
 
+  /** Bulk-restore the payment draft — used when resuming a held sale. */
+  const loadState = (snapshot: {
+    paymentMethod?: PaymentMethod
+    otherCurrency?: 'USD' | 'VES'
+    paymentNotes?: string
+    tipAmount?: number
+    tipCurrency?: 'USD' | 'VES'
+    paymentsBreakdown?: PaymentBreakdownItem[]
+    selectedGiftCardId?: string | null
+  }) => {
+    paymentMethod.value = snapshot.paymentMethod ?? 'cash'
+    otherCurrency.value = snapshot.otherCurrency ?? 'USD'
+    paymentNotes.value = snapshot.paymentNotes ?? ''
+    tipAmount.value = snapshot.tipAmount ?? 0
+    tipCurrency.value = snapshot.tipCurrency ?? 'USD'
+    paymentsBreakdown.value = snapshot.paymentsBreakdown ?? []
+    selectedGiftCardId.value = snapshot.selectedGiftCardId ?? null
+  }
+
   const invalidateQueries = async () => {
     const bid = businessId.value
     const brId = branchId.value
@@ -525,6 +544,7 @@ export function usePOSPayment() {
     processDirectSale,
     processDirectServiceSale,
     reset,
+    loadState,
     selectedGiftCardId,
   }
 }

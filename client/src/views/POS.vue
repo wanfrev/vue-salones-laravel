@@ -231,6 +231,14 @@
       </div>
 
       <div v-if="activeSaleType === 'retail_only'" class="flex flex-col h-full space-y-3">
+        <div v-if="isTienda" class="flex justify-end">
+          <HeldSalesPanel
+            :held-sales="heldSales"
+            :is-loading="heldSalesLoading"
+            @resume="resumeHeldSaleAction"
+            @cancel="cancelHeldSaleAction"
+          />
+        </div>
         <RetailClientSearch
           ref="retailClientSearchRef"
           :client-suggestions="retailClientSuggestions"
@@ -303,6 +311,7 @@
         @set-price-index="setPriceIndex"
         @increment-qty="incrementQty" @decrement-qty="decrementQty" @set-quantity="setQuantity" @remove-item="removeItem"
         @add-suggested-product="addProduct"
+        @hold-sale="holdCurrentSale"
       />
     </div>
   </div>
@@ -370,6 +379,7 @@
             @set-price-index="setPriceIndex"
             @increment-qty="incrementQty" @decrement-qty="decrementQty" @set-quantity="setQuantity" @remove-item="removeItem"
             @add-suggested-product="addProduct"
+            @hold-sale="holdCurrentSale"
           />
           </div>
         </div>
@@ -422,7 +432,7 @@ import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
 import { useNotification } from '../composables/common/useNotification'
 import { useBusinessStore } from '../store/business'
-import { listPendingAppointments, listSaleableProducts, posKeys, groupPendingAppointments } from '../services/posService'
+import { listPendingAppointments, listSaleableProducts, posKeys, groupPendingAppointments, listHeldSales, holdSale, resumeHeldSale, cancelHeldSale, type HeldSale } from '../services/posService'
 import { searchClients } from '../services/clientesService'
 import { listServicios } from '../services/serviciosService'
 import { listEquipo } from '../services/equipoService'
@@ -434,6 +444,9 @@ import POSPaymentPanel from '../components/pos/POSPaymentPanel.vue'
 import POSConfirmModal from '../components/pos/POSConfirmModal.vue'
 import RetailClientSearch from '../components/pos/RetailClientSearch.vue'
 import RetailProductGrid from '../components/pos/RetailProductGrid.vue'
+import HeldSalesPanel from '../components/pos/HeldSalesPanel.vue'
+import { isTiendaNiche } from '../config/niches'
+import { confirmAction } from '../lib/confirmDialog'
 import AppointmentList from '../components/pos/AppointmentList.vue'
 import AddProductModal from '../components/pos/AddProductModal.vue'
 import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
@@ -475,7 +488,8 @@ const {
   decrementQty,
   setQuantity,
   removeItem,
-  clearCart
+  clearCart,
+  loadCart,
 } = usePOSCart()
 
 const {
@@ -495,7 +509,8 @@ const {
   processPayment,
   processDirectSale,
   processDirectServiceSale,
-  reset: resetPayment
+  reset: resetPayment,
+  loadState: loadPaymentState,
 } = usePOSPayment()
 
 const activeSaleType = ref<'appointment' | 'retail_only' | 'direct_service'>(businessStore.features.agenda ? 'appointment' : 'retail_only')
@@ -658,6 +673,88 @@ const { data: productsData } = useQuery({
   queryFn: () => listSaleableProducts(businessId.value!, branchId.value),
   enabled: computed(() => !!businessId.value), staleTime: 0,
 })
+
+const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
+
+const { data: heldSalesData, isLoading: heldSalesLoading } = useQuery({
+  queryKey: computed(() => posKeys.heldSales(businessId.value, branchId.value)),
+  queryFn: () => listHeldSales(businessId.value!, branchId.value),
+  enabled: computed(() => !!businessId.value && isTienda.value),
+  staleTime: 0,
+})
+const heldSales = computed(() => heldSalesData.value ?? [])
+
+const invalidateHeldSales = () => queryClient.invalidateQueries({ queryKey: posKeys.heldSales(businessId.value, branchId.value) })
+
+const holdCurrentSale = async () => {
+  if (cart.value.length === 0) return
+  try {
+    await holdSale({
+      branchId: branchId.value,
+      clientId: retailClientId.value,
+      clientName: retailClientSearch.value || null,
+      clientPhone: retailClientPhone.value || null,
+      cart: cart.value,
+      paymentMethod: paymentMethod.value,
+      paymentCurrency: otherCurrency.value,
+      paymentsBreakdown: paymentsBreakdown.value,
+      tipAmount: tipAmount.value,
+      tipCurrency: tipCurrency.value,
+      notes: paymentNotes.value,
+      customTotalAmount: customTotalAmount.value,
+      customTotalCurrency: customTotalCurrency.value,
+      areProductsIncluded: areProductsIncluded.value,
+    })
+    startRetailOnly()
+    await invalidateHeldSales()
+    showSuccess('Venta puesta en espera')
+  } catch (err: any) {
+    showError(err?.message ?? 'No se pudo poner la venta en espera')
+  }
+}
+
+const resumeHeldSaleAction = async (sale: HeldSale) => {
+  if (cart.value.length > 0 || retailClientSearch.value) {
+    const confirmed = await confirmAction('Vas a retomar esta venta en espera. Se reemplazará lo que tengas armado ahora mismo. ¿Continuar?')
+    if (!confirmed) return
+  }
+  try {
+    const full = await resumeHeldSale(sale.id)
+    activeSaleType.value = 'retail_only'
+    loadCart(full.cart)
+    loadPaymentState({
+      paymentMethod: full.payment_method ?? 'cash',
+      otherCurrency: full.payment_currency ?? 'USD',
+      paymentNotes: full.notes ?? '',
+      tipAmount: full.tip_amount,
+      tipCurrency: full.tip_currency ?? 'USD',
+      paymentsBreakdown: full.payments_breakdown ?? [],
+      selectedGiftCardId: null,
+    })
+    retailClientSearch.value = full.client_name ?? ''
+    retailClientId.value = full.client_id
+    retailClientPhone.value = full.client_phone ?? ''
+    retailClientSearchRef.value?.setClient({ name: full.client_name ?? '', phone: full.client_phone ?? '' })
+    customTotalAmount.value = full.custom_total_amount
+    customTotalCurrency.value = full.custom_total_currency ?? 'USD'
+    areProductsIncluded.value = full.are_products_included
+    await invalidateHeldSales()
+  } catch (err: any) {
+    showError(err?.message ?? 'No se pudo retomar la venta en espera')
+  }
+}
+
+const cancelHeldSaleAction = async (sale: HeldSale) => {
+  const confirmed = await confirmAction(`¿Cancelar la venta en espera de "${sale.client_name || 'cliente sin nombre'}"? El stock reservado se liberará.`)
+  if (!confirmed) return
+  try {
+    await cancelHeldSale(sale.id)
+    await invalidateHeldSales()
+    showSuccess('Venta en espera cancelada')
+  } catch (err: any) {
+    showError(err?.message ?? 'No se pudo cancelar la venta en espera')
+  }
+}
 
 const posCitaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
 

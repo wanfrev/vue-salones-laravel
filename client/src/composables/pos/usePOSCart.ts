@@ -106,6 +106,12 @@ export function usePOSCart() {
     productSearch.value = ''
   }
 
+  /** Bulk-replace the cart — used to restore a held sale exactly as it was left. */
+  const loadCart = (items: POSProductItem[]) => {
+    cart.value = items
+    productSearch.value = ''
+  }
+
   return {
     cart,
     productSearch,
@@ -117,5 +123,6 @@ export function usePOSCart() {
     setQuantity,
     removeItem,
     clearCart,
+    loadCart,
   }
 }

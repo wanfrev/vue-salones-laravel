@@ -486,7 +486,19 @@
         ></textarea>
       </div>
 
-      <div class="pt-3 shrink-0 border-t border-border-subtle">
+      <div class="pt-3 shrink-0 border-t border-border-subtle space-y-2">
+        <button
+          v-if="isRetailOnly && isTiendaNiche(businessStore.nicheType) && cart.length > 0"
+          type="button"
+          @click="$emit('hold-sale')"
+          :disabled="isProcessing"
+          class="w-full flex items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary disabled:opacity-50"
+        >
+          <svg class="h-4 w-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          En espera
+        </button>
         <button
           @click="$emit('process-payment')"
           :disabled="isProcessing || !canPay"
@@ -523,6 +535,7 @@ import { useAuth } from '../../composables/common/useAuth'
 import { useGiftCards } from '../../composables/giftCards/useGiftCards'
 import { useProductSuggestions } from '../../composables/pos/useProductSuggestions'
 import { useBusinessStore } from '../../store/business'
+import { isTiendaNiche } from '../../config/niches'
 import type { PaymentMethod } from '../../types/database'
 import type { PaymentBreakdownItem, POSProductItem } from '../../types/pos'
 
@@ -594,6 +607,7 @@ const emit = defineEmits<{
   'update:are-products-included': [value: boolean]
   'update:selected-gift-card-id': [value: string | null]
   'add-suggested-product': [product: any]
+  'hold-sale': []
 }>()
 
 const { formatDual, formatUSD, formatVES, exchangeRate } = useCurrency()
