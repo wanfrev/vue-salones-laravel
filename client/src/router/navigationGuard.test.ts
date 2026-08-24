@@ -139,6 +139,19 @@ describe('resolveNavigation — admin-panel roles bounced out of /dashboard/*', 
   it('allows empleado to stay on /dashboard/*', () => {
     expect(resolveNavigation(target('/dashboard/agenda', { requiresAuth: true }), makeCtx({ role: 'empleado' }))).toBeUndefined()
   })
+
+  for (const path of ['/dashboard/comisiones', '/dashboard/recibo', '/dashboard/pagos']) {
+    it(`allows encargado through ${path} (their own commission/salary report)`, () => {
+      expect(resolveNavigation(target(path, { requiresAuth: true }), makeCtx({ role: 'encargado' }))).toBeUndefined()
+    })
+  }
+
+  for (const role of ['admin', 'superadmin'] as const) {
+    it(`still redirects ${role} away from /dashboard/comisiones`, () => {
+      const result = resolveNavigation(target('/dashboard/comisiones', { requiresAuth: true }), makeCtx({ role }))
+      expect(result).not.toBeUndefined()
+    })
+  }
 })
 
 describe('resolveNavigation — meta.gate: hideIfAgendaDisabled', () => {

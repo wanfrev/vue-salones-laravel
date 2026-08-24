@@ -1,5 +1,5 @@
 import type { Role } from '../constants/roles'
-import { isAdminPanelRole, resolveHomeByRole } from '../constants/roles'
+import { isAdminPanelRole, isEncargado, resolveHomeByRole } from '../constants/roles'
 import type { AuthProfile } from '../types/auth'
 import type { FeatureKey } from '../config/features'
 import type { Capability } from '../config/niches'
@@ -84,7 +84,13 @@ export function resolveNavigation(to: NavTarget, ctx: NavContext): string | unde
   }
 
   if (to.path.startsWith('/dashboard/') && isAdminPanelRole(ctx.role ?? undefined)) {
-    return resolveHome()
+    // Encargados earn commissions/salary like empleados, so they can view their own report
+    // (Comisiones/Recibo/Pagos) even though every other /dashboard/* route stays blocked for them.
+    const isEncargadoReport = isEncargado(ctx.role ?? undefined) &&
+      (to.path === '/dashboard/comisiones' || to.path === '/dashboard/recibo' || to.path === '/dashboard/pagos')
+    if (!isEncargadoReport) {
+      return resolveHome()
+    }
   }
 
   // Replaces three previously-separate ad-hoc checks (disable_agenda hiding
