@@ -312,7 +312,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
 import { useBusinessStore } from '../store/business'
-import { isTiendaNiche } from '../config/niches'
+import { hasRetailModule } from '../config/niches'
 import { isAdminPanelRole } from '../constants/roles'
 import { useFinancialSummary } from '../composables/finanzas/useFinancialSummary'
 import { db } from '../lib/api'
@@ -340,7 +340,7 @@ const { authStore } = useAuth()
 const businessStore = useBusinessStore()
 const { formatUSD, formatSecondary, formatVESEs, formatEmployeeSecondary } = useCurrency()
 const terminology = businessStore.terminology
-const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
+const isTienda = computed(() => hasRetailModule(businessStore.nicheType, businessStore.features))
 const isTiendaEmployee = computed(() => isTienda.value && !isAdminPanelRole(authStore.role ?? undefined))
 
 const selectedPeriod = ref<PeriodValue>('month')

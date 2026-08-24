@@ -103,13 +103,16 @@
               v-for="(item, idx) in cart"
               :key="item.productId"
               class="rounded-lg bg-bg-secondary px-3"
-              :class="isRetailNiche ? 'py-2.5 space-y-2' : 'flex items-center justify-between gap-2 py-2'"
+              :class="isRetailOnly ? 'py-2.5 space-y-2' : 'flex items-center justify-between gap-2 py-2'"
             >
-              <!-- Retail (tienda/no-agenda): two-row card — name/subtotal on top, price/qty below.
-                   Splitting into two rows gives each element real width instead of cramming
-                   name + price + bigger touch-target qty controls into one line, which used to
-                   force formatDual's combined "$X / Y Bs" string to wrap mid-number. -->
-              <template v-if="isRetailNiche">
+              <!-- Retail sale (current tab is "venta al detal"): two-row card — name/subtotal on
+                   top, price/qty below. Splitting into two rows gives each element real width
+                   instead of cramming name + price + bigger touch-target qty controls into one
+                   line, which used to force formatDual's combined "$X / Y Bs" string to wrap
+                   mid-number. Keyed off the active sale type, not the agenda feature flag, so a
+                   business with both agenda and retail enabled still gets this layout while
+                   actually doing a retail sale. -->
+              <template v-if="isRetailOnly">
                 <div class="flex items-center justify-between gap-2">
                   <p class="flex-1 min-w-0 truncate text-sm sm:text-[15px] font-medium text-text">{{ item.productName }}</p>
                   <div class="flex items-center gap-1.5 shrink-0">
@@ -232,7 +235,7 @@
           </div>
         </div>
 
-        <div v-if="isRetailNiche && suggestedProducts.length > 0" class="rounded-lg border border-dashed border-border bg-bg-secondary/40 p-2.5 space-y-1.5">
+        <div v-if="isRetailOnly && suggestedProducts.length > 0" class="rounded-lg border border-dashed border-border bg-bg-secondary/40 p-2.5 space-y-1.5">
           <p class="text-xs font-medium text-text-secondary">También suelen llevar</p>
           <div
             v-for="product in suggestedProducts"
@@ -336,7 +339,7 @@
               </div>
             </div>
           </div>
-          <div v-if="isRetailNiche" class="flex flex-col gap-2 border-t border-border pt-3 mt-1">
+          <div v-if="isRetailOnly" class="flex flex-col gap-2 border-t border-border pt-3 mt-1">
             <div class="flex items-center justify-between text-sm">
               <span class="font-medium text-text">Total Calculado</span>
               <div class="text-right leading-tight">
@@ -488,7 +491,7 @@
 
       <div class="pt-3 shrink-0 border-t border-border-subtle space-y-2">
         <button
-          v-if="isRetailOnly && isTiendaNiche(businessStore.nicheType) && cart.length > 0"
+          v-if="isRetailOnly && hasRetailModule(businessStore.nicheType, businessStore.features) && cart.length > 0"
           type="button"
           @click="$emit('hold-sale')"
           :disabled="isProcessing"
@@ -535,7 +538,7 @@ import { useAuth } from '../../composables/common/useAuth'
 import { useGiftCards } from '../../composables/giftCards/useGiftCards'
 import { useProductSuggestions } from '../../composables/pos/useProductSuggestions'
 import { useBusinessStore } from '../../store/business'
-import { isTiendaNiche } from '../../config/niches'
+import { hasRetailModule } from '../../config/niches'
 import type { PaymentMethod } from '../../types/database'
 import type { PaymentBreakdownItem, POSProductItem } from '../../types/pos'
 
@@ -615,7 +618,6 @@ const { authStore } = useAuth()
 const businessId = computed(() => authStore.businessId)
 const { activeGiftCards } = useGiftCards(businessId)
 const businessStore = useBusinessStore()
-const isRetailNiche = computed(() => !businessStore.features.agenda)
 
 const cartRef = computed(() => props.cart)
 const { suggestions: suggestedProducts } = useProductSuggestions(cartRef)

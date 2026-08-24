@@ -64,6 +64,27 @@ class NicheRegistry
         return in_array($capability, self::capabilities($nicheType), true);
     }
 
+    /**
+     * True for a "pure" tienda/retail business, and also for any other niche that's had the
+     * retail module explicitly turned on for it (features.retail_module_enabled) — e.g. a spa
+     * business that also sells retail products. Deliberately NOT based on features.pos/productos
+     * alone: those two default to `true` for every niche (nav-visibility legacy default), so they
+     * can't be used as a signal that a business actually wants tienda-style treatment. Additive: a
+     * pure-tienda business is unaffected, a business without the module explicitly enabled stays
+     * exactly as before.
+     */
+    public static function hasRetailModule(?string $nicheType, ?array $storedFeatures): bool
+    {
+        if (in_array($nicheType, ['tienda', 'retail'], true)) {
+            return true;
+        }
+
+        $resolved = self::resolveFeatures($nicheType, $storedFeatures);
+        return (bool) ($resolved['retail_module_enabled'] ?? false)
+            && (bool) ($resolved['pos'] ?? false)
+            && (bool) ($resolved['productos'] ?? false);
+    }
+
     /** Niche ids offered when creating a new business. Used by CreateBusinessRequest's allow-list. */
     public static function creatableIds(): array
     {

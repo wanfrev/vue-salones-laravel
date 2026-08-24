@@ -3,7 +3,7 @@ import { useQuery, useQueryClient, useMutation, keepPreviousData } from '@tansta
 import { useNotification } from '../common/useNotification'
 import { apiRequest } from '../../lib/api'
 import { useBusinessStore } from '../../store/business'
-import { isTiendaNiche } from '../../config/niches'
+import { hasRetailModule } from '../../config/niches'
 import { translateError } from '../../lib/errors'
 import { toYmd, resolvePeriod } from '../../lib/periodUtils'
 import { formatMethod, formatDate } from '../../lib/formatters'
@@ -529,7 +529,7 @@ function useFinancialSummary(
       } as any)
     }
 
-    if (isTiendaNiche(businessStore.nicheType)) {
+    if (hasRetailModule(businessStore.nicheType, businessStore.features)) {
       // Group product sales by invoice/reference_id for tienda niche
       const psGroupMap = new Map<string, {
         id: string

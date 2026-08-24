@@ -41,6 +41,10 @@ return [
         'whatsapp_reminders_enabled' => true,
         'reminder_24h_enabled' => true,
         'payroll_locked_exchange_rate' => false,
+        // Explicit opt-in for giving a non-tienda business full tienda-style retail treatment.
+        // Deliberately separate from pos/productos — those default `true` for every niche purely
+        // for nav visibility, so they can't signal that a business actually wants this experience.
+        'retail_module_enabled' => false,
     ],
 
     'niches' => [

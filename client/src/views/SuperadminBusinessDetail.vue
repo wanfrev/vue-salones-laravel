@@ -381,6 +381,7 @@ const allFlags = [
   { key: 'inventario', label: 'Inventario', description: 'Control de stock, entradas y salidas' },
   { key: 'productos', label: 'Productos', description: 'Catálogo de productos vendibles' },
   { key: 'proveedores', label: 'Proveedores', description: 'Gestión de proveedores, deudas y pagos' },
+  { key: 'retail_module_enabled', label: 'Módulo tienda (otro nicho)', description: 'Trato completo de tienda (ventas en espera, recibo numerado, doble precio) para un negocio que no es de nicho tienda — requiere Punto de Venta y Productos activos también' },
   { key: 'employees_create_clients', label: 'Empleados crean clientes', description: 'Los empleados pueden agregar clientes desde la agenda' },
   { key: 'employees_see_clients', label: 'Empleados ven clientes', description: 'Acceso al módulo de Clientes en el menú lateral' },
   { key: 'gift_cards', label: 'Gift Cards', description: 'Sistema de tarjetas de regalo' },
@@ -392,7 +393,7 @@ const allFlags = [
 ]
 
 const scheduleFlags = computed(() => allFlags.filter(f => ['agenda', 'calendario', 'servicios'].includes(f.key)))
-const coreModules = computed(() => allFlags.filter(f => ['pos', 'inventario', 'productos', 'proveedores'].includes(f.key)))
+const coreModules = computed(() => allFlags.filter(f => ['pos', 'inventario', 'productos', 'proveedores', 'retail_module_enabled'].includes(f.key)))
 const managementFlags = computed(() => allFlags.filter(f => ['employees_create_clients', 'employees_see_clients', 'gift_cards', 'manual_reports', 'multi_branch'].includes(f.key)))
 const commFlags = computed(() => allFlags.filter(f => ['enable_public_booking', 'whatsapp_available', 'hide_client_phone_from_employees'].includes(f.key)))
 

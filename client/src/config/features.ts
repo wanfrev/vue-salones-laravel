@@ -26,6 +26,11 @@ export const DEFAULT_FEATURES = {
   whatsapp_reminders_enabled: true,
   reminder_24h_enabled: true,
   payroll_locked_exchange_rate: false,
+  // Explicit opt-in for giving a non-tienda business full tienda-style retail treatment (hold
+  // sales, invoice-numbered receipts, dual pricing, etc). Deliberately separate from pos/productos
+  // — those two default to `true` for every niche (see comment above) purely for nav visibility,
+  // so they can't be used as a signal that a business actually wants the tienda experience.
+  retail_module_enabled: false,
 }
 
 export type FeatureKey = keyof typeof DEFAULT_FEATURES

@@ -8,6 +8,7 @@ use App\Models\DailyReport;
 use App\Models\Product;
 use App\Models\Transaction;
 use App\Models\Client;
+use App\Support\NicheRegistry;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -186,7 +187,7 @@ class PosService
 
             $receiptCode = null;
             $business = \App\Models\Business::find($businessId);
-            if ($business && in_array($business->niche_type, ['tienda', 'retail'])) {
+            if ($business && NicheRegistry::hasRetailModule($business->niche_type, $business->features)) {
                 $lastTx = Transaction::where('business_id', $businessId)
                     ->whereNotNull('receipt_code')
                     ->orderBy('receipt_code', 'desc')
@@ -454,7 +455,7 @@ class PosService
         ) {
             $receiptCode = null;
             $business = \App\Models\Business::find($businessId);
-            if ($business && in_array($business->niche_type, ['tienda', 'retail'])) {
+            if ($business && NicheRegistry::hasRetailModule($business->niche_type, $business->features)) {
                 $lastTx = Transaction::where('business_id', $businessId)
                     ->whereNotNull('receipt_code')
                     ->orderBy('receipt_code', 'desc')

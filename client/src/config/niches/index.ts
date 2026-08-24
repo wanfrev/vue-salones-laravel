@@ -30,6 +30,20 @@ export function isStaffingNiche(nicheType?: string | null): boolean {
   return nicheType === 'staffing'
 }
 
+/**
+ * True for a "pure" tienda business, and also for any other niche that's had the retail module
+ * explicitly turned on for it (features.retail_module_enabled) — e.g. a spa business that also
+ * sells retail products. Deliberately NOT based on features.pos/productos alone: those two
+ * default to `true` for every niche (nav-visibility legacy default, see DEFAULT_FEATURES), so
+ * they can't be used as a signal that a business actually wants tienda-style treatment — doing so
+ * would silently flip this on for every existing non-tienda business that already has those two
+ * default-true flags. Additive: a pure-tienda business is unaffected (isTiendaNiche already
+ * true); a business that hasn't had the module explicitly enabled stays exactly as before.
+ */
+export function hasRetailModule(nicheType?: string | null, features?: Partial<Record<string, boolean>> | null): boolean {
+  return isTiendaNiche(nicheType) || !!(features?.retail_module_enabled && features?.pos && features?.productos)
+}
+
 /** @deprecated kept for back-compat; prefer isPetNiche()/getNiche(x).capabilities */
 export const PET_NICHE_TYPES = ['dog_spa', 'vet']
 

@@ -231,7 +231,7 @@
       </div>
 
       <div v-if="activeSaleType === 'retail_only'" class="flex flex-col h-full space-y-3">
-        <div v-if="isTienda" class="flex justify-end">
+        <div v-if="hasRetail" class="flex justify-end">
           <HeldSalesPanel
             :held-sales="heldSales"
             :is-loading="heldSalesLoading"
@@ -250,7 +250,7 @@
         <RetailProductGrid
           ref="retailGridRef"
           :products="products"
-          :is-retail-only="!businessStore.features.agenda"
+          :is-retail-only="activeSaleType === 'retail_only'"
           :cart-quantities="cartQuantities"
           @add-product="addRetailProduct"
           class="flex-1"
@@ -445,7 +445,7 @@ import POSConfirmModal from '../components/pos/POSConfirmModal.vue'
 import RetailClientSearch from '../components/pos/RetailClientSearch.vue'
 import RetailProductGrid from '../components/pos/RetailProductGrid.vue'
 import HeldSalesPanel from '../components/pos/HeldSalesPanel.vue'
-import { isTiendaNiche } from '../config/niches'
+import { hasRetailModule } from '../config/niches'
 import { confirmAction } from '../lib/confirmDialog'
 import AppointmentList from '../components/pos/AppointmentList.vue'
 import AddProductModal from '../components/pos/AddProductModal.vue'
@@ -674,12 +674,12 @@ const { data: productsData } = useQuery({
   enabled: computed(() => !!businessId.value), staleTime: 0,
 })
 
-const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
+const hasRetail = computed(() => hasRetailModule(businessStore.nicheType, businessStore.features))
 
 const { data: heldSalesData, isLoading: heldSalesLoading } = useQuery({
   queryKey: computed(() => posKeys.heldSales(businessId.value, branchId.value)),
   queryFn: () => listHeldSales(businessId.value!, branchId.value),
-  enabled: computed(() => !!businessId.value && isTienda.value),
+  enabled: computed(() => !!businessId.value && hasRetail.value),
   staleTime: 0,
 })
 const heldSales = computed(() => heldSalesData.value ?? [])
