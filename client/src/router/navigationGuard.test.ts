@@ -22,7 +22,10 @@ function makeCtx(overrides: Partial<NavContext> = {}): NavContext {
     isCajeroProfile: false as boolean,
     role: 'empleado',
     profile: makeProfile(),
-    hasFeature: () => true,
+    // Every feature defaults "on" here except employees_recibo_only, which is a restrictive
+    // flag (default false in production) — leaving it true by default would make every
+    // /dashboard/* test below look like the "empleados solo ven su recibo" mode is active.
+    hasFeature: (key) => key !== 'employees_recibo_only',
     hasCapability: () => true,
     ...overrides,
   }
@@ -154,6 +157,33 @@ describe('resolveNavigation — admin-panel roles bounced out of /dashboard/*', 
   }
 })
 
+describe('resolveNavigation — employees_recibo_only business setting', () => {
+  const withFlag = (overrides: Partial<NavContext> = {}) => makeCtx({
+    role: 'empleado',
+    hasFeature: (key) => key === 'employees_recibo_only',
+    ...overrides,
+  })
+
+  it('allows an empleado through /dashboard/recibo', () => {
+    expect(resolveNavigation(target('/dashboard/recibo', { requiresAuth: true }), withFlag())).toBeUndefined()
+  })
+
+  for (const path of ['/dashboard/agenda', '/dashboard/historial', '/dashboard/comisiones', '/dashboard/clientes']) {
+    it(`redirects an empleado away from ${path} to /dashboard/recibo`, () => {
+      expect(resolveNavigation(target(path, { requiresAuth: true }), withFlag())).toBe('/dashboard/recibo')
+    })
+  }
+
+  it('does not affect encargado/admin — only the empleado role', () => {
+    const result = resolveNavigation(target('/dashboard/agenda', { requiresAuth: true }), withFlag({ role: 'encargado' }))
+    expect(result).not.toBe('/dashboard/recibo')
+  })
+
+  it('leaves empleado navigation alone when the flag is off', () => {
+    expect(resolveNavigation(target('/dashboard/agenda', { requiresAuth: true }), makeCtx({ role: 'empleado' }))).toBeUndefined()
+  })
+})
+
 describe('resolveNavigation — meta.gate: hideIfAgendaDisabled', () => {
   const gateTarget = target('/dashboard/agenda', { requiresAuth: true, gate: { feature: 'agenda' as any, hideIfAgendaDisabled: true } })
 
@@ -219,12 +249,12 @@ describe('resolveNavigation — meta.gate: feature (replaces the /dashboard/clie
     // Stub only the feature under test — a blanket `() => false` would also turn `agenda`
     // off, and the role home then correctly becomes /dashboard/historial rather than
     // /dashboard/agenda, which is a different assertion than this test intends to make.
-    const result = resolveNavigation(clientesTarget, makeCtx({ hasFeature: (k) => k !== 'employees_see_clients' }))
+    const result = resolveNavigation(clientesTarget, makeCtx({ hasFeature: (k) => k !== 'employees_see_clients' && k !== 'employees_recibo_only' }))
     expect(result).toBe('/dashboard/agenda')
   })
 
   it('allows when the feature is on', () => {
-    expect(resolveNavigation(clientesTarget, makeCtx({ hasFeature: () => true }))).toBeUndefined()
+    expect(resolveNavigation(clientesTarget, makeCtx({ hasFeature: (k) => k !== 'employees_recibo_only' }))).toBeUndefined()
   })
 
   it('bounces to recibo, not agenda, when the blocked employee also has no agenda/servicios feature', () => {

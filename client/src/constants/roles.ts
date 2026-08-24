@@ -35,7 +35,11 @@ export const resolveHomeByRole = (
   hasPosFeature: boolean = false,
   hasServiciosFeature: boolean = true,
   hasStaffingCapability: boolean = false,
+  employeesRecibioOnly: boolean = false,
 ): string => {
+  if (role === ROLES.EMPLEADO && employeesRecibioOnly) {
+    return '/dashboard/recibo'
+  }
   if (role === ROLES.EMPLEADO && (disableAgenda || !hasAgendaFeature)) {
     // "Historial" is a service-history list — meaningless for niches with no servicios at all
     // (staffing, tienda). Recibo has no gate and applies to every employee regardless of niche,

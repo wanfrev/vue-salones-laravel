@@ -39,7 +39,7 @@ export interface NavContext {
  * Returns a redirect path, or undefined to allow navigation.
  */
 export function resolveNavigation(to: NavTarget, ctx: NavContext): string | undefined {
-  const resolveHome = () => resolveHomeByRole(ctx.role ?? undefined, ctx.profile?.disable_agenda, ctx.hasFeature('agenda'), ctx.hasFeature('pos'), ctx.hasFeature('servicios'), ctx.hasCapability('staffing.timesheets'))
+  const resolveHome = () => resolveHomeByRole(ctx.role ?? undefined, ctx.profile?.disable_agenda, ctx.hasFeature('agenda'), ctx.hasFeature('pos'), ctx.hasFeature('servicios'), ctx.hasCapability('staffing.timesheets'), ctx.hasFeature('employees_recibo_only'))
 
   if (ctx.loading) {
     if (to.meta.public) return undefined
@@ -91,6 +91,13 @@ export function resolveNavigation(to: NavTarget, ctx: NavContext): string | unde
     if (!isEncargadoReport) {
       return resolveHome()
     }
+  }
+
+  // "Empleados solo ven su recibo" business setting: an allowlist role, same shape as the
+  // cajero block above — every /dashboard/* route except Recibo bounces home for a plain
+  // empleado when this is on.
+  if (to.path.startsWith('/dashboard/') && ctx.role === 'empleado' && ctx.hasFeature('employees_recibo_only') && to.path !== '/dashboard/recibo') {
+    return resolveHome()
   }
 
   // Replaces three previously-separate ad-hoc checks (disable_agenda hiding

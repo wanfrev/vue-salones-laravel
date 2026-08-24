@@ -60,6 +60,101 @@ class EmployeeCommissionService
         return $query->get();
     }
 
+    private function isPayrollCurrencyBreakdownEnabled(string $businessId): bool
+    {
+        $business = Business::find($businessId);
+        $features = NicheRegistry::resolveFeatures($business?->niche_type, $business?->features);
+        return (bool) ($features['payroll_currency_breakdown_enabled'] ?? false);
+    }
+
+    /**
+     * Splits an employee's service commission by the currency the client actually paid in,
+     * per appointment transaction — needed because `commission`/`commission_bs` are already a
+     * USD-equivalent total and can't tell you how much of that was real dollars in hand vs. real
+     * bolívares. `payments_breakdown` already stores each payment split's `amount` as its
+     * USD-equivalent value (see usePOSPayment.ts), so summing it per `currency` and comparing is
+     * enough to tell which currency dominated a mixed payment — no extra rate math needed for
+     * that comparison. A transaction whose whole commission goes to the majority currency; an
+     * exact tie splits it 50/50; no breakdown at all (legacy rows) falls into "unspecified".
+     */
+    private function getCommissionCurrencyBreakdown(
+        string $businessId,
+        string $employeeId,
+        ?string $branchId,
+        ?string $startDate,
+        ?string $endDate,
+    ): array {
+        $query = DB::table('transactions')
+            ->join('appointments', 'transactions.appointment_id', '=', 'appointments.id')
+            ->where('transactions.business_id', $businessId)
+            ->where(function ($q) use ($employeeId) {
+                $q->where('appointments.employee_id', $employeeId)
+                  ->orWhere('appointments.assistant_employee_id', $employeeId);
+            })
+            ->whereIn('appointments.status', ['confirmed', 'completed', 'pending'])
+            ->select(
+                'appointments.employee_id',
+                'appointments.assistant_employee_id',
+                'transactions.employee_amount',
+                'transactions.assistant_amount',
+                'transactions.exchange_rate_used',
+                'transactions.payments_breakdown',
+            );
+
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('appointments.branch_id')
+                  ->orWhere('appointments.branch_id', $branchId);
+            });
+        }
+        if ($startDate && $endDate) {
+            $query->whereBetween('appointments.start_time', [$startDate, $this->normalizeEndDate($endDate)]);
+        }
+
+        $usd = 0.0;
+        $vesBs = 0.0;
+        $unspecified = 0.0;
+
+        foreach ($query->get() as $row) {
+            $isAssistant = $row->assistant_employee_id === $employeeId;
+            $amount = (float) ($isAssistant ? $row->assistant_amount : $row->employee_amount);
+            if ($amount == 0.0) {
+                continue;
+            }
+            $rate = (float) ($row->exchange_rate_used ?? 1);
+            $breakdown = json_decode($row->payments_breakdown ?? '[]', true) ?: [];
+
+            $usdPortion = 0.0;
+            $vesPortion = 0.0;
+            foreach ($breakdown as $split) {
+                $splitAmount = (float) ($split['amount'] ?? 0);
+                if (($split['currency'] ?? null) === 'USD') {
+                    $usdPortion += $splitAmount;
+                } elseif (($split['currency'] ?? null) === 'VES') {
+                    $vesPortion += $splitAmount;
+                }
+            }
+
+            if ($usdPortion <= 0 && $vesPortion <= 0) {
+                $unspecified += $amount;
+            } elseif ($usdPortion > $vesPortion) {
+                $usd += $amount;
+            } elseif ($vesPortion > $usdPortion) {
+                $vesBs += $amount * $rate;
+            } else {
+                // Exact tie — split the commission itself in half between the two currencies.
+                $usd += $amount / 2;
+                $vesBs += ($amount / 2) * $rate;
+            }
+        }
+
+        return [
+            'commission_usd_actual' => round($usd, 2),
+            'commission_ves_actual_bs' => round($vesBs, 2),
+            'commission_unspecified_actual' => round($unspecified, 2),
+        ];
+    }
+
     /**
      * Service-level commission details for all employees in a period.
      */
@@ -387,6 +482,10 @@ class EmployeeCommissionService
         $totalEarnedBs = $commissionBs + $tipsBs;
         $pendingBsEstimated = $totalEarned > 0 ? $pending * ($totalEarnedBs / $totalEarned) : 0;
 
+        $currencyBreakdown = $this->isPayrollCurrencyBreakdownEnabled($businessId)
+            ? $this->getCommissionCurrencyBreakdown($businessId, $employeeId, $branchId, $startDate, $endDate)
+            : [];
+
         return [
             'commission' => round($commission, 2),
             'tips' => round($tips, 2),
@@ -405,6 +504,7 @@ class EmployeeCommissionService
             'tips_usd' => round($tipsUsd, 2),
             'tips_ves' => round($tipsVes, 2),
             'tips_unspecified' => round($tipsUnspecified, 2),
+            ...$currencyBreakdown,
         ];
     }
 

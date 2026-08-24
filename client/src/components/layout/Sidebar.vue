@@ -86,6 +86,9 @@ const visibleSections = computed(() =>
             (link.to === '/dashboard/comisiones' || link.to === '/dashboard/recibo')
           if (!isEncargadoReport) return false
         }
+        if (link.employeeOnly && authStore.role === 'empleado' && businessStore.features.employees_recibo_only && link.to !== '/dashboard/recibo') {
+          return false
+        }
         return evaluateGate(link.gate, {
           profile: authStore.profile,
           hasFeature: (key) => businessStore.hasFeature(key),

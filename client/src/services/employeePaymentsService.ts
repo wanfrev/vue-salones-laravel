@@ -39,6 +39,14 @@ export type EmployeeBalance = {
   tips_usd?: number
   tips_ves?: number
   tips_unspecified?: number
+  /**
+   * Service commission split by the currency the client actually paid in (per-transaction
+   * majority currency; an exact 50/50 mixed payment splits that transaction's commission in
+   * half). Only present when `payroll_currency_breakdown_enabled` is on.
+   */
+  commission_usd_actual?: number
+  commission_ves_actual_bs?: number
+  commission_unspecified_actual?: number
 }
 
 export const listEmployeePayments = async (

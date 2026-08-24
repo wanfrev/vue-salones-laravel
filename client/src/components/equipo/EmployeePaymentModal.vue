@@ -248,6 +248,29 @@ const consumptionConvertedAmount = computed(() => {
                 <span class="font-medium text-text">{{ formatVESEs(balance.pending_bs_estimated ?? 0) }}</span>
               </div>
             </div>
+
+            <div v-if="businessStore.features.payroll_currency_breakdown_enabled"
+              class="rounded-lg border border-dashed border-border bg-bg-secondary/40 p-3 space-y-1.5">
+              <p class="text-xs font-medium text-text-secondary">Generó según moneda de cobro</p>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-text-muted">En dólares</span>
+                <span class="text-right">
+                  <span class="font-medium text-text">{{ formatUSD(balance.commission_usd_actual ?? 0) }}</span>
+                  <span class="block text-[10px] text-text-muted/70">≈ {{ formatSecondary(balance.commission_usd_actual ?? 0, effectiveRate) }}</span>
+                </span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-text-muted">En bolívares</span>
+                <span class="text-right">
+                  <span class="font-medium text-text">{{ formatVESEs(balance.commission_ves_actual_bs ?? 0) }}</span>
+                  <span class="block text-[10px] text-text-muted/70">≈ {{ formatUSD((balance.commission_ves_actual_bs ?? 0) / effectiveRate) }}</span>
+                </span>
+              </div>
+              <div v-if="(balance.commission_unspecified_actual ?? 0) > 0" class="flex items-center justify-between text-xs">
+                <span class="text-text-muted">Sin moneda especificada</span>
+                <span class="font-medium text-text">{{ formatUSD(balance.commission_unspecified_actual ?? 0) }}</span>
+              </div>
+            </div>
           </div>
 
           <div v-if="balance && !ctx.editingPaymentId" class="space-y-3">

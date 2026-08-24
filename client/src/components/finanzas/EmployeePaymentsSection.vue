@@ -352,6 +352,29 @@
                 <span class="font-medium text-text">{{ formatVESEs(selectedBalance.pending_bs_estimated ?? 0) }}</span>
               </div>
             </div>
+
+            <div v-if="businessStore.features.payroll_currency_breakdown_enabled"
+              class="mt-2 rounded-lg border border-dashed border-border bg-surface p-2.5 space-y-1.5">
+              <p class="text-xs font-medium text-text-secondary">Generó según moneda de cobro</p>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-text-muted">En dólares</span>
+                <span class="text-right">
+                  <span class="font-medium text-text">{{ formatUSD(selectedBalance.commission_usd_actual ?? 0) }}</span>
+                  <span class="block text-[10px] text-text-muted/70">≈ {{ formatSecondary(selectedBalance.commission_usd_actual ?? 0, effectiveRate) }}</span>
+                </span>
+              </div>
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-text-muted">En bolívares</span>
+                <span class="text-right">
+                  <span class="font-medium text-text">{{ formatVESEs(selectedBalance.commission_ves_actual_bs ?? 0) }}</span>
+                  <span class="block text-[10px] text-text-muted/70">≈ {{ formatUSD((selectedBalance.commission_ves_actual_bs ?? 0) / effectiveRate) }}</span>
+                </span>
+              </div>
+              <div v-if="(selectedBalance.commission_unspecified_actual ?? 0) > 0" class="flex items-center justify-between text-xs">
+                <span class="text-text-muted">Sin moneda especificada</span>
+                <span class="font-medium text-text">{{ formatUSD(selectedBalance.commission_unspecified_actual ?? 0) }}</span>
+              </div>
+            </div>
           </div>
 
           <div class="grid grid-cols-3 gap-3">
@@ -511,13 +534,20 @@ const emit = defineEmits<{
   'view-all': []
 }>()
 
-const { formatUSD, formatVESEs, formatEmployeeSecondary } = useCurrency()
+const { formatUSD, formatVESEs, formatEmployeeSecondary, formatSecondary, employeeRate } = useCurrency()
 const businessStore = useBusinessStore()
 const branchId = computed(() => businessStore.currentBranchId)
 
 const paymentsCtx = useEmployeePayments(computed(() => props.businessId))
 
 const selectedBalance = ref<EmployeeBalance | null>(null)
+
+const effectiveRate = computed(() => {
+  if (selectedBalance.value?.employee_ves_rate && selectedBalance.value.employee_ves_rate > 0) {
+    return selectedBalance.value.employee_ves_rate
+  }
+  return employeeRate.value
+})
 
 const toYmd = (d: Date) => {
   const yyyy = d.getFullYear()
