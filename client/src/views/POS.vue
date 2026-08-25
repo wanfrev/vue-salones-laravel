@@ -70,7 +70,10 @@
 
   <div v-if="queryError" class="mb-4 rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm text-danger">Error al cargar citas: {{ queryError }}</div>
 
-  <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 max-w-[1800px] mx-auto lg:flex-1 lg:min-h-0">
+  <div
+    class="grid grid-cols-1 gap-4 lg:flex-1 lg:min-h-0"
+    :class="activeSaleType === 'retail_only' ? 'lg:grid-cols-[1.7fr_1fr]' : 'lg:grid-cols-2'"
+  >
     <!-- LEFT PANEL -->
     <div class="min-w-0 space-y-4 lg:h-full lg:overflow-y-auto lg:pr-1">
       <!-- DIRECT SERVICE PANEL -->
