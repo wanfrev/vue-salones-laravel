@@ -1,4 +1,34 @@
 <template>
+  <!-- Estado explícito: dónde estás parado y qué falta -->
+  <div class="mb-6 rounded-xl border p-4"
+    :class="statusLevel === 'ready' ? 'border-success/30 bg-success/5' : 'border-border bg-bg-secondary/30'">
+    <div class="flex items-start gap-3">
+      <div class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
+        :class="statusLevel === 'ready' ? 'bg-success/15 text-success' : 'bg-primary/15 text-primary'">
+        <svg v-if="statusLevel === 'ready'" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+        </svg>
+        <span v-else class="text-xs font-bold">!</span>
+      </div>
+      <div class="min-w-0 flex-1 space-y-2">
+        <p class="text-sm font-semibold text-text">{{ statusHeadline }}</p>
+        <ul class="space-y-1 text-xs text-text-secondary">
+          <li class="flex items-center gap-1.5">
+            <span :class="isConnected ? 'text-success' : 'text-text-muted'">{{ isConnected ? '✓' : '○' }}</span>
+            Número de WhatsApp conectado
+          </li>
+          <li class="flex items-center gap-1.5">
+            <span :class="hasActiveReminderTemplate ? 'text-success' : 'text-text-muted'">{{ hasActiveReminderTemplate ? '✓' : '○' }}</span>
+            Plantilla de recordatorio activa
+          </li>
+        </ul>
+        <p v-if="statusLevel === 'ready'" class="text-xs text-text-secondary">
+          Tus clientes reciben un WhatsApp automático <strong>{{ offsetsLabel }}</strong> antes de cada cita. Personaliza el mensaje abajo, o cambia el tiempo de aviso en Ajustes → Notificaciones.
+        </p>
+      </div>
+    </div>
+  </div>
+
   <SectionCard
     title="WhatsApp"
     subtitle="Conecta tu número de WhatsApp para enviar recordatorios de cita"
@@ -20,18 +50,10 @@
           <!-- Not Connected / Create -->
           <div v-if="!config.whatsapp_instance_id || config.whatsapp_instance_status === 'disconnected'">
             <p class="text-sm font-medium text-text mb-2">Conectar WhatsApp</p>
-            <div class="flex items-end gap-3">
-              <div class="flex-1">
-                <label class="block text-xs font-medium text-text-secondary mb-1">Nombre de la instancia</label>
-                <input v-model="instanceName" type="text" placeholder="Ej: mi_negocio"
-                  class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  :disabled="loading" />
-              </div>
-              <button @click="createInstance" :disabled="!instanceName || loading"
-                class="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-theme">
-                Crear instancia
-              </button>
-            </div>
+            <button @click="createInstance" :disabled="loading"
+              class="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-theme">
+              Generar código QR
+            </button>
           </div>
 
           <!-- QR Code -->
@@ -207,8 +229,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useNotification } from '../../composables/common/useNotification'
+import { useBusinessStore } from '../../store/business'
 import { SectionCard, EmptyState } from '../common'
 import { FormToggle, FormInput } from '../forms'
 import ModalBase from '../common/ModalBase.vue'
@@ -230,6 +253,7 @@ import {
 } from '../../services/whatsappService'
 
 const { success, error: showError } = useNotification()
+const businessStore = useBusinessStore()
 
 const loading = ref(false)
 const config = ref<WhatsAppConfig>({
@@ -241,7 +265,6 @@ const config = ref<WhatsAppConfig>({
   whatsapp_api_key: null,
 })
 
-const instanceName = ref('')
 const qrCode = ref<string | null>(null)
 
 const testNumber = ref('')
@@ -259,6 +282,34 @@ const templateForm = reactive<MessageTemplate>({
 })
 
 const availableVariables = ref<TemplateVariable[]>([])
+
+const isConnected = computed(() =>
+  config.value.whatsapp_enabled &&
+  (config.value.whatsapp_instance_status === 'connected' || config.value.whatsapp_instance_status === 'open')
+)
+
+const hasActiveReminderTemplate = computed(() =>
+  templates.value.some(t => t.type === 'appointment_reminder' && t.is_active)
+)
+
+const statusLevel = computed<'ready' | 'pending'>(() =>
+  isConnected.value && hasActiveReminderTemplate.value ? 'ready' : 'pending'
+)
+
+const statusHeadline = computed(() => {
+  if (statusLevel.value === 'ready') return 'Todo listo — los recordatorios se están enviando automáticamente.'
+  if (!isConnected.value) return 'Falta conectar tu número de WhatsApp para empezar.'
+  return 'Falta activar una plantilla de recordatorio.'
+})
+
+const offsetsLabel = computed(() => {
+  const raw = businessStore.features.appointment_reminder_offsets_hours
+  const offsets: number[] = Array.isArray(raw) && raw.length > 0 ? raw : [24, 1]
+  const sorted = [...offsets].sort((a, b) => b - a)
+  const parts = sorted.map(h => h === 1 ? '1 hora' : h < 1 ? `${Math.round(h * 60)} minutos` : `${h} horas`)
+  if (parts.length === 1) return parts[0]
+  return parts.slice(0, -1).join(', ') + ' y ' + parts[parts.length - 1]
+})
 
 const typeLabel = (type: string) => {
   const labels: Record<string, string> = {
@@ -289,10 +340,9 @@ const handleToggleEnabled = async (val: boolean) => {
 }
 
 const createInstance = async () => {
-  if (!instanceName.value) return
   loading.value = true
   try {
-    const result = await createWhatsAppInstance(instanceName.value)
+    const result = await createWhatsAppInstance()
     config.value.whatsapp_instance_id = result.instance_id
     config.value.whatsapp_instance_status = 'pending'
     qrCode.value = result.qr_code ?? null

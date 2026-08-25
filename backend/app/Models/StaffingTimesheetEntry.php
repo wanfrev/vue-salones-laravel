@@ -15,7 +15,7 @@ class StaffingTimesheetEntry extends Model
     protected $table = 'staffing_timesheet_entries';
 
     protected $fillable = [
-        'id', 'business_id', 'timesheet_id', 'employee_id',
+        'id', 'business_id', 'timesheet_id', 'employee_id', 'role',
         'total_hours', 'pre_tax_deduction', 'fixed_fees', 'adjustment',
         'pay_rate', 'bill_rate',
         'regular_hours', 'overtime_hours', 'gross', 'tax_withheld', 'net', 'payout', 'carried',

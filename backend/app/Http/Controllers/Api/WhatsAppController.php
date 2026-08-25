@@ -93,10 +93,6 @@ class WhatsAppController extends Controller
     {
         $business = $this->resolveBusiness($request);
 
-        $data = $request->validate([
-            'instance_name' => ['required', 'string', 'max:100'],
-        ]);
-
         if (!$this->whatsappService->getBaseUrl($business)) {
             return response()->json(['message' => 'El servidor de WhatsApp no está configurado. Contacta al administrador.'], 422);
         }
@@ -105,7 +101,12 @@ class WhatsAppController extends Controller
             return response()->json(['message' => 'Ya existe una instancia WhatsApp. Desconéctala primero.'], 422);
         }
 
-        $success = $this->whatsappService->createInstance($business, $data['instance_name']);
+        // Derivado del business_id (único garantizado) — un solo servidor Evolution API
+        // sirve a todos los negocios de todos los entornos, así que el nombre no puede
+        // depender de texto libre del usuario o dos negocios podrían chocar.
+        $instanceName = 'biz-' . $business->id;
+
+        $success = $this->whatsappService->createInstance($business, $instanceName);
 
         if (!$success) {
             return response()->json(['message' => 'No se pudo crear la instancia'], 500);
@@ -212,6 +213,23 @@ class WhatsAppController extends Controller
             ->orderBy('type')
             ->orderBy('name')
             ->get();
+
+        // Primera vez que un negocio con WhatsApp habilitado abre esta pantalla y no
+        // tiene ninguna plantilla: le dejamos una lista para usar, no una pantalla vacía.
+        if ($templates->isEmpty()) {
+            $business = Business::find($businessId);
+            $features = is_array($business?->features) ? $business->features : json_decode($business?->features ?? '[]', true);
+            if ($business && ($features['whatsapp_available'] ?? false)) {
+                $default = MessageTemplate::create([
+                    'business_id' => $businessId,
+                    'type' => 'appointment_reminder',
+                    'name' => 'Recordatorio de cita',
+                    'body' => '¡Hola {cliente}! Te recordamos tu cita de {servicio} en {negocio} el {fecha} a las {hora}. ¡Te esperamos! 😊',
+                    'is_active' => true,
+                ]);
+                $templates = collect([$default]);
+            }
+        }
 
         return response()->json($templates);
     }

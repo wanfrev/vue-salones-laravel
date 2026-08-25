@@ -56,10 +56,12 @@ class StaffingCompanyEmployeeService
     }
 
     /**
-     * The roster for one company's Nómina hours grid — every employee currently assigned there,
-     * each carrying `staffing_role` set to their role *at this company* (not a global role), so
-     * existing consumers (StaffingHoursPanel's rate lookup, RateCardEditor's headcount) keep
-     * working against the same Profile-shaped response they always have.
+     * The roster for one company's Nómina hours grid — one row per (employee, role) ASSIGNMENT,
+     * not one per employee: a worker holding two roles at the same company must appear twice,
+     * each carrying its own `staffing_role`, so each role's hours/rate are entered and shown
+     * separately. Cloning the Profile per assignment matters — without it, an employee with two
+     * assignments would share one Profile instance and the second `staffing_role` write would
+     * silently overwrite the first row's.
      */
     public function employeesForCompany(string $businessId, string $companyId, ?string $projectId = null): Collection
     {
@@ -73,22 +75,49 @@ class StaffingCompanyEmployeeService
             $query->where('project_id', $projectId);
         }
 
-        $assignments = $query->get()->keyBy('employee_id');
+        $assignments = $query->get();
 
         if ($assignments->isEmpty()) {
             return collect();
         }
 
-        return Profile::where('business_id', $businessId)
-            ->whereIn('id', $assignments->keys())
+        $profiles = Profile::where('business_id', $businessId)
+            ->whereIn('id', $assignments->pluck('employee_id')->unique())
             ->where('active', true)
-            ->orderBy('full_name')
             ->get()
-            ->map(function (Profile $employee) use ($assignments) {
-                $employee->staffing_role = $assignments[$employee->id]->role;
-                $employee->staffing_shift = $assignments[$employee->id]->shift;
-                return $employee;
-            });
+            ->keyBy('id');
+
+        return $assignments
+            ->map(function (StaffingCompanyEmployee $assignment) use ($profiles) {
+                $profile = $profiles->get($assignment->employee_id);
+                if (!$profile) {
+                    return null;
+                }
+                $row = clone $profile;
+                $row->staffing_role = $assignment->role;
+                $row->staffing_shift = $assignment->shift;
+                $row->staffing_assignment_id = $assignment->id;
+                return $row;
+            })
+            ->filter()
+            ->sortBy('full_name')
+            ->values();
+    }
+
+    /**
+     * The exact assignment an hours entry belongs to. `$role` disambiguates when the employee
+     * holds more than one role at this company/project — pass it whenever the caller already
+     * knows which one (e.g. a timesheet entry that recorded its role at save time). Without it,
+     * this returns the first matching row, same fallback `roleForEmployeeAtCompany` used before
+     * multi-role-per-company existed.
+     */
+    public function assignmentFor(string $employeeId, string $companyId, ?string $projectId, ?string $role): ?StaffingCompanyEmployee
+    {
+        return StaffingCompanyEmployee::where('employee_id', $employeeId)
+            ->where('company_id', $companyId)
+            ->when($projectId, fn ($q) => $q->where('project_id', $projectId))
+            ->when($role !== null, fn ($q) => $q->where('role', $role))
+            ->first();
     }
 
     /**

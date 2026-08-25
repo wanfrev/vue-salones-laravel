@@ -90,9 +90,12 @@ export function useCrud<TData, TForm, TId = string>(options: UseCrudOptions<TDat
       showError(saveError.value)
     },
     onSettled: async (_data, error) => {
-      saveError.value = ''
-      modalRef?.value?.close()
+      // Only close the modal (and clear the inline error) on success — closing unconditionally
+      // made a failed save look identical to a successful one: the error toast from onError can
+      // be easy to miss, and the modal disappearing reads as "done" either way.
       if (!error) {
+        saveError.value = ''
+        modalRef?.value?.close()
         success(`${entityName} guardado correctamente`)
       }
       await invalidateAll()

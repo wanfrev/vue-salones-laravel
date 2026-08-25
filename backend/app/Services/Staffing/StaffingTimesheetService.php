@@ -61,7 +61,7 @@ class StaffingTimesheetService
      * (one grid, re-saved). Every entry is recomputed through the same calculator that reproduces
      * the DYKE/HILTON/CWT spreadsheets exactly.
      *
-     * @param list<array{employee_id: string, total_hours: float, pre_tax_deduction?: float, fixed_fees?: float, adjustment?: float}> $entries
+     * @param list<array{employee_id: string, role?: string|null, total_hours: float, pre_tax_deduction?: float, fixed_fees?: float, adjustment?: float}> $entries
      */
     public function saveWeek(
         string $businessId,
@@ -116,11 +116,15 @@ class StaffingTimesheetService
 
                 // The role — and therefore the rate — is per (employee, company), not a single
                 // value on the profile: the same person can hold a different role at another
-                // client company they're also assigned to. Shift works the same way: fixed on
-                // the assignment, not chosen per week, for companies that split a role's pay by
-                // día/tarde/noche.
-                $role = $this->companyEmployees->roleForEmployeeAtCompany($employee->id, $company->id, $projectId);
-                $shift = $this->companyEmployees->shiftForEmployeeAtCompany($employee->id, $company->id, $projectId);
+                // client company they're also assigned to, or even a second role at *this* one.
+                // When the entry names its role explicitly (the grid now sends one row per
+                // assignment), resolve that exact assignment instead of guessing — otherwise fall
+                // back to the first match, same as before multi-role-per-company existed.
+                $assignment = $this->companyEmployees->assignmentFor(
+                    $employee->id, $company->id, $projectId, $entryInput['role'] ?? null,
+                );
+                $role = $assignment?->role;
+                $shift = $assignment?->shift;
 
                 $rate = $this->rates->resolveFor($businessId, $company->id, $role, $shift);
                 if (!$rate) {
@@ -130,6 +134,7 @@ class StaffingTimesheetService
 
                 $lines[] = [
                     'employee' => $employee,
+                    'role' => $role,
                     'rate' => $rate,
                     'input' => $entryInput,
                 ];
@@ -145,6 +150,7 @@ class StaffingTimesheetService
 
             foreach ($lines as $line) {
                 $employee = $line['employee'];
+                $role = $line['role'];
                 $rate = $line['rate'];
                 $input = $line['input'];
 
@@ -177,6 +183,7 @@ class StaffingTimesheetService
                     'business_id' => $businessId,
                     'timesheet_id' => $timesheet->id,
                     'employee_id' => $employee->id,
+                    'role' => $role,
                     'total_hours' => $timesheetEntry->totalHours,
                     'pre_tax_deduction' => $timesheetEntry->preTaxDeduction,
                     'fixed_fees' => $timesheetEntry->fixedFees,

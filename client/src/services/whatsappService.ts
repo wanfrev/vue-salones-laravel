@@ -48,8 +48,8 @@ export const updateWhatsAppConfig = async (data: Partial<WhatsAppConfig>): Promi
   return apiRequest<void>('PUT', '/whatsapp/config', { body: data })
 }
 
-export const createWhatsAppInstance = async (instanceName: string): Promise<{ instance_id: string; qr_code: string | null }> => {
-  return apiRequest('POST', '/whatsapp/instance', { body: { instance_name: instanceName } })
+export const createWhatsAppInstance = async (): Promise<{ instance_id: string; qr_code: string | null }> => {
+  return apiRequest('POST', '/whatsapp/instance', { body: {} })
 }
 
 export const getWhatsAppQr = async (): Promise<WhatsAppQr> => {
