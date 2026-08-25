@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -31,6 +32,10 @@ class AppServiceProvider extends ServiceProvider
             return $request->user()
                 ? Limit::perMinute(30)->by($request->user()->id)
                 : Limit::perMinute(5)->by($request->ip());
+        });
+
+        Gate::define('viewPulse', function ($user) {
+            return $user?->profile?->role === 'superadmin';
         });
     }
 }
