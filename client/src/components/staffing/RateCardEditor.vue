@@ -54,7 +54,12 @@
             <td class="py-2 pr-3 text-right tabular-nums text-text-secondary">
               {{ rate.overtimeBillRate != null ? formatUSD(rate.overtimeBillRate) : (rate.overtimeMultiplier ? `${rate.overtimeMultiplier}x` : '-') }}
             </td>
-            <td class="py-2 text-right">
+            <td class="py-2 text-right whitespace-nowrap">
+              <button type="button" title="Editar tarifa"
+                class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-primary/10 hover:text-primary"
+                @click="startEdit(rate)">
+                <PenIcon class="h-4 w-4" />
+              </button>
               <button type="button" title="Eliminar tarifa"
                 class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
                 @click="remove(rate.id)">
@@ -72,6 +77,9 @@
       </table>
     </div>
 
+    <p v-if="editingId" class="mt-3 text-xs font-semibold text-primary">
+      Editando "{{ draft.role }}"{{ draft.shift ? ` · ${shiftLabel(draft.shift)}` : '' }} — los cambios se guardan sobre esta misma tarifa.
+    </p>
     <form class="mt-3 flex flex-wrap items-end gap-2" @submit.prevent="submit">
       <div class="min-w-[130px] flex-1">
         <label :for="`role-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Rol</label>
@@ -140,7 +148,11 @@
 
       <button type="submit" :disabled="saveMutation.isPending.value"
         class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">
-        {{ saveMutation.isPending.value ? 'Guardando...' : 'Agregar' }}
+        {{ saveMutation.isPending.value ? 'Guardando...' : (editingId ? 'Guardar cambios' : 'Agregar') }}
+      </button>
+      <button v-if="editingId" type="button" @click="cancelEdit"
+        class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary">
+        Cancelar
       </button>
     </form>
 
@@ -154,8 +166,8 @@ import { useQuery } from '@tanstack/vue-query'
 import { useRateCard } from '../../composables/staffing/useRateCard'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
-import { TrashBin2Icon } from '@solar-icons/vue/linear'
-import { listCompanyEmployees, staffingTimesheetKeys, SHIFT_OPTIONS, type StaffingRateFormData } from '../../services/staffing/staffingService'
+import { PenIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
+import { listCompanyEmployees, staffingTimesheetKeys, SHIFT_OPTIONS, type StaffingRateFormData, type StaffingRateRow } from '../../services/staffing/staffingService'
 
 const props = defineProps<{
   businessId: string | null
@@ -205,6 +217,33 @@ const emptyDraft = (): StaffingRateFormData => ({
 
 const draft = ref<StaffingRateFormData>(emptyDraft())
 
+// Set while correcting an existing row (see startEdit) — submit() then sends this as the id, so
+// save() updates that exact row instead of falling through to create(). Free-typing the role
+// into the Agregar form to "fix" a rate has no way to guarantee it matches the existing row's
+// text exactly (a stray autocomplete character is enough — see GENERAL LABOR vs GENERAL LABOR 1
+// in production), silently creating a second, unreachable rate instead of correcting the first.
+const editingId = ref<string | null>(null)
+
+const startEdit = (rate: StaffingRateRow) => {
+  editingId.value = rate.id
+  draft.value = {
+    companyId: props.companyId,
+    role: rate.role,
+    shift: rate.shift,
+    payRate: rate.payRate,
+    billRate: rate.billRate,
+    overtimeThresholdHours: rate.overtimeThresholdHours,
+    overtimeMultiplier: rate.overtimeMultiplier,
+    overtimePayRate: rate.overtimePayRate,
+    overtimeBillRate: rate.overtimeBillRate,
+  }
+}
+
+const cancelEdit = () => {
+  editingId.value = null
+  draft.value = emptyDraft()
+}
+
 const draftMargin = computed(() => (draft.value.billRate || 0) - (draft.value.payRate || 0))
 
 // v-model.number leaves a cleared field as '' rather than null.
@@ -218,12 +257,13 @@ const submit = async () => {
   // they apply independently. Leaving overtimeMultiplier null falls back to the 1.5x default.
   const ok = await save({
     ...draft.value,
+    id: editingId.value ?? undefined,
     companyId: props.companyId,
     overtimeThresholdHours: normalizeOptionalNumber(draft.value.overtimeThresholdHours) ?? 40,
     overtimeMultiplier: null,
     overtimePayRate: normalizeOptionalNumber(draft.value.overtimePayRate),
     overtimeBillRate: normalizeOptionalNumber(draft.value.overtimeBillRate),
   })
-  if (ok) draft.value = emptyDraft()
+  if (ok) cancelEdit()
 }
 </script>
