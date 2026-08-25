@@ -37,6 +37,6 @@ class AppServiceProvider extends ServiceProvider
         // La app autentica con Bearer tokens en localStorage, que una navegación de
         // navegador normal a /pulse nunca envía — Auth::user() siempre es null aquí.
         // El control de acceso real es el auth_basic de nginx delante de esta ruta.
-        Gate::define('viewPulse', fn () => true);
+        Gate::define('viewPulse', fn ($user = null) => true);
     }
 }
