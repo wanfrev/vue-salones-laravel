@@ -98,7 +98,12 @@ return [
             'search_path' => 'public',
             'timezone' => env('DB_TIMEZONE', '+00:00'),
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // PgBouncer en modo transaction reasigna cada transacción a una conexión
+            // física distinta de Postgres — los prepared statements nativos de PDO
+            // quedan huérfanos entre requests ("prepared statement ... does not
+            // exist"). Emular los prepares del lado del cliente evita ese problema.
             'options' => array_filter([
+                PDO::ATTR_EMULATE_PREPARES => true,
                 'hostaddr' => env('DB_HOSTADDR'),
             ]),
         ],
