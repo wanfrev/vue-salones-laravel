@@ -55,7 +55,9 @@ class InventoryService
             'branch_id' => $data['branch_id'] ?? null,
             'location_id' => $data['location_id'],
             'product_id' => $data['product_id'],
+            'variant_id' => $data['variant_id'] ?? null,
             'quantity' => $data['quantity'] ?? 0,
+            'reserved_qty' => 0,
             'updated_at' => now(),
         ]);
     }
@@ -75,9 +77,15 @@ class InventoryService
         $stock->delete();
     }
 
-    public function index(string $businessId, ?string $branchId = null, ?string $productId = null, ?string $locationId = null): Collection
-    {
-        $query = InventoryStock::with(['product', 'location'])
+    public function index(
+        string $businessId,
+        ?string $branchId = null,
+        ?string $productId = null,
+        ?string $locationId = null,
+        bool $filterByVariant = false,
+        ?string $variantId = null,
+    ): Collection {
+        $query = InventoryStock::with(['product', 'location', 'variant'])
             ->where('business_id', $businessId);
 
         if ($branchId) {
@@ -94,6 +102,11 @@ class InventoryService
             $query->where('location_id', $locationId);
         }
 
+        if ($filterByVariant) {
+            if ($variantId) $query->where('variant_id', $variantId);
+            else $query->whereNull('variant_id');
+        }
+
         return $query->limit(200)->get()->map(function ($stock) {
             $data = $stock->toArray();
             $data['products'] = $stock->product ? [
@@ -102,6 +115,9 @@ class InventoryService
                 'unit_cost' => $stock->product->unit_cost,
                 'unit_price' => $stock->product->unit_price,
                 'reorder_point' => $stock->product->reorder_point,
+            ] : null;
+            $data['product_variants'] = $stock->variant ? [
+                'name' => $stock->variant->name,
             ] : null;
             return $data;
         });
@@ -116,7 +132,7 @@ class InventoryService
         ?string $referenceType = null,
         ?string $referenceId = null,
     ): Collection {
-        $query = InventoryMovement::with(['product', 'client'])
+        $query = InventoryMovement::with(['product', 'client', 'variant'])
             ->where('business_id', $businessId)
             ->orderByDesc('created_at')
             ->limit(200);
@@ -135,6 +151,7 @@ class InventoryService
         return $query->get()->map(function ($movement) {
             $data = $movement->toArray();
             $data['products'] = $movement->product ? ['id' => $movement->product->id, 'name' => $movement->product->name, 'unit_price' => (float) ($movement->product->unit_price ?? 0)] : null;
+            $data['product_variants'] = $movement->variant ? ['name' => $movement->variant->name] : null;
             $data['clients'] = $movement->client ? ['full_name' => $movement->client->full_name] : null;
             return $data;
         });

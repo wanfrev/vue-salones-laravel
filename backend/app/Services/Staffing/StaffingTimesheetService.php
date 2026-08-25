@@ -119,9 +119,12 @@ class StaffingTimesheetService
                 // client company they're also assigned to, or even a second role at *this* one.
                 // When the entry names its role explicitly (the grid now sends one row per
                 // assignment), resolve that exact assignment instead of guessing — otherwise fall
-                // back to the first match, same as before multi-role-per-company existed.
+                // back to the first match, same as before multi-role-per-company existed. Shift
+                // narrows it further: two assignments can share the same role and differ only by
+                // shift, so the entry's own shift (when the grid sent one) picks the right one
+                // instead of `assignmentFor` guessing between them.
                 $assignment = $this->companyEmployees->assignmentFor(
-                    $employee->id, $company->id, $projectId, $entryInput['role'] ?? null,
+                    $employee->id, $company->id, $projectId, $entryInput['role'] ?? null, $entryInput['shift'] ?? null,
                 );
                 $role = $assignment?->role;
                 $shift = $assignment?->shift;
@@ -135,6 +138,7 @@ class StaffingTimesheetService
                 $lines[] = [
                     'employee' => $employee,
                     'role' => $role,
+                    'shift' => $shift,
                     'rate' => $rate,
                     'input' => $entryInput,
                 ];
@@ -151,6 +155,7 @@ class StaffingTimesheetService
             foreach ($lines as $line) {
                 $employee = $line['employee'];
                 $role = $line['role'];
+                $shift = $line['shift'];
                 $rate = $line['rate'];
                 $input = $line['input'];
 
@@ -184,6 +189,7 @@ class StaffingTimesheetService
                     'timesheet_id' => $timesheet->id,
                     'employee_id' => $employee->id,
                     'role' => $role,
+                    'shift' => $shift,
                     'total_hours' => $timesheetEntry->totalHours,
                     'pre_tax_deduction' => $timesheetEntry->preTaxDeduction,
                     'fixed_fees' => $timesheetEntry->fixedFees,

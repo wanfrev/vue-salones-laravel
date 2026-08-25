@@ -34,6 +34,10 @@ export const DEFAULT_FEATURES = {
   // — those two default to `true` for every niche (see comment above) purely for nav visibility,
   // so they can't be used as a signal that a business actually wants the tienda experience.
   retail_module_enabled: false,
+  // Real product variants (structured attributes like Talla/Color) instead of the old
+  // free-text-only product_variants.name. Default true — additive, no existing behaviour
+  // depends on this being off.
+  product_variants_v2: true,
 }
 
 export type FeatureKey = keyof typeof DEFAULT_FEATURES

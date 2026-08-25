@@ -49,6 +49,9 @@
       </div>
 
       <div v-if="!readonly" class="flex items-center justify-end gap-1 pt-1 border-t border-border-subtle">
+        <button @click.stop="$emit('variants', producto)" class="rounded-lg p-1.5 text-text-muted transition-colors duration-200 hover:bg-bg-secondary hover:text-primary" title="Variantes (talla, color...)">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+        </button>
         <button @click.stop="$emit('edit', producto)" class="rounded-lg p-1.5 text-text-muted transition-colors duration-200 hover:bg-bg-secondary hover:text-primary" title="Editar producto">
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
         </button>
@@ -117,6 +120,9 @@
             </td>
             <td v-if="!readonly" class="px-4 py-3 text-center">
               <div class="flex items-center justify-center gap-1">
+                <button @click="$emit('variants', producto)" class="rounded-lg p-1.5 text-text-muted transition-colors duration-200 hover:bg-bg-secondary hover:text-primary" title="Variantes (talla, color...)">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+                </button>
                 <button @click="$emit('edit', producto)" class="rounded-lg p-1.5 text-text-muted transition-colors duration-200 hover:bg-bg-secondary hover:text-primary" title="Editar producto">
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                 </button>
@@ -146,7 +152,7 @@
 import { useCurrency } from '../../composables/common/useCurrency'
 
 defineProps<{ products: any[]; readonly?: boolean }>()
-defineEmits<{ edit: [p: any]; adjust: [p: any]; deactivate: [p: any]; delete: [p: any] }>()
+defineEmits<{ edit: [p: any]; adjust: [p: any]; deactivate: [p: any]; delete: [p: any]; variants: [p: any] }>()
 
 const { formatVESInline } = useCurrency()
 </script>

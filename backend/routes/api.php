@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\PushSubscriptionController;
 
 use App\Http\Controllers\Api\ProductCategoryController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\ProductVariantController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\PurchaseInvoiceController;
 use App\Http\Controllers\Api\QzController;
@@ -200,6 +201,19 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
             Route::delete('/products/categories/{id}', [ProductCategoryController::class, 'destroy']);
             Route::delete('/product-categories/{id}', [ProductCategoryController::class, 'destroy']);
         });
+
+        Route::middleware('feature:product_variants_v2')->group(function () {
+            Route::middleware('perm:inventory')->group(function () {
+                Route::get('/product-attributes', [ProductVariantController::class, 'attributes']);
+            });
+            Route::middleware('perm:inventory-edit')->group(function () {
+                Route::post('/product-attributes', [ProductVariantController::class, 'storeAttribute']);
+                Route::post('/product-attributes/{attributeId}/values', [ProductVariantController::class, 'storeAttributeValue']);
+                Route::post('/product-variants', [ProductVariantController::class, 'store']);
+                Route::put('/product-variants/{id}', [ProductVariantController::class, 'update']);
+                Route::delete('/product-variants/{id}', [ProductVariantController::class, 'destroy']);
+            });
+        });
     });
 
     // Inventory (with dashes aliases for frontend compat) — same read/write split as Products.
@@ -210,7 +224,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
             Route::get('/inventory/movements', [InventoryController::class, 'movements']);
             Route::get('/inventory-movements', [InventoryController::class, 'movements']);
             Route::get('/inventory-locations', [InventoryController::class, 'locations']);
-            Route::get('/product-variants', [InventoryController::class, 'variants']);
+            Route::get('/product-variants', [ProductVariantController::class, 'index']);
         });
         Route::middleware('perm:inventory-edit')->group(function () {
             Route::post('/inventory-stock', [InventoryController::class, 'storeStock']);

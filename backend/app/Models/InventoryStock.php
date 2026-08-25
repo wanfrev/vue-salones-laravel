@@ -36,6 +36,11 @@ class InventoryStock extends Model
         return $this->belongsTo(Product::class);
     }
 
+    public function variant(): BelongsTo
+    {
+        return $this->belongsTo(ProductVariant::class, 'variant_id');
+    }
+
     public function location(): BelongsTo
     {
         return $this->belongsTo(InventoryLocation::class, 'location_id');

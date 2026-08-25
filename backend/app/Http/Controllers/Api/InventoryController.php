@@ -26,11 +26,6 @@ class InventoryController
         return $raw ?: null;
     }
 
-    public function variants(Request $request): JsonResponse
-    {
-        return response()->json([]);
-    }
-
     public function locations(Request $request): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
@@ -68,6 +63,7 @@ class InventoryController
 
         $data = $request->validate([
             'product_id' => 'required|uuid',
+            'variant_id' => 'nullable|uuid',
             'location_id' => 'required|uuid',
             'quantity' => 'required|numeric|min:0',
             'branch_id' => 'nullable|uuid',
@@ -159,7 +155,9 @@ class InventoryController
                 $businessId,
                 $request->branch_id,
                 $request->product_id,
-                $request->location_id
+                $request->location_id,
+                $request->has('variant_id'),
+                $request->input('variant_id'),
             )
         );
     }

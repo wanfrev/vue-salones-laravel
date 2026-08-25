@@ -465,6 +465,8 @@ export interface StaffingTimesheetEntry {
   employee_id: string
   /** Which of the employee's roles at this company these hours are for — see StaffingCompanyEmployeeService::assignmentFor. */
   role: string | null
+  /** Disambiguates further when the employee holds two assignments with the same role that differ only by shift. */
+  shift: string | null
   total_hours: number
   pre_tax_deduction: number
   fixed_fees: number

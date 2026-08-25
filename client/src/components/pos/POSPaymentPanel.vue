@@ -114,7 +114,7 @@
           <div class="space-y-1.5">
             <div
               v-for="(item, idx) in cart"
-              :key="item.productId"
+              :key="`${item.productId}:${item.variantId ?? ''}`"
               class="rounded-lg bg-bg-secondary px-2.5 py-2"
             >
               <!-- One compact row per product: name, optional P1/P2 toggle, qty stepper, price
@@ -122,7 +122,9 @@
                    delete. Same layout for retail and appointment/service checkout — the P1/P2
                    toggle is the only piece that's retail-specific (unitPrice2 only exists there). -->
               <div class="flex items-center gap-2">
-                <p class="flex-1 min-w-0 truncate text-sm font-medium text-text">{{ item.productName }}</p>
+                <p class="flex-1 min-w-0 truncate text-sm font-medium text-text">
+                  {{ item.productName }}<span v-if="item.variantName" class="text-text-muted"> ({{ item.variantName }})</span>
+                </p>
 
                 <div
                   v-if="isRetailOnly && item.unitPrice2 != null && Number(item.unitPrice2) > 0"

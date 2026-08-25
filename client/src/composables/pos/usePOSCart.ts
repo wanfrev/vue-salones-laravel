@@ -13,14 +13,22 @@ export function usePOSCart() {
     const availableQty = Number(product.available_qty ?? 0)
     if (availableQty <= 0) return
 
-    const effectivePriceIndex: 1 | 2 = product.override_price !== undefined
-      ? (product.unit_price_2 != null && Number(product.override_price) === Number(product.unit_price_2) ? 2 : 1)
-      : priceIndex
+    const variant = product.variant ?? null
+    const variantId: string | null = variant?.id ?? null
+    const variantName: string | null = variant?.name ?? null
 
-    const uPrice1 = Number(product.unit_price ?? product.price ?? 0)
-    const uPrice2 = product.unit_price_2 != null ? Number(product.unit_price_2) : null
+    // Variants don't have a second price tier — price-index toggling only applies to the base product.
+    const effectivePriceIndex: 1 | 2 = variant
+      ? 1
+      : product.override_price !== undefined
+        ? (product.unit_price_2 != null && Number(product.override_price) === Number(product.unit_price_2) ? 2 : 1)
+        : priceIndex
 
-    const existing = cart.value.find(c => c.productId === product.id)
+    const uPrice1 = Number((variant ? variant.unit_price : product.unit_price) ?? product.price ?? 0)
+    const uPrice2 = !variant && product.unit_price_2 != null ? Number(product.unit_price_2) : null
+    const unitCost = Number((variant ? variant.unit_cost : product.unit_cost) ?? 0)
+
+    const existing = cart.value.find(c => c.productId === product.id && c.variantId === variantId)
     if (existing) {
       if (existing.quantity >= availableQty) return
       existing.quantity++
@@ -35,13 +43,13 @@ export function usePOSCart() {
         productId: product.id,
         productName: product.name,
         availableQty,
-        variantId: null,
-        variantName: null,
+        variantId,
+        variantName,
         quantity: 1,
         unitPrice: selectedPrice,
         unitPrice1: uPrice1,
         unitPrice2: uPrice2,
-        unitCost: Number(product.unit_cost ?? 0),
+        unitCost,
         subtotal: selectedPrice,
         priceIndex: effectivePriceIndex,
       })

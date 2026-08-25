@@ -374,6 +374,10 @@ export interface TimesheetEntryInput {
   /** Which of the employee's roles at this company this line is for — required to tell apart
    *  two entries for the same employee when they hold more than one role at the company. */
   role?: string | null
+  /** Disambiguates further when the employee holds two assignments with the same role that
+   *  differ only by shift (e.g. day/night) — without it the backend can't tell which one an
+   *  entry belongs to and picks one arbitrarily. */
+  shift?: string | null
   totalHours: number
   preTaxDeduction?: number
   fixedFees?: number
@@ -417,6 +421,7 @@ export const saveTimesheetWeek = async (
     entries: entries.map(e => ({
       employee_id: e.employeeId,
       role: e.role ?? null,
+      shift: e.shift ?? null,
       total_hours: e.totalHours,
       pre_tax_deduction: e.preTaxDeduction ?? 0,
       fixed_fees: e.fixedFees ?? 0,

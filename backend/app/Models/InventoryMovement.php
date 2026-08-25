@@ -40,6 +40,11 @@ class InventoryMovement extends Model
         return $this->belongsTo(Product::class, 'product_id');
     }
 
+    public function variant(): BelongsTo
+    {
+        return $this->belongsTo(ProductVariant::class, 'variant_id');
+    }
+
     public function client(): BelongsTo
     {
         return $this->belongsTo(Client::class, 'client_id');

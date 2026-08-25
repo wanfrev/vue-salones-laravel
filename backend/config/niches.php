@@ -48,6 +48,10 @@ return [
         // Deliberately separate from pos/productos — those default `true` for every niche purely
         // for nav visibility, so they can't signal that a business actually wants this experience.
         'retail_module_enabled' => false,
+        // Real product variants (structured attributes like Talla/Color) instead of the old
+        // free-text-only product_variants.name. Default true — additive, no existing behaviour
+        // depends on this being off.
+        'product_variants_v2' => true,
     ],
 
     'niches' => [
