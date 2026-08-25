@@ -17,6 +17,14 @@
         </button>
         <button
           v-if="canAddPurchaseInvoice"
+          @click="historyModalRef?.open()"
+          class="flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-text shadow-sm transition-theme hover:bg-bg-secondary"
+        >
+          <ClipboardIcon class="h-4 w-4" />
+          <span>Historial de facturas</span>
+        </button>
+        <button
+          v-if="canAddPurchaseInvoice"
           @click="purchaseInvoiceModalRef?.open()"
           class="flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-text shadow-sm transition-theme hover:bg-bg-secondary"
         >
@@ -246,6 +254,7 @@
 
   <InventorySettingsModal ref="settingsModalRef" />
   <PurchaseInvoiceModal ref="purchaseInvoiceModalRef" />
+  <PurchaseInvoiceHistoryModal ref="historyModalRef" />
   <VariantesManagerModal ref="variantsModalRef" />
   </FeatureGate>
 </template>
@@ -265,9 +274,10 @@ import ProductStockAdjustModal from '../components/productos/ProductStockAdjustM
 import ProductGrid from '../components/productos/ProductGrid.vue'
 import InventorySettingsModal from '../components/productos/InventorySettingsModal.vue'
 import PurchaseInvoiceModal from '../components/productos/PurchaseInvoiceModal.vue'
+import PurchaseInvoiceHistoryModal from '../components/productos/PurchaseInvoiceHistoryModal.vue'
 import VariantesManagerModal from '../components/modals/VariantesManagerModal.vue'
 import { ModalBase, FeatureGate } from '../components/common'
-import { BoxIcon, AddCircleIcon, MagnifierIcon, SettingsIcon, BillListIcon } from '@solar-icons/vue/linear'
+import { BoxIcon, AddCircleIcon, MagnifierIcon, SettingsIcon, BillListIcon, ClipboardIcon } from '@solar-icons/vue/linear'
 import { hasRetailModule } from '../config/niches'
 
 const { authStore } = useAuth()
@@ -280,6 +290,7 @@ const isTienda = computed(() => hasRetailModule(businessStore.business?.niche_ty
 
 const settingsModalRef = ref<InstanceType<typeof InventorySettingsModal> | null>(null)
 const purchaseInvoiceModalRef = ref<InstanceType<typeof PurchaseInvoiceModal> | null>(null)
+const historyModalRef = ref<InstanceType<typeof PurchaseInvoiceHistoryModal> | null>(null)
 const variantsModalRef = ref<InstanceType<typeof VariantesManagerModal> | null>(null)
 
 const safeOpenSettingsModal = () => {
