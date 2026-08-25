@@ -20,9 +20,10 @@ return new class extends Migration
             $table->string('shift')->nullable()->after('role');
         });
 
-        Schema::table('staffing_timesheet_entries', function (Blueprint $table) {
-            $table->dropUnique('unique_staffing_entry_timesheet_employee_role');
-        });
+        // Not $table->dropUnique() — that issues ALTER TABLE ... DROP CONSTRAINT, but the prior
+        // migration created this as a plain CREATE UNIQUE INDEX (to get the COALESCE expression),
+        // not a table constraint, so Postgres won't recognize it as one.
+        DB::statement('DROP INDEX IF EXISTS unique_staffing_entry_timesheet_employee_role');
 
         DB::statement(<<<'SQL'
             CREATE UNIQUE INDEX unique_staffing_entry_timesheet_employee_role_shift
