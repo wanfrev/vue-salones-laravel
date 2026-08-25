@@ -133,6 +133,12 @@
                 <input :value="getAssistantAmountOverrideValue(index)" @input="setAssistantAmountOverride(index, ($event.target as HTMLInputElement).value)" type="number" min="0" step="0.01" placeholder="0.00" class="w-20 rounded border border-primary/30 bg-bg pl-4 pr-1.5 py-0.5 text-xs text-text focus:border-primary focus:ring-1 focus:ring-primary" />
               </div>
             </div>
+
+            <div class="flex justify-end border-t border-border/60 pt-2">
+              <button type="button" @click="cancelCommissionDetail(index)" class="rounded-lg px-2.5 py-1 text-xs font-semibold text-text-muted hover:bg-bg-secondary hover:text-text transition-colors">
+                Cancelar
+              </button>
+            </div>
           </div>
         </div>
 
@@ -293,6 +299,17 @@ const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 
 const commissionDetailOpen = reactive(new Set<number>())
+// Snapshot of a row's override fields taken the moment its commission panel opens, so
+// "Cancelar" can put back exactly what was there before — typing into % / monto fijo edits
+// formData live (see setEmployeeCommType and friends below), there's otherwise no way to
+// back out of it once opened.
+const commissionSnapshots = reactive(new Map<number, {
+  isFixedCommissionOverride: boolean
+  employeePercentageOverride: number | undefined
+  employeeAmountOverride: number | undefined
+  assistantPercentage: number
+  assistantAmountOverride: number | undefined
+}>())
 const clientPets = ref<Pet[]>([])
 const availableProducts = ref<any[]>([])
 
@@ -434,12 +451,14 @@ const removeServiceRow = (index: number) => {
     formData.value.price = next.price
     activeEmployeeOverrides.clear()
     commissionDetailOpen.clear()
+    commissionSnapshots.clear()
   } else {
     const ei = index - 1
     if (ei >= 0 && ei < formData.value.extraServices.length) {
       formData.value.extraServices.splice(ei, 1)
       activeEmployeeOverrides.delete(index)
       commissionDetailOpen.delete(index)
+      commissionSnapshots.delete(index)
     }
   }
 }
@@ -496,7 +515,40 @@ const setRowPrice = (index: number, val: string) => updateServiceRow(index, 'pri
 const setRowDuration = (index: number, val: string) => { if (val !== '' && !isNaN(Number(val))) updateServiceRow(index, 'duration', String(Number(val))); else if (val === '') updateServiceRow(index, 'duration', '0') }
 const getRowError = (index: number, field: string): string | undefined => (errors.value as any)?.rowErrors?.[index]?.[field]
 
-const toggleCommissionDetail = (index: number) => { commissionDetailOpen.has(index) ? commissionDetailOpen.delete(index) : commissionDetailOpen.add(index) }
+const rowFor = (index: number) => index === 0 ? formData.value : formData.value.extraServices[index - 1]
+
+const toggleCommissionDetail = (index: number) => {
+  if (commissionDetailOpen.has(index)) {
+    commissionDetailOpen.delete(index)
+    commissionSnapshots.delete(index)
+    return
+  }
+  const row = rowFor(index)
+  if (row) {
+    commissionSnapshots.set(index, {
+      isFixedCommissionOverride: row.isFixedCommissionOverride,
+      employeePercentageOverride: row.employeePercentageOverride,
+      employeeAmountOverride: row.employeeAmountOverride,
+      assistantPercentage: row.assistantPercentage,
+      assistantAmountOverride: row.assistantAmountOverride,
+    })
+  }
+  commissionDetailOpen.add(index)
+}
+
+const cancelCommissionDetail = (index: number) => {
+  const snap = commissionSnapshots.get(index)
+  const row = rowFor(index)
+  if (snap && row) {
+    row.isFixedCommissionOverride = snap.isFixedCommissionOverride
+    row.employeePercentageOverride = snap.employeePercentageOverride
+    row.employeeAmountOverride = snap.employeeAmountOverride
+    row.assistantPercentage = snap.assistantPercentage
+    row.assistantAmountOverride = snap.assistantAmountOverride
+  }
+  commissionDetailOpen.delete(index)
+  commissionSnapshots.delete(index)
+}
 const getEmployeeDefaultPercentage = (eid: string): number | undefined => { if (!eid) return undefined; const emp = props.empleados?.find(e => e.id === eid); if (!emp || emp.payType === 'salary') return undefined; return emp.payPercentage ?? 0 }
 const isServiceFixedCommission = (serviceId: string): boolean => { return props.servicios?.find(s => s.id === serviceId)?.is_fixed_commission || false }
 
@@ -657,7 +709,7 @@ const confirmButtonLabel = computed(() => {
 })
 
 watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData], async ([open, cita, paymentData]) => {
-  if (!open) return; commissionDetailOpen.clear(); activeEmployeeOverrides.clear()
+  if (!open) return; commissionDetailOpen.clear(); commissionSnapshots.clear(); activeEmployeeOverrides.clear()
   if (showPetSelector.value) {
     loadAvailableProducts()
   }
@@ -751,6 +803,7 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
   paymentEditorRef.value?.setPaymentContext(paymentData as PaymentEditContext | null)
   activeEmployeeOverrides.clear()
   commissionDetailOpen.clear()
+  commissionSnapshots.clear()
   if (formData.value.employeePercentageOverride != null || formData.value.employeeAmountOverride != null || formData.value.isFixedCommissionOverride) { activeEmployeeOverrides.add(0); commissionDetailOpen.add(0) }
   formData.value.extraServices.forEach((_, i) => { if (formData.value.extraServices[i]?.employeePercentageOverride != null || formData.value.extraServices[i]?.employeeAmountOverride != null || formData.value.extraServices[i]?.isFixedCommissionOverride) { activeEmployeeOverrides.add(i + 1); commissionDetailOpen.add(i + 1) } })
   clearErrors()
