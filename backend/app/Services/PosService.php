@@ -580,6 +580,60 @@ class PosService
     }
 
     /**
+     * A tip given directly to an employee/encargado at POS with no appointment or service
+     * attached at all — e.g. tipping the person who did your nails when the salon logs that as
+     * a separate service, or tipping maintenance staff. Treated exactly like a service tip for
+     * payroll purposes (counts toward the employee's earnings, payable on the next nómina run)
+     * — see EmployeeCommissionService::getStandaloneTips. Not revenue: `total_amount` stays 0 so
+     * it never inflates billing/financial-summary totals, same as a service tip today (which
+     * also isn't included in `total_amount` or the daily cash report).
+     */
+    public function recordStandaloneTip(
+        string $businessId,
+        ?string $branchId,
+        string $employeeId,
+        float $tipAmount,
+        ?string $tipCurrency,
+        string $method,
+        array $paymentsBreakdown,
+        ?float $exchangeRate,
+        ?string $notes,
+        string $createdBy,
+    ): string {
+        $rate = $exchangeRate ?: 1;
+
+        return DB::transaction(function () use (
+            $businessId, $branchId, $employeeId, $tipAmount, $tipCurrency,
+            $method, $paymentsBreakdown, $rate, $notes, $createdBy
+        ) {
+            $tx = Transaction::create([
+                'id' => Str::uuid()->toString(),
+                'business_id' => $businessId,
+                'branch_id' => $branchId,
+                'appointment_id' => null,
+                'employee_id' => $employeeId,
+                'total_amount' => 0,
+                'local_amount' => 0,
+                'employee_amount' => 0,
+                'assistant_amount' => 0,
+                'local_percentage' => 100,
+                'employee_percentage' => 0,
+                'assistant_percentage' => 0,
+                'method' => $method,
+                'exchange_rate_used' => $rate,
+                'payments_breakdown' => $paymentsBreakdown,
+                'created_by' => $createdBy,
+                'notes' => $notes ?? 'Propina directa',
+                'tip_amount' => $tipAmount,
+                'tip_currency' => $tipCurrency,
+                'paid_at' => now(),
+            ]);
+
+            return $tx->id;
+        });
+    }
+
+    /**
      * Process a direct service sale (without a pre-created appointment).
      * Automatically creates a completed appointment record and processes the sale atomically.
      */

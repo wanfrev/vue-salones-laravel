@@ -1,11 +1,24 @@
 <template>
-  <div class="flex flex-col h-full rounded-xl border border-border bg-surface p-3.5 sm:p-4 lg:min-h-0 min-w-0">
-    <h3 class="text-base font-semibold text-text mb-3 sm:mb-4 shrink-0">Resumen de cobro</h3>
+  <div class="card-hairline flex flex-col h-full rounded-xl p-3.5 sm:p-4 lg:min-h-0 min-w-0">
+    <div class="flex items-center gap-2.5 mb-3 sm:mb-4 shrink-0 pb-3 border-b border-border-subtle">
+      <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z" />
+        </svg>
+      </div>
+      <h3 class="text-base font-semibold text-text">Resumen de cobro</h3>
+    </div>
 
-    <template v-if="selectedAppointment || isRetailOnly || isDirectService">
+    <template v-if="selectedAppointment || isRetailOnly || isDirectService || isTipMode">
       <div class="flex-1 overflow-y-auto min-h-0 space-y-3 pr-1">
-        <div class="rounded-lg bg-bg-secondary p-3">
-          <template v-if="isDirectService && !selectedAppointment">
+        <div class="rounded-lg border border-border-subtle bg-bg-secondary p-3">
+          <template v-if="isTipMode">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-text-muted">Empleado</span>
+              <span class="font-medium text-text">{{ tipEmployeeName ? toTitleCase(tipEmployeeName) : 'Selecciona un empleado' }}</span>
+            </div>
+          </template>
+          <template v-else-if="isDirectService && !selectedAppointment">
             <div class="flex items-center justify-between text-sm mb-2 pb-2 border-b border-border">
               <span class="text-text-muted">Cliente</span>
               <span class="font-medium text-text">{{ toTitleCase(retailClientName) || 'Servicio Directo' }}</span>
@@ -257,15 +270,15 @@
         </div>
 
         <div class="border-t border-border-subtle pt-3 space-y-2">
-          <div class="flex items-center justify-between text-sm">
+          <div v-if="!isTipMode" class="flex items-center justify-between text-sm">
             <span class="text-text-muted">Subtotal servicios</span>
             <span class="font-medium text-text">{{ formatDual(servicePrice) }}</span>
           </div>
-          <div v-if="productsTotal > 0" class="flex items-center justify-between text-sm">
+          <div v-if="!isTipMode && productsTotal > 0" class="flex items-center justify-between text-sm">
             <span class="text-text-muted">Subtotal productos ({{ cartCount }})</span>
             <span class="font-medium text-text">{{ formatDual(productsTotal) }}</span>
           </div>
-          <div v-if="!isRetailOnly" class="space-y-1.5 border-t border-border pt-2">
+          <div v-if="!isRetailOnly" :class="isTipMode ? 'space-y-1.5' : 'space-y-1.5 border-t border-border pt-2'">
             <div class="flex items-center justify-between gap-2">
               <label class="block text-sm font-medium text-text">Propina {{ tipAmount > 0 ? '(' + formatDual(tipAmount) + ')' : '' }}</label>
               <button
@@ -365,15 +378,15 @@
               />
             </div>
           </div>
-          <div v-else class="flex items-center justify-between border-t border-border pt-2 mt-1">
+          <div v-else-if="!isTipMode" class="flex items-center justify-between border-t border-border pt-2 mt-1">
             <span class="text-base font-bold text-text">Total</span>
             <DualAmount :amount="grandTotal" orientation="stack" size="lg" primary-class="text-xl font-bold text-primary" />
           </div>
         </div>
 
-        <div class="space-y-2">
+        <div class="space-y-2 border-t border-border-subtle pt-3">
           <label class="block text-xs sm:text-sm font-medium text-text">Método de pago</label>
-          <div class="grid grid-cols-2 gap-2">
+          <div class="grid grid-cols-2 gap-2 lg:grid-cols-3">
             <button
               v-for="pm in paymentMethods"
               :key="pm.value"
@@ -503,6 +516,19 @@
           En espera
         </button>
         <button
+          v-if="isTipMode"
+          @click="$emit('process-tip')"
+          :disabled="isProcessing || !canPay"
+          class="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-text-inverse transition-theme hover:bg-primary-hover disabled:opacity-50"
+        >
+          <svg v-if="isProcessing" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          {{ isProcessing ? 'Procesando...' : `Registrar propina ${formatDual(tipAmount)}` }}
+        </button>
+        <button
+          v-else
           @click="$emit('process-payment')"
           :disabled="isProcessing || !canPay"
           class="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-bold text-text-inverse transition-theme hover:bg-primary-hover disabled:opacity-50"
@@ -577,6 +603,8 @@ const props = defineProps<{
   customTotalAmount?: number | null
   customTotalCurrency?: 'USD' | 'VES'
   isDirectService?: boolean
+  isTipMode?: boolean
+  tipEmployeeName?: string | null
   directServiceName?: string | null
   directServiceEmployeeName?: string | null
   directServiceAssistantName?: string | null
@@ -602,6 +630,7 @@ const emit = defineEmits<{
   'update:tip-allocation': [employeeId: string, value: number]
   'process-payment': []
   'process-payment-print': []
+  'process-tip': []
   'set-price-index': [idx: number, priceIndex: 1 | 2]
   'increment-qty': [idx: number]
   'decrement-qty': [idx: number]

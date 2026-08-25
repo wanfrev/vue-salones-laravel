@@ -254,6 +254,28 @@ export const recordDirectSale = async (params: {
   return response
 }
 
+export const recordStandaloneTip = async (params: {
+  employeeId: string
+  tipAmount: number
+  tipCurrency?: 'USD' | 'VES'
+  method: PaymentMethod
+  notes?: string
+  exchangeRate: number
+  paymentsBreakdown: PaymentBreakdownItem[]
+  branchId?: string | null
+}): Promise<{ id: string }> => {
+  return await apiRequest<{ id: string }>('POST', '/pos/standalone-tip', {
+    employee_id: params.employeeId,
+    tip_amount: params.tipAmount,
+    tip_currency: params.tipCurrency ?? null,
+    method: params.method,
+    notes: params.notes ?? null,
+    exchange_rate_used: params.exchangeRate,
+    payments_breakdown: params.paymentsBreakdown,
+    branch_id: params.branchId || null,
+  })
+}
+
 export const recordDirectServiceSale = async (params: {
   services?: Array<{
     serviceId: string

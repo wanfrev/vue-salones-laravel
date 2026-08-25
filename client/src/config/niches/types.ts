@@ -31,6 +31,7 @@ export type Capability =
   | 'catalog.requirements'
   | 'scheduling.appointments'
   | 'commerce.pos'
+  | 'pos.standalone_tips'
   | 'staffing.timesheets'
   | 'staffing.billing'
   | 'staffing.crm'

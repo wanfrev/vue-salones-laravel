@@ -17,7 +17,7 @@ export const NICHES: Record<string, NicheDefinition> = {
         { key: 'chemical_history', label: 'Historial de químicos', type: 'textarea', placeholder: 'Tintes, alisados, decoloraciones recientes...' },
       ],
     },
-    capabilities: [],
+    capabilities: ['pos.standalone_tips'],
     featureDefaults: {},
   },
   barberia: {
@@ -40,7 +40,7 @@ export const NICHES: Record<string, NicheDefinition> = {
         { key: 'notes', label: 'Preferencias del Cliente', type: 'textarea', placeholder: 'Indicaciones específicas del corte...' },
       ],
     },
-    capabilities: [],
+    capabilities: ['pos.standalone_tips'],
     featureDefaults: {},
   },
   spa: {
@@ -55,7 +55,7 @@ export const NICHES: Record<string, NicheDefinition> = {
         { key: 'allergies', label: 'Alergias o contraindicaciones', type: 'textarea', placeholder: 'Aceites esenciales, fragancias, condiciones médicas...' },
       ],
     },
-    capabilities: [],
+    capabilities: ['pos.standalone_tips'],
     featureDefaults: {},
   },
   mixto: {
@@ -83,7 +83,7 @@ export const NICHES: Record<string, NicheDefinition> = {
         { key: 'notes', label: 'Preferencias del Cliente', type: 'textarea', placeholder: 'Indicaciones específicas del corte, peinado o tratamiento...' },
       ],
     },
-    capabilities: [],
+    capabilities: ['pos.standalone_tips'],
     featureDefaults: {},
   },
   dog_spa: {
@@ -113,7 +113,7 @@ export const NICHES: Record<string, NicheDefinition> = {
     label: 'Barra de uñas',
     status: 'creatable',
     clientProfile: null,
-    capabilities: [],
+    capabilities: ['pos.standalone_tips'],
     featureDefaults: {},
   },
   centro_estetico: {
@@ -121,7 +121,7 @@ export const NICHES: Record<string, NicheDefinition> = {
     label: 'Centro estético',
     status: 'creatable',
     clientProfile: null,
-    capabilities: [],
+    capabilities: ['pos.standalone_tips'],
     featureDefaults: {},
   },
   tienda: {

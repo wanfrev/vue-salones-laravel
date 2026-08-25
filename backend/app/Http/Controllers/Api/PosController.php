@@ -159,4 +159,40 @@ class PosController
             return response()->json(['message' => $e->getMessage()], 400);
         }
     }
+
+    public function standaloneTip(\App\Http\Requests\StandaloneTipRequest $request): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['message' => 'Sin negocio asignado.'], 403);
+
+        $data = $request->validated();
+
+        $employeeBelongsToBusiness = \App\Models\Profile::where('id', $data['employee_id'])
+            ->where('business_id', $businessId)
+            ->exists();
+        if (!$employeeBelongsToBusiness) {
+            return response()->json(['message' => 'Empleado no encontrado.'], 404);
+        }
+
+        try {
+            $txId = $this->posService->recordStandaloneTip(
+                businessId: $businessId,
+                branchId: $data['branch_id'] ?? null,
+                employeeId: $data['employee_id'],
+                tipAmount: (float) $data['tip_amount'],
+                tipCurrency: $data['tip_currency'] ?? null,
+                method: $data['method'],
+                paymentsBreakdown: $data['payments_breakdown'] ?? [],
+                exchangeRate: $data['exchange_rate_used'] ?? null,
+                notes: $data['notes'] ?? null,
+                createdBy: $request->user()->id,
+            );
+
+            EntityChanged::safe($businessId, 'transaction', 'created', $txId);
+
+            return response()->json(['id' => $txId], 201);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 400);
+        }
+    }
 }

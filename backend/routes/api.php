@@ -402,6 +402,10 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::post('/pos/direct-sale', [PosController::class, 'directSale']);
         Route::post('/pos/direct-service-sale', [PosController::class, 'directServiceSale']);
 
+        Route::middleware(['capability:pos.standalone_tips'])->group(function () {
+            Route::post('/pos/standalone-tip', [PosController::class, 'standaloneTip']);
+        });
+
         // Compras en espera (tienda) — park an in-progress retail cart, resume or cancel it later.
         Route::get('/pos/held-sales', [PosHeldSaleController::class, 'index']);
         Route::post('/pos/held-sales', [PosHeldSaleController::class, 'store']);

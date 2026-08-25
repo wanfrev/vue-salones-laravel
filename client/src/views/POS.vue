@@ -35,6 +35,15 @@
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
             {{ businessStore.features.agenda ? 'Venta directa' : 'Nueva factura' }}
           </button>
+          <button
+            v-if="businessStore.hasCapability('pos.standalone_tips')"
+            @click="startTip"
+            class="flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200"
+            :class="tabButtonClass('tip')"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .672-3 1.5S10.343 11 12 11s3 .672 3 1.5-1.343 1.5-3 1.5m0-6c1.11 0 2.08.402 2.599 1M12 8V6.5m0 1.5v6m0 0V17m0-1.5c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            Propina
+          </button>
         </div>
       </div>
 
@@ -60,7 +69,7 @@
 
   <div v-if="queryError" class="mb-4 rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm text-danger">Error al cargar citas: {{ queryError }}</div>
 
-  <div class="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_400px]">
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-[1.3fr_1fr] xl:grid-cols-[1.4fr_1fr] max-w-[1800px] mx-auto">
     <!-- LEFT PANEL -->
     <div class="min-w-0 space-y-4">
       <!-- DIRECT SERVICE PANEL -->
@@ -230,6 +239,39 @@
         </div>
       </div>
 
+      <!-- STANDALONE TIP PANEL -->
+      <div v-if="activeSaleType === 'tip'" class="rounded-2xl border border-primary/30 bg-surface p-3 shadow-sm space-y-4 mb-4 sm:p-4">
+        <div class="flex items-center gap-2.5 border-b border-border pb-3">
+          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .672-3 1.5S10.343 11 12 11s3 .672 3 1.5-1.343 1.5-3 1.5m0-6c1.11 0 2.08.402 2.599 1M12 8V6.5m0 1.5v6m0 0V17m0-1.5c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div class="min-w-0 flex-1">
+            <h3 class="text-sm font-bold text-text">Propina directa</h3>
+            <p class="hidden text-xs text-text-muted sm:block">Dale una propina a un empleado, encargado o cualquier persona del equipo sin necesidad de un servicio</p>
+          </div>
+          <button @click="cancelTip" class="shrink-0 rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text" title="Cancelar propina">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+
+        <div>
+          <label class="mb-1 flex items-center gap-1 text-[11px] font-semibold text-text-secondary">
+            <UserIcon class="h-3 w-3" /> Empleado *
+          </label>
+          <select
+            v-model="tipEmployeeId"
+            class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary"
+          >
+            <option value="" disabled>Selecciona a quién se le da la propina</option>
+            <option v-for="e in posEmpleadosList" :key="e.id" :value="e.id">
+              {{ e.name }}
+            </option>
+          </select>
+        </div>
+      </div>
+
       <div v-if="activeSaleType === 'retail_only'" class="flex flex-col h-full space-y-3">
         <div v-if="hasRetail" class="flex justify-end">
           <HeldSalesPanel
@@ -274,7 +316,7 @@
     </div>
 
     <!-- RIGHT PANEL (desktop & tablet landscape) -->
-    <div class="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden lg:min-w-[340px]">
+    <div class="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden">
       <POSPaymentPanel
         :selected-appointment="selectedAppointment"
         :cart="cart" :service-price="servicePrice"
@@ -293,6 +335,8 @@
         :custom-total-currency="customTotalCurrency"
         :is-direct-service="activeSaleType === 'direct_service'"
         :direct-services-list="directServicesList"
+        :is-tip-mode="activeSaleType === 'tip'"
+        :tip-employee-name="tipEmployeeName"
         @update:custom-total-amount="customTotalAmount = $event"
         @update:custom-total-currency="customTotalCurrency = $event"
         @update:selected-gift-card-id="selectedGiftCardId = $event"
@@ -308,6 +352,7 @@
         @update:tip-allocation="setTipAllocation"
         @process-payment="handleProcessPayment"
         @process-payment-print="handleProcessPaymentPrint"
+        @process-tip="handleStandaloneTip"
         @set-price-index="setPriceIndex"
         @increment-qty="incrementQty" @decrement-qty="decrementQty" @set-quantity="setQuantity" @remove-item="removeItem"
         @add-suggested-product="addProduct"
@@ -331,7 +376,7 @@
         class="fixed inset-0 z-50 flex flex-col bg-bg lg:hidden"
       >
         <div class="flex items-center justify-between border-b border-border bg-surface px-4 py-3">
-          <h2 class="text-base font-semibold text-text">Cobrar</h2>
+          <h2 class="text-base font-semibold text-text">{{ activeSaleType === 'tip' ? 'Propina' : 'Cobrar' }}</h2>
           <button
             @click="closeMobilePayment"
             class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text"
@@ -361,6 +406,8 @@
             :custom-total-currency="customTotalCurrency"
             :is-direct-service="activeSaleType === 'direct_service'"
             :direct-services-list="directServicesList"
+            :is-tip-mode="activeSaleType === 'tip'"
+            :tip-employee-name="tipEmployeeName"
             @update:custom-total-amount="customTotalAmount = $event"
             @update:custom-total-currency="customTotalCurrency = $event"
             @update:selected-gift-card-id="selectedGiftCardId = $event"
@@ -376,6 +423,7 @@
             @update:tip-allocation="setTipAllocation"
             @process-payment="handleMobileProcessPayment"
             @process-payment-print="handleMobileProcessPaymentPrint"
+            @process-tip="handleStandaloneTip"
             @set-price-index="setPriceIndex"
             @increment-qty="incrementQty" @decrement-qty="decrementQty" @set-quantity="setQuantity" @remove-item="removeItem"
             @add-suggested-product="addProduct"
@@ -396,7 +444,7 @@
     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
       <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
     </svg>
-    Cobrar
+    {{ activeSaleType === 'tip' ? 'Propina' : 'Cobrar' }}
   </button>
   </FeatureGate>
 
@@ -509,12 +557,30 @@ const {
   processPayment,
   processDirectSale,
   processDirectServiceSale,
+  processStandaloneTip,
   reset: resetPayment,
   loadState: loadPaymentState,
 } = usePOSPayment()
 
-const activeSaleType = ref<'appointment' | 'retail_only' | 'direct_service'>(businessStore.features.agenda ? 'appointment' : 'retail_only')
+const activeSaleType = ref<'appointment' | 'retail_only' | 'direct_service' | 'tip'>(businessStore.features.agenda ? 'appointment' : 'retail_only')
 const selectedAppointment = ref<any>(null)
+
+const tipEmployeeId = ref('')
+const tipEmployeeName = computed(() => posEmpleadosList.value.find((e: any) => e.id === tipEmployeeId.value)?.name ?? null)
+
+const startTip = () => {
+  selectedAppointment.value = null
+  activeSaleType.value = 'tip'
+  clearCart()
+  resetPayment()
+  tipEmployeeId.value = ''
+}
+
+const cancelTip = () => {
+  activeSaleType.value = businessStore.features.agenda ? 'appointment' : 'retail_only'
+  tipEmployeeId.value = ''
+  resetPayment()
+}
 
 interface DirectServiceItem {
   id: string
@@ -644,7 +710,7 @@ const onResize = () => { windowWidth.value = window.innerWidth }
 onMounted(() => window.addEventListener('resize', onResize))
 onUnmounted(() => window.removeEventListener('resize', onResize))
 
-const hasPaymentContext = computed(() => selectedAppointment.value !== null || activeSaleType.value === 'retail_only' || activeSaleType.value === 'direct_service')
+const hasPaymentContext = computed(() => selectedAppointment.value !== null || activeSaleType.value === 'retail_only' || activeSaleType.value === 'direct_service' || activeSaleType.value === 'tip')
 const queryError = ref<string | null>(null)
 const appointmentSearch = ref('')
 const showAddProductModal = ref(false)
@@ -925,6 +991,9 @@ const canPay = computed(() => {
   if (activeSaleType.value === 'direct_service') {
     if (directServicesList.value.length === 0) return false
   }
+  if (activeSaleType.value === 'tip') {
+    if (!tipEmployeeId.value) return false
+  }
   if (activeSaleType.value !== 'retail_only' && tipAmount.value > 0 && tipParticipants.value.length > 0 && Math.abs(tipRemaining.value) >= 0.01) return false
   if (paymentMethod.value === 'credito') {
     if (activeSaleType.value === 'retail_only') {
@@ -1141,6 +1210,23 @@ const handleProcessPaymentPrint = () => {
 }
 
 const cancelPayment = () => { showConfirmModal.value = false }
+
+const handleStandaloneTip = async () => {
+  if (!tipEmployeeId.value || tipAmount.value <= 0) return
+  const result = await processStandaloneTip({
+    employeeId: tipEmployeeId.value,
+    tipAmount: tipAmount.value,
+    tipCurrency: tipCurrency.value,
+    method: paymentMethod.value,
+    notes: paymentNotes.value,
+    exchangeRate: exchangeRate.value,
+    paymentsBreakdown: paymentsBreakdown.value,
+  })
+  if (result.success) {
+    cancelTip()
+    if (isMobile.value) mobilePaymentOpen.value = false
+  }
+}
 
 const performPrintReceipt = async (transactions?: Array<{ id: string, receipt_code?: string }>) => {
   if (!shouldPrintReceipt.value) return
