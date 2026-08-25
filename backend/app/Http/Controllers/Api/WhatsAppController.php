@@ -214,6 +214,23 @@ class WhatsAppController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Primera vez que un negocio con WhatsApp habilitado abre esta pantalla y no
+        // tiene ninguna plantilla: le dejamos una lista para usar, no una pantalla vacía.
+        if ($templates->isEmpty()) {
+            $business = Business::find($businessId);
+            $features = is_array($business?->features) ? $business->features : json_decode($business?->features ?? '[]', true);
+            if ($business && ($features['whatsapp_available'] ?? false)) {
+                $default = MessageTemplate::create([
+                    'business_id' => $businessId,
+                    'type' => 'appointment_reminder',
+                    'name' => 'Recordatorio de cita',
+                    'body' => '¡Hola {cliente}! Te recordamos tu cita de {servicio} en {negocio} el {fecha} a las {hora}. ¡Te esperamos! 😊',
+                    'is_active' => true,
+                ]);
+                $templates = collect([$default]);
+            }
+        }
+
         return response()->json($templates);
     }
 
