@@ -282,6 +282,10 @@ class GenerateReminders extends Command
                 $whatsappSent++;
                 $whatsappBizIds[$appt->business_id] = true;
             }
+
+            // Pausa entre envíos reales para no disparar ráfagas desde un mismo número
+            // — WhatsApp marca como sospechoso un lote de mensajes salientes instantáneos.
+            usleep(random_int(1_000_000, 3_000_000));
         }
 
         $this->info("[reminders:generate] {$whatsappSent} WhatsApp reminders sent.");
