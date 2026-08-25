@@ -93,10 +93,6 @@ class WhatsAppController extends Controller
     {
         $business = $this->resolveBusiness($request);
 
-        $data = $request->validate([
-            'instance_name' => ['required', 'string', 'max:100'],
-        ]);
-
         if (!$this->whatsappService->getBaseUrl($business)) {
             return response()->json(['message' => 'El servidor de WhatsApp no está configurado. Contacta al administrador.'], 422);
         }
@@ -105,7 +101,12 @@ class WhatsAppController extends Controller
             return response()->json(['message' => 'Ya existe una instancia WhatsApp. Desconéctala primero.'], 422);
         }
 
-        $success = $this->whatsappService->createInstance($business, $data['instance_name']);
+        // Derivado del business_id (único garantizado) — un solo servidor Evolution API
+        // sirve a todos los negocios de todos los entornos, así que el nombre no puede
+        // depender de texto libre del usuario o dos negocios podrían chocar.
+        $instanceName = 'biz-' . $business->id;
+
+        $success = $this->whatsappService->createInstance($business, $instanceName);
 
         if (!$success) {
             return response()->json(['message' => 'No se pudo crear la instancia'], 500);

@@ -20,18 +20,10 @@
           <!-- Not Connected / Create -->
           <div v-if="!config.whatsapp_instance_id || config.whatsapp_instance_status === 'disconnected'">
             <p class="text-sm font-medium text-text mb-2">Conectar WhatsApp</p>
-            <div class="flex items-end gap-3">
-              <div class="flex-1">
-                <label class="block text-xs font-medium text-text-secondary mb-1">Nombre de la instancia</label>
-                <input v-model="instanceName" type="text" placeholder="Ej: mi_negocio"
-                  class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
-                  :disabled="loading" />
-              </div>
-              <button @click="createInstance" :disabled="!instanceName || loading"
-                class="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-theme">
-                Crear instancia
-              </button>
-            </div>
+            <button @click="createInstance" :disabled="loading"
+              class="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-theme">
+              Generar código QR
+            </button>
           </div>
 
           <!-- QR Code -->
@@ -241,7 +233,6 @@ const config = ref<WhatsAppConfig>({
   whatsapp_api_key: null,
 })
 
-const instanceName = ref('')
 const qrCode = ref<string | null>(null)
 
 const testNumber = ref('')
@@ -289,10 +280,9 @@ const handleToggleEnabled = async (val: boolean) => {
 }
 
 const createInstance = async () => {
-  if (!instanceName.value) return
   loading.value = true
   try {
-    const result = await createWhatsAppInstance(instanceName.value)
+    const result = await createWhatsAppInstance()
     config.value.whatsapp_instance_id = result.instance_id
     config.value.whatsapp_instance_status = 'pending'
     qrCode.value = result.qr_code ?? null
