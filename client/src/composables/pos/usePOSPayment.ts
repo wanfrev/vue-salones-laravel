@@ -49,8 +49,12 @@ export function usePOSPayment() {
       { label: 'Punto de Vta (Bs)', value: 'punto_venta' as PaymentMethod, currency: 'VES' as const },
       { label: 'Otro', value: 'other' as PaymentMethod, currency: null as null }
     )
-    
-    return methods
+
+    // Grouped by currency (all USD together, then all VES together) instead of the
+    // declaration order above, which interleaves them — Array.sort is stable, so within each
+    // group the original relative order (and any conditional push order) is preserved.
+    const groupRank: Record<string, number> = { USD: 0, VES: 1 }
+    return [...methods].sort((a, b) => (groupRank[a.currency ?? ''] ?? 2) - (groupRank[b.currency ?? ''] ?? 2))
   })
 
   const mixedMethods = computed(() => paymentMethods.value.filter(m => m.value !== 'mixed'))

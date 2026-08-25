@@ -1,6 +1,7 @@
 <template>
   <FeatureGate feature="pos">
-  <header class="mb-4 lg:mb-6">
+  <div class="lg:flex lg:flex-col lg:h-[calc(100dvh-var(--header-total)-3rem)] lg:overflow-hidden">
+  <header class="mb-4 lg:mb-6 lg:shrink-0">
     <div class="grid grid-cols-1 items-center gap-3 lg:grid-cols-[1fr_auto_1fr]">
       <div class="flex items-center gap-2 text-xs text-primary">
         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
@@ -69,9 +70,9 @@
 
   <div v-if="queryError" class="mb-4 rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm text-danger">Error al cargar citas: {{ queryError }}</div>
 
-  <div class="grid grid-cols-1 gap-4 lg:grid-cols-[1.3fr_1fr] xl:grid-cols-[1.4fr_1fr] max-w-[1800px] mx-auto">
+  <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 max-w-[1800px] mx-auto lg:flex-1 lg:min-h-0">
     <!-- LEFT PANEL -->
-    <div class="min-w-0 space-y-4">
+    <div class="min-w-0 space-y-4 lg:h-full lg:overflow-y-auto lg:pr-1">
       <!-- DIRECT SERVICE PANEL -->
       <div v-if="activeSaleType === 'direct_service'" class="rounded-2xl border border-primary/30 bg-surface p-3 shadow-sm space-y-4 mb-4 sm:p-4">
         <div class="flex items-center justify-between gap-2 border-b border-border pb-3">
@@ -316,7 +317,7 @@
     </div>
 
     <!-- RIGHT PANEL (desktop & tablet landscape) -->
-    <div class="hidden lg:sticky lg:top-20 lg:block lg:h-[calc(100vh-6rem)] lg:flex lg:flex-col lg:overflow-hidden">
+    <div class="hidden lg:flex lg:flex-col lg:h-full lg:overflow-hidden">
       <POSPaymentPanel
         :selected-appointment="selectedAppointment"
         :cart="cart" :service-price="servicePrice"
@@ -359,6 +360,7 @@
         @hold-sale="holdCurrentSale"
       />
     </div>
+  </div>
   </div>
 
   <!-- MOBILE / TABLET PAYMENT DRAWER -->
