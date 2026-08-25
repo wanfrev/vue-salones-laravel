@@ -62,6 +62,11 @@ class StaffingTimesheetController
             'week_end' => 'required|date|after_or_equal:week_start',
             'entries' => 'required|array|min:1',
             'entries.*.employee_id' => 'required|uuid',
+            // Disambiguates which of an employee's roles at this company an entry is for — needed
+            // now that the same person can hold two roles at one company (see
+            // StaffingCompanyEmployeeService::assignmentFor). Optional for backward compatibility
+            // with a single-role employee, where it's unambiguous without it.
+            'entries.*.role' => 'nullable|string|max:120',
             'entries.*.total_hours' => 'required|numeric|min:0|max:168',
             'entries.*.pre_tax_deduction' => 'nullable|numeric|min:0',
             'entries.*.fixed_fees' => 'nullable|numeric|min:0',

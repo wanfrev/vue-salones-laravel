@@ -82,6 +82,10 @@ export interface Profile {
   staffing_role?: string | null
   /** Set alongside staffing_role on company-scoped responses — this employee's shift at THAT company. */
   staffing_shift?: string | null
+  /** The specific staffing_company_employees row this response row came from — a worker with two
+   *  roles at the same company appears twice in a company-scoped response, once per assignment;
+   *  this id (not `id`, which repeats) is what actually identifies one roster row. */
+  staffing_assignment_id?: string
   /** Every client company this employee is currently assigned to, each with its own role (and shift, if the company's rate card splits by shift). */
   staffing_assignments?: { company_id: string; company_name?: string | null; role: string; shift?: string | null }[]
   staffing_tax_rate?: number | null
@@ -459,6 +463,8 @@ export interface StaffingTimesheetEntry {
   business_id: string
   timesheet_id: string
   employee_id: string
+  /** Which of the employee's roles at this company these hours are for — see StaffingCompanyEmployeeService::assignmentFor. */
+  role: string | null
   total_hours: number
   pre_tax_deduction: number
   fixed_fees: number

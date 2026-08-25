@@ -371,6 +371,9 @@ export const deleteStaffingRate = async (id: string): Promise<void> => {
 
 export interface TimesheetEntryInput {
   employeeId: string
+  /** Which of the employee's roles at this company this line is for — required to tell apart
+   *  two entries for the same employee when they hold more than one role at the company. */
+  role?: string | null
   totalHours: number
   preTaxDeduction?: number
   fixedFees?: number
@@ -413,6 +416,7 @@ export const saveTimesheetWeek = async (
     week_end: weekEnd,
     entries: entries.map(e => ({
       employee_id: e.employeeId,
+      role: e.role ?? null,
       total_hours: e.totalHours,
       pre_tax_deduction: e.preTaxDeduction ?? 0,
       fixed_fees: e.fixedFees ?? 0,
