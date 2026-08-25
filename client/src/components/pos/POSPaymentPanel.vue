@@ -111,139 +111,94 @@
               </div>
             </label>
           </div>
-          <div class="space-y-2">
+          <div class="space-y-1.5">
             <div
               v-for="(item, idx) in cart"
               :key="item.productId"
-              class="rounded-lg bg-bg-secondary px-3"
-              :class="isRetailOnly ? 'py-2.5 space-y-2' : 'flex items-center justify-between gap-2 py-2'"
+              class="rounded-lg bg-bg-secondary px-2.5 py-2"
             >
-              <!-- Retail sale (current tab is "venta al detal"): two-row card — name/subtotal on
-                   top, price/qty below. Splitting into two rows gives each element real width
-                   instead of cramming name + price + bigger touch-target qty controls into one
-                   line, which used to force formatDual's combined "$X / Y Bs" string to wrap
-                   mid-number. Keyed off the active sale type, not the agenda feature flag, so a
-                   business with both agenda and retail enabled still gets this layout while
-                   actually doing a retail sale. -->
-              <template v-if="isRetailOnly">
-                <div class="flex items-center justify-between gap-2">
-                  <p class="flex-1 min-w-0 truncate text-sm sm:text-[15px] font-medium text-text">{{ item.productName }}</p>
-                  <div class="flex items-center gap-1.5 shrink-0">
-                    <div class="text-right leading-tight">
-                      <span v-if="props.areProductsIncluded" class="block text-xs font-bold text-success">Exonerado</span>
-                      <template v-else>
-                        <span class="block text-sm sm:text-base font-bold text-text">{{ formatUSD(item.subtotal) }}</span>
-                        <span class="block text-[10px] text-text-muted">{{ formatVES(item.subtotal) }}</span>
-                      </template>
-                    </div>
-                    <button
-                      @click="$emit('remove-item', idx)"
-                      class="flex h-8 w-8 items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
-                    >
-                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-                <div class="flex items-center justify-between gap-2">
-                  <div class="flex items-center gap-1.5 min-w-0">
-                    <span class="text-xs truncate" :class="props.areProductsIncluded ? 'text-text-muted line-through opacity-70' : 'text-text-muted'">{{ formatUSD(item.unitPrice) }} c/u</span>
-                    <div v-if="item.unitPrice2 != null && Number(item.unitPrice2) > 0" class="inline-flex rounded border border-border p-0.5 bg-surface shrink-0">
-                      <button
-                        type="button"
-                        @click.stop.prevent="$emit('set-price-index', idx, 1)"
-                        class="px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors cursor-pointer"
-                        :class="item.priceIndex !== 2 ? 'bg-primary text-text-inverse shadow-2xs' : 'text-text-muted hover:text-text'"
-                      >
-                        P1
-                      </button>
-                      <button
-                        type="button"
-                        @click.stop.prevent="$emit('set-price-index', idx, 2)"
-                        class="px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors cursor-pointer"
-                        :class="item.priceIndex === 2 ? 'bg-primary text-text-inverse shadow-2xs' : 'text-text-muted hover:text-text'"
-                      >
-                        P2
-                      </button>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-1.5 shrink-0">
-                    <button
-                      @click="$emit('decrement-qty', idx)"
-                      class="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-base font-bold text-text-muted hover:bg-surface hover:text-text active:scale-95 transition-theme"
-                    >
-                      −
-                    </button>
-                    <input
-                      v-if="editingIdx === idx"
-                      :ref="(el) => setQtyInputRef(el, idx)"
-                      v-model="editingValue"
-                      type="number"
-                      inputmode="numeric"
-                      min="1"
-                      :max="item.availableQty"
-                      class="w-12 h-9 rounded-lg border border-primary bg-surface text-center text-sm font-bold text-text outline-none"
-                      @blur="commitQtyEdit(idx)"
-                      @keydown.enter.prevent="commitQtyEdit(idx)"
-                      @keydown.escape="cancelQtyEdit"
-                    />
-                    <button
-                      v-else
-                      @click="startQtyEdit(idx, item.quantity)"
-                      class="w-9 h-9 rounded-lg text-sm font-bold text-text hover:bg-surface transition-theme"
-                      title="Toca para escribir la cantidad exacta"
-                    >
-                      {{ item.quantity }}
-                    </button>
-                    <button
-                      @click="$emit('increment-qty', idx)"
-                      class="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-base font-bold text-text-muted hover:bg-surface hover:text-text active:scale-95 transition-theme"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              </template>
+              <!-- One compact row per product: name, optional P1/P2 toggle, qty stepper, price
+                   ($ and Bs stacked tightly so the row height stays the same as the stepper),
+                   delete. Same layout for retail and appointment/service checkout — the P1/P2
+                   toggle is the only piece that's retail-specific (unitPrice2 only exists there). -->
+              <div class="flex items-center gap-2">
+                <p class="flex-1 min-w-0 truncate text-sm font-medium text-text">{{ item.productName }}</p>
 
-              <!-- Non-retail (appointment/service checkout): unchanged single-row layout -->
-              <template v-else>
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-text truncate">{{ item.productName }}</p>
-                  <div class="flex items-center gap-1.5 mt-0.5">
-                    <span class="text-xs" :class="props.areProductsIncluded ? 'text-text-muted line-through opacity-70' : 'text-text-muted'">{{ formatDual(item.unitPrice) }} c/u</span>
-                  </div>
+                <div
+                  v-if="isRetailOnly && item.unitPrice2 != null && Number(item.unitPrice2) > 0"
+                  class="inline-flex shrink-0 rounded border border-border p-0.5 bg-surface"
+                >
+                  <button
+                    type="button"
+                    @click.stop.prevent="$emit('set-price-index', idx, 1)"
+                    class="px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors cursor-pointer"
+                    :class="item.priceIndex !== 2 ? 'bg-primary text-text-inverse shadow-2xs' : 'text-text-muted hover:text-text'"
+                  >
+                    P1
+                  </button>
+                  <button
+                    type="button"
+                    @click.stop.prevent="$emit('set-price-index', idx, 2)"
+                    class="px-1.5 py-0.5 text-[10px] font-bold rounded transition-colors cursor-pointer"
+                    :class="item.priceIndex === 2 ? 'bg-primary text-text-inverse shadow-2xs' : 'text-text-muted hover:text-text'"
+                  >
+                    P2
+                  </button>
                 </div>
-                <div class="flex items-center gap-1">
+
+                <div class="flex items-center gap-1 shrink-0">
                   <button
                     @click="$emit('decrement-qty', idx)"
-                    class="flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-text-muted hover:bg-surface hover:text-text transition-theme"
+                    class="flex h-7 w-7 items-center justify-center rounded-md border border-border text-sm font-bold text-text-muted hover:bg-surface hover:text-text active:scale-95 transition-theme"
                   >
                     −
                   </button>
-                  <span class="w-6 text-center text-sm font-semibold text-text">{{ item.quantity }}</span>
+                  <input
+                    v-if="editingIdx === idx"
+                    :ref="(el) => setQtyInputRef(el, idx)"
+                    v-model="editingValue"
+                    type="number"
+                    inputmode="numeric"
+                    min="1"
+                    :max="item.availableQty"
+                    class="w-9 h-7 rounded-md border border-primary bg-surface text-center text-xs font-bold text-text outline-none"
+                    @blur="commitQtyEdit(idx)"
+                    @keydown.enter.prevent="commitQtyEdit(idx)"
+                    @keydown.escape="cancelQtyEdit"
+                  />
+                  <button
+                    v-else
+                    @click="startQtyEdit(idx, item.quantity)"
+                    class="w-7 h-7 rounded-md text-sm font-bold text-text hover:bg-surface transition-theme"
+                    title="Toca para escribir la cantidad exacta"
+                  >
+                    {{ item.quantity }}
+                  </button>
                   <button
                     @click="$emit('increment-qty', idx)"
-                    class="flex h-6 w-6 items-center justify-center rounded text-xs font-bold text-text-muted hover:bg-surface hover:text-text transition-theme"
+                    class="flex h-7 w-7 items-center justify-center rounded-md border border-border text-sm font-bold text-text-muted hover:bg-surface hover:text-text active:scale-95 transition-theme"
                   >
                     +
                   </button>
                 </div>
-                <div class="flex items-center gap-2">
-                  <div class="text-right w-16">
-                    <span v-if="props.areProductsIncluded" class="block text-xs font-bold text-success">Exonerado</span>
-                    <span v-else class="text-sm font-semibold text-text">{{ formatDual(item.subtotal) }}</span>
-                  </div>
-                  <button
-                    @click="$emit('remove-item', idx)"
-                    class="flex h-5 w-5 items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
-                  >
-                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+
+                <div class="text-right leading-tight shrink-0 w-[76px]">
+                  <span v-if="props.areProductsIncluded" class="block text-xs font-bold text-success">Exonerado</span>
+                  <template v-else>
+                    <span class="block text-sm font-bold text-text">{{ formatUSD(item.subtotal) }}</span>
+                    <span class="block text-[10px] text-text-muted">{{ formatVES(item.subtotal) }}</span>
+                  </template>
                 </div>
-              </template>
+
+                <button
+                  @click="$emit('remove-item', idx)"
+                  class="flex h-7 w-7 shrink-0 items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
+                >
+                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -58,7 +58,7 @@
           @click="$emit('add-product', { ...product, override_price: product.unit_price })"
           role="button"
           tabindex="0"
-          class="relative flex flex-col items-start p-4 sm:p-5 rounded-2xl border-2 transition duration-150 text-left bg-surface h-full min-h-[152px] sm:min-h-[168px] group active:scale-[0.97]"
+          class="relative flex flex-col items-start p-4 sm:p-5 rounded-2xl border-2 transition duration-150 text-left bg-surface h-full min-h-[152px] sm:min-h-[168px] group"
           :class="[
             Number(product.available_qty ?? 0) > 0
               ? 'border-border hover:border-primary/60 hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-0.5 cursor-pointer'
