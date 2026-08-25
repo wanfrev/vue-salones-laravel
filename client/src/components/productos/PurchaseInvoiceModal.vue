@@ -27,11 +27,18 @@
       <div>
         <div class="mb-2 flex items-center justify-between">
           <p class="text-sm font-semibold text-text">Mercancía</p>
-          <button type="button" @click="addLine"
-            class="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs font-bold text-primary transition-theme hover:bg-primary/20">
-            <AddCircleIcon class="h-3.5 w-3.5" />
-            Agregar línea
-          </button>
+          <div class="flex items-center gap-2">
+            <button type="button" @click="addNewProductLine"
+              class="flex items-center gap-1.5 rounded-lg border border-primary/30 bg-primary/10 px-2.5 py-1.5 text-xs font-bold text-primary transition-theme hover:bg-primary/20">
+              <AddCircleIcon class="h-3.5 w-3.5" />
+              Crear producto nuevo
+            </button>
+            <button type="button" @click="addLine"
+              class="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs font-bold text-text-secondary transition-theme hover:bg-bg-secondary">
+              <AddCircleIcon class="h-3.5 w-3.5" />
+              Agregar línea
+            </button>
+          </div>
         </div>
 
         <div class="space-y-3">
@@ -39,7 +46,8 @@
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-12 sm:items-end">
               <div class="sm:col-span-4">
                 <FormSearchSelect
-                  v-model="line.productId"
+                  :model-value="line.productId"
+                  @update:model-value="onProductSelect(line, $event as string)"
                   label="Producto"
                   placeholder="Buscar producto..."
                   :options="productOptions"
@@ -181,9 +189,25 @@ watch(isOpen, (open) => {
 })
 
 const addLine = () => { lines.value.push(emptyLine()) }
+const addNewProductLine = () => {
+  const line = emptyLine()
+  line.productId = NEW_PRODUCT_VALUE
+  lines.value.push(line)
+}
 const removeLine = (idx: number) => {
   if (lines.value.length === 1) return
   lines.value.splice(idx, 1)
+}
+
+// Selecting a product prefills its current cost so the admin isn't retyping it every time — but
+// it stays a plain editable number afterward, since this invoice's actual cost can differ from
+// the product's last recorded one.
+const onProductSelect = (line: LineDraft, value: string) => {
+  line.productId = value
+  if (value && value !== NEW_PRODUCT_VALUE) {
+    const product = (productos.value ?? []).find(p => p.id === value)
+    if (product) line.unitCost = product.unitCost
+  }
 }
 
 const lineSubtotal = (line: LineDraft) => (Number(line.quantity) || 0) * (Number(line.unitCost) || 0)
