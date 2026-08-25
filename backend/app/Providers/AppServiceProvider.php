@@ -34,8 +34,9 @@ class AppServiceProvider extends ServiceProvider
                 : Limit::perMinute(5)->by($request->ip());
         });
 
-        Gate::define('viewPulse', function ($user) {
-            return $user?->profile?->role === 'superadmin';
-        });
+        // La app autentica con Bearer tokens en localStorage, que una navegación de
+        // navegador normal a /pulse nunca envía — Auth::user() siempre es null aquí.
+        // El control de acceso real es el auth_basic de nginx delante de esta ruta.
+        Gate::define('viewPulse', fn () => true);
     }
 }
