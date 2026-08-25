@@ -384,10 +384,25 @@ export interface TimesheetEntryInput {
   adjustment?: number
 }
 
+/**
+ * `projectId` has three distinct meanings the query string must keep apart:
+ *  - a real id: only that project's assignments.
+ *  - `null` or `''` (useTimesheets always passes one of these — the "General (Sin proyecto)"
+ *    tab's project dropdown, unselected or explicitly chosen): only General assignments, i.e.
+ *    `project_id IS NULL`. Sending no query param at all here would instead return every
+ *    project's assignments merged together — the same employee assigned to three client
+ *    projects would render three "duplicate" rows on a tab that's supposed to show only the
+ *    project-less ones.
+ *  - omitted entirely (RateCardEditor's headcount, which wants every assignment regardless of
+ *    project): no query param — this is the only caller that should see the unscoped list.
+ */
 export const listCompanyEmployees = (_businessId: string, companyId: string, projectId?: string | null): Promise<Profile[]> => {
-  const url = projectId
-    ? `/staffing-companies/${companyId}/employees?project_id=${projectId}`
-    : `/staffing-companies/${companyId}/employees`
+  let url = `/staffing-companies/${companyId}/employees`
+  if (projectId) {
+    url += `?project_id=${projectId}`
+  } else if (projectId !== undefined) {
+    url += `?project_id=`
+  }
   return apiRequest<Profile[]>('GET', url)
 }
 
