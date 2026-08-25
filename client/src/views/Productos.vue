@@ -92,6 +92,7 @@
       @adjust="safeOpenAdjustModal"
       @deactivate="safeOpenDeleteModal"
       @delete="safeOpenPermanentDeleteModal"
+      @variants="safeOpenVariantsModal"
     />
   </template>
 
@@ -245,6 +246,7 @@
 
   <InventorySettingsModal ref="settingsModalRef" />
   <PurchaseInvoiceModal ref="purchaseInvoiceModalRef" />
+  <VariantesManagerModal ref="variantsModalRef" />
   </FeatureGate>
 </template>
 
@@ -263,6 +265,7 @@ import ProductStockAdjustModal from '../components/productos/ProductStockAdjustM
 import ProductGrid from '../components/productos/ProductGrid.vue'
 import InventorySettingsModal from '../components/productos/InventorySettingsModal.vue'
 import PurchaseInvoiceModal from '../components/productos/PurchaseInvoiceModal.vue'
+import VariantesManagerModal from '../components/modals/VariantesManagerModal.vue'
 import { ModalBase, FeatureGate } from '../components/common'
 import { BoxIcon, AddCircleIcon, MagnifierIcon, SettingsIcon, BillListIcon } from '@solar-icons/vue/linear'
 import { hasRetailModule } from '../config/niches'
@@ -277,6 +280,7 @@ const isTienda = computed(() => hasRetailModule(businessStore.business?.niche_ty
 
 const settingsModalRef = ref<InstanceType<typeof InventorySettingsModal> | null>(null)
 const purchaseInvoiceModalRef = ref<InstanceType<typeof PurchaseInvoiceModal> | null>(null)
+const variantsModalRef = ref<InstanceType<typeof VariantesManagerModal> | null>(null)
 
 const safeOpenSettingsModal = () => {
   if (disableInventoryEdit.value) return
@@ -301,6 +305,11 @@ const safeOpenDeleteModal = (producto: any) => {
 const safeOpenPermanentDeleteModal = (producto: any) => {
   if (disableInventoryEdit.value) return
   openPermanentDeleteModal(producto)
+}
+
+const safeOpenVariantsModal = (producto: any) => {
+  if (disableInventoryEdit.value) return
+  variantsModalRef.value?.open(producto)
 }
 
 const {

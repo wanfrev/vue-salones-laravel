@@ -115,7 +115,9 @@
                   <tr>
                     <td class="px-3 py-2.5">
                       <p class="font-medium text-text">{{ employee.full_name }}</p>
-                      <p class="text-xs text-text-muted">{{ employee.staffing_role || 'Sin rol' }}</p>
+                      <p class="text-xs text-text-muted">
+                        {{ employee.staffing_role || 'Sin rol' }}<template v-if="employee.staffing_shift"> · {{ shiftLabel(employee.staffing_shift) }}</template>
+                      </p>
                     </td>
                     <td class="px-3 py-2">
                     <input v-model.number="grid[rowKey(employee)].totalHours" type="number" min="0" max="168" step="0.01"
@@ -237,6 +239,7 @@ import { useTimesheets } from '../../composables/staffing/useTimesheets'
 import { useBilling } from '../../composables/staffing/useBilling'
 import {
   getStaffingInvoice, listStaffingCompanies, listStaffingRates, getStaffingProjects, staffingCompanyKeys, staffingRateKeys,
+  SHIFT_OPTIONS,
 } from '../../services/staffing/staffingService'
 import type { StaffingCompanyRow, StaffingRateRow, TimesheetEntryInput } from '../../services/staffing/staffingService'
 import { FormSearchSelect } from '../../components/forms'
@@ -361,12 +364,16 @@ const isReadOnly = computed(() => !!currentWeek.value && currentWeek.value.statu
 type GridRow = { totalHours: number; preTaxDeduction: number; fixedFees: number; adjustment: number }
 type RosterEmployee = Profile
 
-/** A worker can hold two roles at the same company — they then appear twice in the roster, once
- *  per assignment, with the same `id` but a different `staffing_role`. Every grid/lookup below is
- *  keyed by this composite instead of the bare id, so both rows get their own hours/rate/total
- *  instead of silently colliding into one. */
-const rowKey = (employee: { id: string; staffing_role?: string | null }): string =>
-  `${employee.id}::${employee.staffing_role ?? ''}`
+/** A worker can hold two roles at the same company, and even two assignments with the *same*
+ *  role that differ only by shift (e.g. day/night) — they then appear twice (or more) in the
+ *  roster, once per assignment, with the same `id` but a different `staffing_role`/`staffing_shift`.
+ *  Every grid/lookup below is keyed by this composite instead of the bare id, so each assignment
+ *  gets its own hours/rate/total instead of silently colliding into one. */
+const rowKey = (employee: { id: string; staffing_role?: string | null; staffing_shift?: string | null }): string =>
+  `${employee.id}::${employee.staffing_role ?? ''}::${employee.staffing_shift ?? ''}`
+
+const shiftLabel = (shift: string | null | undefined): string =>
+  shift ? (SHIFT_OPTIONS.find(o => o.value === shift)?.label ?? shift) : ''
 
 // A plain ref, replaced wholesale on every week/roster change (see rebuildGrid) rather than a
 // reactive() object mutated key-by-key — a single assignment is unambiguous to Vue's reactivity,
@@ -381,7 +388,7 @@ const emptyRow = (): GridRow => ({ totalHours: 0, preTaxDeduction: 0, fixedFees:
 const rebuildGrid = () => {
   const employees = timesheets.employees.value ?? []
   const savedEntries = currentWeek.value?.entries ?? []
-  const byKey = new Map(savedEntries.map(e => [`${e.employee_id}::${e.role ?? ''}`, e]))
+  const byKey = new Map(savedEntries.map(e => [`${e.employee_id}::${e.role ?? ''}::${e.shift ?? ''}`, e]))
 
   const next: Record<string, GridRow> = {}
   for (const employee of employees) {
@@ -401,11 +408,15 @@ const rebuildGrid = () => {
 watch([() => timesheets.employees.value, weekStartInput, currentWeek], rebuildGrid, { immediate: true })
 
 const resultFor = (employee: RosterEmployee): StaffingTimesheetEntry | undefined =>
-  currentWeek.value?.entries.find(e => e.employee_id === employee.id && (e.role ?? '') === (employee.staffing_role ?? ''))
+  currentWeek.value?.entries.find(e =>
+    e.employee_id === employee.id
+    && (e.role ?? '') === (employee.staffing_role ?? '')
+    && (e.shift ?? '') === (employee.staffing_shift ?? ''),
+  )
 
 const rateFor = (employee: RosterEmployee): StaffingRateRow | undefined => {
   if (!employee?.staffing_role) return undefined
-  return (rates.value ?? []).find(r => r.role === employee.staffing_role && r.active)
+  return (rates.value ?? []).find(r => r.role === employee.staffing_role && r.active && r.shift === (employee.staffing_shift ?? null))
 }
 
 interface DisplayRow {
@@ -584,6 +595,7 @@ const handleSave = async () => {
     return {
       employeeId: employee.id,
       role: employee.staffing_role ?? null,
+      shift: employee.staffing_shift ?? null,
       totalHours: row.totalHours || 0,
       preTaxDeduction: row.preTaxDeduction || 0,
       fixedFees: row.fixedFees || 0,
@@ -622,7 +634,7 @@ const handlePrintPayroll = () => {
       const gridRow = grid.value[rowKey(employee)]
       return {
         employeeName: employee.full_name,
-        role: employee.staffing_role || '',
+        role: [employee.staffing_role, shiftLabel(employee.staffing_shift)].filter(Boolean).join(' · '),
         totalHours: gridRow?.totalHours || 0,
         regularHours: row.regularHours,
         payRate: row.payRate,

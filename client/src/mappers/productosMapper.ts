@@ -1,5 +1,5 @@
 import type { Product, ProductCategory } from '../types/database'
-import type { Producto, ProductoFormData } from '../types/producto'
+import type { Producto, ProductoFormData, ProductAttribute, ProductVariant } from '../types/producto'
 
 export const mapProductToProducto = (
   product: Product,
@@ -46,4 +46,31 @@ export const mapProductoFormToProductInsert = (
 export const mapCategoryToOption = (cat: ProductCategory) => ({
   value: cat.id,
   label: cat.name,
+})
+
+export const mapApiAttribute = (raw: any): ProductAttribute => ({
+  id: raw.id,
+  name: raw.name,
+  values: (raw.values ?? []).map((v: any) => ({
+    id: v.id,
+    attributeId: v.attribute_id,
+    value: v.value,
+  })),
+})
+
+export const mapApiVariant = (raw: any): ProductVariant => ({
+  id: raw.id,
+  productId: raw.product_id,
+  name: raw.name,
+  sku: raw.sku ?? null,
+  barcode: raw.barcode ?? null,
+  unitCost: Number(raw.unit_cost ?? 0),
+  unitPrice: Number(raw.unit_price ?? 0),
+  active: !!raw.active,
+  availableQty: Number(raw.available_qty ?? 0),
+  attributeValues: (raw.attribute_values ?? []).map((v: any) => ({
+    id: v.id,
+    attributeId: v.attribute_id,
+    value: v.value,
+  })),
 })

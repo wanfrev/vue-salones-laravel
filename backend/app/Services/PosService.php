@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\Credit;
 use App\Models\DailyReport;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\Transaction;
 use App\Models\Client;
 use App\Support\NicheRegistry;
@@ -90,10 +91,38 @@ class PosService
 
         $stockMap = $stockQuery->get()->keyBy('product_id');
 
-        return $products->map(function (Product $product) use ($stockMap) {
+        $variantStockQuery = DB::table('inventory_stock')
+            ->select('variant_id', DB::raw('SUM(quantity) as total_qty'), DB::raw('COALESCE(SUM(reserved_qty), 0) as total_reserved'))
+            ->where('business_id', $businessId)
+            ->whereIn('product_id', $productIds)
+            ->whereNotNull('variant_id')
+            ->groupBy('variant_id');
+
+        if ($branchId) {
+            $variantStockQuery->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
+
+        $variantStockMap = $variantStockQuery->get()->keyBy('variant_id');
+
+        $variants = ProductVariant::with('attributeValues.attribute')
+            ->whereIn('product_id', $productIds)
+            ->where('active', true)
+            ->get()
+            ->groupBy('product_id');
+
+        return $products->map(function (Product $product) use ($stockMap, $variantStockMap, $variants) {
             $stock = $stockMap->get($product->id);
             $available = $stock ? max(0, (float) $stock->total_qty - (float) $stock->total_reserved) : 0;
             $product->available_qty = $available;
+
+            $product->variants = ($variants->get($product->id) ?? collect())->map(function (ProductVariant $variant) use ($variantStockMap) {
+                $vStock = $variantStockMap->get($variant->id);
+                $variant->available_qty = $vStock ? max(0, (float) $vStock->total_qty - (float) $vStock->total_reserved) : 0;
+                return $variant;
+            })->values();
+
             return $product;
         });
     }

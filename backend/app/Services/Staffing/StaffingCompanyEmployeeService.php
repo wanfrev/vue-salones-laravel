@@ -107,16 +107,20 @@ class StaffingCompanyEmployeeService
     /**
      * The exact assignment an hours entry belongs to. `$role` disambiguates when the employee
      * holds more than one role at this company/project — pass it whenever the caller already
-     * knows which one (e.g. a timesheet entry that recorded its role at save time). Without it,
-     * this returns the first matching row, same fallback `roleForEmployeeAtCompany` used before
-     * multi-role-per-company existed.
+     * knows which one (e.g. a timesheet entry that recorded its role at save time). `$shift`
+     * disambiguates further: two assignments can share the same role and differ only by shift
+     * (see 2026_08_24_000001_widen_staffing_company_employees_unique_constraint) — without it,
+     * `->first()` picks an arbitrary one of the two, silently pointing an hours entry at the
+     * wrong assignment's rate. Both are optional so a single-role, single-shift employee stays
+     * unambiguous without the caller having to pass them.
      */
-    public function assignmentFor(string $employeeId, string $companyId, ?string $projectId, ?string $role): ?StaffingCompanyEmployee
+    public function assignmentFor(string $employeeId, string $companyId, ?string $projectId, ?string $role, ?string $shift = null): ?StaffingCompanyEmployee
     {
         return StaffingCompanyEmployee::where('employee_id', $employeeId)
             ->where('company_id', $companyId)
             ->when($projectId, fn ($q) => $q->where('project_id', $projectId))
             ->when($role !== null, fn ($q) => $q->where('role', $role))
+            ->when($shift !== null, fn ($q) => $q->where('shift', $shift))
             ->first();
     }
 

@@ -55,7 +55,7 @@
         <div
           v-for="product in filteredProducts"
           :key="product.id"
-          @click="$emit('add-product', { ...product, override_price: product.unit_price })"
+          @click="onProductClick(product)"
           role="button"
           tabindex="0"
           class="relative flex flex-col items-start p-4 sm:p-5 rounded-2xl border-2 transition duration-150 text-left bg-surface h-full min-h-[152px] sm:min-h-[168px] group"
@@ -115,7 +115,7 @@
                     <span class="text-[9px] text-primary/50 leading-tight truncate max-w-full">{{ formatVES(product.unit_price) }}</span>
                   </div>
                   <button
-                    @click.stop="$emit('add-product', { ...product, override_price: product.unit_price_2 })"
+                    @click.stop="onProductClick(product, 2)"
                     :disabled="Number(product.available_qty ?? 0) <= 0"
                     class="flex flex-col items-center justify-center gap-0.5 bg-surface hover:bg-bg-secondary border border-border rounded-lg py-2 px-1 transition-colors disabled:opacity-50 min-w-0"
                   >
@@ -127,6 +127,34 @@
               </template>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Variant picker: shown when the clicked product has active variants -->
+    <div v-if="variantPickerProduct" class="fixed inset-0 z-[70] flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center sm:p-4" @click.self="variantPickerProduct = null">
+      <div class="flex max-h-[70vh] w-full flex-col rounded-t-2xl bg-surface shadow-2xl sm:max-w-sm sm:rounded-2xl">
+        <div class="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
+          <h3 class="text-sm font-bold text-text">{{ variantPickerProduct.name }}</h3>
+          <button @click="variantPickerProduct = null" class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+        <div class="min-h-0 flex-1 overflow-y-auto p-2">
+          <button
+            v-for="variant in variantPickerProduct.variants"
+            :key="variant.id"
+            type="button"
+            :disabled="Number(variant.available_qty ?? 0) <= 0"
+            class="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-40"
+            @click="selectVariant(variantPickerProduct, variant)"
+          >
+            <span class="text-sm font-medium text-text">{{ variant.name }}</span>
+            <span class="flex items-center gap-2 text-xs">
+              <span :class="Number(variant.available_qty ?? 0) > 5 ? 'text-success' : 'text-warning'">Stock: {{ Number(variant.available_qty ?? 0) }}</span>
+              <span class="font-semibold text-primary">{{ formatUSD(variant.unit_price) }}</span>
+            </span>
+          </button>
         </div>
       </div>
     </div>
@@ -180,6 +208,29 @@ const filteredProducts = computed(() => {
 
 const cartQty = (productId: string): number => props.cartQuantities?.[productId] ?? 0
 
+const variantPickerProduct = ref<any | null>(null)
+
+const onProductClick = (product: any, priceIndex: 1 | 2 = 1) => {
+  if (Number(product.available_qty ?? 0) <= 0) return
+  if (Array.isArray(product.variants) && product.variants.length > 0) {
+    variantPickerProduct.value = product
+    return
+  }
+  const overridePrice = priceIndex === 2 ? product.unit_price_2 : product.unit_price
+  emit('add-product', { ...product, override_price: overridePrice })
+}
+
+const selectVariant = (product: any, variant: any) => {
+  if (Number(variant.available_qty ?? 0) <= 0) return
+  emit('add-product', {
+    ...product,
+    available_qty: variant.available_qty,
+    override_price: variant.unit_price,
+    variant,
+  })
+  variantPickerProduct.value = null
+}
+
 /**
  * Scanner-gun workflow: a barcode scanner types the code then sends Enter. An exact
  * sku/barcode match adds and clears immediately so the next scan can start right away.
@@ -188,13 +239,26 @@ const cartQty = (productId: string): number => props.cartQuantities?.[productId]
 const onSearchEnter = () => {
   const q = search.value.trim().toLowerCase()
   if (!q) return
+
+  for (const p of props.products) {
+    const variant = (p.variants ?? []).find((v: any) =>
+      (v.barcode && String(v.barcode).toLowerCase() === q) ||
+      (v.sku && String(v.sku).toLowerCase() === q)
+    )
+    if (variant) {
+      selectVariant(p, variant)
+      search.value = ''
+      return
+    }
+  }
+
   const exact = props.products.find((p: any) =>
     (p.barcode && String(p.barcode).toLowerCase() === q) ||
     (p.sku && String(p.sku).toLowerCase() === q)
   )
   const target = exact ?? (filteredProducts.value.length === 1 ? filteredProducts.value[0] : null)
   if (!target || Number(target.available_qty ?? 0) <= 0) return
-  emit('add-product', { ...target, override_price: target.unit_price })
+  onProductClick(target)
   search.value = ''
 }
 

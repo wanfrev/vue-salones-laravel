@@ -33,10 +33,37 @@ export interface ProductoFormData {
   initialStock?: number
 }
 
-export interface ProductVariantFormData {
+export interface ProductAttributeValue {
+  id: string
+  attributeId: string
+  value: string
+}
+
+export interface ProductAttribute {
+  id: string
   name: string
-  sku: string
+  values: ProductAttributeValue[]
+}
+
+export interface ProductVariant {
+  id: string
+  productId: string
+  name: string
+  sku: string | null
+  barcode: string | null
   unitCost: number
   unitPrice: number
   active: boolean
+  availableQty: number
+  attributeValues: ProductAttributeValue[]
+}
+
+export interface ProductVariantFormData {
+  sku: string
+  barcode: string
+  unitCost: number
+  unitPrice: number
+  active: boolean
+  initialStock: number
+  attributeValueIds: string[]
 }

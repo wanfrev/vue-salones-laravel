@@ -67,6 +67,9 @@ class StaffingTimesheetController
             // StaffingCompanyEmployeeService::assignmentFor). Optional for backward compatibility
             // with a single-role employee, where it's unambiguous without it.
             'entries.*.role' => 'nullable|string|max:120',
+            // Disambiguates further when the employee holds two assignments with the same role
+            // that differ only by shift (see StaffingCompanyEmployeeService::assignmentFor).
+            'entries.*.shift' => 'nullable|string|max:60',
             'entries.*.total_hours' => 'required|numeric|min:0|max:168',
             'entries.*.pre_tax_deduction' => 'nullable|numeric|min:0',
             'entries.*.fixed_fees' => 'nullable|numeric|min:0',

@@ -81,12 +81,14 @@ export async function createInitialStock(
   locationId: string,
   quantity: number,
   branchId?: string | null,
+  variantId?: string | null,
 ): Promise<void> {
   const { error } = await db.from("inventory_stock").insert({
     business_id: businessId,
     branch_id: branchId ?? null,
     location_id: locationId,
     product_id: productId,
+    variant_id: variantId ?? null,
     quantity: Math.max(0, Number(quantity)),
   });
 
