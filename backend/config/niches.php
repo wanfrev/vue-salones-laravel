@@ -53,22 +53,22 @@ return [
     'niches' => [
         'salon' => [
             'status' => 'creatable',
-            'capabilities' => [],
+            'capabilities' => ['pos.standalone_tips'],
             'feature_defaults' => [],
         ],
         'barberia' => [
             'status' => 'creatable',
-            'capabilities' => [],
+            'capabilities' => ['pos.standalone_tips'],
             'feature_defaults' => [],
         ],
         'spa' => [
             'status' => 'creatable',
-            'capabilities' => [],
+            'capabilities' => ['pos.standalone_tips'],
             'feature_defaults' => [],
         ],
         'mixto' => [
             'status' => 'creatable',
-            'capabilities' => [],
+            'capabilities' => ['pos.standalone_tips'],
             'feature_defaults' => [],
         ],
         'dog_spa' => [
@@ -85,12 +85,12 @@ return [
         ],
         'nail_bar' => [
             'status' => 'creatable',
-            'capabilities' => [],
+            'capabilities' => ['pos.standalone_tips'],
             'feature_defaults' => [],
         ],
         'centro_estetico' => [
             'status' => 'creatable',
-            'capabilities' => [],
+            'capabilities' => ['pos.standalone_tips'],
             'feature_defaults' => [],
         ],
         'tienda' => [

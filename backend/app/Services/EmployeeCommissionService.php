@@ -60,6 +60,38 @@ class EmployeeCommissionService
         return $query->get();
     }
 
+    /**
+     * Standalone tips given directly to this employee at POS, with no appointment/service at
+     * all (transactions.employee_id, not the usual appointments.employee_id join — see
+     * PosService::recordStandaloneTip). Treated exactly like an appointment tip for payroll:
+     * it's added to `tips`/`tips_bs` wherever those are summed, payable on the next nómina run.
+     */
+    private function getStandaloneTips(
+        string $businessId,
+        string $employeeId,
+        ?string $branchId,
+        ?string $startDate,
+        ?string $endDate,
+    ): Collection {
+        $query = DB::table('transactions')
+            ->where('business_id', $businessId)
+            ->where('employee_id', $employeeId)
+            ->whereNull('appointment_id')
+            ->where('tip_amount', '>', 0)
+            ->select('id', 'paid_at', 'tip_amount', 'tip_currency', 'exchange_rate_used', 'notes');
+
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
+        if ($startDate && $endDate) {
+            $query->whereBetween('paid_at', [$startDate, $this->normalizeEndDate($endDate)]);
+        }
+
+        return $query->get();
+    }
+
     private function isPayrollCurrencyBreakdownEnabled(string $businessId): bool
     {
         $business = Business::find($businessId);
@@ -352,20 +384,63 @@ class EmployeeCommissionService
             $productByEmployee = $productQuery->get()->keyBy('employee_id');
         }
 
-        $employeeIds = $earnings->keys()->merge($productByEmployee->keys())->unique();
+        // Standalone tips (no appointment at all — transactions.employee_id, see
+        // getStandaloneTips) per employee. Same reasoning as $productByEmployee: an employee
+        // with only standalone tips and no appointments in the period would never appear in
+        // $earnings otherwise.
+        $tipsByEmployee = collect();
+        if ($startDate && $endDate) {
+            $tipsQuery = DB::table('transactions')
+                ->join('profiles', 'transactions.employee_id', '=', 'profiles.id')
+                ->where('transactions.business_id', $businessId)
+                ->whereNull('transactions.appointment_id')
+                ->where('transactions.tip_amount', '>', 0)
+                ->whereBetween('transactions.paid_at', [$startDate, $this->normalizeEndDate($endDate)])
+                ->select(
+                    'profiles.id as employee_id',
+                    'profiles.full_name as employee_name',
+                    'profiles.pay_type',
+                    'profiles.pay_percentage',
+                    'profiles.base_salary',
+                    'profiles.employee_ves_rate',
+                    DB::raw('COALESCE(SUM(transactions.tip_amount), 0) as tips'),
+                    DB::raw('COALESCE(SUM(transactions.tip_amount * transactions.exchange_rate_used), 0) as tips_bs'),
+                    DB::raw("COALESCE(SUM(CASE WHEN transactions.tip_currency = 'USD' THEN transactions.tip_amount ELSE 0 END), 0) as tips_usd"),
+                    DB::raw("COALESCE(SUM(CASE WHEN transactions.tip_currency = 'VES' THEN transactions.tip_amount * transactions.exchange_rate_used ELSE 0 END), 0) as tips_ves"),
+                    DB::raw("COALESCE(SUM(CASE WHEN transactions.tip_currency IS NULL OR transactions.tip_currency NOT IN ('USD', 'VES') THEN transactions.tip_amount ELSE 0 END), 0) as tips_unspecified"),
+                )
+                ->groupBy(
+                    'profiles.id', 'profiles.full_name', 'profiles.pay_type', 'profiles.pay_percentage',
+                    'profiles.base_salary', 'profiles.employee_ves_rate',
+                );
 
-        return $employeeIds->map(function ($employeeId) use ($earnings, $productByEmployee, $paid, $businessId) {
+            if ($branchId) {
+                $tipsQuery->where(function ($q) use ($branchId) {
+                    $q->whereNull('transactions.branch_id')->orWhere('transactions.branch_id', $branchId);
+                });
+            }
+
+            $tipsByEmployee = $tipsQuery->get()->keyBy('employee_id');
+        }
+
+        $employeeIds = $earnings->keys()->merge($productByEmployee->keys())->merge($tipsByEmployee->keys())->unique();
+
+        return $employeeIds->map(function ($employeeId) use ($earnings, $productByEmployee, $tipsByEmployee, $paid, $businessId) {
             $row = $earnings->get($employeeId);
             $productRow = $productByEmployee->get($employeeId);
+            $tipsRow = $tipsByEmployee->get($employeeId);
 
             $p = $paid->get($employeeId);
             $totalPaid = (float) ($p->paid ?? 0);
             $totalConsumed = (float) ($p->consumed ?? 0);
             $commission = (float) ($row?->commission ?? 0);
             $commissionBs = (float) ($row?->commission_bs ?? 0);
-            $tips = (float) ($row?->tips ?? 0);
-            $tipsBs = (float) ($row?->tips_bs ?? 0);
-            $base = (float) ($row?->base_salary ?? $productRow?->base_salary ?? 0);
+            $tips = (float) ($row?->tips ?? 0) + (float) ($tipsRow?->tips ?? 0);
+            $tipsBs = (float) ($row?->tips_bs ?? 0) + (float) ($tipsRow?->tips_bs ?? 0);
+            $tipsUsd = (float) ($row?->tips_usd ?? 0) + (float) ($tipsRow?->tips_usd ?? 0);
+            $tipsVes = (float) ($row?->tips_ves ?? 0) + (float) ($tipsRow?->tips_ves ?? 0);
+            $tipsUnspecified = (float) ($row?->tips_unspecified ?? 0) + (float) ($tipsRow?->tips_unspecified ?? 0);
+            $base = (float) ($row?->base_salary ?? $productRow?->base_salary ?? $tipsRow?->base_salary ?? 0);
 
             if ($productRow) {
                 $productPct = (float) ($productRow->product_commission_percentage ?? 0);
@@ -379,15 +454,15 @@ class EmployeeCommissionService
             $totalEarnedBs = $commissionBs + $tipsBs;
             $pendingBsEstimated = $totalEarned > 0 ? $pending * ($totalEarnedBs / $totalEarned) : 0;
 
-            $profileRate = (float) ($row?->employee_ves_rate ?? $productRow?->employee_ves_rate ?? 0);
+            $profileRate = (float) ($row?->employee_ves_rate ?? $productRow?->employee_ves_rate ?? $tipsRow?->employee_ves_rate ?? 0);
             $businessRate = (float) (Business::where('id', $businessId)->value('employee_ves_rate') ?? 0);
             $employeeVesRate = $profileRate > 0 ? $profileRate : $businessRate;
 
             return [
                 'employee_id' => $employeeId,
-                'employee_name' => $row?->employee_name ?? $productRow?->employee_name ?? '',
-                'pay_type' => $row?->pay_type ?? $productRow?->pay_type ?? null,
-                'pay_percentage' => (float) ($row?->pay_percentage ?? $productRow?->pay_percentage ?? 0),
+                'employee_name' => $row?->employee_name ?? $productRow?->employee_name ?? $tipsRow?->employee_name ?? '',
+                'pay_type' => $row?->pay_type ?? $productRow?->pay_type ?? $tipsRow?->pay_type ?? null,
+                'pay_percentage' => (float) ($row?->pay_percentage ?? $productRow?->pay_percentage ?? $tipsRow?->pay_percentage ?? 0),
                 'base_salary' => $base,
                 'commission' => round($commission, 2),
                 'tips' => round($tips, 2),
@@ -400,9 +475,9 @@ class EmployeeCommissionService
                 'tips_bs' => round($tipsBs, 2),
                 'total_earned_bs' => round($totalEarnedBs, 2),
                 'pending_bs_estimated' => round($pendingBsEstimated, 2),
-                'tips_usd' => round((float) ($row?->tips_usd ?? 0), 2),
-                'tips_ves' => round((float) ($row?->tips_ves ?? 0), 2),
-                'tips_unspecified' => round((float) ($row?->tips_unspecified ?? 0), 2),
+                'tips_usd' => round($tipsUsd, 2),
+                'tips_ves' => round($tipsVes, 2),
+                'tips_unspecified' => round($tipsUnspecified, 2),
             ];
         })->values();
     }
@@ -492,6 +567,21 @@ class EmployeeCommissionService
             $productCommissionBs = round($productSales->sum(fn($row) => $row->total_amount * ($row->exchange_rate_used ?? 1)) * $productPct / 100, 2);
             $commission += $productCommission;
             $commissionBs += $productCommissionBs;
+        }
+
+        $standaloneTips = $this->getStandaloneTips($businessId, $employeeId, $branchId, $startDate, $endDate);
+        foreach ($standaloneTips as $tipRow) {
+            $tipValue = (float) $tipRow->tip_amount;
+            $tipRate = (float) ($tipRow->exchange_rate_used ?? 1);
+            $tips += $tipValue;
+            $tipsBs += $tipValue * $tipRate;
+            if ($tipRow->tip_currency === 'USD') {
+                $tipsUsd += $tipValue;
+            } elseif ($tipRow->tip_currency === 'VES') {
+                $tipsVes += $tipValue * $tipRate;
+            } else {
+                $tipsUnspecified += $tipValue;
+            }
         }
 
         // Paid
@@ -676,6 +766,33 @@ class EmployeeCommissionService
                     ];
                 });
             $appointmentRows = $appointmentRows->concat($productRows)
+                ->sortByDesc('date')
+                ->values();
+        }
+
+        $tipRows = $this->getStandaloneTips($businessId, $employeeId, $branchId, $startDate, $endDate)
+            ->map(function ($row) {
+                $tip = (float) $row->tip_amount;
+                return [
+                    'id' => $row->id,
+                    'group_id' => null,
+                    'date' => $row->paid_at,
+                    'time' => $row->paid_at,
+                    'client_name' => $row->notes ?: '—',
+                    'service_name' => 'Propina',
+                    'service_price' => 0,
+                    'amount' => 0,
+                    'percentage' => 0,
+                    'earnings' => round($tip, 2),
+                    'tip_amount' => round($tip, 2),
+                    'status' => 'completed',
+                    'payment_status' => 'paid',
+                    'exchange_rate_used' => (float) ($row->exchange_rate_used ?? 1),
+                    'tip_currency' => $row->tip_currency,
+                ];
+            });
+        if ($tipRows->isNotEmpty()) {
+            $appointmentRows = $appointmentRows->concat($tipRows)
                 ->sortByDesc('date')
                 ->values();
         }

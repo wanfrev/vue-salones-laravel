@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../common/useAuth'
 import { useNotification } from '../common/useNotification'
 import { useBusinessStore } from '../../store/business'
-import { recordSale, recordDirectSale, recordDirectServiceSale, posKeys } from '../../services/posService'
+import { recordSale, recordDirectSale, recordDirectServiceSale, recordStandaloneTip, posKeys } from '../../services/posService'
 import type { PaymentMethod } from '../../types/database'
 import type { POSProductItem, PaymentBreakdownItem } from '../../types/pos'
 
@@ -49,8 +49,12 @@ export function usePOSPayment() {
       { label: 'Punto de Vta (Bs)', value: 'punto_venta' as PaymentMethod, currency: 'VES' as const },
       { label: 'Otro', value: 'other' as PaymentMethod, currency: null as null }
     )
-    
-    return methods
+
+    // Grouped by currency (all USD together, then all VES together) instead of the
+    // declaration order above, which interleaves them — Array.sort is stable, so within each
+    // group the original relative order (and any conditional push order) is preserved.
+    const groupRank: Record<string, number> = { USD: 0, VES: 1 }
+    return [...methods].sort((a, b) => (groupRank[a.currency ?? ''] ?? 2) - (groupRank[b.currency ?? ''] ?? 2))
   })
 
   const mixedMethods = computed(() => paymentMethods.value.filter(m => m.value !== 'mixed'))
@@ -275,9 +279,55 @@ export function usePOSPayment() {
     },
   })
 
+  const standaloneTipMutation = useMutation({
+    mutationFn: (params: {
+      employeeId: string
+      tipAmount: number
+      tipCurrency?: 'USD' | 'VES'
+      method: PaymentMethod
+      notes: string
+      exchangeRate: number
+      paymentsBreakdown: PaymentBreakdownItem[]
+    }) => recordStandaloneTip({
+      employeeId: params.employeeId,
+      tipAmount: params.tipAmount,
+      tipCurrency: params.tipCurrency,
+      method: params.method,
+      notes: params.notes,
+      exchangeRate: params.exchangeRate,
+      paymentsBreakdown: params.paymentsBreakdown,
+      branchId: branchId.value || null,
+    }),
+    onSuccess: () => {
+      success('Propina registrada correctamente')
+      invalidateQueries()
+    },
+    onError: (err) => {
+      showError((err as any)?.message ?? 'Error al registrar la propina')
+    },
+  })
+
   const isProcessing = computed(() =>
     recordSaleMutation.isPending.value || directSaleMutation.isPending.value || directServiceSaleMutation.isPending.value
+    || standaloneTipMutation.isPending.value
   )
+
+  const processStandaloneTip = async (params: {
+    employeeId: string
+    tipAmount: number
+    tipCurrency?: 'USD' | 'VES'
+    method: PaymentMethod
+    notes: string
+    exchangeRate: number
+    paymentsBreakdown: PaymentBreakdownItem[]
+  }): Promise<{ success: boolean }> => {
+    try {
+      await standaloneTipMutation.mutateAsync(params)
+      return { success: true }
+    } catch {
+      return { success: false }
+    }
+  }
 
   const processPayment = async (params: {
     appointmentId: string
@@ -542,6 +592,7 @@ export function usePOSPayment() {
     removeSplit,
     processPayment,
     processDirectSale,
+    processStandaloneTip,
     processDirectServiceSale,
     reset,
     loadState,

@@ -18,7 +18,7 @@ class Transaction extends Model
     const UPDATED_AT = null;
 
     protected $fillable = [
-        'id', 'business_id', 'branch_id', 'appointment_id',
+        'id', 'business_id', 'branch_id', 'appointment_id', 'employee_id',
         'total_amount', 'local_amount', 'employee_amount', 'assistant_amount',
         'local_percentage', 'employee_percentage', 'assistant_percentage',
         'method', 'exchange_rate_used', 'payments_breakdown', 'tip_amount', 'tip_currency',
