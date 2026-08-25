@@ -68,11 +68,17 @@ class StaffingCompanyEmployeeService
         $query = StaffingCompanyEmployee::where('business_id', $businessId)
             ->where('company_id', $companyId);
 
-        // Only narrow by project when the caller actually asked for one (e.g. entering hours for
-        // a specific project) — unscoped callers like RateCardEditor's headcount still expect
-        // every employee assigned to the company, project or not.
-        if ($projectId) {
-            $query->where('project_id', $projectId);
+        // Three distinct states, not two — `$projectId` can't just be "truthy or not":
+        //  - a real id: scope to that project's assignments only.
+        //  - '' (StaffingHoursPanel's General tab, project dropdown unselected or explicitly set
+        //    to "General (Sin proyecto)"): scope to `project_id IS NULL` — Eloquent's where()
+        //    turns a null value into whereNull() automatically. Without this, an employee placed
+        //    on three of the company's projects showed up three times on the General tab, which
+        //    is supposed to hold only the project-less assignment.
+        //  - null, meaning the caller never sent the param at all (RateCardEditor's headcount):
+        //    stays unscoped — every assignment regardless of project, same as before.
+        if ($projectId !== null) {
+            $query->where('project_id', $projectId === '' ? null : $projectId);
         }
 
         $assignments = $query->get();

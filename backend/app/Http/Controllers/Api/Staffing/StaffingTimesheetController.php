@@ -38,8 +38,15 @@ class StaffingTimesheetController
             return response()->json([]);
         }
 
+        // Unlike index() below, '' must NOT collapse into null here: the query string
+        // distinguishes "General (Sin proyecto)" (?project_id= — filter to project_id IS NULL)
+        // from the param being absent entirely (no project filter at all — every project's
+        // assignments, which only RateCardEditor's unscoped headcount call wants). Collapsing
+        // both to null made the General tab fan out one row per project a worker is assigned
+        // to, instead of just the project-less assignment. See
+        // StaffingCompanyEmployeeService::employeesForCompany.
         $projectId = $request->project_id;
-        if ($projectId === 'null' || $projectId === 'undefined' || $projectId === '') {
+        if ($projectId === 'null' || $projectId === 'undefined') {
             $projectId = null;
         }
 
