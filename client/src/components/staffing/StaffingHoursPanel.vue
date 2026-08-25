@@ -56,15 +56,15 @@
         Cargando empleados...
       </div>
 
-      <p v-else-if="(timesheets.employees.value ?? []).length === 0" class="py-10 text-center text-sm text-text-muted">
+      <p v-else-if="rosterEmployees.length === 0" class="py-10 text-center text-sm text-text-muted">
         Esta empresa no tiene empleados asignados todavía. Asígnalos desde su ficha en Equipo.
       </p>
 
       <div v-else class="space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-3 bg-bg-secondary/40 p-3 rounded-xl border border-border">
           <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Empleados ({{ (timesheets.employees.value ?? []).length }})</span>
-            <span v-if="employeeSearch.trim() && filteredEmployees.length !== (timesheets.employees.value ?? []).length" class="text-xs text-text-muted">
+            <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Empleados ({{ rosterEmployees.length }})</span>
+            <span v-if="employeeSearch.trim() && filteredEmployees.length !== rosterEmployees.length" class="text-xs text-text-muted">
               — {{ filteredEmployees.length }} coincidentes
             </span>
           </div>
@@ -114,7 +114,10 @@
                 <template v-else v-for="employee in filteredEmployees" :key="rowKey(employee)">
                   <tr>
                     <td class="px-3 py-2.5">
-                      <p class="font-medium text-text">{{ employee.full_name }}</p>
+                      <p class="font-medium text-text">
+                        {{ employee.full_name }}
+                        <span v-if="employee.active === false" class="ml-1 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger">Inactivo</span>
+                      </p>
                       <p class="text-xs text-text-muted">
                         {{ employee.staffing_role || 'Sin rol' }}<template v-if="employee.staffing_shift"> · {{ shiftLabel(employee.staffing_shift) }}</template>
                       </p>
@@ -162,7 +165,7 @@
                 </tr>
               </template>
             </tbody>
-            <tfoot v-if="(timesheets.employees.value ?? []).length > 0">
+            <tfoot v-if="rosterEmployees.length > 0">
               <tr class="border-t border-border bg-bg-secondary/60 text-xs font-semibold">
                 <td class="px-3 py-2.5 text-text">Total</td>
                 <td class="px-3 py-2.5 text-right tabular-nums">{{ totals.hours.toFixed(2) }}</td>
@@ -182,7 +185,7 @@
 
       <p v-if="timesheets.saveError.value" class="text-sm text-danger">{{ timesheets.saveError.value }}</p>
 
-      <div v-if="(timesheets.employees.value ?? []).length > 0" class="flex flex-wrap items-center justify-end gap-2">
+      <div v-if="rosterEmployees.length > 0" class="flex flex-wrap items-center justify-end gap-2">
         <button type="button"
           class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
           @click="handlePrintPayroll">
@@ -325,7 +328,7 @@ watch(selectedCompanyId, () => {
 })
 
 const filteredEmployees = computed(() => {
-  const list = timesheets.employees.value ?? []
+  const list = rosterEmployees.value
   const query = employeeSearch.value.trim().toLowerCase()
   if (!query) return list
   return list.filter(e => {
@@ -375,6 +378,32 @@ const rowKey = (employee: { id: string; staffing_role?: string | null; staffing_
 const shiftLabel = (shift: string | null | undefined): string =>
   shift ? (SHIFT_OPTIONS.find(o => o.value === shift)?.label ?? shift) : ''
 
+/**
+ * `timesheets.employees` only lists *active* assignments — right for picking who new hours can
+ * be entered for, wrong for viewing a week that already has hours: deactivating an employee (or
+ * changing their assignment) after a week was saved would silently drop their row — and their
+ * totals — from every past week's nómina, including an already-approved/paid one that should
+ * never change again. This adds back a synthetic row, built from the saved entry's own snapshot
+ * (`entry.employee`/`entry.role`/`entry.shift`), for any saved entry the active roster no longer
+ * covers — so historical weeks keep showing (and totalling, and re-saving) everyone who was
+ * actually paid, regardless of their current employment status.
+ */
+const rosterEmployees = computed<RosterEmployee[]>(() => {
+  const active = timesheets.employees.value ?? []
+  const covered = new Set(active.map(rowKey))
+
+  const orphaned: RosterEmployee[] = []
+  for (const entry of currentWeek.value?.entries ?? []) {
+    if (!entry.employee) continue
+    const key = `${entry.employee_id}::${entry.role ?? ''}::${entry.shift ?? ''}`
+    if (covered.has(key)) continue
+    covered.add(key)
+    orphaned.push({ ...entry.employee, staffing_role: entry.role, staffing_shift: entry.shift })
+  }
+
+  return orphaned.length > 0 ? [...active, ...orphaned] : active
+})
+
 // A plain ref, replaced wholesale on every week/roster change (see rebuildGrid) rather than a
 // reactive() object mutated key-by-key — a single assignment is unambiguous to Vue's reactivity,
 // so switching weeks can never leave a stale key from the previous one behind.
@@ -386,7 +415,7 @@ const emptyRow = (): GridRow => ({ totalHours: 0, preTaxDeduction: 0, fixedFees:
  *  saved week's entries when one exists — this is what makes switching weeks show that week's
  *  own data instead of whatever was last typed. */
 const rebuildGrid = () => {
-  const employees = timesheets.employees.value ?? []
+  const employees = rosterEmployees.value
   const savedEntries = currentWeek.value?.entries ?? []
   const byKey = new Map(savedEntries.map(e => [`${e.employee_id}::${e.role ?? ''}::${e.shift ?? ''}`, e]))
 
@@ -405,7 +434,7 @@ const rebuildGrid = () => {
   grid.value = next
 }
 
-watch([() => timesheets.employees.value, weekStartInput, currentWeek], rebuildGrid, { immediate: true })
+watch([rosterEmployees, weekStartInput, currentWeek], rebuildGrid, { immediate: true })
 
 const resultFor = (employee: RosterEmployee): StaffingTimesheetEntry | undefined =>
   currentWeek.value?.entries.find(e =>
@@ -568,7 +597,7 @@ const roundingLabel = computed(() => {
 })
 
 const totals = computed(() => {
-  const employees = timesheets.employees.value ?? []
+  const employees = rosterEmployees.value
   return employees.reduce(
     (acc, employee) => {
       const row = rowFor(employee)
@@ -588,8 +617,10 @@ const totals = computed(() => {
 const handleSave = async () => {
   // Iterate the roster (not Object.entries(grid.value)) so each line carries the specific
   // employeeId + role it belongs to — required now that the same employeeId can appear twice
-  // in the grid, once per role, each needing its own hours entry.
-  const employees = timesheets.employees.value ?? []
+  // in the grid, once per role, each needing its own hours entry. Uses rosterEmployees, not the
+  // bare active-only timesheets.employees, so re-saving a draft week never drops the entry of
+  // someone who got deactivated after hours were already entered for them this week.
+  const employees = rosterEmployees.value
   const entries: TimesheetEntryInput[] = employees.map(employee => {
     const row = grid.value[rowKey(employee)] ?? emptyRow()
     return {
