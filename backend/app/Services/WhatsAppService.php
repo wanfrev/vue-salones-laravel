@@ -203,6 +203,7 @@ class WhatsAppService
             $response = Http::withHeaders(['apikey' => $apiKey])
                 ->post(rtrim($baseUrl, '/') . '/instance/create', [
                     'instanceName' => $instanceName,
+                    'integration' => 'WHATSAPP-BAILEYS',
                     'token' => $apiKey ?? '',
                     'qrcode' => true,
                 ]);
