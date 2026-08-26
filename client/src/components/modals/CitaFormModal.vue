@@ -134,9 +134,12 @@
               </div>
             </div>
 
-            <div class="flex justify-end border-t border-border/60 pt-2">
+            <div class="flex justify-end gap-2 border-t border-border/60 pt-2">
               <button type="button" @click="cancelCommissionDetail(index)" class="rounded-lg px-2.5 py-1 text-xs font-semibold text-text-muted hover:bg-bg-secondary hover:text-text transition-colors">
                 Cancelar
+              </button>
+              <button type="button" @click="confirmCommissionDetail(index)" class="rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-text-inverse hover:bg-primary-hover transition-colors">
+                Guardar
               </button>
             </div>
           </div>
@@ -534,6 +537,11 @@ const toggleCommissionDetail = (index: number) => {
     })
   }
   commissionDetailOpen.add(index)
+}
+
+const confirmCommissionDetail = (index: number) => {
+  commissionDetailOpen.delete(index)
+  commissionSnapshots.delete(index)
 }
 
 const cancelCommissionDetail = (index: number) => {
