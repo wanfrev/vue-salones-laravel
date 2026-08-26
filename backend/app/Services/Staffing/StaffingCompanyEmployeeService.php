@@ -115,24 +115,28 @@ class StaffingCompanyEmployeeService
      * holds more than one role at this company/project — pass it whenever the caller already
      * knows which one (e.g. a timesheet entry that recorded its role at save time). `$shift`
      * disambiguates further: two assignments can share the same role and differ only by shift
-     * (see 2026_08_24_000001_widen_staffing_company_employees_unique_constraint).
+     * (see 2026_08_24_000001_widen_staffing_company_employees_unique_constraint). `$projectId`
+     * disambiguates a third way: a worker can hold the same role at the same company on two
+     * different projects at once (each billed/tracked separately).
      *
-     * Unlike `$role`, `$shift` is always applied as a real filter — including when it's null —
-     * the same way StaffingRateService::resolveFor() treats it, via `where('shift', $shift)`
+     * `$shift` and `$projectId` are always applied as real filters — including when they're
+     * null — the same way StaffingRateService::resolveFor() treats shift, via `where(col, $val)`
      * (Eloquent turns a null value into `whereNull`). The only caller (StaffingTimesheetService::
-     * saveWeek) always sends the grid row's actual shift, and a null there means "this specific
-     * assignment has no shift split", not "shift unknown, don't filter". Skipping the filter on
-     * null used to make this fall through to `->first()` picking an arbitrary row whenever a
-     * role had both a shift-less and a shift-specific assignment — silently pointing a "General"
-     * hours entry at whichever one happened to sort first, and occasionally resolving two grid
-     * rows to the *same* assignment, which then collided on StaffingTimesheetEntry's unique
-     * (timesheet_id, employee_id, role, shift) index and made the whole week fail to save.
+     * saveWeek) always sends the timesheet's own project and the grid row's actual shift, and a
+     * null there means "this timesheet/assignment has no project" or "no shift split" — not
+     * "unknown, don't filter". Skipping either filter on null used to make this fall through to
+     * `->first()` picking an arbitrary row whenever a role had more than one matching assignment
+     * differing only by project or shift — silently pointing an hours entry at the wrong one, and
+     * occasionally resolving two grid rows to the *same* assignment, which then collided on
+     * StaffingTimesheetEntry's unique (timesheet_id, employee_id, role, shift) index and made the
+     * whole week fail to save. `$role` stays optional (skipped on null) since, unlike project and
+     * shift, a caller can genuinely not know it yet for a single-role employee.
      */
     public function assignmentFor(string $employeeId, string $companyId, ?string $projectId, ?string $role, ?string $shift = null): ?StaffingCompanyEmployee
     {
         return StaffingCompanyEmployee::where('employee_id', $employeeId)
             ->where('company_id', $companyId)
-            ->when($projectId, fn ($q) => $q->where('project_id', $projectId))
+            ->where('project_id', $projectId)
             ->when($role !== null, fn ($q) => $q->where('role', $role))
             ->where('shift', $shift)
             ->first();
