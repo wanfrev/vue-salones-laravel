@@ -8,4 +8,5 @@ export { default as SegmentedTabs } from './SegmentedTabs.vue'
 export { default as DualAmount } from './DualAmount.vue'
 export { default as FeatureGate } from './FeatureGate.vue'
 export { default as BranchSwitcher } from './BranchSwitcher.vue'
+export { default as BusinessSwitcher } from './BusinessSwitcher.vue'
 

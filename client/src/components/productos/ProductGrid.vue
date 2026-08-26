@@ -49,6 +49,9 @@
       </div>
 
       <div v-if="!readonly" class="flex items-center justify-end gap-1 pt-1 border-t border-border-subtle">
+        <button v-if="showTransfer" @click.stop="$emit('transfer', producto)" class="rounded-lg p-1.5 text-text-muted transition-colors duration-200 hover:bg-bg-secondary hover:text-primary" title="Transferir stock a otra sucursal">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+        </button>
         <button @click.stop="$emit('variants', producto)" class="rounded-lg p-1.5 text-text-muted transition-colors duration-200 hover:bg-bg-secondary hover:text-primary" title="Variantes (talla, color...)">
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
         </button>
@@ -120,6 +123,9 @@
             </td>
             <td v-if="!readonly" class="px-4 py-3 text-center">
               <div class="flex items-center justify-center gap-1">
+                <button v-if="showTransfer" @click="$emit('transfer', producto)" class="rounded-lg p-1.5 text-text-muted transition-colors duration-200 hover:bg-bg-secondary hover:text-primary" title="Transferir stock a otra sucursal">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                </button>
                 <button @click="$emit('variants', producto)" class="rounded-lg p-1.5 text-text-muted transition-colors duration-200 hover:bg-bg-secondary hover:text-primary" title="Variantes (talla, color...)">
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
                 </button>
@@ -151,8 +157,8 @@
 <script setup lang="ts">
 import { useCurrency } from '../../composables/common/useCurrency'
 
-defineProps<{ products: any[]; readonly?: boolean }>()
-defineEmits<{ edit: [p: any]; adjust: [p: any]; deactivate: [p: any]; delete: [p: any]; variants: [p: any] }>()
+defineProps<{ products: any[]; readonly?: boolean; showTransfer?: boolean }>()
+defineEmits<{ edit: [p: any]; adjust: [p: any]; deactivate: [p: any]; delete: [p: any]; variants: [p: any]; transfer: [p: any] }>()
 
 const { formatVESInline } = useCurrency()
 </script>

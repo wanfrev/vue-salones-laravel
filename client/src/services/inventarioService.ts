@@ -1,4 +1,4 @@
-import { db } from '../lib/api'
+import { db, apiRequest } from '../lib/api'
 import { validateSaleQuantity, movementTypeForAdjust } from '../business/stockRules'
 import type { InventoryStock, InventoryMovement } from '../types/database'
 import type { InventarioItem, InventarioMovimiento } from '../types/inventario'
@@ -376,5 +376,23 @@ export const sellProduct = async (
     exchangeRate: rate,
     branchId,
     clientId,
+  })
+}
+
+export const transferStock = async (
+  productId: string,
+  fromBranchId: string,
+  toBranchId: string,
+  quantity: number,
+  notes?: string,
+  variantId?: string | null,
+): Promise<void> => {
+  await apiRequest('POST', '/inventory/transfer', {
+    product_id: productId,
+    variant_id: variantId ?? null,
+    from_branch_id: fromBranchId,
+    to_branch_id: toBranchId,
+    quantity,
+    notes: notes || null,
   })
 }

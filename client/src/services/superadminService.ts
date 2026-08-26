@@ -28,6 +28,8 @@ export type CreateBusinessInput = {
   ownerEmail: string
   ownerPassword: string
   nicheType?: string
+  /** Vincula el negocio nuevo a un dueño ya existente (user_id de su admin) — ver useBusinessSwitch. */
+  linkedUserId?: string
 }
 
 export type CreateBusinessResult = {
@@ -89,6 +91,7 @@ export const createBusinessWithOwner = async (input: CreateBusinessInput): Promi
     ownerEmail: email,
     ownerPassword: input.ownerPassword,
     nicheType: input.nicheType?.trim() || null,
+    linkedUserId: input.linkedUserId || null,
   })
 
   if (!result?.business) {
@@ -173,6 +176,16 @@ export const impersonateBusinessAdmin = async (
   return apiRequest<ImpersonateResult>('POST', `/admin/businesses/${businessId}/admins/${profileId}/impersonate`)
 }
 
+/** Vincula dos negocios existentes bajo el mismo dueño — selector de negocio, sesiones separadas. */
+export const linkBusinessOwner = async (userId: string, targetUserId: string): Promise<void> => {
+  await apiRequest('POST', '/admin/owner-links', { userId, targetUserId })
+}
+
+/** Saca a este admin de su grupo de negocios vinculados (no afecta a los demás miembros). */
+export const unlinkBusinessOwner = async (userId: string): Promise<void> => {
+  await apiRequest('DELETE', `/admin/owner-links/${userId}`)
+}
+
 export const listAuditLogs = async (businessId: string): Promise<SuperadminAuditLogEntry[]> => {
   return apiRequest<SuperadminAuditLogEntry[]>('GET', `/admin/businesses/${businessId}/audit-logs`)
 }
@@ -200,6 +213,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   create_superadmin: 'Superadmin creado',
   revoke_superadmin: 'Superadmin revocado',
   restore_superadmin: 'Superadmin restaurado',
+  link_business_owner: 'Negocio vinculado a otro dueño',
+  unlink_business_owner: 'Negocio desvinculado',
 }
 
 export function describeAuditAction(log: SuperadminAuditLogEntry): string {

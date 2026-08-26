@@ -179,6 +179,16 @@ class SuperadminService
     $userId = Str::uuid()->toString();
     $slug = Str::slug($data['name']);
 
+        $linkedOwner = null;
+        if (!empty($data['linkedUserId'])) {
+            $linkedOwner = User::with('profile')->find($data['linkedUserId']);
+            if (!$linkedOwner || $linkedOwner->profile?->role !== 'admin') {
+                throw new HttpException(422, 'El negocio a vincular no tiene un administrador válido.');
+            }
+        }
+
+        $ownerGroupId = $linkedOwner?->owner_group_id ?? ($linkedOwner ? Str::uuid()->toString() : null);
+
         DB::beginTransaction();
         try {
             Business::create([
@@ -204,9 +214,15 @@ class SuperadminService
                 'name' => $data['name'] . ' Admin',
                 'email' => $email,
                 'password' => $data['ownerPassword'],
+                'owner_group_id' => $ownerGroupId,
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
+
+            if ($linkedOwner && !$linkedOwner->owner_group_id) {
+                $linkedOwner->owner_group_id = $ownerGroupId;
+                $linkedOwner->save();
+            }
 
         Profile::create([
             'id' => $userId,
@@ -229,12 +245,70 @@ class SuperadminService
             'business_name' => $data['name'],
             'owner_email' => $email,
             'niche_type' => $data['nicheType'] ?? 'salon',
+            'linked_owner_user_id' => $linkedOwner?->id,
         ]);
 
         return [
             'businessId' => $businessId,
             'userId' => $userId,
         ];
+    }
+
+    /**
+     * Vincula retroactivamente dos negocios ya existentes bajo el mismo dueño (selector de
+     * negocio, sesiones separadas — ver AuthService::switchBusiness). Reusa el owner_group_id
+     * de cualquiera de los dos si ya tenía uno; si ninguno tiene, genera uno nuevo para el par.
+     */
+    public function linkOwners(string $userIdA, string $userIdB, string $actorId): void
+    {
+        if ($userIdA === $userIdB) {
+            throw new HttpException(422, 'No puedes vincular un negocio consigo mismo.');
+        }
+
+        $userA = User::with('profile')->find($userIdA);
+        $userB = User::with('profile')->find($userIdB);
+
+        if (!$userA || $userA->profile?->role !== 'admin' || !$userA->profile->active) {
+            throw new NotFoundHttpException('El primer administrador no es válido.');
+        }
+        if (!$userB || $userB->profile?->role !== 'admin' || !$userB->profile->active) {
+            throw new NotFoundHttpException('El segundo administrador no es válido.');
+        }
+
+        $ownerGroupId = $userA->owner_group_id ?? $userB->owner_group_id ?? Str::uuid()->toString();
+
+        DB::transaction(function () use ($userA, $userB, $ownerGroupId) {
+            if ($userA->owner_group_id !== $ownerGroupId) {
+                $userA->owner_group_id = $ownerGroupId;
+                $userA->save();
+            }
+            if ($userB->owner_group_id !== $ownerGroupId) {
+                $userB->owner_group_id = $ownerGroupId;
+                $userB->save();
+            }
+        });
+
+        $this->logAudit($actorId, 'link_business_owner', $userA->profile->business_id, $userA->id, [
+            'admin_name' => $userA->profile->full_name,
+            'linked_admin_name' => $userB->profile->full_name,
+            'linked_business_id' => $userB->profile->business_id,
+        ]);
+    }
+
+    /** Saca a este usuario de su grupo de negocios vinculados. No afecta a los demás miembros. */
+    public function unlinkOwner(string $userId, string $actorId): void
+    {
+        $user = User::with('profile')->find($userId);
+        if (!$user) {
+            throw new NotFoundHttpException('Administrador no encontrado.');
+        }
+
+        $user->owner_group_id = null;
+        $user->save();
+
+        $this->logAudit($actorId, 'unlink_business_owner', $user->profile?->business_id, $user->id, [
+            'admin_name' => $user->profile?->full_name,
+        ]);
     }
 
     public function update(string $id, array $data, string $actorId): Business
@@ -423,11 +497,28 @@ class SuperadminService
     {
         // 'email' is required by the UI to tell two admins apart — especially before a
         // password reset, where picking the wrong row changes the wrong person's credentials.
-        return Profile::where('business_id', $businessId)
+        $admins = Profile::where('business_id', $businessId)
             ->where('role', 'admin')
             ->select('id', 'business_id', 'full_name', 'email', 'role', 'phone', 'avatar_url')
             ->orderBy('full_name')
             ->get();
+
+        $ownerGroups = User::whereIn('id', $admins->pluck('id'))->pluck('owner_group_id', 'id');
+
+        return $admins->map(function (Profile $admin) use ($ownerGroups) {
+            $groupId = $ownerGroups->get($admin->id);
+            $admin->owner_group_id = $groupId;
+            $admin->linked_businesses = $groupId
+                ? User::where('owner_group_id', $groupId)
+                    ->where('id', '!=', $admin->id)
+                    ->with('profile.business')
+                    ->get()
+                    ->filter(fn (User $u) => $u->profile?->business)
+                    ->map(fn (User $u) => ['user_id' => $u->id, 'business_name' => $u->profile->business->name])
+                    ->values()
+                : collect();
+            return $admin;
+        });
     }
 
     /**

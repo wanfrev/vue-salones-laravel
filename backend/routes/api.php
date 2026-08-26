@@ -90,6 +90,8 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     // Auth
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/session', [AuthController::class, 'session']);
+    Route::get('/auth/linked-businesses', [AuthController::class, 'linkedBusinesses']);
+    Route::post('/auth/switch-business', [AuthController::class, 'switchBusiness']);
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
     Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
 
@@ -233,6 +235,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
             Route::post('/inventory-movements', [InventoryController::class, 'storeMovement']);
             Route::delete('/inventory-movements/{id}', [InventoryController::class, 'destroyMovement']);
             Route::post('/inventory/adjust', [InventoryController::class, 'adjust']);
+            Route::post('/inventory/transfer', [InventoryController::class, 'transfer']);
             Route::post('/inventory/sell', [InventoryController::class, 'sell']);
             Route::post('/inventory-locations', [InventoryController::class, 'storeLocation']);
         });
@@ -474,6 +477,8 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::get('/businesses/{id}/admins', [SuperadminController::class, 'admins']);
         Route::put('/businesses/{id}/admins/{profileId}/password', [SuperadminController::class, 'resetAdminPassword']);
         Route::post('/businesses/{id}/admins/{profileId}/impersonate', [SuperadminController::class, 'impersonate']);
+        Route::post('/owner-links', [SuperadminController::class, 'linkOwner']);
+        Route::delete('/owner-links/{userId}', [SuperadminController::class, 'unlinkOwner']);
         Route::get('/businesses/{id}/audit-logs', [SuperadminController::class, 'auditLogs']);
         Route::get('/audit-logs', [SuperadminController::class, 'globalAuditLogs']);
         Route::get('/superadmins', [SuperadminController::class, 'superadmins']);

@@ -24,6 +24,9 @@ export interface AuthProfile {
   can_access_finanzas?: boolean
   can_access_requirements?: boolean
   can_add_purchase_invoice?: boolean
+  /** Solo presentes en /admin/businesses/{id}/admins (panel de superadmin) — ver BusinessSwitcher. */
+  owner_group_id?: string | null
+  linked_businesses?: { user_id: string; business_name: string }[]
 }
 
 export interface LoginCredentials {

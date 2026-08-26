@@ -155,7 +155,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../composables/common/useAuth'
 import { useAdminAgenda } from '../composables/agenda/useAdminAgenda'
 import { useBusinessStore } from '../store/business'
@@ -183,6 +184,8 @@ const displayedCitas = computed(() =>
 const {
   filterDate,
   dateFilterMode,
+  citasData,
+  citas,
   activeCitas,
   historialCitas,
   isLoading,
@@ -198,6 +201,33 @@ const {
   setWeekMode,
   setFilterDate,
 } = useAdminAgenda(() => authStore.businessId)
+
+// Llegada desde "Ver cita" en una notificación (NotificationDropdown → useNotifications.ts),
+// que solo sabe el appointment_id de UNA fila de servicio del grupo — la lista de aquí ya
+// dedup por group_id (ver useAdminAgenda), así que hay que resolver a qué cita agrupada
+// pertenece esa fila antes de poder encontrarla en `displayedCitas`.
+const route = useRoute()
+const router = useRouter()
+const pendingAppointmentId = ref<string | null>(
+  typeof route.query.appointment === 'string' ? route.query.appointment : null
+)
+if (pendingAppointmentId.value) {
+  showAll()
+}
+watch([citas, isLoading], () => {
+  const targetId = pendingAppointmentId.value
+  if (!targetId) return
+  const rawMatch = (citasData.value ?? []).find(c => c.id === targetId)
+  const targetGroupId = rawMatch?.groupId ?? targetId
+  const cita = citas.value.find(c => c.id === targetId || (c.groupId && c.groupId === targetGroupId))
+  if (cita) {
+    handleEditCita(cita)
+    pendingAppointmentId.value = null
+    router.replace({ query: { ...route.query, appointment: undefined } })
+  } else if (!isLoading.value) {
+    pendingAppointmentId.value = null
+  }
+}, { immediate: true })
 
 const shareLinkEmployees = computed(() =>
   empleadosList.value.filter((e: any) => !e.disableAgenda).map((e: any) => ({ id: e.id, label: e.name }))

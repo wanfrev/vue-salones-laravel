@@ -55,6 +55,26 @@
             </select>
           </div>
 
+          <div>
+            <label class="block text-xs font-semibold text-text mb-1">
+              Vincular a un dueño existente <span class="font-normal text-text-muted">(opcional)</span>
+            </label>
+            <select v-model="linkedBusinessId"
+              class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
+              <option value="">Ninguno — negocio independiente</option>
+              <option v-for="b in liveBusinesses" :key="b.id" :value="b.id">{{ b.name }}</option>
+            </select>
+            <p class="mt-1 text-[11px] text-text-muted">
+              El dueño de ese negocio podrá cambiar a este nuevo negocio con un selector, sin
+              volver a iniciar sesión. Los datos de ambos siguen 100% separados.
+            </p>
+            <select v-if="linkedBusinessId" v-model="form.linkedUserId"
+              class="mt-2 w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
+              <option value="">{{ linkedAdminsLoading ? 'Cargando...' : 'Selecciona un administrador' }}</option>
+              <option v-for="a in linkedAdmins" :key="a.id" :value="a.id">{{ a.full_name }} ({{ a.email }})</option>
+            </select>
+          </div>
+
           <p v-if="formError" class="text-xs text-danger flex items-center gap-1">
             <InfoCircleIcon class="h-3.5 w-3.5 shrink-0" />
             {{ formError }}
@@ -130,11 +150,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { formatDate } from '../lib/formatters'
 import { useNotification } from '../composables/common/useNotification'
-import { createBusinessWithOwner, listBusinesses, superadminKeys } from '../services/superadminService'
+import { createBusinessWithOwner, listBusinessAdmins, listBusinesses, superadminKeys } from '../services/superadminService'
 import { translateError } from '../lib/errors'
 import SuperadminLayout from '../components/layout/SuperadminLayout.vue'
 import type { Business } from '../types/database'
@@ -146,7 +166,8 @@ const queryClient = useQueryClient()
 
 const registeredNiches = creatableNiches()
 
-const form = ref({ businessName: '', ownerEmail: '', ownerPassword: '', nicheType: '' })
+const form = ref({ businessName: '', ownerEmail: '', ownerPassword: '', nicheType: '', linkedUserId: '' })
+const linkedBusinessId = ref('')
 const search = ref('')
 const formError = ref('')
 const showDeleted = ref(false)
@@ -164,11 +185,27 @@ const activeCount = computed(() => liveBusinesses.value.filter(b => b.active).le
 const inactiveCount = computed(() => liveBusinesses.value.filter(b => !b.active).length)
 const nichesCount = computed(() => new Set(liveBusinesses.value.map(b => b.niche_type).filter(Boolean)).size)
 
+const { data: linkedAdminsData, isLoading: linkedAdminsLoading } = useQuery({
+  queryKey: computed(() => superadminKeys.businessAdmins(linkedBusinessId.value)),
+  queryFn: () => listBusinessAdmins(linkedBusinessId.value),
+  enabled: computed(() => !!linkedBusinessId.value),
+})
+const linkedAdmins = computed(() => linkedAdminsData.value ?? [])
+
+// Un solo administrador es el caso normal — preselecciónalo en vez de obligar a un clic extra.
+watch(linkedAdmins, (list) => {
+  form.value.linkedUserId = list.length === 1 ? list[0].id : ''
+})
+watch(linkedBusinessId, () => {
+  form.value.linkedUserId = ''
+})
+
 const { mutateAsync: createBusiness, isPending: isCreating } = useMutation({
   mutationFn: createBusinessWithOwner,
   onSuccess: () => {
     success('Negocio creado correctamente')
-    form.value = { businessName: '', ownerEmail: '', ownerPassword: '', nicheType: '' }
+    form.value = { businessName: '', ownerEmail: '', ownerPassword: '', nicheType: '', linkedUserId: '' }
+    linkedBusinessId.value = ''
     formError.value = ''
     queryClient.invalidateQueries({ queryKey: superadminKeys.businesses() }).catch(() => {})
   },
@@ -201,11 +238,16 @@ const handleSubmit = async () => {
     formError.value = 'La contraseña debe tener al menos 6 caracteres.'
     return
   }
+  if (linkedBusinessId.value && !form.value.linkedUserId) {
+    formError.value = 'Selecciona el administrador del negocio a vincular.'
+    return
+  }
   await createBusiness({
     businessName: form.value.businessName,
     ownerEmail: form.value.ownerEmail,
     ownerPassword: form.value.ownerPassword,
     nicheType: form.value.nicheType.trim() || undefined,
+    linkedUserId: form.value.linkedUserId || undefined,
   })
 }
 </script>

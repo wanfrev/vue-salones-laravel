@@ -45,11 +45,11 @@ export const getWhatsAppConfig = async (): Promise<WhatsAppConfig> => {
 }
 
 export const updateWhatsAppConfig = async (data: Partial<WhatsAppConfig>): Promise<void> => {
-  return apiRequest<void>('PUT', '/whatsapp/config', { body: data })
+  return apiRequest<void>('PUT', '/whatsapp/config', data)
 }
 
 export const createWhatsAppInstance = async (): Promise<{ instance_id: string; qr_code: string | null }> => {
-  return apiRequest('POST', '/whatsapp/instance', { body: {} })
+  return apiRequest('POST', '/whatsapp/instance', {})
 }
 
 export const getWhatsAppQr = async (): Promise<WhatsAppQr> => {
@@ -65,7 +65,7 @@ export const disconnectWhatsApp = async (): Promise<void> => {
 }
 
 export const sendWhatsAppTest = async (number: string, text: string): Promise<void> => {
-  return apiRequest<void>('POST', '/whatsapp/test', { body: { number, text } })
+  return apiRequest<void>('POST', '/whatsapp/test', { number, text })
 }
 
 export const getMessageTemplates = async (): Promise<MessageTemplate[]> => {
@@ -73,7 +73,7 @@ export const getMessageTemplates = async (): Promise<MessageTemplate[]> => {
 }
 
 export const saveMessageTemplate = async (template: MessageTemplate): Promise<MessageTemplate> => {
-  return apiRequest<MessageTemplate>('POST', '/whatsapp/templates', { body: template })
+  return apiRequest<MessageTemplate>('POST', '/whatsapp/templates', template)
 }
 
 export const deleteMessageTemplate = async (id: string): Promise<void> => {

@@ -2,11 +2,13 @@
 
 namespace App\Services;
 
+use App\Models\Branch;
 use App\Models\InventoryLocation;
 use App\Models\InventoryMovement;
 use App\Models\InventoryStock;
 use App\Models\Transaction;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use RuntimeException;
@@ -180,7 +182,7 @@ class InventoryService
             locationId: $locationId,
             productId: $productId,
             variantId: $variantId,
-            movementType: 'adjustment',
+            movementType: $data['movement_type'] ?? 'adjustment',
             quantity: $quantity,
             unitCost: $data['unit_cost'] ?? 0,
             referenceType: $data['reference_type'] ?? null,
@@ -191,6 +193,57 @@ class InventoryService
             exchangeRateUsed: (float) ($data['exchange_rate_used'] ?? 1),
             clientId: $data['client_id'] ?? null,
         );
+    }
+
+    /**
+     * Instant branch-to-branch stock move: one deduction + one addition, sharing a
+     * reference_id so the movement history shows them as a linked pair (see
+     * MOVEMENT_TYPE_LABELS in formatters.ts, which already had transfer_in/transfer_out
+     * labels defined with nothing producing them). Reuses adjust() for both legs so
+     * insufficient-stock validation and movement recording stay in one place.
+     */
+    public function transfer(array $data, string $businessId, string $createdBy): array
+    {
+        $fromBranchId = $data['from_branch_id'];
+        $toBranchId = $data['to_branch_id'];
+
+        if ($fromBranchId === $toBranchId) {
+            throw new RuntimeException('La sucursal de origen y destino no pueden ser la misma.');
+        }
+
+        $productId = $data['product_id'];
+        $variantId = $data['variant_id'] ?? null;
+        $quantity = abs((float) $data['quantity']);
+        $transferId = Str::uuid()->toString();
+
+        return DB::transaction(function () use ($data, $fromBranchId, $toBranchId, $productId, $variantId, $quantity, $transferId, $businessId, $createdBy) {
+            $fromBranch = Branch::find($fromBranchId);
+            $toBranch = Branch::find($toBranchId);
+
+            $outMovement = $this->adjust([
+                'product_id' => $productId,
+                'variant_id' => $variantId,
+                'quantity' => -$quantity,
+                'branch_id' => $fromBranchId,
+                'movement_type' => 'transfer_out',
+                'reference_type' => 'transfer',
+                'reference_id' => $transferId,
+                'notes' => $data['notes'] ?? ('Transferencia a ' . ($toBranch->name ?? 'otra sucursal')),
+            ], $businessId, $createdBy);
+
+            $inMovement = $this->adjust([
+                'product_id' => $productId,
+                'variant_id' => $variantId,
+                'quantity' => $quantity,
+                'branch_id' => $toBranchId,
+                'movement_type' => 'transfer_in',
+                'reference_type' => 'transfer',
+                'reference_id' => $transferId,
+                'notes' => $data['notes'] ?? ('Transferencia desde ' . ($fromBranch->name ?? 'otra sucursal')),
+            ], $businessId, $createdBy);
+
+            return ['out' => $outMovement, 'in' => $inMovement, 'transfer_id' => $transferId];
+        });
     }
 
     public function getDefaultLocation(string $businessId, ?string $branchId): string

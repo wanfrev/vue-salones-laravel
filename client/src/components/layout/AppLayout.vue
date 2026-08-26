@@ -13,6 +13,7 @@
           <span class="text-[10px] text-text-muted uppercase tracking-wide">{{ roleLabel }}</span>
         </div>
         <BranchSwitcher v-if="businessStore.isMultiBranch && !isEmployee && !isEncargado" class="shrink-0" />
+        <BusinessSwitcher v-if="!isEmployee && !isEncargado" class="shrink-0" />
       </div>
       <div class="flex items-center gap-1 sm:gap-2 shrink-0">
         <slot name="header-actions" />
@@ -73,7 +74,7 @@ import lumaLogoDark from '../../assets/Luma blanco.svg'
 import Sidebar from './Sidebar.vue'
 import NotificationBell from '../common/NotificationBell.vue'
 import InvitationsButton from '../agenda/InvitationsButton.vue'
-import { BranchSwitcher } from '../common'
+import { BranchSwitcher, BusinessSwitcher } from '../common'
 import GlobalLoading from '../common/GlobalLoading.vue'
 import DailyExchangeRateModal from '../common/DailyExchangeRateModal.vue'
 import { getInitials } from '../../lib/formatters'

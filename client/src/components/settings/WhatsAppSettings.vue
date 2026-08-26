@@ -48,7 +48,7 @@
         <!-- Instance Management -->
         <div class="border-t border-border pt-4 space-y-3">
           <!-- Not Connected / Create -->
-          <div v-if="!config.whatsapp_instance_id || config.whatsapp_instance_status === 'disconnected'">
+          <div v-if="!config.whatsapp_instance_id || isDisconnectedState">
             <p class="text-sm font-medium text-text mb-2">Conectar WhatsApp</p>
             <button @click="createInstance" :disabled="loading"
               class="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-theme">
@@ -57,7 +57,7 @@
           </div>
 
           <!-- QR Code -->
-          <div v-if="config.whatsapp_instance_id && (config.whatsapp_instance_status === 'pending' || config.whatsapp_instance_status === 'disconnected')"
+          <div v-if="config.whatsapp_instance_id && (isPendingState || isDisconnectedState)"
             class="flex flex-col items-center gap-3 p-4 rounded-lg bg-bg-secondary/30">
             <p class="text-sm font-medium text-text">Escanea el código QR con WhatsApp</p>
             <div v-if="qrCode" class="bg-white p-3 rounded-xl">
@@ -76,7 +76,7 @@
           </div>
 
           <!-- Connected -->
-          <div v-if="config.whatsapp_instance_status === 'connected' || config.whatsapp_instance_status === 'open'"
+          <div v-if="isConnected"
             class="flex items-center justify-between p-4 rounded-lg bg-success/10 border border-success/20">
             <div class="flex items-center gap-3">
               <div class="flex h-10 w-10 items-center justify-center rounded-full bg-success/20 text-success">
@@ -288,6 +288,15 @@ const isConnected = computed(() =>
   (config.value.whatsapp_instance_status === 'connected' || config.value.whatsapp_instance_status === 'open')
 )
 
+// Evolution API devuelve el vocabulario crudo de Baileys ('close', 'connecting'),
+// no los nombres que usamos nosotros — hay que reconocer ambos.
+const isDisconnectedState = computed(() =>
+  config.value.whatsapp_instance_status === 'disconnected' || config.value.whatsapp_instance_status === 'close'
+)
+const isPendingState = computed(() =>
+  config.value.whatsapp_instance_status === 'pending' || config.value.whatsapp_instance_status === 'connecting'
+)
+
 const hasActiveReminderTemplate = computed(() =>
   templates.value.some(t => t.type === 'appointment_reminder' && t.is_active)
 )
@@ -339,6 +348,22 @@ const handleToggleEnabled = async (val: boolean) => {
   }
 }
 
+// El QR se genera de forma asíncrona en el servidor de WhatsApp (Baileys aún está
+// conectando) — puede tardar más de un par de segundos, así que reintentamos en vez
+// de rendirnos con el primer intento vacío.
+const pollForQr = async (): Promise<boolean> => {
+  for (let attempt = 0; !qrCode.value && attempt < 8; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    try {
+      const qrResult = await getWhatsAppQr()
+      qrCode.value = qrResult.qr_code ?? null
+    } catch {
+      // seguimos reintentando aunque un intento puntual falle
+    }
+  }
+  return !!qrCode.value
+}
+
 const createInstance = async () => {
   loading.value = true
   try {
@@ -346,11 +371,14 @@ const createInstance = async () => {
     config.value.whatsapp_instance_id = result.instance_id
     config.value.whatsapp_instance_status = 'pending'
     qrCode.value = result.qr_code ?? null
-    if (!result.qr_code) {
-      const qrResult = await getWhatsAppQr()
-      qrCode.value = qrResult.qr_code ?? null
+
+    const gotQr = qrCode.value ? true : await pollForQr()
+
+    if (gotQr) {
+      success('Instancia creada. Escanea el código QR con WhatsApp')
+    } else {
+      showError('El QR está tardando más de lo normal — espera unos segundos y dale a "Verificar conexión"')
     }
-    success('Instancia creada. Escanea el código QR con WhatsApp')
   } catch (err: any) {
     showError(err?.message ?? 'Error al crear la instancia')
   } finally {
@@ -480,9 +508,16 @@ const deleteTemplateHandler = async (id: string) => {
   }
 }
 
-onMounted(() => {
-  loadConfig()
+onMounted(async () => {
+  await loadConfig()
   loadTemplates()
   loadVariables()
+
+  // Si ya existía una instancia sin conectar (ej. cerraron la pestaña a medio
+  // escanear), pedimos el QR de una vez en vez de dejar el spinner girando sin
+  // ninguna petición real detrás.
+  if (config.value.whatsapp_instance_id && (isDisconnectedState.value || isPendingState.value)) {
+    pollForQr()
+  }
 })
 </script>

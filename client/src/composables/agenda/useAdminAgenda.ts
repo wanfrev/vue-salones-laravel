@@ -200,6 +200,7 @@ export function useAdminAgenda(businessId: () => string | null) {
     selectedDate,
     filterDate,
     dateFilterMode,
+    citasData,
     citas,
     activeCitas,
     historialCitas,

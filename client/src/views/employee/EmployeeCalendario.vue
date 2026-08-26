@@ -95,7 +95,7 @@ const handleEventClick = (event: { id: string; title: string; start: Date; end: 
 }
 
 const handleCheckout = (appointmentId: string) => {
-  router.push({ name: 'admin-pos', query: { appointment: appointmentId } })
+  router.push({ name: 'admin-pos', query: { appointmentId } })
 }
 
 const {

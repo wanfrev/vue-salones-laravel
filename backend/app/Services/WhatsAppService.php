@@ -26,7 +26,7 @@ class WhatsAppService
     /**
      * Resolve a template body with real values from an appointment.
      */
-    public function resolveTemplate(string $body, Appointment $appointment): string
+    public function resolveTemplate(string $body, Appointment $appointment, ?string $serviceNameOverride = null): string
     {
         $client = $appointment->client;
         $service = $appointment->service;
@@ -37,7 +37,7 @@ class WhatsAppService
         $replacements = [
             '{cliente}' => $client->full_name ?? '',
             '{mascota}' => $pet->name ?? '',
-            '{servicio}' => $service->name ?? '',
+            '{servicio}' => $serviceNameOverride ?? ($service->name ?? ''),
             '{fecha}' => $appointment->start_time->format('d/m/Y'),
             '{hora}' => $appointment->start_time->format('h:i A'),
             '{empleado}' => $employee->full_name ?? '',
@@ -75,7 +75,7 @@ class WhatsAppService
     /**
      * Send a WhatsApp text message for an appointment reminder.
      */
-    public function sendReminder(Appointment $appointment, string $templateBody): bool
+    public function sendReminder(Appointment $appointment, string $templateBody, ?string $serviceNameOverride = null): bool
     {
         $business = Business::find($appointment->business_id);
         if (!$business || !$business->whatsapp_enabled) {
@@ -88,7 +88,7 @@ class WhatsAppService
             return false;
         }
 
-        $message = $this->resolveTemplate($templateBody, $appointment);
+        $message = $this->resolveTemplate($templateBody, $appointment, $serviceNameOverride);
         $number = $this->sanitizePhone($client->phone);
 
         return $this->sendText($business, $number, $message);
@@ -203,6 +203,7 @@ class WhatsAppService
             $response = Http::withHeaders(['apikey' => $apiKey])
                 ->post(rtrim($baseUrl, '/') . '/instance/create', [
                     'instanceName' => $instanceName,
+                    'integration' => 'WHATSAPP-BAILEYS',
                     'token' => $apiKey ?? '',
                     'qrcode' => true,
                 ]);
