@@ -48,7 +48,7 @@
         <!-- Instance Management -->
         <div class="border-t border-border pt-4 space-y-3">
           <!-- Not Connected / Create -->
-          <div v-if="!config.whatsapp_instance_id || config.whatsapp_instance_status === 'disconnected'">
+          <div v-if="!config.whatsapp_instance_id || isDisconnectedState">
             <p class="text-sm font-medium text-text mb-2">Conectar WhatsApp</p>
             <button @click="createInstance" :disabled="loading"
               class="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-50 transition-theme">
@@ -57,7 +57,7 @@
           </div>
 
           <!-- QR Code -->
-          <div v-if="config.whatsapp_instance_id && (config.whatsapp_instance_status === 'pending' || config.whatsapp_instance_status === 'disconnected')"
+          <div v-if="config.whatsapp_instance_id && (isPendingState || isDisconnectedState)"
             class="flex flex-col items-center gap-3 p-4 rounded-lg bg-bg-secondary/30">
             <p class="text-sm font-medium text-text">Escanea el código QR con WhatsApp</p>
             <div v-if="qrCode" class="bg-white p-3 rounded-xl">
@@ -76,7 +76,7 @@
           </div>
 
           <!-- Connected -->
-          <div v-if="config.whatsapp_instance_status === 'connected' || config.whatsapp_instance_status === 'open'"
+          <div v-if="isConnected"
             class="flex items-center justify-between p-4 rounded-lg bg-success/10 border border-success/20">
             <div class="flex items-center gap-3">
               <div class="flex h-10 w-10 items-center justify-center rounded-full bg-success/20 text-success">
@@ -286,6 +286,15 @@ const availableVariables = ref<TemplateVariable[]>([])
 const isConnected = computed(() =>
   config.value.whatsapp_enabled &&
   (config.value.whatsapp_instance_status === 'connected' || config.value.whatsapp_instance_status === 'open')
+)
+
+// Evolution API devuelve el vocabulario crudo de Baileys ('close', 'connecting'),
+// no los nombres que usamos nosotros — hay que reconocer ambos.
+const isDisconnectedState = computed(() =>
+  config.value.whatsapp_instance_status === 'disconnected' || config.value.whatsapp_instance_status === 'close'
+)
+const isPendingState = computed(() =>
+  config.value.whatsapp_instance_status === 'pending' || config.value.whatsapp_instance_status === 'connecting'
 )
 
 const hasActiveReminderTemplate = computed(() =>
