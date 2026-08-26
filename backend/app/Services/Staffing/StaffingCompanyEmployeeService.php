@@ -115,10 +115,18 @@ class StaffingCompanyEmployeeService
      * holds more than one role at this company/project — pass it whenever the caller already
      * knows which one (e.g. a timesheet entry that recorded its role at save time). `$shift`
      * disambiguates further: two assignments can share the same role and differ only by shift
-     * (see 2026_08_24_000001_widen_staffing_company_employees_unique_constraint) — without it,
-     * `->first()` picks an arbitrary one of the two, silently pointing an hours entry at the
-     * wrong assignment's rate. Both are optional so a single-role, single-shift employee stays
-     * unambiguous without the caller having to pass them.
+     * (see 2026_08_24_000001_widen_staffing_company_employees_unique_constraint).
+     *
+     * Unlike `$role`, `$shift` is always applied as a real filter — including when it's null —
+     * the same way StaffingRateService::resolveFor() treats it, via `where('shift', $shift)`
+     * (Eloquent turns a null value into `whereNull`). The only caller (StaffingTimesheetService::
+     * saveWeek) always sends the grid row's actual shift, and a null there means "this specific
+     * assignment has no shift split", not "shift unknown, don't filter". Skipping the filter on
+     * null used to make this fall through to `->first()` picking an arbitrary row whenever a
+     * role had both a shift-less and a shift-specific assignment — silently pointing a "General"
+     * hours entry at whichever one happened to sort first, and occasionally resolving two grid
+     * rows to the *same* assignment, which then collided on StaffingTimesheetEntry's unique
+     * (timesheet_id, employee_id, role, shift) index and made the whole week fail to save.
      */
     public function assignmentFor(string $employeeId, string $companyId, ?string $projectId, ?string $role, ?string $shift = null): ?StaffingCompanyEmployee
     {
@@ -126,7 +134,7 @@ class StaffingCompanyEmployeeService
             ->where('company_id', $companyId)
             ->when($projectId, fn ($q) => $q->where('project_id', $projectId))
             ->when($role !== null, fn ($q) => $q->where('role', $role))
-            ->when($shift !== null, fn ($q) => $q->where('shift', $shift))
+            ->where('shift', $shift)
             ->first();
     }
 

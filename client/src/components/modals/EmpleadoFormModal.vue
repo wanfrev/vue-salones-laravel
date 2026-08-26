@@ -425,11 +425,26 @@ const editingBankAccountLast4 = ref<string | null>(null)
 const editingPayrollCardLast4 = ref<string | null>(null)
 const editingSsnLast4 = ref<string | null>(null)
 
+// Two assignments with the same (company, role, shift) are indistinguishable once saved — the
+// backend has no way to tell which one an hours entry belongs to, and Nómina fails to save for
+// that company. See StaffingEmployeeFields.vue's matching duplicateAssignmentIndexes, which
+// shows the user which row to fix; this is the submit-time gate for the same rule.
+const hasDuplicateAssignment = (assignments: EmpleadoFormData['staffingAssignments']): boolean => {
+  const seen = new Set<string>()
+  for (const a of assignments) {
+    if (!a.companyId || !a.role) continue
+    const key = `${a.companyId}::${a.role.trim()}::${a.shift ?? ''}`
+    if (seen.has(key)) return true
+    seen.add(key)
+  }
+  return false
+}
+
 const isFormValid = computed(() => {
   const nameValid = formData.value.name.trim().length >= 2
   if (isStaffing.value) {
     const assignments = formData.value.staffingAssignments
-    return nameValid && assignments.length > 0 && assignments.every(a => a.companyId !== '' && a.role.trim() !== '')
+    return nameValid && assignments.length > 0 && assignments.every(a => a.companyId !== '' && a.role.trim() !== '') && !hasDuplicateAssignment(assignments)
   }
   const roleValid = formData.value.systemRole === 'encargado' ? true : formData.value.role !== ''
   const emailValid = formData.value.email.trim().length >= 5
