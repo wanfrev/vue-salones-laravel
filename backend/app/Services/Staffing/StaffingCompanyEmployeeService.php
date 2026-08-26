@@ -37,19 +37,34 @@ class StaffingCompanyEmployeeService
         DB::transaction(function () use ($employeeId, $businessId, $assignments) {
             StaffingCompanyEmployee::where('employee_id', $employeeId)->delete();
 
+            // Two identical assignments (same company/project/role/shift) are indistinguishable to
+            // assignmentFor() once saved and make Nómina collide on StaffingTimesheetEntry's unique
+            // index. The frontend already blocks them, but the client is not the last line of
+            // defense — dedupe here by natural key so a stale/third-party caller can never pile up
+            // the literal duplicates that made one worker render several times in the roster.
+            $seen = [];
             foreach ($assignments as $assignment) {
                 if (empty($assignment['company_id']) || empty($assignment['role'])) {
                     continue;
                 }
 
+                $projectId = $assignment['project_id'] ?? null;
+                $shift = $assignment['shift'] ?? null;
+                $key = $assignment['company_id'] . '::' . ($projectId ?? '') . '::' . trim($assignment['role']) . '::' . ($shift ?? '');
+
+                if (isset($seen[$key])) {
+                    continue;
+                }
+                $seen[$key] = true;
+
                 StaffingCompanyEmployee::create([
                     'id' => Str::uuid()->toString(),
                     'business_id' => $businessId,
                     'company_id' => $assignment['company_id'],
-                    'project_id' => $assignment['project_id'] ?? null,
+                    'project_id' => $projectId,
                     'employee_id' => $employeeId,
-                    'role' => $assignment['role'],
-                    'shift' => $assignment['shift'] ?? null,
+                    'role' => trim($assignment['role']),
+                    'shift' => $shift,
                 ]);
             }
         });
