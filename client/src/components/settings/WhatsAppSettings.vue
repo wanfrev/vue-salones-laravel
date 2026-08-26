@@ -348,6 +348,22 @@ const handleToggleEnabled = async (val: boolean) => {
   }
 }
 
+// El QR se genera de forma asíncrona en el servidor de WhatsApp (Baileys aún está
+// conectando) — puede tardar más de un par de segundos, así que reintentamos en vez
+// de rendirnos con el primer intento vacío.
+const pollForQr = async (): Promise<boolean> => {
+  for (let attempt = 0; !qrCode.value && attempt < 8; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    try {
+      const qrResult = await getWhatsAppQr()
+      qrCode.value = qrResult.qr_code ?? null
+    } catch {
+      // seguimos reintentando aunque un intento puntual falle
+    }
+  }
+  return !!qrCode.value
+}
+
 const createInstance = async () => {
   loading.value = true
   try {
@@ -356,16 +372,9 @@ const createInstance = async () => {
     config.value.whatsapp_instance_status = 'pending'
     qrCode.value = result.qr_code ?? null
 
-    // El QR se genera de forma asíncrona en el servidor de WhatsApp (Baileys aún está
-    // conectando) — puede tardar más de un par de segundos, así que reintentamos en
-    // vez de rendirnos con el primer intento vacío.
-    for (let attempt = 0; !qrCode.value && attempt < 8; attempt++) {
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      const qrResult = await getWhatsAppQr()
-      qrCode.value = qrResult.qr_code ?? null
-    }
+    const gotQr = qrCode.value ? true : await pollForQr()
 
-    if (qrCode.value) {
+    if (gotQr) {
       success('Instancia creada. Escanea el código QR con WhatsApp')
     } else {
       showError('El QR está tardando más de lo normal — espera unos segundos y dale a "Verificar conexión"')
@@ -499,9 +508,16 @@ const deleteTemplateHandler = async (id: string) => {
   }
 }
 
-onMounted(() => {
-  loadConfig()
+onMounted(async () => {
+  await loadConfig()
   loadTemplates()
   loadVariables()
+
+  // Si ya existía una instancia sin conectar (ej. cerraron la pestaña a medio
+  // escanear), pedimos el QR de una vez en vez de dejar el spinner girando sin
+  // ninguna petición real detrás.
+  if (config.value.whatsapp_instance_id && (isDisconnectedState.value || isPendingState.value)) {
+    pollForQr()
+  }
 })
 </script>
