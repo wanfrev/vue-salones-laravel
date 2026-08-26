@@ -425,15 +425,17 @@ const editingBankAccountLast4 = ref<string | null>(null)
 const editingPayrollCardLast4 = ref<string | null>(null)
 const editingSsnLast4 = ref<string | null>(null)
 
-// Two assignments with the same (company, role, shift) are indistinguishable once saved — the
-// backend has no way to tell which one an hours entry belongs to, and Nómina fails to save for
-// that company. See StaffingEmployeeFields.vue's matching duplicateAssignmentIndexes, which
-// shows the user which row to fix; this is the submit-time gate for the same rule.
+// Two assignments with the same (company, project, role, shift) are indistinguishable once
+// saved — the backend has no way to tell which one an hours entry belongs to, and Nómina fails
+// to save for that company. Project is part of the key: the same company+role legitimately
+// repeats across different projects. See StaffingEmployeeFields.vue's matching
+// duplicateAssignmentIndexes, which shows the user which row to fix; this is the submit-time
+// gate for the same rule.
 const hasDuplicateAssignment = (assignments: EmpleadoFormData['staffingAssignments']): boolean => {
   const seen = new Set<string>()
   for (const a of assignments) {
     if (!a.companyId || !a.role) continue
-    const key = `${a.companyId}::${a.role.trim()}::${a.shift ?? ''}`
+    const key = `${a.companyId}::${a.projectId ?? ''}::${a.role.trim()}::${a.shift ?? ''}`
     if (seen.has(key)) return true
     seen.add(key)
   }

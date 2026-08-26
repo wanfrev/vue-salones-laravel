@@ -130,9 +130,9 @@
         </div>
 
         <p v-if="duplicateAssignmentIndexes.has(index)" class="text-xs text-danger">
-          Esta empresa, rol{{ assignment.shift ? ' y turno' : '' }} ya están asignados en otra fila arriba —
-          quita una de las dos, o cambia el turno para diferenciarlas. Dos asignaciones idénticas hacen que
-          Nómina no sepa a cuál de las dos cargarle las horas y falla al guardar.
+          Esta misma combinación de empresa, proyecto, rol{{ assignment.shift ? ' y turno' : '' }} ya está
+          asignada en otra fila arriba — quita una de las dos, o cambia el proyecto/turno para diferenciarlas.
+          Dos asignaciones idénticas hacen que Nómina no sepa a cuál de las dos cargarle las horas y falla al guardar.
         </p>
         <p v-else-if="assignment.companyId && assignment.role && !resolvedRateFor(assignment)" class="text-xs text-warning">
           Esta empresa no tiene una tarifa configurada para "{{ assignment.role }}" todavía — agrégala en Empresas
@@ -307,17 +307,20 @@ const shiftOptionsFor = (companyId: string, role: string) => {
   return shifts.map(r => ({ value: r.shift as string, label: SHIFT_OPTIONS.find(o => o.value === r.shift)?.label ?? r.shift as string }))
 }
 
-// Two assignments for the same (company, role, shift) are indistinguishable to the backend —
-// StaffingCompanyEmployeeService::assignmentFor() has no way to tell which grid row an hours
-// entry belongs to, and saving ends up colliding on StaffingTimesheetEntry's unique index,
+// Two assignments for the same (company, project, role, shift) are indistinguishable to the
+// backend — StaffingCompanyEmployeeService::assignmentFor() has no way to tell which grid row an
+// hours entry belongs to, and saving ends up colliding on StaffingTimesheetEntry's unique index,
 // failing the whole week. Flag every row past the first with an identical key so this can't
 // silently happen again (see the Lewis Electrical / Edwin Reyes case that motivated this).
+// Project is part of the key, not a further disambiguator on top of it — the same company+role
+// legitimately repeats across different projects (a worker on two projects for the same client,
+// same role, each project billed/tracked separately), so that alone is never a duplicate.
 const duplicateAssignmentIndexes = computed<Set<number>>(() => {
   const seen = new Set<string>()
   const duplicates = new Set<number>()
   assignments.value.forEach((a, i) => {
     if (!a.companyId || !a.role) return
-    const key = `${a.companyId}::${a.role.trim()}::${a.shift ?? ''}`
+    const key = `${a.companyId}::${a.projectId ?? ''}::${a.role.trim()}::${a.shift ?? ''}`
     if (seen.has(key)) duplicates.add(i)
     else seen.add(key)
   })
