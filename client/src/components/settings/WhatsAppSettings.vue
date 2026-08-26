@@ -346,11 +346,21 @@ const createInstance = async () => {
     config.value.whatsapp_instance_id = result.instance_id
     config.value.whatsapp_instance_status = 'pending'
     qrCode.value = result.qr_code ?? null
-    if (!result.qr_code) {
+
+    // El QR se genera de forma asíncrona en el servidor de WhatsApp (Baileys aún está
+    // conectando) — puede tardar más de un par de segundos, así que reintentamos en
+    // vez de rendirnos con el primer intento vacío.
+    for (let attempt = 0; !qrCode.value && attempt < 8; attempt++) {
+      await new Promise(resolve => setTimeout(resolve, 2000))
       const qrResult = await getWhatsAppQr()
       qrCode.value = qrResult.qr_code ?? null
     }
-    success('Instancia creada. Escanea el código QR con WhatsApp')
+
+    if (qrCode.value) {
+      success('Instancia creada. Escanea el código QR con WhatsApp')
+    } else {
+      showError('El QR está tardando más de lo normal — espera unos segundos y dale a "Verificar conexión"')
+    }
   } catch (err: any) {
     showError(err?.message ?? 'Error al crear la instancia')
   } finally {
