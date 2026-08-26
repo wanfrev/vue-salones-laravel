@@ -160,6 +160,38 @@ class SuperadminController
         }
     }
 
+    /** Vincula dos negocios ya existentes bajo el mismo dueño — selector de negocio, sesiones separadas. */
+    public function linkOwner(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'userId' => ['required', 'uuid', 'exists:users,id'],
+            'targetUserId' => ['required', 'uuid', 'exists:users,id'],
+        ]);
+
+        try {
+            $this->superadminService->linkOwners($validated['userId'], $validated['targetUserId'], $request->user()->id);
+            return response()->json(['success' => true]);
+        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e) {
+            return response()->json(['error' => ['message' => $e->getMessage()]], 404);
+        } catch (\Throwable $e) {
+            $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+            return response()->json(['error' => ['message' => $e->getMessage() ?: 'No fue posible vincular los negocios.']], $status ?: 500);
+        }
+    }
+
+    public function unlinkOwner(Request $request, string $userId): JsonResponse
+    {
+        try {
+            $this->superadminService->unlinkOwner($userId, $request->user()->id);
+            return response()->json(['success' => true]);
+        } catch (\Symfony\Component\HttpKernel\Exception\NotFoundHttpException $e) {
+            return response()->json(['error' => ['message' => $e->getMessage()]], 404);
+        } catch (\Throwable $e) {
+            $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
+            return response()->json(['error' => ['message' => $e->getMessage() ?: 'No fue posible desvincular el negocio.']], $status ?: 500);
+        }
+    }
+
     public function auditLogs(string $id): JsonResponse
     {
         return response()->json($this->superadminService->auditLogs($id));

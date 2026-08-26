@@ -22,6 +22,7 @@ class CreateBusinessRequest extends FormRequest
             // Strict on create — new businesses can only be minted on a registered niche.
             // (Editing an existing business is more permissive; see AssignableNiche.)
             'nicheType' => ['nullable', 'string', 'max:50', Rule::in(NicheRegistry::creatableIds())],
+            'linkedUserId' => ['nullable', 'uuid', 'exists:users,id'],
         ];
     }
 }

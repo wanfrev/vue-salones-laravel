@@ -11,6 +11,7 @@
           <img :src="lumaLogo" alt="Luma" class="h-7 w-auto object-contain" />
         </div>
         <BranchSwitcher v-if="businessStore.isMultiBranch && !isEncargado" class="shrink-0" />
+        <BusinessSwitcher v-if="!isEncargado" class="shrink-0" />
         <button @click="refresh" :disabled="isRefreshing" title="Recargar datos" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed shrink-0">
           <RefreshIcon :size="18" :class="{ 'animate-spin': isRefreshing }" />
         </button>
@@ -66,7 +67,7 @@ import lumaLogoDark from '../../assets/Luma blanco.svg'
 import Sidebar from './Sidebar.vue'
 import NotificationBell from '../common/NotificationBell.vue'
 import InvitationsButton from '../agenda/InvitationsButton.vue'
-import { BranchSwitcher } from '../common'
+import { BranchSwitcher, BusinessSwitcher } from '../common'
 import GlobalLoading from '../common/GlobalLoading.vue'
 import DailyExchangeRateModal from '../common/DailyExchangeRateModal.vue'
 import { useBusinessStore } from '../../store/business'

@@ -47,6 +47,64 @@ class AuthService
         ];
     }
 
+    /**
+     * Otros negocios (Business independientes, cada uno con su propio User+Profile) que el
+     * mismo dueño puede alternar sin volver a poner contraseña — ver switchBusiness(). Vacío
+     * si este usuario nunca fue vinculado a otro (owner_group_id null), que es el caso normal.
+     */
+    public function linkedBusinesses(User $user): array
+    {
+        if (!$user->owner_group_id) {
+            return [];
+        }
+
+        return User::where('owner_group_id', $user->owner_group_id)
+            ->where('id', '!=', $user->id)
+            ->with('profile.business')
+            ->get()
+            ->filter(fn (User $linked) => $linked->profile?->business)
+            ->map(fn (User $linked) => [
+                'user_id' => $linked->id,
+                'business_id' => $linked->profile->business_id,
+                'business_name' => $linked->profile->business->name,
+                'niche_type' => $linked->profile->business->niche_type,
+                'full_name' => $linked->profile->full_name,
+                'active' => (bool) $linked->profile->active,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * El dueño cambia de un negocio suyo a otro sin re-loguearse — mismo mecanismo de token que
+     * SuperadminService::impersonate, pero sin expiración (esto es su propio negocio, no una
+     * sesión de soporte) y solo permitido entre cuentas que comparten owner_group_id.
+     */
+    public function switchBusiness(User $currentUser, string $targetUserId): array
+    {
+        if (!$currentUser->owner_group_id) {
+            throw new HttpException(403, 'Esta cuenta no tiene negocios vinculados.');
+        }
+
+        $target = User::with('profile')->find($targetUserId);
+
+        if (!$target || $target->owner_group_id !== $currentUser->owner_group_id) {
+            throw new HttpException(403, 'No tienes acceso a ese negocio.');
+        }
+
+        if (!$target->profile || !$target->profile->active) {
+            throw new HttpException(403, 'Ese negocio está inactivo.');
+        }
+
+        $token = $target->createToken('api-token')->plainTextToken;
+
+        return [
+            'access_token' => $token,
+            'token_type' => 'Bearer',
+            'user' => $target,
+        ];
+    }
+
     public function changePassword(User $user, string $currentPassword, string $newPassword): void
     {
         if (!Hash::check($currentPassword, $user->password)) {
