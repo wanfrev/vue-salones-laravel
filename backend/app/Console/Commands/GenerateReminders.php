@@ -79,27 +79,34 @@ class GenerateReminders extends Command
                 $appointmentIds = [];
                 $label = $this->formatOffsetLabel($offsetHours);
 
-                foreach ($appointments as $appt) {
-                    $client = $appt->client;
-                    $service = $appt->service;
-                    if (!$client || !$service) {
-                        \Illuminate\Support\Facades\Log::warning("[reminders:generate] {$offsetHours}h: Skipping appointment {$appt->id} — missing client or service");
+                // Una visita con varios servicios son varias filas de Appointment que comparten
+                // group_id (mismo patrón usado en solapamiento de horarios y comisiones) — sin
+                // agrupar aquí, cada servicio generaba su propio recordatorio duplicado.
+                $groups = $appointments->groupBy(fn (Appointment $appt) => $appt->group_id ?? $appt->id);
+
+                foreach ($groups as $groupAppointments) {
+                    $first = $groupAppointments->first();
+                    $client = $first->client;
+                    $serviceNames = $groupAppointments->pluck('service.name')->filter()->unique()->values();
+                    if (!$client || $serviceNames->isEmpty()) {
+                        \Illuminate\Support\Facades\Log::warning("[reminders:generate] {$offsetHours}h: Skipping appointment group ({$first->id}) — missing client or service");
                         continue;
                     }
+                    $serviceLabel = $serviceNames->implode(', ');
 
                     $notifications = [];
 
                     $baseData = [
-                        'business_id' => $appt->business_id,
-                        'branch_id' => $appt->branch_id,
-                        'appointment_id' => $appt->id,
+                        'business_id' => $first->business_id,
+                        'branch_id' => $first->branch_id,
+                        'appointment_id' => $first->id,
                         'type' => 'reminder',
                         'title' => "Recordatorio de cita ({$label})",
-                        'message' => "El cliente {$client->full_name} tiene cita de {$service->name}",
+                        'message' => "El cliente {$client->full_name} tiene cita de {$serviceLabel}",
                         'client_name' => $client->full_name,
                         'client_phone' => $client->phone,
-                        'service_name' => $service->name,
-                        'appointment_time' => $appt->start_time,
+                        'service_name' => $serviceLabel,
+                        'appointment_time' => $first->start_time,
                         'metadata' => [
                             'type' => 'reminder_offset',
                             'offset_hours' => $offsetHours,
@@ -107,15 +114,19 @@ class GenerateReminders extends Command
                         ],
                     ];
 
-                    if ($appt->employee_id) {
+                    $employeeIds = $groupAppointments->pluck('employee_id')->filter()->unique();
+                    foreach ($employeeIds as $employeeId) {
                         $notifications[] = array_merge($baseData, [
-                            'profile_id' => $appt->employee_id,
+                            'profile_id' => $employeeId,
                         ]);
                     }
 
-                    $admins = $this->getAdminsToNotify($appt->business_id, $appt->branch_id, $appt->employee_id);
+                    $admins = $this->getAdminsToNotify($first->business_id, $first->branch_id);
 
                     foreach ($admins as $admin) {
+                        if ($employeeIds->contains($admin->id)) {
+                            continue;
+                        }
                         $notifications[] = array_merge($baseData, [
                             'profile_id' => $admin->id,
                         ]);
@@ -123,11 +134,13 @@ class GenerateReminders extends Command
 
                     $totalGenerated += $this->notificationService->createMany($notifications)->count();
 
-                    $appt->reminders_sent = array_merge($appt->reminders_sent ?? [], [$offsetHours]);
-                    $appt->save();
+                    foreach ($groupAppointments as $appt) {
+                        $appt->reminders_sent = array_merge($appt->reminders_sent ?? [], [$offsetHours]);
+                        $appt->save();
+                        $appointmentIds[] = $appt->id;
+                    }
 
-                    $appointmentIds[] = $appt->id;
-                    $affectedBusinesses[$appt->business_id] = true;
+                    $affectedBusinesses[$first->business_id] = true;
                 }
 
                 if (!empty($appointmentIds)) {
@@ -252,8 +265,13 @@ class GenerateReminders extends Command
 
     private function sendWhatsAppReminders($appointments, array &$whatsappBizIds, int &$whatsappSent): void
     {
-        foreach ($appointments as $appt) {
-            $business = Business::find($appt->business_id);
+        // Mismo agrupamiento por group_id que arriba — sin esto, una visita con varios
+        // servicios le mandaba al cliente un WhatsApp por cada servicio en vez de uno solo.
+        $groups = $appointments->groupBy(fn (Appointment $appt) => $appt->group_id ?? $appt->id);
+
+        foreach ($groups as $groupAppointments) {
+            $first = $groupAppointments->first();
+            $business = Business::find($first->business_id);
             if (!$business || !$business->whatsapp_enabled || !$business->whatsapp_instance_id) {
                 continue;
             }
@@ -266,21 +284,22 @@ class GenerateReminders extends Command
                 continue;
             }
 
-            if (!$appt->client || !$appt->client->phone) {
+            if (!$first->client || !$first->client->phone) {
                 continue;
             }
 
-            $template = MessageTemplate::where('business_id', $appt->business_id)
+            $template = MessageTemplate::where('business_id', $first->business_id)
                 ->where('type', 'appointment_reminder')
                 ->where('is_active', true)
                 ->first();
 
             $body = $template?->body ?? 'Hola {cliente}, recuerda tu cita de {servicio} el {fecha} a las {hora}. ¡Te esperamos en {negocio}!';
+            $serviceLabel = $groupAppointments->pluck('service.name')->filter()->unique()->implode(', ');
 
-            $success = $this->whatsappService->sendReminder($appt, $body);
+            $success = $this->whatsappService->sendReminder($first, $body, $serviceLabel);
             if ($success) {
                 $whatsappSent++;
-                $whatsappBizIds[$appt->business_id] = true;
+                $whatsappBizIds[$first->business_id] = true;
             }
 
             // Pausa entre envíos reales para no disparar ráfagas desde un mismo número
