@@ -96,11 +96,13 @@
     <ProductGrid
       :products="filteredProductos"
       :readonly="disableInventoryEdit"
+      :show-transfer="canTransferStock"
       @edit="safeOpenProductModal"
       @adjust="safeOpenAdjustModal"
       @deactivate="safeOpenDeleteModal"
       @delete="safeOpenPermanentDeleteModal"
       @variants="safeOpenVariantsModal"
+      @transfer="safeOpenTransferModal"
     />
   </template>
 
@@ -256,6 +258,18 @@
   <PurchaseInvoiceModal ref="purchaseInvoiceModalRef" />
   <PurchaseInvoiceHistoryModal ref="historyModalRef" />
   <VariantesManagerModal ref="variantsModalRef" />
+
+  <TransferStockModal
+    :is-open="transferModalOpen"
+    :product="transferProduct"
+    :is-loading="transferMutation.isPending.value"
+    v-model:from-branch-id="transferFromBranchId"
+    v-model:to-branch-id="transferToBranchId"
+    v-model:quantity="transferQuantity"
+    v-model:notes="transferNotes"
+    @close="closeTransferModal"
+    @confirm="confirmTransfer"
+  />
   </FeatureGate>
 </template>
 
@@ -267,6 +281,7 @@ import { useAuth } from '../composables/common/useAuth'
 import { useBusinessStore } from '../store/business'
 import { useProductCRUD } from '../composables/inventory/useProductCRUD'
 import { useProductStockAdjust } from '../composables/inventory/useProductStockAdjust'
+import { useInventoryTransfer } from '../composables/inventory/useInventoryTransfer'
 import { inventarioKeys, listInventoryMovements } from '../services/inventarioService'
 import ProductStats from '../components/productos/ProductStats.vue'
 import ProductoFormModal from '../components/modals/ProductoFormModal.vue'
@@ -276,6 +291,7 @@ import InventorySettingsModal from '../components/productos/InventorySettingsMod
 import PurchaseInvoiceModal from '../components/productos/PurchaseInvoiceModal.vue'
 import PurchaseInvoiceHistoryModal from '../components/productos/PurchaseInvoiceHistoryModal.vue'
 import VariantesManagerModal from '../components/modals/VariantesManagerModal.vue'
+import TransferStockModal from '../components/inventory/TransferStockModal.vue'
 import { ModalBase, FeatureGate } from '../components/common'
 import { BoxIcon, AddCircleIcon, MagnifierIcon, SettingsIcon, BillListIcon, ClipboardIcon } from '@solar-icons/vue/linear'
 import { hasRetailModule } from '../config/niches'
@@ -287,6 +303,7 @@ const businessId = computed(() => authStore.businessId)
 const disableInventoryEdit = computed(() => authStore.disableInventoryEdit)
 const canAddPurchaseInvoice = computed(() => authStore.canAddPurchaseInvoice)
 const isTienda = computed(() => hasRetailModule(businessStore.business?.niche_type || '', businessStore.features))
+const canTransferStock = computed(() => businessStore.isMultiBranch && businessStore.branches.length > 1)
 
 const settingsModalRef = ref<InstanceType<typeof InventorySettingsModal> | null>(null)
 const purchaseInvoiceModalRef = ref<InstanceType<typeof PurchaseInvoiceModal> | null>(null)
@@ -321,6 +338,11 @@ const safeOpenPermanentDeleteModal = (producto: any) => {
 const safeOpenVariantsModal = (producto: any) => {
   if (disableInventoryEdit.value) return
   variantsModalRef.value?.open(producto)
+}
+
+const safeOpenTransferModal = (producto: any) => {
+  if (disableInventoryEdit.value) return
+  openTransferModal(producto)
 }
 
 const {
@@ -359,6 +381,19 @@ const {
   closeAdjustModal,
   confirmAdjust,
 } = useProductStockAdjust()
+
+const {
+  transferModalOpen,
+  transferProduct,
+  transferFromBranchId,
+  transferToBranchId,
+  transferQuantity,
+  transferNotes,
+  transferMutation,
+  openTransferModal,
+  closeTransferModal,
+  confirmTransfer,
+} = useInventoryTransfer()
 
 const movementSearch = ref('')
 

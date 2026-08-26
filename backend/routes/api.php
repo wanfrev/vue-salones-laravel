@@ -233,6 +233,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
             Route::post('/inventory-movements', [InventoryController::class, 'storeMovement']);
             Route::delete('/inventory-movements/{id}', [InventoryController::class, 'destroyMovement']);
             Route::post('/inventory/adjust', [InventoryController::class, 'adjust']);
+            Route::post('/inventory/transfer', [InventoryController::class, 'transfer']);
             Route::post('/inventory/sell', [InventoryController::class, 'sell']);
             Route::post('/inventory-locations', [InventoryController::class, 'storeLocation']);
         });

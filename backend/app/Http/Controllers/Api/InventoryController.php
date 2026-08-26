@@ -200,6 +200,29 @@ class InventoryController
         }
     }
 
+    public function transfer(Request $request): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+
+        $data = $request->validate([
+            'product_id' => 'required|uuid',
+            'variant_id' => 'nullable|uuid',
+            'quantity' => 'required|numeric|min:0.01',
+            'from_branch_id' => 'required|uuid',
+            'to_branch_id' => 'required|uuid|different:from_branch_id',
+            'notes' => 'nullable|string',
+        ]);
+
+        try {
+            $result = $this->inventoryService->transfer($data, $businessId, $request->user()->id);
+            EntityChanged::safe($businessId, 'inventory', 'updated', $result['transfer_id']);
+            return response()->json($result, 201);
+        } catch (\Throwable $e) {
+            return response()->json(['error' => ['message' => $e->getMessage()]], 400);
+        }
+    }
+
     public function sell(Request $request): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
