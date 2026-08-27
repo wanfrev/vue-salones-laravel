@@ -73,15 +73,19 @@ class StaffingReportController
         // string "true"/"false" the frontend sends (`?active=${active.value}`) — so this must be
         // normalized before validate() or every request here fails validation and the UI falls
         // back to its "no employees" empty state, indistinguishable from a genuinely empty result.
-        $request->merge(['active' => filter_var($request->query('active'), FILTER_VALIDATE_BOOL)]);
+        // Absent entirely (the "Todos" tab) means no filter at all, not "false" — left out of the
+        // merge so it stays unset for the nullable rule below instead of being coerced to false.
+        if ($request->query('active') !== null) {
+            $request->merge(['active' => filter_var($request->query('active'), FILTER_VALIDATE_BOOL)]);
+        }
 
         $data = $request->validate([
             'year' => 'required|integer|min:2000|max:2100',
-            'active' => 'required|boolean',
+            'active' => 'nullable|boolean',
         ]);
 
         return response()->json(
-            $this->reports->employeeHoursMatrix($p->business_id, (int) $data['year'], (bool) $data['active'])
+            $this->reports->employeeHoursMatrix($p->business_id, (int) $data['year'], $data['active'] ?? null)
         );
     }
 

@@ -47,7 +47,7 @@ export const staffingReportKeys = {
     ['staffing-monthly-payroll', businessId, year, month] as const,
   weekly: (businessId?: string | null, weekStart?: string) =>
     ['staffing-weekly-report', businessId, weekStart] as const,
-  employeeHours: (businessId?: string | null, year?: number, active?: boolean) =>
+  employeeHours: (businessId?: string | null, year?: number, active?: boolean | null) =>
     ['staffing-employee-hours', businessId, year, active] as const,
 }
 
@@ -647,8 +647,10 @@ export interface StaffingEmployeeHoursMatrix {
   employees: StaffingEmployeeHoursRow[]
 }
 
-export const getEmployeeHoursMatrix = (year: number, active: boolean): Promise<StaffingEmployeeHoursMatrix> =>
-  apiRequest<StaffingEmployeeHoursMatrix>('GET', `/staffing-reports/employee-hours?year=${year}&active=${active}`)
+/** `active: null` means "Todos" — no filter, so a worker deactivated mid-year doesn't lose the
+ *  weeks they worked while still active off this report. */
+export const getEmployeeHoursMatrix = (year: number, active: boolean | null): Promise<StaffingEmployeeHoursMatrix> =>
+  apiRequest<StaffingEmployeeHoursMatrix>('GET', `/staffing-reports/employee-hours?year=${year}${active === null ? '' : `&active=${active}`}`)
 
 export type StaffingHoursPeriod = 'week' | 'month' | 'year'
 
