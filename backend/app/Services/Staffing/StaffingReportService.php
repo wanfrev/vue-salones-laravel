@@ -270,20 +270,24 @@ class StaffingReportService
     }
 
     /**
-     * Hours per employee per week of the year, for active or inactive staff — the "Horas
-     * Reportadas" sheet. Which companies an employee worked for is derived from their actual
-     * timesheet entries, not the single profiles.staffing_company_id FK: the PDF is explicit an
-     * employee can have hours against one or two companies in the same year ("si son dos o una").
+     * Hours per employee per week of the year, for active staff, inactive staff, or everyone —
+     * the "Horas Reportadas" sheet. `$activeOnly === null` ("Todos") is the one that matters for
+     * a past period: a worker deactivated in week 30 still worked weeks 1-29, and splitting the
+     * table by their *current* status hid that entire row under "Inactivos" the moment they left,
+     * reading as if their past hours had vanished rather than just moved tabs. Which companies an
+     * employee worked for is derived from their actual timesheet entries, not the single
+     * profiles.staffing_company_id FK: the PDF is explicit an employee can have hours against one
+     * or two companies in the same year ("si son dos o una").
      *
      * @return array{weeks: list<array{week_start: string, week_end: string, label: string}>, employees: list<array>}
      */
-    public function employeeHoursMatrix(string $businessId, int $year, bool $activeOnly): array
+    public function employeeHoursMatrix(string $businessId, int $year, ?bool $activeOnly): array
     {
         $weeks = $this->weeksForYear($year);
 
         $employees = Profile::query()
             ->where('business_id', $businessId)
-            ->where('active', $activeOnly)
+            ->when($activeOnly !== null, fn ($q) => $q->where('active', $activeOnly))
             ->orderBy('full_name')
             ->get();
 

@@ -86,7 +86,7 @@
       <div v-if="matrix.isLoading.value" class="py-8 text-center text-sm text-text-muted">Cargando...</div>
 
       <p v-else-if="matrix.employees.value.length === 0" class="py-8 text-center text-sm text-text-muted">
-        Sin empleados {{ active ? 'activos' : 'inactivos' }}.
+        Sin empleados{{ active === null ? '' : active ? ' activos' : ' inactivos' }}.
       </p>
 
       <p v-else-if="filteredEmployees.length === 0" class="py-8 text-center text-sm text-text-muted">
@@ -181,7 +181,11 @@ const VIEW_TABS: { value: 'employee' | 'company'; label: string }[] = [
   { value: 'company', label: 'Por empresa' },
 ]
 
-const TABS: { value: boolean; label: string }[] = [
+// "Todos" first and default: a period in the past shouldn't hinge on who's still on payroll
+// today — filtering to "Activos" hid a deactivated worker's entire year the moment they left,
+// reading as if their past hours had been deleted rather than just filtered out.
+const TABS: { value: boolean | null; label: string }[] = [
+  { value: null, label: 'Todos' },
   { value: true, label: 'Activos' },
   { value: false, label: 'Inactivos' },
 ]
@@ -200,7 +204,7 @@ const MONTH_LABELS = [
 const view = ref<'employee' | 'company'>('employee')
 
 const year = ref(new Date().getFullYear())
-const active = ref(true)
+const active = ref<boolean | null>(null)
 const matrix = useEmployeeHoursMatrix(toRef(props, 'businessId'), year, active)
 
 const employeeSearch = ref('')
