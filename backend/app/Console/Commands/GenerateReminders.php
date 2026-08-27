@@ -76,7 +76,6 @@ class GenerateReminders extends Command
                     continue;
                 }
 
-                $appointmentIds = [];
                 $label = $this->formatOffsetLabel($offsetHours);
 
                 // Una visita con varios servicios son varias filas de Appointment que comparten
@@ -137,19 +136,43 @@ class GenerateReminders extends Command
                     foreach ($groupAppointments as $appt) {
                         $appt->reminders_sent = array_merge($appt->reminders_sent ?? [], [$offsetHours]);
                         $appt->save();
-                        $appointmentIds[] = $appt->id;
                     }
 
                     $affectedBusinesses[$first->business_id] = true;
-                }
-
-                if (!empty($appointmentIds)) {
-                    $this->sendWhatsAppReminders($appointments->whereIn('id', $appointmentIds), $whatsappBizIds, $whatsappSent);
                 }
             }
         }
 
         $this->info("[reminders:generate] {$totalGenerated} reminder notifications generated.");
+
+        // 2. Send WhatsApp messages for every active reminder/follow-up template a business has
+        // configured — independent of the internal bell notifications above, since a business can
+        // run several WhatsApp templates at once (24h before, 1h before, 2h after service ends...).
+        $this->info('[reminders:generate] Checking WhatsApp reminder/follow-up templates...');
+
+        $templatesByBusiness = MessageTemplate::whereIn('type', ['appointment_reminder', 'follow_up'])
+            ->where('is_active', true)
+            ->whereNotNull('offset_hours')
+            ->get()
+            ->groupBy('business_id');
+
+        foreach ($templatesByBusiness as $businessId => $businessTemplates) {
+            $business = $reminderBusinesses->firstWhere('id', $businessId) ?? Business::find($businessId);
+            if (!$business || !$business->active || !$business->whatsapp_enabled || !$business->whatsapp_instance_id) {
+                continue;
+            }
+
+            $features = $business->features ?? [];
+            if (!($features['whatsapp_available'] ?? false) || !($features['whatsapp_reminders_enabled'] ?? true)) {
+                continue;
+            }
+
+            foreach ($businessTemplates as $template) {
+                $this->sendWhatsAppForTemplate($business, $template, $now, $whatsappBizIds, $whatsappSent);
+            }
+        }
+
+        $this->info("[reminders:generate] {$whatsappSent} WhatsApp messages sent.");
 
         // 4. Generate unpaid alerts: confirmed >24h ago, not paid
         $this->info('[reminders:generate] Checking unpaid confirmed appointments...');
@@ -263,51 +286,68 @@ class GenerateReminders extends Command
         return self::SUCCESS;
     }
 
-    private function sendWhatsAppReminders($appointments, array &$whatsappBizIds, int &$whatsappSent): void
+    /**
+     * Fires one WhatsApp template for whichever appointments currently fall in its window.
+     * `appointment_reminder` counts back from `start_time` (fires N hours BEFORE the visit);
+     * `follow_up` counts forward from `end_time` (fires N hours AFTER the service was scheduled
+     * to finish — e.g. "ven a recoger a tu perro"). Every appointment tracks which *templates*
+     * (not raw hour offsets, since several templates can share an offset) already fired for it in
+     * its own `reminders_sent`, prefixed so it can't collide with the bell-notification offsets
+     * also stored there.
+     */
+    private function sendWhatsAppForTemplate(Business $business, MessageTemplate $template, $now, array &$whatsappBizIds, int &$whatsappSent): void
     {
-        // Mismo agrupamiento por group_id que arriba — sin esto, una visita con varios
-        // servicios le mandaba al cliente un WhatsApp por cada servicio en vez de uno solo.
+        $offsetHours = (float) $template->offset_hours;
+        if ($offsetHours < 0 || $offsetHours > 720) {
+            return;
+        }
+
+        $isFollowUp = $template->type === 'follow_up';
+        $dateColumn = $isFollowUp ? 'end_time' : 'start_time';
+        $anchor = $isFollowUp
+            ? $now->copy()->subMinutes($offsetHours * 60)
+            : $now->copy()->addMinutes($offsetHours * 60);
+        $toleranceMinutes = max(10, (int) round($offsetHours * 60 * 0.1));
+        $windowStart = $anchor->copy()->subMinutes($toleranceMinutes);
+        $windowEnd = $anchor->copy()->addMinutes($toleranceMinutes);
+        $sentMarker = "wa:{$template->id}";
+
+        $appointments = Appointment::with(['client', 'service'])
+            ->where('business_id', $business->id)
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->whereBetween($dateColumn, [$windowStart, $windowEnd])
+            ->get()
+            ->filter(fn (Appointment $appt) => !in_array($sentMarker, $appt->reminders_sent ?? [], true));
+
+        if ($appointments->isEmpty()) {
+            return;
+        }
+
+        // Mismo agrupamiento por group_id que las notificaciones internas — sin esto, una visita
+        // con varios servicios le mandaba al cliente un WhatsApp por cada servicio en vez de uno solo.
         $groups = $appointments->groupBy(fn (Appointment $appt) => $appt->group_id ?? $appt->id);
 
         foreach ($groups as $groupAppointments) {
             $first = $groupAppointments->first();
-            $business = Business::find($first->business_id);
-            if (!$business || !$business->whatsapp_enabled || !$business->whatsapp_instance_id) {
-                continue;
+
+            if ($first->client && $first->client->phone) {
+                $serviceLabel = $groupAppointments->pluck('service.name')->filter()->unique()->implode(', ');
+                $success = $this->whatsappService->sendReminder($first, $template->body, $serviceLabel);
+                if ($success) {
+                    $whatsappSent++;
+                    $whatsappBizIds[$business->id] = true;
+                }
+
+                // Pausa entre envíos reales para no disparar ráfagas desde un mismo número
+                // — WhatsApp marca como sospechoso un lote de mensajes salientes instantáneos.
+                usleep(random_int(1_000_000, 3_000_000));
             }
 
-            $features = $business->features ?? [];
-            if (!($features['whatsapp_available'] ?? false)) {
-                continue;
+            foreach ($groupAppointments as $appt) {
+                $appt->reminders_sent = array_merge($appt->reminders_sent ?? [], [$sentMarker]);
+                $appt->save();
             }
-            if (!($features['whatsapp_reminders_enabled'] ?? true)) {
-                continue;
-            }
-
-            if (!$first->client || !$first->client->phone) {
-                continue;
-            }
-
-            $template = MessageTemplate::where('business_id', $first->business_id)
-                ->where('type', 'appointment_reminder')
-                ->where('is_active', true)
-                ->first();
-
-            $body = $template?->body ?? 'Hola {cliente}, recuerda tu cita de {servicio} el {fecha} a las {hora}. ¡Te esperamos en {negocio}!';
-            $serviceLabel = $groupAppointments->pluck('service.name')->filter()->unique()->implode(', ');
-
-            $success = $this->whatsappService->sendReminder($first, $body, $serviceLabel);
-            if ($success) {
-                $whatsappSent++;
-                $whatsappBizIds[$first->business_id] = true;
-            }
-
-            // Pausa entre envíos reales para no disparar ráfagas desde un mismo número
-            // — WhatsApp marca como sospechoso un lote de mensajes salientes instantáneos.
-            usleep(random_int(1_000_000, 3_000_000));
         }
-
-        $this->info("[reminders:generate] {$whatsappSent} WhatsApp reminders sent.");
     }
 
     private function getAdminsToNotify(string $businessId, ?string $branchId, ?string $excludeProfileId = null)
