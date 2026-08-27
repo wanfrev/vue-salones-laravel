@@ -6,12 +6,20 @@
     :icon="isEditing ? 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z' : 'M12 6v6m0 0v6m0-6h6m-6 0H6'"
     size="xl"
     :is-loading="isLoading"
-    :is-confirm-disabled="!isFormValid || saveInProgress"
+    :is-confirm-disabled="isReadOnly || !isFormValid || saveInProgress"
     :confirm-text="confirmButtonLabel"
     @close="close"
     @confirm="formRef?.requestSubmit()"
   >
     <form ref="formRef" @submit.prevent="handleSubmit" class="space-y-5">
+      <p v-if="isReadOnly" class="rounded-lg bg-bg-secondary px-3 py-2 text-xs text-text-muted">
+        Solo puedes ver esta {{ t.appointment.toLowerCase() }} — tu perfil no tiene permiso para agendar/editar citas.
+      </p>
+      <!-- Disables every input/select/textarea/button below in one shot (native <fieldset>
+           behavior) rather than threading :disabled through every field individually — the
+           backend's appointments-edit gate is what actually blocks the write, this is just the
+           UI half so it doesn't read as editable and then 403 on submit. -->
+      <fieldset :disabled="isReadOnly" class="contents">
       <!-- BLOQUE 1: DATOS GENERALES -->
       <div class="space-y-3">
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -230,8 +238,9 @@
       </div>
 
       <PaymentEditor ref="paymentEditorRef" />
+      </fieldset>
 
-      <div v-if="isEditing" class="border-t border-border pt-4">
+      <div v-if="isEditing && !isReadOnly" class="border-t border-border pt-4">
         <button type="button" class="rounded-lg border border-danger/30 px-4 py-2 text-sm font-semibold text-danger transition-theme hover:bg-danger/10" @click="confirmDelete">
           Eliminar {{ t.appointment.toLowerCase() }}
         </button>
@@ -283,6 +292,11 @@ const authStore = useAuthStore()
 const businessStore = useBusinessStore()
 const queryClient = useQueryClient()
 const isEmployee = computed(() => authStore.role === 'empleado')
+// "Puede agendar citas" off: an empleado can still open an existing appointment to read it, but
+// every field, the delete button, and Guardar are disabled — mirrors the backend's
+// appointments-edit gate (BusinessContext::canEditAppointments), which is the one that actually
+// stops the write; this is the UI half so it doesn't just fail with a 403 after they try.
+const isReadOnly = computed(() => isEmployee.value && authStore.profile?.can_create_appointments === false)
 const canCreateClients = computed(() => {
   if (!isEmployee.value) return true
   const profileCanCreate = authStore.profile?.can_create_clients ?? true
