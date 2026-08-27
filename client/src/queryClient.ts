@@ -1,4 +1,4 @@
-import { QueryClient, QueryCache, MutationCache, keepPreviousData } from '@tanstack/vue-query'
+import { QueryClient, QueryCache, MutationCache } from '@tanstack/vue-query'
 import { db, setAuthToken, getAuthToken } from './lib/api'
 
 const isAuthError = (err: unknown): boolean => {
@@ -68,7 +68,12 @@ export const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
       refetchOnMount: true,
-      placeholderData: keepPreviousData,
+      // No global keepPreviousData: it's a fine UX smoother for a query that just gets new
+      // params for the *same* thing (Agenda's date range, Finanzas' filters — each opts into
+      // it in its own composable). Applied globally it also covers queries whose key change
+      // means "switch to a completely different entity" — e.g. Nómina's employees-for-company
+      // query when the company dropdown changes — where showing the *previous* company's
+      // roster as a placeholder under the *new* company's label is wrong, not just stale.
       networkMode: 'online',
     },
     mutations: {
