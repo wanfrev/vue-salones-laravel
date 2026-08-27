@@ -133,29 +133,49 @@ class StaffingReportService
 
         $weekStarts = array_column($weeks, 'week_start');
 
+        // Grouped by project too (not just company+week) so each cell can carry which timesheet
+        // it came from — a company can run several projects the same week, each its own separate
+        // timesheet (see the partial unique indexes in 2026_08_20_100001_add_project_id_to_staffing_tables),
+        // so "the" project for a cell is only unambiguous when just one contributed to it.
         $rows = DB::table('staffing_timesheet_entries as ste')
             ->join('staffing_timesheets as st', 'st.id', '=', 'ste.timesheet_id')
             ->where('st.business_id', $businessId)
             ->whereIn('st.week_start', $weekStarts)
-            ->selectRaw('st.company_id, st.week_start, SUM(ste.payout) as nomina')
-            ->groupBy('st.company_id', 'st.week_start')
+            ->selectRaw('st.company_id, st.week_start, st.project_id, SUM(ste.payout) as nomina')
+            ->groupBy('st.company_id', 'st.week_start', 'st.project_id')
             ->get();
 
         $byCompany = [];
+        // company_id => week_start => [project_id => nomina], to pick the deep-link target below.
+        $projectsByCompanyWeek = [];
         foreach ($rows as $row) {
-            $byCompany[$row->company_id][$this->normalizeDate($row->week_start)] = (float) $row->nomina;
+            $weekStart = $this->normalizeDate($row->week_start);
+            $byCompany[$row->company_id][$weekStart] = ($byCompany[$row->company_id][$weekStart] ?? 0.0) + (float) $row->nomina;
+            $projectsByCompanyWeek[$row->company_id][$weekStart][$row->project_id ?? ''] = (float) $row->nomina;
         }
 
         return [
             'weeks' => $weeks,
-            'companies' => $companies->map(function (StaffingCompany $company) use ($byCompany, $weekStarts) {
+            'companies' => $companies->map(function (StaffingCompany $company) use ($byCompany, $projectsByCompanyWeek, $weekStarts) {
                 $weekly = $byCompany[$company->id] ?? [];
                 $total = array_sum(array_map(fn ($ws) => $weekly[$ws] ?? 0.0, $weekStarts));
+
+                // The project behind this week's number, so clicking it opens Nómina already
+                // scoped there instead of defaulting to "General" and showing nobody. Usually
+                // there's only one; when several projects contributed the same week, the biggest
+                // one by payout is still a far better landing spot than an empty "General" that
+                // matches none of them.
+                $weeklyProjectId = [];
+                foreach ($projectsByCompanyWeek[$company->id] ?? [] as $weekStart => $projects) {
+                    arsort($projects);
+                    $weeklyProjectId[$weekStart] = array_key_first($projects) ?: null;
+                }
 
                 return [
                     'companyId' => $company->id,
                     'name' => $company->name,
                     'weeklyPayroll' => $weekly,
+                    'weeklyProjectId' => $weeklyProjectId,
                     'total' => $total,
                 ];
             })->all(),
