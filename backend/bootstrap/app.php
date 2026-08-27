@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'perm' => \App\Http\Middleware\EnsureProfilePermission::class,
             // Unlike feature/perm above, this one blocks for real — see the class docblock.
             'capability' => \App\Http\Middleware\EnsureNicheCapability::class,
+            'appointments-edit' => \App\Http\Middleware\EnsureCanEditAppointments::class,
         ]);
         $middleware->throttleApi();
     })

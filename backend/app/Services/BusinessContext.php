@@ -22,6 +22,7 @@ class BusinessContext
         public readonly bool $canAccessRequirements = false,
         public readonly bool $disableInventoryEdit = false,
         public readonly bool $canAddPurchaseInvoice = false,
+        public readonly bool $canCreateAppointments = true,
     ) {
         $this->features = NicheRegistry::resolveFeatures($this->nicheType, $rawFeatures);
     }
@@ -54,6 +55,19 @@ class BusinessContext
     public function hasCapability(string $capability): bool
     {
         return NicheRegistry::hasCapability($this->nicheType, $capability);
+    }
+
+    /**
+     * "Puede agendar citas" off means a plain empleado can only look — not touch anything on an
+     * appointment (status, time, service, notes) and not delete it. Admin-panel roles are always
+     * unrestricted. Deliberately its own always-enforcing check rather than a `perm:` middleware
+     * key: `perm:`/`hasProfilePermission()` are report-only until config('niches.enforce') is
+     * flipped (see EnsureProfilePermission), which would make this toggle silently do nothing —
+     * wrong for a control the business is explicitly relying on today, not a niche rollout.
+     */
+    public function canEditAppointments(): bool
+    {
+        return $this->isAdmin() || $this->isSuperadmin() || $this->canCreateAppointments;
     }
 
     /**

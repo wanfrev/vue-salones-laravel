@@ -179,10 +179,14 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     Route::get('/appointments', [AppointmentController::class, 'index']);
     Route::post('/appointments', [AppointmentController::class, 'store']);
     Route::get('/appointments/{id}', [AppointmentController::class, 'show']);
-    Route::put('/appointments/{id}', [AppointmentController::class, 'update']);
-    Route::delete('/appointments/{id}', [AppointmentController::class, 'destroy']);
-    Route::patch('/appointments/{id}/status', [AppointmentController::class, 'updateStatus']);
-    Route::patch('/appointments/{id}/time', [AppointmentController::class, 'updateTime']);
+    // Viewing and creating stay open — "Puede agendar citas" off only takes away the ability to
+    // change an EXISTING appointment (status, time, any field, or delete it), per its own toggle.
+    Route::middleware('appointments-edit')->group(function () {
+        Route::put('/appointments/{id}', [AppointmentController::class, 'update']);
+        Route::delete('/appointments/{id}', [AppointmentController::class, 'destroy']);
+        Route::patch('/appointments/{id}/status', [AppointmentController::class, 'updateStatus']);
+        Route::patch('/appointments/{id}/time', [AppointmentController::class, 'updateTime']);
+    });
 
     // Products — read needs perm:inventory (tienda employee "acceso a inventario"),
     // write additionally needs perm:inventory-edit (disable_inventory_edit governs this).
