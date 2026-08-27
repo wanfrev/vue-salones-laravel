@@ -11,13 +11,14 @@ class MessageTemplate extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
-        'id', 'business_id', 'type', 'name', 'body', 'is_active',
+        'id', 'business_id', 'type', 'name', 'body', 'is_active', 'offset_hours',
     ];
 
     protected function casts(): array
     {
         return [
             'is_active' => 'boolean',
+            'offset_hours' => 'float',
         ];
     }
 

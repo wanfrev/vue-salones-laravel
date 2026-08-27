@@ -8,6 +8,7 @@ use App\Models\MessageTemplate;
 use App\Services\WhatsAppService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class WhatsAppController extends Controller
 {
@@ -223,6 +224,7 @@ class WhatsAppController extends Controller
                 $default = MessageTemplate::create([
                     'business_id' => $businessId,
                     'type' => 'appointment_reminder',
+                    'offset_hours' => 24,
                     'name' => 'Recordatorio de cita',
                     'body' => '¡Hola {cliente}! Te recordamos tu cita de {servicio} en {negocio} el {fecha} a las {hora}. ¡Te esperamos! 😊',
                     'is_active' => true,
@@ -245,6 +247,12 @@ class WhatsAppController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'body' => ['required', 'string', 'max:5000'],
             'is_active' => ['boolean'],
+            // Required for reminder/follow_up — that's what tells the cron when to fire this
+            // template. Meaningless for appointment_confirmation, which fires at booking time.
+            'offset_hours' => [
+                Rule::requiredIf(in_array($request->type, ['appointment_reminder', 'follow_up'], true)),
+                'nullable', 'numeric', 'min:0', 'max:720',
+            ],
         ]);
 
         $businessId = $this->resolveBusinessId($request);

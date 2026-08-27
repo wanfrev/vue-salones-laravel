@@ -68,6 +68,7 @@ class PublicBookingController extends Controller
             ->where('role', 'empleado')
             ->where('active', true)
             ->where('disable_agenda', false)
+            ->where('show_in_public_booking', true)
             ->select('id', 'full_name', 'avatar_url')
             ->orderBy('full_name')
             ->get();

@@ -70,6 +70,7 @@ export interface Profile {
   salary_frequency?: 'weekly' | 'biweekly' | 'monthly' | null
   product_commission_percentage?: number | null
   disable_agenda?: boolean
+  show_in_public_booking?: boolean
   disable_inventory_edit?: boolean
   can_access_finanzas?: boolean
   can_access_requirements?: boolean

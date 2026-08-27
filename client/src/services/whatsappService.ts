@@ -24,6 +24,9 @@ export interface MessageTemplate {
   name: string
   body: string
   is_active: boolean
+  // Horas antes del inicio de la cita (appointment_reminder) u horas después de que termina
+  // (follow_up). Sin uso para appointment_confirmation, que se envía al agendar.
+  offset_hours?: number | null
   created_at?: string
   updated_at?: string
 }

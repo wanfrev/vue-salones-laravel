@@ -194,6 +194,7 @@ export function useAdminAgenda(businessId: () => string | null) {
     payType: employee.payType,
     payPercentage: employee.payPercentage,
     disableAgenda: employee.disableAgenda,
+    showInPublicBooking: employee.showInPublicBooking,
   })))
 
   return {

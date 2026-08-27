@@ -161,6 +161,9 @@
               :class="tpl.type === 'appointment_reminder' ? 'bg-primary/10 text-primary' : tpl.type === 'appointment_confirmation' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'">
               {{ typeLabel(tpl.type) }}
             </span>
+            <span v-if="offsetLabel(tpl)" class="rounded-full bg-info/10 px-2 py-0.5 text-[10px] font-semibold text-info">
+              {{ offsetLabel(tpl) }}
+            </span>
             <span v-if="!tpl.is_active" class="rounded-full bg-text-muted/10 px-2 py-0.5 text-[10px] font-semibold text-text-muted">
               Inactiva
             </span>
@@ -210,6 +213,19 @@
           </select>
         </div>
       </div>
+      <div v-if="templateForm.type !== 'appointment_confirmation'">
+        <label class="block text-sm font-medium text-text-secondary mb-1.5">
+          {{ templateForm.type === 'follow_up' ? 'Horas después de terminar la cita' : 'Horas antes de la cita' }}
+        </label>
+        <input v-model.number="templateForm.offset_hours" type="number" min="0" max="720" step="0.5"
+          :placeholder="templateForm.type === 'follow_up' ? 'Ej: 2' : 'Ej: 24'"
+          class="w-32 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/20" />
+        <p class="text-xs text-text-muted mt-1.5">
+          {{ templateForm.type === 'follow_up'
+            ? 'Se envía cuando pasan estas horas desde el fin programado de la cita — ej. "ven a recoger a tu mascota".'
+            : 'Se envía cuando faltan estas horas para el inicio de la cita. Puedes crear varias plantillas con distintos tiempos (24h antes, 1h antes, etc).' }}
+        </p>
+      </div>
       <div>
         <label class="block text-sm font-medium text-text-secondary mb-1.5">Mensaje</label>
         <textarea v-model="templateForm.body" rows="5" placeholder="Escribe tu mensaje... usa {cliente}, {servicio}, {fecha}, etc."
@@ -229,7 +245,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useNotification } from '../../composables/common/useNotification'
 import { useBusinessStore } from '../../store/business'
 import { SectionCard, EmptyState } from '../common'
@@ -279,6 +295,7 @@ const templateForm = reactive<MessageTemplate>({
   name: '',
   body: '',
   is_active: true,
+  offset_hours: 24,
 })
 
 const availableVariables = ref<TemplateVariable[]>([])
@@ -328,6 +345,24 @@ const typeLabel = (type: string) => {
   }
   return labels[type] ?? type
 }
+
+const offsetLabel = (tpl: MessageTemplate): string | null => {
+  if (tpl.type === 'appointment_confirmation' || tpl.offset_hours == null) return null
+  const h = tpl.offset_hours
+  const hLabel = Number.isInteger(h) ? String(h) : h.toFixed(1)
+  return tpl.type === 'follow_up' ? `${hLabel}h después` : `${hLabel}h antes`
+}
+
+// Cambiar el tipo con el editor abierto reinicia el offset a un default sensato para ese
+// tipo — sin esto, elegir "Seguimiento" dejaba el valor de "Recordatorio" (24h) puesto, que
+// no tiene sentido para un mensaje que se manda después de terminar la cita.
+watch(() => templateForm.type, (type) => {
+  if (type === 'appointment_confirmation') {
+    templateForm.offset_hours = null
+  } else if (templateForm.offset_hours == null) {
+    templateForm.offset_hours = type === 'follow_up' ? 2 : 24
+  }
+})
 
 const loadConfig = async () => {
   try {
@@ -453,6 +488,7 @@ const openNewTemplate = () => {
   templateForm.name = ''
   templateForm.body = ''
   templateForm.is_active = true
+  templateForm.offset_hours = 24
   showTemplateEditor.value = true
 }
 
@@ -463,6 +499,7 @@ const editTemplate = (tpl: MessageTemplate) => {
   templateForm.name = tpl.name
   templateForm.body = tpl.body
   templateForm.is_active = tpl.is_active
+  templateForm.offset_hours = tpl.offset_hours ?? null
   showTemplateEditor.value = true
 }
 
@@ -473,6 +510,10 @@ const insertVariable = (key: string) => {
 const saveTemplate = async () => {
   if (!templateForm.name || !templateForm.body) {
     showError('Nombre y mensaje son requeridos')
+    return
+  }
+  if (templateForm.type !== 'appointment_confirmation' && (templateForm.offset_hours == null || templateForm.offset_hours < 0)) {
+    showError('Indica cuántas horas antes/después se envía este mensaje')
     return
   }
   templateSaving.value = true

@@ -230,7 +230,9 @@ watch([citas, isLoading], () => {
 }, { immediate: true })
 
 const shareLinkEmployees = computed(() =>
-  empleadosList.value.filter((e: any) => !e.disableAgenda).map((e: any) => ({ id: e.id, label: e.name }))
+  empleadosList.value
+    .filter((e: any) => !e.disableAgenda && e.showInPublicBooking !== false)
+    .map((e: any) => ({ id: e.id, label: e.name }))
 )
 
 const {

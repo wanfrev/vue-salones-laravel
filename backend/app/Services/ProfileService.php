@@ -133,6 +133,7 @@ class ProfileService
                 'product_commission_percentage' => $data['product_commission_percentage'] ?? null,
                 'disable_agenda' => $data['disable_agenda'] ?? false,
                 'disable_inventory_edit' => $data['disable_inventory_edit'] ?? false,
+                'show_in_public_booking' => $data['show_in_public_booking'] ?? true,
                 'can_create_appointments' => $data['can_create_appointments'] ?? true,
                 'can_create_clients' => $data['can_create_clients'] ?? true,
                 'can_access_consultorio' => $data['can_access_consultorio'] ?? true,
@@ -213,6 +214,9 @@ class ProfileService
             }
             if (array_key_exists('disable_agenda', $data)) {
                 $profileFields['disable_agenda'] = $data['disable_agenda'];
+            }
+            if (array_key_exists('show_in_public_booking', $data)) {
+                $profileFields['show_in_public_booking'] = $data['show_in_public_booking'];
             }
             if (array_key_exists('disable_inventory_edit', $data)) {
                 $profileFields['disable_inventory_edit'] = $data['disable_inventory_edit'];
