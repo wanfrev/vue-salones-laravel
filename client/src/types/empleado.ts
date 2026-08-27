@@ -31,6 +31,8 @@ export interface Empleado {
   payValueLabel: string
   disableAgenda?: boolean
   disableInventoryEdit?: boolean
+  /** Whether this employee can be picked in the public booking link's "cualquier empleado" flow. */
+  showInPublicBooking?: boolean
   canCreateAppointments?: boolean
   canCreateClients?: boolean
   canAccessConsultorio?: boolean
@@ -77,6 +79,7 @@ export interface EmpleadoFormData {
   activeDays: number[]
   disableAgenda: boolean
   disableInventoryEdit: boolean
+  showInPublicBooking: boolean
   canCreateAppointments: boolean
   canCreateClients: boolean
   canAccessConsultorio: boolean

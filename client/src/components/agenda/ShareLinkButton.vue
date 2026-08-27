@@ -80,11 +80,11 @@ function copyShareLink(employeeId: string) {
   })
 }
 
+// El boton principal "Link" debe dar el link general (cliente elige empleado) — antes armaba
+// un link fijo al propio perfil del admin (o al primer empleado de la lista), que es justo lo
+// que "Cualquier empleado" en el desplegable ya hace bien.
 function copyDefaultShareLink() {
-  const defaultEmpId = authStore.profile?.id || props.employees[0]?.id
-  if (defaultEmpId) {
-    copyShareLink(defaultEmpId)
-  }
+  copyGeneralShareLink()
 }
 
 function copyGeneralShareLink() {

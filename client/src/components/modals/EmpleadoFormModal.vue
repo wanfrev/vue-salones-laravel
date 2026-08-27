@@ -157,6 +157,18 @@
             </button>
           </label>
 
+          <label v-if="formData.systemRole !== 'cajero' && businessStore.features.enable_public_booking" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-text">Visible en reserva pública</p>
+              <p class="text-xs text-text-muted">Aparece como opción cuando el cliente elige "cualquier empleado" en el link de reserva. Desactívalo para puestos que no atienden clientes (mantenimiento, limpieza, etc).</p>
+            </div>
+            <button type="button" role="switch" :aria-checked="formData.showInPublicBooking"
+              @click="formData.showInPublicBooking = !formData.showInPublicBooking"
+              :class="['relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2', formData.showInPublicBooking ? 'bg-primary border-primary' : 'bg-border border-border']">
+              <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.showInPublicBooking ? 'translate-x-4' : 'translate-x-0']" />
+            </button>
+          </label>
+
           <label v-if="formData.systemRole !== 'cajero'" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
               <p class="text-sm font-medium text-text">Puede crear clientes</p>
@@ -393,6 +405,7 @@ const defaultFormData: EmpleadoFormData = {
   // Read-only by default: a newly granted canAccessInventory shouldn't silently come with
   // write access — edit is a separate, explicit toggle (see the canAccessInventory watcher).
   disableInventoryEdit: true,
+  showInPublicBooking: true,
   canCreateAppointments: true,
   canCreateClients: true,
   canAccessConsultorio: true,
@@ -482,6 +495,7 @@ watch(
         activeDays: [1, 2, 3, 4, 5, 6],
         disableAgenda: empleado.disableAgenda ?? false,
         disableInventoryEdit: empleado.disableInventoryEdit ?? false,
+        showInPublicBooking: empleado.showInPublicBooking ?? true,
         canCreateAppointments: empleado.canCreateAppointments ?? true,
         canCreateClients: empleado.canCreateClients ?? true,
         canAccessConsultorio: empleado.canAccessConsultorio ?? true,
@@ -541,6 +555,7 @@ watch(
     } else if (newRole === 'cajero') {
       formData.value.role = 'Cajero'
       formData.value.disableAgenda = true
+      formData.value.showInPublicBooking = false
       formData.value.canCreateAppointments = false
       formData.value.canCreateClients = false
       formData.value.canAccessConsultorio = false

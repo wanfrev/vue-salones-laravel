@@ -350,7 +350,11 @@ const emit = defineEmits<{
 
 const { selectedEmployeeId, setDateRange, employees, loadingEmployees, services, appointments, appointmentsError } = useAgenda()
 
-const shareLinkEmployees = computed(() => (employees.value ?? []).map((e: any) => ({ id: e.id, label: e.full_name })))
+const shareLinkEmployees = computed(() =>
+  (employees.value ?? [])
+    .filter((e: any) => e.show_in_public_booking !== false)
+    .map((e: any) => ({ id: e.id, label: e.full_name }))
+)
 
 const serviceMap = computed(() => new Map((services.value ?? []).map((s: any) => [s.id, s])))
 const employeeMap = computed(() => new Map((employees.value ?? []).map((e: any) => [e.id, e])))
