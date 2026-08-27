@@ -107,12 +107,15 @@ export const adminUpdateEmployee = async (userId: string, input: Partial<Employe
   if (error) throw new Error(error.message || 'No fue posible actualizar el empleado.')
 }
 
-/** Soft-delete employee */
-export const adminDeleteEmployee = async (userId: string): Promise<void> => {
-  const { error } = await db
+/** Deletes the employee outright when they have no real history (appointments, staffing
+ *  hours, tax entries) to protect; falls back to marking them inactive when they do — see
+ *  ProfileService::destroy. `deleted: false` means the fallback happened. */
+export const adminDeleteEmployee = async (userId: string): Promise<{ deleted: boolean }> => {
+  const { data, error } = await db
     .from('profiles')
     .delete()
     .eq('id', userId)
 
   if (error) throw new Error(error.message || 'No fue posible eliminar el empleado.')
+  return (data as { deleted: boolean } | null) ?? { deleted: true }
 }

@@ -204,8 +204,8 @@ const confirmDelete = () => {
   const msg = `¿Eliminar a "${props.vendedor.name}"?\n\nEl vendedor perderá el acceso al sistema. Esta acción no se puede deshacer.`
   if (!window.confirm(msg)) return
   deleteEmpleado(props.vendedor.id)
-    .then(() => {
-      success('Vendedor eliminado')
+    .then(({ deleted }) => {
+      success(deleted ? 'Vendedor eliminado' : 'El vendedor tiene historial y no se puede eliminar — se marcó como inactivo')
       emit('deleted')
       emit('close')
     })

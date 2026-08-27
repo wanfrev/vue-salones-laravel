@@ -118,6 +118,10 @@ class StaffingCompanyEmployeeService
                 $row->staffing_role = $assignment->role;
                 $row->staffing_shift = $assignment->shift;
                 $row->staffing_assignment_id = $assignment->id;
+                // When this assignment started — Nómina uses it to hide the employee from weeks
+                // before they joined this company, instead of showing an empty row for every
+                // past week that predates them.
+                $row->staffing_assigned_at = $assignment->created_at?->toISOString();
                 return $row;
             })
             ->filter()
