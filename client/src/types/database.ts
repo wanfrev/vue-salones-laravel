@@ -86,6 +86,9 @@ export interface Profile {
    *  roles at the same company appears twice in a company-scoped response, once per assignment;
    *  this id (not `id`, which repeats) is what actually identifies one roster row. */
   staffing_assignment_id?: string
+  /** When the assignment behind this row was created — Nómina uses it to hide the employee from
+   *  weeks before they joined this company/project. */
+  staffing_assigned_at?: string | null
   /** Every client company this employee is currently assigned to, each with its own role (and shift, if the company's rate card splits by shift). */
   staffing_assignments?: { company_id: string; company_name?: string | null; role: string; shift?: string | null }[]
   staffing_tax_rate?: number | null

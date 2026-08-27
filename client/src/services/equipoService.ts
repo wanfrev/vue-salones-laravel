@@ -175,6 +175,5 @@ export const addBranchCategory = (branchId: string, category: string): Promise<s
 export const addBusinessJobTitle = (businessId: string, title: string): Promise<string[]> =>
   addBusinessArrayField(businessId, 'job_titles', title)
 
-export const deleteEmpleado = async (profileId: string): Promise<void> => {
-  await adminDeleteEmployee(profileId)
-}
+export const deleteEmpleado = (profileId: string): Promise<{ deleted: boolean }> =>
+  adminDeleteEmployee(profileId)

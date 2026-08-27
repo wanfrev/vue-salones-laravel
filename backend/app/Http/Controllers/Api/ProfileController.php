@@ -193,8 +193,8 @@ class ProfileController
             return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
         }
 
-        $this->profileService->destroy($id, $businessId);
+        $deleted = $this->profileService->destroy($id, $businessId);
         EntityChanged::safe($businessId, 'profile', 'deleted', $id);
-        return response()->json(null, 204);
+        return response()->json(['deleted' => $deleted]);
     }
 }

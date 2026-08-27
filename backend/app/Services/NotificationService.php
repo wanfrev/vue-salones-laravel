@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\Notification;
+use App\Models\Profile;
+use App\Support\NicheRegistry;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -18,6 +20,13 @@ class NotificationService
     private function applyAccessFilter($query, string $role, string $profileId, ?string $branchId): void
     {
         if ($role === 'empleado') {
+            // A recibo-only employee can't reach any screen a notification would deep-link
+            // into, so none should surface here either — matters mainly for rows created
+            // before this business turned the feature on.
+            if ($this->isReceiptOnlyEmployee($profileId)) {
+                $query->whereRaw('1 = 0');
+                return;
+            }
             $query->where('profile_id', $profileId);
         } elseif ($role === 'encargado' && $branchId) {
             $query->where(function ($q) use ($profileId, $branchId) {
@@ -122,6 +131,10 @@ class NotificationService
      */
     public function create(array $data): ?Notification
     {
+        if ($this->isReceiptOnlyEmployee($data['profile_id'])) {
+            return null;
+        }
+
         try {
             return Notification::create([
                 'id' => Str::uuid()->toString(),
@@ -144,6 +157,25 @@ class NotificationService
             Log::info('[notifications] Duplicada, se omite: ' . ($data['type'] ?? 'info') . ' / ' . ($data['appointment_id'] ?? '-') . ' / ' . $data['profile_id']);
             return null;
         }
+    }
+
+    /**
+     * `employees_recibo_only` confines an 'empleado' to /dashboard/recibo — no agenda, no
+     * inbox, nothing a notification could ever link to. Checked here, the single choke point
+     * every origin (appointments, reminders, birthdays) already funnels through, so no call
+     * site needs its own copy of this rule and a push never goes out to a device that has no
+     * screen to show it on.
+     */
+    private function isReceiptOnlyEmployee(string $profileId): bool
+    {
+        $profile = Profile::with('business')->find($profileId);
+        if (!$profile || $profile->role !== 'empleado' || !$profile->business) {
+            return false;
+        }
+
+        $features = NicheRegistry::resolveFeatures($profile->business->niche_type, $profile->business->features);
+
+        return (bool) ($features['employees_recibo_only'] ?? false);
     }
 
     /**

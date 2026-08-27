@@ -21,7 +21,7 @@
           <RefreshIcon :size="18" :class="{ 'animate-spin': isRefreshing }" />
         </button>
         <InvitationsButton />
-        <NotificationBell />
+        <NotificationBell v-if="!(isEmployee && businessStore.features.employees_recibo_only)" />
         <div class="relative">
           <button @click="profileOpen = !profileOpen" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary">
             <div class="flex h-7 w-7 items-center justify-center rounded-full bg-linear-to-br from-primary to-primary-hover text-[10px] font-bold text-text-inverse shadow-sm">

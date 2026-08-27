@@ -7,6 +7,7 @@ use App\Models\Profile;
 use App\Models\StaffingCompanyEmployee;
 use App\Models\User;
 use App\Services\Staffing\StaffingCompanyEmployeeService;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -268,11 +269,37 @@ class ProfileService
         });
     }
 
-    public function destroy(string $id, string $businessId): void
+    /**
+     * "Eliminar" means gone — everything about this employee, permanently — but a worker with
+     * real history (an appointment, a staffing hour, a tax entry) must never lose it, so those
+     * tables were built with `RESTRICT`/`NO ACTION` on `employee_id` (see the FK audit that
+     * motivated this — `information_schema` on `profiles`, not just the migrations, since this
+     * schema predates several of them). Deleting `users` cascades through `profiles` and every
+     * FK that's safe to lose with the employee (schedules, staffing assignments, documents,
+     * payments); the database itself rejects it — atomically, nothing partially deleted — the
+     * moment any RESTRICTed table still references them. That rejection is the signal to fall
+     * back to the old behavior: mark inactive instead, so the employee simply moves to the
+     * "Inactivos" list rather than vanishing without their history.
+     *
+     * @return bool true if the employee was actually deleted, false if it fell back to inactive.
+     */
+    public function destroy(string $id, string $businessId): bool
     {
         $profile = $this->findForBusiness($id, $businessId);
-        $profile->update(['active' => false, 'updated_at' => now()]);
-        User::where('id', $id)->update(['updated_at' => now()]);
+
+        try {
+            DB::transaction(function () use ($id) {
+                User::where('id', $id)->delete();
+            });
+            return true;
+        } catch (QueryException $e) {
+            if ($e->getCode() !== '23503') {
+                throw $e;
+            }
+            $profile->update(['active' => false, 'updated_at' => now()]);
+            User::where('id', $id)->update(['updated_at' => now()]);
+            return false;
+        }
     }
 
     public function findForBusiness(string $id, string $businessId): Profile

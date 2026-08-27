@@ -389,7 +389,15 @@ const shiftLabel = (shift: string | null | undefined): string =>
  * actually paid, regardless of their current employment status.
  */
 const rosterEmployees = computed<RosterEmployee[]>(() => {
-  const active = timesheets.employees.value ?? []
+  // The mirror image of the orphaned-row problem below: an employee hired today is in every
+  // company's *current* assignment list, so without this a week from before they joined would
+  // show them as an empty, assignable row — nobody was paying them yet, they just didn't exist
+  // on this sheet. Cut the active roster off at the assignment's own start instead of the
+  // employee's, since one worker can join two client companies on different days.
+  const active = (timesheets.employees.value ?? []).filter(e => {
+    if (!e.staffing_assigned_at || !weekEnd.value) return true
+    return e.staffing_assigned_at.slice(0, 10) <= weekEnd.value
+  })
   const covered = new Set(active.map(rowKey))
 
   const orphaned: RosterEmployee[] = []

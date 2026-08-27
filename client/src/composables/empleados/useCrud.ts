@@ -11,7 +11,7 @@ export interface UseCrudOptions<TData, TForm, TId = string> {
   queryFn: (businessId: string, branchId?: string | null) => Promise<TData[]>
   saveFn: (businessId: string, data: TForm & { id?: TId }, branchId?: string | null) => Promise<TData | void>
   entityName?: string
-  deleteFn?: (id: TId) => Promise<void>
+  deleteFn?: (id: TId) => Promise<void | { deleted: boolean }>
   extraInvalidations?: ((businessId: string, branchId?: string | null) => readonly any[])[]
   modalRef?: Ref<{ close: () => void } | null>
   deleteConfirmMessage?: (entity: TData) => string
@@ -105,10 +105,18 @@ export function useCrud<TData, TForm, TId = string>(options: UseCrudOptions<TDat
   const deleteMutation = deleteFn
     ? useMutation({
         mutationFn: (id: TId) => deleteFn(id),
-        onSuccess: async () => {
+        onSuccess: async (result) => {
           await invalidateAll()
           modalRef?.value?.close()
-          success(`${entityName} eliminado correctamente`)
+          // A delete that couldn't actually delete (real history — appointments, staffing
+          // hours, payments — protecting it) falls back to marking inactive instead. Still a
+          // successful request, but "eliminado correctamente" would be a lie, so it gets its
+          // own message rather than the generic success toast.
+          if (result && typeof result === 'object' && 'deleted' in result && !result.deleted) {
+            success(`${entityName} tiene historial y no se puede eliminar — se marcó como inactivo`)
+          } else {
+            success(`${entityName} eliminado correctamente`)
+          }
         },
         onError: (err) => {
           saveError.value = translateError(err)
