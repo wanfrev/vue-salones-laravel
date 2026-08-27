@@ -83,6 +83,12 @@ const router = createRouter({
       component: () => import('../views/employee/EmployeeCrm.vue'),
       meta: { requiresAuth: true, gate: { capability: 'staffing.crm' } },
     },
+    {
+      path: '/dashboard/spreadsheet',
+      name: 'employee-spreadsheet',
+      component: () => import('../views/employee/EmployeeSpreadsheet.vue'),
+      meta: { requiresAuth: true, gate: { capability: 'staffing.spreadsheet', profileFlag: 'can_access_spreadsheet' } },
+    },
     { path: '/dashboard/finanzas', redirect: '/admin/finanzas' },
     { path: '/dashboard/finanzas/registros/:tipo', redirect: to => `/admin/finanzas/registros/${to.params.tipo}` },
     // Admin routes — lazy loaded layout + children
@@ -171,6 +177,12 @@ const router = createRouter({
           name: 'admin-crm',
           component: () => import('../views/Crm.vue'),
           meta: { gate: { capability: 'staffing.crm' } },
+        },
+        {
+          path: 'spreadsheet',
+          name: 'admin-spreadsheet',
+          component: () => import('../views/Spreadsheet.vue'),
+          meta: { gate: { capability: 'staffing.spreadsheet' } },
         },
         {
           path: 'servicios',

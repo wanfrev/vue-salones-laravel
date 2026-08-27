@@ -60,6 +60,8 @@ export const sidebarSections: SidebarSection[] = [
       { to: '/admin/staffing-taxes', label: 'Taxes', icon: DocumentIcon, adminOnly: true, gate: { capability: 'staffing.reports' } },
       { to: '/admin/crm', label: 'CRM', icon: ChatRoundLineIcon, adminOnly: true, gate: { capability: 'staffing.crm' } },
       { to: '/dashboard/crm', label: 'CRM', icon: ChatRoundLineIcon, employeeOnly: true, gate: { capability: 'staffing.crm' } },
+      { to: '/admin/spreadsheet', label: 'Spreadsheet', icon: DocumentIcon, adminOnly: true, gate: { capability: 'staffing.spreadsheet' } },
+      { to: '/dashboard/spreadsheet', label: 'Spreadsheet', icon: DocumentIcon, employeeOnly: true, gate: { capability: 'staffing.spreadsheet', profileFlag: 'can_access_spreadsheet' } },
       { to: '/admin/finanzas', label: 'Finanzas', icon: GraphIcon, adminOnly: true, badge: 'Nuevo' },
       { to: '/admin/finanzas', label: 'Finanzas', icon: GraphIcon, employeeOnly: true, badge: 'Nuevo', gate: { profileFlag: 'can_access_finanzas' } },
       { to: '/admin/servicios', label: 'Servicios', labelKey: 'service', icon: StarsIcon, adminOnly: true, gate: { feature: 'servicios' } },

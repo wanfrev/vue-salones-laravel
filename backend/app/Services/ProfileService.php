@@ -245,6 +245,9 @@ class ProfileService
             if (array_key_exists('can_access_requirements', $data)) {
                 $profileFields['can_access_requirements'] = $data['can_access_requirements'];
             }
+            if (array_key_exists('can_access_spreadsheet', $data)) {
+                $profileFields['can_access_spreadsheet'] = $data['can_access_spreadsheet'];
+            }
             foreach ([
                 'staffing_tax_rate', 'ssn', 'address',
                 'bank_name', 'bank_account_holder', 'bank_account_type', 'payment_method',

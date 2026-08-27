@@ -151,7 +151,7 @@ export const NICHES: Record<string, NicheDefinition> = {
     label: 'Staffing',
     status: 'creatable',
     clientProfile: null,
-    capabilities: ['staffing.timesheets', 'staffing.billing', 'staffing.crm', 'staffing.reports'],
+    capabilities: ['staffing.timesheets', 'staffing.billing', 'staffing.crm', 'staffing.reports', 'staffing.spreadsheet'],
     featureDefaults: {
       agenda: false,
       calendario: false,
