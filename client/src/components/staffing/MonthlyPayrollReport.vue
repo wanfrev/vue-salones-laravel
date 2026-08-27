@@ -55,7 +55,7 @@
               <button type="button"
                 class="w-full rounded-md px-2 py-1 tabular-nums text-text-secondary transition-theme hover:bg-primary/10 hover:text-primary"
                 :title="`Ir a la nómina de ${company.name} — semana del ${week.week_start}`"
-                @click="goToNomina(company.companyId, week.week_start)">
+                @click="goToNomina(company.companyId, week.week_start, company.weeklyProjectId[week.week_start])">
                 {{ formatUSD(company.weeklyPayroll[week.week_start] ?? 0) }}
               </button>
             </td>
@@ -79,8 +79,11 @@ const props = defineProps<{ businessId: string | null }>()
 const { formatUSD } = useCurrency()
 const router = useRouter()
 
-const goToNomina = (companyId: string, weekStart: string) => {
-  router.push({ path: '/admin/nomina', query: { companyId, weekStart } })
+// `projectId` is `null` for "General (Sin proyecto)" — vue-router drops a `null` query value
+// entirely, which would be indistinguishable from "no project known", so it travels as the
+// literal string 'general' instead and Nomina.vue unpacks it back.
+const goToNomina = (companyId: string, weekStart: string, projectId: string | null) => {
+  router.push({ path: '/admin/nomina', query: { companyId, weekStart, projectId: projectId ?? 'general' } })
 }
 
 const MONTH_LABELS = [

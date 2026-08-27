@@ -571,6 +571,10 @@ export interface StaffingMonthlyPayrollCompanyRow {
   companyId: string
   name: string
   weeklyPayroll: Record<string, number>
+  /** The project behind that week's number, so the Nómina deep link knows where to land — `null`
+   *  for "General". When several projects contributed the same week, this is whichever had the
+   *  highest payout (there's no single screen that shows all of a company's projects at once). */
+  weeklyProjectId: Record<string, string | null>
   total: number
 }
 

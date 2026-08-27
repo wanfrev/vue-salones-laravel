@@ -9,7 +9,7 @@
     </header>
 
     <section class="rounded-2xl border border-border bg-surface p-4 lg:p-6">
-      <StaffingHoursPanel :business-id="businessId" :initial-company-id="initialCompanyId" :initial-week-start="initialWeekStart" />
+      <StaffingHoursPanel :business-id="businessId" :initial-company-id="initialCompanyId" :initial-week-start="initialWeekStart" :initial-project-id="initialProjectId" />
     </section>
 
     <section class="mt-4 rounded-2xl border border-border bg-surface p-4 lg:p-6">
@@ -117,6 +117,13 @@ const { data: companies } = useQuery({
 const route = useRoute()
 const initialCompanyId = computed(() => (route.query.companyId as string) || null)
 const initialWeekStart = computed(() => (route.query.weekStart as string) || null)
+// 'general' is MonthlyPayrollReport's stand-in for a real `null` (vue-router drops null query
+// values), so it unpacks back to null here rather than being read as the string 'general'.
+const initialProjectId = computed(() => {
+  const raw = route.query.projectId as string | undefined
+  if (!raw) return undefined
+  return raw === 'general' ? null : raw
+})
 
 const depositWeekStart = ref('')
 const depositCompanyId = ref('')

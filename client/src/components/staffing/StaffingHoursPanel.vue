@@ -52,12 +52,19 @@
     </p>
 
     <template v-else>
+      <label class="flex w-fit items-center gap-2 text-xs text-text-secondary">
+        <input v-model="showAllAssigned" type="checkbox" class="h-3.5 w-3.5 rounded border-border" />
+        Mostrar todos los empleados asignados, aunque sea antes de su fecha de ingreso
+        <span class="text-text-muted">(útil para cargar nómina retroactiva)</span>
+      </label>
+
       <div v-if="timesheets.employeesLoading.value" class="py-10 text-center text-sm text-text-muted">
         Cargando empleados...
       </div>
 
       <p v-else-if="rosterEmployees.length === 0" class="py-10 text-center text-sm text-text-muted">
-        Esta empresa no tiene empleados asignados todavía. Asígnalos desde su ficha en Equipo.
+        Esta empresa no tiene empleados asignados todavía. Asígnalos desde su ficha en Equipo, o
+        activa "Mostrar todos" arriba si ya están asignados pero es una semana anterior a su ingreso.
       </p>
 
       <div v-else class="space-y-3">
@@ -262,6 +269,9 @@ const props = defineProps<{
   /** Deep link from Reportes > Mensual — preselects the company/week the admin clicked on. */
   initialCompanyId?: string | null
   initialWeekStart?: string | null
+  /** The project that week's report figure came from — `null` for "General", `undefined` when
+   *  Reportes couldn't tell (falls back to the same "General" default as opening Nómina fresh). */
+  initialProjectId?: string | null
 }>()
 
 const { formatUSD } = useCurrency()
@@ -280,7 +290,7 @@ const companyOptions = computed(() =>
 )
 
 const selectedCompanyId = ref<string | null>(props.initialCompanyId ?? null)
-const selectedProjectId = ref<string | null>(null)
+const selectedProjectId = ref<string | null>(props.initialProjectId ?? null)
 
 const { data: projects } = useQuery({
   queryKey: computed(() => staffingCompanyKeys.projects(props.businessId, selectedCompanyId.value)),
@@ -321,6 +331,13 @@ const existingInvoice = computed(() =>
 )
 
 const employeeSearch = ref('')
+
+// Escape hatch for the assigned-date cutoff below: backfilling a company's history (a new
+// client onboarded today whose past weeks still need to be entered, correcting an old week)
+// needs every current assignee available regardless of when they joined. Off by default so the
+// normal case — a genuinely new hire shouldn't show as an empty row on weeks before they
+// existed — stays fixed.
+const showAllAssigned = ref(false)
 
 // Reset search query when changing company to prevent confusing UI state
 watch(selectedCompanyId, () => {
@@ -393,8 +410,11 @@ const rosterEmployees = computed<RosterEmployee[]>(() => {
   // company's *current* assignment list, so without this a week from before they joined would
   // show them as an empty, assignable row — nobody was paying them yet, they just didn't exist
   // on this sheet. Cut the active roster off at the assignment's own start instead of the
-  // employee's, since one worker can join two client companies on different days.
+  // employee's, since one worker can join two client companies on different days. Skipped
+  // entirely when backfilling (showAllAssigned) — that's explicitly entering hours for a week
+  // before the assignment existed in the system.
   const active = (timesheets.employees.value ?? []).filter(e => {
+    if (showAllAssigned.value) return true
     if (!e.staffing_assigned_at || !weekEnd.value) return true
     return e.staffing_assigned_at.slice(0, 10) <= weekEnd.value
   })
