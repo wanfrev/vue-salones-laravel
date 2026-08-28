@@ -258,6 +258,15 @@
                   :options="ROUNDING_OPTIONS" />
               </div>
 
+              <div>
+                <label class="mb-1 block text-sm font-medium text-text" for="emp-perdiem">Per diem ($/día)</label>
+                <input id="emp-perdiem" v-model.number="ctx.form.value.perDiemRate" type="number" min="0" step="0.01"
+                  class="max-w-[10rem]" :class="inputClass" />
+                <p class="mt-1 text-[10px] text-text-muted">
+                  Opcional. Se paga al empleado por día en Nómina, nunca se incluye en la factura de esta empresa.
+                </p>
+              </div>
+
               <div class="rounded-xl border border-border p-3">
                 <div class="mb-2 flex items-center justify-between">
                   <div>

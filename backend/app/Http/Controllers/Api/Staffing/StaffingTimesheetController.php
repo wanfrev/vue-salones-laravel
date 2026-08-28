@@ -82,6 +82,15 @@ class StaffingTimesheetController
             'entries.*.fixed_fees' => 'nullable|numeric|min:0',
             // Adjustments are signed — a negative one claws money back (see the HILTON (2) sheet).
             'entries.*.adjustment' => 'nullable|numeric',
+            // When true, manual_regular_hours/manual_overtime_hours below replace the threshold
+            // split entirely — see StaffingPayrollCalculator::splitHours().
+            'entries.*.hours_manual_override' => 'nullable|boolean',
+            'entries.*.manual_regular_hours' => 'nullable|numeric|min:0',
+            'entries.*.manual_overtime_hours' => 'nullable|numeric|min:0',
+            // Reimbursement-style amounts folded into net/payout but never billed — see
+            // StaffingTimesheetService::saveWeek().
+            'entries.*.perdiem_days' => 'nullable|numeric|min:0',
+            'entries.*.travel_hours' => 'nullable|numeric|min:0',
         ]);
 
         try {

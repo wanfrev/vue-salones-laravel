@@ -80,6 +80,8 @@ export interface StaffingCompanyRow {
   /** Tiered withholding — wins over taxRate when set (e.g. 3.5% under $500, 7% at/above). */
   taxBrackets: StaffingTaxBracket[] | null
   payoutRounding: PayoutRounding
+  /** Flat $/day paid to staffed employees — never billed on the invoice. 0 = not offered. */
+  perDiemRate: number
   notes: string
   active: boolean
   status: StaffingCompanyStatus
@@ -129,6 +131,7 @@ export interface StaffingCompanyFormData {
   paymentTermsDays: number
   taxRate: number
   taxBrackets: StaffingTaxBracket[] | null
+  perDiemRate: number
   roles: {
     role: string
     shift?: ShiftValue | null
@@ -179,6 +182,7 @@ const toCompanyRow = (row: StaffingCompany): StaffingCompanyRow => ({
   taxRate: Number(row.tax_rate ?? 0.04),
   taxBrackets: row.tax_brackets ?? null,
   payoutRounding: (row.payout_rounding as PayoutRounding) || 'cent',
+  perDiemRate: Number(row.per_diem_rate ?? 0),
   notes: row.notes ?? '',
   active: row.active,
   status: row.status ?? (row.active ? 'active' : 'inactive'),
@@ -255,6 +259,7 @@ export const saveStaffingCompany = async (
     tax_rate: parsed.data.taxRate,
     tax_brackets: parsed.data.taxBrackets,
     payout_rounding: parsed.data.payoutRounding,
+    per_diem_rate: parsed.data.perDiemRate,
     status: parsed.data.status,
     notes: parsed.data.notes || null,
     active: parsed.data.status === 'active',
@@ -382,6 +387,14 @@ export interface TimesheetEntryInput {
   preTaxDeduction?: number
   fixedFees?: number
   adjustment?: number
+  /** When true, regularHours/overtimeHours below replace the threshold-based auto split. */
+  hoursManualOverride?: boolean
+  manualRegularHours?: number
+  manualOvertimeHours?: number
+  /** Days of per diem this week — total is days × the company's perDiemRate, computed server-side. */
+  perdiemDays?: number
+  /** Paid at the role's regular rate, never the OT rate. */
+  travelHours?: number
 }
 
 /**
@@ -441,6 +454,11 @@ export const saveTimesheetWeek = async (
       pre_tax_deduction: e.preTaxDeduction ?? 0,
       fixed_fees: e.fixedFees ?? 0,
       adjustment: e.adjustment ?? 0,
+      hours_manual_override: e.hoursManualOverride ?? false,
+      manual_regular_hours: e.manualRegularHours ?? 0,
+      manual_overtime_hours: e.manualOvertimeHours ?? 0,
+      perdiem_days: e.perdiemDays ?? 0,
+      travel_hours: e.travelHours ?? 0,
     })),
   }
 

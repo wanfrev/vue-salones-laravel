@@ -61,7 +61,7 @@ class StaffingTimesheetService
      * (one grid, re-saved). Every entry is recomputed through the same calculator that reproduces
      * the DYKE/HILTON/CWT spreadsheets exactly.
      *
-     * @param list<array{employee_id: string, role?: string|null, total_hours: float, pre_tax_deduction?: float, fixed_fees?: float, adjustment?: float}> $entries
+     * @param list<array{employee_id: string, role?: string|null, total_hours: float, pre_tax_deduction?: float, fixed_fees?: float, adjustment?: float, hours_manual_override?: bool, manual_regular_hours?: float, manual_overtime_hours?: float, perdiem_days?: float, travel_hours?: float}> $entries
      */
     public function saveWeek(
         string $businessId,
@@ -166,9 +166,17 @@ class StaffingTimesheetService
                     ? TaxRule::flat((float) $employee->staffing_tax_rate, $terms->taxRule->destination)
                     : null;
 
+                $hoursManualOverride = (bool) ($input['hours_manual_override'] ?? false);
+                $perdiemDays = (float) ($input['perdiem_days'] ?? 0);
+                $travelHours = (float) ($input['travel_hours'] ?? 0);
+                $perdiemTotal = round($perdiemDays * (float) $company->per_diem_rate, 2);
+                $travelTotal = round($travelHours * $rate->pay_rate, 2);
+
                 $timesheetEntry = new TimesheetEntry(
                     employeeName: $employee->full_name,
-                    totalHours: (float) $input['total_hours'],
+                    totalHours: $hoursManualOverride
+                        ? (float) ($input['manual_regular_hours'] ?? 0) + (float) ($input['manual_overtime_hours'] ?? 0)
+                        : (float) $input['total_hours'],
                     payRate: $rate->pay_rate,
                     billRate: $rate->bill_rate,
                     preTaxDeduction: (float) ($input['pre_tax_deduction'] ?? 0),
@@ -179,6 +187,11 @@ class StaffingTimesheetService
                     overtimeMultiplierOverride: $rate->overtime_multiplier,
                     overtimePayRateOverride: $rate->overtime_pay_rate,
                     overtimeBillRateOverride: $rate->overtime_bill_rate,
+                    hoursManualOverride: $hoursManualOverride,
+                    manualRegularHours: $hoursManualOverride ? (float) ($input['manual_regular_hours'] ?? 0) : null,
+                    manualOvertimeHours: $hoursManualOverride ? (float) ($input['manual_overtime_hours'] ?? 0) : null,
+                    perdiemTotal: $perdiemTotal,
+                    travelTotal: $travelTotal,
                 );
 
                 $result = $this->calculator->line($timesheetEntry, $terms);
@@ -198,6 +211,11 @@ class StaffingTimesheetService
                     'bill_rate' => $rate->bill_rate,
                     'regular_hours' => $result->payroll->regularHours,
                     'overtime_hours' => $result->payroll->overtimeHours,
+                    'hours_manual_override' => $hoursManualOverride,
+                    'perdiem_days' => $perdiemDays,
+                    'perdiem_total' => $perdiemTotal,
+                    'travel_hours' => $travelHours,
+                    'travel_total' => $travelTotal,
                     'gross' => $result->payroll->gross,
                     'tax_withheld' => $result->payroll->taxWithheld,
                     'net' => $result->payroll->net,
