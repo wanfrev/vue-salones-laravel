@@ -8,6 +8,10 @@ use Illuminate\Support\Str;
 
 class WhatsAppInstance extends Model
 {
+    // Laravel's naming convention would guess "whats_app_instances" (it splits "WhatsApp" into
+    // "Whats" + "App" as separate words) — the migration actually created "whatsapp_instances".
+    protected $table = 'whatsapp_instances';
+
     public $incrementing = false;
     protected $keyType = 'string';
 
