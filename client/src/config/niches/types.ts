@@ -36,6 +36,7 @@ export type Capability =
   | 'staffing.billing'
   | 'staffing.crm'
   | 'staffing.reports'
+  | 'staffing.spreadsheet'
 
 export interface NicheCopy {
   serviceNamePlaceholder?: string

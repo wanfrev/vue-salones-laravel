@@ -41,6 +41,7 @@ use App\Http\Controllers\Api\Staffing\StaffingInvoiceController;
 use App\Http\Controllers\Api\Staffing\StaffingManualIncomeController;
 use App\Http\Controllers\Api\Staffing\EmployeeAssetController;
 use App\Http\Controllers\Api\Staffing\StaffingReportController;
+use App\Http\Controllers\Api\Staffing\StaffingSpreadsheetController;
 use App\Http\Controllers\Api\Staffing\StaffingTaxEntityController;
 use App\Http\Controllers\Api\Staffing\StaffingTaxEntryController;
 use App\Http\Controllers\Api\Staffing\StaffingTimesheetController;
@@ -373,6 +374,16 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::delete('/leads/{id}', [LeadController::class, 'destroy']);
         // Admin-only sidebar roster — checked inside the controller, same pattern as index().
         Route::get('/leads/vendedoras', [LeadController::class, 'vendedoras']);
+    });
+
+    // Staffing Spreadsheet — a vendedora with can_access_spreadsheet generates a client-facing
+    // bill-rate sheet. Same reasoning as CRM above: no `admin-panel`, access is checked inside
+    // StaffingSpreadsheetController per-method instead (vendedoras() is admin-only, the other two
+    // also allow a flagged-in vendedora).
+    Route::middleware(['capability:staffing.spreadsheet'])->group(function () {
+        Route::get('/staffing-spreadsheet/vendedoras', [StaffingSpreadsheetController::class, 'vendedoras']);
+        Route::get('/staffing-spreadsheet/companies', [StaffingSpreadsheetController::class, 'companies']);
+        Route::get('/staffing-spreadsheet/companies/{companyId}/rates', [StaffingSpreadsheetController::class, 'companyEmployeeRates']);
     });
 
     // Staffing CRM — admin-only vendedor management: the material assets (vehicle, phone, etc.)

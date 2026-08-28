@@ -25,6 +25,7 @@ export interface EmployeeInput {
   can_access_finanzas?: boolean
   can_access_requirements?: boolean
   can_add_purchase_invoice?: boolean
+  can_access_spreadsheet?: boolean
   active?: boolean
   /** A staffing worker can be assigned to more than one client company at once, each with its own role. */
   staffing_assignments?: { company_id: string; role: string }[]
