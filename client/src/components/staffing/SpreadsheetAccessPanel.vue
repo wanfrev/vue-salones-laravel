@@ -13,15 +13,27 @@
 
     <div v-else class="divide-y divide-border">
       <label v-for="v in vendedoras" :key="v.id"
-        class="flex items-center justify-between gap-3 py-2.5 text-sm">
+        class="flex cursor-pointer items-center justify-between gap-3 py-2.5 text-sm">
         <span class="text-text">{{ v.name }}</span>
-        <input
-          type="checkbox"
-          class="rounded border-border"
-          :checked="v.canAccessSpreadsheet"
-          :disabled="pendingId === v.id"
-          @change="toggleAccess(v, ($event.target as HTMLInputElement).checked)"
-        />
+        <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center">
+          <input
+            type="checkbox"
+            class="peer sr-only"
+            :checked="v.canAccessSpreadsheet"
+            :disabled="pendingId === v.id"
+            @change="toggleAccess(v, ($event.target as HTMLInputElement).checked)"
+          />
+          <span
+            :class="[
+              'flex h-5 w-5 items-center justify-center rounded-md border-2 transition-theme peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30 peer-focus-visible:ring-offset-1 peer-disabled:opacity-50',
+              v.canAccessSpreadsheet ? 'border-primary bg-primary' : 'border-border bg-surface hover:border-primary/50'
+            ]"
+          >
+            <svg v-if="v.canAccessSpreadsheet" viewBox="0 0 16 16" class="h-3 w-3 text-text-inverse" fill="none">
+              <path d="M3 8.5L6.5 12L13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </span>
+        </span>
       </label>
     </div>
   </div>

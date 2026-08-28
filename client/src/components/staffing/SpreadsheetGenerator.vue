@@ -41,7 +41,21 @@
             <tbody class="divide-y divide-border">
               <tr v-for="row in rates" :key="row.employeeId">
                 <td class="px-3 py-2.5">
-                  <input type="checkbox" :value="row.employeeId" v-model="selectedEmployeeIds" class="rounded border-border" />
+                  <label class="inline-flex h-5 w-5 cursor-pointer items-center justify-center">
+                    <input type="checkbox" :value="row.employeeId" v-model="selectedEmployeeIds" class="peer sr-only" />
+                    <span
+                      :class="[
+                        'flex h-5 w-5 items-center justify-center rounded-md border-2 transition-theme peer-focus-visible:ring-2 peer-focus-visible:ring-primary/30 peer-focus-visible:ring-offset-1',
+                        selectedEmployeeIds.includes(row.employeeId)
+                          ? 'border-primary bg-primary'
+                          : 'border-border bg-surface hover:border-primary/50'
+                      ]"
+                    >
+                      <svg v-if="selectedEmployeeIds.includes(row.employeeId)" viewBox="0 0 16 16" class="h-3 w-3 text-text-inverse" fill="none">
+                        <path d="M3 8.5L6.5 12L13 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                  </label>
                 </td>
                 <td class="px-3 py-2.5 font-medium text-text">{{ row.name }}</td>
                 <td class="px-3 py-2.5 text-text-secondary">{{ [row.role, shiftLabel(row.shift)].filter(Boolean).join(' · ') }}</td>
