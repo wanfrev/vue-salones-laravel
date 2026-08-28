@@ -17,6 +17,17 @@ export interface WhatsAppQr {
   qr_code: string | null
 }
 
+export interface WhatsAppInstanceInfo {
+  instance_id: string | null
+  instance_status: string | null
+  instance_number: string | null
+}
+
+export interface WhatsAppInstancesSummary {
+  default: WhatsAppInstanceInfo | null
+  branches: { branch_id: string; branch_name: string; instance: WhatsAppInstanceInfo | null }[]
+}
+
 export interface MessageTemplate {
   id?: string
   business_id?: string
@@ -37,38 +48,50 @@ export interface TemplateVariable {
 }
 
 export const whatsappKeys = {
-  config: (businessId: string) => ['whatsapp-config', businessId] as const,
-  status: (businessId: string) => ['whatsapp-status', businessId] as const,
+  instances: (businessId: string) => ['whatsapp-instances', businessId] as const,
+  config: (businessId: string, branchId: string | null) => ['whatsapp-config', businessId, branchId] as const,
+  status: (businessId: string, branchId: string | null) => ['whatsapp-status', businessId, branchId] as const,
   templates: (businessId: string) => ['whatsapp-templates', businessId] as const,
   variables: () => ['whatsapp-variables'] as const,
 }
 
-export const getWhatsAppConfig = async (): Promise<WhatsAppConfig> => {
-  return apiRequest<WhatsAppConfig>('GET', '/whatsapp/config')
+// `branch_id` es opcional en todas estas llamadas — cada negocio tiene un número por defecto
+// (compartido entre sucursales) y, si tiene multi-sucursal, puede conectar uno propio por cada
+// una; omitir branch_id siempre apunta al número compartido.
+
+export const listWhatsAppInstances = async (): Promise<WhatsAppInstancesSummary> => {
+  return apiRequest<WhatsAppInstancesSummary>('GET', '/whatsapp/instances')
+}
+
+export const getWhatsAppConfig = async (branchId?: string | null): Promise<WhatsAppConfig> => {
+  const qs = branchId ? `?branch_id=${branchId}` : ''
+  return apiRequest<WhatsAppConfig>('GET', `/whatsapp/config${qs}`)
 }
 
 export const updateWhatsAppConfig = async (data: Partial<WhatsAppConfig>): Promise<void> => {
   return apiRequest<void>('PUT', '/whatsapp/config', data)
 }
 
-export const createWhatsAppInstance = async (): Promise<{ instance_id: string; qr_code: string | null }> => {
-  return apiRequest('POST', '/whatsapp/instance', {})
+export const createWhatsAppInstance = async (branchId?: string | null): Promise<{ instance_id: string; qr_code: string | null }> => {
+  return apiRequest('POST', '/whatsapp/instance', { branch_id: branchId ?? null })
 }
 
-export const getWhatsAppQr = async (): Promise<WhatsAppQr> => {
-  return apiRequest<WhatsAppQr>('GET', '/whatsapp/qr')
+export const getWhatsAppQr = async (branchId?: string | null): Promise<WhatsAppQr> => {
+  const qs = branchId ? `?branch_id=${branchId}` : ''
+  return apiRequest<WhatsAppQr>('GET', `/whatsapp/qr${qs}`)
 }
 
-export const getWhatsAppStatus = async (): Promise<WhatsAppStatus> => {
-  return apiRequest<WhatsAppStatus>('GET', '/whatsapp/status')
+export const getWhatsAppStatus = async (branchId?: string | null): Promise<WhatsAppStatus> => {
+  const qs = branchId ? `?branch_id=${branchId}` : ''
+  return apiRequest<WhatsAppStatus>('GET', `/whatsapp/status${qs}`)
 }
 
-export const disconnectWhatsApp = async (): Promise<void> => {
-  return apiRequest<void>('POST', '/whatsapp/disconnect')
+export const disconnectWhatsApp = async (branchId?: string | null): Promise<void> => {
+  return apiRequest<void>('POST', '/whatsapp/disconnect', { branch_id: branchId ?? null })
 }
 
-export const sendWhatsAppTest = async (number: string, text: string): Promise<void> => {
-  return apiRequest<void>('POST', '/whatsapp/test', { number, text })
+export const sendWhatsAppTest = async (number: string, text: string, branchId?: string | null): Promise<void> => {
+  return apiRequest<void>('POST', '/whatsapp/test', { number, text, branch_id: branchId ?? null })
 }
 
 export const getMessageTemplates = async (): Promise<MessageTemplate[]> => {

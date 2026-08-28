@@ -16,8 +16,7 @@ class Business extends Model
         'product_price1_markup', 'product_price2_markup',
         'theme_config', 'terminology', 'job_titles', 'service_categories',
         'features', 'multi_branch_enabled', 'active', 'deleted_at',
-        'whatsapp_enabled', 'whatsapp_instance_id', 'whatsapp_instance_status',
-        'whatsapp_instance_number', 'whatsapp_base_url', 'whatsapp_api_key',
+        'whatsapp_enabled', 'whatsapp_base_url', 'whatsapp_api_key',
     ];
 
     protected function casts(): array
@@ -51,5 +50,10 @@ class Business extends Model
     public function services(): HasMany
     {
         return $this->hasMany(Service::class);
+    }
+
+    public function whatsappInstances(): HasMany
+    {
+        return $this->hasMany(WhatsAppInstance::class);
     }
 }

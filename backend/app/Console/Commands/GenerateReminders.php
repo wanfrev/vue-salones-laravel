@@ -158,9 +158,13 @@ class GenerateReminders extends Command
 
         foreach ($templatesByBusiness as $businessId => $businessTemplates) {
             $business = $reminderBusinesses->firstWhere('id', $businessId) ?? Business::find($businessId);
-            if (!$business || !$business->active || !$business->whatsapp_enabled || !$business->whatsapp_instance_id) {
+            if (!$business || !$business->active || !$business->whatsapp_enabled) {
                 continue;
             }
+            // Whether there's actually a connected instance to send through (the business's
+            // shared default, or a specific branch's own number) is resolved per-appointment
+            // inside sendWhatsAppForTemplate, since a multi-branch business might have some
+            // branches connected and others not.
 
             $features = $business->features ?? [];
             if (!($features['whatsapp_available'] ?? false) || !($features['whatsapp_reminders_enabled'] ?? true)) {

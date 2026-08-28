@@ -467,6 +467,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     Route::post('/reminders/trigger', [ReminderController::class, 'trigger']);
 
     // WhatsApp
+    Route::get('/whatsapp/instances', [WhatsAppController::class, 'instances']);
     Route::get('/whatsapp/config', [WhatsAppController::class, 'config']);
     Route::put('/whatsapp/config', [WhatsAppController::class, 'updateConfig']);
     Route::post('/whatsapp/instance', [WhatsAppController::class, 'createInstance']);

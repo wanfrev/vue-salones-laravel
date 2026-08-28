@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Appointment;
 use App\Models\Business;
+use App\Models\WhatsAppInstance;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -49,7 +50,9 @@ class WhatsAppService
     }
 
     /**
-     * Get the WhatsApp server base URL for a business.
+     * Get the WhatsApp server base URL for a business. One Evolution API server hosts every
+     * instance for the business (each branch is just another instance on it), so this stays
+     * business-level rather than per-branch.
      */
     public function getBaseUrl(Business $business): ?string
     {
@@ -65,15 +68,38 @@ class WhatsAppService
     }
 
     /**
-     * Get the instance ID for a business.
+     * The instance row for one exact (business, branch) pair — no fallback. `$branchId` null
+     * means the business's shared/default instance. Use this for anything the admin is managing
+     * directly (connect, QR, status, disconnect) — a branch they picked should never silently
+     * show another branch's connection.
      */
-    public function getInstanceId(Business $business): ?string
+    public function findInstance(string $businessId, ?string $branchId): ?WhatsAppInstance
     {
-        return $business->whatsapp_instance_id;
+        return WhatsAppInstance::where('business_id', $businessId)
+            ->where('branch_id', $branchId)
+            ->first();
     }
 
     /**
-     * Send a WhatsApp text message for an appointment reminder.
+     * The instance actually used to SEND for a given branch: that branch's own connected number
+     * if it has one, otherwise the business's shared default. Use this when sending a message on
+     * an appointment's behalf, never when the admin is managing a specific branch's connection.
+     */
+    public function resolveSendingInstance(string $businessId, ?string $branchId): ?WhatsAppInstance
+    {
+        if ($branchId) {
+            $branchInstance = $this->findInstance($businessId, $branchId);
+            if ($branchInstance?->instance_id) {
+                return $branchInstance;
+            }
+        }
+
+        return $this->findInstance($businessId, null);
+    }
+
+    /**
+     * Send a WhatsApp text message for an appointment reminder — resolves whichever instance
+     * (the appointment's own branch, or the shared default) is actually connected.
      */
     public function sendReminder(Appointment $appointment, string $templateBody, ?string $serviceNameOverride = null): bool
     {
@@ -88,35 +114,40 @@ class WhatsAppService
             return false;
         }
 
+        $instance = $this->resolveSendingInstance($business->id, $appointment->branch_id);
+        if (!$instance || !$instance->instance_id) {
+            Log::warning("[WhatsApp] Business {$business->id} (branch {$appointment->branch_id}) has no WhatsApp instance configured");
+            return false;
+        }
+
         $message = $this->resolveTemplate($templateBody, $appointment, $serviceNameOverride);
         $number = $this->sanitizePhone($client->phone);
 
-        return $this->sendText($business, $number, $message);
+        return $this->sendText($business, $instance, $number, $message);
     }
 
     /**
      * Send a text message using the Evolution API-compatible endpoint.
      */
-    public function sendText(Business $business, string $number, string $text): bool
+    public function sendText(Business $business, WhatsAppInstance $instance, string $number, string $text): bool
     {
-        $instance = $this->getInstanceId($business);
         $baseUrl = $this->getBaseUrl($business);
         $apiKey = $this->getApiKey($business);
 
-        if (!$instance || !$baseUrl) {
+        if (!$instance->instance_id || !$baseUrl) {
             Log::warning("[WhatsApp] Business {$business->id} has no WhatsApp instance configured");
             return false;
         }
 
         try {
             $response = Http::withHeaders(['apikey' => $apiKey])
-                ->post(rtrim($baseUrl, '/') . "/message/sendText/{$instance}", [
+                ->post(rtrim($baseUrl, '/') . "/message/sendText/{$instance->instance_id}", [
                     'number' => $number,
                     'text' => $text,
                 ]);
 
             if ($response->successful()) {
-                Log::info("[WhatsApp] Message sent to {$number} via instance {$instance}");
+                Log::info("[WhatsApp] Message sent to {$number} via instance {$instance->instance_id}");
                 return true;
             }
 
@@ -132,19 +163,18 @@ class WhatsAppService
      * Generate a QR code for WhatsApp Web connection.
      * Returns base64-encoded QR image or null on failure.
      */
-    public function getQrCode(Business $business): ?array
+    public function getQrCode(Business $business, WhatsAppInstance $instance): ?array
     {
-        $instance = $this->getInstanceId($business);
         $baseUrl = $this->getBaseUrl($business);
         $apiKey = $this->getApiKey($business);
 
-        if (!$instance || !$baseUrl) {
+        if (!$instance->instance_id || !$baseUrl) {
             return null;
         }
 
         try {
             $response = Http::withHeaders(['apikey' => $apiKey])
-                ->get(rtrim($baseUrl, '/') . "/instance/connect/{$instance}");
+                ->get(rtrim($baseUrl, '/') . "/instance/connect/{$instance->instance_id}");
 
             if ($response->successful()) {
                 return $response->json();
@@ -160,19 +190,18 @@ class WhatsAppService
     /**
      * Check the connection status of a WhatsApp instance.
      */
-    public function checkInstanceStatus(Business $business): ?string
+    public function checkInstanceStatus(Business $business, WhatsAppInstance $instance): ?string
     {
-        $instance = $this->getInstanceId($business);
         $baseUrl = $this->getBaseUrl($business);
         $apiKey = $this->getApiKey($business);
 
-        if (!$instance || !$baseUrl) {
+        if (!$instance->instance_id || !$baseUrl) {
             return 'disconnected';
         }
 
         try {
             $response = Http::withHeaders(['apikey' => $apiKey])
-                ->get(rtrim($baseUrl, '/') . "/instance/connectionState/{$instance}");
+                ->get(rtrim($baseUrl, '/') . "/instance/connectionState/{$instance->instance_id}");
 
             if ($response->successful()) {
                 $data = $response->json();
@@ -188,9 +217,10 @@ class WhatsAppService
     }
 
     /**
-     * Create a new WhatsApp instance.
+     * Create a new WhatsApp instance and persist it onto `$instance` (already scoped to the
+     * right business/branch by the caller).
      */
-    public function createInstance(Business $business, string $instanceName): bool
+    public function createInstance(Business $business, WhatsAppInstance $instance, string $instanceName): bool
     {
         $baseUrl = $this->getBaseUrl($business);
         $apiKey = $this->getApiKey($business);
@@ -210,10 +240,10 @@ class WhatsAppService
 
             if ($response->successful()) {
                 $data = $response->json();
-                $business->update([
-                    'whatsapp_instance_id' => $data['instance']['instanceName'] ?? $instanceName,
-                    'whatsapp_instance_status' => 'pending',
-                ]);
+                $instance->instance_id = $data['instance']['instanceName'] ?? $instanceName;
+                $instance->instance_status = 'pending';
+                $instance->business_id = $business->id;
+                $instance->save();
                 return true;
             }
 
@@ -228,24 +258,21 @@ class WhatsAppService
     /**
      * Logout/disconnect a WhatsApp instance.
      */
-    public function disconnectInstance(Business $business): bool
+    public function disconnectInstance(Business $business, WhatsAppInstance $instance): bool
     {
-        $instance = $this->getInstanceId($business);
         $baseUrl = $this->getBaseUrl($business);
         $apiKey = $this->getApiKey($business);
 
-        if (!$instance || !$baseUrl) {
+        if (!$instance->instance_id || !$baseUrl) {
             return false;
         }
 
         try {
             $response = Http::withHeaders(['apikey' => $apiKey])
-                ->delete(rtrim($baseUrl, '/') . "/instance/logout/{$instance}");
+                ->delete(rtrim($baseUrl, '/') . "/instance/logout/{$instance->instance_id}");
 
             if ($response->successful()) {
-                $business->update([
-                    'whatsapp_instance_status' => 'disconnected',
-                ]);
+                $instance->update(['instance_status' => 'disconnected']);
                 return true;
             }
 

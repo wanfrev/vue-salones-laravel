@@ -44,6 +44,19 @@
         :disabled="loading"
       />
 
+      <!-- Sucursal a conectar — cada una puede tener su propio número, o compartir el de arriba -->
+      <div v-if="config.whatsapp_enabled && businessStore.isMultiBranch">
+        <label class="block text-sm font-medium text-text-secondary mb-1.5">Número a gestionar</label>
+        <select v-model="selectedBranchIdModel"
+          class="w-full max-w-xs rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
+          <option value="">Compartido (todas las sucursales)</option>
+          <option v-for="b in businessStore.branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+        </select>
+        <p class="text-xs text-text-muted mt-1.5">
+          Una sucursal sin número propio conectado usa el compartido automáticamente.
+        </p>
+      </div>
+
       <template v-if="config.whatsapp_enabled">
         <!-- Instance Management -->
         <div class="border-t border-border pt-4 space-y-3">
@@ -272,6 +285,12 @@ const { success, error: showError } = useNotification()
 const businessStore = useBusinessStore()
 
 const loading = ref(false)
+const selectedBranchId = ref<string | null>(null)
+// <select> solo trabaja con strings — '' representa el número compartido (branch_id null).
+const selectedBranchIdModel = computed({
+  get: () => selectedBranchId.value ?? '',
+  set: (v: string) => { selectedBranchId.value = v || null },
+})
 const config = ref<WhatsAppConfig>({
   whatsapp_enabled: false,
   whatsapp_instance_id: null,
@@ -366,9 +385,17 @@ watch(() => templateForm.type, (type) => {
 
 const loadConfig = async () => {
   try {
-    config.value = await getWhatsAppConfig()
+    config.value = await getWhatsAppConfig(selectedBranchId.value)
   } catch { /* silently fail */ }
 }
+
+watch(selectedBranchId, async () => {
+  qrCode.value = null
+  await loadConfig()
+  if (config.value.whatsapp_instance_id && (isDisconnectedState.value || isPendingState.value)) {
+    pollForQr()
+  }
+})
 
 const handleToggleEnabled = async (val: boolean) => {
   loading.value = true
@@ -390,7 +417,7 @@ const pollForQr = async (): Promise<boolean> => {
   for (let attempt = 0; !qrCode.value && attempt < 8; attempt++) {
     await new Promise(resolve => setTimeout(resolve, 2000))
     try {
-      const qrResult = await getWhatsAppQr()
+      const qrResult = await getWhatsAppQr(selectedBranchId.value)
       qrCode.value = qrResult.qr_code ?? null
     } catch {
       // seguimos reintentando aunque un intento puntual falle
@@ -402,7 +429,7 @@ const pollForQr = async (): Promise<boolean> => {
 const createInstance = async () => {
   loading.value = true
   try {
-    const result = await createWhatsAppInstance()
+    const result = await createWhatsAppInstance(selectedBranchId.value)
     config.value.whatsapp_instance_id = result.instance_id
     config.value.whatsapp_instance_status = 'pending'
     qrCode.value = result.qr_code ?? null
@@ -424,7 +451,7 @@ const createInstance = async () => {
 const checkStatus = async () => {
   loading.value = true
   try {
-    const result = await getWhatsAppStatus()
+    const result = await getWhatsAppStatus(selectedBranchId.value)
     config.value.whatsapp_instance_status = result.status
     if (result.status === 'connected' || result.status === 'open') {
       success('¡WhatsApp conectado correctamente!')
@@ -443,7 +470,7 @@ const handleDisconnect = async () => {
   if (!confirm('¿Desconectar WhatsApp? Dejarás de enviar recordatorios por este canal.')) return
   loading.value = true
   try {
-    await disconnectWhatsApp()
+    await disconnectWhatsApp(selectedBranchId.value)
     config.value.whatsapp_instance_id = null
     config.value.whatsapp_instance_status = 'disconnected'
     config.value.whatsapp_instance_number = null
@@ -460,7 +487,7 @@ const handleSendTest = async () => {
   if (!testNumber.value || !testMessage.value) return
   loading.value = true
   try {
-    await sendWhatsAppTest(testNumber.value, testMessage.value)
+    await sendWhatsAppTest(testNumber.value, testMessage.value, selectedBranchId.value)
     success('Mensaje de prueba enviado')
   } catch (err: any) {
     showError(err?.message ?? 'Error al enviar')
