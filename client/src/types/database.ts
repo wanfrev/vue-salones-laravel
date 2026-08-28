@@ -433,6 +433,8 @@ export interface StaffingCompany {
   tax_destination: string
   /** 'floor' | 'cent' | 'exact' */
   payout_rounding: string
+  /** Flat $/day paid to staffed employees — never billed on the invoice. 0 = not offered. */
+  per_diem_rate: number
   active: boolean
   /** Tri-state, manual: 'active' | 'inactive' | 'on_hold' ("en descanso"). Mirrors `active`. */
   status: 'active' | 'inactive' | 'on_hold'
@@ -480,6 +482,15 @@ export interface StaffingTimesheetEntry {
   bill_rate: number
   regular_hours: number
   overtime_hours: number
+  /** True when regular_hours/overtime_hours were typed directly instead of split from total_hours. */
+  hours_manual_override: boolean
+  perdiem_days: number
+  /** perdiem_days × the company's per_diem_rate — folded into net/payout, never billed. */
+  perdiem_total: number
+  /** Paid at pay_rate (the regular rate), never overtime_pay_rate. */
+  travel_hours: number
+  /** travel_hours × pay_rate — folded into net/payout, never billed. */
+  travel_total: number
   gross: number
   tax_withheld: number
   net: number

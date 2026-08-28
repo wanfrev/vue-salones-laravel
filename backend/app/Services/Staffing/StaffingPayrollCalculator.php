@@ -16,9 +16,17 @@ namespace App\Services\Staffing;
  */
 class StaffingPayrollCalculator
 {
-    /** Split total hours the way both sheets do: `IF(hours < threshold, hours, threshold)`. */
+    /**
+     * Split total hours the way both sheets do: `IF(hours < threshold, hours, threshold)` —
+     * unless the entry carries a manual override, which wins outright. The threshold split can
+     * never produce e.g. all-OT/zero-regular on its own, so manual entry is the only way to.
+     */
     private function splitHours(float $totalHours, TimesheetEntry $entry, PayrollTerms $terms): array
     {
+        if ($entry->hoursManualOverride) {
+            return [$entry->manualRegularHours ?? 0.0, $entry->manualOvertimeHours ?? 0.0];
+        }
+
         $threshold = $entry->overtimeThresholdOverride ?? $terms->overtimeThresholdHours;
 
         $regular = $totalHours < $threshold ? $totalHours : $threshold;
@@ -50,7 +58,9 @@ class StaffingPayrollCalculator
 
         $gross = $regularAmount + $overtimeAmount - $entry->preTaxDeduction;
         $tax = $this->taxRuleFor($entry, $terms)->amountFor($gross);
-        $net = $gross - $tax - $entry->fixedFees + $entry->adjustment;
+        // Per diem and travel pay are not billed to the client (see invoice() below) and are not
+        // withheld against — they land on the employee dollar-for-dollar, same treatment as adjustment.
+        $net = $gross - $tax - $entry->fixedFees + $entry->adjustment + $entry->perdiemTotal + $entry->travelTotal;
 
         $payout = $this->roundPayout($net, $terms->payoutRounding);
 
@@ -67,6 +77,8 @@ class StaffingPayrollCalculator
             taxWithheld: $tax,
             feesWithheld: $entry->fixedFees,
             adjustment: $entry->adjustment,
+            perdiemTotal: $entry->perdiemTotal,
+            travelTotal: $entry->travelTotal,
             net: $net,
             payout: $payout,
             carried: $net - $payout,

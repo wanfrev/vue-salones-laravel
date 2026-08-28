@@ -51,12 +51,30 @@ final class TimesheetEntry
          */
         public readonly ?float $overtimePayRateOverride = null,
         public readonly ?float $overtimeBillRateOverride = null,
+        /**
+         * When true, `regularHours`/`overtimeHours` below replace StaffingPayrollCalculator's
+         * threshold-based split entirely — e.g. all-OT weeks with zero regular hours, which the
+         * threshold split can never produce on its own.
+         */
+        public readonly bool $hoursManualOverride = false,
+        public readonly ?float $manualRegularHours = null,
+        public readonly ?float $manualOvertimeHours = null,
+        /**
+         * Per diem and travel pay — reimbursement-style amounts paid to the employee (folded
+         * into payroll's `net`/`payout` in StaffingPayrollCalculator::payroll()) but never billed
+         * to the client (StaffingPayrollCalculator::invoice() never reads either of these).
+         */
+        public readonly float $perdiemTotal = 0.0,
+        public readonly float $travelTotal = 0.0,
     ) {
         if ($totalHours < 0) {
             throw new InvalidArgumentException("Negative hours for {$employeeName}: {$totalHours}");
         }
         if ($payRate < 0 || $billRate < 0) {
             throw new InvalidArgumentException("Negative rate for {$employeeName}");
+        }
+        if ($hoursManualOverride && (($manualRegularHours ?? 0) < 0 || ($manualOvertimeHours ?? 0) < 0)) {
+            throw new InvalidArgumentException("Negative manual hours for {$employeeName}");
         }
     }
 }

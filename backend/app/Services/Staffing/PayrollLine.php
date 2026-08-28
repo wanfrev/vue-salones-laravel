@@ -19,6 +19,9 @@ final class PayrollLine
         public readonly float $taxWithheld,
         public readonly float $feesWithheld,
         public readonly float $adjustment,
+        /** Reimbursement-style amounts folded into `net` below but never billed on the invoice. */
+        public readonly float $perdiemTotal,
+        public readonly float $travelTotal,
         /** `TOTAL` — the exact amount owed, unrounded. */
         public readonly float $net,
         /** The amount actually transferred, after PayrollTerms' rounding. */
@@ -46,6 +49,8 @@ final class PayrollLine
             'tax_withheld' => round($this->taxWithheld, 2),
             'fees_withheld' => round($this->feesWithheld, 2),
             'adjustment' => round($this->adjustment, 2),
+            'perdiem_total' => round($this->perdiemTotal, 2),
+            'travel_total' => round($this->travelTotal, 2),
             'net' => round($this->net, 2),
             'payout' => round($this->payout, 2),
             'carried' => round($this->carried, 2),
