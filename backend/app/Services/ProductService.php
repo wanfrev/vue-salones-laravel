@@ -4,9 +4,11 @@ namespace App\Services;
 
 use App\Models\Product;
 use App\Models\ProductCategory;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class ProductService
@@ -28,33 +30,51 @@ class ProductService
 
     public function store(array $data, string $businessId): Product
     {
-        return Product::create([
-            'id' => Str::uuid()->toString(),
-            'business_id' => $businessId,
-            'branch_id' => $data['branch_id'] ?? null,
-            'category_id' => $data['category_id'] ?? null,
-            'name' => $data['name'],
-            'description' => $data['description'] ?? null,
-            'sku' => $data['sku'] ?? null,
-            'barcode' => $data['barcode'] ?? null,
-            'unit' => $data['unit'] ?? 'unit',
-            'unit_cost' => $data['unit_cost'] ?? 0,
-            'unit_price' => $data['unit_price'] ?? 0,
-            'unit_price_2' => $data['unit_price_2'] ?? null,
-            'reorder_point' => $data['reorder_point'] ?? 0,
-            'active' => $data['active'] ?? true,
-            'is_sellable' => $data['is_sellable'] ?? true,
-            'metadata' => $data['metadata'] ?? [],
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        try {
+            return Product::create([
+                'id' => Str::uuid()->toString(),
+                'business_id' => $businessId,
+                'branch_id' => $data['branch_id'] ?? null,
+                'category_id' => $data['category_id'] ?? null,
+                'name' => $data['name'],
+                'description' => $data['description'] ?? null,
+                'sku' => $data['sku'] ?? null,
+                'barcode' => $data['barcode'] ?? null,
+                'unit' => $data['unit'] ?? 'unit',
+                'unit_cost' => $data['unit_cost'] ?? 0,
+                'unit_price' => $data['unit_price'] ?? 0,
+                'unit_price_2' => $data['unit_price_2'] ?? null,
+                'reorder_point' => $data['reorder_point'] ?? 0,
+                'active' => $data['active'] ?? true,
+                'is_sellable' => $data['is_sellable'] ?? true,
+                'metadata' => $data['metadata'] ?? [],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (UniqueConstraintViolationException $e) {
+            throw new HttpException(422, $this->duplicateMessage($e));
+        }
     }
 
     public function update(string $id, array $data, string $businessId): Product
     {
         $product = $this->findForBusiness($id, $businessId);
-        $product->update($data + ['updated_at' => now()]);
+
+        try {
+            $product->update($data + ['updated_at' => now()]);
+        } catch (UniqueConstraintViolationException $e) {
+            throw new HttpException(422, $this->duplicateMessage($e));
+        }
+
         return $product->fresh();
+    }
+
+    private function duplicateMessage(UniqueConstraintViolationException $e): string
+    {
+        if (str_contains($e->getMessage(), 'products_business_id_sku_key')) {
+            return 'Ya existe un producto con ese SKU en este negocio.';
+        }
+        return 'Ya existe un producto con ese nombre en este negocio.';
     }
 
     public function destroy(string $id, string $businessId): void
