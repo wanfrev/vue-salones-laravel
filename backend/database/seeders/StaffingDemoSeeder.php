@@ -18,8 +18,8 @@ class StaffingDemoSeeder extends Seeder
         $branchId = '20000000-0000-0000-0000-000000000003';
 
         if (DB::table('businesses')->where('id', $bizId)->exists()) {
-            $this->command->info('Negocio Staffing demo ya existe, saltando...');
-            return;
+            $this->command->info('Negocio Staffing demo ya existe, limpiando datos previos para recrear...');
+            DB::table('businesses')->where('id', $bizId)->delete();
         }
 
         // Limpiar usuarios con emails que puedan causar conflicto de unicidad
