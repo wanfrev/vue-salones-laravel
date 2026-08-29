@@ -22,6 +22,20 @@ class StaffingDemoSeeder extends Seeder
             return;
         }
 
+        // Limpiar usuarios con emails que puedan causar conflicto de unicidad
+        $employees = ['Juan Perez', 'Maria Garcia', 'Carlos Rodriguez', 'Ana Lopez', 'Luis Hernandez', 'Elena Ramirez', 'Miguel Torres', 'Sofia Flores', 'Jorge Diaz', 'Lucia Cruz'];
+        
+        $emailsToDelete = ['staffing@prueba.com', 'ventas@prueba.com'];
+        foreach ($employees as $empName) {
+            $emailsToDelete[] = strtolower(str_replace(' ', '.', $empName)) . '@worker.app';
+        }
+
+        $userIds = DB::table('users')->whereIn('email', $emailsToDelete)->pluck('id');
+        if ($userIds->isNotEmpty()) {
+            DB::table('profiles')->whereIn('id', $userIds)->delete();
+            DB::table('users')->whereIn('id', $userIds)->delete();
+        }
+
         // ── Business ──
         DB::table('businesses')->insert([
             'id' => $bizId, 'name' => 'Delta Work Force', 'slug' => 'delta-work-force',
