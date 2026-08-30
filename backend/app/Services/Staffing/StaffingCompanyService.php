@@ -59,6 +59,7 @@ class StaffingCompanyService
             'contact_email' => $data['contact_email'] ?? null,
             'payment_terms_days' => $data['payment_terms_days'] ?? 15,
             'agency_overhead_rate' => $data['agency_overhead_rate'] ?? 0.04,
+            'per_diem_rate' => $data['per_diem_rate'] ?? 0,
             // Tiered brackets are legacy (a company created through the current UI only ever
             // sets tax_rate below) — no longer defaulted to DYKE's agreement for new companies,
             // see StaffingTermsFactory::taxRuleFor().
