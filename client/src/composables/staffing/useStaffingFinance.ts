@@ -15,10 +15,12 @@ import {
  * status 'paid' counted in full, 'partial' counted for what's been abonado so far — billed but
  * unpaid 'sent' invoices don't count) plus manual entries. Gastos = what running payroll
  * actually cost the agency (employer_cost: net paid to employees + taxes + fees, adjustments
- * already folded into net) plus the business's normal manual "Gastos Operativos" ledger
- * (passed in from useExpenses, not duplicated here). Ganancia = the nómina margin alone
- * (billed-hours basis, invoice - employer cost) — not reduced by manual expenses, since it
- * represents what staffing services made before any other overhead.
+ * already folded into net) plus "otros gastos" (the weekly per-company free-entry field) plus
+ * the business's normal manual "Gastos Operativos" ledger (passed in from useExpenses, not
+ * duplicated here). Ganancia = ingresos - gastos, computed by the caller (Finanzas.vue) from
+ * incomeTotal/employerCost/otherExpenses below — this composable no longer exposes a separate
+ * "nómina margin" as the profit figure; see `margin` if the billed-hours-only number is needed
+ * elsewhere (e.g. Reportes).
  */
 export function useStaffingFinance(businessId: Ref<string | null>, periodStart: Ref<string>, periodEnd: Ref<string>) {
   const queryClient = useQueryClient()
@@ -41,6 +43,7 @@ export function useStaffingFinance(businessId: Ref<string | null>, periodStart: 
 
   const invoiceTotal = computed(() => summary.value?.invoiceTotal ?? 0)
   const employerCost = computed(() => summary.value?.employerCost ?? 0)
+  const otherExpenses = computed(() => summary.value?.otherExpenses ?? 0)
   const nominaMargin = computed(() => summary.value?.margin ?? 0)
   const manualIncomeTotal = computed(() => (manualIncomes.value ?? []).reduce((acc, i) => acc + i.amount, 0))
   const incomeTotal = computed(() => invoiceTotal.value + manualIncomeTotal.value)
@@ -81,6 +84,7 @@ export function useStaffingFinance(businessId: Ref<string | null>, periodStart: 
   return {
     invoiceTotal,
     employerCost,
+    otherExpenses,
     nominaMargin,
     manualIncomes: computed(() => manualIncomes.value ?? []),
     manualIncomeTotal,

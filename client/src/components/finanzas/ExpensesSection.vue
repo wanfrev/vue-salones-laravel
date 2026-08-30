@@ -199,7 +199,7 @@
               <select id="exp-currency" v-model="expensesCtx.expenseForm.value.currency"
                 class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30">
                 <option value="USD">USD $</option>
-                <option value="VES">Bs</option>
+                <option v-if="!isSingleCurrency" value="VES">Bs</option>
               </select>
             </div>
           </div>
@@ -249,7 +249,7 @@ const emit = defineEmits<{
   'view-all': []
 }>()
 
-const { formatUSD, formatSecondary, formatVESEs } = useCurrency()
+const { formatUSD, formatSecondary, formatVESEs, isSingleCurrency } = useCurrency()
 
 const expensesCtx = useExpenses(computed(() => props.businessId))
 

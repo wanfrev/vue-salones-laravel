@@ -700,6 +700,8 @@ export const getCompanyHoursSummary = (
 export interface StaffingFinanceSummary {
   invoiceTotal: number
   employerCost: number
+  /** "Otros gastos" — the free-entry weekly amount per company (staffing_weekly_expenses), not billed. */
+  otherExpenses: number
   margin: number
 }
 
