@@ -434,7 +434,12 @@ class StaffingReportService
             $query->where('st.company_id', $companyId);
         }
 
-        $rows = $query->orderBy('p.full_name')
+        // Alphabetical by the account holder (titular) — not the employee's own name — because
+        // that's the name that actually shows up on the bank statement, and it's what the agency
+        // scans down when reconciling deposits. Falls back to the employee's own name with the
+        // same COALESCE used to build `titular` below, so someone with no separate holder on file
+        // still sorts predictably by their own name instead of landing wherever NULL collates.
+        $rows = $query->orderByRaw('COALESCE(p.bank_account_holder, p.full_name) asc')
             ->orderBy('sc.name')
             ->select(
                 'p.id as employee_id', 'p.full_name', 'p.bank_account_holder', 'p.bank_name',
