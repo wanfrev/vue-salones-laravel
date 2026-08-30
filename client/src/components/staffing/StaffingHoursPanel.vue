@@ -126,6 +126,11 @@
                 <template v-else v-for="employee in filteredEmployees" :key="rowKey(employee)">
                   <tr>
                     <td class="px-3 py-2.5">
+                      <div class="flex items-start gap-2">
+                        <input type="checkbox" :checked="employee.active !== false" title="Empleado activo"
+                          class="mt-1 h-3.5 w-3.5 shrink-0 rounded border-border"
+                          @change="toggleEmployeeActive(employee, ($event.target as HTMLInputElement).checked)" />
+                        <div>
                       <p class="font-medium text-text">
                         {{ employee.full_name }}
                         <span v-if="employee.active === false" class="ml-1 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger">Inactivo</span>
@@ -133,6 +138,8 @@
                       <p class="text-xs text-text-muted">
                         {{ employee.staffing_role || 'Sin rol' }}<template v-if="employee.staffing_shift"> · {{ shiftLabel(employee.staffing_shift) }}</template>
                       </p>
+                        </div>
+                      </div>
                     </td>
                     <td class="px-3 py-2 text-center">
                       <input type="checkbox"
@@ -283,8 +290,9 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useCurrency } from '../../composables/common/useCurrency'
+import { useNotification } from '../../composables/common/useNotification'
 import { useBusinessStore } from '../../store/business'
 import { useTimesheets } from '../../composables/staffing/useTimesheets'
 import { useBilling } from '../../composables/staffing/useBilling'
@@ -293,6 +301,7 @@ import {
   SHIFT_OPTIONS,
 } from '../../services/staffing/staffingService'
 import type { StaffingCompanyRow, StaffingRateRow, TimesheetEntryInput } from '../../services/staffing/staffingService'
+import { adminUpdateEmployee } from '../../services/adminService'
 import { FormSearchSelect } from '../../components/forms'
 import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
 import { printStaffingPayroll } from '../../lib/staffingPayrollPrint'
@@ -317,6 +326,8 @@ const props = defineProps<{
 
 const { formatUSD } = useCurrency()
 const businessStore = useBusinessStore()
+const queryClient = useQueryClient()
+const { success, error: showError } = useNotification()
 
 const businessId = computed(() => props.businessId)
 
@@ -776,6 +787,16 @@ const handleSave = async () => {
 
 const handleApprove = async () => {
   if (currentWeek.value) await timesheets.approve(currentWeek.value.id)
+}
+
+const toggleEmployeeActive = async (employee: RosterEmployee, checked: boolean) => {
+  try {
+    await adminUpdateEmployee(employee.id, { active: checked })
+    await queryClient.invalidateQueries({ queryKey: ['staffing-company-employees', businessId.value, selectedCompanyId.value], exact: false })
+    success(checked ? 'Empleado activado' : 'Empleado desactivado')
+  } catch {
+    showError('No se pudo actualizar el estado del empleado')
+  }
 }
 
 const handleMarkPaid = async () => {
