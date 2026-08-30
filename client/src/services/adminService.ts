@@ -28,7 +28,7 @@ export interface EmployeeInput {
   can_access_spreadsheet?: boolean
   active?: boolean
   /** A staffing worker can be assigned to more than one client company at once, each with its own role. */
-  staffing_assignments?: { company_id: string; role: string }[]
+  staffing_assignments?: { company_id: string; role: string; shift?: string | null }[]
   staffing_tax_rate?: number | null
   address?: string | null
   bank_name?: string | null
