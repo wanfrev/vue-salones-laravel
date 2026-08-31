@@ -301,6 +301,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::delete('/staffing-company-rates/{id}', [StaffingCompanyRateController::class, 'destroy']);
 
         Route::get('/staffing-companies/{companyId}/employees', [StaffingTimesheetController::class, 'employeesForCompany']);
+        Route::patch('/staffing-company-employees/{assignmentId}/active', [StaffingTimesheetController::class, 'setEmployeeActive']);
         // Year-wide weekly headcount matrix for the Empresas status tabs — must be registered
         // before {companyId} routes would otherwise be ambiguous; it isn't (different shapes),
         // but keeping it next to them documents the relationship.

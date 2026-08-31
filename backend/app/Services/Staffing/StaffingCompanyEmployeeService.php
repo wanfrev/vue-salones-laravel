@@ -77,6 +77,12 @@ class StaffingCompanyEmployeeService
      * separately. Cloning the Profile per assignment matters — without it, an employee with two
      * assignments would share one Profile instance and the second `staffing_role` write would
      * silently overwrite the first row's.
+     *
+     * Unlike `active`, which is filtered here (a profile that's inactive everywhere never shows,
+     * for any company), a PAUSED assignment (`staffing_company_employees.active = false`) is
+     * still returned — this is the one company/project view where that pause should be visible
+     * and toggleable, so the row's `active` is overwritten below with the assignment's own flag,
+     * not left at the profile's (always-true, since the profile query already filtered on it).
      */
     public function employeesForCompany(string $businessId, string $companyId, ?string $projectId = null): Collection
     {
@@ -122,6 +128,7 @@ class StaffingCompanyEmployeeService
                 // before they joined this company, instead of showing an empty row for every
                 // past week that predates them.
                 $row->staffing_assigned_at = $assignment->created_at?->toISOString();
+                $row->active = $assignment->active;
                 return $row;
             })
             ->filter()
@@ -181,6 +188,19 @@ class StaffingCompanyEmployeeService
             ->where('company_id', $companyId)
             ->when($projectId, fn ($q) => $q->where('project_id', $projectId))
             ->value('shift');
+    }
+
+    /**
+     * Pauses or reactivates ONE assignment — the Nómina checkbox's target. Scoped to
+     * `$businessId` so an assignment id from another tenant can never be toggled through this
+     * path; scoped to `$assignmentId` (not employee+company) so a worker holding two roles at the
+     * same company can be paused on one role without touching the other.
+     */
+    public function setActive(string $assignmentId, string $businessId, bool $active): void
+    {
+        StaffingCompanyEmployee::where('id', $assignmentId)
+            ->where('business_id', $businessId)
+            ->update(['active' => $active]);
     }
 
     /** Every company this employee is currently assigned to, with the role held at each. */

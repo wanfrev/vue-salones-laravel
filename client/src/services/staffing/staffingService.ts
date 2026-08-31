@@ -413,6 +413,13 @@ export const listCompanyEmployees = (_businessId: string, companyId: string, pro
   return apiRequest<Profile[]>('GET', url)
 }
 
+/**
+ * Pauses/reactivates one worker at one company — scoped to their assignment row, not their
+ * profile, so it never touches their status at any other company they're placed at.
+ */
+export const setStaffingAssignmentActive = (assignmentId: string, active: boolean): Promise<void> =>
+  apiRequest<void>('PATCH', `/staffing-company-employees/${assignmentId}/active`, { active })
+
 export const listStaffingTimesheets = async (
   businessId: string,
   companyId?: string | null,
