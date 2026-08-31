@@ -55,6 +55,12 @@ class StaffingTimesheetService
         return $this->companyEmployees->employeesForCompany($businessId, $companyId, $projectId);
     }
 
+    /** Pause/reactivate one worker at one company — see StaffingCompanyEmployeeService::setActive. */
+    public function setEmployeeActive(string $assignmentId, string $businessId, bool $active): void
+    {
+        $this->companyEmployees->setActive($assignmentId, $businessId, $active);
+    }
+
     /**
      * Create or update the draft for (company, week) and replace its entries wholesale — the
      * caller always sends the full set of hours for that week, matching how the sheet is edited

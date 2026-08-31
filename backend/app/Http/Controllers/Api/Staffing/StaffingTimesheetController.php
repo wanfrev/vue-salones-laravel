@@ -59,6 +59,21 @@ class StaffingTimesheetController
         );
     }
 
+    /** Pauses/reactivates one worker's assignment at one company — see setEmployeeActive on the service. */
+    public function setEmployeeActive(Request $request, string $assignmentId): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        }
+
+        $data = $request->validate(['active' => 'required|boolean']);
+
+        $this->timesheets->setEmployeeActive($assignmentId, $p->business_id, $data['active']);
+
+        return response()->json(['success' => true]);
+    }
+
     public function store(Request $request): JsonResponse
     {
         $p = $request->user()?->load('profile')?->profile;

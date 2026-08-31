@@ -125,9 +125,10 @@
                   <tr>
                     <td class="px-3 py-2.5">
                       <div class="flex items-start gap-2">
-                        <label class="mt-0.5 flex shrink-0 cursor-pointer items-center gap-1" title="Activar o desactivar empleado">
+                        <label class="mt-0.5 flex shrink-0 cursor-pointer items-center gap-1" title="Activar o pausar empleado en esta empresa">
                           <input type="checkbox" :checked="employee.active !== false"
-                            class="h-3.5 w-3.5 rounded border-border"
+                            :disabled="!employee.staffing_assignment_id"
+                            class="h-3.5 w-3.5 rounded border-border disabled:cursor-not-allowed disabled:opacity-50"
                             @change="toggleEmployeeActive(employee, ($event.target as HTMLInputElement).checked)" />
                           <span :class="['text-[10px] font-semibold uppercase tracking-wide', employee.active === false ? 'text-danger' : 'text-success']">
                             {{ employee.active === false ? 'Inactivo' : 'Activo' }}
@@ -307,10 +308,9 @@ import { useTimesheets } from '../../composables/staffing/useTimesheets'
 import { useBilling } from '../../composables/staffing/useBilling'
 import {
   getStaffingInvoice, listStaffingCompanies, listStaffingRates, getStaffingProjects, staffingCompanyKeys, staffingRateKeys,
-  SHIFT_OPTIONS, downloadStaffingPayrollXlsx, downloadStaffingInvoiceXlsx,
+  SHIFT_OPTIONS, downloadStaffingPayrollXlsx, downloadStaffingInvoiceXlsx, setStaffingAssignmentActive,
 } from '../../services/staffing/staffingService'
 import type { StaffingCompanyRow, StaffingRateRow, TimesheetEntryInput } from '../../services/staffing/staffingService'
-import { adminUpdateEmployee } from '../../services/adminService'
 import { FormSearchSelect } from '../../components/forms'
 import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
 import { printStaffingPayroll } from '../../lib/staffingPayrollPrint'
@@ -799,11 +799,17 @@ const handleApprove = async () => {
   if (currentWeek.value) await timesheets.approve(currentWeek.value.id)
 }
 
+/**
+ * Pauses/reactivates this ONE assignment (this company/project/role) — not the employee's
+ * profile — so the same worker staying active at another company is never touched. See
+ * setStaffingAssignmentActive.
+ */
 const toggleEmployeeActive = async (employee: RosterEmployee, checked: boolean) => {
+  if (!employee.staffing_assignment_id) return
   try {
-    await adminUpdateEmployee(employee.id, { active: checked })
+    await setStaffingAssignmentActive(employee.staffing_assignment_id, checked)
     await queryClient.invalidateQueries({ queryKey: ['staffing-company-employees', businessId.value, selectedCompanyId.value], exact: false })
-    success(checked ? 'Empleado activado' : 'Empleado desactivado')
+    success(checked ? 'Empleado activado en esta empresa' : 'Empleado pausado en esta empresa')
   } catch {
     showError('No se pudo actualizar el estado del empleado')
   }
