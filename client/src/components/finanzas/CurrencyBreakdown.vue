@@ -25,7 +25,7 @@ defineEmits<{
   close: []
 }>()
 
-const { formatVESEs } = useCurrency()
+const { formatVESEs, isSingleCurrency } = useCurrency()
 </script>
 
 <template>
@@ -48,7 +48,7 @@ const { formatVESEs } = useCurrency()
       </button>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
+    <div :class="isSingleCurrency ? 'grid grid-cols-1' : 'grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border'">
       <!-- USD Column -->
       <div class="p-4">
         <div class="flex items-center justify-between mb-3">
@@ -72,8 +72,9 @@ const { formatVESEs } = useCurrency()
         </div>
       </div>
 
-      <!-- VES Column -->
-      <div class="p-4">
+      <!-- VES Column — never shown for a single-currency (e.g. staffing) business, which has no
+           exchange rate to convert against and no VES-denominated records to begin with. -->
+      <div v-if="!isSingleCurrency" class="p-4">
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
             <span class="rounded-full bg-warning/10 px-2.5 py-0.5 text-xs font-semibold text-warning">VES</span>

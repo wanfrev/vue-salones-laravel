@@ -127,13 +127,17 @@
                   <tr>
                     <td class="px-3 py-2.5">
                       <div class="flex items-start gap-2">
-                        <input type="checkbox" :checked="employee.active !== false" title="Empleado activo"
-                          class="mt-1 h-3.5 w-3.5 shrink-0 rounded border-border"
-                          @change="toggleEmployeeActive(employee, ($event.target as HTMLInputElement).checked)" />
+                        <label class="mt-0.5 flex shrink-0 cursor-pointer items-center gap-1" title="Activar o desactivar empleado">
+                          <input type="checkbox" :checked="employee.active !== false"
+                            class="h-3.5 w-3.5 rounded border-border"
+                            @change="toggleEmployeeActive(employee, ($event.target as HTMLInputElement).checked)" />
+                          <span :class="['text-[10px] font-semibold uppercase tracking-wide', employee.active === false ? 'text-danger' : 'text-success']">
+                            {{ employee.active === false ? 'Inactivo' : 'Activo' }}
+                          </span>
+                        </label>
                         <div>
                       <p class="font-medium text-text">
                         {{ employee.full_name }}
-                        <span v-if="employee.active === false" class="ml-1 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger">Inactivo</span>
                       </p>
                       <p class="text-xs text-text-muted">
                         {{ employee.staffing_role || 'Sin rol' }}<template v-if="employee.staffing_shift"> · {{ shiftLabel(employee.staffing_shift) }}</template>
