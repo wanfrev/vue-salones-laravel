@@ -17,6 +17,8 @@ export interface Cita {
   employeeAmountOverride?: number
   assistantAmountOverride?: number
   groupId?: string
+  /** Solo presente tras deduplicar una cita de grupo (varios servicios reservados en la misma visita, mismo groupId) — ver useAdminAgenda.ts. */
+  groupServiceNames?: string[]
   date: string
   time: string
   duration: number

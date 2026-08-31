@@ -1,11 +1,31 @@
 import { ref, computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { toISODate, parseLocalDate } from '../../lib/formatters'
-import { listCitas, agendaKeys } from '../../services/agendaService'
+import { listCitas, agendaKeys, searchCitasGlobal } from '../../services/agendaService'
 import { listServicios, serviciosKeys } from '../../services/serviciosService'
 import { listEquipo, equipoKeys } from '../../services/equipoService'
 import { useBusinessStore } from '../../store/business'
 import type { Cita } from '../../types/cita'
+
+// Una cita de grupo (varios servicios reservados en la misma visita) llega como
+// varias filas de Cita compartiendo groupId — se juntan en una sola, guardando los
+// nombres de servicio de las demás en `groupServiceNames` para mostrar "+N servicios"
+// en la lista (mismo criterio que ya se usa en el buscador global de Calendario).
+function dedupeByGroup(all: Cita[]): Cita[] {
+  const rows: Cita[] = []
+  const indexByGroup = new Map<string, number>()
+  for (const c of all) {
+    if (c.groupId && indexByGroup.has(c.groupId)) {
+      const idx = indexByGroup.get(c.groupId)!
+      rows[idx].groupServiceNames!.push(c.service)
+      continue
+    }
+    const row = c.groupId ? { ...c, groupServiceNames: [c.service] } : c
+    rows.push(row)
+    if (c.groupId) indexByGroup.set(c.groupId, rows.length - 1)
+  }
+  return rows
+}
 
 export type DateFilterMode = 'day' | 'week' | 'all'
 
@@ -46,7 +66,7 @@ export function useAdminAgenda(businessId: () => string | null) {
     return { start, end }
   })
 
-  const { data: citasData, isLoading } = useQuery({
+  const { data: citasData, isLoading: isDateLoading } = useQuery({
     queryKey: computed(() => [
       ...agendaKeys.appointments(businessId(), currentBranchId.value),
       dateFilterMode.value,
@@ -57,6 +77,28 @@ export function useAdminAgenda(businessId: () => string | null) {
     enabled: computed(() => !!businessId()),
     staleTime: 15000,
   })
+
+  // ── Global search (client/servicio/empleado, cualquier fecha) ──
+  // No hay ningún otro filtro de texto en esta vista: sin esto, encontrar una cita
+  // específica con el filtro "Todas" (~6 meses) implica pasar páginas a mano.
+  const searchQuery = ref('')
+  const debouncedSearchQuery = ref('')
+  let searchTimer: ReturnType<typeof setTimeout> | null = null
+  const setSearchQuery = (val: string) => {
+    searchQuery.value = val
+    if (searchTimer) clearTimeout(searchTimer)
+    searchTimer = setTimeout(() => { debouncedSearchQuery.value = val.trim() }, 250)
+  }
+  const isSearching = computed(() => debouncedSearchQuery.value.length >= 2)
+
+  const { data: searchResultsData, isFetching: isSearchLoading } = useQuery({
+    queryKey: computed(() => ['agenda-admin-search', businessId(), currentBranchId.value, debouncedSearchQuery.value]),
+    queryFn: () => searchCitasGlobal(businessId()!, debouncedSearchQuery.value, currentBranchId.value),
+    enabled: computed(() => !!businessId() && isSearching.value),
+    staleTime: 15000,
+  })
+
+  const isLoading = computed(() => isSearching.value ? isSearchLoading.value : isDateLoading.value)
 
   const { data: serviciosData } = useQuery({
     queryKey: computed(() => serviciosKeys.all(businessId(), currentBranchId.value)),
@@ -72,24 +114,22 @@ export function useAdminAgenda(businessId: () => string | null) {
 
   const todayIso = computed(() => toISODate(new Date()))
 
-  const citas = computed<Cita[]>(() => {
-    const all = citasData.value ?? []
-    const seen = new Set<string>()
-    return all.filter(c => {
-      if (c.groupId) {
-        if (seen.has(c.groupId)) return false
-        seen.add(c.groupId)
-      }
-      return true
-    })
-  })
+  // Citas del filtro de fecha activo (día/semana/todas) — esto es lo que alimentan
+  // las stats de abajo, para que no cambien mientras se busca.
+  const dateFilteredCitas = computed<Cita[]>(() => dedupeByGroup(citasData.value ?? []))
 
+  const citas = computed<Cita[]>(() =>
+    isSearching.value ? dedupeByGroup(searchResultsData.value ?? []) : dateFilteredCitas.value
+  )
+
+  // Mientras se busca, se ignora el toggle Activas/Historial: el objetivo es encontrar
+  // ESA cita puntual sin importar su estado (ej. saber si ya se pagó o se canceló).
   const activeCitas = computed(() =>
-    citas.value.filter(c => c.status !== 'cancelled')
+    isSearching.value ? citas.value : citas.value.filter(c => c.status !== 'cancelled')
   )
 
   const historialCitas = computed(() =>
-    citas.value.filter(c => c.status === 'paid' || c.status === 'cancelled')
+    isSearching.value ? citas.value : citas.value.filter(c => c.status === 'paid' || c.status === 'cancelled')
   )
 
   const goToToday = () => {
@@ -159,9 +199,11 @@ export function useAdminAgenda(businessId: () => string | null) {
   })
 
   const stats = computed(() => {
+    // Siempre del filtro de fecha (día/semana/todas), nunca de la búsqueda — así las
+    // tarjetas no cambian mientras el admin está buscando una cita puntual.
     // citasHoy/pendientes/confirmadas cuentan citas (deduplicadas por group_id, como en la tabla),
     // no filas de servicio — así el número coincide con lo que se ve listado abajo.
-    const citasDelPeriodo = citas.value
+    const citasDelPeriodo = dateFilteredCitas.value
     // estimadoHoy sí necesita cada fila cruda: una cita agrupada con varios servicios
     // solo conserva el precio de un miembro tras deduplicar, así que sumar desde `citas`
     // subestimaría el ingreso total del día.
@@ -218,5 +260,8 @@ export function useAdminAgenda(businessId: () => string | null) {
     setWeekMode,
     setFilterDate,
     todayIso,
+    searchQuery,
+    setSearchQuery,
+    isSearching,
   }
 }

@@ -85,9 +85,14 @@ class AppointmentService
         }
         if ($search) {
             $term = $search . '%';
-            $query->whereHas('client', function ($q) use ($term) {
-                $q->where('full_name', 'ilike', $term)
-                  ->orWhere('phone', 'ilike', $term);
+            $query->where(function ($q) use ($term) {
+                $q->whereHas('client', function ($qq) use ($term) {
+                    $qq->where('full_name', 'ilike', $term)
+                       ->orWhere('phone', 'ilike', $term);
+                })
+                ->orWhereHas('employeeProfile', fn ($qq) => $qq->where('full_name', 'ilike', $term))
+                ->orWhereHas('assistantProfile', fn ($qq) => $qq->where('full_name', 'ilike', $term))
+                ->orWhereHas('service', fn ($qq) => $qq->where('name', 'ilike', $term));
             });
             // Búsqueda global (sin acotar por start_date/end_date): trae primero la
             // cita más cercana a "ahora", ya sea futura o pasada, en vez del orden
