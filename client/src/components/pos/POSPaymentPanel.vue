@@ -117,15 +117,26 @@
               :key="`${item.productId}:${item.variantId ?? ''}`"
               class="rounded-lg bg-bg-secondary px-2.5 py-2"
             >
-              <!-- One compact row per product: name, optional P1/P2 toggle, qty stepper, price
-                   ($ and Bs stacked tightly so the row height stays the same as the stepper),
-                   delete. Same layout for retail and appointment/service checkout — the P1/P2
-                   toggle is the only piece that's retail-specific (unitPrice2 only exists there). -->
-              <div class="flex items-center gap-2">
-                <p class="flex-1 min-w-0 truncate text-sm font-medium text-text">
+              <!-- Two lines per product: name gets its own full-width line so it's never
+                   squeezed to nothing by the fixed-width controls below it (was happening in
+                   the narrower tablet-landscape column, where P1/P2 + stepper + price + delete
+                   alone could exceed the available width, leaving the name 0px wide). Second
+                   line holds the P1/P2 toggle (retail-only), qty stepper, price, delete. -->
+              <div class="flex items-start justify-between gap-2">
+                <p class="min-w-0 flex-1 truncate text-sm font-medium text-text">
                   {{ item.productName }}<span v-if="item.variantName" class="text-text-muted"> ({{ item.variantName }})</span>
                 </p>
+                <button
+                  @click="$emit('remove-item', idx)"
+                  class="flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
+                >
+                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
 
+              <div class="mt-1.5 flex items-center justify-between gap-2">
                 <div
                   v-if="isRetailOnly && item.unitPrice2 != null && Number(item.unitPrice2) > 0"
                   class="inline-flex shrink-0 rounded border border-border p-0.5 bg-surface"
@@ -184,22 +195,13 @@
                   </button>
                 </div>
 
-                <div class="text-right leading-tight shrink-0 w-[76px]">
+                <div class="text-right leading-tight shrink-0">
                   <span v-if="props.areProductsIncluded" class="block text-xs font-bold text-success">Exonerado</span>
                   <template v-else>
                     <span class="block text-sm font-bold text-text">{{ formatUSD(item.subtotal) }}</span>
                     <span class="block text-[10px] text-text-muted">{{ formatVES(item.subtotal) }}</span>
                   </template>
                 </div>
-
-                <button
-                  @click="$emit('remove-item', idx)"
-                  class="flex h-7 w-7 shrink-0 items-center justify-center rounded text-text-muted hover:text-danger hover:bg-danger/10 transition-theme"
-                >
-                  <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
               </div>
             </div>
           </div>
