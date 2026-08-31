@@ -97,7 +97,7 @@ class StaffingXlsxExportService
             $sheet->setCellValue('A4', 'Work site: ' . $invoice->work_site);
         }
 
-        $headers = ['Staff name', 'Total hours', 'Reg hours', 'Reg rate', 'Reg amount', 'OT hours', 'OT rate', 'OT amount', 'Total amount'];
+        $headers = ['Staff name', 'Total hours', 'Reg hours', 'Reg rate', 'Reg amount', 'OT hours', 'OT rate', 'OT amount', 'Travel', 'Total amount'];
         $headerRow = 6;
         foreach ($headers as $i => $label) {
             $sheet->setCellValue([$i + 1, $headerRow], $label);
@@ -108,15 +108,19 @@ class StaffingXlsxExportService
             ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(self::HEADER_FILL);
 
         $row = $headerRow + 1;
-        $moneyCols = [4, 5, 7, 8, 9];
+        $moneyCols = [4, 5, 7, 8, 9, 10];
         foreach ($timesheet?->entries ?? [] as $entry) {
             $regularAmount = $entry->invoice_regular_amount ?? ($entry->regular_hours * $entry->bill_rate);
-            $overtimeAmount = $entry->invoice_overtime_amount ?? ($entry->invoice_total - $regularAmount);
+            $travelTotal = $entry->travel_total ?? 0.0;
+            // Travel is billed to the client (unlike perdiem) and already folded into
+            // invoice_total — subtracted back out here so it gets its own column instead of
+            // silently inflating OT for legacy rows without a persisted invoice_overtime_amount.
+            $overtimeAmount = $entry->invoice_overtime_amount ?? ($entry->invoice_total - $regularAmount - $travelTotal);
             $overtimeRate = $entry->overtime_hours > 0 ? $overtimeAmount / $entry->overtime_hours : 0;
 
             $values = [
                 $entry->employee?->full_name, $entry->total_hours, $entry->regular_hours, $entry->bill_rate,
-                $regularAmount, $entry->overtime_hours, $overtimeRate, $overtimeAmount, $entry->invoice_total,
+                $regularAmount, $entry->overtime_hours, $overtimeRate, $overtimeAmount, $travelTotal, $entry->invoice_total,
             ];
             foreach ($values as $i => $value) {
                 $sheet->setCellValue([$i + 1, $row], $value);
@@ -127,12 +131,12 @@ class StaffingXlsxExportService
             $row++;
         }
 
-        $sheet->setCellValue([8, $row + 1], 'Total due:');
-        $sheet->getStyle([8, $row + 1])->getFont()->setBold(true);
-        $sheet->getStyle([8, $row + 1])->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        $sheet->setCellValue([9, $row + 1], (float) $invoice->total);
+        $sheet->setCellValue([9, $row + 1], 'Total due:');
         $sheet->getStyle([9, $row + 1])->getFont()->setBold(true);
-        $sheet->getStyle([9, $row + 1])->getNumberFormat()->setFormatCode(self::MONEY_FORMAT);
+        $sheet->getStyle([9, $row + 1])->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->setCellValue([10, $row + 1], (float) $invoice->total);
+        $sheet->getStyle([10, $row + 1])->getFont()->setBold(true);
+        $sheet->getStyle([10, $row + 1])->getNumberFormat()->setFormatCode(self::MONEY_FORMAT);
 
         for ($col = 1; $col <= count($headers); $col++) {
             $sheet->getColumnDimensionByColumn($col)->setAutoSize(true);

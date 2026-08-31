@@ -653,9 +653,11 @@ const rowFor = (employee: RosterEmployee): DisplayRow | null => {
     const regularAmount = saved.regular_hours * saved.pay_rate
     const overtimeAmount = saved.gross - regularAmount + saved.pre_tax_deduction
     // Cent-rounded REG/OT split of invoice_total — see StaffingPayrollCalculator::invoice()
-    // and staffingInvoicePrint.ts, which derive the OT bill rate the same way.
+    // and staffingInvoicePrint.ts, which derive the OT bill rate the same way. Travel is billed
+    // to the client too (unlike perdiem) and is already folded into invoice_total, so it has to
+    // come back out of the fallback subtraction or it would silently inflate the OT amount.
     const invoiceRegularAmount = saved.invoice_regular_amount ?? saved.regular_hours * saved.bill_rate
-    const invoiceOvertimeAmount = saved.invoice_overtime_amount ?? saved.invoice_total - invoiceRegularAmount
+    const invoiceOvertimeAmount = saved.invoice_overtime_amount ?? saved.invoice_total - invoiceRegularAmount - saved.travel_total
     return {
       regularHours: saved.regular_hours,
       payRate: saved.pay_rate,
@@ -703,8 +705,10 @@ const rowFor = (employee: RosterEmployee): DisplayRow | null => {
 
   const tax = taxFor(gross, employee.staffing_tax_rate, company)
   // Reimbursement-style amounts — entered as a total dollar figure directly, not derived from
-  // days/hours × a rate. Not billed (never touch invoiceTotal below), not withheld against —
-  // same treatment as StaffingPayrollCalculator::payroll() on the backend.
+  // days/hours × a rate. Not withheld against, same treatment as
+  // StaffingPayrollCalculator::payroll() on the backend. Perdiem is never billed; travel IS
+  // (see StaffingPayrollCalculator::invoice()) — added to invoiceTotal below dollar-for-dollar,
+  // which keeps margin unaffected by it since it's already inside employerCost via net.
   const perdiemTotal = row.perdiemTotal || 0
   const travelTotal = row.travelTotal || 0
   const net = gross - tax - (row.fixedFees || 0) + (row.adjustment || 0) + perdiemTotal + travelTotal
@@ -712,7 +716,7 @@ const rowFor = (employee: RosterEmployee): DisplayRow | null => {
 
   const invoiceRegular = Math.round(rate.billRate * regularHours * 100) / 100
   const invoiceOvertime = Math.round(overtimeHours * overtimeBillRate * 100) / 100
-  const invoiceTotal = invoiceRegular + invoiceOvertime
+  const invoiceTotal = invoiceRegular + invoiceOvertime + travelTotal
   const employerCost = net + tax + (row.fixedFees || 0)
 
   return {

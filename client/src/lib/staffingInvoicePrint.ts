@@ -23,9 +23,12 @@ export function printStaffingInvoice(invoice: StaffingInvoice, agencyName: strin
   // see StaffingPayrollCalculator::invoice()). Older rows saved before that split existed fall
   // back to a client-side estimate; the OT rate shown is derived from the OT amount rather than
   // assumed to be 1.5x, since a role can now carry its own overtime multiplier (see Fase 1).
+  // Travel is billed to the client too (unlike perdiem) and is already folded into invoice_total
+  // — subtracted back out here so it gets its own column instead of silently inflating OT.
   const rows = entries.map(e => {
     const regularAmount = e.invoice_regular_amount ?? e.regular_hours * e.bill_rate
-    const overtimeAmount = e.invoice_overtime_amount ?? e.invoice_total - regularAmount
+    const travelTotal = e.travel_total ?? 0
+    const overtimeAmount = e.invoice_overtime_amount ?? (e.invoice_total - regularAmount - travelTotal)
     const overtimeRate = e.overtime_hours > 0 ? overtimeAmount / e.overtime_hours : 0
 
     return `
@@ -38,6 +41,7 @@ export function printStaffingInvoice(invoice: StaffingInvoice, agencyName: strin
       <td class="num">${e.overtime_hours.toFixed(2)}</td>
       <td class="num">${e.overtime_hours > 0 ? fmtMoney(overtimeRate) : '—'}</td>
       <td class="num">${fmtMoney(overtimeAmount)}</td>
+      <td class="num">${fmtMoney(travelTotal)}</td>
       <td class="num">${fmtMoney(e.invoice_total)}</td>
     </tr>
   `
@@ -89,6 +93,7 @@ export function printStaffingInvoice(invoice: StaffingInvoice, agencyName: strin
         <th class="num">OT hours</th>
         <th class="num">OT rate</th>
         <th class="num">OT amount</th>
+        <th class="num">Travel</th>
         <th class="num">Total amount</th>
       </tr>
     </thead>
@@ -97,7 +102,7 @@ export function printStaffingInvoice(invoice: StaffingInvoice, agencyName: strin
       <tr>
         <td>Totals</td>
         <td class="num">${totalHours.toFixed(2)}</td>
-        <td colspan="6"></td>
+        <td colspan="7"></td>
         <td class="num">${fmtMoney(invoice.total)}</td>
       </tr>
     </tfoot>

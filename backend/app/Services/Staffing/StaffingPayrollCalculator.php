@@ -58,8 +58,9 @@ class StaffingPayrollCalculator
 
         $gross = $regularAmount + $overtimeAmount - $entry->preTaxDeduction;
         $tax = $this->taxRuleFor($entry, $terms)->amountFor($gross);
-        // Per diem and travel pay are not billed to the client (see invoice() below) and are not
-        // withheld against — they land on the employee dollar-for-dollar, same treatment as adjustment.
+        // Per diem and travel pay are not withheld against — they land on the employee
+        // dollar-for-dollar, same treatment as adjustment. Travel is also billed to the client
+        // (see invoice() below); per diem never is.
         $net = $gross - $tax - $entry->fixedFees + $entry->adjustment + $entry->perdiemTotal + $entry->travelTotal;
 
         $payout = $this->roundPayout($net, $terms->payoutRounding);
@@ -119,6 +120,9 @@ class StaffingPayrollCalculator
             : round($entry->billRate * $this->overtimeMultiplierFor($entry, $terms), 2);
         $regularAmount = round($entry->billRate * $regularHours, 2);
         $overtimeAmount = round($overtimeHours * $overtimeBillRate, 2);
+        // Unlike perdiem, travel is passed through to the client dollar-for-dollar — see
+        // InvoiceLine::$travelTotal.
+        $travelTotal = round($entry->travelTotal, 2);
 
         return new InvoiceLine(
             employeeName: $entry->employeeName,
@@ -129,7 +133,8 @@ class StaffingPayrollCalculator
             overtimeBillRate: $overtimeBillRate,
             regularAmount: $regularAmount,
             overtimeAmount: $overtimeAmount,
-            total: round($regularAmount + $overtimeAmount, 2),
+            travelTotal: $travelTotal,
+            total: round($regularAmount + $overtimeAmount + $travelTotal, 2),
         );
     }
 

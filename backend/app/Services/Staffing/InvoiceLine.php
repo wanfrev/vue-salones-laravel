@@ -17,6 +17,13 @@ final class InvoiceLine
         public readonly float $overtimeBillRate,
         public readonly float $regularAmount,
         public readonly float $overtimeAmount,
+        /**
+         * Passed straight through from the timesheet entry, dollar-for-dollar — unlike perdiem,
+         * travel IS billed to the client (see StaffingPayrollCalculator::invoice()). It's already
+         * counted as part of employerCost via payroll->net, so adding it here too keeps margin
+         * unaffected by it: a true pass-through, not a markup opportunity or a hidden cost.
+         */
+        public readonly float $travelTotal,
         public readonly float $total,
     ) {}
 
@@ -32,6 +39,7 @@ final class InvoiceLine
             'overtime_bill_rate' => $this->overtimeBillRate,
             'regular_amount' => $this->regularAmount,
             'overtime_amount' => $this->overtimeAmount,
+            'travel_total' => $this->travelTotal,
             'total' => $this->total,
         ];
     }
