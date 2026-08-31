@@ -67,13 +67,13 @@
                   @upload="(file) => handleUploadSingle(incident.id, 'reporte', file)" />
               </td>
               <td class="px-3 py-2.5 text-center">
-                <span v-if="incident.wantsUrgentCare === true" class="rounded-full bg-success/10 px-2 py-0.5 text-[10px] font-semibold text-success">Sí</span>
-                <span v-else-if="incident.wantsUrgentCare === false" class="rounded-full bg-danger/10 px-2 py-0.5 text-[10px] font-semibold text-danger">No</span>
+                <span v-if="incident.wantsUrgentCare === true" class="rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">Sí</span>
+                <span v-else-if="incident.wantsUrgentCare === false" class="rounded-full bg-danger/10 px-3 py-1 text-xs font-semibold text-danger">No</span>
                 <span v-else class="text-text-muted">—</span>
               </td>
               <td class="px-3 py-2.5 whitespace-nowrap text-text-secondary">{{ incident.companyName || '—' }}</td>
               <td class="px-3 py-2.5">
-                <span :class="['rounded-full px-2 py-0.5 text-[10px] font-semibold whitespace-nowrap', statusClass(incident.status)]">
+                <span :class="['rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap', statusClass(incident.status)]">
                   {{ statusLabel(incident.status) }}
                 </span>
               </td>
@@ -90,7 +90,7 @@
                   @upload="(file) => handleAddFile(incident.id, 'paperwork', file)" @remove="handleRemoveFile" />
               </td>
               <td class="px-3 py-2.5">
-                <div class="flex flex-col items-start gap-1">
+                <div class="flex flex-row items-center gap-2">
                   <select :value="incident.drugTestResult ?? ''" class="rounded-md border border-border bg-surface px-1.5 py-1 text-xs text-text outline-none"
                     @change="handleDrugTestChange(incident.id, ($event.target as HTMLSelectElement).value)">
                     <option value="">Sin definir</option>

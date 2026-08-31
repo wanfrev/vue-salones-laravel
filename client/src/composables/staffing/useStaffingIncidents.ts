@@ -24,7 +24,7 @@ export function useStaffingIncidents(businessId: Ref<string | null>, companyId: 
 
   const incidents = computed(() => data.value ?? [])
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: staffingIncidentKeys.all(businessId.value), exact: false })
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['staffing-incidents', businessId.value], exact: false })
 
   const createMutation = useMutation({
     mutationFn: (form: StaffingIncidentFormData) => createStaffingIncident(form),
