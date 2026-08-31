@@ -4,14 +4,18 @@ namespace App\Http\Controllers\Api\Staffing;
 
 use App\Events\EntityChanged;
 use App\Services\Staffing\StaffingTimesheetService;
+use App\Services\Staffing\StaffingXlsxExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StaffingTimesheetController
 {
     public function __construct(
         private StaffingTimesheetService $timesheets,
+        private StaffingXlsxExportService $xlsxExport,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -87,10 +91,11 @@ class StaffingTimesheetController
             'entries.*.hours_manual_override' => 'nullable|boolean',
             'entries.*.manual_regular_hours' => 'nullable|numeric|min:0',
             'entries.*.manual_overtime_hours' => 'nullable|numeric|min:0',
-            // Reimbursement-style amounts folded into net/payout but never billed — see
+            // Reimbursement-style amounts, entered as a total dollar figure directly (not
+            // days/hours × a rate), folded into net/payout but never billed — see
             // StaffingTimesheetService::saveWeek().
-            'entries.*.perdiem_days' => 'nullable|numeric|min:0',
-            'entries.*.travel_hours' => 'nullable|numeric|min:0',
+            'entries.*.perdiem_total' => 'nullable|numeric|min:0',
+            'entries.*.travel_total' => 'nullable|numeric|min:0',
         ]);
 
         try {
@@ -155,5 +160,26 @@ class StaffingTimesheetController
         EntityChanged::safe($p?->business_id, 'staffing_timesheet', 'deleted', $id);
 
         return response()->json(null, 204);
+    }
+
+    public function downloadXlsx(Request $request, string $id): StreamedResponse|JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        }
+
+        $timesheet = $this->timesheets->findForBusiness($id, $p->business_id);
+        $spreadsheet = $this->xlsxExport->payrollWorkbook($timesheet);
+        $writer = new Xlsx($spreadsheet);
+
+        $filename = 'nomina-' . ($timesheet->company?->name ?? 'empresa') . '-' . $timesheet->week_start->format('Y-m-d') . '.xlsx';
+        $filename = preg_replace('/[^A-Za-z0-9._-]+/', '_', $filename);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 }

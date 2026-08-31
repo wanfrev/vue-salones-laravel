@@ -37,7 +37,7 @@
               <select id="exp-currency" v-model="form.currency"
                 class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30">
                 <option value="USD">USD $</option>
-                <option value="VES">Bs</option>
+                <option v-if="!isSingleCurrency" value="VES">Bs</option>
               </select>
             </div>
           </div>
@@ -71,6 +71,8 @@
 </template>
 
 <script setup lang="ts">
+import { useCurrency } from '../../composables/common/useCurrency'
+
 defineProps<{
   isOpen: boolean
   isEditing: boolean
@@ -79,6 +81,8 @@ defineProps<{
   isSaving: boolean
   formErrors?: Record<string, string>
 }>()
+
+const { isSingleCurrency } = useCurrency()
 
 defineEmits<{
   close: []

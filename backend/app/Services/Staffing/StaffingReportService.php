@@ -434,7 +434,12 @@ class StaffingReportService
             $query->where('st.company_id', $companyId);
         }
 
-        $rows = $query->orderBy('p.full_name')
+        // Alphabetical by the account holder (titular) — not the employee's own name — because
+        // that's the name that actually shows up on the bank statement, and it's what the agency
+        // scans down when reconciling deposits. Falls back to the employee's own name with the
+        // same COALESCE used to build `titular` below, so someone with no separate holder on file
+        // still sorts predictably by their own name instead of landing wherever NULL collates.
+        $rows = $query->orderByRaw('COALESCE(p.bank_account_holder, p.full_name) asc')
             ->orderBy('sc.name')
             ->select(
                 'p.id as employee_id', 'p.full_name', 'p.bank_account_holder', 'p.bank_name',
@@ -459,11 +464,14 @@ class StaffingReportService
      * invoice only contributes once money has actually come in — 'paid' invoices count their full
      * total, 'partial' invoices count only what's been abonado so far, and 'sent' invoices (billed
      * but not yet collected) contribute nothing. Scoped by the invoice's issue_date (the week/work
-     * it bills for), matching how the rest of Finanzas buckets a period. Gastos (employer_cost) and
-     * Ganancia (margin) stay on the payroll-run basis (timesheet week_start) — this method only
-     * changes what counts as Ingresos.
+     * it bills for), matching how the rest of Finanzas buckets a period. Gastos (employer_cost,
+     * otherExpenses) stay on the payroll-run/week basis (staffing_timesheet_entries.week_start /
+     * staffing_weekly_expenses.week_start) — this method only changes what counts as Ingresos.
+     * `margin` is kept for callers still reading the billed-hours nómina margin directly (e.g. the
+     * "Reportes" screens); Finanzas' own "Ganancia" is computed by the caller as ingresos - gastos,
+     * not from this field — see Finanzas.vue's profitTotal.
      *
-     * @return array{invoiceTotal: float, employerCost: float, margin: float}
+     * @return array{invoiceTotal: float, employerCost: float, otherExpenses: float, margin: float}
      */
     public function financeSummaryForPeriod(string $businessId, string $periodStart, string $periodEnd): array
     {
@@ -487,9 +495,15 @@ class StaffingReportService
             ->selectRaw('SUM(ste.employer_cost) as employer_cost, SUM(ste.margin) as margin')
             ->first();
 
+        $otherExpenses = (float) DB::table('staffing_weekly_expenses')
+            ->where('business_id', $businessId)
+            ->whereBetween('week_start', [$periodStart, $periodEnd])
+            ->sum('amount');
+
         return [
             'invoiceTotal' => $invoiceTotal,
             'employerCost' => (float) ($row->employer_cost ?? 0.0),
+            'otherExpenses' => $otherExpenses,
             'margin' => (float) ($row->margin ?? 0.0),
         ];
     }

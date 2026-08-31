@@ -23,8 +23,8 @@ export interface SpreadsheetEmployeeRateRow {
   name: string
   role: string
   shift: string | null
-  billRate: number | null
-  overtimeBillRate: number | null
+  payRate: number | null
+  overtimePayRate: number | null
 }
 
 /** Access-management roster shown inside the module itself — empty for a non-admin caller. */
@@ -35,6 +35,6 @@ export const listSpreadsheetVendedoras = (): Promise<SpreadsheetVendedoraRow[]> 
 export const listSpreadsheetCompanies = (): Promise<SpreadsheetCompanyRow[]> =>
   apiRequest<SpreadsheetCompanyRow[]>('GET', '/staffing-spreadsheet/companies')
 
-/** Bill rate only, never pay rate — this data ends up on a PDF handed to the client company. */
+/** Pay rate only, never bill rate — this sheet is about what the agency pays the employee. */
 export const getSpreadsheetCompanyRates = (companyId: string): Promise<SpreadsheetEmployeeRateRow[]> =>
   apiRequest<SpreadsheetEmployeeRateRow[]>('GET', `/staffing-spreadsheet/companies/${companyId}/rates`)

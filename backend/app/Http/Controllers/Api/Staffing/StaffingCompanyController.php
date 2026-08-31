@@ -94,8 +94,6 @@ class StaffingCompanyController
             'payment_terms_days' => 'nullable|integer|min:0|max:365',
             // The weekly report's agency overhead on gross profit — see StaffingReportService.
             'agency_overhead_rate' => 'nullable|numeric|min:0|max:1',
-            // Flat $/day paid to staffed employees at this company — see StaffingTimesheetService::saveWeek().
-            'per_diem_rate' => 'nullable|numeric|min:0',
             // The flat withholding % — see StaffingTermsFactory::taxRuleFor(). Fraction (0.04 = 4%).
             'tax_rate' => 'nullable|numeric|min:0|max:1',
             // Ordered brackets; a null threshold marks the catch-all tier. Legacy — no UI sets

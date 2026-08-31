@@ -10,7 +10,8 @@ const roleShiftLabel = (row: SpreadsheetEmployeeRateRow): string =>
 
 /**
  * Opens a self-contained printable window for the Spreadsheet module's rate sheet — one row per
- * selected employee, bill rate only. Same window.open + document.write + window.print() pattern
+ * selected employee, pay rate only (what the agency pays them, never what's billed to the
+ * client). Same window.open + document.write + window.print() pattern
  * as printStaffingInvoice/printStaffingPayroll: a standalone document is far less fragile than
  * fighting the app shell's CSS under @media print.
  */
@@ -19,8 +20,8 @@ export function printStaffingSpreadsheet(agencyName: string, companyName: string
     <tr>
       <td>${esc(r.name)}</td>
       <td>${esc(roleShiftLabel(r))}</td>
-      <td class="num">${fmtMoney(r.billRate)}</td>
-      <td class="num">${fmtMoney(r.overtimeBillRate)}</td>
+      <td class="num">${fmtMoney(r.payRate)}</td>
+      <td class="num">${fmtMoney(r.overtimePayRate)}</td>
     </tr>
   `).join('')
 
@@ -45,8 +46,8 @@ export function printStaffingSpreadsheet(agencyName: string, companyName: string
       <tr>
         <th>Staff name</th>
         <th>Role / Shift</th>
-        <th class="num">Bill rate (reg)</th>
-        <th class="num">Bill rate (OT)</th>
+        <th class="num">Pay rate (reg)</th>
+        <th class="num">Pay rate (OT)</th>
       </tr>
     </thead>
     <tbody>${bodyRows}</tbody>

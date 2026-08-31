@@ -226,6 +226,12 @@ export function useEmployeePayments(
     notes: '',
   })
 
+  const dayRateForm = ref({
+    divisas: 0,
+    tasa: 0,
+    bolivares: 0,
+  })
+
   // Employee balance for selected employee + date range
   const { data: selectedBalance, refetch: refetchBalance } = useQuery({
     queryKey: computed(() => [
@@ -347,6 +353,59 @@ export function useEmployeePayments(
     onError: (err) => showError(translateError(err, 'Error al registrar consumo')),
   })
 
+  const saveDayRatePaymentMutation = useMutation({
+    mutationFn: async () => {
+      const f = dayRateForm.value
+      const employeeId = paymentForm.value.employeeId
+      const paymentDate = paymentForm.value.paymentDate
+      const notes = paymentForm.value.notes
+        ? `${paymentForm.value.notes} [Tasa promedio: ${f.tasa} Bs/$]`
+        : `Tasa promedio: ${f.tasa} Bs/$`
+
+      if (f.divisas > 0) {
+        await createEmployeePayment(businessId.value!, {
+          employee_id: employeeId,
+          amount: f.divisas,
+          currency: 'USD',
+          exchange_rate_used: f.tasa,
+          payment_method: 'day_average_rate',
+          type: 'payment',
+          payment_date: paymentDate,
+          notes,
+          branch_id: branchId.value,
+        })
+      }
+      if (f.bolivares > 0) {
+        await createEmployeePayment(businessId.value!, {
+          employee_id: employeeId,
+          amount: f.bolivares / f.tasa,
+          currency: 'VES',
+          original_amount: f.bolivares,
+          exchange_rate_used: f.tasa,
+          payment_method: 'day_average_rate',
+          type: 'payment',
+          payment_date: paymentDate,
+          notes,
+          branch_id: branchId.value,
+        })
+      }
+    },
+    onSuccess: async () => {
+      const empId = paymentForm.value.employeeId
+      await Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: employeePaymentKeys.all(businessId.value), exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['employee-debt'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['employee-balance'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['finanzas-summary'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['employee-payment-history', businessId.value, empId], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['employee-earnings', businessId.value, empId], exact: false }),
+      ])
+      success('Pago registrado')
+      closePaymentModal()
+    },
+    onError: (err) => showError(translateError(err, 'Error al guardar pago')),
+  })
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteEmployeePayment(id),
     onSuccess: async () => {
@@ -403,6 +462,7 @@ export function useEmployeePayments(
       startDate: '',
       endDate: '',
     }
+    dayRateForm.value = { divisas: 0, tasa: 0, bolivares: 0 }
     editingPaymentId.value = null
     saveError.value = ''
   }
@@ -440,6 +500,32 @@ export function useEmployeePayments(
     saveError.value = ''
     try {
       await savePaymentMutation.mutateAsync()
+    } catch (err) {
+      saveError.value = translateError(err, 'Error')
+    } finally {
+      isSaving.value = false
+    }
+  }
+
+  const handleSaveDayRatePayment = async () => {
+    saveError.value = ''
+    const f = dayRateForm.value
+    if (!paymentForm.value.employeeId) {
+      saveError.value = 'Selecciona un empleado'
+      return
+    }
+    if (!(f.tasa > 0)) {
+      saveError.value = 'Ingresa una tasa válida'
+      return
+    }
+    if (!(f.divisas > 0) && !(f.bolivares > 0)) {
+      saveError.value = 'Ingresa un monto en divisas o en bolívares'
+      return
+    }
+
+    isSaving.value = true
+    try {
+      await saveDayRatePaymentMutation.mutateAsync()
     } catch (err) {
       saveError.value = translateError(err, 'Error')
     } finally {
@@ -485,6 +571,7 @@ export function useEmployeePayments(
     employeeList,
     showConsumptionModal,
     consumptionForm,
+    dayRateForm,
     isSaving,
     saveError,
     formErrors,
@@ -497,6 +584,7 @@ export function useEmployeePayments(
     openConsumptionModal,
     closeConsumptionModal,
     handleSavePayment,
+    handleSaveDayRatePayment,
     handleSaveConsumption,
     handleDelete,
   }

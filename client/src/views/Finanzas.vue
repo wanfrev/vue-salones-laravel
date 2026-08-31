@@ -239,17 +239,17 @@ const employeePaymentTotal = computed(() => {
 
 // Staffing: Ingresos = paid invoices (staffingFinance.invoiceTotal — 'paid' invoices in full,
 // 'partial' ones for what's been abonado) + manual entries. Gastos = employer cost (net paid to
-// employees + taxes + fees — adjustments already folded into net) plus the normal manual
-// "Gastos Operativos" ledger. Ganancia = the nómina margin alone (billed-hours basis, not
-// reduced by manual gastos) — it's what staffing services made before any other overhead. No
-// separate "ganancia neta" for this niche (see KpiCards' isStaffing prop).
+// employees + taxes + fees — adjustments already folded into net) + "otros gastos" (the weekly
+// per-company free-entry field) + the normal manual "Gastos Operativos" ledger. Ganancia =
+// ingresos - gastos, same shape as the non-staffing formula below. No separate "ganancia neta"
+// for this niche (see KpiCards' isStaffing prop).
 const incomeTotal = computed(() => isStaffing.value ? staffingFinance.incomeTotal.value : summaryCtx.incomeTotal.value)
 const expenseTotal = computed(() => isStaffing.value
-  ? staffingFinance.employerCost.value + expensesCtx.expenseTotal.value
+  ? staffingFinance.employerCost.value + staffingFinance.otherExpenses.value + expensesCtx.expenseTotal.value
   : expensesCtx.expenseTotal.value + supplierPaymentsCtx.paymentTotal.value + employeePaymentTotal.value)
 
 const profitTotal = computed(() => isStaffing.value
-  ? staffingFinance.nominaMargin.value
+  ? incomeTotal.value - expenseTotal.value
   : incomeTotal.value - (expenseTotal.value + consumptionsTotal.value))
 const netTotal = computed(() => profitTotal.value - cogsTotal.value)
 const marginTotal = computed(() => (incomeTotal.value > 0 ? (netTotal.value / incomeTotal.value) * 100 : 0))
@@ -271,6 +271,7 @@ const staffingExpenseBreakdown = computed(() => ({
   title: 'Desglose de Gastos', usdTotal: expenseTotal.value, vesTotal: 0,
   usdItems: [
     { label: 'Costo de nómina (pagos, taxes, fees)', amount: staffingFinance.employerCost.value },
+    { label: 'Otros gastos (semanal por empresa)', amount: staffingFinance.otherExpenses.value },
     { label: 'Gastos operativos', amount: expensesCtx.expenseTotal.value },
   ].filter(i => i.amount > 0),
   vesItems: [],
@@ -280,9 +281,12 @@ const staffingExpenseBreakdown = computed(() => ({
 const staffingProfitBreakdown = computed(() => ({
   title: 'Desglose de Ganancia', usdTotal: profitTotal.value, vesTotal: 0,
   usdItems: [
-    { label: 'Facturas pagadas (+)', amount: staffingFinance.invoiceTotal.value + staffingFinance.manualIncomeTotal.value },
+    { label: 'Facturas pagadas (+)', amount: staffingFinance.invoiceTotal.value },
+    { label: 'Ingresos manuales (+)', amount: staffingFinance.manualIncomeTotal.value },
     { label: 'Costo de nómina (-)', amount: -staffingFinance.employerCost.value },
-  ],
+    { label: 'Otros gastos (-)', amount: -staffingFinance.otherExpenses.value },
+    { label: 'Gastos operativos (-)', amount: -expensesCtx.expenseTotal.value },
+  ].filter(i => i.amount !== 0),
   vesItems: [],
   usdLabel: 'Concepto', vesLabel: 'Concepto',
 }))
