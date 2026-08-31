@@ -15,7 +15,7 @@
       </div>
       <button v-if="isAdmin && selectedCompanyId" type="button"
         class="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
-        @click="showNewEmployeeModal = true">
+        @click="openNewEmployee">
         + Agregar empleado
       </button>
     </div>
@@ -86,21 +86,13 @@
       </div>
     </div>
 
-    <SpreadsheetNewEmployeeModal
-      v-if="showNewEmployeeModal && selectedCompanyId"
-      :business-id="businessId"
-      :company-id="selectedCompanyId"
-      :company-name="(companies ?? []).find(c => c.id === selectedCompanyId)?.name ?? ''"
-      :rates="adminRates"
-      @close="showNewEmployeeModal = false"
-      @created="handleEmployeeCreated"
-    />
+    <EmpleadoFormModal ref="empleadoModalRef" :is-saving="isSavingEmployee" @save="handleSaveEmpleado" @delete="handleDeleteEmpleado" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useQuery } from '@tanstack/vue-query'
 import { FormSearchSelect } from '../forms'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useAuth } from '../../composables/common/useAuth'
@@ -110,21 +102,23 @@ import {
   getSpreadsheetCompanyRates, listSpreadsheetCompanies, staffingSpreadsheetKeys,
 } from '../../services/staffing/staffingSpreadsheetService'
 import { printStaffingSpreadsheet } from '../../lib/staffingSpreadsheetPrint'
-import { SHIFT_OPTIONS, listStaffingRates, staffingRateKeys } from '../../services/staffing/staffingService'
-import SpreadsheetNewEmployeeModal from './SpreadsheetNewEmployeeModal.vue'
+import { SHIFT_OPTIONS } from '../../services/staffing/staffingService'
+import { EmpleadoFormModal } from '../modals'
+import { useModal } from '../../composables/common/useModal'
+import { useCrud } from '../../composables/empleados/useCrud'
+import { deleteEmpleado, equipoKeys, listEquipo, saveEmpleado } from '../../services/equipoService'
+import type { Empleado, EmpleadoFormData } from '../../types/empleado'
 
 const props = defineProps<{ businessId: string | null }>()
 
 const businessStore = useBusinessStore()
 const { authStore } = useAuth()
 const { formatUSD } = useCurrency()
-const queryClient = useQueryClient()
 
 const isAdmin = computed(() => isAdminPanelRole(authStore.role ?? undefined))
 
 const selectedCompanyId = ref<string | null>(null)
 const selectedEmployeeIds = ref<string[]>([])
-const showNewEmployeeModal = ref(false)
 
 const shiftLabel = (shift: string | null): string =>
   shift ? (SHIFT_OPTIONS.find(o => o.value === shift)?.label ?? shift) : ''
@@ -145,17 +139,31 @@ const ratesQuery = useQuery({
 
 const rates = computed(() => ratesQuery.data.value ?? [])
 
-// The full rate card (pay AND bill rate) — only fetched for an admin session, never for a
-// vendedora, since this endpoint is how "Agregar empleado" learns which roles exist on this
-// company. Reusing getSpreadsheetCompanyRates for that would work too, but it only lists roles
-// that already have an employee on them — a company's very first hire needs every configured
-// role, including ones nobody has been assigned yet.
-const { data: adminRatesData } = useQuery({
-  queryKey: computed(() => staffingRateKeys.byCompany(props.businessId, selectedCompanyId.value)),
-  queryFn: () => listStaffingRates(props.businessId!, selectedCompanyId.value!),
-  enabled: computed(() => isAdmin.value && !!props.businessId && !!selectedCompanyId.value),
+// "Agregar empleado" — the exact same modal, composable, and save/delete path as Equipo.vue's
+// "Nuevo empleado" (and StaffingWorkersPanel.vue's "Nuevo trabajador"): same query key, so
+// creating a worker here also shows up in the generic team list and vice versa. The only
+// difference from Equipo.vue is the extra invalidation below, needed because this screen reads
+// company rosters from a separate, narrower endpoint (getSpreadsheetCompanyRates) that useCrud's
+// own queryKey doesn't cover.
+const branchId = computed(() => businessStore.currentBranchId)
+const empleadoModalRef = ref<InstanceType<typeof EmpleadoFormModal> | null>(null)
+const { handleSave: handleSaveEmpleado, handleDelete: handleDeleteEmpleado, isSaving: isSavingEmployee } = useCrud<Empleado, EmpleadoFormData>({
+  businessId: computed(() => props.businessId),
+  branchId,
+  queryKey: (id, brId) => equipoKeys.all(id, brId),
+  queryFn: (id, brId) => listEquipo(id, brId),
+  saveFn: (id, data, brId) => saveEmpleado(data, id, brId),
+  deleteFn: (id) => deleteEmpleado(id),
+  entityName: 'Empleado',
+  modalRef: empleadoModalRef,
+  extraInvalidations: [
+    (id) => ['staffing-company-employees', id],
+    (id) => staffingSpreadsheetKeys.rates(id, selectedCompanyId.value),
+  ],
 })
-const adminRates = computed(() => adminRatesData.value ?? [])
+
+const modal = useModal('empleado-form-modal')
+const openNewEmployee = () => modal.open({ presetCompanyId: selectedCompanyId.value })
 
 // A fresh company means a fresh selection — otherwise a previously checked employeeId from
 // company A would silently carry over (and print) against company B's rate sheet.
@@ -169,9 +177,5 @@ const handleGeneratePdf = () => {
   const selectedRows = rates.value.filter(r => selectedEmployeeIds.value.includes(r.employeeId))
   if (selectedRows.length === 0) return
   printStaffingSpreadsheet(businessStore.business?.name || 'Delta Work Force', company.name, selectedRows)
-}
-
-const handleEmployeeCreated = () => {
-  queryClient.invalidateQueries({ queryKey: staffingSpreadsheetKeys.rates(props.businessId, selectedCompanyId.value), exact: false })
 }
 </script>
