@@ -471,6 +471,10 @@ export const approveTimesheet = (id: string): Promise<StaffingTimesheet> =>
 export const markTimesheetPaid = (id: string): Promise<StaffingTimesheet> =>
   apiRequest<StaffingTimesheet>('POST', `/staffing-timesheets/${id}/mark-paid`)
 
+/** Same payroll worksheet as `printStaffingPayroll` (pay rate, deductions, payout) but a real .xlsx file. */
+export const downloadStaffingPayrollXlsx = (timesheetId: string): Promise<void> =>
+  apiDownloadFile(`/staffing-timesheets/${timesheetId}/download-xlsx`, 'nomina.xlsx')
+
 export const deleteTimesheet = async (id: string): Promise<void> => {
   const { error } = await db.from('staffing_timesheets').delete().eq('id', id)
   if (error) handleDbError(error, 'Error al eliminar la semana')
@@ -499,6 +503,10 @@ export const generateStaffingInvoice = (timesheetId: string): Promise<StaffingIn
 
 export const getCompanyBalance = (companyId: string): Promise<StaffingCompanyBalance> =>
   apiRequest<StaffingCompanyBalance>('GET', `/staffing-companies/${companyId}/balance`)
+
+/** Same bill-rate-only sheet as `printStaffingInvoice` (never pay_rate) but a real .xlsx file. */
+export const downloadStaffingInvoiceXlsx = (invoiceId: string): Promise<void> =>
+  apiDownloadFile(`/staffing-invoices/${invoiceId}/download-xlsx`, 'invoice.xlsx')
 
 export const deleteStaffingInvoice = async (id: string): Promise<void> => {
   const { error } = await db.from('staffing_invoices').delete().eq('id', id)

@@ -246,6 +246,11 @@
           @click="handlePrintPayroll">
           Imprimir nómina
         </button>
+        <button v-if="currentWeek" type="button" :disabled="isDownloadingPayroll"
+          class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
+          @click="handleDownloadPayrollXlsx">
+          {{ isDownloadingPayroll ? 'Descargando...' : 'Descargar XLSX' }}
+        </button>
         <button v-if="currentWeek?.status === 'draft'" type="button"
           class="rounded-lg border border-danger/30 px-4 py-2 text-sm font-semibold text-danger transition-theme hover:bg-danger/10"
           @click="removeWeek">
@@ -272,6 +277,11 @@
             @click="handlePrintInvoice">
             Ver factura #{{ existingInvoice.invoice_number }}
           </button>
+          <button type="button" :disabled="isDownloadingInvoice"
+            class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
+            @click="handleDownloadInvoiceXlsx">
+            {{ isDownloadingInvoice ? 'Descargando...' : 'Descargar XLSX' }}
+          </button>
           <button type="button" :disabled="billing.deleteInvoiceMutation.isPending.value"
             class="rounded-lg border border-danger/30 px-4 py-2 text-sm font-semibold text-danger transition-theme hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
             @click="handleDeleteInvoice">
@@ -293,12 +303,13 @@ import { computed, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useNotification } from '../../composables/common/useNotification'
+import { translateError } from '../../lib/errors'
 import { useBusinessStore } from '../../store/business'
 import { useTimesheets } from '../../composables/staffing/useTimesheets'
 import { useBilling } from '../../composables/staffing/useBilling'
 import {
   getStaffingInvoice, listStaffingCompanies, listStaffingRates, getStaffingProjects, staffingCompanyKeys, staffingRateKeys,
-  SHIFT_OPTIONS,
+  SHIFT_OPTIONS, downloadStaffingPayrollXlsx, downloadStaffingInvoiceXlsx,
 } from '../../services/staffing/staffingService'
 import type { StaffingCompanyRow, StaffingRateRow, TimesheetEntryInput } from '../../services/staffing/staffingService'
 import { adminUpdateEmployee } from '../../services/adminService'
@@ -863,6 +874,32 @@ const handlePrintInvoice = async () => {
   if (!existingInvoice.value) return
   const full = await getStaffingInvoice(existingInvoice.value.id)
   printStaffingInvoice(full, businessStore.business?.name || 'Delta Work Force')
+}
+
+const isDownloadingPayroll = ref(false)
+const handleDownloadPayrollXlsx = async () => {
+  if (!currentWeek.value) return
+  isDownloadingPayroll.value = true
+  try {
+    await downloadStaffingPayrollXlsx(currentWeek.value.id)
+  } catch (err) {
+    showError(translateError(err, 'No se pudo descargar la nómina.'))
+  } finally {
+    isDownloadingPayroll.value = false
+  }
+}
+
+const isDownloadingInvoice = ref(false)
+const handleDownloadInvoiceXlsx = async () => {
+  if (!existingInvoice.value) return
+  isDownloadingInvoice.value = true
+  try {
+    await downloadStaffingInvoiceXlsx(existingInvoice.value.id)
+  } catch (err) {
+    showError(translateError(err, 'No se pudo descargar la factura.'))
+  } finally {
+    isDownloadingInvoice.value = false
+  }
 }
 
 const handleDeleteInvoice = async () => {

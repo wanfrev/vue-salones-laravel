@@ -309,6 +309,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::post('/staffing-timesheets/{id}/approve', [StaffingTimesheetController::class, 'approve']);
         Route::post('/staffing-timesheets/{id}/mark-paid', [StaffingTimesheetController::class, 'markPaid']);
         Route::delete('/staffing-timesheets/{id}', [StaffingTimesheetController::class, 'destroy']);
+        Route::get('/staffing-timesheets/{id}/download-xlsx', [StaffingTimesheetController::class, 'downloadXlsx']);
     });
 
     // Staffing — invoices billed to client companies and the payments (abonos) against them.
@@ -317,6 +318,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::get('/staffing-invoices/{id}', [StaffingInvoiceController::class, 'show']);
         Route::post('/staffing-invoices/generate', [StaffingInvoiceController::class, 'generate']);
         Route::delete('/staffing-invoices/{id}', [StaffingInvoiceController::class, 'destroy']);
+        Route::get('/staffing-invoices/{id}/download-xlsx', [StaffingInvoiceController::class, 'downloadXlsx']);
         Route::get('/staffing-companies/{companyId}/balance', [StaffingInvoiceController::class, 'balance']);
 
         Route::get('/staffing-company-payments', [StaffingCompanyPaymentController::class, 'index']);
