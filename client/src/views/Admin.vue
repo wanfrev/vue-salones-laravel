@@ -12,7 +12,7 @@
             <p class="text-sm font-semibold text-text sm:text-base">{{ todayLabel }}</p>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
             <div class="inline-flex rounded-lg border border-border bg-bg-secondary/50 p-0.5">
               <button
                 @click="viewMode = 'active'"
@@ -102,73 +102,101 @@
 
       <!-- Agenda List -->
       <section class="mb-4">
-        <header class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 class="text-base font-bold text-text lg:text-lg">{{ viewMode === 'historial' ? 'Historial' : (businessStore.terminology.appointment || 'Cita') + 's' }}</h2>
-            <p v-if="filteredCitas.length > 0" class="text-xs text-text-muted">{{ filteredCitas.length }} {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}{{ filteredCitas.length !== 1 ? 's' : '' }}</p>
-          </div>
-          <div class="flex flex-wrap items-center gap-2">
-            <div class="relative w-full sm:w-52">
-              <input
-                :value="searchQuery"
-                @input="setSearchQuery(($event.target as HTMLInputElement).value)"
-                type="text"
-                placeholder="Buscar cliente, servicio, empleado..."
-                class="w-full rounded-lg border border-border bg-surface pl-8 pr-3 py-1.5 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
-              />
-              <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
+        <div class="mb-3">
+          <h2 class="text-base font-bold text-text lg:text-lg">{{ viewMode === 'historial' ? 'Historial' : (businessStore.terminology.appointment || 'Cita') + 's' }}</h2>
+          <p v-if="filteredCitas.length > 0" class="text-xs text-text-muted">{{ filteredCitas.length }} {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}{{ filteredCitas.length !== 1 ? 's' : '' }}</p>
+        </div>
+
+        <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+          <div class="relative w-full sm:w-56">
+            <input
+              :value="searchQuery"
+              @input="setSearchQuery(($event.target as HTMLInputElement).value)"
+              type="text"
+              placeholder="Buscar..."
+              title="Buscar por cliente, servicio o empleado"
+              class="w-full rounded-lg border border-border bg-surface pl-8 pr-3 py-1.5 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
+            />
+            <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </div>
-            <select v-model="employeeFilter"
-              class="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15">
-              <option value="all">Todos los empleados</option>
-              <option v-for="e in empleadosList" :key="e.id" :value="e.id">{{ e.name }}</option>
-            </select>
-            <select v-model="serviceFilter"
-              class="rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15">
-              <option value="all">Todos los servicios</option>
-              <option v-for="s in serviciosList" :key="s.id" :value="s.id">{{ s.name }}</option>
-            </select>
-            <template v-if="viewMode === 'active'">
-              <p v-if="isSearching" class="text-xs text-text-muted italic">Buscando en todas las fechas</p>
-              <template v-else>
+          </div>
+          <select v-model="employeeFilter"
+            class="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto sm:max-w-[180px]">
+            <option value="all">Todos los empleados</option>
+            <option v-for="e in empleadosList" :key="e.id" :value="e.id">{{ e.name }}</option>
+          </select>
+          <select v-model="serviceFilter"
+            class="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto sm:max-w-[180px]">
+            <option value="all">Todos los servicios</option>
+            <option v-for="s in serviciosList" :key="s.id" :value="s.id">{{ s.name }}</option>
+          </select>
+
+          <template v-if="viewMode === 'active'">
+            <p v-if="isSearching" class="text-xs text-text-muted italic">Buscando en todas las fechas</p>
+            <template v-else>
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <input
+                  v-if="dateFilterMode !== 'range'"
                   type="date"
                   :value="filterDate ?? ''"
                   @change="setFilterDate(($event.target as HTMLInputElement).value || null)"
                   :disabled="dateFilterMode === 'week'"
-                  class="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-40"
+                  class="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-40 sm:w-auto"
                 />
-                <div class="inline-flex rounded-lg border border-border bg-bg-secondary/50 p-0.5">
+                <div v-else class="flex items-center gap-1.5">
+                  <input
+                    type="date"
+                    :value="rangeStart ?? ''"
+                    :max="rangeEnd ?? undefined"
+                    @change="setCustomRange(($event.target as HTMLInputElement).value, rangeEnd)"
+                    class="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto"
+                  />
+                  <span class="text-xs text-text-muted shrink-0">–</span>
+                  <input
+                    type="date"
+                    :value="rangeEnd ?? ''"
+                    :min="rangeStart ?? undefined"
+                    @change="setCustomRange(rangeStart, ($event.target as HTMLInputElement).value)"
+                    class="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto"
+                  />
+                </div>
+                <div class="inline-flex w-full rounded-lg border border-border bg-bg-secondary/50 p-0.5 sm:w-auto">
                   <button
                     @click="goToToday"
-                    class="rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-theme sm:px-3 sm:text-xs"
+                    class="flex-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-theme sm:flex-none sm:px-3 sm:text-xs"
                     :class="isToday ? 'bg-surface text-primary shadow-sm' : 'text-text-secondary hover:text-text hover:bg-bg-secondary'"
                   >
                     Hoy
                   </button>
                   <button
                     @click="setWeekMode"
-                    class="rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-theme sm:px-3 sm:text-xs"
+                    class="flex-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-theme sm:flex-none sm:px-3 sm:text-xs"
                     :class="isThisWeek ? 'bg-surface text-primary shadow-sm' : 'text-text-secondary hover:text-text hover:bg-bg-secondary'"
                   >
                     Semana
                   </button>
                   <button
+                    @click="openRangeMode"
+                    class="flex-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-theme sm:flex-none sm:px-3 sm:text-xs"
+                    :class="dateFilterMode === 'range' ? 'bg-surface text-primary shadow-sm' : 'text-text-secondary hover:text-text hover:bg-bg-secondary'"
+                  >
+                    Rango
+                  </button>
+                  <button
                     @click="showAll"
-                    class="rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-theme sm:px-3 sm:text-xs"
+                    class="flex-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-theme sm:flex-none sm:px-3 sm:text-xs"
                     :class="dateFilterMode === 'all' ? 'bg-surface text-primary shadow-sm' : 'text-text-secondary hover:text-text hover:bg-bg-secondary'"
                   >
                     Todas
                   </button>
                 </div>
-              </template>
+              </div>
             </template>
-          </div>
-        </header>
+          </template>
+        </div>
 
         <AgendaListView
           :citas="filteredCitas"
@@ -239,6 +267,8 @@ const filteredCitas = computed(() => {
 const {
   filterDate,
   dateFilterMode,
+  rangeStart,
+  rangeEnd,
   citasData,
   citas,
   activeCitas,
@@ -255,6 +285,8 @@ const {
   showAll,
   setWeekMode,
   setFilterDate,
+  openRangeMode,
+  setCustomRange,
   searchQuery,
   setSearchQuery,
   isSearching,

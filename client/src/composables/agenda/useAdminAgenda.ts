@@ -27,7 +27,7 @@ function dedupeByGroup(all: Cita[]): Cita[] {
   return rows
 }
 
-export type DateFilterMode = 'day' | 'week' | 'all'
+export type DateFilterMode = 'day' | 'week' | 'all' | 'range'
 
 function getWeekRange(date: Date): { start: Date; end: Date } {
   const d = new Date(date)
@@ -46,6 +46,8 @@ export function useAdminAgenda(businessId: () => string | null) {
   const selectedDate = ref<Date>(new Date())
   const filterDate = ref<string | null>(toISODate(new Date()))
   const dateFilterMode = ref<DateFilterMode>('day')
+  const rangeStart = ref<string | null>(null)
+  const rangeEnd = ref<string | null>(null)
   const businessStore = useBusinessStore()
 
   const currentBranchId = computed(() => businessStore.currentBranchId)
@@ -60,6 +62,11 @@ export function useAdminAgenda(businessId: () => string | null) {
     if (dateFilterMode.value === 'week') {
       return getWeekRange(selectedDate.value)
     }
+    if (dateFilterMode.value === 'range' && rangeStart.value && rangeEnd.value) {
+      const start = parseLocalDate(rangeStart.value, 0, 0, 0)
+      const end = parseLocalDate(rangeEnd.value, 23, 59, 59)
+      return { start, end }
+    }
     const today = new Date()
     const start = new Date(today.getFullYear(), today.getMonth() - 3, 1)
     const end = new Date(today.getFullYear(), today.getMonth() + 3, 1)
@@ -72,9 +79,11 @@ export function useAdminAgenda(businessId: () => string | null) {
       dateFilterMode.value,
       dateFilterMode.value === 'day' ? filterDate.value : null,
       dateFilterMode.value === 'week' ? toISODate(getWeekRange(selectedDate.value).start) : null,
+      dateFilterMode.value === 'range' ? rangeStart.value : null,
+      dateFilterMode.value === 'range' ? rangeEnd.value : null,
     ]),
     queryFn: () => listCitas(businessId()!, dateRange.value, undefined, currentBranchId.value),
-    enabled: computed(() => !!businessId()),
+    enabled: computed(() => !!businessId() && (dateFilterMode.value !== 'range' || !!(rangeStart.value && rangeEnd.value))),
     staleTime: 15000,
   })
 
@@ -161,6 +170,27 @@ export function useAdminAgenda(businessId: () => string | null) {
     dateFilterMode.value = 'day'
   }
 
+  // Activa el modo de rango personalizado. Si todavía no hay fechas elegidas,
+  // arranca con los últimos 30 días como punto de partida razonable.
+  const openRangeMode = () => {
+    if (!rangeStart.value || !rangeEnd.value) {
+      const end = new Date()
+      const start = new Date(); start.setDate(start.getDate() - 30)
+      rangeStart.value = toISODate(start)
+      rangeEnd.value = toISODate(end)
+    }
+    dateFilterMode.value = 'range'
+  }
+
+  const setCustomRange = (start: string | null, end: string | null) => {
+    if (!start || !end) return
+    // Si el usuario invierte los campos (hasta < desde), se intercambian solos
+    // en vez de devolver un rango vacío que confundiría más que ayudar.
+    rangeStart.value = start <= end ? start : end
+    rangeEnd.value = start <= end ? end : start
+    dateFilterMode.value = 'range'
+  }
+
   const todayLabel = computed(() => {
     if (dateFilterMode.value === 'all') return 'Todas (6 meses)'
     if (dateFilterMode.value === 'week') {
@@ -171,6 +201,13 @@ export function useAdminAgenda(businessId: () => string | null) {
         return `${dd}-${mm}`
       }
       return `Semana ${fmt(start)} — ${fmt(end)}`
+    }
+    if (dateFilterMode.value === 'range' && rangeStart.value && rangeEnd.value) {
+      const fmt = (iso: string) => {
+        const d = parseLocalDate(iso, 12, 0, 0)
+        return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getFullYear()).slice(-2)}`
+      }
+      return `${fmt(rangeStart.value)} — ${fmt(rangeEnd.value)}`
     }
     const d = parseLocalDate((filterDate.value || todayIso.value), 12, 0, 0)
     const dd = String(d.getDate()).padStart(2, '0')
@@ -195,6 +232,7 @@ export function useAdminAgenda(businessId: () => string | null) {
   const periodLabel = computed(() => {
     if (dateFilterMode.value === 'all') return 'del período'
     if (dateFilterMode.value === 'week') return 'esta semana'
+    if (dateFilterMode.value === 'range') return 'en el rango'
     return 'hoy'
   })
 
@@ -243,6 +281,8 @@ export function useAdminAgenda(businessId: () => string | null) {
     selectedDate,
     filterDate,
     dateFilterMode,
+    rangeStart,
+    rangeEnd,
     citasData,
     citas,
     activeCitas,
@@ -259,6 +299,8 @@ export function useAdminAgenda(businessId: () => string | null) {
     showAll,
     setWeekMode,
     setFilterDate,
+    openRangeMode,
+    setCustomRange,
     todayIso,
     searchQuery,
     setSearchQuery,
