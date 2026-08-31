@@ -62,11 +62,29 @@
         <div class="hidden h-5 w-px bg-border sm:block"></div>
         <div class="relative w-full sm:w-48 lg:w-56">
           <input v-model="searchQuery" type="text" placeholder="Buscar cliente..."
+            @focus="searchDropdownOpen = true" @blur="searchDropdownOpen = false"
             class="w-full rounded-lg border border-border bg-surface pl-8 pr-3 py-1.5 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15" />
           <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
+          </div>
+          <div v-if="searchDropdownOpen && globalSearchEnabled"
+            class="absolute left-0 top-full z-50 mt-1.5 w-[min(20rem,92vw)] max-h-80 overflow-y-auto rounded-xl border border-border bg-surface p-1.5 shadow-xl">
+            <div v-if="globalSearchLoading" class="px-3 py-2 text-xs text-text-muted">Buscando...</div>
+            <div v-else-if="!globalSearchRows.length" class="px-3 py-2 text-xs text-text-muted">Sin citas para "{{ debouncedSearch }}"</div>
+            <button v-for="r in globalSearchRows" :key="r.id" type="button"
+              @mousedown.prevent="selectGlobalResult(r.raw)"
+              class="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors hover:bg-bg-secondary">
+              <div class="min-w-0">
+                <p class="truncate font-medium text-text">{{ r.clientName }}</p>
+                <p class="truncate text-xs text-text-muted">{{ r.serviceName }}</p>
+              </div>
+              <div class="shrink-0 text-right">
+                <p class="text-xs font-semibold text-text">{{ r.dateLabel }}</p>
+                <p class="text-[11px] text-text-muted">{{ r.time }}</p>
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -210,10 +228,10 @@
                     class="absolute left-0 right-0 top-[5px] h-px bg-gradient-to-r from-transparent via-primary/60 to-primary/60" />
                 </div>
                 <!-- Cards -->
-                <div v-for="appt in col.appointments" :key="appt.id" v-memo="[appt.id, appt.status, appt.top, appt.height]"
-                  class="absolute left-0.5 right-0.5 sm:left-1 sm:right-1 rounded-lg cursor-pointer overflow-hidden transition-all duration-150 hover:scale-[1.02] hover:z-10 group"
+                <div v-for="appt in col.appointments" :key="appt.id" v-memo="[appt.id, appt.status, appt.top, appt.height, appt.left, appt.width]"
+                  class="absolute rounded-lg cursor-pointer overflow-hidden transition-all duration-150 hover:scale-[1.02] hover:z-10 group"
                   :class="cardBgClass(appt.status)"
-                  :style="{ top: `${appt.top}px`, height: `${Math.max(appt.height - 2, 80)}px` }"
+                  :style="{ top: `${appt.top}px`, height: `${Math.max(appt.height - 2, 80)}px`, left: `calc(${appt.left}% + 2px)`, width: `calc(${appt.width}% - 4px)` }"
                   :title="`${appt.clientName} · ${appt.service} · ${appt.employeeName}\n${appt.time} · ${getStatusLabel(appt.status)}`"
                   @click.stop="showDetailPopup(appt, $event)"
                   @contextmenu.prevent="toggleStatusMenu(appt, $event)">
@@ -227,6 +245,9 @@
                           appt.time }}</span>
                         <span class="h-2 w-2 rounded-full flex-shrink-0"
                           :class="statusDotClass(appt.status)" />
+                        <span v-if="appt.employeeInitials"
+                          class="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white ring-1 ring-black/5"
+                          :style="{ background: appt.employeeColor }">{{ appt.employeeInitials }}</span>
                       </div>
                       <button v-if="appt.status !== 'paid' && appt.status !== 'cancelled'"
                         class="flex h-5 w-5 items-center justify-center rounded transition-all hover:scale-110 flex-shrink-0"
@@ -321,11 +342,14 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
+import { useQuery } from '@tanstack/vue-query'
 import { useAgenda } from '../../composables/agenda/useAgenda'
 import { useAuthStore } from '../../store/auth'
+import { useBusinessStore } from '../../store/business'
 import { isAdminPanelRole } from '../../constants/roles'
 import { normalizeAppointmentStatus, getStatusLabel, dateToHHmm, dateToHHmm12, toISODate, getInitials, parseLocalDate } from '../../lib/formatters'
 import { mapAppointmentToCita } from '../../mappers/agendaMapper'
+import { searchAppointmentsGlobal } from '../../services/agendaService'
 import ShareLinkButton from './ShareLinkButton.vue'
 import AgendaMonthView from './AgendaMonthView.vue'
 import AgendaYearView from './AgendaYearView.vue'
@@ -333,7 +357,10 @@ import type { Cita } from '../../types/cita'
 
 const route = useRoute()
 const authStore = useAuthStore()
+const businessStore = useBusinessStore()
 const isAdmin = computed(() => isAdminPanelRole(authStore.role ?? undefined))
+const businessId = computed(() => authStore.businessId)
+const currentBranchId = computed(() => businessStore.currentBranchId)
 
 const props = defineProps<{
   initialDate?: string
@@ -358,6 +385,35 @@ const shareLinkEmployees = computed(() =>
 
 const serviceMap = computed(() => new Map((services.value ?? []).map((s: any) => [s.id, s])))
 const employeeMap = computed(() => new Map((employees.value ?? []).map((e: any) => [e.id, e])))
+
+// One consistent color per employee (assigned by list order, not a hash, so two
+// employees never collide onto the same color while the palette has room) — used
+// for the avatar badge on appointment cards so you can tell who's who at a glance
+// without reading the name, independent of the status color (border/dot).
+const EMPLOYEE_COLOR_PALETTE = [
+  '#6366f1', '#0ea5e9', '#f59e0b', '#ec4899', '#10b981', '#8b5cf6',
+  '#f43f5e', '#14b8a6', '#f97316', '#3b82f6', '#84cc16', '#a855f7',
+]
+const DEFAULT_EMPLOYEE_COLOR = '#71717a'
+const employeeColorMap = computed(() => {
+  const map = new Map<string, string>()
+  ;(employees.value ?? []).forEach((e: any, i: number) => {
+    map.set(e.id, EMPLOYEE_COLOR_PALETTE[i % EMPLOYEE_COLOR_PALETTE.length])
+  })
+  return map
+})
+
+const globalSearchRows = computed(() => (globalSearchResults.value ?? []).map((a: any) => {
+  const start = new Date(a.start_time)
+  return {
+    raw: a,
+    id: a.id,
+    clientName: a.client?.full_name || a.clients?.full_name || 'Cliente',
+    serviceName: serviceMap.value.get(a.service_id)?.name || 'Servicio',
+    dateLabel: start.toLocaleDateString('es-VE', { day: 'numeric', month: 'short' }),
+    time: dateToHHmm12(start),
+  }
+}))
 
 // ---- Constants ----
 const START_HOUR = 7
@@ -386,6 +442,14 @@ let searchTimer: ReturnType<typeof setTimeout> | null = null
 watch(searchQuery, (val) => {
   if (searchTimer) clearTimeout(searchTimer)
   searchTimer = setTimeout(() => { debouncedSearch.value = val }, 250)
+})
+const searchDropdownOpen = ref(false)
+const globalSearchEnabled = computed(() => debouncedSearch.value.trim().length >= 2)
+const { data: globalSearchResults, isFetching: globalSearchLoading } = useQuery({
+  queryKey: computed(() => ['agenda-search', businessId.value, currentBranchId.value, debouncedSearch.value.trim()]),
+  queryFn: () => searchAppointmentsGlobal(businessId.value!, debouncedSearch.value.trim(), currentBranchId.value),
+  enabled: computed(() => !!businessId.value && globalSearchEnabled.value),
+  staleTime: 15000,
 })
 const viewMode = ref<'day' | 'week' | 'month' | 'year'>('day')
 const selectedDate = ref(toISODate(new Date()))
@@ -466,6 +530,16 @@ function goToday() { selectedDate.value = todayIso.value }
 function goToDate(iso: string) { selectedDate.value = iso; viewMode.value = 'day' }
 function goToMonth(m: number, y: number) { selectedDate.value = toISODate(new Date(y, m, 1)); viewMode.value = 'month' }
 
+function selectGlobalResult(raw: any) {
+  const iso = toISODate(new Date(raw.start_time))
+  if (selectedEmployeeId.value !== 'all' && selectedEmployeeId.value !== raw.employee_id && selectedEmployeeId.value !== raw.assistant_employee_id) {
+    selectedEmployeeId.value = 'all'
+  }
+  goToDate(iso)
+  searchDropdownOpen.value = false
+  searchQuery.value = ''
+}
+
 // ---- Date range sync ----
 watch([selectedDate, viewMode], ([d, mode]) => {
   const base = parseLocalDate(d, 12, 0, 0)
@@ -479,7 +553,56 @@ watch([selectedDate, viewMode], ([d, mode]) => {
 
 // ---- Grid Columns (day & week) ----
 interface GridColumn { key: string; label: string; avatar?: string; number?: number; isToday?: boolean; widthPercent: number; appointments: DisplayAppointment[] }
-interface DisplayAppointment { id: string; clientName: string; service: string; time: string; top: number; height: number; status: string; employeeInitials: string; employeeName: string; raw: any; isGroup?: boolean; groupServices?: string[] }
+interface DisplayAppointment { id: string; clientName: string; service: string; time: string; top: number; height: number; startMs: number; endMs: number; left: number; width: number; status: string; employeeInitials: string; employeeName: string; employeeColor: string; raw: any; isGroup?: boolean; groupServices?: string[] }
+
+// Lays overlapping appointments side by side (like Google Calendar) instead of
+// letting them stack on top of each other. Groups appointments into clusters of
+// mutually-overlapping time ranges, then greedily packs each cluster into the
+// fewest columns needed, splitting width evenly among however many columns that
+// cluster ended up using.
+function layoutOverlaps(appts: DisplayAppointment[]): DisplayAppointment[] {
+  const sorted = [...appts].sort((a, b) => a.startMs - b.startMs)
+  const clusters: DisplayAppointment[][] = []
+  let current: DisplayAppointment[] = []
+  let clusterEnd = -Infinity
+  for (const appt of sorted) {
+    if (current.length && appt.startMs >= clusterEnd) {
+      clusters.push(current)
+      current = []
+      clusterEnd = -Infinity
+    }
+    current.push(appt)
+    clusterEnd = Math.max(clusterEnd, appt.endMs)
+  }
+  if (current.length) clusters.push(current)
+
+  const result: DisplayAppointment[] = []
+  for (const cluster of clusters) {
+    const columnEnds: number[] = []
+    const columnOf = new Map<DisplayAppointment, number>()
+    for (const appt of cluster) {
+      let placed = false
+      for (let c = 0; c < columnEnds.length; c++) {
+        if (columnEnds[c] <= appt.startMs) {
+          columnEnds[c] = appt.endMs
+          columnOf.set(appt, c)
+          placed = true
+          break
+        }
+      }
+      if (!placed) {
+        columnEnds.push(appt.endMs)
+        columnOf.set(appt, columnEnds.length - 1)
+      }
+    }
+    const numCols = columnEnds.length
+    for (const appt of cluster) {
+      const col = columnOf.get(appt)!
+      result.push({ ...appt, left: (col / numCols) * 100, width: (1 / numCols) * 100 })
+    }
+  }
+  return result
+}
 
 function buildDisplayAppointments(appts: any[]): any[] {
   const result: any[] = []
@@ -517,7 +640,7 @@ function buildGroupMemberMap(appts: any[]): Map<string, any[]> {
   return map
 }
 
-function mapAppt(a: any, svcMap: Map<string, any>, empName: string, groupMemberMap: Map<string, any[]>) {
+function mapAppt(a: any, svcMap: Map<string, any>, empName: string, groupMemberMap: Map<string, any[]>, colorMap: Map<string, string>): DisplayAppointment {
   const start = new Date(a.start_time); const end = new Date(a.end_time)
   const svc = svcMap.get(a.service_id)
   const topMin = (start.getHours() * 60 + start.getMinutes()) - (START_HOUR * 60)
@@ -533,9 +656,14 @@ function mapAppt(a: any, svcMap: Map<string, any>, empName: string, groupMemberM
     time: dateToHHmm12(start),
     top: Math.max(0, (topMin / 60) * HOUR_HEIGHT + 1),
     height: ((end.getTime() - start.getTime()) / 60000 / 60) * HOUR_HEIGHT,
+    startMs: start.getTime(),
+    endMs: end.getTime(),
+    left: 0,
+    width: 100,
     status: normalizeAppointmentStatus(a),
     employeeInitials: getInitials(empName),
     employeeName: empName,
+    employeeColor: colorMap.get(a.employee_id) || DEFAULT_EMPLOYEE_COLOR,
     raw: a,
     isGroup,
     groupServices,
@@ -550,6 +678,7 @@ const gridColumns = computed<GridColumn[]>(() => {
   const appts = buildDisplayAppointments(appointments.value ?? [])
   const svcMap = serviceMap.value
   const empMap = employeeMap.value
+  const colorMap = employeeColorMap.value
   const groupMemberMap = buildGroupMemberMap(appointments.value ?? [])
   const q = debouncedSearch.value.toLowerCase()
 
@@ -565,10 +694,9 @@ const gridColumns = computed<GridColumn[]>(() => {
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(sow); d.setDate(sow.getDate() + i)
       const iso = toISODate(d)
-      const dayAppts = appts
+      const dayAppts = layoutOverlaps(appts
         .filter(a => isoDateByAppt.get(a) === iso && (empId === 'all' || a.employee_id === empId) && (!q || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(q)))
-        .map(a => mapAppt(a, svcMap, empMap.get(a.employee_id)?.full_name || '', groupMemberMap))
-        .sort((a, b) => a.top - b.top)
+        .map(a => mapAppt(a, svcMap, empMap.get(a.employee_id)?.full_name || '', groupMemberMap, colorMap)))
       const isT = iso === todayIso.value
       return { key: iso, label: dayNames[d.getDay()], number: d.getDate(), isToday: isT, widthPercent: 100 / 7, appointments: dayAppts }
     })
@@ -578,10 +706,9 @@ const gridColumns = computed<GridColumn[]>(() => {
   if (!cols.length) cols = [{ id: '__default__', name: 'Citas' }]
 
   return cols.map(c => {
-    const cAppts = appts
+    const cAppts = layoutOverlaps(appts
       .filter(a => (c.id === '__default__' || (isoDateByAppt.get(a) === selectedDate.value && a.employee_id === c.id)) && (!q || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(q)))
-      .map(a => mapAppt(a, svcMap, c.name, groupMemberMap))
-      .sort((a, b) => a.top - b.top)
+      .map(a => mapAppt(a, svcMap, c.name, groupMemberMap, colorMap)))
     return { key: c.id, label: c.id === '__default__' ? 'Citas' : c.name.split(' ')[0], avatar: c.id === '__default__' ? undefined : getInitials(c.name), widthPercent: 100 / cols.length, appointments: cAppts }
   })
 })

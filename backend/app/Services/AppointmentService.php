@@ -24,6 +24,7 @@ class AppointmentService
         ?string $source = null,
         bool $hasClientFilter = false,
         ?string $clientId = null,
+        ?string $search = null,
     ): Collection {
         $query = Appointment::with($this->getWithRelations())
             ->where('business_id', $businessId)
@@ -81,6 +82,17 @@ class AppointmentService
                 $cleanClientId = preg_replace('/^(eq|neq)\./i', '', $clientId);
                 $query->where('client_id', $cleanClientId);
             }
+        }
+        if ($search) {
+            $term = $search . '%';
+            $query->whereHas('client', function ($q) use ($term) {
+                $q->where('full_name', 'ilike', $term)
+                  ->orWhere('phone', 'ilike', $term);
+            });
+            // Búsqueda global (sin acotar por start_date/end_date): trae primero la
+            // cita más cercana a "ahora", ya sea futura o pasada, en vez del orden
+            // ascendente por fecha que usan las cargas normales por rango visible.
+            $query->reorder()->orderByRaw('ABS(EXTRACT(EPOCH FROM (start_time - NOW())))')->take(15);
         }
 
         return $query->get();

@@ -81,6 +81,26 @@ export const listCitas = async (
   return (data as AppointmentWithRelations[]).map(mapAppointmentToCita)
 }
 
+export const searchAppointmentsGlobal = async (
+  businessId: string,
+  term: string,
+  branchId?: string | null,
+): Promise<AppointmentWithRelations[]> => {
+  let query = db
+    .from('appointments')
+    .select(APPOINTMENT_SELECT)
+    .eq('business_id', businessId)
+    .eq('search', term)
+
+  if (branchId) {
+    query = query.eq('branch_id', branchId)
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+  return data as AppointmentWithRelations[]
+}
+
 export const listCitaGroupMembers = async (groupId: string): Promise<AppointmentWithRelations[]> => {
   const cleanGroupId = groupId.replace(/^(gte|lte|gt|lt|eq|in|neq)\./i, '')
   const { data, error } = await db
