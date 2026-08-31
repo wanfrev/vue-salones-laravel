@@ -62,11 +62,29 @@
         <div class="hidden h-5 w-px bg-border sm:block"></div>
         <div class="relative w-full sm:w-48 lg:w-56">
           <input v-model="searchQuery" type="text" placeholder="Buscar cliente..."
+            @focus="searchDropdownOpen = true" @blur="searchDropdownOpen = false"
             class="w-full rounded-lg border border-border bg-surface pl-8 pr-3 py-1.5 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15" />
           <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
+          </div>
+          <div v-if="searchDropdownOpen && globalSearchEnabled"
+            class="absolute left-0 top-full z-50 mt-1.5 w-[min(20rem,92vw)] max-h-80 overflow-y-auto rounded-xl border border-border bg-surface p-1.5 shadow-xl">
+            <div v-if="globalSearchLoading" class="px-3 py-2 text-xs text-text-muted">Buscando...</div>
+            <div v-else-if="!globalSearchRows.length" class="px-3 py-2 text-xs text-text-muted">Sin citas para "{{ debouncedSearch }}"</div>
+            <button v-for="r in globalSearchRows" :key="r.id" type="button"
+              @mousedown.prevent="selectGlobalResult(r.raw)"
+              class="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors hover:bg-bg-secondary">
+              <div class="min-w-0">
+                <p class="truncate font-medium text-text">{{ r.clientName }}</p>
+                <p class="truncate text-xs text-text-muted">{{ r.serviceName }}</p>
+              </div>
+              <div class="shrink-0 text-right">
+                <p class="text-xs font-semibold text-text">{{ r.dateLabel }}</p>
+                <p class="text-[11px] text-text-muted">{{ r.time }}</p>
+              </div>
+            </button>
           </div>
         </div>
       </div>
@@ -321,11 +339,14 @@
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
+import { useQuery } from '@tanstack/vue-query'
 import { useAgenda } from '../../composables/agenda/useAgenda'
 import { useAuthStore } from '../../store/auth'
+import { useBusinessStore } from '../../store/business'
 import { isAdminPanelRole } from '../../constants/roles'
 import { normalizeAppointmentStatus, getStatusLabel, dateToHHmm, dateToHHmm12, toISODate, getInitials, parseLocalDate } from '../../lib/formatters'
 import { mapAppointmentToCita } from '../../mappers/agendaMapper'
+import { searchAppointmentsGlobal } from '../../services/agendaService'
 import ShareLinkButton from './ShareLinkButton.vue'
 import AgendaMonthView from './AgendaMonthView.vue'
 import AgendaYearView from './AgendaYearView.vue'
@@ -333,7 +354,10 @@ import type { Cita } from '../../types/cita'
 
 const route = useRoute()
 const authStore = useAuthStore()
+const businessStore = useBusinessStore()
 const isAdmin = computed(() => isAdminPanelRole(authStore.role ?? undefined))
+const businessId = computed(() => authStore.businessId)
+const currentBranchId = computed(() => businessStore.currentBranchId)
 
 const props = defineProps<{
   initialDate?: string
@@ -358,6 +382,18 @@ const shareLinkEmployees = computed(() =>
 
 const serviceMap = computed(() => new Map((services.value ?? []).map((s: any) => [s.id, s])))
 const employeeMap = computed(() => new Map((employees.value ?? []).map((e: any) => [e.id, e])))
+
+const globalSearchRows = computed(() => (globalSearchResults.value ?? []).map((a: any) => {
+  const start = new Date(a.start_time)
+  return {
+    raw: a,
+    id: a.id,
+    clientName: a.client?.full_name || a.clients?.full_name || 'Cliente',
+    serviceName: serviceMap.value.get(a.service_id)?.name || 'Servicio',
+    dateLabel: start.toLocaleDateString('es-VE', { day: 'numeric', month: 'short' }),
+    time: dateToHHmm12(start),
+  }
+}))
 
 // ---- Constants ----
 const START_HOUR = 7
@@ -386,6 +422,14 @@ let searchTimer: ReturnType<typeof setTimeout> | null = null
 watch(searchQuery, (val) => {
   if (searchTimer) clearTimeout(searchTimer)
   searchTimer = setTimeout(() => { debouncedSearch.value = val }, 250)
+})
+const searchDropdownOpen = ref(false)
+const globalSearchEnabled = computed(() => debouncedSearch.value.trim().length >= 2)
+const { data: globalSearchResults, isFetching: globalSearchLoading } = useQuery({
+  queryKey: computed(() => ['agenda-search', businessId.value, currentBranchId.value, debouncedSearch.value.trim()]),
+  queryFn: () => searchAppointmentsGlobal(businessId.value!, debouncedSearch.value.trim(), currentBranchId.value),
+  enabled: computed(() => !!businessId.value && globalSearchEnabled.value),
+  staleTime: 15000,
 })
 const viewMode = ref<'day' | 'week' | 'month' | 'year'>('day')
 const selectedDate = ref(toISODate(new Date()))
@@ -465,6 +509,16 @@ function navigate(dir: number) {
 function goToday() { selectedDate.value = todayIso.value }
 function goToDate(iso: string) { selectedDate.value = iso; viewMode.value = 'day' }
 function goToMonth(m: number, y: number) { selectedDate.value = toISODate(new Date(y, m, 1)); viewMode.value = 'month' }
+
+function selectGlobalResult(raw: any) {
+  const iso = toISODate(new Date(raw.start_time))
+  if (selectedEmployeeId.value !== 'all' && selectedEmployeeId.value !== raw.employee_id && selectedEmployeeId.value !== raw.assistant_employee_id) {
+    selectedEmployeeId.value = 'all'
+  }
+  goToDate(iso)
+  searchDropdownOpen.value = false
+  searchQuery.value = ''
+}
 
 // ---- Date range sync ----
 watch([selectedDate, viewMode], ([d, mode]) => {

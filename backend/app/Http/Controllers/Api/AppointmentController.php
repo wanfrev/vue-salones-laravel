@@ -78,6 +78,11 @@ class AppointmentController
         $hasClientFilter = $request->has('client_id');
         $clientId = $hasClientFilter ? $request->input('client_id') : null;
 
+        $search = $request->get('search');
+        if ($search) {
+            $search = preg_replace('/^(eq|ilike)\./i', '', $search);
+        }
+
         $list = $this->appointmentService->list(
             $businessId,
             $startDate,
@@ -90,6 +95,7 @@ class AppointmentController
             $request->get('source'),
             $hasClientFilter,
             $clientId,
+            $search,
         );
 
         if ($this->shouldHideClientPhoneFromEmployee($request, $businessId)) {
