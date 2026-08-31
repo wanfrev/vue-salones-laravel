@@ -60,9 +60,10 @@ final class TimesheetEntry
         public readonly ?float $manualRegularHours = null,
         public readonly ?float $manualOvertimeHours = null,
         /**
-         * Per diem and travel pay — reimbursement-style amounts paid to the employee (folded
-         * into payroll's `net`/`payout` in StaffingPayrollCalculator::payroll()) but never billed
-         * to the client (StaffingPayrollCalculator::invoice() never reads either of these).
+         * Per diem and travel pay — reimbursement-style amounts paid to the employee, folded
+         * into payroll's `net`/`payout` in StaffingPayrollCalculator::payroll(). Per diem is
+         * never billed to the client; travel IS (StaffingPayrollCalculator::invoice() bills it
+         * dollar-for-dollar, a pass-through that leaves margin unaffected).
          */
         public readonly float $perdiemTotal = 0.0,
         public readonly float $travelTotal = 0.0,

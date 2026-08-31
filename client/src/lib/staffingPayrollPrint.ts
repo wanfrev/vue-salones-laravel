@@ -18,7 +18,7 @@ export interface PayrollPrintRow {
   deduction: number
   fixedFees: number
   adjustment: number
-  /** Monto total ingresado directamente (no se calcula) — nunca en la factura. */
+  /** Monto total ingresado directamente (no se calcula). Perdiem nunca va en la factura; viaje sí. */
   perdiemTotal: number
   travelTotal: number
   gross: number
