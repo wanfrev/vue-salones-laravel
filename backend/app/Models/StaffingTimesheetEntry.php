@@ -19,7 +19,7 @@ class StaffingTimesheetEntry extends Model
         'total_hours', 'pre_tax_deduction', 'fixed_fees', 'adjustment',
         'pay_rate', 'bill_rate',
         'regular_hours', 'overtime_hours', 'hours_manual_override',
-        'perdiem_days', 'perdiem_total', 'travel_hours', 'travel_total',
+        'perdiem_total', 'travel_total',
         'gross', 'tax_withheld', 'net', 'payout', 'carried',
         'invoice_total', 'invoice_regular_amount', 'invoice_overtime_amount', 'employer_cost', 'margin',
     ];
@@ -36,9 +36,7 @@ class StaffingTimesheetEntry extends Model
             'regular_hours' => 'float',
             'overtime_hours' => 'float',
             'hours_manual_override' => 'boolean',
-            'perdiem_days' => 'float',
             'perdiem_total' => 'float',
-            'travel_hours' => 'float',
             'travel_total' => 'float',
             'gross' => 'float',
             'tax_withheld' => 'float',

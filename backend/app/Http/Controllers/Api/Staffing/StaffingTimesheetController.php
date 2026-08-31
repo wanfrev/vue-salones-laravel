@@ -91,10 +91,11 @@ class StaffingTimesheetController
             'entries.*.hours_manual_override' => 'nullable|boolean',
             'entries.*.manual_regular_hours' => 'nullable|numeric|min:0',
             'entries.*.manual_overtime_hours' => 'nullable|numeric|min:0',
-            // Reimbursement-style amounts folded into net/payout but never billed — see
+            // Reimbursement-style amounts, entered as a total dollar figure directly (not
+            // days/hours × a rate), folded into net/payout but never billed — see
             // StaffingTimesheetService::saveWeek().
-            'entries.*.perdiem_days' => 'nullable|numeric|min:0',
-            'entries.*.travel_hours' => 'nullable|numeric|min:0',
+            'entries.*.perdiem_total' => 'nullable|numeric|min:0',
+            'entries.*.travel_total' => 'nullable|numeric|min:0',
         ]);
 
         try {

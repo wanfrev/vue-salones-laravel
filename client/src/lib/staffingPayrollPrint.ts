@@ -18,11 +18,8 @@ export interface PayrollPrintRow {
   deduction: number
   fixedFees: number
   adjustment: number
-  /** Días de perdiem y su total (días × per_diem_rate de la empresa) — nunca en la factura. */
-  perdiemDays: number
+  /** Monto total ingresado directamente (no se calcula) — nunca en la factura. */
   perdiemTotal: number
-  /** Horas de viaje y su total, siempre pagado al rate regular — nunca en la factura. */
-  travelHours: number
   travelTotal: number
   gross: number
   taxPercent: number
@@ -62,9 +59,7 @@ export function printStaffingPayroll(params: {
       <td class="num">${fmtMoney(r.deduction)}</td>
       <td class="num">${fmtMoney(r.fixedFees)}</td>
       <td class="num">${fmtMoney(r.adjustment)}</td>
-      <td class="num">${r.perdiemDays.toFixed(2)}</td>
       <td class="num">${fmtMoney(r.perdiemTotal)}</td>
-      <td class="num">${r.travelHours.toFixed(2)}</td>
       <td class="num">${fmtMoney(r.travelTotal)}</td>
       <td class="num">${fmtMoney(r.gross)}</td>
       <td class="num">${r.taxPercent.toFixed(1)}%</td>
@@ -131,9 +126,7 @@ export function printStaffingPayroll(params: {
         <th class="num">Deducción</th>
         <th class="num">Fee fijo</th>
         <th class="num">Ajuste</th>
-        <th class="num">Días (Perdiem)</th>
         <th class="num">Total Perdiem</th>
-        <th class="num">Hrs viaje</th>
         <th class="num">Total viaje</th>
         <th class="num">Total semanal</th>
         <th class="num">% Ret.</th>
@@ -148,9 +141,7 @@ export function printStaffingPayroll(params: {
         <td>Totales</td>
         <td class="num">${totals.totalHours.toFixed(2)}</td>
         <td colspan="10"></td>
-        <td></td>
         <td class="num">${fmtMoney(totals.perdiemTotal)}</td>
-        <td></td>
         <td class="num">${fmtMoney(totals.travelTotal)}</td>
         <td class="num">${fmtMoney(totals.gross)}</td>
         <td></td>

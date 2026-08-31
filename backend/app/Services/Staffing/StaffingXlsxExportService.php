@@ -35,7 +35,7 @@ class StaffingXlsxExportService
         $headers = [
             'Empleado', 'Rol', 'Turno', 'Horas totales', 'Manual', 'Horas regulares', 'Pay rate', 'Bill rate',
             'Total regular', 'Horas OT', 'Total OT', 'Deducción', 'Fee fijo', 'Ajuste',
-            'Días perdiem', 'Total perdiem', 'Horas viaje', 'Total viaje',
+            'Total perdiem', 'Total viaje',
             'Total semanal', '% retención', 'Total (payout)', 'Factura', 'Margen',
         ];
         $headerRow = 5;
@@ -48,7 +48,7 @@ class StaffingXlsxExportService
             ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB(self::HEADER_FILL);
 
         $row = $headerRow + 1;
-        $moneyCols = [7, 8, 9, 11, 12, 13, 14, 16, 18, 19, 21, 22, 23];
+        $moneyCols = [7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21];
         foreach ($timesheet->entries as $entry) {
             $totalRegular = $entry->regular_hours * $entry->pay_rate;
             $overtimeAmount = $entry->gross - $totalRegular + $entry->pre_tax_deduction;
@@ -59,7 +59,7 @@ class StaffingXlsxExportService
                 $entry->hours_manual_override ? 'Sí' : 'No', $entry->regular_hours, $entry->pay_rate, $entry->bill_rate,
                 $totalRegular, $entry->overtime_hours, $overtimeAmount, $entry->pre_tax_deduction,
                 $entry->fixed_fees, $entry->adjustment,
-                $entry->perdiem_days, $entry->perdiem_total, $entry->travel_hours, $entry->travel_total,
+                $entry->perdiem_total, $entry->travel_total,
                 $entry->gross, round($taxPercent, 1), $entry->payout, $entry->invoice_total, $entry->margin,
             ];
             foreach ($values as $i => $value) {

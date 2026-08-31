@@ -105,9 +105,7 @@
                   <th class="px-3 py-2.5 text-right">Deducción</th>
                   <th class="px-3 py-2.5 text-right">Fee fijo</th>
                   <th class="px-3 py-2.5 text-right">Ajuste</th>
-                  <th class="px-3 py-2.5 text-right">Días (Perdiem)</th>
                   <th class="px-3 py-2.5 text-right">Total Perdiem</th>
-                  <th class="px-3 py-2.5 text-right">Horas de viaje</th>
                   <th class="px-3 py-2.5 text-right">Total viaje</th>
                   <th class="px-3 py-2.5 text-right">Total semanal</th>
                   <th class="px-3 py-2.5 text-right">% retención</th>
@@ -119,7 +117,7 @@
               </thead>
               <tbody class="divide-y divide-border">
                 <tr v-if="filteredEmployees.length === 0">
-                  <td colspan="24" class="py-10 text-center text-sm text-text-muted bg-surface">
+                  <td colspan="22" class="py-10 text-center text-sm text-text-muted bg-surface">
                     No se encontraron empleados que coincidan con la búsqueda.
                   </td>
                 </tr>
@@ -191,15 +189,13 @@
                       :disabled="isReadOnly" :class="cellInputClass" />
                   </td>
                   <td class="px-3 py-2">
-                    <input v-model.number="grid[rowKey(employee)].perdiemDays" type="number" min="0" step="0.5"
+                    <input v-model.number="grid[rowKey(employee)].perdiemTotal" type="number" min="0" step="0.01"
                       :disabled="isReadOnly" :class="cellInputClass" />
                   </td>
-                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee) ? formatUSD(rowFor(employee)!.perdiemTotal) : '—' }}</td>
                   <td class="px-3 py-2">
-                    <input v-model.number="grid[rowKey(employee)].travelHours" type="number" min="0" step="0.01"
+                    <input v-model.number="grid[rowKey(employee)].travelTotal" type="number" min="0" step="0.01"
                       :disabled="isReadOnly" :class="cellInputClass" />
                   </td>
-                  <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee) ? formatUSD(rowFor(employee)!.travelTotal) : '—' }}</td>
                   <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee) ? formatUSD(rowFor(employee)!.gross) : '—' }}</td>
                   <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee) ? rowFor(employee)!.taxPercent.toFixed(1) : '0.0' }}%</td>
                   <td class="px-3 py-2 text-right tabular-nums font-semibold text-text">{{ rowFor(employee) ? formatUSD(rowFor(employee)!.payout) : '—' }}</td>
@@ -208,12 +204,12 @@
                   <td class="px-3 py-2 text-right tabular-nums font-semibold text-success">{{ rowFor(employee) ? formatUSD(rowFor(employee)!.margin) : '—' }}</td>
                 </tr>
                 <tr v-if="!rateFor(employee)">
-                  <td colspan="24" class="px-3 pb-2.5 text-xs text-warning">
+                  <td colspan="22" class="px-3 pb-2.5 text-xs text-warning">
                     Sin tarifa configurada para "{{ employee.staffing_role || 'sin rol' }}" en esta empresa — agrégala en Empresas antes de cargar horas.
                   </td>
                 </tr>
                 <tr v-else-if="rowFor(employee)?.isEstimate">
-                  <td colspan="24" class="px-3 pb-2.5 text-[10px] text-text-muted">
+                  <td colspan="22" class="px-3 pb-2.5 text-[10px] text-text-muted">
                     Estimado — guarda para confirmar.
                   </td>
                 </tr>
@@ -225,9 +221,7 @@
                 <td></td>
                 <td class="px-3 py-2.5 text-right tabular-nums">{{ totals.hours.toFixed(2) }}</td>
                 <td colspan="11"></td>
-                <td></td>
                 <td class="px-3 py-2.5 text-right tabular-nums">{{ formatUSD(totals.perdiemTotal) }}</td>
-                <td></td>
                 <td class="px-3 py-2.5 text-right tabular-nums">{{ formatUSD(totals.travelTotal) }}</td>
                 <td class="px-3 py-2.5 text-right tabular-nums">{{ formatUSD(totals.gross) }}</td>
                 <td class="px-3 py-2.5"></td>
@@ -456,8 +450,8 @@ type GridRow = {
   hoursManualOverride: boolean
   manualRegularHours: number
   manualOvertimeHours: number
-  perdiemDays: number
-  travelHours: number
+  perdiemTotal: number
+  travelTotal: number
 }
 type RosterEmployee = Profile
 
@@ -522,8 +516,8 @@ const emptyRow = (): GridRow => ({
   hoursManualOverride: false,
   manualRegularHours: 0,
   manualOvertimeHours: 0,
-  perdiemDays: 0,
-  travelHours: 0,
+  perdiemTotal: 0,
+  travelTotal: 0,
 })
 
 /** Rebuilds the grid from scratch for the roster + week currently selected, prefilling from the
@@ -546,8 +540,8 @@ const rebuildGrid = () => {
           hoursManualOverride: saved.hours_manual_override,
           manualRegularHours: saved.hours_manual_override ? saved.regular_hours : 0,
           manualOvertimeHours: saved.hours_manual_override ? saved.overtime_hours : 0,
-          perdiemDays: saved.perdiem_days,
-          travelHours: saved.travel_hours,
+          perdiemTotal: saved.perdiem_total,
+          travelTotal: saved.travel_total,
         }
       : emptyRow()
   }
@@ -598,8 +592,8 @@ const isDirty = (employee: RosterEmployee): boolean => {
     || saved.adjustment !== row.adjustment
     || saved.hours_manual_override !== row.hoursManualOverride
     || (row.hoursManualOverride && (saved.regular_hours !== row.manualRegularHours || saved.overtime_hours !== row.manualOvertimeHours))
-    || saved.perdiem_days !== row.perdiemDays
-    || saved.travel_hours !== row.travelHours
+    || saved.perdiem_total !== row.perdiemTotal
+    || saved.travel_total !== row.travelTotal
 }
 
 /** Turning manual mode on seeds the two new inputs from the last computed split, instead of
@@ -708,10 +702,11 @@ const rowFor = (employee: RosterEmployee): DisplayRow | null => {
   const gross = regularAmount + overtimeAmount - (row.preTaxDeduction || 0)
 
   const tax = taxFor(gross, employee.staffing_tax_rate, company)
-  // Reimbursement-style amounts — not billed (never touch invoiceTotal below), not withheld
-  // against — same treatment as StaffingPayrollCalculator::payroll() on the backend.
-  const perdiemTotal = (row.perdiemDays || 0) * (company?.perDiemRate ?? 0)
-  const travelTotal = (row.travelHours || 0) * rate.payRate
+  // Reimbursement-style amounts — entered as a total dollar figure directly, not derived from
+  // days/hours × a rate. Not billed (never touch invoiceTotal below), not withheld against —
+  // same treatment as StaffingPayrollCalculator::payroll() on the backend.
+  const perdiemTotal = row.perdiemTotal || 0
+  const travelTotal = row.travelTotal || 0
   const net = gross - tax - (row.fixedFees || 0) + (row.adjustment || 0) + perdiemTotal + travelTotal
   const payout = roundPayout(net, company?.payoutRounding ?? 'cent')
 
@@ -792,8 +787,8 @@ const handleSave = async () => {
       hoursManualOverride: row.hoursManualOverride,
       manualRegularHours: row.manualRegularHours || 0,
       manualOvertimeHours: row.manualOvertimeHours || 0,
-      perdiemDays: row.perdiemDays || 0,
-      travelHours: row.travelHours || 0,
+      perdiemTotal: row.perdiemTotal || 0,
+      travelTotal: row.travelTotal || 0,
     }
   })
 
@@ -850,9 +845,7 @@ const handlePrintPayroll = () => {
         deduction: gridRow?.preTaxDeduction || 0,
         fixedFees: gridRow?.fixedFees || 0,
         adjustment: gridRow?.adjustment || 0,
-        perdiemDays: gridRow?.perdiemDays || 0,
         perdiemTotal: row.perdiemTotal,
-        travelHours: gridRow?.travelHours || 0,
         travelTotal: row.travelTotal,
         gross: row.gross,
         taxPercent: row.taxPercent,

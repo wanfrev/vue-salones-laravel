@@ -61,7 +61,7 @@ class StaffingTimesheetService
      * (one grid, re-saved). Every entry is recomputed through the same calculator that reproduces
      * the DYKE/HILTON/CWT spreadsheets exactly.
      *
-     * @param list<array{employee_id: string, role?: string|null, total_hours: float, pre_tax_deduction?: float, fixed_fees?: float, adjustment?: float, hours_manual_override?: bool, manual_regular_hours?: float, manual_overtime_hours?: float, perdiem_days?: float, travel_hours?: float}> $entries
+     * @param list<array{employee_id: string, role?: string|null, total_hours: float, pre_tax_deduction?: float, fixed_fees?: float, adjustment?: float, hours_manual_override?: bool, manual_regular_hours?: float, manual_overtime_hours?: float, perdiem_total?: float, travel_total?: float}> $entries
      */
     public function saveWeek(
         string $businessId,
@@ -167,10 +167,10 @@ class StaffingTimesheetService
                     : null;
 
                 $hoursManualOverride = (bool) ($input['hours_manual_override'] ?? false);
-                $perdiemDays = (float) ($input['perdiem_days'] ?? 0);
-                $travelHours = (float) ($input['travel_hours'] ?? 0);
-                $perdiemTotal = round($perdiemDays * (float) $company->per_diem_rate, 2);
-                $travelTotal = round($travelHours * $rate->pay_rate, 2);
+                // Perdiem and travel are entered as a total dollar amount directly — not derived
+                // from days/hours × a rate — so no company or rate-card lookup is involved here.
+                $perdiemTotal = round((float) ($input['perdiem_total'] ?? 0), 2);
+                $travelTotal = round((float) ($input['travel_total'] ?? 0), 2);
 
                 $timesheetEntry = new TimesheetEntry(
                     employeeName: $employee->full_name,
@@ -212,9 +212,7 @@ class StaffingTimesheetService
                     'regular_hours' => $result->payroll->regularHours,
                     'overtime_hours' => $result->payroll->overtimeHours,
                     'hours_manual_override' => $hoursManualOverride,
-                    'perdiem_days' => $perdiemDays,
                     'perdiem_total' => $perdiemTotal,
-                    'travel_hours' => $travelHours,
                     'travel_total' => $travelTotal,
                     'gross' => $result->payroll->gross,
                     'tax_withheld' => $result->payroll->taxWithheld,
