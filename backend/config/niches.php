@@ -118,7 +118,7 @@ return [
         ],
         'staffing' => [
             'status' => 'creatable',
-            'capabilities' => ['staffing.timesheets', 'staffing.billing', 'staffing.crm', 'staffing.reports', 'staffing.spreadsheet'],
+            'capabilities' => ['staffing.timesheets', 'staffing.billing', 'staffing.crm', 'staffing.reports', 'staffing.spreadsheet', 'staffing.incidents'],
             'feature_defaults' => [
                 'agenda' => false,
                 'calendario' => false,

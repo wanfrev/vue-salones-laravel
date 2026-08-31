@@ -41,6 +41,7 @@ use App\Http\Controllers\Api\Staffing\StaffingInvoiceController;
 use App\Http\Controllers\Api\Staffing\StaffingManualIncomeController;
 use App\Http\Controllers\Api\Staffing\EmployeeAssetController;
 use App\Http\Controllers\Api\Staffing\StaffingReportController;
+use App\Http\Controllers\Api\Staffing\StaffingIncidentController;
 use App\Http\Controllers\Api\Staffing\StaffingSpreadsheetController;
 use App\Http\Controllers\Api\Staffing\StaffingTaxEntityController;
 use App\Http\Controllers\Api\Staffing\StaffingTaxEntryController;
@@ -386,6 +387,21 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::get('/staffing-spreadsheet/vendedoras', [StaffingSpreadsheetController::class, 'vendedoras']);
         Route::get('/staffing-spreadsheet/companies', [StaffingSpreadsheetController::class, 'companies']);
         Route::get('/staffing-spreadsheet/companies/{companyId}/rates', [StaffingSpreadsheetController::class, 'companyEmployeeRates']);
+    });
+
+    // Staffing Incidents — workplace incident tracking (injuries, complaints), admin-only.
+    Route::middleware(['capability:staffing.incidents', 'admin-panel'])->group(function () {
+        Route::get('/staffing-incidents', [StaffingIncidentController::class, 'index']);
+        Route::post('/staffing-incidents', [StaffingIncidentController::class, 'store']);
+        Route::put('/staffing-incidents/{id}', [StaffingIncidentController::class, 'update']);
+        Route::delete('/staffing-incidents/{id}', [StaffingIncidentController::class, 'destroy']);
+        Route::post('/staffing-incidents/{id}/files/{field}', [StaffingIncidentController::class, 'uploadSingleFile'])
+            ->where('field', 'reporte|relief_form');
+        Route::get('/staffing-incidents/{id}/files/{field}/download', [StaffingIncidentController::class, 'downloadSingleFile'])
+            ->where('field', 'reporte|relief_form');
+        Route::post('/staffing-incidents/{id}/attachments', [StaffingIncidentController::class, 'addFile']);
+        Route::get('/staffing-incident-files/{fileId}/download', [StaffingIncidentController::class, 'downloadFile']);
+        Route::delete('/staffing-incident-files/{fileId}', [StaffingIncidentController::class, 'destroyFile']);
     });
 
     // Staffing CRM — admin-only vendedor management: the material assets (vehicle, phone, etc.)
