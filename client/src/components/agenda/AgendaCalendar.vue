@@ -152,6 +152,41 @@
             :class="viewMode === v.value ? 'bg-surface text-primary shadow-sm' : 'text-text-muted hover:text-text'">{{
               v.shortLabel }}</button>
         </div>
+        <div class="relative">
+          <button @click="occupancyOpen = !occupancyOpen"
+            class="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary hover:border-border-strong"
+            :class="{ 'border-primary/40 text-primary bg-primary-light/40': occupancyOpen }">
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+            </svg>
+            <span class="hidden sm:inline">Disponibilidad</span>
+          </button>
+          <Transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
+            <div v-if="occupancyOpen"
+              class="absolute right-0 top-full z-50 mt-1.5 w-[min(20rem,92vw)] max-h-96 overflow-y-auto rounded-xl border border-border bg-surface p-2 shadow-xl" @click.stop>
+              <p class="px-2 py-1.5 text-[11px] font-bold text-text-muted uppercase tracking-wide">{{ selectedDayLabel }}</p>
+              <div v-if="!occupancyRows.length" class="px-2 py-3 text-xs text-text-muted">Sin empleados para mostrar.</div>
+              <div v-for="row in occupancyRows" :key="row.id" class="px-2 py-2 border-b border-border-subtle last:border-b-0">
+                <div class="flex items-center justify-between gap-2 mb-1">
+                  <span class="text-sm font-semibold text-text truncate">{{ row.name }}</span>
+                  <span class="shrink-0 text-xs font-bold"
+                    :class="row.pctBooked >= 80 ? 'text-danger' : row.pctBooked >= 50 ? 'text-warning' : 'text-success'">{{ row.pctBooked }}% ocupado</span>
+                </div>
+                <div class="h-1.5 rounded-full bg-bg-secondary overflow-hidden mb-1.5">
+                  <div class="h-full rounded-full transition-all"
+                    :class="row.pctBooked >= 80 ? 'bg-danger' : row.pctBooked >= 50 ? 'bg-warning' : 'bg-success'"
+                    :style="{ width: `${Math.min(100, row.pctBooked)}%` }" />
+                </div>
+                <div v-if="row.gaps.length" class="flex flex-wrap gap-1">
+                  <span v-for="(g, i) in row.gaps" :key="i"
+                    class="rounded-full bg-bg-secondary px-2 py-0.5 text-[10px] font-medium text-text-secondary">{{ g.label }}</span>
+                </div>
+                <p v-else class="text-[10px] text-text-muted italic">Sin huecos libres</p>
+              </div>
+            </div>
+          </Transition>
+        </div>
       </div>
     </div>
 
@@ -228,11 +263,13 @@
                     class="absolute left-0 right-0 top-[5px] h-px bg-gradient-to-r from-transparent via-primary/60 to-primary/60" />
                 </div>
                 <!-- Cards -->
-                <div v-for="appt in col.appointments" :key="appt.id" v-memo="[appt.id, appt.status, appt.top, appt.height, appt.left, appt.width]"
-                  class="absolute rounded-lg cursor-pointer overflow-hidden transition-all duration-150 hover:scale-[1.02] hover:z-10 group"
-                  :class="cardBgClass(appt.status)"
-                  :style="{ top: `${appt.top}px`, height: `${Math.max(appt.height - 2, 80)}px`, left: `calc(${appt.left}% + 2px)`, width: `calc(${appt.width}% - 4px)` }"
+                <div v-for="appt in col.appointments" :key="appt.id"
+                  v-memo="[appt.id, appt.status, appt.top, appt.height, appt.left, appt.width, dragState?.apptId === appt.id ? dragState.previewTop : null]"
+                  class="absolute rounded-lg overflow-hidden hover:z-10 group"
+                  :class="[cardBgClass(appt.status), dragState?.apptId === appt.id && dragState.moved ? 'ring-2 ring-primary shadow-2xl z-30 cursor-grabbing' : 'transition-all duration-150 hover:scale-[1.02]', isDraggable(appt) ? (dragState?.apptId === appt.id ? '' : 'cursor-grab') : 'cursor-pointer']"
+                  :style="{ top: `${dragState?.apptId === appt.id ? dragState.previewTop : appt.top}px`, height: `${Math.max(appt.height - 2, 80)}px`, left: `calc(${appt.left}% + 2px)`, width: `calc(${appt.width}% - 4px)` }"
                   :title="`${appt.clientName} · ${appt.service} · ${appt.employeeName}\n${appt.time} · ${getStatusLabel(appt.status)}`"
+                  @pointerdown="onCardPointerDown(appt, col, $event)"
                   @click.stop="showDetailPopup(appt, $event)"
                   @contextmenu.prevent="toggleStatusMenu(appt, $event)">
                   <div class="absolute left-0 top-0 bottom-0 w-[3px] sm:w-[4px]"
@@ -242,7 +279,7 @@
                       <div class="flex items-center gap-1.5 min-w-0">
                         <span
                           class="text-[11px] font-semibold text-text-muted tabular-nums whitespace-nowrap sm:text-xs">{{
-                          appt.time }}</span>
+                          dragState?.apptId === appt.id && dragState.moved ? dragPreviewLabel() : appt.time }}</span>
                         <span class="h-2 w-2 rounded-full flex-shrink-0"
                           :class="statusDotClass(appt.status)" />
                         <span v-if="appt.employeeInitials"
@@ -375,7 +412,7 @@ const emit = defineEmits<{
   delete: [id: string]
 }>()
 
-const { selectedEmployeeId, setDateRange, employees, loadingEmployees, services, appointments, appointmentsError } = useAgenda()
+const { selectedEmployeeId, setDateRange, employees, loadingEmployees, services, appointments, appointmentsError, schedules } = useAgenda()
 
 const shareLinkEmployees = computed(() =>
   (employees.value ?? [])
@@ -403,17 +440,41 @@ const employeeColorMap = computed(() => {
   return map
 })
 
-const globalSearchRows = computed(() => (globalSearchResults.value ?? []).map((a: any) => {
-  const start = new Date(a.start_time)
-  return {
-    raw: a,
-    id: a.id,
-    clientName: a.client?.full_name || a.clients?.full_name || 'Cliente',
-    serviceName: serviceMap.value.get(a.service_id)?.name || 'Servicio',
-    dateLabel: start.toLocaleDateString('es-VE', { day: 'numeric', month: 'short' }),
-    time: dateToHHmm12(start),
+// Una cita de grupo (varios servicios reservados en la misma visita) comparte
+// group_id entre varias filas de `appointments` — se juntan en un solo resultado
+// del dropdown en vez de mostrar cada servicio como si fuera una cita aparte,
+// igual que ya hace la grilla del calendario (buildDisplayAppointments).
+const globalSearchRows = computed(() => {
+  const raws = globalSearchResults.value ?? []
+  const rows: { raw: any; id: string; clientName: string; serviceName: string; dateLabel: string; time: string }[] = []
+  const groupRowIndex = new Map<string, number>()
+  const groupServiceNames = new Map<string, string[]>()
+
+  for (const a of raws as any[]) {
+    const serviceName = serviceMap.value.get(a.service_id)?.name || 'Servicio'
+    if (a.group_id && groupRowIndex.has(a.group_id)) {
+      const idx = groupRowIndex.get(a.group_id)!
+      const names = groupServiceNames.get(a.group_id)!
+      names.push(serviceName)
+      rows[idx].serviceName = `${names[0]} +${names.length - 1} más`
+      continue
+    }
+    const start = new Date(a.start_time)
+    rows.push({
+      raw: a,
+      id: a.id,
+      clientName: a.client?.full_name || a.clients?.full_name || 'Cliente',
+      serviceName,
+      dateLabel: start.toLocaleDateString('es-VE', { day: 'numeric', month: 'short' }),
+      time: dateToHHmm12(start),
+    })
+    if (a.group_id) {
+      groupRowIndex.set(a.group_id, rows.length - 1)
+      groupServiceNames.set(a.group_id, [serviceName])
+    }
   }
-}))
+  return rows
+})
 
 // ---- Constants ----
 const START_HOUR = 7
@@ -456,6 +517,24 @@ const selectedDate = ref(toISODate(new Date()))
 const gridContainer = ref<HTMLElement | null>(null)
 const statusMenu = ref<{ appointmentId: string; currentStatus: string; x: number; y: number } | null>(null)
 const empDropdownOpen = ref(false)
+
+// ---- Drag to reschedule (vertical only — same day/employee column, just changes the time) ----
+interface DragState {
+  apptId: string
+  raw: any
+  startPointerY: number
+  originalTop: number
+  height: number
+  durationMs: number
+  columnDateIso: string
+  employeeId: string | undefined
+  moved: boolean
+  previewTop: number
+  snappedStartMs: number
+}
+const dragState = ref<DragState | null>(null)
+const suppressNextClick = ref(false)
+const DRAG_THRESHOLD_PX = 5
 
 // Mobile viewport width for responsive decisions
 const windowWidth = ref(window.innerWidth)
@@ -713,6 +792,85 @@ const gridColumns = computed<GridColumn[]>(() => {
   })
 })
 
+// ---- Occupancy / gaps panel ----
+const MONTH_NAMES_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+const DAY_NAMES_FULL = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+
+const occupancyOpen = ref(false)
+
+const selectedDayLabel = computed(() => {
+  const d = parseLocalDate(selectedDate.value, 12, 0, 0)
+  return `${DAY_NAMES_FULL[d.getDay()]} ${d.getDate()} de ${MONTH_NAMES_FULL[d.getMonth()]}`
+})
+
+function timeStrToMinutes(t: string): number {
+  const [h, m] = t.split(':').map(Number)
+  return (h || 0) * 60 + (m || 0)
+}
+
+function formatMinutesAsClock(totalMin: number): string {
+  const h24 = Math.floor(totalMin / 60)
+  const mm = totalMin % 60
+  const ampm = h24 >= 12 ? 'PM' : 'AM'
+  const h12 = h24 % 12 || 12
+  return `${h12}:${String(mm).padStart(2, '0')} ${ampm}`
+}
+
+interface OccupancyGap { label: string; minutes: number }
+interface OccupancyRow { id: string; name: string; pctBooked: number; gaps: OccupancyGap[] }
+
+const occupancyRows = computed<OccupancyRow[]>(() => {
+  const emps = employees.value ?? []
+  const weekday = parseLocalDate(selectedDate.value, 12, 0, 0).getDay()
+  const gridWindow = { start: START_HOUR * 60, end: END_HOUR * 60 }
+
+  const schedMap = new Map<string, { start: number; end: number }>()
+  for (const s of (schedules.value ?? []) as any[]) {
+    if (s.weekday === weekday && s.employee_id) {
+      schedMap.set(s.employee_id, { start: timeStrToMinutes(s.start_time), end: timeStrToMinutes(s.end_time) })
+    }
+  }
+
+  const dayAppts = (appointments.value ?? []).filter((a: any) => {
+    const status = normalizeAppointmentStatus(a)
+    if (status === 'cancelled' || status === 'no_show') return false
+    return toISODate(new Date(a.start_time)) === selectedDate.value
+  })
+
+  return emps.map((emp: any) => {
+    const win = schedMap.get(emp.id) ?? gridWindow
+    const winMinutes = Math.max(0, win.end - win.start)
+
+    const busy: [number, number][] = []
+    for (const a of dayAppts) {
+      if (a.employee_id !== emp.id && a.assistant_employee_id !== emp.id) continue
+      const s = new Date(a.start_time); const e = new Date(a.end_time)
+      const sMin = Math.max(win.start, s.getHours() * 60 + s.getMinutes())
+      const eMin = Math.min(win.end, e.getHours() * 60 + e.getMinutes())
+      if (eMin > sMin) busy.push([sMin, eMin])
+    }
+    busy.sort((a, b) => a[0] - b[0])
+    const merged: [number, number][] = []
+    for (const [s, e] of busy) {
+      const last = merged[merged.length - 1]
+      if (last && s <= last[1]) last[1] = Math.max(last[1], e)
+      else merged.push([s, e])
+    }
+    const bookedMinutes = merged.reduce((sum, [s, e]) => sum + (e - s), 0)
+    const pctBooked = winMinutes > 0 ? Math.round((bookedMinutes / winMinutes) * 100) : 100
+
+    const gaps: OccupancyGap[] = []
+    let cursor = win.start
+    for (const [s, e] of merged) {
+      if (s - cursor >= 15) gaps.push({ label: `${formatMinutesAsClock(cursor)} – ${formatMinutesAsClock(s)}`, minutes: s - cursor })
+      cursor = Math.max(cursor, e)
+    }
+    if (win.end - cursor >= 15) gaps.push({ label: `${formatMinutesAsClock(cursor)} – ${formatMinutesAsClock(win.end)}`, minutes: win.end - cursor })
+
+    return { id: emp.id, name: emp.full_name, pctBooked, gaps }
+  }).sort((a, b) => a.pctBooked - b.pctBooked)
+})
+
 // ---- Card styling ----
 const statusColors: Record<string, { bg: string; dot: string; stripe: string; checkout: string }> = {
   confirmed: { bg: 'bg-amber-50/80 dark:bg-amber-950/30', dot: 'bg-warning', stripe: 'bg-warning', checkout: 'bg-amber-100 text-amber-600 hover:bg-amber-600 hover:text-white dark:bg-amber-900/40 dark:text-amber-400 dark:hover:bg-amber-500 dark:hover:text-white' },
@@ -740,6 +898,70 @@ function onColumnClick(col: GridColumn, e: MouseEvent) {
   emit('slotSelect', { start, end, employeeId: col.key !== '__default__' && viewMode.value !== 'week' ? col.key : undefined })
 }
 
+function isDraggable(appt: DisplayAppointment): boolean {
+  return appt.status !== 'paid' && appt.status !== 'cancelled' && !appt.isGroup
+}
+
+function onCardPointerDown(appt: DisplayAppointment, col: GridColumn, e: PointerEvent) {
+  if (e.button > 0) return
+  if ((e.target as HTMLElement).closest('button')) return
+  if (!isDraggable(appt)) return
+  dragState.value = {
+    apptId: appt.id,
+    raw: appt.raw,
+    startPointerY: e.clientY,
+    originalTop: appt.top,
+    height: appt.height,
+    durationMs: new Date(appt.raw.end_time).getTime() - new Date(appt.raw.start_time).getTime(),
+    columnDateIso: viewMode.value === 'week' ? col.key : selectedDate.value,
+    employeeId: appt.raw.employee_id,
+    moved: false,
+    previewTop: appt.top,
+    snappedStartMs: new Date(appt.raw.start_time).getTime(),
+  }
+  window.addEventListener('pointermove', onDragPointerMove)
+  window.addEventListener('pointerup', onDragPointerEnd, { once: true })
+}
+
+function onDragPointerMove(e: PointerEvent) {
+  const ds = dragState.value
+  if (!ds) return
+  const deltaY = e.clientY - ds.startPointerY
+  if (!ds.moved && Math.abs(deltaY) < DRAG_THRESHOLD_PX) return
+  ds.moved = true
+
+  let newTop = ds.originalTop + deltaY
+  newTop = Math.max(0, Math.min(newTop, totalGridHeight - ds.height))
+  const minsFromStart = (newTop / HOUR_HEIGHT) * 60
+  const snappedMins = Math.round(minsFromStart / 15) * 15
+  ds.previewTop = (snappedMins / 60) * HOUR_HEIGHT
+
+  const newStart = parseLocalDate(ds.columnDateIso, 0, 0, 0)
+  newStart.setMinutes(START_HOUR * 60 + snappedMins)
+  ds.snappedStartMs = newStart.getTime()
+}
+
+function onDragPointerEnd() {
+  window.removeEventListener('pointermove', onDragPointerMove)
+  const ds = dragState.value
+  if (!ds) return
+  if (ds.moved) {
+    suppressNextClick.value = true
+    const newStart = new Date(ds.snappedStartMs)
+    const newEnd = new Date(ds.snappedStartMs + ds.durationMs)
+    emit('eventChange', { id: ds.apptId, start: newStart.toISOString(), end: newEnd.toISOString(), employeeId: ds.employeeId })
+  }
+  dragState.value = null
+}
+
+function dragPreviewLabel(): string {
+  const ds = dragState.value
+  if (!ds) return ''
+  const start = new Date(ds.snappedStartMs)
+  const end = new Date(ds.snappedStartMs + ds.durationMs)
+  return `${dateToHHmm12(start)} - ${dateToHHmm12(end)}`
+}
+
 function emitEventClick(raw: any) {
   const start = new Date(raw.start_time); const end = new Date(raw.end_time)
   const status = normalizeAppointmentStatus(raw)
@@ -764,9 +986,13 @@ function changeStatus(id: string, s: string) {
   statusMenu.value = null
 }
 
-function onDocClick(e: MouseEvent) { if (statusMenu.value && !(e.target as HTMLElement)?.closest('.fixed')) statusMenu.value = null; if (empDropdownOpen.value && !(e.target as HTMLElement)?.closest('.relative')) empDropdownOpen.value = false }
+function onDocClick(e: MouseEvent) { if (statusMenu.value && !(e.target as HTMLElement)?.closest('.fixed')) statusMenu.value = null; if (empDropdownOpen.value && !(e.target as HTMLElement)?.closest('.relative')) empDropdownOpen.value = false; if (occupancyOpen.value && !(e.target as HTMLElement)?.closest('.relative')) occupancyOpen.value = false }
 onMounted(() => document.addEventListener('click', onDocClick))
-onUnmounted(() => document.removeEventListener('click', onDocClick))
+onUnmounted(() => {
+  document.removeEventListener('click', onDocClick)
+  window.removeEventListener('pointermove', onDragPointerMove)
+  window.removeEventListener('pointerup', onDragPointerEnd)
+})
 
 // ---- Detail Popup ----
 const detailPopup = ref<{ appt: DisplayAppointment; x: number; y: number } | null>(null)
@@ -778,6 +1004,7 @@ function getPopupWidth(): number {
 }
 
 function showDetailPopup(appt: DisplayAppointment, e: MouseEvent) {
+  if (suppressNextClick.value) { suppressNextClick.value = false; return }
   const vw = window.innerWidth
   const vh = window.innerHeight
   const w = getPopupWidth()
