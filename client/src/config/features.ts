@@ -29,6 +29,7 @@ export const DEFAULT_FEATURES = {
   reminder_24h_enabled: true,
   payroll_locked_exchange_rate: false,
   payroll_currency_breakdown_enabled: false,
+  payroll_day_average_rate_enabled: false,
   // Explicit opt-in for giving a non-tienda business full tienda-style retail treatment (hold
   // sales, invoice-numbered receipts, dual pricing, etc). Deliberately separate from pos/productos
   // — those two default to `true` for every niche (see comment above) purely for nav visibility,

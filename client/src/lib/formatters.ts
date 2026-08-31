@@ -32,6 +32,7 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   mixed: 'Mixto',
   other: 'Otro',
   gift_card: 'Gift Card',
+  day_average_rate: 'Tasa promedio del día',
 }
 
 export function formatMethod(method: string): string {

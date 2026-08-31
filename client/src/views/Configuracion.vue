@@ -273,6 +273,14 @@
                 label="Desglose de comisión por moneda de cobro"
                 hint="Al pagar nómina, muestra cuánto generó el empleado en dólares y cuánto en bolívares según cómo le cobraron a cada cliente"
                 :disabled="updatingFeatures"
+                class="py-3.5 border-b border-border-subtle"
+              />
+              <FormToggle
+                :model-value="!!businessStore.features.payroll_day_average_rate_enabled"
+                @update:model-value="handleToggleFeature('payroll_day_average_rate_enabled')"
+                label="Pagos por día y tasa promedio"
+                hint="Al pagar nómina, se pide cuántos dólares se le entregan al empleado y a qué tasa, para calcular cuánto se descuenta del saldo pendiente en bolívares."
+                :disabled="updatingFeatures"
                 class="py-3.5 last:border-b-0"
               />
             </div>
