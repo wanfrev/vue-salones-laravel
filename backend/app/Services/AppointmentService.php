@@ -92,7 +92,10 @@ class AppointmentService
             // Búsqueda global (sin acotar por start_date/end_date): trae primero la
             // cita más cercana a "ahora", ya sea futura o pasada, en vez del orden
             // ascendente por fecha que usan las cargas normales por rango visible.
-            $query->reorder()->orderByRaw('ABS(EXTRACT(EPOCH FROM (start_time - NOW())))')->take(15);
+            // Límite más alto que el de resultados a mostrar: una cita de grupo (varios
+            // servicios en una misma visita, mismo group_id) ocupa varias filas aquí pero
+            // el frontend las junta en un solo resultado.
+            $query->reorder()->orderByRaw('ABS(EXTRACT(EPOCH FROM (start_time - NOW())))')->take(25);
         }
 
         return $query->get();
