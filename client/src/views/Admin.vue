@@ -196,6 +196,18 @@
               </div>
             </template>
           </template>
+
+          <button
+            v-if="hasActiveFilters"
+            type="button"
+            @click="resetFilters"
+            class="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-[11px] font-medium text-text-secondary transition-theme hover:border-danger/30 hover:bg-danger/10 hover:text-danger sm:text-xs"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Limpiar filtros
+          </button>
         </div>
 
         <AgendaListView
@@ -291,6 +303,23 @@ const {
   setSearchQuery,
   isSearching,
 } = useAdminAgenda(() => authStore.businessId)
+
+const hasActiveFilters = computed(() =>
+  !!searchQuery.value.trim() ||
+  employeeFilter.value !== 'all' ||
+  serviceFilter.value !== 'all' ||
+  statusFilter.value !== 'all' ||
+  !isToday.value
+)
+
+function resetFilters() {
+  setSearchQuery('')
+  employeeFilter.value = 'all'
+  serviceFilter.value = 'all'
+  statusFilter.value = 'all'
+  viewMode.value = 'active'
+  goToToday()
+}
 
 // Llegada desde "Ver cita" en una notificación (NotificationDropdown → useNotifications.ts),
 // que solo sabe el appointment_id de UNA fila de servicio del grupo — la lista de aquí ya
