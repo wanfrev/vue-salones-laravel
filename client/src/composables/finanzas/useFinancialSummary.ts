@@ -680,6 +680,38 @@ function useFinancialSummary(
 
   const allTransactions = transactions
 
+  // ── Standalone tips (propina directa en el POS, sin servicio/cita asociada) — su propio
+  // apartado en vez de enterrarlas en "Transacciones" con $0.00 de monto de negocio, donde son
+  // faciles de pasar por alto. El monto que importa aqui es la propina misma, no total_amount
+  // (que siempre es 0 para estas filas — no son ingreso del negocio).
+  const standaloneTips = computed<TransactionRow[]>(() => {
+    return (transactionsData.value ?? [])
+      .filter((tx: any) => tx.is_standalone_tip)
+      .map((tx: any) => {
+        const tip = Number(tx.tip_amount ?? 0)
+        return {
+          id: tx.id,
+          appointmentId: null,
+          date: formatDate(tx.paid_at),
+          client: tx.employee_name ? `Propina para ${tx.employee_name}` : 'Propina directa',
+          employee: tx.employee_name ?? '—',
+          service: 'Propina',
+          method: formatMethod(tx.method),
+          rawMethod: tx.method as PaymentMethod,
+          amount: tip,
+          exchangeRateUsed: Number(tx.exchange_rate_used ?? 1),
+          notes: tx.notes ?? null,
+          tipAmount: tip,
+          source: 'standalone_tip',
+          transactionIds: [tx.id],
+          receiptCode: tx.receipt_code ?? undefined,
+          _rawSortDate: tx.paid_at || '',
+        } as any
+      })
+      .sort((a: any, b: any) => (b._rawSortDate ?? '').localeCompare(a._rawSortDate ?? ''))
+  })
+  const standaloneTipsTotal = computed(() => standaloneTips.value.reduce((sum, t) => sum + Number(t.amount ?? 0), 0))
+
   // ── Employee payments ──
   const employeePayments = computed<PaymentRow[]>(() => {
     const rows: PaymentRow[] = []
@@ -939,6 +971,8 @@ function useFinancialSummary(
     productSalesBreakdown,
     productSalesDetails,
     productSalesInvoices,
+    standaloneTips,
+    standaloneTipsTotal,
     isLoading,
     editTransactionMutation,
     deleteTransactionMutation,

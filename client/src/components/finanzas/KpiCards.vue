@@ -14,7 +14,7 @@
           </p>
           <p class="mt-1.5 text-2xl font-extrabold leading-none tabular-nums text-text xl:text-3xl">{{ formatUSD(incomeTotal) }}</p>
           <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span v-if="tipsTotal && tipsTotal > 0" class="text-xs font-semibold text-primary">+{{ formatUSD(tipsTotal) }} propinas</span>
+            <span v-if="tipsTotal && tipsTotal > 0" class="text-xs font-semibold text-primary underline decoration-dotted underline-offset-2 hover:text-primary-hover" @click.stop="$emit('click-tips')">+{{ formatUSD(tipsTotal) }} propinas</span>
             <span v-if="isLoading" class="h-3.5 w-24 rounded bg-bg-secondary animate-pulse" />
             <span v-else class="text-sm font-semibold tabular-nums text-text-secondary">{{ formatVESEs(vesIncomeTotal) }}</span>
           </div>
@@ -108,6 +108,7 @@ defineEmits<{
   'click-expense': []
   'click-net': []
   'click-profit': []
+  'click-tips': []
 }>()
 
 const { formatUSD, formatVESEs } = useCurrency()

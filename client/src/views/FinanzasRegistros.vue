@@ -83,6 +83,22 @@
       </template>
     </RecordSection>
 
+    <!-- Propinas directas -->
+    <RecordSection v-else-if="tipo === 'propinas'" title="Propinas directas del periodo" :items="paginatedPropinas" :total-count="summaryCtx.standaloneTips.value.length" empty-message="No hay propinas directas en este periodo." :pages="propinasPages" :page-size="pageSize" @prev="prevPage" @next="nextPage">
+      <template #desktop-thead><th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Fecha</th><th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Empleado</th><th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted hidden md:table-cell">Notas</th><th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Método</th><th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Propina</th><th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Acciones</th></template>
+      <template #desktop-tbody="{ items }">
+        <tr v-for="row in items" :key="row.id" class="text-sm transition-theme hover:bg-bg-secondary/50"><td class="py-3 text-text-secondary whitespace-nowrap">{{ row.date }}</td><td class="py-3 font-medium text-text">{{ row.employee }}</td><td class="py-3 text-text-secondary hidden md:table-cell max-w-[200px]"><span v-if="row.notes" class="truncate block" :title="row.notes">{{ row.notes }}</span><span v-else class="text-text-muted/40">—</span></td><td class="py-3 text-text-secondary">{{ row.method }}</td><td class="py-3 text-right font-medium text-primary">{{ formatUSD(row.amount) }}</td>
+          <td class="py-3 text-right"><div class="flex items-center gap-1 justify-end"><button @click="summaryCtx.startEdit(row)" :disabled="summaryCtx.editTransactionMutation.isPending.value || summaryCtx.deleteTransactionMutation.isPending.value" class="rounded-md bg-primary/10 p-1.5 text-primary transition-theme hover:bg-primary/20" title="Editar"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button><button @click="summaryCtx.confirmDeleteTransaction(row.id)" :disabled="summaryCtx.editTransactionMutation.isPending.value || summaryCtx.deleteTransactionMutation.isPending.value" class="rounded-md bg-danger/10 p-1.5 text-danger transition-theme hover:bg-danger/20" title="Eliminar"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div></td></tr>
+      </template>
+      <template #mobile-cards="{ items }">
+        <div v-for="row in items" :key="row.id" class="rounded-lg border border-border-subtle bg-bg-secondary/30 p-3 space-y-2 text-sm">
+          <div class="flex items-center justify-between"><span class="text-xs text-text-muted">{{ row.date }}</span><div class="flex items-center gap-1"><button @click="summaryCtx.startEdit(row)" class="rounded-md bg-primary/10 p-1 text-primary"><svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg></button><button @click="summaryCtx.confirmDeleteTransaction(row.id)" class="rounded-md bg-danger/10 p-1 text-danger"><svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button></div></div>
+          <div class="font-medium text-text">{{ row.employee }}</div>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs"><span class="text-text-muted">Método</span><span class="text-text text-right">{{ row.method }}</span><template v-if="row.notes"><span class="text-text-muted">Notas</span><span class="text-text text-right truncate max-w-[180px]" :title="row.notes">{{ row.notes }}</span></template><span class="text-text-muted">Propina</span><span class="text-right font-semibold text-primary">{{ formatUSD(row.amount) }}</span></div>
+        </div>
+      </template>
+    </RecordSection>
+
     <!-- Ventas productos -->
     <RecordSection v-else-if="tipo === 'ventas-productos'" title="Ventas de productos del periodo" :items="paginatedVentas" :total-count="activeVentasData.length" empty-message="No hay ventas de productos en este periodo." :pages="ventasPages" :page-size="pageSize" @prev="prevPage" @next="nextPage">
       <template #desktop-thead>
@@ -332,7 +348,7 @@ import EditCobroModal from '../components/finanzas/EditCobroModal.vue'
 import CobroActionsModal from '../components/finanzas/CobroActionsModal.vue'
 
 type PeriodValue = 'day' | 'custom' | 'week' | 'month' | 'quarter' | 'year'
-type TipoRegistros = 'gastos' | 'pagos' | 'transacciones' | 'cobros' | 'ventas-productos'
+type TipoRegistros = 'gastos' | 'pagos' | 'transacciones' | 'cobros' | 'ventas-productos' | 'propinas'
 
 const route = useRoute()
 const router = useRouter()
@@ -350,7 +366,7 @@ watch(() => route.query.period, (value) => { if (value === 'quarter' || value ==
 watch(() => route.query.month, (value) => { if (typeof value === 'string' && /^\d{4}-\d{2}$/.test(value)) selectedMonth.value = value }, { immediate: true })
 
 const tipo = computed<TipoRegistros>(() => {
-  const raw = route.params.tipo; if (raw === 'gastos' || raw === 'pagos' || raw === 'transacciones' || raw === 'cobros' || raw === 'ventas-productos') return raw; return 'transacciones'
+  const raw = route.params.tipo; if (raw === 'gastos' || raw === 'pagos' || raw === 'transacciones' || raw === 'cobros' || raw === 'ventas-productos' || raw === 'propinas') return raw; return 'transacciones'
 })
 
 watch(
@@ -478,6 +494,7 @@ const paymentsCtx = useEmployeePayments(businessId, periodDates)
 const title = computed(() => {
   if (tipo.value === 'gastos') return 'Todos los gastos'; if (tipo.value === 'pagos') return 'Todos los pagos a empleados'
   if (tipo.value === 'cobros') return 'Todos los cobros de citas'; if (tipo.value === 'ventas-productos') return 'Todas las ventas de productos'
+  if (tipo.value === 'propinas') return 'Todas las propinas directas'
   return 'Todas las transacciones'
 })
 const periodLabel = computed(() => {
@@ -493,12 +510,14 @@ const paginate = <T>(data: T[]): T[] => data.slice((currentPage.value - 1) * pag
 const paginateProps = <T>(data: T[]) => { const t = data.length; const tp = Math.ceil(t / pageSize); return { total: t, totalPages: tp, start: t ? (currentPage.value - 1) * pageSize + 1 : 0, end: Math.min(currentPage.value * pageSize, t), hasPrev: currentPage.value > 1, hasNext: currentPage.value < tp } }
 const nextPage = () => { if (currentPage.value < Math.ceil(getActiveData().length / pageSize)) currentPage.value++ }
 const prevPage = () => { if (currentPage.value > 1) currentPage.value-- }
-const getActiveData = (): any[] => { if (tipo.value === 'gastos') return expensesCtx.expenses.value; if (tipo.value === 'cobros') return summaryCtx.appointmentIncomeDetails.value; if (tipo.value === 'ventas-productos') return activeVentasData.value; if (tipo.value === 'pagos') return summaryCtx.employeePayments.value; return summaryCtx.allTransactions.value }
+const getActiveData = (): any[] => { if (tipo.value === 'gastos') return expensesCtx.expenses.value; if (tipo.value === 'cobros') return summaryCtx.appointmentIncomeDetails.value; if (tipo.value === 'ventas-productos') return activeVentasData.value; if (tipo.value === 'pagos') return summaryCtx.employeePayments.value; if (tipo.value === 'propinas') return summaryCtx.standaloneTips.value; return summaryCtx.allTransactions.value }
 
 const paginatedGastos = computed(() => paginate(expensesCtx.expenses.value)); const paginatedCobros = computed(() => paginate(summaryCtx.appointmentIncomeDetails.value))
 const paginatedVentas = computed(() => paginate(activeVentasData.value)); const paginatedTransacciones = computed(() => paginate(summaryCtx.allTransactions.value))
+const paginatedPropinas = computed(() => paginate(summaryCtx.standaloneTips.value))
 const gastosPages = computed(() => paginateProps(expensesCtx.expenses.value)); const cobrosPages = computed(() => paginateProps(summaryCtx.appointmentIncomeDetails.value))
 const ventasPages = computed(() => paginateProps(activeVentasData.value)); const transaccionesPages = computed(() => paginateProps(summaryCtx.allTransactions.value))
+const propinasPages = computed(() => paginateProps(summaryCtx.standaloneTips.value))
 
 const handleDeletePayment = (_id: string) => {}
 const openEditPayment = (_p: any) => {}
