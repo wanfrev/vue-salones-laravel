@@ -14,10 +14,15 @@
           </p>
           <p class="mt-1.5 text-2xl font-extrabold leading-none tabular-nums text-text xl:text-3xl">{{ formatUSD(incomeTotal) }}</p>
           <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5">
-            <span v-if="tipsTotal && tipsTotal > 0" class="text-xs font-semibold text-primary underline decoration-dotted underline-offset-2 hover:text-primary-hover" @click.stop="$emit('click-tips')">+{{ formatUSD(tipsTotal) }} propinas</span>
             <span v-if="isLoading" class="h-3.5 w-24 rounded bg-bg-secondary animate-pulse" />
             <span v-else class="text-sm font-semibold tabular-nums text-text-secondary">{{ formatVESEs(vesIncomeTotal) }}</span>
           </div>
+          <!-- span, no button: ya estamos dentro del <button> de la tarjeta "Ingresos" -- anidar
+          otro <button> es HTML invalido y el navegador lo saca del DOM, rompiendo el click. -->
+          <span role="button" tabindex="0" class="mt-1 inline-block text-xs font-semibold text-primary underline decoration-dotted underline-offset-2 hover:text-primary-hover cursor-pointer"
+            @click.stop="$emit('click-tips')" @keydown.enter.stop="$emit('click-tips')">
+            {{ tipsTotal && tipsTotal > 0 ? `+${formatUSD(tipsTotal)} propinas` : 'Ver propinas' }}
+          </span>
         </div>
         <svg :class="['mt-1 h-4 w-4 shrink-0 text-text-muted/50 transition-transform duration-300 group-hover:text-success', activeCard === 'income' && 'rotate-180 text-success']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
