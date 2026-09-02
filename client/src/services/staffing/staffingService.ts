@@ -505,6 +505,11 @@ export const generateStaffingInvoice = (timesheetId: string, invoiceNumber?: str
     ...(invoiceNumber ? { invoice_number: invoiceNumber.trim() } : {}),
   })
 
+export const updateStaffingInvoiceNumber = (id: string, invoiceNumber: string): Promise<StaffingInvoice> =>
+  apiRequest<StaffingInvoice>('PUT', `/staffing-invoices/${id}`, {
+    invoice_number: invoiceNumber.trim(),
+  })
+
 export const getCompanyBalance = (companyId: string): Promise<StaffingCompanyBalance> =>
   apiRequest<StaffingCompanyBalance>('GET', `/staffing-companies/${companyId}/balance`)
 

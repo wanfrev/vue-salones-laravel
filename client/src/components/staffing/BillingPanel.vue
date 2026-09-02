@@ -64,6 +64,10 @@
                 </span>
               </td>
               <td class="px-3 py-2 text-right whitespace-nowrap">
+                <button type="button" title="Editar número de factura" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
+                  @click="openEditInvoiceModal(invoice)">
+                  <PenIcon class="h-4 w-4" />
+                </button>
                 <button type="button" title="Imprimir" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
                   @click="handlePrint(invoice.id)">
                   <PrinterIcon class="h-4 w-4" />
@@ -140,12 +144,21 @@
       </form>
       <p v-if="billing.saveError.value" class="mt-2 text-xs text-danger">{{ billing.saveError.value }}</p>
     </div>
+
+    <EditInvoiceNumberModal
+      :show="showEditInvoiceModal"
+      :current-number="invoiceToEdit?.invoice_number || ''"
+      :is-updating="billing.updateInvoiceNumberMutation.isPending.value"
+      @close="showEditInvoiceModal = false"
+      @save="onConfirmUpdateInvoiceNumber"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, toRef } from 'vue'
-import { PrinterIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
+import { PrinterIcon, TrashBin2Icon, PenIcon } from '@solar-icons/vue/linear'
+import EditInvoiceNumberModal from './EditInvoiceNumberModal.vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { useBilling } from '../../composables/staffing/useBilling'
@@ -214,6 +227,23 @@ const handlePrint = async (invoiceId: string) => {
 const handleDeleteInvoice = (invoice: { id: string; invoice_number: string }) => {
   if (window.confirm(`¿Eliminar la factura #${invoice.invoice_number}? La semana volverá a borrador para poder editar la nómina. Los abonos ya registrados no se eliminan, quedan como pago a cuenta.`)) {
     billing.removeInvoice(invoice.id)
+  }
+}
+
+const showEditInvoiceModal = ref(false)
+const invoiceToEdit = ref<{ id: string; invoice_number: string } | null>(null)
+
+const openEditInvoiceModal = (inv: { id: string; invoice_number: string }) => {
+  invoiceToEdit.value = inv
+  showEditInvoiceModal.value = true
+}
+
+const onConfirmUpdateInvoiceNumber = async (newNumber: string) => {
+  if (!invoiceToEdit.value) return
+  const result = await billing.updateInvoiceNumber(invoiceToEdit.value.id, newNumber)
+  if (result) {
+    showEditInvoiceModal.value = false
+    invoiceToEdit.value = null
   }
 }
 </script>

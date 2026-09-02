@@ -91,7 +91,30 @@ class StaffingInvoiceService
      * race would only ever produce a friendly "already taken" 422 on the unique index, not
      * corrupt data.
      */
-    private function nextInvoiceNumber(string $businessId): string
+    public function updateInvoiceNumber(string $id, string $businessId, string $newInvoiceNumber): StaffingInvoice
+    {
+        $invoice = $this->findForBusiness($id, $businessId);
+        $trimmed = trim($newInvoiceNumber);
+
+        if (empty($trimmed)) {
+            throw new RuntimeException('El número de invoice no puede estar vacío.');
+        }
+
+        $exists = StaffingInvoice::where('business_id', $businessId)
+            ->where('invoice_number', $trimmed)
+            ->where('id', '!=', $id)
+            ->exists();
+
+        if ($exists) {
+            throw new RuntimeException("El número de invoice #{$trimmed} ya está en uso en este negocio.");
+        }
+
+        $invoice->update(['invoice_number' => $trimmed]);
+
+        return $invoice->fresh();
+    }
+
+    public function nextInvoiceNumber(string $businessId): string
     {
         $maxNumber = DB::table('staffing_invoices')
             ->where('business_id', $businessId)

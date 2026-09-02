@@ -7,6 +7,7 @@ import {
   deleteCompanyPayment,
   deleteStaffingInvoice,
   generateStaffingInvoice,
+  updateStaffingInvoiceNumber,
   getCompanyBalance,
   getStaffingProjects,
   listCompanyPayments,
@@ -104,6 +105,28 @@ export function useBilling(businessId: Ref<string | null>, companyId: Ref<string
     onError: (err) => showError(translateError(err)),
   })
 
+  const updateInvoiceNumberMutation = useMutation({
+    mutationFn: ({ id, invoiceNumber }: { id: string; invoiceNumber: string }) =>
+      updateStaffingInvoiceNumber(id, invoiceNumber),
+    onSuccess: async (invoice) => {
+      await invalidateAll()
+      success(`Número de factura actualizado a #${invoice.invoice_number}`)
+    },
+    onError: (err) => {
+      saveError.value = translateError(err)
+      showError(saveError.value)
+    },
+  })
+
+  const updateInvoiceNumber = async (id: string, invoiceNumber: string) => {
+    saveError.value = ''
+    try {
+      return await updateInvoiceNumberMutation.mutateAsync({ id, invoiceNumber })
+    } catch {
+      return null
+    }
+  }
+
   const generateInvoice = async (timesheetId: string, invoiceNumber?: string) => {
     saveError.value = ''
     try {
@@ -135,7 +158,9 @@ export function useBilling(businessId: Ref<string | null>, companyId: Ref<string
     generateMutation,
     paymentMutation,
     deleteInvoiceMutation,
+    updateInvoiceNumberMutation,
     generateInvoice,
+    updateInvoiceNumber,
     addPayment,
     removePayment: (id: string) => deletePaymentMutation.mutate(id),
     removeInvoice: (id: string) => deleteInvoiceMutation.mutate(id),
