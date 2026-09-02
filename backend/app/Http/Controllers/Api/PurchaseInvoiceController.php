@@ -70,6 +70,9 @@ class PurchaseInvoiceController
 
         EntityChanged::safe($businessId, 'purchase_invoice', 'created', $invoice->id);
         EntityChanged::safe($businessId, 'inventory', 'updated');
+        if ($invoice->supplier_id) {
+            EntityChanged::safe($businessId, 'supplier', 'updated', $invoice->supplier_id);
+        }
 
         return response()->json($invoice, 201);
     }

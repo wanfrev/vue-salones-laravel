@@ -19,6 +19,11 @@ import {
   type SupplierFormData,
   type SupplierPaymentFormData,
 } from '../../services/suppliersService'
+import {
+  listPurchaseInvoices,
+  purchaseInvoiceKeys,
+  type PurchaseInvoiceRow,
+} from '../../services/purchaseInvoiceService'
 
 export function useSuppliers(businessId: import('vue').Ref<string | null>) {
   const queryClient = useQueryClient()
@@ -40,6 +45,12 @@ export function useSuppliers(businessId: import('vue').Ref<string | null>) {
     enabled: computed(() => !!businessId.value),
   })
 
+  const { data: invoicesData, isLoading: isLoadingInvoices } = useQuery({
+    queryKey: computed(() => purchaseInvoiceKeys.all(businessId.value)),
+    queryFn: () => listPurchaseInvoices(),
+    enabled: computed(() => !!businessId.value),
+  })
+
   const paymentsBySupplier = computed(() => {
     const map: Record<string, number> = {}
     for (const p of (paymentsData.value ?? [])) {
@@ -48,16 +59,52 @@ export function useSuppliers(businessId: import('vue').Ref<string | null>) {
     return map
   })
 
+  const invoicesBySupplier = computed(() => {
+    const map: Record<string, { count: number; total: number; invoices: PurchaseInvoiceRow[] }> = {}
+    for (const inv of (invoicesData.value ?? [])) {
+      if (!inv.supplierId) continue
+      if (!map[inv.supplierId]) {
+        map[inv.supplierId] = { count: 0, total: 0, invoices: [] }
+      }
+      map[inv.supplierId].count++
+      map[inv.supplierId].total += inv.total
+      map[inv.supplierId].invoices.push(inv)
+    }
+    return map
+  })
+
   const suppliersWithBalance = computed(() =>
     suppliers.value.map(s => {
       const paid = paymentsBySupplier.value[s.id] ?? 0
+      const invData = invoicesBySupplier.value[s.id] ?? { count: 0, total: 0, invoices: [] }
       return {
         ...s,
         totalPaid: paid,
         pendingBalance: Math.max(0, s.totalDebt - paid),
+        invoiceCount: invData.count,
+        invoicesTotal: invData.total,
+        invoices: invData.invoices,
       }
     })
   )
+
+  const kpiMetrics = computed(() => {
+    const list = suppliersWithBalance.value
+    const totalSuppliers = list.length
+    const withDebt = list.filter(s => s.pendingBalance > 0).length
+    const totalDebt = list.reduce((sum, s) => sum + s.totalDebt, 0)
+    const totalPaid = list.reduce((sum, s) => sum + s.totalPaid, 0)
+    const totalPending = list.reduce((sum, s) => sum + s.pendingBalance, 0)
+    const totalInvoicesAmount = list.reduce((sum, s) => sum + s.invoicesTotal, 0)
+    return {
+      totalSuppliers,
+      withDebt,
+      totalDebt,
+      totalPaid,
+      totalPending,
+      totalInvoicesAmount,
+    }
+  })
 
   const saveMutation = useMutation({
     mutationFn: (formData: SupplierFormData & { id?: string }) => {
@@ -175,7 +222,9 @@ export function useSuppliers(businessId: import('vue').Ref<string | null>) {
     suppliers,
     suppliersWithBalance,
     paymentsBySupplier,
-    isLoading,
+    invoicesBySupplier,
+    kpiMetrics,
+    isLoading: computed(() => isLoading.value || isLoadingInvoices.value),
     saveMutation,
     deleteMutation,
     saveError,
@@ -230,6 +279,20 @@ export function useSupplierPayments(
     (suppliersData.value ?? []).map(s => ({ id: s.id, name: s.fullName }))
   )
 
+  const { data: allPaymentsData } = useQuery({
+    queryKey: computed(() => ['supplier-payments', 'all', businessId.value, branchId.value]),
+    queryFn: () => listSupplierPayments(businessId.value!, branchId.value),
+    enabled: computed(() => !!businessId.value),
+  })
+
+  const allPaymentsBySupplier = computed(() => {
+    const map: Record<string, number> = {}
+    for (const p of (allPaymentsData.value ?? [])) {
+      map[p.supplierId] = (map[p.supplierId] ?? 0) + p.amount
+    }
+    return map
+  })
+
   const createMutation = useMutation({
     mutationFn: (formData: SupplierPaymentFormData) => {
       if (!businessId.value) throw new Error('No hay negocio activo')
@@ -238,7 +301,9 @@ export function useSupplierPayments(
     onSuccess: () => {
       Promise.allSettled([
         queryClient.invalidateQueries({ queryKey: supplierPaymentKeys.all(businessId.value, branchId.value), exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['supplier-payments'], exact: false }),
         queryClient.invalidateQueries({ queryKey: supplierKeys.all(businessId.value, branchId.value), exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['suppliers'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['financial-summary', businessId.value], exact: false }),
       ])
       success('Abono registrado correctamente')
@@ -254,7 +319,9 @@ export function useSupplierPayments(
     onSuccess: () => {
       Promise.allSettled([
         queryClient.invalidateQueries({ queryKey: supplierPaymentKeys.all(businessId.value, branchId.value), exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['supplier-payments'], exact: false }),
         queryClient.invalidateQueries({ queryKey: supplierKeys.all(businessId.value, branchId.value), exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['suppliers'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['financial-summary', businessId.value], exact: false }),
       ])
       success('Abono eliminado correctamente')
@@ -293,8 +360,11 @@ export function useSupplierPayments(
     saveError.value = ''
   }
 
-  const openNew = () => {
+  const openNew = (supplierId?: string) => {
     resetForm()
+    if (supplierId) {
+      form.value.supplierId = supplierId
+    }
     showModal.value = true
   }
 
@@ -345,7 +415,7 @@ export function useSupplierPayments(
     if (!sid) return 0
     const supplier = supplierMap.value[sid]
     if (!supplier) return 0
-    const paid = paymentsBySupplier.value[sid] ?? 0
+    const paid = allPaymentsBySupplier.value[sid] ?? 0
     return Math.max(0, supplier.totalDebt - paid)
   })
 
