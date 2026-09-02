@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Appointment;
 use App\Models\Business;
+use App\Models\MessageTemplate;
 use App\Models\WhatsAppInstance;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -127,6 +128,39 @@ class WhatsAppService
     }
 
     /**
+     * Send the business's active "appointment_confirmation" template right when a booking is
+     * created. Unlike reminder/follow_up (which fire from the reminders:generate cron on their
+     * own offset), confirmation has no offset — it's tied to the booking event itself, so the
+     * caller (AppointmentController) invokes this directly after creating the appointment.
+     * Configurable per business the same way as every other template: no active
+     * appointment_confirmation template (or the business/feature toggle off) just means nothing
+     * sends — same silent-no-op contract as sendReminder.
+     */
+    public function sendConfirmation(Appointment $appointment): bool
+    {
+        $business = Business::find($appointment->business_id);
+        if (!$business || !$business->whatsapp_enabled) {
+            return false;
+        }
+
+        $features = is_array($business->features) ? $business->features : json_decode($business->features ?? '[]', true);
+        if (!($features['whatsapp_available'] ?? false)) {
+            return false;
+        }
+
+        $template = MessageTemplate::where('business_id', $business->id)
+            ->where('type', 'appointment_confirmation')
+            ->where('is_active', true)
+            ->first();
+
+        if (!$template) {
+            return false;
+        }
+
+        return $this->sendReminder($appointment, $template->body);
+    }
+
+    /**
      * Send a text message using the Evolution API-compatible endpoint.
      */
     public function sendText(Business $business, WhatsAppInstance $instance, string $number, string $text): bool
@@ -213,6 +247,48 @@ class WhatsAppService
         } catch (\Throwable $e) {
             Log::error("[WhatsApp] Error checking instance status: {$e->getMessage()}");
             return 'disconnected';
+        }
+    }
+
+    /**
+     * Best-effort lookup of the phone number now attached to a connected instance. Evolution API
+     * doesn't return this from /instance/connectionState (state only, no owner info) — it's on
+     * /instance/fetchInstances, as `ownerJid` ("<digits>@s.whatsapp.net"). Never throws; a missed
+     * lookup just leaves instance_number unset until the next status check picks it up.
+     */
+    public function fetchInstanceNumber(Business $business, WhatsAppInstance $instance): ?string
+    {
+        $baseUrl = $this->getBaseUrl($business);
+        $apiKey = $this->getApiKey($business);
+
+        if (!$instance->instance_id || !$baseUrl) {
+            return null;
+        }
+
+        try {
+            $response = Http::withHeaders(['apikey' => $apiKey])
+                ->get(rtrim($baseUrl, '/') . '/instance/fetchInstances', [
+                    'instanceName' => $instance->instance_id,
+                ]);
+
+            if (!$response->successful()) {
+                return null;
+            }
+
+            $data = $response->json();
+            // Evolution has returned this as either a bare array of instances or
+            // {instance: {...}} depending on version — handle both shapes defensively.
+            $entry = is_array($data) && array_is_list($data) ? ($data[0] ?? null) : $data;
+            $ownerJid = $entry['ownerJid'] ?? $entry['owner'] ?? $entry['instance']['owner'] ?? null;
+
+            if (!$ownerJid || !str_contains($ownerJid, '@')) {
+                return null;
+            }
+
+            return explode('@', $ownerJid)[0] ?: null;
+        } catch (\Throwable $e) {
+            Log::error("[WhatsApp] Error fetching instance number: {$e->getMessage()}");
+            return null;
         }
     }
 

@@ -10,15 +10,46 @@ use App\Models\Business;
 use App\Models\Profile;
 use App\Services\AppointmentService;
 use App\Services\NotificationService;
+use App\Services\WhatsAppService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 
 class AppointmentController
 {
     public function __construct(
         private AppointmentService $appointmentService,
+        private WhatsAppService $whatsappService,
     ) {}
+
+    /**
+     * Fire the "appointment_confirmation" WhatsApp template right after booking — never lets a
+     * WhatsApp failure (misconfigured server, Evolution API down, no template active, etc.) turn
+     * appointment creation into a 500; the appointment is already committed by the time this runs.
+     *
+     * A multi-service visit is several Appointment rows sharing one group_id, saved as separate
+     * sequential POST /appointments calls (see agendaService.saveNewGroup on the frontend) — only
+     * the first row of a group has no siblings yet at the moment it's created, so gating on that
+     * sends exactly one confirmation per visit instead of one per service.
+     */
+    private function sendWhatsAppConfirmation(Appointment $appointment): void
+    {
+        try {
+            if ($appointment->group_id) {
+                $hasSibling = Appointment::where('group_id', $appointment->group_id)
+                    ->where('id', '!=', $appointment->id)
+                    ->exists();
+                if ($hasSibling) {
+                    return;
+                }
+            }
+
+            $this->whatsappService->sendConfirmation($appointment);
+        } catch (\Throwable $e) {
+            Log::error("[AppointmentController] Error sending WhatsApp confirmation for appointment {$appointment->id}: {$e->getMessage()}");
+        }
+    }
 
     private function resolveBusinessId(Request $request): ?string
     {
@@ -136,6 +167,7 @@ class AppointmentController
         $appointment = $this->appointmentService->store($request->validated(), $businessId, $request->user()->id);
         $appointment->load(['client', 'service', 'employeeProfile', 'assistantProfile']);
         EntityChanged::safe($businessId, 'appointment', 'created', $appointment->id);
+        $this->sendWhatsAppConfirmation($appointment);
 
         // Creator gets notified too — creating an appointment for yourself (or for someone else)
         // still lands a "Nueva cita agendada" confirmation in the bell, same as everyone else.
