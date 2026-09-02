@@ -35,7 +35,7 @@
         <thead>
           <tr class="border-b border-border bg-bg-secondary">
             <th class="px-4 py-2.5 text-left font-medium text-text-muted text-xs">Cliente</th>
-            <th class="px-4 py-2.5 text-right font-medium text-text-muted text-xs">Monto</th>
+            <th class="px-4 py-2.5 text-right font-medium text-text-muted text-xs">{{ activeTab === 'pending' ? 'Saldo / Total' : 'Monto' }}</th>
             <th class="px-4 py-2.5 text-left font-medium text-text-muted text-xs hidden md:table-cell">Fecha venta</th>
             <th class="px-4 py-2.5 text-left font-medium text-text-muted text-xs hidden md:table-cell">{{ activeTab === 'paid' ? 'Fecha pago' : '' }}</th>
             <th class="px-4 py-2.5 text-center font-medium text-text-muted text-xs">{{ activeTab === 'pending' ? 'Acción' : 'Método' }}</th>
@@ -47,16 +47,26 @@
               <div class="font-medium text-text">{{ c.client_name }}</div>
               <div v-if="c.client_phone" class="text-xs text-text-muted">{{ c.client_phone }}</div>
             </td>
-            <td class="px-4 py-2.5 text-right font-medium text-text">{{ formatUSD(c.amount) }}</td>
+            <td class="px-4 py-2.5 text-right">
+              <template v-if="activeTab === 'pending'">
+                <div class="font-medium text-text">{{ formatUSD(c.remaining) }}</div>
+                <div v-if="c.status === 'partial'" class="text-xs text-text-muted">
+                  de {{ formatUSD(c.amount) }} · abonado {{ formatUSD(c.paid_amount) }}
+                </div>
+              </template>
+              <template v-else>
+                <div class="font-medium text-text">{{ formatUSD(c.amount) }}</div>
+              </template>
+            </td>
             <td class="px-4 py-2.5 text-text-secondary hidden md:table-cell">{{ formatDate(c.created_at) }}</td>
             <td class="px-4 py-2.5 text-text-secondary hidden md:table-cell">{{ c.paid_at ? formatDate(c.paid_at) : '—' }}</td>
             <td class="px-4 py-2.5 text-center">
               <button
                 v-if="activeTab === 'pending'"
-                @click="openMarkPaid(c)"
+                @click="openPay(c)"
                 class="inline-flex items-center gap-1 rounded-lg bg-success/10 px-3 py-1.5 text-xs font-semibold text-success transition-theme hover:bg-success/20"
               >
-                Marcar pagado
+                Registrar abono
               </button>
               <span v-else class="text-xs text-text-secondary">{{ formatMethod(c.paid_method || '') }}</span>
             </td>
@@ -69,11 +79,48 @@
   <Teleport to="body">
     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" @click.self="closeModal">
       <div class="w-full max-w-sm rounded-2xl border border-border bg-surface p-6 shadow-xl">
-        <div class="mb-5">
-          <h2 class="text-lg font-semibold text-text">Marcar crédito como pagado</h2>
-          <p class="text-sm text-text-muted">{{ selectedCredit?.client_name }} · {{ formatUSD(selectedCredit?.amount ?? 0) }}</p>
+        <div class="mb-4">
+          <h2 class="text-lg font-semibold text-text">Registrar abono</h2>
+          <p class="text-sm text-text-muted">{{ selectedCredit?.client_name }}</p>
         </div>
+
+        <div v-if="selectedCredit" class="mb-4 rounded-lg bg-bg-secondary/60 px-3 py-2.5 text-xs">
+          <div class="flex justify-between text-text-secondary">
+            <span>Total de la venta</span>
+            <span class="font-medium text-text">{{ formatUSD(selectedCredit.amount) }}</span>
+          </div>
+          <div v-if="selectedCredit.paid_amount > 0" class="flex justify-between text-text-secondary mt-1">
+            <span>Ya abonado</span>
+            <span class="font-medium text-success">{{ formatUSD(selectedCredit.paid_amount) }}</span>
+          </div>
+          <div class="flex justify-between text-text-secondary mt-1 pt-1 border-t border-border/60">
+            <span>Saldo pendiente</span>
+            <span class="font-semibold text-warning">{{ formatUSD(selectedCredit.remaining) }}</span>
+          </div>
+        </div>
+
+        <div v-if="paymentHistory.length > 0" class="mb-4">
+          <p class="mb-1.5 text-xs font-semibold uppercase tracking-wider text-text-muted">Abonos anteriores</p>
+          <div class="max-h-24 space-y-1 overflow-y-auto rounded-lg border border-border/60 p-2">
+            <div v-for="p in paymentHistory" :key="p.id" class="flex justify-between text-xs text-text-secondary">
+              <span>{{ formatDate(p.created_at) }} · {{ formatMethod(p.method) }}</span>
+              <span class="font-medium text-text">{{ formatUSD(p.amount) }}</span>
+            </div>
+          </div>
+        </div>
+
         <form class="space-y-4" @submit.prevent="handleConfirm">
+          <div>
+            <label class="mb-1 block text-sm font-medium text-text" for="cr-amount">Monto a abonar</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">$</span>
+              <input id="cr-amount" v-model.number="form.amount" type="number" min="0.01" step="0.01" :max="selectedCredit?.remaining"
+                class="w-full rounded-lg border border-border bg-surface py-2 pl-7 pr-3 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <button type="button" class="mt-1 text-xs font-medium text-primary hover:text-primary-hover" @click="fillFullAmount">
+              Pagar el saldo completo ({{ formatUSD(selectedCredit?.remaining ?? 0) }})
+            </button>
+          </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="mb-1 block text-sm font-medium text-text" for="cr-method">Método de pago</label>
@@ -104,15 +151,15 @@
               class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
           </div>
           <p class="text-xs text-text-muted">
-            Al confirmar, este monto se reconocerá como ingreso y se incluirá en el cálculo de ganancia.
+            Este monto se reconocerá como ingreso en Finanzas el día de hoy.
           </p>
           <div class="flex items-center justify-end gap-3">
             <button type="button"
               class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
               @click="closeModal">Cancelar</button>
-            <button type="submit" :disabled="markPaidMutation.isPending.value"
+            <button type="submit" :disabled="payMutation.isPending.value || !form.amount || form.amount <= 0"
               class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-sm transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">
-              {{ markPaidMutation.isPending.value ? 'Guardando...' : 'Confirmar pago' }}
+              {{ payMutation.isPending.value ? 'Guardando...' : 'Confirmar abono' }}
             </button>
           </div>
         </form>
@@ -129,7 +176,7 @@ import { useCredits } from '../../composables/finanzas/useCredits'
 import type { Credit } from '../../types/database'
 
 const { formatUSD, exchangeRate } = useCurrency()
-const { pendingCredits, paidCredits, pendingTotal, isLoading, markPaidMutation } = useCredits()
+const { pendingCredits, paidCredits, pendingTotal, isLoading, payMutation, usePaymentsForCredit } = useCredits()
 
 const tabs: { key: 'pending' | 'paid'; label: string }[] = [
   { key: 'pending', label: 'Pendientes' },
@@ -140,28 +187,40 @@ const visibleCredits = computed(() => activeTab.value === 'pending' ? pendingCre
 
 const showModal = ref(false)
 const selectedCredit = ref<Credit | null>(null)
-const form = ref<{ method: string; currency: 'USD' | 'VES'; exchangeRate: number }>({
+const form = ref<{ amount: number; method: string; currency: 'USD' | 'VES'; exchangeRate: number }>({
+  amount: 0,
   method: 'cash',
   currency: 'USD',
   exchangeRate: exchangeRate.value || 1,
 })
 
-const openMarkPaid = (credit: Credit) => {
+const selectedCreditId = ref<string | null>(null)
+const { data: paymentHistoryData } = usePaymentsForCredit(() => selectedCreditId.value)
+const paymentHistory = computed(() => paymentHistoryData.value ?? [])
+
+const openPay = (credit: Credit) => {
   selectedCredit.value = credit
-  form.value = { method: 'cash', currency: 'USD', exchangeRate: exchangeRate.value || 1 }
+  selectedCreditId.value = credit.id
+  form.value = { amount: credit.remaining, method: 'cash', currency: 'USD', exchangeRate: exchangeRate.value || 1 }
   showModal.value = true
+}
+
+const fillFullAmount = () => {
+  if (selectedCredit.value) form.value.amount = selectedCredit.value.remaining
 }
 
 const closeModal = () => {
   showModal.value = false
   selectedCredit.value = null
+  selectedCreditId.value = null
 }
 
 const handleConfirm = async () => {
-  if (!selectedCredit.value) return
+  if (!selectedCredit.value || !form.value.amount || form.value.amount <= 0) return
   try {
-    await markPaidMutation.mutateAsync({
+    await payMutation.mutateAsync({
       id: selectedCredit.value.id,
+      amount: form.value.amount,
       method: form.value.method,
       currency: form.value.currency,
       exchangeRate: form.value.currency === 'VES' ? form.value.exchangeRate : undefined,

@@ -642,14 +642,29 @@ export interface Credit {
   client_phone: string | null
   transaction_id: string
   amount: number
+  paid_amount: number
+  remaining: number
   currency: string
-  status: 'pending' | 'paid'
+  status: 'pending' | 'partial' | 'paid'
   paid_at: string | null
   paid_method: string | null
   created_by: string | null
   client?: { id: string; full_name: string; phone: string | null } | null
   created_at: string
   updated_at: string
+}
+
+export interface CreditPayment {
+  id: string
+  business_id: string
+  credit_id: string
+  transaction_id: string
+  amount: number
+  method: string
+  currency: string
+  exchange_rate: number | null
+  created_by: string | null
+  created_at: string
 }
 
 type TableShape<Row> = {

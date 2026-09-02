@@ -427,7 +427,8 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
 
     Route::get('/credits', [CreditController::class, 'index']);
-    Route::post('/credits/{id}/mark-paid', [CreditController::class, 'markPaid']);
+    Route::get('/credits/{id}/payments', [CreditController::class, 'payments']);
+    Route::post('/credits/{id}/pay', [CreditController::class, 'pay']);
 
     // Expenses
     Route::get('/expenses', [ExpenseController::class, 'index']);
