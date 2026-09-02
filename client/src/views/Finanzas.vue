@@ -72,7 +72,8 @@
           :is-tienda="isTienda" :is-staffing="isStaffing"
           :active-card="activeCard" :is-loading="isStaffing ? staffingFinance.isLoading.value : summaryCtx.isLoading.value"
           @click-income="toggleCard('income')"
-          @click-expense="toggleCard('expense')" @click-net="toggleCard('net')" @click-profit="toggleCard('profit')" />
+          @click-expense="toggleCard('expense')" @click-net="toggleCard('net')" @click-profit="toggleCard('profit')"
+          @click-tips="goToAllRecords('propinas')" />
     </div>
 
     <StaffingManualIncomeSection v-if="isStaffing" :ctx="staffingFinance" class="mb-4" />
