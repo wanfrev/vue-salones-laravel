@@ -24,6 +24,22 @@
         />
       </div>
 
+      <div v-if="selectedSupplier" class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 rounded-xl border border-primary/25 bg-primary/5 px-3.5 py-2.5 text-xs">
+        <div class="flex items-center gap-2">
+          <span class="font-semibold text-primary">Proveedor:</span>
+          <span class="font-medium text-text">{{ selectedSupplier.company || selectedSupplier.fullName }}</span>
+          <span v-if="selectedSupplier.totalDebt > 0" class="rounded px-1.5 py-0.5 text-[10px] font-bold bg-warning/15 text-warning">
+            Deuda actual: {{ formatUSD(selectedSupplier.totalDebt) }}
+          </span>
+          <span v-else class="rounded px-1.5 py-0.5 text-[10px] font-bold bg-success/15 text-success">
+            Al día
+          </span>
+        </div>
+        <p class="text-text-muted">
+          El total de <strong class="text-text font-semibold">{{ formatUSD(invoiceTotal) }}</strong> se asignará a la deuda del proveedor
+        </p>
+      </div>
+
       <div>
         <div class="mb-2 flex items-center justify-between">
           <p class="text-sm font-semibold text-text">Mercancía</p>
@@ -144,6 +160,10 @@ const supplierOptions = computed(() => [
   { value: '', label: 'Sin proveedor' },
   ...(suppliers.value ?? []).map(s => ({ value: s.id, label: s.company || s.fullName })),
 ])
+
+const selectedSupplier = computed(() =>
+  form.value.supplierId ? (suppliers.value ?? []).find(s => s.id === form.value.supplierId) : null
+)
 
 interface LineDraft {
   key: string
@@ -275,10 +295,17 @@ const handleSubmit = async () => {
       queryClient.invalidateQueries({ queryKey: inventarioKeys.all(businessId.value, branchId.value) }),
       queryClient.invalidateQueries({ queryKey: inventarioKeys.movements(businessId.value, branchId.value) }),
       queryClient.invalidateQueries({ queryKey: purchaseInvoiceKeys.all(businessId.value), exact: false }),
+      queryClient.invalidateQueries({ queryKey: supplierKeys.all(businessId.value, branchId.value), exact: false }),
+      queryClient.invalidateQueries({ queryKey: ['suppliers'], exact: false }),
+      queryClient.invalidateQueries({ queryKey: ['supplier-payments'], exact: false }),
     ])
 
     printPurchaseInvoice(invoice, businessStore.business?.name || 'Negocio')
-    success(`Factura #${invoice.invoiceNumber} registrada`)
+    if (form.value.supplierId) {
+      success(`Factura #${invoice.invoiceNumber} registrada y asignada a la deuda del proveedor`)
+    } else {
+      success(`Factura #${invoice.invoiceNumber} registrada`)
+    }
     close()
   } catch (err: any) {
     showError(err?.message || 'Error al registrar la factura')

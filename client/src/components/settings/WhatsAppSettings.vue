@@ -453,6 +453,9 @@ const checkStatus = async () => {
   try {
     const result = await getWhatsAppStatus(selectedBranchId.value)
     config.value.whatsapp_instance_status = result.status
+    if (result.instance_number) {
+      config.value.whatsapp_instance_number = result.instance_number
+    }
     if (result.status === 'connected' || result.status === 'open') {
       success('¡WhatsApp conectado correctamente!')
       qrCode.value = null

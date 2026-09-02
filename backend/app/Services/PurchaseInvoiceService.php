@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\PurchaseInvoice;
 use App\Models\PurchaseInvoiceItem;
+use App\Models\Supplier;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -133,6 +134,22 @@ class PurchaseInvoiceService
             }
 
             $invoice->update(['total' => $total]);
+
+            if (!empty($data['supplier_id']) && $total > 0) {
+                $supplier = Supplier::where('id', $data['supplier_id'])
+                    ->where('business_id', $businessId)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($supplier) {
+                    $supplier->increment('total_debt', $total);
+                    if ($supplier->debt_currency === 'VES' && $supplier->debt_exchange_rate > 0) {
+                        $supplier->increment('debt_original_amount', round($total * $supplier->debt_exchange_rate, 2));
+                    } else {
+                        $supplier->increment('debt_original_amount', $total);
+                    }
+                }
+            }
 
             return $invoice->fresh(['supplier', 'creator', 'items.product']);
         });

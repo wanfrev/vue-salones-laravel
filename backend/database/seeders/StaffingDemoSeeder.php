@@ -18,8 +18,22 @@ class StaffingDemoSeeder extends Seeder
         $branchId = '20000000-0000-0000-0000-000000000003';
 
         if (DB::table('businesses')->where('id', $bizId)->exists()) {
-            $this->command->info('Negocio Staffing demo ya existe, saltando...');
-            return;
+            $this->command->info('Negocio Staffing demo ya existe, limpiando datos previos para recrear...');
+            DB::table('businesses')->where('id', $bizId)->delete();
+        }
+
+        // Limpiar usuarios con emails que puedan causar conflicto de unicidad
+        $employees = ['Juan Perez', 'Maria Garcia', 'Carlos Rodriguez', 'Ana Lopez', 'Luis Hernandez', 'Elena Ramirez', 'Miguel Torres', 'Sofia Flores', 'Jorge Diaz', 'Lucia Cruz'];
+        
+        $emailsToDelete = ['staffing@prueba.com', 'ventas@prueba.com'];
+        foreach ($employees as $empName) {
+            $emailsToDelete[] = strtolower(str_replace(' ', '.', $empName)) . '@worker.app';
+        }
+
+        $userIds = DB::table('users')->whereIn('email', $emailsToDelete)->pluck('id');
+        if ($userIds->isNotEmpty()) {
+            DB::table('profiles')->whereIn('id', $userIds)->delete();
+            DB::table('users')->whereIn('id', $userIds)->delete();
         }
 
         // ── Business ──
