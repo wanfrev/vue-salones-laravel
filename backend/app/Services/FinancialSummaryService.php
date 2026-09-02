@@ -250,6 +250,9 @@ class FinancialSummaryService
             'appointment' => function ($q) {
                 $q->with(['client', 'service', 'employeeProfile', 'assistantProfile']);
             },
+            // Standalone transactions (no appointment — e.g. a direct tip) carry their own
+            // employee_id straight on the row; nothing else here resolves it.
+            'employeeProfile',
         ])
             ->where('business_id', $businessId)
             ->where('method', '!=', 'credito')
@@ -288,13 +291,14 @@ class FinancialSummaryService
                 'payments_breakdown' => $tx->payments_breakdown,
                 'notes' => $tx->notes,
                 'client_name' => $appt?->client?->full_name,
-                'employee_name' => $appt?->employeeProfile?->full_name,
+                'employee_name' => $appt?->employeeProfile?->full_name ?? $tx->employeeProfile?->full_name,
                 'assistant_name' => $appt?->assistantProfile?->full_name,
                 'service_name' => $appt?->service?->name,
                 'service_price' => $appt?->service?->price,
-                'employee_pay_type' => $appt?->employeeProfile?->pay_type,
-                'employee_pay_percentage' => $appt?->employeeProfile?->pay_percentage,
+                'employee_pay_type' => $appt?->employeeProfile?->pay_type ?? $tx->employeeProfile?->pay_type,
+                'employee_pay_percentage' => $appt?->employeeProfile?->pay_percentage ?? $tx->employeeProfile?->pay_percentage,
                 'is_direct_sale' => $tx->appointment_id === null,
+                'is_standalone_tip' => $tx->appointment_id === null && (float) $tx->total_amount === 0.0 && (float) $tx->tip_amount > 0,
                 'receipt_code' => $tx->receipt_code,
             ];
         });
