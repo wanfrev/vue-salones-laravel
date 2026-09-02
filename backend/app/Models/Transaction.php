@@ -42,4 +42,14 @@ class Transaction extends Model
     {
         return $this->belongsTo(Appointment::class);
     }
+
+    /**
+     * The employee this transaction's own `employee_id` points to — set directly on standalone
+     * transactions with no appointment (e.g. recordStandaloneTip), where `appointment->employeeProfile`
+     * doesn't exist to fall back on.
+     */
+    public function employeeProfile(): BelongsTo
+    {
+        return $this->belongsTo(Profile::class, 'employee_id');
+    }
 }

@@ -479,8 +479,11 @@ function useFinancialSummary(
       const amt = Number(tx.total_amount ?? 0)
       const exchangeRateUsed = Number(tx.exchange_rate_used ?? 1)
       const breakdown = tx.payments_breakdown as PaymentBreakdownItem[] | null
-      const clientLabel = tx.client_name ?? extractClientFromNotes(tx.notes) ?? 'Venta directa'
-      const serviceLabel = tx.service_name ?? productNamesByTxId.get(tx.id) ?? '—'
+      const isStandaloneTip = !!tx.is_standalone_tip
+      const clientLabel = isStandaloneTip
+        ? (tx.employee_name ? `Propina para ${tx.employee_name}` : 'Propina directa')
+        : (tx.client_name ?? extractClientFromNotes(tx.notes) ?? 'Venta directa')
+      const serviceLabel = isStandaloneTip ? 'Propina' : (tx.service_name ?? productNamesByTxId.get(tx.id) ?? '—')
 
       const isVES = breakdown && breakdown.length > 0
         ? breakdown[0].currency === 'VES'
@@ -494,19 +497,21 @@ function useFinancialSummary(
         appointmentId: tx.appointment_id || undefined,
         appointment_id: tx.appointment_id || undefined,
         date: formatDate(tx.paid_at),
-        description: `${clientLabel} · ${serviceLabel}`,
+        description: isStandaloneTip ? clientLabel : `${clientLabel} · ${serviceLabel}`,
         clientName: clientLabel,
         employee: (tx.employee_name as string) || undefined,
         method: formatMethod(tx.method),
         rawMethod: tx.method,
+        // El monto que cuenta como ingreso del negocio es total_amount (0 para una propina
+        // directa — es 100% del empleado); tipAmount se muestra aparte, nunca se suma aquí.
         amount: amt,
         total: amt,
         type: 'ingreso',
         exchangeRateUsed,
         notes: tx.notes,
         tipAmount: tip,
-        source: tx.appointment_id ? 'appointment_payment' : 'direct_sale',
-        sourceLabel: tx.appointment_id ? 'Cobro cita' : 'Venta directa',
+        source: isStandaloneTip ? 'standalone_tip' : (tx.appointment_id ? 'appointment_payment' : 'direct_sale'),
+        sourceLabel: isStandaloneTip ? 'Propina directa' : (tx.appointment_id ? 'Cobro cita' : 'Venta directa'),
         _currency: isVES ? 'VES' : 'USD',
         _originalAmount: isVES ? originalAmount : undefined,
         _rawSortDate: tx.paid_at || '',
@@ -761,12 +766,14 @@ function useFinancialSummary(
       notes?: string
       exchangeRate?: number
       paymentsBreakdown?: PaymentBreakdownItem[]
+      tipAmount?: number
     }) => apiRequest('PUT', `/transactions/${params.transactionId}`, {
       total_amount: params.totalAmount,
       method: params.method,
       notes: params.notes,
       exchange_rate_used: params.exchangeRate,
       payments_breakdown: params.paymentsBreakdown,
+      tip_amount: params.tipAmount,
     }),
     onSuccess: async () => {
       await Promise.allSettled([
@@ -817,6 +824,10 @@ function useFinancialSummary(
   const editingMethod = ref('')
   const editingBreakdown = ref<PaymentBreakdownItem[]>([])
   const editingNotes = ref('')
+  const editingTipAmount = ref(0)
+  // Una propina directa (sin cita) no tiene "monto" propio -- ese campo es siempre 0, es 100%
+  // del empleado y no cuenta como ingreso del negocio. Lo único editable ahí es la propina misma.
+  const isEditingStandaloneTip = computed(() => editingTransaction.value?.source === 'standalone_tip')
   const isEditingMixed = computed(() => (editingBreakdown.value?.length ?? 0) > 1)
   const editingTotalAmount = computed(() =>
     editingBreakdown.value.reduce((sum, b) => sum + (b.currency === 'VES' ? b.inputAmount / (editingTransaction.value?.exchange_rate_used ?? 1) : b.inputAmount), 0),
@@ -842,6 +853,7 @@ function useFinancialSummary(
     editingCurrency.value = item.primaryCurrency ?? 'USD'
     editingMethod.value = hasMixed ? 'mixed' : (item.rawMethod ?? 'cash')
     editingNotes.value = item.notes ?? ''
+    editingTipAmount.value = item.tipAmount ?? 0
     editingBreakdown.value = item.breakdown && item.breakdown.length > 0
       ? [...item.breakdown]
       : [{
@@ -877,10 +889,11 @@ function useFinancialSummary(
     const breakdown = editingBreakdown.value.length > 1 ? editingBreakdown.value : null
     editTransactionMutation.mutate({
       transactionId: tx.id,
-      totalAmount: isEditingMixed.value ? editingTotalAmount.value : editingAmount.value,
+      totalAmount: isEditingStandaloneTip.value ? 0 : (isEditingMixed.value ? editingTotalAmount.value : editingAmount.value),
       method: editingMethod.value as PaymentMethod,
       notes: editingNotes.value || null,
       paymentsBreakdown: breakdown ?? undefined,
+      tipAmount: editingTipAmount.value,
     })
     showEditModal.value = false
   }
@@ -939,6 +952,8 @@ function useFinancialSummary(
     editingMethod,
     editingBreakdown,
     editingNotes,
+    editingTipAmount,
+    isEditingStandaloneTip,
     isEditingMixed,
     editingTotalAmount,
     paymentMethodOptions,

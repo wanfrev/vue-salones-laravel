@@ -77,7 +77,7 @@ const ctx = reactive(props.summaryCtx)
               </button>
             </div>
           </div>
-          <div>
+          <div v-if="!ctx.isEditingStandaloneTip">
             <label class="mb-1 block text-sm font-medium text-text">{{ ctx.isEditingMixed ? 'Total (calculado)' : 'Monto' }}</label>
             <input v-if="!ctx.isEditingMixed" v-model.number="ctx.editingAmount" type="number"
               min="0.01" step="0.01"
@@ -85,6 +85,18 @@ const ctx = reactive(props.summaryCtx)
               placeholder="0.00" required />
             <div v-else class="rounded-lg border border-border bg-bg-secondary px-3 py-2 text-lg font-bold text-text">{{
               formatUSD(ctx.editingTotalAmount) }}</div>
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-text">{{ ctx.isEditingStandaloneTip ? 'Monto de la propina' : 'Propina (opcional)' }}</label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">$</span>
+              <input v-model.number="ctx.editingTipAmount" type="number" min="0" step="0.01"
+                class="w-full rounded-lg border border-border bg-surface py-2 pl-7 pr-3 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+                placeholder="0.00" :required="ctx.isEditingStandaloneTip" />
+            </div>
+            <p v-if="ctx.isEditingStandaloneTip" class="mt-1 text-xs text-text-muted">
+              Es 100% del empleado — no se cuenta como ingreso del negocio.
+            </p>
           </div>
           <div>
             <label class="mb-1 block text-sm font-medium text-text">Notas</label>

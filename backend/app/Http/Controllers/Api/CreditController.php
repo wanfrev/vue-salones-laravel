@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
 use App\Models\Credit;
+use App\Models\CreditPayment;
 use App\Models\Transaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class CreditController
 {
@@ -48,58 +50,120 @@ class CreditController
         return response()->json($query->orderByDesc('created_at')->get());
     }
 
-    public function markPaid(Request $request, string $id): JsonResponse
+    /**
+     * Payment history (abonos) for one credit — every partial/full payment recorded against it,
+     * each its own transaction, oldest first.
+     */
+    public function payments(Request $request, string $id): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId) {
             return response()->json(['message' => 'No autorizado.'], 403);
         }
 
-        $data = $request->validate([
-            'method' => 'required|string|max:50|not_in:credito',
-            'currency' => 'nullable|string|in:USD,VES',
-            'exchange_rate' => 'nullable|numeric|min:0',
-        ]);
+        $credit = Credit::where('business_id', $businessId)->find($id);
+        if (!$credit) {
+            return response()->json(['message' => 'Crédito no encontrado.'], 404);
+        }
+
+        return response()->json(
+            CreditPayment::where('credit_id', $id)->orderBy('created_at')->get()
+        );
+    }
+
+    /**
+     * Record a payment (abono) against a credit — partial or, if it covers the full remaining
+     * balance, the final one. Unlike the old markPaid (which overwrote the *original* sale
+     * transaction), this always creates a brand new Transaction for the payment received today,
+     * so the sale's own date/amount/method stay intact as history and Finanzas sees the money as
+     * income on the day it was actually collected (transactions.method != 'credito' is what
+     * FinancialSummaryService counts as income — see fetchInstances-adjacent queries there).
+     */
+    public function pay(Request $request, string $id): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
+            return response()->json(['message' => 'No autorizado.'], 403);
+        }
 
         $credit = Credit::where('business_id', $businessId)->find($id);
         if (!$credit) {
             return response()->json(['message' => 'Crédito no encontrado.'], 404);
         }
         if ($credit->status === 'paid') {
-            return response()->json(['message' => 'Este crédito ya fue pagado.'], 422);
+            return response()->json(['message' => 'Este crédito ya fue pagado por completo.'], 422);
         }
 
-        DB::transaction(function () use ($credit, $data) {
-            $tx = Transaction::find($credit->transaction_id);
-            if (!$tx) {
-                throw new \RuntimeException('La transacción original no existe.');
-            }
+        $remaining = round((float) $credit->amount - (float) $credit->paid_amount, 2);
 
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'min:0.01', 'max:' . max($remaining, 0.01)],
+            'method' => ['required', 'string', 'max:50', 'not_in:credito'],
+            'currency' => ['nullable', 'string', 'in:USD,VES'],
+            'exchange_rate' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $payment = DB::transaction(function () use ($credit, $data, $businessId, $request) {
             $currency = $data['currency'] ?? 'USD';
-            $rate = (float) ($data['exchange_rate'] ?? $tx->exchange_rate_used ?? 1);
-            $amount = (float) $credit->amount;
+            $rate = (float) ($data['exchange_rate'] ?? 1);
+            $amount = (float) $data['amount'];
 
-            $tx->update([
+            $tx = Transaction::create([
+                'id' => Str::uuid()->toString(),
+                'business_id' => $businessId,
+                'branch_id' => $credit->branch_id,
+                'appointment_id' => null,
+                'employee_id' => null,
+                'total_amount' => $amount,
+                'local_amount' => $amount,
+                'employee_amount' => 0,
+                'assistant_amount' => 0,
+                'local_percentage' => 100,
+                'employee_percentage' => 0,
+                'assistant_percentage' => 0,
                 'method' => $data['method'],
+                'exchange_rate_used' => $currency === 'VES' ? $rate : 1,
                 'payments_breakdown' => [[
                     'method' => $data['method'],
                     'currency' => $currency,
                     'inputAmount' => $currency === 'VES' ? round($amount * $rate, 2) : $amount,
                     'amount' => $amount,
                 ]],
-                'exchange_rate_used' => $rate,
+                'created_by' => $request->user()?->id,
+                'notes' => "Abono a crédito de {$credit->client_name}",
                 'paid_at' => now(),
             ]);
 
-            $credit->update([
-                'status' => 'paid',
-                'paid_at' => now(),
-                'paid_method' => $data['method'],
+            $creditPayment = CreditPayment::create([
+                'id' => Str::uuid()->toString(),
+                'business_id' => $businessId,
+                'credit_id' => $credit->id,
+                'transaction_id' => $tx->id,
+                'amount' => $amount,
+                'method' => $data['method'],
+                'currency' => $currency,
+                'exchange_rate' => $currency === 'VES' ? $rate : null,
+                'created_by' => $request->user()?->id,
             ]);
+
+            $newPaidAmount = round((float) $credit->paid_amount + $amount, 2);
+            $isFullySettled = $newPaidAmount >= (float) $credit->amount - 0.005;
+
+            $credit->update([
+                'paid_amount' => $newPaidAmount,
+                'status' => $isFullySettled ? 'paid' : 'partial',
+                'paid_at' => $isFullySettled ? now() : $credit->paid_at,
+                'paid_method' => $isFullySettled ? $data['method'] : $credit->paid_method,
+            ]);
+
+            return $creditPayment;
         });
 
         EntityChanged::safe($businessId, 'credit', 'updated', $id);
 
-        return response()->json($credit->fresh()->load('client:id,full_name,phone'));
+        return response()->json([
+            'credit' => $credit->fresh()->load('client:id,full_name,phone'),
+            'payment' => $payment,
+        ]);
     }
 }
