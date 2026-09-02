@@ -383,17 +383,29 @@ watch(() => templateForm.type, (type) => {
   }
 })
 
-const loadConfig = async () => {
+// Cada operación async (poll de QR, chequeo de estado, carga de config) queda "anclada" a la
+// sucursal con la que arrancó. Si el usuario cambia la sucursal seleccionada mientras una de
+// estas sigue en vuelo (p.ej. el poll de QR de la sucursal A, que reintenta hasta 16s), sin esto
+// esa operación seguía leyendo `selectedBranchId.value` en vivo en cada iteración y terminaba
+// escribiendo el QR/estado de una sucursal sobre la pantalla de otra — causaba que el check de
+// "conectado" nunca prendiera para la sucursal correcta y que pareciera conectada en ambas.
+let requestToken = 0
+
+const loadConfig = async (branchId: string | null = selectedBranchId.value, token = requestToken) => {
   try {
-    config.value = await getWhatsAppConfig(selectedBranchId.value)
+    const result = await getWhatsAppConfig(branchId)
+    if (token !== requestToken) return
+    config.value = result
   } catch { /* silently fail */ }
 }
 
-watch(selectedBranchId, async () => {
+watch(selectedBranchId, async (branchId) => {
+  const token = ++requestToken
   qrCode.value = null
-  await loadConfig()
+  await loadConfig(branchId, token)
+  if (token !== requestToken) return
   if (config.value.whatsapp_instance_id && (isDisconnectedState.value || isPendingState.value)) {
-    pollForQr()
+    pollForQr(branchId, token)
   }
 })
 
@@ -413,11 +425,13 @@ const handleToggleEnabled = async (val: boolean) => {
 // El QR se genera de forma asíncrona en el servidor de WhatsApp (Baileys aún está
 // conectando) — puede tardar más de un par de segundos, así que reintentamos en vez
 // de rendirnos con el primer intento vacío.
-const pollForQr = async (): Promise<boolean> => {
+const pollForQr = async (branchId: string | null = selectedBranchId.value, token = requestToken): Promise<boolean> => {
   for (let attempt = 0; !qrCode.value && attempt < 8; attempt++) {
     await new Promise(resolve => setTimeout(resolve, 2000))
+    if (token !== requestToken) return false
     try {
-      const qrResult = await getWhatsAppQr(selectedBranchId.value)
+      const qrResult = await getWhatsAppQr(branchId)
+      if (token !== requestToken) return false
       qrCode.value = qrResult.qr_code ?? null
     } catch {
       // seguimos reintentando aunque un intento puntual falle
@@ -428,13 +442,17 @@ const pollForQr = async (): Promise<boolean> => {
 
 const createInstance = async () => {
   loading.value = true
+  const token = ++requestToken
+  const branchId = selectedBranchId.value
   try {
-    const result = await createWhatsAppInstance(selectedBranchId.value)
+    const result = await createWhatsAppInstance(branchId)
+    if (token !== requestToken) return
     config.value.whatsapp_instance_id = result.instance_id
     config.value.whatsapp_instance_status = 'pending'
     qrCode.value = result.qr_code ?? null
 
-    const gotQr = qrCode.value ? true : await pollForQr()
+    const gotQr = qrCode.value ? true : await pollForQr(branchId, token)
+    if (token !== requestToken) return
 
     if (gotQr) {
       success('Instancia creada. Escanea el código QR con WhatsApp')
@@ -442,7 +460,7 @@ const createInstance = async () => {
       showError('El QR está tardando más de lo normal — espera unos segundos y dale a "Verificar conexión"')
     }
   } catch (err: any) {
-    showError(err?.message ?? 'Error al crear la instancia')
+    if (token === requestToken) showError(err?.message ?? 'Error al crear la instancia')
   } finally {
     loading.value = false
   }
@@ -450,8 +468,11 @@ const createInstance = async () => {
 
 const checkStatus = async () => {
   loading.value = true
+  const token = requestToken
+  const branchId = selectedBranchId.value
   try {
-    const result = await getWhatsAppStatus(selectedBranchId.value)
+    const result = await getWhatsAppStatus(branchId)
+    if (token !== requestToken) return
     config.value.whatsapp_instance_status = result.status
     if (result.instance_number) {
       config.value.whatsapp_instance_number = result.instance_number
@@ -463,7 +484,7 @@ const checkStatus = async () => {
       showError('WhatsApp aún no está conectado. Escanea el QR.')
     }
   } catch (err: any) {
-    showError(err?.message ?? 'Error al verificar')
+    if (token === requestToken) showError(err?.message ?? 'Error al verificar')
   } finally {
     loading.value = false
   }
@@ -472,15 +493,18 @@ const checkStatus = async () => {
 const handleDisconnect = async () => {
   if (!confirm('¿Desconectar WhatsApp? Dejarás de enviar recordatorios por este canal.')) return
   loading.value = true
+  const token = ++requestToken
+  const branchId = selectedBranchId.value
   try {
-    await disconnectWhatsApp(selectedBranchId.value)
+    await disconnectWhatsApp(branchId)
+    if (token !== requestToken) return
     config.value.whatsapp_instance_id = null
     config.value.whatsapp_instance_status = 'disconnected'
     config.value.whatsapp_instance_number = null
     qrCode.value = null
     success('WhatsApp desconectado')
   } catch (err: any) {
-    showError(err?.message ?? 'Error al desconectar')
+    if (token === requestToken) showError(err?.message ?? 'Error al desconectar')
   } finally {
     loading.value = false
   }
