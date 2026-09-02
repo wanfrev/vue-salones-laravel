@@ -499,8 +499,11 @@ export const listStaffingInvoices = async (
 export const getStaffingInvoice = (id: string): Promise<StaffingInvoice> =>
   apiRequest<StaffingInvoice>('GET', `/staffing-invoices/${id}`)
 
-export const generateStaffingInvoice = (timesheetId: string): Promise<StaffingInvoice> =>
-  apiRequest<StaffingInvoice>('POST', '/staffing-invoices/generate', { timesheet_id: timesheetId })
+export const generateStaffingInvoice = (timesheetId: string, invoiceNumber?: string): Promise<StaffingInvoice> =>
+  apiRequest<StaffingInvoice>('POST', '/staffing-invoices/generate', {
+    timesheet_id: timesheetId,
+    ...(invoiceNumber ? { invoice_number: invoiceNumber.trim() } : {}),
+  })
 
 export const getCompanyBalance = (companyId: string): Promise<StaffingCompanyBalance> =>
   apiRequest<StaffingCompanyBalance>('GET', `/staffing-companies/${companyId}/balance`)

@@ -267,7 +267,7 @@
         </button>
         <button v-else-if="currentWeek && !existingInvoice" type="button" :disabled="billing.generateMutation.isPending.value"
           class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
-          @click="handleGenerateInvoice">
+          @click="openGenerateInvoiceModal">
           {{ billing.generateMutation.isPending.value ? 'Generando...' : 'Generar factura' }}
         </button>
         <template v-else-if="existingInvoice">
@@ -294,6 +294,15 @@
         </button>
       </div>
     </template>
+
+    <GenerateInvoiceModal
+      :show="showGenerateInvoiceModal"
+      :company-name="activeCompany?.name"
+      :total="totals.invoice"
+      :is-generating="billing.generateMutation.isPending.value"
+      @close="showGenerateInvoiceModal = false"
+      @generate="onConfirmGenerateInvoice"
+    />
   </div>
 </template>
 
@@ -317,6 +326,7 @@ import { printStaffingPayroll } from '../../lib/staffingPayrollPrint'
 import { formatDateUS, toISODate } from '../../lib/formatters'
 import type { StaffingTimesheetEntry, Profile } from '../../types/database'
 import { MagnifierIcon } from '@solar-icons/vue/linear'
+import GenerateInvoiceModal from './GenerateInvoiceModal.vue'
 
 const inputClass =
   'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30'
@@ -823,8 +833,18 @@ const handleMarkPaid = async () => {
   if (currentWeek.value) await timesheets.markPaid(currentWeek.value.id)
 }
 
-const handleGenerateInvoice = async () => {
-  if (currentWeek.value) await billing.generateInvoice(currentWeek.value.id)
+const showGenerateInvoiceModal = ref(false)
+
+const openGenerateInvoiceModal = () => {
+  showGenerateInvoiceModal.value = true
+}
+
+const onConfirmGenerateInvoice = async (invoiceNumber: string) => {
+  if (!currentWeek.value) return
+  const result = await billing.generateInvoice(currentWeek.value.id, invoiceNumber)
+  if (result) {
+    showGenerateInvoiceModal.value = false
+  }
 }
 
 const statusLabel = computed(() => {

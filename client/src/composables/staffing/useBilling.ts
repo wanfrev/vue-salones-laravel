@@ -62,7 +62,8 @@ export function useBilling(businessId: Ref<string | null>, companyId: Ref<string
     ])
 
   const generateMutation = useMutation({
-    mutationFn: (timesheetId: string) => generateStaffingInvoice(timesheetId),
+    mutationFn: ({ timesheetId, invoiceNumber }: { timesheetId: string; invoiceNumber?: string }) =>
+      generateStaffingInvoice(timesheetId, invoiceNumber),
     onSuccess: async (invoice) => {
       await invalidateAll()
       success(`Factura #${invoice.invoice_number} generada`)
@@ -103,10 +104,10 @@ export function useBilling(businessId: Ref<string | null>, companyId: Ref<string
     onError: (err) => showError(translateError(err)),
   })
 
-  const generateInvoice = async (timesheetId: string) => {
+  const generateInvoice = async (timesheetId: string, invoiceNumber?: string) => {
     saveError.value = ''
     try {
-      return await generateMutation.mutateAsync(timesheetId)
+      return await generateMutation.mutateAsync({ timesheetId, invoiceNumber })
     } catch {
       return null
     }
