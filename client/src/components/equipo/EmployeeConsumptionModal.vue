@@ -124,7 +124,7 @@ const handleSubmit = async () => {
                 <input
                   v-model.number="ctx.consumptionForm.quantity"
                   type="number"
-                  min="0.01"
+                  min="1"
                   step="1"
                   placeholder="1"
                   required

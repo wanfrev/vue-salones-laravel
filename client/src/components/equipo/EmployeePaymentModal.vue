@@ -410,7 +410,7 @@ const consumptionConvertedAmount = computed(() => {
                     <input
                       v-model.number="consumptionForm.quantity"
                       type="number"
-                      min="0.01"
+                      min="1"
                       step="1"
                       placeholder="1"
                       required
