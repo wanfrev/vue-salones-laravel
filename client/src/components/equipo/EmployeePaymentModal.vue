@@ -116,6 +116,10 @@ const handleSubmit = async () => {
 
 const showConsumptionForm = ref(false)
 const consumptionForm = reactive({
+  mode: 'amount' as 'amount' | 'product',
+  productId: '',
+  quantity: 1,
+  unitPrice: 0,
   concept: '',
   amount: 0,
   currency: 'USD' as 'USD' | 'VES',
@@ -125,7 +129,31 @@ const consumptionForm = reactive({
 const consumptionSaving = ref(false)
 const consumptionError = ref('')
 
+const selectedProduct = computed(() => {
+  if (!consumptionForm.productId) return null
+  return ctx.productos?.find((p: any) => p.id === consumptionForm.productId) ?? null
+})
+
+const onProductSelected = () => {
+  const p = selectedProduct.value
+  if (!p) return
+  consumptionForm.concept = p.name
+  consumptionForm.unitPrice = p.unitPrice || 0
+  consumptionForm.quantity = 1
+  consumptionForm.amount = p.unitPrice || 0
+}
+
+watch([() => consumptionForm.quantity, () => consumptionForm.unitPrice, () => consumptionForm.mode], () => {
+  if (consumptionForm.mode === 'product') {
+    consumptionForm.amount = Math.round(consumptionForm.quantity * consumptionForm.unitPrice * 100) / 100
+  }
+})
+
 const openConsumptionForm = () => {
+  consumptionForm.mode = 'amount'
+  consumptionForm.productId = ''
+  consumptionForm.quantity = 1
+  consumptionForm.unitPrice = 0
   consumptionForm.concept = ''
   consumptionForm.amount = 0
   consumptionForm.currency = 'USD'
@@ -141,10 +169,18 @@ const cancelConsumption = () => {
 
 const handleSaveConsumption = async () => {
   if (!ctx.paymentForm.employeeId) return
+  if (consumptionForm.mode === 'product' && !consumptionForm.productId) {
+    consumptionError.value = 'Por favor selecciona un producto'
+    return
+  }
   consumptionSaving.value = true
   consumptionError.value = ''
   try {
+    ctx.consumptionForm.mode = consumptionForm.mode
     ctx.consumptionForm.employeeId = ctx.paymentForm.employeeId
+    ctx.consumptionForm.productId = consumptionForm.mode === 'product' ? consumptionForm.productId : ''
+    ctx.consumptionForm.quantity = consumptionForm.mode === 'product' ? consumptionForm.quantity : 1
+    ctx.consumptionForm.unitPrice = consumptionForm.mode === 'product' ? consumptionForm.unitPrice : 0
     ctx.consumptionForm.concept = consumptionForm.concept
     ctx.consumptionForm.amount = consumptionForm.amount
     ctx.consumptionForm.currency = consumptionForm.currency
@@ -323,32 +359,126 @@ const consumptionConvertedAmount = computed(() => {
                 </button>
               </div>
 
-              <div>
-                <label class="mb-1 block text-xs font-medium text-text-muted">Concepto</label>
-                <input v-model="consumptionForm.concept" type="text"
-                  class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-warning"
-                  placeholder="Ej: Producto, servicio consumido..." required />
+              <!-- Tipo de consumo selector -->
+              <div class="flex rounded-lg border border-border bg-surface p-0.5 text-xs">
+                <button
+                  type="button"
+                  @click="consumptionForm.mode = 'amount'"
+                  class="flex-1 rounded-md py-1.5 font-semibold transition-theme text-center"
+                  :class="consumptionForm.mode === 'amount' ? 'bg-warning text-text-inverse shadow-sm' : 'text-text-secondary hover:text-text'"
+                >
+                  Monto directo
+                </button>
+                <button
+                  type="button"
+                  @click="consumptionForm.mode = 'product'"
+                  class="flex-1 rounded-md py-1.5 font-semibold transition-theme text-center"
+                  :class="consumptionForm.mode === 'product' ? 'bg-warning text-text-inverse shadow-sm' : 'text-text-secondary hover:text-text'"
+                >
+                  Producto de inventario
+                </button>
               </div>
 
-              <div class="grid grid-cols-2 gap-3">
+              <!-- Si es Producto de inventario -->
+              <template v-if="consumptionForm.mode === 'product'">
                 <div>
-                  <label class="mb-1 block text-xs font-medium text-text-muted">Monto</label>
-                  <input v-model.number="consumptionForm.amount" type="number" min="0.01" step="0.01" placeholder="0.00" required
-                    class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-warning" />
-                  <p v-if="consumptionConvertedAmount" class="mt-1 text-xs text-text-muted">
-                    {{ consumptionForm.currency === 'USD' ? '≈' : '=' }} {{ consumptionConvertedAmount }}
-                    <span class="text-text-muted/60">({{ rateLabel }})</span>
-                  </p>
-                </div>
-                <div>
-                  <label class="mb-1 block text-xs font-medium text-text-muted">Moneda</label>
-                  <select v-model="consumptionForm.currency"
-                    class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-warning">
-                    <option value="USD">USD $</option>
-                    <option value="VES">Bs</option>
+                  <label class="mb-1 block text-xs font-medium text-text-muted">Producto de inventario</label>
+                  <select
+                    v-model="consumptionForm.productId"
+                    @change="onProductSelected"
+                    class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-warning"
+                    required
+                  >
+                    <option value="" disabled>Seleccionar producto...</option>
+                    <option
+                      v-for="prod in ctx.productos"
+                      :key="prod.id"
+                      :value="prod.id"
+                    >
+                      {{ prod.name }} (Stock: {{ prod.stockTotal ?? 0 }}) · {{ formatUSD(prod.unitPrice) }}
+                    </option>
                   </select>
+                  <div v-if="selectedProduct" class="mt-1.5 flex items-center justify-between text-[11px] text-text-muted">
+                    <span>Stock disponible: <strong :class="(selectedProduct.stockTotal ?? 0) <= 0 ? 'text-danger' : 'text-text'">{{ selectedProduct.stockTotal ?? 0 }} unid.</strong></span>
+                    <span>Precio catálogo: <strong>{{ formatUSD(selectedProduct.unitPrice) }}</strong></span>
+                  </div>
                 </div>
-              </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-text-muted">Cantidad a rebajar</label>
+                    <input
+                      v-model.number="consumptionForm.quantity"
+                      type="number"
+                      min="0.01"
+                      step="1"
+                      placeholder="1"
+                      required
+                      class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-warning"
+                    />
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-text-muted">Precio unitario ($)</label>
+                    <input
+                      v-model.number="consumptionForm.unitPrice"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      required
+                      class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-warning"
+                    />
+                  </div>
+                </div>
+
+                <div class="rounded-lg border border-dashed border-warning/40 bg-warning/10 p-2.5 flex items-center justify-between text-xs">
+                  <span class="text-text-muted font-medium">Total a debitar al empleado:</span>
+                  <span class="text-sm font-bold text-warning tabular-nums">
+                    {{ formatUSD(consumptionForm.quantity * consumptionForm.unitPrice) }}
+                  </span>
+                </div>
+
+                <div>
+                  <label class="mb-1 block text-xs font-medium text-text-muted">Concepto en nómina</label>
+                  <input
+                    v-model="consumptionForm.concept"
+                    type="text"
+                    class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-warning"
+                    placeholder="Ej: Producto consumido..."
+                    required
+                  />
+                </div>
+              </template>
+
+              <!-- Si es Monto directo -->
+              <template v-else>
+                <div>
+                  <label class="mb-1 block text-xs font-medium text-text-muted">Concepto</label>
+                  <input v-model="consumptionForm.concept" type="text"
+                    class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-warning"
+                    placeholder="Ej: Producto, servicio consumido..." required />
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-text-muted">Monto</label>
+                    <input v-model.number="consumptionForm.amount" type="number" min="0.01" step="0.01" placeholder="0.00" required
+                      class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-warning" />
+                    <p v-if="consumptionConvertedAmount" class="mt-1 text-xs text-text-muted">
+                      {{ consumptionForm.currency === 'USD' ? '≈' : '=' }} {{ consumptionConvertedAmount }}
+                      <span class="text-text-muted/60">({{ rateLabel }})</span>
+                    </p>
+                  </div>
+                  <div>
+                    <label class="mb-1 block text-xs font-medium text-text-muted">Moneda</label>
+                    <select v-model="consumptionForm.currency"
+                      class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-warning">
+                      <option value="USD">USD $</option>
+                      <option value="VES">Bs</option>
+                    </select>
+                  </div>
+                </div>
+              </template>
 
               <div>
                 <label class="mb-1 block text-xs font-medium text-text-muted">Fecha</label>

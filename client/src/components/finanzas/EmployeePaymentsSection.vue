@@ -466,71 +466,14 @@
     </div>
   </Teleport>
 
-  <Teleport to="body">
-    <div v-if="paymentsCtx.showConsumptionModal.value"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-      @click.self="paymentsCtx.closeConsumptionModal()">
-      <div class="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-xl">
-        <div class="mb-4">
-          <h2 class="text-lg font-semibold text-text">Debitar consumo</h2>
-          <p class="text-sm text-text-muted">Registra un producto o servicio consumido por el empleado</p>
-        </div>
-        <form class="space-y-4" @submit.prevent="handleSubmitConsumption">
-          <div v-if="paymentsCtx.consumptionError.value"
-            class="rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
-            <p class="font-medium">Error al registrar</p>
-            <p class="mt-0.5">{{ paymentsCtx.consumptionError.value }}</p>
-          </div>
-          <div>
-            <label class="mb-1 block text-sm font-medium text-text">{{ terminology.employee || 'Empleado' }}</label>
-            <select v-model="paymentsCtx.consumptionForm.value.employeeId" required
-              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30">
-              <option value="" disabled>Seleccionar {{ (terminology.employee || 'empleado').toLowerCase() }}</option>
-              <option v-for="emp in paymentsCtx.employeeList.value" :key="emp.id" :value="emp.id">{{ emp.name }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <label class="mb-1 block text-sm font-medium text-text">Concepto</label>
-            <input v-model="paymentsCtx.consumptionForm.value.concept" type="text"
-              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
-              placeholder="Ej: Café, Producto X, Servicio Y..." required />
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="mb-1 block text-sm font-medium text-text">Monto</label>
-              <input v-model.number="paymentsCtx.consumptionForm.value.amount" type="number" min="0.01" step="0.01"
-                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
-                placeholder="0.00" required />
-            </div>
-            <div>
-              <label class="mb-1 block text-sm font-medium text-text">Moneda</label>
-              <select v-model="paymentsCtx.consumptionForm.value.currency"
-                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30">
-                <option value="USD">USD $</option>
-                <option value="VES">Bs</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label class="mb-1 block text-sm font-medium text-text">Fecha</label>
-            <input v-model="paymentsCtx.consumptionForm.value.date" type="date"
-              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
-              required />
-          </div>
-          <div class="flex items-center justify-end gap-3">
-            <button type="button"
-              class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
-              @click="paymentsCtx.closeConsumptionModal()">Cancelar</button>
-            <button type="submit" :disabled="paymentsCtx.consumeMutation.isPending.value"
-              class="inline-flex items-center justify-center rounded-lg bg-warning px-4 py-2 text-sm font-semibold text-text-inverse shadow-sm transition-theme hover:bg-warning-hover disabled:cursor-not-allowed disabled:opacity-60">
-              {{ paymentsCtx.consumeMutation.isPending.value ? 'Guardando...' : 'Debitar' }}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </Teleport>
+  <EmployeeConsumptionModal
+    :payments-ctx="paymentsCtx"
+    :business-id="props.businessId"
+    :branch-id="branchId"
+    :employees="paymentsCtx.employeeList.value"
+    @close="paymentsCtx.closeConsumptionModal()"
+    @consumption-saved="emit('saved')"
+  />
 </template>
 
 <script setup lang="ts">
@@ -541,6 +484,7 @@ import { useEmployeePayments } from '../../composables/empleados/useEmployeePaym
 import { useBusinessStore } from '../../store/business'
 import { getEmployeeBalance, type EmployeeBalance, type EmployeePaymentRecord } from '../../services/employeePaymentsService'
 import type { EmployeeEarningSummary } from '../../composables/finanzas/useFinancialSummary'
+import EmployeeConsumptionModal from '../equipo/EmployeeConsumptionModal.vue'
 
 const fmtDate = (d: string) => {
   try { const dt = new Date(d); return `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}` } catch { return d }
@@ -701,14 +645,5 @@ const handleSubmitPayment = async () => {
 
 const handleDeletePayment = (id: string) => {
   paymentsCtx.handleDelete(id)
-}
-
-const handleSubmitConsumption = async () => {
-  try {
-    await paymentsCtx.handleSaveConsumption()
-    emit('saved')
-  } catch {
-    // Error handled by composable
-  }
 }
 </script>

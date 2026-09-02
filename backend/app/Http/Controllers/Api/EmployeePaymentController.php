@@ -59,10 +59,17 @@ class EmployeePaymentController
             'notes' => 'nullable|string|max:500',
             'payment_date' => 'required|date',
             'branch_id' => 'nullable|uuid',
+            'product_id' => 'nullable|uuid',
+            'quantity' => 'nullable|numeric|min:0.01',
         ]);
 
         $payment = $this->paymentService->store($data, $businessId, $request->user()->id);
         EntityChanged::safe($businessId, 'employee_payment', 'created', $payment->id);
+
+        if (!empty($data['product_id'])) {
+            EntityChanged::safe($businessId, 'inventory', 'updated');
+            EntityChanged::safe($businessId, 'product', 'updated', $data['product_id']);
+        }
 
         return response()->json($payment, 201);
     }
@@ -90,8 +97,9 @@ class EmployeePaymentController
     public function destroy(Request $request, string $id): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
-        $this->paymentService->destroy($id, $businessId);
+        $this->paymentService->destroy($id, $businessId, $request->user()?->id);
         EntityChanged::safe($businessId, 'employee_payment', 'deleted', $id);
+        EntityChanged::safe($businessId, 'inventory', 'updated');
 
         return response()->json(null, 204);
     }
