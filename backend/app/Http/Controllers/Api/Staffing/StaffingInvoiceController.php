@@ -46,10 +46,15 @@ class StaffingInvoiceController
 
         $data = $request->validate([
             'timesheet_id' => 'required|uuid',
+            'invoice_number' => 'nullable|string|max:50',
         ]);
 
         try {
-            $invoice = $this->invoices->generateFromTimesheet($p->business_id, $data['timesheet_id']);
+            $invoice = $this->invoices->generateFromTimesheet(
+                $p->business_id,
+                $data['timesheet_id'],
+                $data['invoice_number'] ?? null,
+            );
         } catch (RuntimeException $e) {
             return response()->json(['error' => ['message' => $e->getMessage()]], 422);
         }

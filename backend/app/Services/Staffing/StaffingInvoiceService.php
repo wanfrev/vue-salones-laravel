@@ -38,9 +38,9 @@ class StaffingInvoiceService
         return $query->get();
     }
 
-    public function generateFromTimesheet(string $businessId, string $timesheetId): StaffingInvoice
+    public function generateFromTimesheet(string $businessId, string $timesheetId, ?string $manualInvoiceNumber = null): StaffingInvoice
     {
-        return DB::transaction(function () use ($businessId, $timesheetId) {
+        return DB::transaction(function () use ($businessId, $timesheetId, $manualInvoiceNumber) {
             $timesheet = StaffingTimesheet::with(['entries', 'project'])->lockForUpdate()->find($timesheetId);
             if (!$timesheet || $timesheet->business_id !== $businessId) {
                 throw new NotFoundHttpException('Semana no encontrada.');
@@ -57,13 +57,21 @@ class StaffingInvoiceService
             $issueDate = now()->toDateString();
             $termsDays = $company->payment_terms_days ?: 15;
 
+            $invoiceNumber = !empty($manualInvoiceNumber)
+                ? trim($manualInvoiceNumber)
+                : $this->nextInvoiceNumber($businessId);
+
+            if (StaffingInvoice::where('business_id', $businessId)->where('invoice_number', $invoiceNumber)->exists()) {
+                throw new RuntimeException("El número de invoice #{$invoiceNumber} ya existe para este negocio. Por favor usa otro número.");
+            }
+
             return StaffingInvoice::create([
                 'id' => Str::uuid()->toString(),
                 'business_id' => $businessId,
                 'company_id' => $company->id,
                 'timesheet_id' => $timesheet->id,
                 'project_id' => $timesheet->project_id,
-                'invoice_number' => $this->nextInvoiceNumber($businessId),
+                'invoice_number' => $invoiceNumber,
                 'issue_date' => $issueDate,
                 'due_date' => now()->addDays($termsDays)->toDateString(),
                 'terms_days' => $termsDays,
