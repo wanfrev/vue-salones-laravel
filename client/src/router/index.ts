@@ -185,6 +185,12 @@ const router = createRouter({
           meta: { gate: { capability: 'staffing.spreadsheet' } },
         },
         {
+          path: 'incidentes',
+          name: 'admin-incidentes',
+          component: () => import('../views/Incidentes.vue'),
+          meta: { gate: { capability: 'staffing.incidents' } },
+        },
+        {
           path: 'servicios',
           name: 'admin-servicios',
           component: () => import('../views/Servicios.vue'),

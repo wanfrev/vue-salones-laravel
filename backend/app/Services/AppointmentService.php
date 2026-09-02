@@ -24,6 +24,7 @@ class AppointmentService
         ?string $source = null,
         bool $hasClientFilter = false,
         ?string $clientId = null,
+        ?string $search = null,
     ): Collection {
         $query = Appointment::with($this->getWithRelations())
             ->where('business_id', $businessId)
@@ -81,6 +82,25 @@ class AppointmentService
                 $cleanClientId = preg_replace('/^(eq|neq)\./i', '', $clientId);
                 $query->where('client_id', $cleanClientId);
             }
+        }
+        if ($search) {
+            $term = $search . '%';
+            $query->where(function ($q) use ($term) {
+                $q->whereHas('client', function ($qq) use ($term) {
+                    $qq->where('full_name', 'ilike', $term)
+                       ->orWhere('phone', 'ilike', $term);
+                })
+                ->orWhereHas('employeeProfile', fn ($qq) => $qq->where('full_name', 'ilike', $term))
+                ->orWhereHas('assistantProfile', fn ($qq) => $qq->where('full_name', 'ilike', $term))
+                ->orWhereHas('service', fn ($qq) => $qq->where('name', 'ilike', $term));
+            });
+            // Búsqueda global (sin acotar por start_date/end_date): trae primero la
+            // cita más cercana a "ahora", ya sea futura o pasada, en vez del orden
+            // ascendente por fecha que usan las cargas normales por rango visible.
+            // Límite más alto que el de resultados a mostrar: una cita de grupo (varios
+            // servicios en una misma visita, mismo group_id) ocupa varias filas aquí pero
+            // el frontend las junta en un solo resultado.
+            $query->reorder()->orderByRaw('ABS(EXTRACT(EPOCH FROM (start_time - NOW())))')->take(25);
         }
 
         return $query->get();

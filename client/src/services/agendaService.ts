@@ -81,6 +81,37 @@ export const listCitas = async (
   return (data as AppointmentWithRelations[]).map(mapAppointmentToCita)
 }
 
+export const searchAppointmentsGlobal = async (
+  businessId: string,
+  term: string,
+  branchId?: string | null,
+): Promise<AppointmentWithRelations[]> => {
+  let query = db
+    .from('appointments')
+    .select(APPOINTMENT_SELECT)
+    .eq('business_id', businessId)
+    .eq('search', term)
+
+  if (branchId) {
+    query = query.eq('branch_id', branchId)
+  }
+
+  const { data, error } = await query
+  if (error) throw error
+  return data as AppointmentWithRelations[]
+}
+
+/** Same global search, mapped to `Cita[]` — for list-style views (e.g. Admin.vue) that
+ * consume the same shape `listCitas` returns, instead of the raw rows AgendaCalendar needs. */
+export const searchCitasGlobal = async (
+  businessId: string,
+  term: string,
+  branchId?: string | null,
+): Promise<Cita[]> => {
+  const rows = await searchAppointmentsGlobal(businessId, term, branchId)
+  return rows.map(mapAppointmentToCita)
+}
+
 export const listCitaGroupMembers = async (groupId: string): Promise<AppointmentWithRelations[]> => {
   const cleanGroupId = groupId.replace(/^(gte|lte|gt|lt|eq|in|neq)\./i, '')
   const { data, error } = await db

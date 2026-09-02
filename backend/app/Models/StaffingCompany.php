@@ -25,7 +25,7 @@ class StaffingCompany extends Model
         'name', 'legal_name', 'address', 'city', 'state', 'zip', 'work_site',
         'contact_name', 'contact_phone', 'contact_email',
         'payment_terms_days',
-        'agency_overhead_rate', 'per_diem_rate',
+        'agency_overhead_rate',
         'tax_rate', 'tax_brackets', 'tax_destination',
         'payout_rounding',
         'active', 'status', 'notes',
@@ -36,7 +36,6 @@ class StaffingCompany extends Model
         return [
             'payment_terms_days' => 'integer',
             'agency_overhead_rate' => 'float',
-            'per_diem_rate' => 'float',
             'tax_rate' => 'float',
             'tax_brackets' => 'array',
             'active' => 'boolean',

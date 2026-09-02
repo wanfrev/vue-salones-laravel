@@ -377,7 +377,36 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-3 gap-3">
+          <template v-if="isDayRateMode">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="mb-1 block text-sm font-medium text-text">Divisas a pagar ($)</label>
+                <input v-model.number="paymentsCtx.dayRateForm.value.divisas" type="number" min="0" step="0.01" placeholder="0.00"
+                  class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+              </div>
+              <div>
+                <label class="mb-1 block text-sm font-medium text-text">Tasa (Bs por $)</label>
+                <input v-model.number="paymentsCtx.dayRateForm.value.tasa" type="number" min="0.01" step="0.01" placeholder="0.00"
+                  class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+              </div>
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-text">Bolívares a pagar (Bs)</label>
+              <input v-model.number="paymentsCtx.dayRateForm.value.bolivares" type="number" min="0" step="0.01" placeholder="0.00"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            </div>
+            <div class="rounded-lg border border-dashed border-border bg-surface p-2.5 space-y-1.5 text-xs">
+              <div class="flex items-center justify-between">
+                <span class="text-text-muted">Pendiente actual</span>
+                <span class="font-medium text-text">{{ formatUSD(dayRatePreview.pendingUsd) }} · {{ formatVESEs(dayRatePreview.pendingBs) }}</span>
+              </div>
+              <div class="flex items-center justify-between border-t border-border-subtle pt-1.5 font-semibold">
+                <span class="text-text">Restante</span>
+                <span class="text-text">{{ formatUSD(dayRatePreview.remainingUsd) }} · {{ formatVESEs(dayRatePreview.remainingBs) }}</span>
+              </div>
+            </div>
+          </template>
+          <div v-else class="grid grid-cols-3 gap-3">
             <div>
               <label class="mb-1 block text-sm font-medium text-text">Monto</label>
               <input v-model.number="paymentsCtx.paymentForm.value.amount" type="number" min="0.01" step="0.01"
@@ -505,7 +534,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { formatMethod } from '../../lib/formatters'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useEmployeePayments } from '../../composables/empleados/useEmployeePayments'
@@ -622,9 +651,38 @@ const onEmployeeChange = async () => {
   }
 }
 
+const isDayRateMode = computed(() =>
+  !!businessStore.features.payroll_day_average_rate_enabled && !paymentsCtx.editingPaymentId.value
+)
+
+watch(selectedBalance, (b) => {
+  if (b && !paymentsCtx.dayRateForm.value.tasa) {
+    paymentsCtx.dayRateForm.value.tasa = effectiveRate.value
+  }
+})
+
+const dayRatePreview = computed(() => {
+  const pendingUsd = selectedBalance.value?.pending ?? 0
+  const { divisas, tasa, bolivares } = paymentsCtx.dayRateForm.value
+  const rate = tasa || effectiveRate.value
+  const pendingBs = pendingUsd * rate
+  const paidUsdEquivalent = divisas + (tasa > 0 ? bolivares / tasa : 0)
+  const paidBs = divisas * tasa + bolivares
+  return {
+    pendingUsd,
+    pendingBs,
+    remainingUsd: pendingUsd - paidUsdEquivalent,
+    remainingBs: pendingBs - paidBs,
+  }
+})
+
 const handleSavePayment = async () => {
   try {
-    await paymentsCtx.handleSavePayment()
+    if (isDayRateMode.value) {
+      await paymentsCtx.handleSaveDayRatePayment()
+    } else {
+      await paymentsCtx.handleSavePayment()
+    }
     closePaymentModal()
     emit('saved')
   } catch {

@@ -44,6 +44,7 @@ return [
         'reminder_24h_enabled' => true,
         'payroll_locked_exchange_rate' => false,
         'payroll_currency_breakdown_enabled' => false,
+        'payroll_day_average_rate_enabled' => false,
         // Explicit opt-in for giving a non-tienda business full tienda-style retail treatment.
         // Deliberately separate from pos/productos — those default `true` for every niche purely
         // for nav visibility, so they can't signal that a business actually wants this experience.
@@ -118,7 +119,7 @@ return [
         ],
         'staffing' => [
             'status' => 'creatable',
-            'capabilities' => ['staffing.timesheets', 'staffing.billing', 'staffing.crm', 'staffing.reports', 'staffing.spreadsheet'],
+            'capabilities' => ['staffing.timesheets', 'staffing.billing', 'staffing.crm', 'staffing.reports', 'staffing.spreadsheet', 'staffing.incidents'],
             'feature_defaults' => [
                 'agenda' => false,
                 'calendario' => false,

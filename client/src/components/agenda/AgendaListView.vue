@@ -42,9 +42,19 @@
         <table class="w-full">
           <thead>
             <tr class="border-b border-border bg-bg-secondary/50">
-              <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-text-muted">
-                Cliente</th>
-              <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-text-muted">Fecha
+              <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-text-muted cursor-pointer select-none hover:text-text" @click="toggleSort('client')">
+                <span class="inline-flex items-center gap-1">Cliente
+                  <svg v-if="sortKey === 'client'" class="h-3 w-3 transition-transform" :class="{ 'rotate-180': sortDir === 'desc' }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </span>
+              </th>
+              <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-text-muted cursor-pointer select-none hover:text-text" @click="toggleSort('date')">
+                <span class="inline-flex items-center gap-1">Fecha
+                  <svg v-if="sortKey === 'date'" class="h-3 w-3 transition-transform" :class="{ 'rotate-180': sortDir === 'desc' }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </span>
               </th>
               <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-text-muted">Hora
               </th>
@@ -52,7 +62,12 @@
                 Servicio</th>
               <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-text-muted">
                 Empleado</th>
-              <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-text-muted">Estado
+              <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-text-muted cursor-pointer select-none hover:text-text" @click="toggleSort('status')">
+                <span class="inline-flex items-center gap-1">Estado
+                  <svg v-if="sortKey === 'status'" class="h-3 w-3 transition-transform" :class="{ 'rotate-180': sortDir === 'desc' }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </span>
               </th>
               <th class="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-widest text-text-muted">
                 Acciones</th>
@@ -82,6 +97,11 @@
               </td>
               <td class="px-4 py-3">
                 <span class="text-sm text-text-secondary">{{ cita.service }}</span>
+                <span v-if="(cita.groupServiceNames?.length ?? 0) > 1"
+                  :title="cita.groupServiceNames!.join(', ')"
+                  class="ml-1.5 inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                  +{{ cita.groupServiceNames!.length - 1 }} {{ cita.groupServiceNames!.length - 1 === 1 ? 'servicio' : 'servicios' }}
+                </span>
               </td>
               <td class="px-4 py-3">
                 <span class="text-sm text-text-secondary">{{ cita.employee }}</span>
@@ -146,6 +166,11 @@
                   <span class="text-text-muted">({{ cita.duration }}min)</span>
                 </span>
                 <span v-if="cita.service" class="truncate max-w-[120px]">{{ cita.service }}</span>
+                <span v-if="(cita.groupServiceNames?.length ?? 0) > 1"
+                  :title="cita.groupServiceNames!.join(', ')"
+                  class="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+                  +{{ cita.groupServiceNames!.length - 1 }} {{ cita.groupServiceNames!.length - 1 === 1 ? 'servicio' : 'servicios' }}
+                </span>
               </div>
               <p v-if="cita.employee" class="text-[11px] text-text-muted truncate">{{ cita.employee }}</p>
               <p v-if="cita.notes" class="mt-1.5 border-t border-border-subtle pt-1 text-[11px] text-text-muted line-clamp-2">{{ cita.notes }}</p>
@@ -210,7 +235,7 @@
 </template>
 
 <script setup lang="ts">
-import { toRef, watch } from 'vue'
+import { computed, ref, toRef, watch } from 'vue'
 import { getInitials, getStatusColor, formatTime24to12, parseLocalDate } from '../../lib/formatters'
 import { usePagination } from '../../composables/common/usePagination'
 import type { Cita } from '../../types/cita'
@@ -240,6 +265,35 @@ defineEmits<{
 
 const citasRef = toRef(props, 'citas')
 
+type SortKey = 'client' | 'date' | 'status' | null
+const sortKey = ref<SortKey>(null)
+const sortDir = ref<'asc' | 'desc'>('asc')
+const STATUS_ORDER: Record<string, number> = { pending: 0, confirmed: 1, paid: 2, cancelled: 3 }
+
+function toggleSort(key: Exclude<SortKey, null>) {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    sortKey.value = key
+    sortDir.value = 'asc'
+  }
+}
+
+const sortedCitas = computed(() => {
+  if (!sortKey.value) return citasRef.value
+  const dir = sortDir.value === 'asc' ? 1 : -1
+  const key = sortKey.value
+  return [...citasRef.value].sort((a, b) => {
+    if (key === 'client') return a.clientName.localeCompare(b.clientName) * dir
+    if (key === 'date') {
+      const av = `${a.date}T${a.time}`
+      const bv = `${b.date}T${b.time}`
+      return (av < bv ? -1 : av > bv ? 1 : 0) * dir
+    }
+    return ((STATUS_ORDER[a.status] ?? 99) - (STATUS_ORDER[b.status] ?? 99)) * dir
+  })
+})
+
 const {
   paginatedData,
   currentPage,
@@ -254,11 +308,11 @@ const {
   goToPage,
   pageNumbers,
 } = usePagination({
-  data: citasRef,
+  data: sortedCitas,
   pageSize: props.pageSize ?? 25,
 })
 
-watch(() => props.citas, () => {
+watch([() => props.citas, sortKey, sortDir], () => {
   goToPage(1)
 })
 </script>

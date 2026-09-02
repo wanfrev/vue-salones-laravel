@@ -4,14 +4,18 @@ namespace App\Http\Controllers\Api\Staffing;
 
 use App\Events\EntityChanged;
 use App\Services\Staffing\StaffingInvoiceService;
+use App\Services\Staffing\StaffingXlsxExportService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use RuntimeException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StaffingInvoiceController
 {
     public function __construct(
         private StaffingInvoiceService $invoices,
+        private StaffingXlsxExportService $xlsxExport,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -78,5 +82,25 @@ class StaffingInvoiceController
         }
 
         return response()->json($this->invoices->balanceForCompany($p->business_id, $companyId));
+    }
+
+    public function downloadXlsx(Request $request, string $id): StreamedResponse|JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        }
+
+        $invoice = $this->invoices->findForBusiness($id, $p->business_id);
+        $spreadsheet = $this->xlsxExport->invoiceWorkbook($invoice);
+        $writer = new Xlsx($spreadsheet);
+
+        $filename = preg_replace('/[^A-Za-z0-9._-]+/', '_', 'invoice-' . $invoice->invoice_number . '.xlsx');
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 }

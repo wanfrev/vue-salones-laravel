@@ -8,9 +8,10 @@ use Illuminate\Support\Collection;
 
 /**
  * Backs the "Spreadsheet" module: a vendedora (or admin) picks a client company, picks some of
- * its staffed employees, and gets a bill-rate sheet to hand to that client. Every method here is
- * deliberately narrow — it exists so a vendedora-reachable endpoint never has to touch the full
- * rate card (which carries pay_rate) or the full company record (overhead/tax internals).
+ * its staffed employees, and gets a pay-rate sheet — what the agency pays that employee, never
+ * what's billed to the client. Every method here is deliberately narrow — it exists so a
+ * vendedora-reachable endpoint never has to touch the full company record (overhead/tax
+ * internals) or the client-facing bill_rate.
  */
 class StaffingSpreadsheetService
 {
@@ -60,14 +61,14 @@ class StaffingSpreadsheetService
     }
 
     /**
-     * Employees staffed at this company with their BILL rate only (never pay_rate — that's what
-     * the agency pays, not what the client is charged, and this data ends up on a client-facing
-     * PDF). Joins the roster (one row per assignment) to the rate card by role+shift, exactly like
-     * StaffingHoursPanel.vue's rateFor(), then dedupes by employee: the same person holding the
-     * same role across several of this company's projects only needs to appear once in a sheet
-     * meant to be handed to the client as "who's staffed here and at what rate".
+     * Employees staffed at this company with their PAY rate only (never bill_rate — what's
+     * charged to the client is not this sheet's concern; this sheet is about what the agency
+     * pays the employee). Joins the roster (one row per assignment) to the rate card by
+     * role+shift, exactly like StaffingHoursPanel.vue's rateFor(), then dedupes by employee: the
+     * same person holding the same role across several of this company's projects only needs to
+     * appear once.
      *
-     * @return list<array{employeeId: string, name: string, role: string, shift: ?string, billRate: ?float, overtimeBillRate: ?float}>
+     * @return list<array{employeeId: string, name: string, role: string, shift: ?string, payRate: ?float, overtimePayRate: ?float}>
      */
     public function companyEmployeeRates(string $businessId, string $companyId): array
     {
@@ -88,8 +89,8 @@ class StaffingSpreadsheetService
                     'name' => $employee->full_name,
                     'role' => $employee->staffing_role,
                     'shift' => $employee->staffing_shift,
-                    'billRate' => $rate?->bill_rate !== null ? (float) $rate->bill_rate : null,
-                    'overtimeBillRate' => $rate?->overtime_bill_rate !== null ? (float) $rate->overtime_bill_rate : null,
+                    'payRate' => $rate?->pay_rate !== null ? (float) $rate->pay_rate : null,
+                    'overtimePayRate' => $rate?->overtime_pay_rate !== null ? (float) $rate->overtime_pay_rate : null,
                 ];
             })
             ->sortBy('name')

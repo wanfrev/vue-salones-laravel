@@ -193,7 +193,9 @@ class WhatsAppController extends Controller
     }
 
     /**
-     * Check instance connection status.
+     * Check instance connection status. Also picks up the connected phone number the first time
+     * status comes back as open/connected — createInstance() only ever knows the instance name,
+     * not the number, since that's only assigned once someone actually scans the QR.
      */
     public function status(Request $request): JsonResponse
     {
@@ -206,11 +208,21 @@ class WhatsAppController extends Controller
 
         $status = $this->whatsappService->checkInstanceStatus($business, $instance);
 
+        $updates = [];
         if ($status && $status !== $instance->instance_status) {
-            $instance->update(['instance_status' => $status]);
+            $updates['instance_status'] = $status;
+        }
+        if (in_array($status, ['open', 'connected'], true) && !$instance->instance_number) {
+            $number = $this->whatsappService->fetchInstanceNumber($business, $instance);
+            if ($number) {
+                $updates['instance_number'] = $number;
+            }
+        }
+        if ($updates) {
+            $instance->update($updates);
         }
 
-        return response()->json(['status' => $status]);
+        return response()->json(['status' => $status, 'instance_number' => $instance->instance_number]);
     }
 
     /**

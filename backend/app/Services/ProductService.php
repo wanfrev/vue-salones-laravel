@@ -108,12 +108,35 @@ class ProductService
 
     public function storeCategory(array $data, string $businessId): ProductCategory
     {
+        $name = trim($data['name']);
+        $branchId = $data['branch_id'] ?? null;
+
+        // Sin esto, elegir "+ Agregar nuevo" y escribir el nombre de una categoría que ya
+        // existe (o que solo difiere en mayúsculas/espacios) crea una fila duplicada que
+        // termina apareciendo repetida en el selector — mismo alcance de visibilidad que
+        // listCategories() (una categoría sin sucursal es visible en todas).
+        $existing = ProductCategory::query()
+            ->where('business_id', $businessId)
+            ->where('active', true)
+            ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+            ->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id');
+                if ($branchId) {
+                    $q->orWhere('branch_id', $branchId);
+                }
+            })
+            ->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
         return ProductCategory::create([
             'id' => Str::uuid()->toString(),
             'business_id' => $businessId,
-            'branch_id' => $data['branch_id'] ?? null,
+            'branch_id' => $branchId,
             'parent_id' => $data['parent_id'] ?? null,
-            'name' => $data['name'],
+            'name' => $name,
             'description' => $data['description'] ?? null,
             'active' => true,
             'metadata' => $data['metadata'] ?? [],
