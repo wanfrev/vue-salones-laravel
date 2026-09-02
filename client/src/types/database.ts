@@ -368,6 +368,8 @@ export interface EmployeePayment {
   business_id: string
   branch_id: string | null
   employee_id: string
+  product_id?: string | null
+  quantity?: number | null
   amount: number
   currency: string
   original_amount: number

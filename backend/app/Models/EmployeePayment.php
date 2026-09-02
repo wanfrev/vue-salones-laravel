@@ -18,6 +18,7 @@ class EmployeePayment extends Model
 
     protected $fillable = [
         'id', 'business_id', 'branch_id', 'employee_id',
+        'product_id', 'quantity',
         'amount', 'currency', 'original_amount', 'exchange_rate_used',
         'payment_method', 'type', 'concept', 'notes', 'payment_date',
         'created_by', 'created_at', 'updated_at',
@@ -27,6 +28,7 @@ class EmployeePayment extends Model
     {
         return [
             'amount' => 'float',
+            'quantity' => 'float',
             'original_amount' => 'float',
             'exchange_rate_used' => 'float',
         ];
@@ -35,5 +37,10 @@ class EmployeePayment extends Model
     public function employeeProfile(): BelongsTo
     {
         return $this->belongsTo(Profile::class, 'employee_id');
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class, 'product_id');
     }
 }

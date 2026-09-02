@@ -46,10 +46,15 @@ class StaffingInvoiceController
 
         $data = $request->validate([
             'timesheet_id' => 'required|uuid',
+            'invoice_number' => 'nullable|string|max:50',
         ]);
 
         try {
-            $invoice = $this->invoices->generateFromTimesheet($p->business_id, $data['timesheet_id']);
+            $invoice = $this->invoices->generateFromTimesheet(
+                $p->business_id,
+                $data['timesheet_id'],
+                $data['invoice_number'] ?? null,
+            );
         } catch (RuntimeException $e) {
             return response()->json(['error' => ['message' => $e->getMessage()]], 422);
         }
@@ -57,6 +62,28 @@ class StaffingInvoiceController
         EntityChanged::safe($p->business_id, 'staffing_invoice', 'created', $invoice->id);
 
         return response()->json($invoice, 201);
+    }
+
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        }
+
+        $data = $request->validate([
+            'invoice_number' => 'required|string|max:50',
+        ]);
+
+        try {
+            $invoice = $this->invoices->updateInvoiceNumber($id, $p->business_id, $data['invoice_number']);
+        } catch (RuntimeException $e) {
+            return response()->json(['error' => ['message' => $e->getMessage()]], 422);
+        }
+
+        EntityChanged::safe($p->business_id, 'staffing_invoice', 'updated', $invoice->id);
+
+        return response()->json($invoice);
     }
 
     public function destroy(Request $request, string $id): JsonResponse

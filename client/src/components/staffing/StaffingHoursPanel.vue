@@ -265,16 +265,32 @@
           @click="handleApprove">
           {{ timesheets.approveMutation.isPending.value ? 'Aprobando...' : 'Aprobar semana' }}
         </button>
-        <button v-else-if="currentWeek && !existingInvoice" type="button" :disabled="billing.generateMutation.isPending.value"
-          class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
-          @click="handleGenerateInvoice">
-          {{ billing.generateMutation.isPending.value ? 'Generando...' : 'Generar factura' }}
-        </button>
+        <div v-else-if="currentWeek && !existingInvoice" class="flex flex-wrap items-center gap-1.5">
+          <input
+            v-model="invoiceNumberInput"
+            type="text"
+            placeholder="# Factura (ej: 1001)"
+            class="w-36 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20"
+            @keyup.enter="handleGenerateInvoiceDirect"
+          />
+          <button type="button" :disabled="billing.generateMutation.isPending.value"
+            class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
+            @click="handleGenerateInvoiceDirect">
+            {{ billing.generateMutation.isPending.value ? 'Generando...' : 'Generar factura' }}
+          </button>
+        </div>
         <template v-else-if="existingInvoice">
           <button type="button"
             class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
             @click="handlePrintInvoice">
             Ver factura #{{ existingInvoice.invoice_number }}
+          </button>
+          <button type="button"
+            class="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary flex items-center gap-1.5"
+            title="Editar número de factura"
+            @click="openEditInvoiceModal(existingInvoice)">
+            <PenIcon class="h-3.5 w-3.5" />
+            <span>Editar #</span>
           </button>
           <button type="button" :disabled="isDownloadingInvoice"
             class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
@@ -294,6 +310,23 @@
         </button>
       </div>
     </template>
+
+    <GenerateInvoiceModal
+      :show="showGenerateInvoiceModal"
+      :company-name="activeCompany?.name"
+      :total="totals.invoice"
+      :is-generating="billing.generateMutation.isPending.value"
+      @close="showGenerateInvoiceModal = false"
+      @generate="onConfirmGenerateInvoice"
+    />
+
+    <EditInvoiceNumberModal
+      :show="showEditInvoiceModal"
+      :current-number="invoiceToEdit?.invoice_number || ''"
+      :is-updating="billing.updateInvoiceNumberMutation.isPending.value"
+      @close="showEditInvoiceModal = false"
+      @save="onConfirmUpdateInvoiceNumber"
+    />
   </div>
 </template>
 
@@ -316,7 +349,9 @@ import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
 import { printStaffingPayroll } from '../../lib/staffingPayrollPrint'
 import { formatDateUS, toISODate } from '../../lib/formatters'
 import type { StaffingTimesheetEntry, Profile } from '../../types/database'
-import { MagnifierIcon } from '@solar-icons/vue/linear'
+import { MagnifierIcon, PenIcon } from '@solar-icons/vue/linear'
+import GenerateInvoiceModal from './GenerateInvoiceModal.vue'
+import EditInvoiceNumberModal from './EditInvoiceNumberModal.vue'
 
 const inputClass =
   'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30'
@@ -823,8 +858,51 @@ const handleMarkPaid = async () => {
   if (currentWeek.value) await timesheets.markPaid(currentWeek.value.id)
 }
 
-const handleGenerateInvoice = async () => {
-  if (currentWeek.value) await billing.generateInvoice(currentWeek.value.id)
+const invoiceNumberInput = ref('')
+
+const handleGenerateInvoiceDirect = async () => {
+  if (!currentWeek.value) return
+  const num = invoiceNumberInput.value.trim()
+  if (!num) {
+    showGenerateInvoiceModal.value = true
+    return
+  }
+  const result = await billing.generateInvoice(currentWeek.value.id, num)
+  if (result) {
+    invoiceNumberInput.value = ''
+  }
+}
+
+const showGenerateInvoiceModal = ref(false)
+
+const openGenerateInvoiceModal = () => {
+  showGenerateInvoiceModal.value = true
+}
+
+const onConfirmGenerateInvoice = async (invoiceNumber: string) => {
+  if (!currentWeek.value) return
+  const result = await billing.generateInvoice(currentWeek.value.id, invoiceNumber)
+  if (result) {
+    showGenerateInvoiceModal.value = false
+    invoiceNumberInput.value = ''
+  }
+}
+
+const showEditInvoiceModal = ref(false)
+const invoiceToEdit = ref<{ id: string; invoice_number: string } | null>(null)
+
+const openEditInvoiceModal = (inv: { id: string; invoice_number: string }) => {
+  invoiceToEdit.value = inv
+  showEditInvoiceModal.value = true
+}
+
+const onConfirmUpdateInvoiceNumber = async (newNumber: string) => {
+  if (!invoiceToEdit.value) return
+  const result = await billing.updateInvoiceNumber(invoiceToEdit.value.id, newNumber)
+  if (result) {
+    showEditInvoiceModal.value = false
+    invoiceToEdit.value = null
+  }
 }
 
 const statusLabel = computed(() => {

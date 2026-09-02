@@ -26,6 +26,7 @@ import {
   listSchedules,
 } from '../../services/employeePaymentsService'
 import { listEquipo } from '../../services/equipoService'
+import { listProductos, productosKeys, type ProductoRow } from '../../services/productosService'
 
 export function useEmployeePayments(
   businessId: import('vue').Ref<string | null>,
@@ -37,6 +38,16 @@ export function useEmployeePayments(
   const businessStore = useBusinessStore()
   const { exchangeRate } = useCurrency()
   const branchId = computed(() => businessStore.currentBranchId)
+
+  // ── Products for consumption ──
+  const { data: productosData, isLoading: isLoadingProductos } = useQuery({
+    queryKey: computed(() => productosKeys.all(businessId.value, branchId.value)),
+    queryFn: () => listProductos(businessId.value!, branchId.value),
+    enabled: computed(() => !!businessId.value),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const productos = computed<ProductoRow[]>(() => productosData.value ?? [])
 
   // ── Payments list ──
   const { data: paymentsData, isLoading: isPaymentsLoading } = useQuery({
@@ -218,7 +229,11 @@ export function useEmployeePayments(
   })
 
   const consumptionForm = ref({
+    mode: 'amount' as 'amount' | 'product',
     employeeId: '',
+    productId: '',
+    quantity: 1,
+    unitPrice: 0,
     concept: '',
     amount: 0,
     currency: 'USD' as 'USD' | 'VES',
@@ -321,19 +336,24 @@ export function useEmployeePayments(
     mutationFn: () => {
       const rate = employeeVesRate.value
       const f = consumptionForm.value
+      const isProduct = f.mode === 'product' && !!f.productId
+      const amountToDebit = isProduct ? Math.round((f.quantity * f.unitPrice) * 100) / 100 : f.amount
+
       const payload: any = {
         employee_id: f.employeeId,
-        amount: f.amount,
+        amount: amountToDebit,
         currency: f.currency,
-        concept: f.concept,
+        concept: f.concept || (isProduct ? 'Consumo de producto' : 'Consumo'),
         notes: f.notes || null,
         payment_date: f.paymentDate,
         branch_id: branchId.value,
+        product_id: isProduct ? f.productId : null,
+        quantity: isProduct ? f.quantity : null,
       }
       if (f.currency === 'VES') {
-        payload.original_amount = f.amount
+        payload.original_amount = amountToDebit
         payload.exchange_rate_used = rate
-        payload.amount = f.amount / rate
+        payload.amount = rate > 0 ? amountToDebit / rate : amountToDebit
       }
       return createEmployeeConsumption(businessId.value!, payload)
     },
@@ -346,6 +366,9 @@ export function useEmployeePayments(
         queryClient.invalidateQueries({ queryKey: ['finanzas-summary'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['employee-payment-history', businessId.value, empId], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['employee-earnings', businessId.value, empId], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['inventario'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['productos'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['pos-products'], exact: false }),
       ])
       success('Consumo registrado')
       closeConsumptionModal()
@@ -467,9 +490,13 @@ export function useEmployeePayments(
     saveError.value = ''
   }
 
-  const openConsumptionModal = () => {
+  const openConsumptionModal = (employeeId?: string) => {
     consumptionForm.value = {
-      employeeId: '',
+      mode: 'amount',
+      employeeId: employeeId || '',
+      productId: '',
+      quantity: 1,
+      unitPrice: 0,
       concept: '',
       amount: 0,
       currency: 'USD',
@@ -571,6 +598,8 @@ export function useEmployeePayments(
     employeeList,
     showConsumptionModal,
     consumptionForm,
+    productos,
+    isLoadingProductos,
     dayRateForm,
     isSaving,
     saveError,

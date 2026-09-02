@@ -93,6 +93,8 @@ export const createEmployeeConsumption = async (
     notes?: string
     payment_date: string
     branch_id?: string | null
+    product_id?: string | null
+    quantity?: number | null
   },
 ): Promise<EmployeePaymentRecord> => {
   return await createEmployeePayment(businessId, {
