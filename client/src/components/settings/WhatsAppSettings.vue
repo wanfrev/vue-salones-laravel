@@ -404,8 +404,13 @@ watch(selectedBranchId, async (branchId) => {
   qrCode.value = null
   await loadConfig(branchId, token)
   if (token !== requestToken) return
+  if (config.value.whatsapp_instance_id) {
+    await silentCheckStatus(branchId, token)
+    if (token !== requestToken) return
+  }
   if (config.value.whatsapp_instance_id && (isDisconnectedState.value || isPendingState.value)) {
     pollForQr(branchId, token)
+    pollForConnection(branchId, token)
   }
 })
 
@@ -459,11 +464,40 @@ const createInstance = async () => {
     } else {
       showError('El QR está tardando más de lo normal — espera unos segundos y dale a "Verificar conexión"')
     }
+    pollForConnection(branchId, token)
   } catch (err: any) {
     if (token === requestToken) showError(err?.message ?? 'Error al crear la instancia')
   } finally {
     loading.value = false
   }
+}
+
+// Aplica un resultado de /whatsapp/status al estado local. `announce` controla si además
+// dispara toasts — true para el botón manual "Verificar conexión", false para el polling en
+// segundo plano (que no debe interrumpir al usuario en cada intento fallido, solo cuando algo
+// realmente cambia).
+const applyStatusResult = (result: Awaited<ReturnType<typeof getWhatsAppStatus>>, announce: boolean) => {
+  config.value.whatsapp_instance_status = result.status
+  if (result.instance_number) {
+    config.value.whatsapp_instance_number = result.instance_number
+  }
+
+  if (result.status === 'duplicate_number') {
+    config.value.whatsapp_instance_id = null
+    config.value.whatsapp_instance_number = null
+    qrCode.value = null
+    showError(result.error ?? 'Este número ya está conectado a otro negocio.')
+    return true // deja de pollear, es un estado terminal
+  }
+
+  const connected = result.status === 'connected' || result.status === 'open'
+  if (connected) {
+    qrCode.value = null
+    if (announce) success('¡WhatsApp conectado correctamente!')
+  } else if (announce) {
+    showError('WhatsApp aún no está conectado. Escanea el QR.')
+  }
+  return connected
 }
 
 const checkStatus = async () => {
@@ -473,20 +507,36 @@ const checkStatus = async () => {
   try {
     const result = await getWhatsAppStatus(branchId)
     if (token !== requestToken) return
-    config.value.whatsapp_instance_status = result.status
-    if (result.instance_number) {
-      config.value.whatsapp_instance_number = result.instance_number
-    }
-    if (result.status === 'connected' || result.status === 'open') {
-      success('¡WhatsApp conectado correctamente!')
-      qrCode.value = null
-    } else {
-      showError('WhatsApp aún no está conectado. Escanea el QR.')
-    }
+    applyStatusResult(result, true)
   } catch (err: any) {
     if (token === requestToken) showError(err?.message ?? 'Error al verificar')
   } finally {
     loading.value = false
+  }
+}
+
+// Chequea la conexión sola, sin toasts — usada tanto al montar (para reflejar de una vez un
+// estado ya conectado, sin obligar a re-verificar manualmente) como en el polling de fondo tras
+// mostrar el QR. Devuelve true si terminó en un estado final (conectado o número duplicado).
+const silentCheckStatus = async (branchId: string | null, token: number): Promise<boolean> => {
+  try {
+    const result = await getWhatsAppStatus(branchId)
+    if (token !== requestToken) return true
+    return applyStatusResult(result, false)
+  } catch {
+    return false
+  }
+}
+
+// Tras escanear el QR, Baileys tarda unos segundos en confirmar la conexión del lado de
+// Evolution — sin este polling, la pantalla se quedaba pegada en "Escanea el código QR" hasta
+// que el usuario recargaba la página o le daba manualmente a "Verificar conexión".
+const pollForConnection = async (branchId: string | null, token: number) => {
+  for (let attempt = 0; attempt < 40; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 3000))
+    if (token !== requestToken) return
+    const done = await silentCheckStatus(branchId, token)
+    if (done) return
   }
 }
 
@@ -604,15 +654,25 @@ const deleteTemplateHandler = async (id: string) => {
 }
 
 onMounted(async () => {
+  const token = requestToken
   await loadConfig()
   loadTemplates()
   loadVariables()
 
-  // Si ya existía una instancia sin conectar (ej. cerraron la pestaña a medio
-  // escanear), pedimos el QR de una vez en vez de dejar el spinner girando sin
-  // ninguna petición real detrás.
+  if (config.value.whatsapp_instance_id) {
+    // Chequeo en vivo contra Evolution: si ya se conectó desde la última vez que alguien
+    // entró a esta pantalla, lo refleja de una vez — sin esto, el estado guardado en BDD
+    // se quedaba en "pending" hasta que alguien le diera manualmente a "Verificar conexión",
+    // y cada entrada a la pantalla volvía a pedir escanear el QR aunque ya estuviera conectado.
+    await silentCheckStatus(selectedBranchId.value, token)
+    if (token !== requestToken) return
+  }
+
+  // Si sigue sin conectar (instancia nueva sin escanear, o el chequeo de arriba confirmó que
+  // sigue pendiente), pedimos el QR y arrancamos el polling de conexión en segundo plano.
   if (config.value.whatsapp_instance_id && (isDisconnectedState.value || isPendingState.value)) {
-    pollForQr()
+    pollForQr(selectedBranchId.value, token)
+    pollForConnection(selectedBranchId.value, token)
   }
 })
 </script>

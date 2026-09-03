@@ -212,17 +212,43 @@ class WhatsAppController extends Controller
         if ($status && $status !== $instance->instance_status) {
             $updates['instance_status'] = $status;
         }
+
+        $error = null;
         if (in_array($status, ['open', 'connected'], true) && !$instance->instance_number) {
             $number = $this->whatsappService->fetchInstanceNumber($business, $instance);
             if ($number) {
-                $updates['instance_number'] = $number;
+                // Un mismo número físico ya conectado (open/connected) en OTRO negocio: ese número
+                // solo puede pertenecer a un negocio en la plataforma. Compartirlo entre sucursales
+                // del MISMO negocio ya tiene su propio mecanismo explícito (la instancia por
+                // defecto, branch_id null) — esto solo bloquea el cruce entre negocios distintos.
+                $usedElsewhere = WhatsAppInstance::where('instance_number', $number)
+                    ->where('id', '!=', $instance->id)
+                    ->where('business_id', '!=', $business->id)
+                    ->whereIn('instance_status', ['open', 'connected'])
+                    ->exists();
+
+                if ($usedElsewhere) {
+                    $this->whatsappService->disconnectInstance($business, $instance);
+                    $status = 'duplicate_number';
+                    $updates['instance_status'] = 'duplicate_number';
+                    $updates['instance_id'] = null;
+                    $updates['instance_number'] = null;
+                    $error = 'Este número de WhatsApp ya está conectado a otro negocio en la plataforma. Usa un número distinto o desconéctalo primero del otro negocio.';
+                } else {
+                    $updates['instance_number'] = $number;
+                }
             }
         }
+
         if ($updates) {
             $instance->update($updates);
         }
 
-        return response()->json(['status' => $status, 'instance_number' => $instance->instance_number]);
+        return response()->json([
+            'status' => $status,
+            'instance_number' => $instance->instance_number,
+            'error' => $error,
+        ]);
     }
 
     /**
