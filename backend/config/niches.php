@@ -117,6 +117,11 @@ return [
                 'servicios' => false,
             ],
         ],
+        'odontologia' => [
+            'status' => 'creatable',
+            'capabilities' => [],
+            'feature_defaults' => [],
+        ],
         'staffing' => [
             'status' => 'creatable',
             'capabilities' => ['staffing.timesheets', 'staffing.billing', 'staffing.crm', 'staffing.reports', 'staffing.spreadsheet', 'staffing.incidents'],

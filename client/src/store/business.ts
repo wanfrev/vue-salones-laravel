@@ -3,24 +3,11 @@ import { defineStore } from 'pinia'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { db } from '../lib/api'
 import { listBranches, branchesKeys } from '../services/branchesService'
-import type { Business, Terminology, Branch } from '../types/database'
+import type { Business, Branch } from '../types/database'
 import type { FeatureKey } from '../config/features'
-import { resolveFeatures, getNiche, type Capability } from '../config/niches'
+import { resolveFeatures, resolveTerminology, getNiche, type Capability } from '../config/niches'
 
 export type { FeatureKey } from '../config/features'
-
-const DEFAULT_TERMINOLOGY: Terminology = {
-  client: 'Cliente',
-  employee: 'Empleado',
-  service: 'Servicio',
-  appointment: 'Cita',
-  staff: 'Personal',
-  pet: 'Mascota',
-  owner: 'Dueño',
-  breed: 'Raza',
-  weight: 'Peso',
-  vaccines: 'Vacunas',
-}
 
 function branchStorageKey(businessId: string): string {
   return `luma_selected_branch_${businessId}`
@@ -33,7 +20,7 @@ export const useBusinessStore = defineStore('business', () => {
   const _restoreProfileId = ref<string | null>(null)
 
   const nicheType = computed(() => business.value?.niche_type ?? 'salon')
-  const terminology = computed(() => ({ ...DEFAULT_TERMINOLOGY, ...(business.value?.terminology ?? {}) }))
+  const terminology = computed(() => resolveTerminology(nicheType.value, business.value?.terminology))
   const jobTitles = computed(() => business.value?.job_titles ?? [])
   const serviceCategories = computed(() => business.value?.service_categories ?? [])
   const branchServiceCategories = computed(() => {

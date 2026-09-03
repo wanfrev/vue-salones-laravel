@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getNicheConfig, isPetNiche, isVetNiche, getNiche, resolveFeatures, creatableIds } from './index'
+import { getNicheConfig, isPetNiche, isVetNiche, getNiche, resolveFeatures, resolveTerminology, creatableIds } from './index'
 
 // Equivalence table against the pre-registry behaviour of nicheFields.ts:
 //   isPetNiche(x)    === ['dog_spa','vet'].includes(x)
@@ -22,6 +22,7 @@ const CASES: Array<{
   { nicheType: 'vet', isPet: true, isVet: true, hasClientProfile: false },
   { nicheType: 'nail_bar', isPet: false, isVet: false, hasClientProfile: false },
   { nicheType: 'centro_estetico', isPet: false, isVet: false, hasClientProfile: false },
+  { nicheType: 'odontologia', isPet: false, isVet: false, hasClientProfile: true },
   { nicheType: 'Negocios', isPet: false, isVet: false, hasClientProfile: false },
   { nicheType: '', isPet: false, isVet: false, hasClientProfile: false },
   { nicheType: undefined, isPet: false, isVet: false, hasClientProfile: false },
@@ -83,9 +84,31 @@ describe('resolveFeatures()', () => {
   })
 })
 
+describe('resolveTerminology()', () => {
+  it('falls through DEFAULT_TERMINOLOGY for a niche with no overrides', () => {
+    const resolved = resolveTerminology('salon', undefined)
+    expect(resolved.client).toBe('Cliente')
+    expect(resolved.appointment).toBe('Cita')
+  })
+
+  it("applies odontologia's terminologyDefaults without touching other niches", () => {
+    const dental = resolveTerminology('odontologia', undefined)
+    expect(dental.client).toBe('Paciente')
+    expect(dental.appointment).toBe('Consulta')
+    expect(dental.service).toBe('Tratamiento')
+
+    expect(resolveTerminology('salon', undefined).client).toBe('Cliente')
+  })
+
+  it('lets a stored (DB) value override the niche default', () => {
+    const resolved = resolveTerminology('odontologia', { client: 'Cliente' })
+    expect(resolved.client).toBe('Cliente')
+  })
+})
+
 describe('creatableIds()', () => {
   it('includes every niche offered in the superadmin selects today', () => {
-    for (const id of ['salon', 'barberia', 'spa', 'mixto', 'dog_spa', 'nail_bar', 'centro_estetico', 'tienda', 'staffing']) {
+    for (const id of ['salon', 'barberia', 'spa', 'mixto', 'dog_spa', 'nail_bar', 'centro_estetico', 'odontologia', 'tienda', 'staffing']) {
       expect(creatableIds()).toContain(id)
     }
   })

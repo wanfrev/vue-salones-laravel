@@ -56,6 +56,8 @@ export interface NicheDefinition {
   featureDefaults: Partial<Record<FeatureKey, boolean>>
   /** Hard runtime override for structural impossibilities. Wins over everything, including superadmin. */
   featureLocks?: Partial<Record<FeatureKey, boolean>>
+  /** Seed/fallback layer for businesses.terminology — same precedence rule as featureDefaults. */
+  terminologyDefaults?: Partial<Record<string, string>>
   copy?: NicheCopy
   locale?: 'es' | 'en'
   currencyMode?: 'dual' | 'single'

@@ -21,3 +21,35 @@ export function resolveFeatures(
     ...(niche.featureLocks ?? {}),
   } as Record<FeatureKey, boolean>
 }
+
+export const DEFAULT_TERMINOLOGY: Record<string, string> = {
+  client: 'Cliente',
+  employee: 'Empleado',
+  service: 'Servicio',
+  appointment: 'Cita',
+  staff: 'Personal',
+  pet: 'Mascota',
+  owner: 'Dueño',
+  breed: 'Raza',
+  weight: 'Peso',
+  vaccines: 'Vacunas',
+}
+
+/**
+ * Precedence, lowest to highest:
+ *   DEFAULT_TERMINOLOGY  ->  niche.terminologyDefaults  ->  stored (businesses.terminology)
+ *
+ * No lock layer here — unlike features, there's no "structurally impossible" label override,
+ * so a business can always rename any term in Configuración regardless of niche.
+ */
+export function resolveTerminology(
+  nicheType: string | null | undefined,
+  stored: Partial<Record<string, string>> | null | undefined,
+): Record<string, string> {
+  const niche = getNiche(nicheType)
+  return {
+    ...DEFAULT_TERMINOLOGY,
+    ...niche.terminologyDefaults,
+    ...(stored ?? {}),
+  }
+}

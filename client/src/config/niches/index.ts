@@ -4,7 +4,7 @@ export {
   SKIN_TYPE_OPTIONS, MASSAGE_OPTIONS, PET_FIELDS, VET_EXTRA_FIELDS,
 } from './fieldOptions'
 export { NICHES, UNKNOWN_NICHE, getNiche, creatableNiches, creatableIds } from './registry'
-export { resolveFeatures } from './resolve'
+export { resolveFeatures, resolveTerminology, DEFAULT_TERMINOLOGY } from './resolve'
 
 import { getNiche } from './registry'
 
