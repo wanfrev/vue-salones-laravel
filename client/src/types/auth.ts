@@ -13,6 +13,7 @@ export interface AuthProfile {
   pay_type?: 'salary' | 'percentage' | 'mixed' | null
   pay_percentage?: number | null
   base_salary?: number | null
+  salary_frequency?: 'weekly' | 'biweekly' | 'monthly' | null
   disable_agenda?: boolean
   disable_inventory_edit?: boolean
   can_create_appointments?: boolean

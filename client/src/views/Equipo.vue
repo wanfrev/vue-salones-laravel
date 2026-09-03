@@ -179,6 +179,7 @@ const handleOpenRecibo = (e: any) => {
     payType: e.payType || e.pay_type || 'percentage',
     payPercentage: Number(e.payPercentage ?? e.pay_percentage ?? 50),
     baseSalary: Number(e.baseSalary ?? e.base_salary ?? 0),
+    salaryFrequency: e.salaryFrequency || e.salary_frequency || 'monthly',
   }
   selectedReciboEmployee.value = member
   showReciboModal.value = true
