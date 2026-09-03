@@ -223,8 +223,9 @@ const router = createRouter({
           name: 'admin-gift-cards',
           component: () => import('../views/GiftCards.vue'),
         },
+        { path: 'configuracion', redirect: 'configuracion/general' },
         {
-          path: 'configuracion',
+          path: 'configuracion/:section',
           name: 'admin-configuracion',
           component: () => import('../views/Configuracion.vue'),
         },

@@ -6,43 +6,7 @@
     </div>
   </header>
 
-  <div class="flex flex-col gap-6 lg:flex-row lg:gap-10">
-
-    <!-- Desktop: in-page side nav (visible only if multiple sections) -->
-    <nav v-if="sections.length > 1" class="hidden lg:block w-56 shrink-0">
-      <p class="mb-3 px-2.5 text-[10.5px] font-bold uppercase tracking-widest text-text-muted">Secciones</p>
-      <button
-        v-for="s in sections" :key="s.id"
-        @click="activeSection = s.id"
-        class="mb-0.5 flex w-full items-center gap-2.5 rounded-lg border-l-2 py-2.5 pr-3 pl-2.5 text-left text-[13.5px] font-medium transition-theme"
-        :class="activeSection === s.id ? [s.activeBorder, s.activeBg, 'text-text font-semibold'] : 'border-transparent text-text-secondary hover:bg-bg-secondary hover:text-text'"
-      >
-        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" :class="s.iconBg">
-          <svg class="h-3.5 w-3.5" :class="s.iconText" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" :d="s.icon" />
-          </svg>
-        </span>
-        {{ s.label }}
-      </button>
-    </nav>
-
-    <!-- Mobile / tablet: horizontal pill row (visible only if multiple sections) -->
-    <div v-if="sections.length > 1" class="flex gap-2 overflow-x-auto pb-1 lg:hidden">
-      <button
-        v-for="s in sections" :key="s.id"
-        @click="activeSection = s.id"
-        class="flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-theme"
-        :class="activeSection === s.id ? [s.activeBorderSolid, s.activeBg, 'text-text'] : 'border-border text-text-secondary'"
-      >
-        <svg class="h-3.5 w-3.5" :class="activeSection === s.id ? s.iconText : 'text-text-muted'" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" :d="s.icon" />
-        </svg>
-        {{ s.shortLabel || s.label }}
-      </button>
-    </div>
-
-    <!-- Content -->
-    <div class="min-w-0 flex-1 pb-8" :class="{ 'max-w-4xl': sections.length <= 1 }">
+  <div class="max-w-4xl pb-8">
 
       <!-- ═══════════ GENERAL ═══════════ -->
       <div v-if="activeSection === 'general'">
@@ -612,7 +576,6 @@
         </div>
       </div>
 
-    </div>
   </div>
 
   <ModalBase
@@ -651,6 +614,7 @@
 
 <script setup lang="ts">
 import { computed, h, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../composables/common/useAuth'
 import { useBusinessStore } from '../store/business'
 import { useBranches } from '../composables/common/useBranches'
@@ -670,31 +634,15 @@ const { authStore } = useAuth()
 const businessStore = useBusinessStore()
 const themeStore = useThemeStore()
 const { success, error: showError } = useNotification()
+const route = useRoute()
+const router = useRouter()
 const businessId = computed(() => authStore.businessId)
 const isAdmin = computed(() => authStore.role === 'admin' || authStore.role === 'superadmin')
 const canManageBusinessConfig = computed(() => authStore.role === 'admin' || authStore.role === 'superadmin')
 const branchesCtx = useBranches(businessId)
 const updatingFeatures = ref(false)
 
-const activeSection = ref('general')
-
-const SECTION_ICONS = {
-  general: 'M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 01-4 0v-.1a1.7 1.7 0 00-1-1.6 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 010-4h.1a1.7 1.7 0 001.5-1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 014 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1h.1a2 2 0 010 4h-.1a1.7 1.7 0 00-1.5 1zM15 12a3 3 0 11-6 0 3 3 0 016 0z',
-  whatsapp: 'M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z',
-  permisos: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
-  notificaciones: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9',
-  sucursales: 'M4.5 10.5a7.5 7.5 0 1115 0c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5zM15 10.5a3 3 0 11-6 0 3 3 0 016 0z',
-} as const
-
-// Cada punto de acceso a la izquierda lleva un color de identidad propio, tomado de la
-// misma paleta que ya usa el resto del sistema (semánticos + índigo, ya en uso en KpiCards).
-const SECTION_STYLES: Record<string, { iconBg: string; iconText: string; activeBorder: string; activeBorderSolid: string; activeBg: string }> = {
-  general: { iconBg: 'bg-primary/10', iconText: 'text-primary', activeBorder: 'border-primary', activeBorderSolid: 'border-primary', activeBg: 'bg-primary/10' },
-  whatsapp: { iconBg: 'bg-success/10', iconText: 'text-success', activeBorder: 'border-success', activeBorderSolid: 'border-success', activeBg: 'bg-success/10' },
-  permisos: { iconBg: 'bg-warning/10', iconText: 'text-warning', activeBorder: 'border-warning', activeBorderSolid: 'border-warning', activeBg: 'bg-warning/10' },
-  notificaciones: { iconBg: 'bg-info/10', iconText: 'text-info', activeBorder: 'border-info', activeBorderSolid: 'border-info', activeBg: 'bg-info/10' },
-  sucursales: { iconBg: 'bg-indigo-500/10', iconText: 'text-indigo-500', activeBorder: 'border-indigo-500', activeBorderSolid: 'border-indigo-500', activeBg: 'bg-indigo-500/10' },
-}
+const activeSection = computed(() => (route.params.section as string) || 'general')
 
 // Each toggle below only means something for niches with the matching capability — a
 // tienda/staffing business has no agenda, no dual currency, etc. Hiding the whole
@@ -709,20 +657,24 @@ const showPayrollRateSection = computed(() =>
   !isTiendaNiche(businessStore.nicheType) && !isStaffingNiche(businessStore.nicheType) && !businessStore.isSingleCurrency
 )
 
-const sections = computed(() => {
+// Now that each section is its own route (linked from the sidebar), this page no longer draws
+// its own nav — but it still has to guard against a stale/typed-in URL for a section the
+// current business/role can't see (e.g. /sucursales without multi-sucursal), same as the old
+// in-page nav's visibility filter used to.
+const visibleSectionIds = computed(() => {
   const list = [
-    { id: 'general', label: 'General', shortLabel: 'General', visible: true },
-    { id: 'whatsapp', label: 'WhatsApp', shortLabel: 'WhatsApp', visible: canManageBusinessConfig.value && businessStore.features.whatsapp_available && businessStore.features.agenda },
-    { id: 'permisos', label: 'Permisos y funcionalidades', shortLabel: 'Permisos', visible: isAdmin.value },
-    { id: 'notificaciones', label: 'Notificaciones', shortLabel: 'Notif.', visible: canManageBusinessConfig.value && businessStore.features.agenda },
-    { id: 'sucursales', label: 'Sucursales', shortLabel: 'Sucursales', visible: canManageBusinessConfig.value && businessStore.isMultiBranch },
+    { id: 'general', visible: true },
+    { id: 'whatsapp', visible: canManageBusinessConfig.value && businessStore.features.whatsapp_available && businessStore.features.agenda },
+    { id: 'permisos', visible: isAdmin.value },
+    { id: 'notificaciones', visible: canManageBusinessConfig.value && businessStore.features.agenda },
+    { id: 'sucursales', visible: canManageBusinessConfig.value && businessStore.isMultiBranch },
   ]
-  return list.filter(s => s.visible).map(s => ({ ...s, icon: SECTION_ICONS[s.id as keyof typeof SECTION_ICONS], ...SECTION_STYLES[s.id] }))
+  return list.filter(s => s.visible).map(s => s.id)
 })
 
-watch(sections, (newSections) => {
-  if (!newSections.some(s => s.id === activeSection.value)) {
-    activeSection.value = newSections[0]?.id || 'general'
+watch([visibleSectionIds, activeSection], ([ids, current]) => {
+  if (!ids.includes(current)) {
+    router.replace(`/admin/configuracion/${ids[0] || 'general'}`)
   }
 }, { immediate: true })
 

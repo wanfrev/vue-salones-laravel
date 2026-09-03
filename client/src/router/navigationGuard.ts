@@ -64,7 +64,7 @@ export function resolveNavigation(to: NavTarget, ctx: NavContext): string | unde
   // backfilling can_access_pos = true for existing cajero profiles first, and is gated on
   // the 'cajero allowlist' cases in navigationGuard.test.ts staying green without it.
   if (ctx.isCajeroProfile) {
-    return (to.path === '/admin/pos' || to.path === '/admin/configuracion') ? undefined : '/admin/pos'
+    return (to.path === '/admin/pos' || to.path.startsWith('/admin/configuracion')) ? undefined : '/admin/pos'
   }
 
   if (to.meta.superadminOnly && ctx.role !== 'superadmin') {
@@ -79,7 +79,7 @@ export function resolveNavigation(to: NavTarget, ctx: NavContext): string | unde
     const isSupp = to.path === '/admin/proveedores' && ctx.profile?.can_access_suppliers
     const isFinanzas = to.path.startsWith('/admin/finanzas') && ctx.profile?.can_access_finanzas
     const isReq = to.path === '/admin/requerimientos' && ctx.profile?.can_access_requirements
-    const isConfig = to.path === '/admin/configuracion'
+    const isConfig = to.path.startsWith('/admin/configuracion')
     if (!isPos && !isInv && !isSupp && !isFinanzas && !isReq && !isConfig) {
       return resolveHome()
     }
