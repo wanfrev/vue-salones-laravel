@@ -9,6 +9,10 @@ export default defineConfig({
     globals: true,
   },
   build: {
+    // Explícito aunque ya sea el default de Vite: sin esto, cualquiera puede reconstruir
+    // el código fuente original (nombres de variables incluidos) desde los .map públicos
+    // en vez de ver solo el bundle minificado.
+    sourcemap: false,
     rollupOptions: {
     }
   },

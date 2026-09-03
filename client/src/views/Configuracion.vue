@@ -413,7 +413,7 @@
                 :model-value="!!businessStore.features.whatsapp_reminders_enabled"
                 @update:model-value="handleToggleFeature('whatsapp_reminders_enabled')"
                 label="Recordatorios por WhatsApp"
-                hint="Envía los mismos recordatorios por WhatsApp. Requiere conectarlo en la sección WhatsApp."
+                hint="Activa el envío por WhatsApp. Las anticipaciones (24h, 1h, etc.) se configuran aparte, como plantillas en la sección WhatsApp."
                 :disabled="updatingFeatures"
               />
             </div>
