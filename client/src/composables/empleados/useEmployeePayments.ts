@@ -30,7 +30,8 @@ import { listProductos, productosKeys, type ProductoRow } from '../../services/p
 
 export function useEmployeePayments(
   businessId: import('vue').Ref<string | null>,
-  periodDates: import('vue').Ref<{ start: string; end: string }>,
+  periodDates?: import('vue').Ref<{ start: string; end: string }>,
+  debtPeriodDates?: import('vue').Ref<{ start: string; end: string } | null | undefined>,
 ) {
   const queryClient = useQueryClient()
   const { success, error: showError } = useNotification()
@@ -38,6 +39,13 @@ export function useEmployeePayments(
   const businessStore = useBusinessStore()
   const { exchangeRate } = useCurrency()
   const branchId = computed(() => businessStore.currentBranchId)
+
+  const defaultDates = computed(() => ({
+    start: `${new Date().getFullYear()}-01-01`,
+    end: `${new Date().getFullYear()}-12-31`,
+  }))
+  const effectivePeriodDates = computed(() => periodDates?.value ?? defaultDates.value)
+  const activeDebtDates = computed(() => debtPeriodDates?.value ?? effectivePeriodDates.value)
 
   // ── Products for consumption ──
   const { data: productosData, isLoading: isLoadingProductos } = useQuery({
@@ -54,13 +62,13 @@ export function useEmployeePayments(
     queryKey: computed(() => [
       ...employeePaymentKeys.all(businessId.value),
       branchId.value,
-      periodDates.value.start,
-      periodDates.value.end,
+      effectivePeriodDates.value.start,
+      effectivePeriodDates.value.end,
     ]),
     queryFn: () => listEmployeePayments(
       businessId.value!,
-      periodDates.value.start,
-      periodDates.value.end,
+      effectivePeriodDates.value.start,
+      effectivePeriodDates.value.end,
       branchId.value,
     ),
     enabled: computed(() => !!businessId.value),
@@ -138,12 +146,12 @@ export function useEmployeePayments(
   const { data: commissionsData } = useQuery({
     queryKey: computed(() => [
       'employee-commissions', businessId.value, branchId.value,
-      periodDates.value.start, periodDates.value.end,
+      effectivePeriodDates.value.start, effectivePeriodDates.value.end,
     ]),
     queryFn: () => getCommissions(
       businessId.value!,
-      periodDates.value.start,
-      periodDates.value.end,
+      effectivePeriodDates.value.start,
+      effectivePeriodDates.value.end,
       branchId.value,
     ),
     enabled: computed(() => !!businessId.value),
@@ -159,12 +167,12 @@ export function useEmployeePayments(
   const { data: debtData } = useQuery({
     queryKey: computed(() => [
       'employee-debt', businessId.value, branchId.value,
-      periodDates.value.start, periodDates.value.end,
+      activeDebtDates.value.start, activeDebtDates.value.end,
     ]),
     queryFn: () => getEmployeeDebt(
       businessId.value!,
-      periodDates.value.start,
-      periodDates.value.end,
+      activeDebtDates.value.start,
+      activeDebtDates.value.end,
       branchId.value,
     ),
     enabled: computed(() => !!businessId.value),

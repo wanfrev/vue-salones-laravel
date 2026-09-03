@@ -2,7 +2,8 @@
 import { ref, computed, watch } from 'vue'
 import { DollarIcon, CardIcon, ClipboardIcon, ClockCircleIcon, ArrowLeftIcon, ArrowRightIcon, AddCircleIcon, MinusCircleIcon, UsersGroupRoundedIcon, PenIcon, TrashBin2Icon, PrinterIcon } from '@solar-icons/vue/linear'
 import { useCurrency } from '../../composables/common/useCurrency'
-import { formatDate, parseLocalDate } from '../../lib/formatters'
+import { formatDate, parseLocalDate, formatDateHuman } from '../../lib/formatters'
+import { toYmd } from '../../lib/periodUtils'
 import KpiBanner from '../finanzas/KpiBanner.vue'
 import RecordSection from '../finanzas/RecordSection.vue'
 import SegmentedTabs from '../common/SegmentedTabs.vue'
@@ -133,7 +134,193 @@ const emit = defineEmits<{
   openEditPayment: [payment: any]
   deletePayment: [id: string]
   openRecibo: [employee: any]
+  'update:debtDates': [dates: { start: string; end: string }]
 }>()
+
+// ── Deuda period state ──
+const debtPeriod = ref<'all' | 'day' | 'week' | 'month' | 'custom'>('month')
+const debtDate = ref(new Date())
+const debtNow = new Date()
+const debtCustomStart = ref(toYmd(new Date(debtNow.getFullYear(), debtNow.getMonth(), debtNow.getDate() - 7)))
+const debtCustomEnd = ref(toYmd(debtNow))
+
+const debtPeriodTabs = [
+  { key: 'all', label: 'Todo' },
+  { key: 'day', label: 'Día' },
+  { key: 'week', label: 'Semana' },
+  { key: 'month', label: 'Mes' },
+  { key: 'custom', label: 'Rango' },
+]
+
+function setDebtPresetRange(preset: 'last7' | 'currentBiweekly' | 'lastBiweekly' | 'currentMonth' | 'last30') {
+  const today = new Date()
+  const y = today.getFullYear()
+  const m = today.getMonth()
+  const d = today.getDate()
+
+  if (preset === 'last7') {
+    const from = new Date(today)
+    from.setDate(from.getDate() - 6)
+    debtCustomStart.value = toYmd(from)
+    debtCustomEnd.value = toYmd(today)
+  } else if (preset === 'currentBiweekly') {
+    if (d <= 15) {
+      debtCustomStart.value = toYmd(new Date(y, m, 1))
+      debtCustomEnd.value = toYmd(new Date(y, m, 15))
+    } else {
+      const lastDay = new Date(y, m + 1, 0).getDate()
+      debtCustomStart.value = toYmd(new Date(y, m, 16))
+      debtCustomEnd.value = toYmd(new Date(y, m, lastDay))
+    }
+  } else if (preset === 'lastBiweekly') {
+    if (d <= 15) {
+      const prevMonthLastDay = new Date(y, m, 0).getDate()
+      debtCustomStart.value = toYmd(new Date(y, m - 1, 16))
+      debtCustomEnd.value = toYmd(new Date(y, m - 1, prevMonthLastDay))
+    } else {
+      debtCustomStart.value = toYmd(new Date(y, m, 1))
+      debtCustomEnd.value = toYmd(new Date(y, m, 15))
+    }
+  } else if (preset === 'currentMonth') {
+    const lastDay = new Date(y, m + 1, 0).getDate()
+    debtCustomStart.value = toYmd(new Date(y, m, 1))
+    debtCustomEnd.value = toYmd(new Date(y, m, lastDay))
+  } else if (preset === 'last30') {
+    const from = new Date(today)
+    from.setDate(from.getDate() - 29)
+    debtCustomStart.value = toYmd(from)
+    debtCustomEnd.value = toYmd(today)
+  }
+}
+
+const debtPeriodStart = computed<Date>(() => {
+  if (debtPeriod.value === 'all') return new Date(2000, 0, 1)
+  if (debtPeriod.value === 'custom') {
+    return debtCustomStart.value ? dayStart(parseLocalDate(debtCustomStart.value)) : new Date(2000, 0, 1)
+  }
+  if (debtPeriod.value === 'day') return dayStart(debtDate.value)
+  if (debtPeriod.value === 'week') return weekStart(debtDate.value)
+  return new Date(debtDate.value.getFullYear(), debtDate.value.getMonth(), 1)
+})
+
+const debtPeriodEnd = computed<Date>(() => {
+  if (debtPeriod.value === 'all') return new Date(2099, 11, 31, 23, 59, 59, 999)
+  if (debtPeriod.value === 'custom') {
+    return debtCustomEnd.value ? dayEnd(parseLocalDate(debtCustomEnd.value)) : new Date(2099, 11, 31, 23, 59, 59, 999)
+  }
+  if (debtPeriod.value === 'day') return dayEnd(debtDate.value)
+  if (debtPeriod.value === 'week') {
+    const end = weekStart(debtDate.value)
+    end.setDate(end.getDate() + 6)
+    return dayEnd(end)
+  }
+  const lastDay = new Date(debtDate.value.getFullYear(), debtDate.value.getMonth() + 1, 0)
+  const today = new Date()
+  const isCurrentMonth = debtDate.value.getFullYear() === today.getFullYear() && debtDate.value.getMonth() === today.getMonth()
+  return isCurrentMonth ? dayEnd(today) : dayEnd(lastDay)
+})
+
+const resolvedDebtDates = computed<{ start: string; end: string }>(() => {
+  if (debtPeriod.value === 'all') {
+    return { start: '2000-01-01', end: '2099-12-31' }
+  }
+  if (debtPeriod.value === 'custom') {
+    return {
+      start: debtCustomStart.value || toYmd(debtPeriodStart.value),
+      end: debtCustomEnd.value || toYmd(debtPeriodEnd.value),
+    }
+  }
+  return {
+    start: toYmd(debtPeriodStart.value),
+    end: toYmd(debtPeriodEnd.value),
+  }
+})
+
+const debtPeriodLabel = computed(() => {
+  if (debtPeriod.value === 'all') return 'Todo el historial'
+  if (debtPeriod.value === 'custom') {
+    if (debtCustomStart.value && debtCustomEnd.value) {
+      if (debtCustomStart.value === debtCustomEnd.value) {
+        return formatDateHuman(debtCustomStart.value)
+      }
+      return `${formatDateHuman(debtCustomStart.value)} al ${formatDateHuman(debtCustomEnd.value)}`
+    }
+    return 'Rango personalizado'
+  }
+  const d = debtDate.value
+  if (debtPeriod.value === 'day') {
+    return `${d.getDate()} ${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`
+  }
+  if (debtPeriod.value === 'week') {
+    const ws = weekStart(d)
+    const we = new Date(ws)
+    we.setDate(we.getDate() + 6)
+    const sameMonth = ws.getMonth() === we.getMonth()
+    if (sameMonth) {
+      return `${ws.getDate()}-${we.getDate()} ${MONTHS_ES[ws.getMonth()]} ${ws.getFullYear()}`
+    }
+    return `${ws.getDate()} ${MONTHS_ES[ws.getMonth()]} - ${we.getDate()} ${MONTHS_ES[we.getMonth()]} ${we.getFullYear()}`
+  }
+  return `${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`
+})
+
+const debtMonthInput = computed(() => {
+  const d = debtDate.value
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+})
+
+function onDebtMonthInputChange(val: string) {
+  if (!val) return
+  const [y, m] = val.split('-').map(Number)
+  if (y && m) {
+    debtDate.value = new Date(y, m - 1, 1)
+  }
+}
+
+const isCurrentDebtPeriod = computed(() => {
+  if (debtPeriod.value === 'all' || debtPeriod.value === 'custom') return true
+  const now = new Date()
+  if (debtPeriod.value === 'day') return dayStart(debtDate.value).getTime() >= dayStart(now).getTime()
+  if (debtPeriod.value === 'week') return weekStart(debtDate.value).getTime() >= weekStart(now).getTime()
+  return (
+    debtDate.value.getFullYear() > now.getFullYear() ||
+    (debtDate.value.getFullYear() === now.getFullYear() && debtDate.value.getMonth() >= now.getMonth())
+  )
+})
+
+function debtPrev() {
+  const d = new Date(debtDate.value)
+  if (debtPeriod.value === 'day') d.setDate(d.getDate() - 1)
+  else if (debtPeriod.value === 'week') d.setDate(d.getDate() - 7)
+  else d.setMonth(d.getMonth() - 1)
+  debtDate.value = d
+}
+
+function debtNext() {
+  if (isCurrentDebtPeriod.value) return
+  const d = new Date(debtDate.value)
+  if (debtPeriod.value === 'day') d.setDate(d.getDate() + 1)
+  else if (debtPeriod.value === 'week') d.setDate(d.getDate() + 7)
+  else d.setMonth(d.getMonth() + 1)
+  debtDate.value = d
+}
+
+function debtGoToday() {
+  debtDate.value = new Date()
+}
+
+function onDebtPeriodChange(v: string) {
+  debtPeriod.value = v as 'all' | 'day' | 'week' | 'month' | 'custom'
+  if (v !== 'all' && v !== 'custom') {
+    debtDate.value = new Date()
+  } else if (v === 'custom' && (!debtCustomStart.value || !debtCustomEnd.value)) {
+    setDebtPresetRange('currentBiweekly')
+  }
+}
+
+watch(resolvedDebtDates, (val) => {
+  emit('update:debtDates', val)
+}, { immediate: true })
 
 const tabs = [
   { key: 'pagos' as const, label: 'Servicios Realizados', shortLabel: 'Servicios' },
@@ -175,10 +362,10 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
         <p class="text-xs text-text-muted mt-0.5">Comisiones, nómina, deuda y horarios del equipo</p>
       </div>
 
-      <!-- Month Selector -->
+      <!-- Month Selector (Pagos / Comisiones) -->
       <div
         class="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-border bg-surface px-2.5 py-1.5 shadow-sm self-start sm:self-auto"
-        v-show="activeTab !== 'horarios' && activeTab !== 'nomina'">
+        v-show="activeTab === 'pagos'">
         <label for="equipo-month-picker" class="text-xs font-medium text-text-muted hidden sm:inline">Mes</label>
         <input id="equipo-month-picker" :value="selectedMonth" type="month"
           class="rounded-md border border-border bg-surface px-2 py-1 text-xs text-text outline-none transition-theme focus:border-primary w-full sm:w-auto"
@@ -220,6 +407,135 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
             </button>
             <button v-if="!isCurrentNominaPeriod" @click="nominaGoToday" class="rounded-md border border-border px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors">Hoy</button>
           </template>
+        </div>
+      </div>
+
+      <!-- Deuda period selector -->
+      <div v-if="activeTab === 'deuda'" class="flex flex-col gap-2 pt-1">
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
+          <SegmentedTabs
+            :tabs="debtPeriodTabs"
+            :model-value="debtPeriod"
+            @update:model-value="onDebtPeriodChange"
+          />
+
+          <!-- Day / Week / Month nav -->
+          <div v-if="debtPeriod !== 'all' && debtPeriod !== 'custom'" class="flex items-center gap-1.5 self-start sm:self-auto">
+            <template v-if="debtPeriod === 'month'">
+              <input
+                :value="debtMonthInput"
+                type="month"
+                class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs text-text outline-none transition-theme focus:border-primary"
+                @change="onDebtMonthInputChange(($event.target as HTMLInputElement).value)"
+              />
+              <button
+                type="button"
+                @click="debtGoToday"
+                class="rounded-md border border-border px-2 py-1 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text"
+              >
+                Este mes
+              </button>
+            </template>
+            <template v-else>
+              <button
+                type="button"
+                @click="debtPrev"
+                class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors"
+                title="Anterior"
+              >
+                <ArrowLeftIcon :size="16" />
+              </button>
+              <span class="text-xs font-semibold text-text min-w-[130px] text-center">{{ debtPeriodLabel }}</span>
+              <button
+                type="button"
+                @click="debtNext"
+                :disabled="isCurrentDebtPeriod"
+                class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title="Siguiente"
+              >
+                <ArrowRightIcon :size="16" />
+              </button>
+              <button
+                v-if="!isCurrentDebtPeriod"
+                type="button"
+                @click="debtGoToday"
+                class="rounded-md border border-border px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
+              >
+                Hoy
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <!-- Custom date range (como en pago de nómina) -->
+        <div v-if="debtPeriod === 'custom'" class="mt-2 p-3 sm:p-4 rounded-xl border border-border bg-bg-secondary/40 space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="mb-1 block text-xs font-semibold text-text-muted">Servicios desde</label>
+              <input
+                v-model="debtCustomStart"
+                type="date"
+                :max="debtCustomEnd || undefined"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary"
+              />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-semibold text-text-muted">Servicios hasta</label>
+              <input
+                v-model="debtCustomEnd"
+                type="date"
+                :min="debtCustomStart || undefined"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary"
+              />
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-1.5 pt-1">
+            <span class="text-[11px] font-semibold text-text-muted mr-1">Atajos:</span>
+            <button
+              type="button"
+              @click="setDebtPresetRange('currentBiweekly')"
+              class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-text hover:border-primary hover:text-primary transition-colors cursor-pointer"
+            >
+              Esta quincena
+            </button>
+            <button
+              type="button"
+              @click="setDebtPresetRange('lastBiweekly')"
+              class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-text hover:border-primary hover:text-primary transition-colors cursor-pointer"
+            >
+              Quincena anterior
+            </button>
+            <button
+              type="button"
+              @click="setDebtPresetRange('currentMonth')"
+              class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-text hover:border-primary hover:text-primary transition-colors cursor-pointer"
+            >
+              Este mes
+            </button>
+            <button
+              type="button"
+              @click="setDebtPresetRange('last7')"
+              class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-text hover:border-primary hover:text-primary transition-colors cursor-pointer"
+            >
+              Últimos 7 días
+            </button>
+            <button
+              type="button"
+              @click="setDebtPresetRange('last30')"
+              class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-text hover:border-primary hover:text-primary transition-colors cursor-pointer"
+            >
+              Últimos 30 días
+            </button>
+          </div>
+
+          <div v-if="debtCustomStart && debtCustomEnd" class="text-xs text-text-muted text-center pt-0.5 font-medium">
+            Mostrando deuda del <span class="font-semibold text-text">{{ debtPeriodLabel }}</span>
+          </div>
+        </div>
+
+        <div v-else class="text-xs text-text-muted pt-0.5">
+          Período evaluado: <span class="font-semibold text-text">{{ debtPeriodLabel }}</span>
         </div>
       </div>
     </div>
