@@ -17,6 +17,9 @@ import {
   BuildingsIcon,
   ChatRoundLineIcon,
   WalletMoneyIcon,
+  ShieldKeyholeIcon,
+  BellIcon,
+  PointOnMapIcon,
 } from '@solar-icons/vue/linear'
 import type { Component } from 'vue'
 import type { RouteGate } from '../../router/gate'
@@ -30,6 +33,10 @@ export interface SidebarLink {
   employeeOnly?: boolean
   badge?: string
   gate?: RouteGate
+  /** Stricter than adminOnly (which also lets an encargado through) — admin/superadmin only. */
+  strictAdminOnly?: boolean
+  /** Sub-links shown when this one is expanded — renders as a collapsible group, not a direct link. */
+  children?: SidebarLink[]
 }
 
 export interface SidebarSection {
@@ -74,9 +81,19 @@ export const sidebarSections: SidebarSection[] = [
     ],
   },
   {
-    title: 'Ajustes',
     links: [
-      { to: '/admin/configuracion', label: 'Configuración', icon: SettingsIcon },
+      {
+        to: '/admin/configuracion/general',
+        label: 'Configuración',
+        icon: SettingsIcon,
+        children: [
+          { to: '/admin/configuracion/general', label: 'General', icon: SettingsIcon },
+          { to: '/admin/configuracion/whatsapp', label: 'WhatsApp', icon: ChatRoundLineIcon, strictAdminOnly: true, gate: { features: ['whatsapp_available', 'agenda'] } },
+          { to: '/admin/configuracion/permisos', label: 'Permisos y Funcionalidades', icon: ShieldKeyholeIcon, strictAdminOnly: true },
+          { to: '/admin/configuracion/notificaciones', label: 'Notificaciones', icon: BellIcon, strictAdminOnly: true, gate: { feature: 'agenda' } },
+          { to: '/admin/configuracion/sucursales', label: 'Sucursales', icon: PointOnMapIcon, strictAdminOnly: true, gate: { feature: 'multi_branch' } },
+        ],
+      },
     ],
   },
 ]
