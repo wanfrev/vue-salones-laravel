@@ -37,13 +37,13 @@
 
         <template v-else>
           <!-- Period Selector -->
-          <div class="mb-5">
+          <div class="mb-5 no-print">
             <SegmentedTabs
               :tabs="periodTabs"
               :model-value="selectedPeriod"
               @update:model-value="onPeriodChange"
             />
-            <div v-if="selectedPeriod !== 'all'" class="flex items-center justify-center gap-2 mt-3">
+            <div v-if="selectedPeriod !== 'all' && selectedPeriod !== 'custom'" class="flex items-center justify-center gap-2 mt-3">
               <button
                 @click="previousPeriod"
                 class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors"
@@ -68,6 +68,78 @@
                 Hoy
               </button>
             </div>
+
+            <!-- Custom date range (como en pago de nómina) -->
+            <div v-else-if="selectedPeriod === 'custom'" class="mt-3.5 p-3.5 sm:p-4 rounded-xl border border-border bg-bg-secondary/40 space-y-3">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="mb-1 block text-xs font-semibold text-text-muted">Servicios desde</label>
+                  <input
+                    v-model="customStartDate"
+                    type="date"
+                    :max="customEndDate || undefined"
+                    class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label class="mb-1 block text-xs font-semibold text-text-muted">Servicios hasta</label>
+                  <input
+                    v-model="customEndDate"
+                    type="date"
+                    :min="customStartDate || undefined"
+                    class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                <span class="text-[11px] font-semibold text-text-muted mr-1">Atajos:</span>
+                <button
+                  type="button"
+                  @click="setPresetRange('currentBiweekly')"
+                  class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-text hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                >
+                  Esta quincena
+                </button>
+                <button
+                  type="button"
+                  @click="setPresetRange('lastBiweekly')"
+                  class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-text hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                >
+                  Quincena anterior
+                </button>
+                <button
+                  type="button"
+                  @click="setPresetRange('currentMonth')"
+                  class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-text hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                >
+                  Este mes
+                </button>
+                <button
+                  type="button"
+                  @click="setPresetRange('last7')"
+                  class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-text hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                >
+                  Últimos 7 días
+                </button>
+                <button
+                  type="button"
+                  @click="setPresetRange('last30')"
+                  class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-text hover:border-primary hover:text-primary transition-colors cursor-pointer"
+                >
+                  Últimos 30 días
+                </button>
+              </div>
+
+              <div v-if="customStartDate && customEndDate" class="text-xs text-text-muted text-center pt-0.5 font-medium">
+                Mostrando recibo del <span class="font-semibold text-text">{{ periodLabel }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Printable Period Title -->
+          <div class="hidden print:block text-center font-bold text-sm mb-4 text-text">
+            Período: {{ periodLabel }}
           </div>
 
           <!-- Summary Cards -->
@@ -266,7 +338,8 @@ import { ref, computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
-import { getInitials, parseLocalDate } from '../../lib/formatters'
+import { getInitials, parseLocalDate, formatDateHuman } from '../../lib/formatters'
+import { toYmd } from '../../lib/periodUtils'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { dashboardKeys, listEmployeeTransactions, listEmployeePayments } from '../../services/employeeDashboardService'
 import AppLayout from '../../components/layout/AppLayout.vue'
@@ -284,8 +357,11 @@ const employeeId = computed(() => authStore.profile?.id ?? '')
 const branchId = computed(() => businessStore.currentBranchId)
 const businessName = computed(() => businessStore.business?.name ?? '')
 
-const selectedPeriod = ref<'all' | 'day' | 'week' | 'month'>('all')
+const now = new Date()
+const selectedPeriod = ref<'all' | 'day' | 'week' | 'month' | 'custom'>('all')
 const selectedDate = ref(new Date())
+const customStartDate = ref(toYmd(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7)))
+const customEndDate = ref(toYmd(now))
 const showHistory = ref(false)
 const showAllServices = ref(false)
 const showAllPayments = ref(false)
@@ -297,7 +373,49 @@ const periodTabs = [
   { key: 'day', label: 'Día' },
   { key: 'week', label: 'Semana' },
   { key: 'month', label: 'Mes' },
+  { key: 'custom', label: 'Rango' },
 ]
+
+function setPresetRange(preset: 'last7' | 'currentBiweekly' | 'lastBiweekly' | 'currentMonth' | 'last30') {
+  const today = new Date()
+  const y = today.getFullYear()
+  const m = today.getMonth()
+  const d = today.getDate()
+
+  if (preset === 'last7') {
+    const from = new Date(today)
+    from.setDate(from.getDate() - 6)
+    customStartDate.value = toYmd(from)
+    customEndDate.value = toYmd(today)
+  } else if (preset === 'currentBiweekly') {
+    if (d <= 15) {
+      customStartDate.value = toYmd(new Date(y, m, 1))
+      customEndDate.value = toYmd(new Date(y, m, 15))
+    } else {
+      const lastDay = new Date(y, m + 1, 0).getDate()
+      customStartDate.value = toYmd(new Date(y, m, 16))
+      customEndDate.value = toYmd(new Date(y, m, lastDay))
+    }
+  } else if (preset === 'lastBiweekly') {
+    if (d <= 15) {
+      const prevMonthLastDay = new Date(y, m, 0).getDate()
+      customStartDate.value = toYmd(new Date(y, m - 1, 16))
+      customEndDate.value = toYmd(new Date(y, m - 1, prevMonthLastDay))
+    } else {
+      customStartDate.value = toYmd(new Date(y, m, 1))
+      customEndDate.value = toYmd(new Date(y, m, 15))
+    }
+  } else if (preset === 'currentMonth') {
+    const lastDay = new Date(y, m + 1, 0).getDate()
+    customStartDate.value = toYmd(new Date(y, m, 1))
+    customEndDate.value = toYmd(new Date(y, m, lastDay))
+  } else if (preset === 'last30') {
+    const from = new Date(today)
+    from.setDate(from.getDate() - 29)
+    customStartDate.value = toYmd(from)
+    customEndDate.value = toYmd(today)
+  }
+}
 
 function dayStart(d: Date): Date {
   const c = new Date(d)
@@ -320,6 +438,9 @@ function weekStart(d: Date): Date {
 
 const periodStart = computed<Date>(() => {
   if (selectedPeriod.value === 'all') return new Date(2000, 0, 1)
+  if (selectedPeriod.value === 'custom') {
+    return customStartDate.value ? dayStart(parseLocalDate(customStartDate.value)) : new Date(2000, 0, 1)
+  }
   if (selectedPeriod.value === 'day') return dayStart(selectedDate.value)
   if (selectedPeriod.value === 'week') return weekStart(selectedDate.value)
   return new Date(selectedDate.value.getFullYear(), selectedDate.value.getMonth(), 1)
@@ -327,6 +448,9 @@ const periodStart = computed<Date>(() => {
 
 const periodEnd = computed<Date>(() => {
   if (selectedPeriod.value === 'all') return new Date(2099, 11, 31, 23, 59, 59, 999)
+  if (selectedPeriod.value === 'custom') {
+    return customEndDate.value ? dayEnd(parseLocalDate(customEndDate.value)) : new Date(2099, 11, 31, 23, 59, 59, 999)
+  }
   if (selectedPeriod.value === 'day') return dayEnd(selectedDate.value)
   if (selectedPeriod.value === 'week') {
     const end = weekStart(selectedDate.value)
@@ -341,6 +465,15 @@ const periodEnd = computed<Date>(() => {
 
 const periodLabel = computed(() => {
   if (selectedPeriod.value === 'all') return 'Todos los recibos'
+  if (selectedPeriod.value === 'custom') {
+    if (customStartDate.value && customEndDate.value) {
+      if (customStartDate.value === customEndDate.value) {
+        return formatDateHuman(customStartDate.value)
+      }
+      return `${formatDateHuman(customStartDate.value)} al ${formatDateHuman(customEndDate.value)}`
+    }
+    return 'Rango personalizado'
+  }
   const d = selectedDate.value
   if (selectedPeriod.value === 'day') {
     return `${d.getDate()} ${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`
@@ -359,7 +492,7 @@ const periodLabel = computed(() => {
 })
 
 const isCurrentPeriod = computed(() => {
-  if (selectedPeriod.value === 'all') return true
+  if (selectedPeriod.value === 'all' || selectedPeriod.value === 'custom') return true
   const now = new Date()
   if (selectedPeriod.value === 'day') {
     return dayStart(selectedDate.value).getTime() >= dayStart(now).getTime()
@@ -373,8 +506,12 @@ const isCurrentPeriod = computed(() => {
 })
 
 function onPeriodChange(value: string) {
-  selectedPeriod.value = value as 'all' | 'day' | 'week' | 'month'
-  if (value !== 'all') selectedDate.value = new Date()
+  selectedPeriod.value = value as 'all' | 'day' | 'week' | 'month' | 'custom'
+  if (value !== 'all' && value !== 'custom') {
+    selectedDate.value = new Date()
+  } else if (value === 'custom' && (!customStartDate.value || !customEndDate.value)) {
+    setPresetRange('currentBiweekly')
+  }
 }
 
 function previousPeriod() {
@@ -448,10 +585,18 @@ const toYmdString = (d: Date) => {
   return `${y}-${m}-${dd}`
 }
 
-const dateParams = computed(() => selectedPeriod.value !== 'all'
-  ? { start: toYmdString(periodStart.value), end: toYmdString(periodEnd.value) }
-  : { start: undefined, end: undefined }
-)
+const dateParams = computed(() => {
+  if (selectedPeriod.value === 'all') {
+    return { start: undefined, end: undefined }
+  }
+  if (selectedPeriod.value === 'custom') {
+    return {
+      start: customStartDate.value || undefined,
+      end: customEndDate.value || undefined,
+    }
+  }
+  return { start: toYmdString(periodStart.value), end: toYmdString(periodEnd.value) }
+})
 
 const { data: earningsData, isLoading: loadingEarnings } = useQuery({
   queryKey: computed(() => dashboardKeys.earnings(businessId.value, employeeId.value, branchId.value, dateParams.value.start, dateParams.value.end)),

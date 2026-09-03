@@ -12,6 +12,7 @@ export interface WhatsAppConfig {
 export interface WhatsAppStatus {
   status: string
   instance_number?: string | null
+  error?: string | null
 }
 
 export interface WhatsAppQr {

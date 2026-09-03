@@ -86,6 +86,7 @@
     :selected-month="selectedMonth" :selected-period="selectedPeriod"
     @update:selected-period="selectedPeriod = $event"
     @update:selected-month="selectedMonth = $event"
+    @update:debt-dates="debtDates = $event"
     @reset-current-month="resetToCurrent"
     @open-payment="paymentsCtx.openPaymentModal()"
     @open-consumption="paymentsCtx.openConsumptionModal()"
@@ -193,7 +194,8 @@ const canEditEmployeeRate = computed(() => {
 const periodDates = computed(() => resolvePeriodDates(selectedPeriod.value, selectedMonth.value))
 const emptyExpenses = ref<{ date: string; amount: number }[]>([])
 const summaryCtx = useFinancialSummary(businessId, selectedPeriod, emptyExpenses, selectedMonth)
-const paymentsCtx = useEmployeePayments(businessId, periodDates)
+const debtDates = ref<{ start: string; end: string } | null>(null)
+const paymentsCtx = useEmployeePayments(businessId, periodDates, debtDates)
 
 const onPaymentSaved = async () => {
   await Promise.allSettled([
