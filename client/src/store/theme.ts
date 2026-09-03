@@ -4,10 +4,12 @@ import { defineStore } from 'pinia'
 export type ThemeMode = 'light' | 'dark' | 'system'
 
 const STORAGE_KEY = 'salonapp-theme-mode'
+const HIGH_VISIBILITY_KEY = 'salonapp-high-visibility'
 
 export const useThemeStore = defineStore('theme', () => {
   // Estado
   const mode = ref<ThemeMode>('system')
+  const highVisibility = ref<boolean>(false)
   const systemPrefersDark = ref(false)
   const isInitialized = ref(false)
 
@@ -27,6 +29,16 @@ export const useThemeStore = defineStore('theme', () => {
     mode.value = newMode
     saveToStorage()
     applyTheme()
+  }
+
+  const setHighVisibility = (val: boolean) => {
+    highVisibility.value = val
+    saveToStorage()
+    applyTheme()
+  }
+
+  const toggleHighVisibility = () => {
+    setHighVisibility(!highVisibility.value)
   }
 
   const toggle = () => {
@@ -50,6 +62,12 @@ export const useThemeStore = defineStore('theme', () => {
       html.classList.remove('dark')
     }
 
+    if (highVisibility.value) {
+      html.classList.add('high-visibility')
+    } else {
+      html.classList.remove('high-visibility')
+    }
+
     // Meta tag para color de barra en moviles
     const metaThemeColor = document.querySelector('meta[name="theme-color"]')
     if (metaThemeColor) {
@@ -60,6 +78,7 @@ export const useThemeStore = defineStore('theme', () => {
   const saveToStorage = () => {
     try {
       localStorage.setItem(STORAGE_KEY, mode.value)
+      localStorage.setItem(HIGH_VISIBILITY_KEY, highVisibility.value ? 'true' : 'false')
     } catch {
       // Ignorar errores de localStorage
     }
@@ -70,6 +89,10 @@ export const useThemeStore = defineStore('theme', () => {
       const saved = localStorage.getItem(STORAGE_KEY) as ThemeMode | null
       if (saved && ['light', 'dark', 'system'].includes(saved)) {
         mode.value = saved
+      }
+      const savedVis = localStorage.getItem(HIGH_VISIBILITY_KEY)
+      if (savedVis !== null) {
+        highVisibility.value = savedVis === 'true'
       }
     } catch {
       // Ignorar errores de localStorage
@@ -113,14 +136,15 @@ export const useThemeStore = defineStore('theme', () => {
   // Inicializar automaticamente cuando se usa el store
   initialize()
 
-  // Watch para cambios en modo o preferencia del sistema
-  watch([mode, systemPrefersDark], () => {
+  // Watch para cambios en modo, preferencia del sistema o visibilidad
+  watch([mode, systemPrefersDark, highVisibility], () => {
     applyTheme()
   }, { immediate: true })
 
   return {
     // Estado
     mode,
+    highVisibility,
     isInitialized,
 
     // Computed
@@ -130,6 +154,8 @@ export const useThemeStore = defineStore('theme', () => {
 
     // Metodos
     setMode,
+    setHighVisibility,
+    toggleHighVisibility,
     toggle,
     initialize,
   }
@@ -140,9 +166,12 @@ export function useTheme() {
   const store = useThemeStore()
   return {
     mode: store.mode,
+    highVisibility: store.highVisibility,
     isDark: store.isDark,
     isLight: store.isLight,
     setMode: store.setMode,
+    setHighVisibility: store.setHighVisibility,
+    toggleHighVisibility: store.toggleHighVisibility,
     toggle: store.toggle,
   }
 }
