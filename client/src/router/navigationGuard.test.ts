@@ -101,10 +101,15 @@ describe('resolveNavigation — cajero allowlist', () => {
     expect(resolveNavigation(target('/admin/pos', { adminOnly: true }), cajeroCtx)).toBeUndefined()
   })
 
+  it('allows /admin/configuracion for cajero', () => {
+    expect(resolveNavigation(target('/admin/configuracion', { adminOnly: true }), cajeroCtx)).toBeUndefined()
+  })
+
   it('is not subject to the adminOnly role check at all (it returns before that branch)', () => {
     // A cajero role literal fails isAdminPanelRole, but the cajero block must intercept
-    // /admin/pos before that check is ever reached.
+    // /admin/pos and /admin/configuracion before that check is ever reached.
     expect(resolveNavigation(target('/admin/pos', { adminOnly: true }), cajeroCtx)).toBeUndefined()
+    expect(resolveNavigation(target('/admin/configuracion', { adminOnly: true }), cajeroCtx)).toBeUndefined()
   })
 
   it('the synthetic cajero encoding (empleado + disable_agenda + disable_inventory_edit) behaves identically once isCajeroProfile is derived', () => {
@@ -114,6 +119,7 @@ describe('resolveNavigation — cajero allowlist', () => {
       profile: makeProfile({ role: 'empleado', disable_agenda: true, disable_inventory_edit: true }),
     })
     expect(resolveNavigation(target('/dashboard/agenda', { requiresAuth: true }), syntheticCtx)).toBe('/admin/pos')
+    expect(resolveNavigation(target('/admin/configuracion', { adminOnly: true }), syntheticCtx)).toBeUndefined()
   })
 })
 
@@ -121,6 +127,10 @@ describe('resolveNavigation — adminOnly', () => {
   it('bounces empleado away from an adminOnly route', () => {
     const result = resolveNavigation(target('/admin/inventario', { adminOnly: true }), makeCtx({ role: 'empleado' }))
     expect(result).toBe('/dashboard/agenda')
+  })
+
+  it('allows empleado through /admin/configuracion despite adminOnly meta', () => {
+    expect(resolveNavigation(target('/admin/configuracion', { adminOnly: true }), makeCtx({ role: 'empleado' }))).toBeUndefined()
   })
 
   for (const role of ['admin', 'superadmin', 'encargado'] as const) {
@@ -166,6 +176,10 @@ describe('resolveNavigation — employees_recibo_only business setting', () => {
 
   it('allows an empleado through /dashboard/recibo', () => {
     expect(resolveNavigation(target('/dashboard/recibo', { requiresAuth: true }), withFlag())).toBeUndefined()
+  })
+
+  it('allows an empleado with employees_recibo_only through /admin/configuracion', () => {
+    expect(resolveNavigation(target('/admin/configuracion', { adminOnly: true }), withFlag())).toBeUndefined()
   })
 
   for (const path of ['/dashboard/agenda', '/dashboard/historial', '/dashboard/comisiones', '/dashboard/clientes']) {
