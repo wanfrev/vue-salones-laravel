@@ -8,8 +8,8 @@
 
   <div class="flex flex-col gap-6 lg:flex-row lg:gap-10">
 
-    <!-- Desktop: in-page side nav -->
-    <nav class="hidden lg:block w-56 shrink-0">
+    <!-- Desktop: in-page side nav (visible only if multiple sections) -->
+    <nav v-if="sections.length > 1" class="hidden lg:block w-56 shrink-0">
       <p class="mb-3 px-2.5 text-[10.5px] font-bold uppercase tracking-widest text-text-muted">Secciones</p>
       <button
         v-for="s in sections" :key="s.id"
@@ -26,8 +26,8 @@
       </button>
     </nav>
 
-    <!-- Mobile / tablet: horizontal pill row -->
-    <div class="flex gap-2 overflow-x-auto pb-1 lg:hidden">
+    <!-- Mobile / tablet: horizontal pill row (visible only if multiple sections) -->
+    <div v-if="sections.length > 1" class="flex gap-2 overflow-x-auto pb-1 lg:hidden">
       <button
         v-for="s in sections" :key="s.id"
         @click="activeSection = s.id"
@@ -42,7 +42,7 @@
     </div>
 
     <!-- Content -->
-    <div class="min-w-0 flex-1 pb-8">
+    <div class="min-w-0 flex-1 pb-8" :class="{ 'max-w-4xl': sections.length <= 1 }">
 
       <!-- ═══════════ GENERAL ═══════════ -->
       <div v-if="activeSection === 'general'">
@@ -137,7 +137,7 @@
       </div>
 
       <!-- ═══════════ WHATSAPP ═══════════ -->
-      <div v-else-if="activeSection === 'whatsapp'">
+      <div v-else-if="activeSection === 'whatsapp' && canManageBusinessConfig">
         <div class="mb-7">
           <h1 class="text-lg font-bold text-text">WhatsApp</h1>
           <p class="text-xs text-text-muted mt-0.5">Configuración de WhatsApp para recordatorios automáticos.</p>
@@ -146,7 +146,7 @@
       </div>
 
       <!-- ═══════════ PERMISOS Y FUNCIONALIDADES ═══════════ -->
-      <div v-else-if="activeSection === 'permisos'">
+      <div v-else-if="activeSection === 'permisos' && isAdmin">
         <div class="mb-7">
           <h1 class="text-lg font-bold text-text">Permisos y funcionalidades</h1>
           <p class="text-xs text-text-muted mt-0.5">Controla qué pueden hacer tus encargados y empleados dentro del sistema.</p>
@@ -321,7 +321,7 @@
       </div>
 
       <!-- ═══════════ NOTIFICACIONES ═══════════ -->
-      <div v-else-if="activeSection === 'notificaciones'">
+      <div v-else-if="activeSection === 'notificaciones' && canManageBusinessConfig">
         <div class="mb-7">
           <h1 class="text-lg font-bold text-text">Notificaciones y recordatorios</h1>
           <p class="text-xs text-text-muted mt-0.5">Alertas automáticas, recordatorios de citas y reservas públicas por link.</p>
@@ -483,7 +483,7 @@
       </div>
 
       <!-- ═══════════ SUCURSALES ═══════════ -->
-      <div v-else-if="activeSection === 'sucursales'">
+      <div v-else-if="activeSection === 'sucursales' && canManageBusinessConfig">
         <div class="mb-7 flex items-start justify-between gap-3">
           <div>
             <h1 class="text-lg font-bold text-text">Sucursales</h1>
@@ -565,6 +565,7 @@
   </div>
 
   <ModalBase
+    v-if="isAdmin"
     :is-open="showPayrollRateWarning"
     title="Vas a cambiar el tipo de nómina"
     subtitle="Este cambio afecta cómo se calculan los bolívares que se le deben a tus empleados"
@@ -586,6 +587,7 @@
   </ModalBase>
 
   <BranchFormModal
+    v-if="canManageBusinessConfig"
     :is-open="branchesCtx.showModal.value"
     :is-editing="!!branchesCtx.editingId.value"
     :form="branchesCtx.form.value"
@@ -597,7 +599,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, reactive, ref } from 'vue'
+import { computed, h, onMounted, reactive, ref, watch } from 'vue'
 import { useAuth } from '../composables/common/useAuth'
 import { useBusinessStore } from '../store/business'
 import { useBranches } from '../composables/common/useBranches'
@@ -619,6 +621,7 @@ const themeStore = useThemeStore()
 const { success, error: showError } = useNotification()
 const businessId = computed(() => authStore.businessId)
 const isAdmin = computed(() => authStore.role === 'admin' || authStore.role === 'superadmin')
+const canManageBusinessConfig = computed(() => authStore.role === 'admin' || authStore.role === 'superadmin')
 const branchesCtx = useBranches(businessId)
 const updatingFeatures = ref(false)
 
@@ -658,13 +661,19 @@ const showPayrollRateSection = computed(() =>
 const sections = computed(() => {
   const list = [
     { id: 'general', label: 'General', shortLabel: 'General', visible: true },
-    { id: 'whatsapp', label: 'WhatsApp', shortLabel: 'WhatsApp', visible: businessStore.features.whatsapp_available && businessStore.features.agenda },
+    { id: 'whatsapp', label: 'WhatsApp', shortLabel: 'WhatsApp', visible: canManageBusinessConfig.value && businessStore.features.whatsapp_available && businessStore.features.agenda },
     { id: 'permisos', label: 'Permisos y funcionalidades', shortLabel: 'Permisos', visible: isAdmin.value },
-    { id: 'notificaciones', label: 'Notificaciones', shortLabel: 'Notif.', visible: businessStore.features.agenda },
-    { id: 'sucursales', label: 'Sucursales', shortLabel: 'Sucursales', visible: businessStore.isMultiBranch },
+    { id: 'notificaciones', label: 'Notificaciones', shortLabel: 'Notif.', visible: canManageBusinessConfig.value && businessStore.features.agenda },
+    { id: 'sucursales', label: 'Sucursales', shortLabel: 'Sucursales', visible: canManageBusinessConfig.value && businessStore.isMultiBranch },
   ]
   return list.filter(s => s.visible).map(s => ({ ...s, icon: SECTION_ICONS[s.id as keyof typeof SECTION_ICONS], ...SECTION_STYLES[s.id] }))
 })
+
+watch(sections, (newSections) => {
+  if (!newSections.some(s => s.id === activeSection.value)) {
+    activeSection.value = newSections[0]?.id || 'general'
+  }
+}, { immediate: true })
 
 async function handleToggleEncargadoExchangeRate(val: boolean) {
   if (!businessId.value) return

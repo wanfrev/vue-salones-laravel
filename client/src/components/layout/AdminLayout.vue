@@ -10,8 +10,8 @@
         <div class="flex flex-col shrink-0">
           <img :src="lumaLogo" alt="Luma" class="h-7 w-auto object-contain" />
         </div>
-        <BranchSwitcher v-if="businessStore.isMultiBranch && !isEncargado" class="shrink-0" />
-        <BusinessSwitcher v-if="!isEncargado" class="shrink-0" />
+        <BranchSwitcher v-if="businessStore.isMultiBranch && !isEmployee && !isEncargado" class="shrink-0" />
+        <BusinessSwitcher v-if="!isEmployee && !isEncargado" class="shrink-0" />
         <button @click="refresh" :disabled="isRefreshing" title="Recargar datos" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text-secondary disabled:opacity-50 disabled:cursor-not-allowed shrink-0">
           <RefreshIcon :size="18" :class="{ 'animate-spin': isRefreshing }" />
         </button>
@@ -30,6 +30,14 @@
               <p class="text-sm font-medium text-text truncate">{{ authStore.profile?.full_name || 'Usuario' }}</p>
               <p class="text-xs text-text-muted capitalize">{{ authStore.role }}</p>
             </div>
+            <router-link
+              to="/admin/configuracion"
+              @click="profileOpen = false"
+              class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-secondary hover:text-text border-b border-border"
+            >
+              <SettingsIcon :size="16" />
+              Configuración
+            </router-link>
             <button @click="logout" :disabled="loading" class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-secondary disabled:opacity-40 disabled:cursor-not-allowed">
               <LogoutIcon :size="16" />
               Cerrar sesión
@@ -61,7 +69,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../../composables/common/useAuth'
 import { useThemeStore } from '../../store/theme'
-import { HamburgerMenuIcon, RefreshIcon, LogoutIcon } from '@solar-icons/vue/linear'
+import { HamburgerMenuIcon, RefreshIcon, LogoutIcon, SettingsIcon } from '@solar-icons/vue/linear'
 import lumaLogoLight from '../../assets/Luma.svg'
 import lumaLogoDark from '../../assets/Luma blanco.svg'
 import Sidebar from './Sidebar.vue'
@@ -83,6 +91,7 @@ const profileOpen = ref(false)
 const isRefreshing = ref(false)
 const lumaLogo = computed(() => (themeStore.isDark ? lumaLogoDark : lumaLogoLight))
 const isEncargado = computed(() => authStore.role === 'encargado')
+const isEmployee = computed(() => authStore.role === 'empleado' || authStore.role === 'cajero')
 
 async function refresh() {
   isRefreshing.value = true

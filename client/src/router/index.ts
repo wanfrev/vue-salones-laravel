@@ -91,6 +91,8 @@ const router = createRouter({
     },
     { path: '/dashboard/finanzas', redirect: '/admin/finanzas' },
     { path: '/dashboard/finanzas/registros/:tipo', redirect: to => `/admin/finanzas/registros/${to.params.tipo}` },
+    { path: '/dashboard/configuracion', redirect: '/admin/configuracion' },
+    { path: '/configuracion', redirect: '/admin/configuracion' },
     // Admin routes — lazy loaded layout + children
     {
       path: '/admin',
