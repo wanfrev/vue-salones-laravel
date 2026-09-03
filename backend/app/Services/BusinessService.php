@@ -7,12 +7,14 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class BusinessService
 {
-    public function show(string $id): Business
+    public function show(string $id, ?string $profileBusinessId): Business
     {
         $business = Business::find($id);
-        if (!$business) {
+
+        if (!$business || $business->id !== $profileBusinessId) {
             throw new NotFoundHttpException('Negocio no encontrado.');
         }
+
         return $business;
     }
 

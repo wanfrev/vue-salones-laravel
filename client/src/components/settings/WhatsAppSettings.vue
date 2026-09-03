@@ -46,12 +46,20 @@
 
       <!-- Sucursal a conectar — cada una puede tener su propio número, o compartir el de arriba -->
       <div v-if="config.whatsapp_enabled && businessStore.isMultiBranch">
-        <label class="block text-sm font-medium text-text-secondary mb-1.5">Número a gestionar</label>
-        <select v-model="selectedBranchIdModel"
-          class="w-full max-w-xs rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
-          <option value="">Compartido (todas las sucursales)</option>
-          <option v-for="b in businessStore.branches" :key="b.id" :value="b.id">{{ b.name }}</option>
-        </select>
+        <label class="mb-2 flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" v-model="isSharedNumber"
+            class="h-4 w-4 rounded border-border-strong text-primary focus:ring-2 focus:ring-primary/20" />
+          <span class="text-sm font-medium text-text-secondary">Compartido (todas las sucursales)</span>
+        </label>
+
+        <template v-if="!isSharedNumber">
+          <label class="block text-sm font-medium text-text-secondary mb-1.5">Sucursal</label>
+          <select v-model="selectedBranchIdModel"
+            class="w-full max-w-xs rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
+            <option v-for="b in businessStore.branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+          </select>
+        </template>
+
         <p class="text-xs text-text-muted mt-1.5">
           Una sucursal sin número propio conectado usa el compartido automáticamente.
         </p>
@@ -285,11 +293,24 @@ const { success, error: showError } = useNotification()
 const businessStore = useBusinessStore()
 
 const loading = ref(false)
-const selectedBranchId = ref<string | null>(null)
-// <select> solo trabaja con strings — '' representa el número compartido (branch_id null).
+// Arranca en la sucursal que el admin tiene activa ahora mismo (no en "Compartido") — si está
+// parado en Mimosa Terraza 77, es esa la que espera ver seleccionada, no tener que buscarla.
+const selectedBranchId = ref<string | null>(businessStore.currentBranchId ?? null)
+// <select> solo trabaja con strings.
 const selectedBranchIdModel = computed({
   get: () => selectedBranchId.value ?? '',
   set: (v: string) => { selectedBranchId.value = v || null },
+})
+// "Compartido" es ahora un checkbox aparte: activado = branch_id null (número de todas las
+// sucursales); desactivado = vuelve a la sucursal actual (o la primera disponible) en vez de
+// dejar el <select> sin nada seleccionado.
+const isSharedNumber = computed({
+  get: () => selectedBranchId.value === null,
+  set: (shared: boolean) => {
+    selectedBranchId.value = shared
+      ? null
+      : (businessStore.currentBranchId ?? businessStore.branches[0]?.id ?? null)
+  },
 })
 const config = ref<WhatsAppConfig>({
   whatsapp_enabled: false,

@@ -14,6 +14,8 @@ import type { AuthProfile } from '../types/auth'
  */
 export interface RouteGate {
   feature?: FeatureKey
+  /** Extra features, ALL required (ANDed with `feature` too) — for links needing more than one. */
+  features?: FeatureKey[]
   capability?: Capability
   /** Inverse of `capability` — hides the link/route for niches that DO declare it. Used for
    *  generic modules (Clientes) that a niche with its own dedicated equivalent shouldn't show. */
@@ -35,6 +37,7 @@ export interface GateContext {
 export function evaluateGate(gate: RouteGate | undefined, ctx: GateContext): boolean {
   if (!gate) return true
   if (gate.feature && !ctx.hasFeature(gate.feature)) return false
+  if (gate.features && !gate.features.every(f => ctx.hasFeature(f))) return false
   if (gate.capability && !ctx.hasCapability(gate.capability)) return false
   if (gate.hideIfCapability && ctx.hasCapability(gate.hideIfCapability)) return false
   if (gate.profileFlag && (ctx.profile as any)?.[gate.profileFlag] === false) return false
