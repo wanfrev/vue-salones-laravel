@@ -10,6 +10,7 @@ use App\Support\NicheRegistry;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Laravel\Sanctum\PersonalAccessToken;
 use RuntimeException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -467,9 +468,19 @@ class SuperadminService
         }
 
         $business->update(['active' => false, 'updated_at' => now()]);
-        Profile::where('business_id', $id)
+
+        $profileIds = Profile::where('business_id', $id)
             ->where('role', '!=', 'superadmin')
+            ->pluck('id');
+
+        Profile::whereIn('id', $profileIds)
             ->update(['active' => false, 'updated_at' => now()]);
+
+        // Deactivating the profile doesn't revoke tokens already issued, so anyone logged
+        // in keeps working until this kicks them out immediately.
+        PersonalAccessToken::where('tokenable_type', User::class)
+            ->whereIn('tokenable_id', $profileIds)
+            ->delete();
 
         $this->logAudit($actorId, 'suspend_business', $id, null, [
             'business_name' => $business->name,
