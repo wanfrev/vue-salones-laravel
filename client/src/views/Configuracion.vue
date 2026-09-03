@@ -68,6 +68,57 @@
                 <span class="text-xs font-semibold" :class="themeStore.mode === opt.value ? 'text-primary' : 'text-text'">{{ opt.label }}</span>
               </button>
             </div>
+
+            <!-- Mejorar visibilidad -->
+            <div class="mt-6 pt-5 border-t border-border">
+              <div class="mb-2.5">
+                <h3 class="text-sm font-semibold text-text">Accesibilidad</h3>
+                <p class="text-xs text-text-muted">Ajustes visuales para mayor comodidad de lectura.</p>
+              </div>
+
+              <button
+                type="button"
+                @click="themeStore.toggleHighVisibility()"
+                class="card-hairline w-full flex items-center justify-between gap-4 rounded-xl p-3.5 transition-all duration-200 cursor-pointer text-left"
+                :class="themeStore.highVisibility ? 'border-primary ring-2 ring-primary/20 bg-primary/10' : 'hover:border-border-strong'"
+              >
+                <div class="flex items-center gap-3 min-w-0">
+                  <span
+                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors"
+                    :class="themeStore.highVisibility ? 'bg-primary text-text-inverse' : 'bg-bg-secondary text-text-muted'"
+                  >
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </span>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm font-bold text-text">Mejorar visibilidad</span>
+                      <span
+                        class="rounded-full px-2 py-0.5 text-[10px] font-bold border transition-colors"
+                        :class="themeStore.highVisibility ? 'bg-primary text-text-inverse border-primary' : 'bg-bg-secondary border-border text-text-muted'"
+                      >
+                        {{ themeStore.highVisibility ? 'Encendido' : 'Apagado' }}
+                      </span>
+                    </div>
+                    <p class="text-xs text-text-muted mt-0.5">
+                      Palabras grandes, texto en negritas y colores sólidos de alto contraste.
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200"
+                  :class="themeStore.highVisibility ? 'bg-primary' : 'bg-border-strong'"
+                >
+                  <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out"
+                    :class="themeStore.highVisibility ? 'translate-x-6' : 'translate-x-1'"
+                  />
+                </div>
+              </button>
+            </div>
           </div>
 
           <!-- Cambiar clave -->
