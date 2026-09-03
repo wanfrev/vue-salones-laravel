@@ -8,8 +8,8 @@
 
   <div class="flex flex-col gap-6 lg:flex-row lg:gap-10">
 
-    <!-- Desktop: in-page side nav -->
-    <nav class="hidden lg:block w-56 shrink-0">
+    <!-- Desktop: in-page side nav (visible only if multiple sections) -->
+    <nav v-if="sections.length > 1" class="hidden lg:block w-56 shrink-0">
       <p class="mb-3 px-2.5 text-[10.5px] font-bold uppercase tracking-widest text-text-muted">Secciones</p>
       <button
         v-for="s in sections" :key="s.id"
@@ -26,8 +26,8 @@
       </button>
     </nav>
 
-    <!-- Mobile / tablet: horizontal pill row -->
-    <div class="flex gap-2 overflow-x-auto pb-1 lg:hidden">
+    <!-- Mobile / tablet: horizontal pill row (visible only if multiple sections) -->
+    <div v-if="sections.length > 1" class="flex gap-2 overflow-x-auto pb-1 lg:hidden">
       <button
         v-for="s in sections" :key="s.id"
         @click="activeSection = s.id"
@@ -42,7 +42,7 @@
     </div>
 
     <!-- Content -->
-    <div class="min-w-0 flex-1 pb-8">
+    <div class="min-w-0 flex-1 pb-8" :class="{ 'max-w-4xl': sections.length <= 1 }">
 
       <!-- ═══════════ GENERAL ═══════════ -->
       <div v-if="activeSection === 'general'">
@@ -66,6 +66,57 @@
               >
                 <component :is="opt.icon" class="h-6 w-6 transition-colors" :class="themeStore.mode === opt.value ? 'text-primary' : 'text-text-muted'" />
                 <span class="text-xs font-semibold" :class="themeStore.mode === opt.value ? 'text-primary' : 'text-text'">{{ opt.label }}</span>
+              </button>
+            </div>
+
+            <!-- Mejorar visibilidad -->
+            <div class="mt-6 pt-5 border-t border-border">
+              <div class="mb-2.5">
+                <h3 class="text-sm font-semibold text-text">Accesibilidad</h3>
+                <p class="text-xs text-text-muted">Ajustes visuales para mayor comodidad de lectura.</p>
+              </div>
+
+              <button
+                type="button"
+                @click="themeStore.toggleHighVisibility()"
+                class="card-hairline w-full flex items-center justify-between gap-4 rounded-xl p-3.5 transition-all duration-200 cursor-pointer text-left"
+                :class="themeStore.highVisibility ? 'border-primary ring-2 ring-primary/20 bg-primary/10' : 'hover:border-border-strong'"
+              >
+                <div class="flex items-center gap-3 min-w-0">
+                  <span
+                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors"
+                    :class="themeStore.highVisibility ? 'bg-primary text-text-inverse' : 'bg-bg-secondary text-text-muted'"
+                  >
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.964-7.178z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                  </span>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm font-bold text-text">Mejorar visibilidad</span>
+                      <span
+                        class="rounded-full px-2 py-0.5 text-[10px] font-bold border transition-colors"
+                        :class="themeStore.highVisibility ? 'bg-primary text-text-inverse border-primary' : 'bg-bg-secondary border-border text-text-muted'"
+                      >
+                        {{ themeStore.highVisibility ? 'Encendido' : 'Apagado' }}
+                      </span>
+                    </div>
+                    <p class="text-xs text-text-muted mt-0.5">
+                      Palabras grandes, texto en negritas y colores sólidos de alto contraste.
+                    </p>
+                  </div>
+                </div>
+
+                <div
+                  class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200"
+                  :class="themeStore.highVisibility ? 'bg-primary' : 'bg-border-strong'"
+                >
+                  <span
+                    class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition duration-200 ease-in-out"
+                    :class="themeStore.highVisibility ? 'translate-x-6' : 'translate-x-1'"
+                  />
+                </div>
               </button>
             </div>
           </div>
@@ -137,7 +188,7 @@
       </div>
 
       <!-- ═══════════ WHATSAPP ═══════════ -->
-      <div v-else-if="activeSection === 'whatsapp'">
+      <div v-else-if="activeSection === 'whatsapp' && canManageBusinessConfig">
         <div class="mb-7">
           <h1 class="text-lg font-bold text-text">WhatsApp</h1>
           <p class="text-xs text-text-muted mt-0.5">Configuración de WhatsApp para recordatorios automáticos.</p>
@@ -146,7 +197,7 @@
       </div>
 
       <!-- ═══════════ PERMISOS Y FUNCIONALIDADES ═══════════ -->
-      <div v-else-if="activeSection === 'permisos'">
+      <div v-else-if="activeSection === 'permisos' && isAdmin">
         <div class="mb-7">
           <h1 class="text-lg font-bold text-text">Permisos y funcionalidades</h1>
           <p class="text-xs text-text-muted mt-0.5">Controla qué pueden hacer tus encargados y empleados dentro del sistema.</p>
@@ -321,7 +372,7 @@
       </div>
 
       <!-- ═══════════ NOTIFICACIONES ═══════════ -->
-      <div v-else-if="activeSection === 'notificaciones'">
+      <div v-else-if="activeSection === 'notificaciones' && canManageBusinessConfig">
         <div class="mb-7">
           <h1 class="text-lg font-bold text-text">Notificaciones y recordatorios</h1>
           <p class="text-xs text-text-muted mt-0.5">Alertas automáticas, recordatorios de citas y reservas públicas por link.</p>
@@ -483,7 +534,7 @@
       </div>
 
       <!-- ═══════════ SUCURSALES ═══════════ -->
-      <div v-else-if="activeSection === 'sucursales'">
+      <div v-else-if="activeSection === 'sucursales' && canManageBusinessConfig">
         <div class="mb-7 flex items-start justify-between gap-3">
           <div>
             <h1 class="text-lg font-bold text-text">Sucursales</h1>
@@ -565,6 +616,7 @@
   </div>
 
   <ModalBase
+    v-if="isAdmin"
     :is-open="showPayrollRateWarning"
     title="Vas a cambiar el tipo de nómina"
     subtitle="Este cambio afecta cómo se calculan los bolívares que se le deben a tus empleados"
@@ -586,6 +638,7 @@
   </ModalBase>
 
   <BranchFormModal
+    v-if="canManageBusinessConfig"
     :is-open="branchesCtx.showModal.value"
     :is-editing="!!branchesCtx.editingId.value"
     :form="branchesCtx.form.value"
@@ -597,7 +650,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, h, onMounted, reactive, ref } from 'vue'
+import { computed, h, onMounted, reactive, ref, watch } from 'vue'
 import { useAuth } from '../composables/common/useAuth'
 import { useBusinessStore } from '../store/business'
 import { useBranches } from '../composables/common/useBranches'
@@ -619,6 +672,7 @@ const themeStore = useThemeStore()
 const { success, error: showError } = useNotification()
 const businessId = computed(() => authStore.businessId)
 const isAdmin = computed(() => authStore.role === 'admin' || authStore.role === 'superadmin')
+const canManageBusinessConfig = computed(() => authStore.role === 'admin' || authStore.role === 'superadmin')
 const branchesCtx = useBranches(businessId)
 const updatingFeatures = ref(false)
 
@@ -658,13 +712,19 @@ const showPayrollRateSection = computed(() =>
 const sections = computed(() => {
   const list = [
     { id: 'general', label: 'General', shortLabel: 'General', visible: true },
-    { id: 'whatsapp', label: 'WhatsApp', shortLabel: 'WhatsApp', visible: businessStore.features.whatsapp_available && businessStore.features.agenda },
+    { id: 'whatsapp', label: 'WhatsApp', shortLabel: 'WhatsApp', visible: canManageBusinessConfig.value && businessStore.features.whatsapp_available && businessStore.features.agenda },
     { id: 'permisos', label: 'Permisos y funcionalidades', shortLabel: 'Permisos', visible: isAdmin.value },
-    { id: 'notificaciones', label: 'Notificaciones', shortLabel: 'Notif.', visible: businessStore.features.agenda },
-    { id: 'sucursales', label: 'Sucursales', shortLabel: 'Sucursales', visible: businessStore.isMultiBranch },
+    { id: 'notificaciones', label: 'Notificaciones', shortLabel: 'Notif.', visible: canManageBusinessConfig.value && businessStore.features.agenda },
+    { id: 'sucursales', label: 'Sucursales', shortLabel: 'Sucursales', visible: canManageBusinessConfig.value && businessStore.isMultiBranch },
   ]
   return list.filter(s => s.visible).map(s => ({ ...s, icon: SECTION_ICONS[s.id as keyof typeof SECTION_ICONS], ...SECTION_STYLES[s.id] }))
 })
+
+watch(sections, (newSections) => {
+  if (!newSections.some(s => s.id === activeSection.value)) {
+    activeSection.value = newSections[0]?.id || 'general'
+  }
+}, { immediate: true })
 
 async function handleToggleEncargadoExchangeRate(val: boolean) {
   if (!businessId.value) return

@@ -288,3 +288,199 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
 }
 
+/* ============================================================
+   MODO MEJORAR VISIBILIDAD (ALTA VISIBILIDAD Y ACCESIBILIDAD)
+   ============================================================ */
+
+/* Tokens de Alto Contraste - Modo Claro */
+html.high-visibility {
+  font-size: 106.25%;
+  --color-text: #000000;
+  --color-text-secondary: #0f172a;
+  --color-text-muted: #1e293b;
+  --color-border: #334155;
+  --color-border-subtle: #475569;
+  --color-border-strong: #000000;
+  --color-primary: #51714f;
+  --color-primary-hover: #3d553b;
+}
+
+/* Tokens de Alto Contraste - Modo Oscuro */
+html.high-visibility.dark,
+html.dark.high-visibility {
+  --color-text: #ffffff;
+  --color-text-secondary: #f8fafc;
+  --color-text-muted: #e2e8f0;
+  --color-border: rgba(255, 255, 255, 0.45);
+  --color-border-subtle: rgba(255, 255, 255, 0.3);
+  --color-border-strong: #ffffff;
+  --color-surface-elevated: #161920;
+  --color-primary: #9bb798;
+  --color-primary-hover: #b2cbb0;
+}
+
+/* Tipografía global: Todo en negritas / peso reforzado */
+html.high-visibility body {
+  font-weight: 600;
+}
+
+html.high-visibility p,
+html.high-visibility span,
+html.high-visibility a,
+html.high-visibility td,
+html.high-visibility th,
+html.high-visibility li,
+html.high-visibility div {
+  font-weight: 600;
+}
+
+html.high-visibility h1,
+html.high-visibility h2,
+html.high-visibility h3,
+html.high-visibility h4,
+html.high-visibility h5,
+html.high-visibility h6 {
+  font-weight: 800 !important;
+}
+
+html.high-visibility b,
+html.high-visibility strong {
+  font-weight: 900 !important;
+}
+
+/* Escala de texto más grande para utilidades Tailwind */
+html.high-visibility .text-\[10px\],
+html.high-visibility .text-\[10\.5px\],
+html.high-visibility .text-\[11px\] {
+  font-size: 0.8125rem !important;
+  line-height: 1.15rem !important;
+  font-weight: 700 !important;
+}
+
+html.high-visibility .text-xs {
+  font-size: 0.875rem !important;
+  line-height: 1.35rem !important;
+  font-weight: 600 !important;
+}
+
+html.high-visibility .text-sm {
+  font-size: 1.025rem !important;
+  line-height: 1.55rem !important;
+  font-weight: 600 !important;
+}
+
+html.high-visibility .text-base {
+  font-size: 1.15rem !important;
+  line-height: 1.75rem !important;
+  font-weight: 600 !important;
+}
+
+/* Textos apagados / secundarios pasan a color sólido y legible */
+html.high-visibility:not(.dark) .text-text-muted,
+html.high-visibility:not(.dark) .text-text-secondary {
+  color: #0f172a !important;
+  font-weight: 600 !important;
+}
+
+html.high-visibility.dark .text-text-muted,
+html.high-visibility.dark .text-text-secondary {
+  color: #f8fafc !important;
+  font-weight: 600 !important;
+}
+
+/* ============================================================
+   FORMULARIOS CON ALTA VISIBILIDAD: LETRAS GRANDES, NEGRITAS Y COLORES SÓLIDOS
+   ============================================================ */
+
+/* Etiquetas de formulario: Grandes, Negritas y Color Sólido */
+html.high-visibility label {
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  margin-bottom: 0.35rem !important;
+  display: block;
+}
+
+html.high-visibility:not(.dark) label {
+  color: #000000 !important;
+}
+
+html.high-visibility.dark label {
+  color: #ffffff !important;
+}
+
+/* Inputs, Selects y Textareas */
+html.high-visibility input,
+html.high-visibility select,
+html.high-visibility textarea {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  border-width: 2px !important;
+  min-height: 2.75rem;
+}
+
+html.high-visibility:not(.dark) input,
+html.high-visibility:not(.dark) select,
+html.high-visibility:not(.dark) textarea {
+  color: #000000 !important;
+  border-color: #334155 !important;
+  background-color: #ffffff !important;
+}
+
+html.high-visibility:not(.dark) input:focus,
+html.high-visibility:not(.dark) select:focus,
+html.high-visibility:not(.dark) textarea:focus {
+  border-color: #000000 !important;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.25) !important;
+}
+
+html.high-visibility.dark input,
+html.high-visibility.dark select,
+html.high-visibility.dark textarea {
+  color: #ffffff !important;
+  border-color: #94a3b8 !important;
+  background-color: #0c0e12 !important;
+}
+
+html.high-visibility.dark input:focus,
+html.high-visibility.dark select:focus,
+html.high-visibility.dark textarea:focus {
+  border-color: #ffffff !important;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Placeholders con color sólido y visible */
+html.high-visibility:not(.dark) input::placeholder,
+html.high-visibility:not(.dark) textarea::placeholder {
+  color: #475569 !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+}
+
+html.high-visibility.dark input::placeholder,
+html.high-visibility.dark textarea::placeholder {
+  color: #cbd5e1 !important;
+  opacity: 1 !important;
+  font-weight: 700 !important;
+}
+
+/* Botones: Negritas, grandes y con presencia sólida */
+html.high-visibility button {
+  font-weight: 800 !important;
+  letter-spacing: 0.01em;
+}
+
+html.high-visibility button:not(.rounded-full) {
+  font-size: 1rem !important;
+}
+
+/* Tarjetas y divisores con bordes sólidos bien definidos */
+html.high-visibility .card-hairline,
+html.high-visibility .border,
+html.high-visibility .border-b,
+html.high-visibility .border-t,
+html.high-visibility .border-l,
+html.high-visibility .border-r {
+  border-color: var(--color-border) !important;
+}
+
+

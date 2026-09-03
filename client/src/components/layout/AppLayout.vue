@@ -33,6 +33,14 @@
               <p class="text-sm font-medium text-text truncate">{{ authStore.profile?.full_name || 'Usuario' }}</p>
               <p class="text-xs text-text-muted capitalize">{{ authStore.role }}</p>
             </div>
+            <router-link
+              to="/admin/configuracion"
+              @click="profileOpen = false"
+              class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-secondary hover:text-text border-b border-border"
+            >
+              <SettingsIcon :size="16" />
+              Configuración
+            </router-link>
             <button @click="logout" :disabled="loading" class="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-secondary disabled:opacity-40 disabled:cursor-not-allowed">
               <LogoutIcon :size="16" />
               Cerrar sesión
@@ -66,7 +74,7 @@ import { useAuth } from '../../composables/common/useAuth'
 import { useAuthStore } from '../../store/auth'
 import { useThemeStore } from '../../store/theme'
 import { useBusinessStore } from '../../store/business'
-import { HamburgerMenuIcon, RefreshIcon, LogoutIcon } from '@solar-icons/vue/linear'
+import { HamburgerMenuIcon, RefreshIcon, LogoutIcon, SettingsIcon } from '@solar-icons/vue/linear'
 import { db } from '../../lib/api'
 import { useRealtime } from '../../composables/realtime/useRealtime'
 import lumaLogoLight from '../../assets/Luma.svg'
