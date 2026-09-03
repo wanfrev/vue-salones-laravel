@@ -186,8 +186,8 @@
             <div v-if="payInfo && payInfo.baseSalary > 0" class="flex justify-between py-2 text-sm">
               <span class="text-text-muted">Sueldo base</span>
               <div class="text-right">
-                <span class="font-medium text-text">${{ payInfo.baseSalary.toFixed(2) }}</span>
-                <p class="text-xs text-text-muted">{{ formatEmployeeVES(payInfo.baseSalary) }}</p>
+                <span class="font-medium text-text">${{ (selectedPeriod === 'all' ? payInfo.baseSalary : baseSalaryForPeriod).toFixed(2) }}</span>
+                <p class="text-xs text-text-muted">{{ formatEmployeeVES(selectedPeriod === 'all' ? payInfo.baseSalary : baseSalaryForPeriod) }}</p>
               </div>
             </div>
             <div v-if="payInfo && payInfo.type !== 'salary'" class="flex justify-between py-2 text-sm">

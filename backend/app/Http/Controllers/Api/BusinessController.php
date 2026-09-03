@@ -24,9 +24,10 @@ class BusinessController
         }
     }
 
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
-        $business = $this->businessService->show($id);
+        $profileBusinessId = $request->user()?->profile?->business_id;
+        $business = $this->businessService->show($id, $profileBusinessId);
         return response()->json(new BusinessResource($business));
     }
 

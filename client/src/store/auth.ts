@@ -69,7 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
   const loadProfile = async (userId: string, userRole?: string | null) => {
     const { data, error } = await db
       .from('profiles')
-      .select('id, business_id, branch_id, full_name, role, phone, avatar_url, active, pay_type, pay_percentage, base_salary, disable_agenda, disable_inventory_edit, employee_ves_rate, can_create_appointments, can_create_clients, can_access_consultorio, can_access_inventory, can_access_pos, can_access_suppliers, can_access_finanzas, can_access_requirements, can_add_purchase_invoice, can_access_spreadsheet')
+      .select('id, business_id, branch_id, full_name, role, phone, avatar_url, active, pay_type, pay_percentage, base_salary, salary_frequency, disable_agenda, disable_inventory_edit, employee_ves_rate, can_create_appointments, can_create_clients, can_access_consultorio, can_access_inventory, can_access_pos, can_access_suppliers, can_access_finanzas, can_access_requirements, can_add_purchase_invoice, can_access_spreadsheet')
       .eq('id', userId)
       .maybeSingle()
 
@@ -88,6 +88,7 @@ export const useAuthStore = defineStore('auth', () => {
           pay_type: null,
           pay_percentage: null,
           base_salary: null,
+          salary_frequency: null,
           disable_agenda: false,
           disable_inventory_edit: false,
         }
@@ -121,6 +122,7 @@ export const useAuthStore = defineStore('auth', () => {
       pay_type: (authProfile as any).pay_type ?? null,
       pay_percentage: (authProfile as any).pay_percentage ?? null,
       base_salary: (authProfile as any).base_salary ?? null,
+      salary_frequency: (authProfile as any).salary_frequency ?? null,
       disable_agenda: (authProfile as any).disable_agenda ?? false,
       disable_inventory_edit: (authProfile as any).disable_inventory_edit ?? false,
       can_create_appointments: (authProfile as any).can_create_appointments ?? true,
