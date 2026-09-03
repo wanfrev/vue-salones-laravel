@@ -323,6 +323,19 @@ class WhatsAppService
                 return true;
             }
 
+            // Evolution ya tiene una instancia con este nombre exacto — típicamente huérfana de un
+            // logout anterior (que desconecta la sesión en Evolution pero no borra la instancia,
+            // mientras que nuestro `disconnect` sí limpia instance_id localmente). El nombre es
+            // determinístico por business/branch, así que si ya existe ahí es de este negocio: la
+            // adoptamos en vez de fallar, y el caller sigue a getQrCode() para reconectarla.
+            if ($response->status() === 403 && str_contains(strtolower($response->body()), 'already in use')) {
+                $instance->instance_id = $instanceName;
+                $instance->instance_status = 'pending';
+                $instance->business_id = $business->id;
+                $instance->save();
+                return true;
+            }
+
             Log::warning("[WhatsApp] Failed to create instance: " . $response->body());
             return false;
         } catch (\Throwable $e) {
