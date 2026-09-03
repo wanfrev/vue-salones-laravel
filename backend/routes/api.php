@@ -487,18 +487,21 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     // Reminders (admin-only manual trigger for testing)
     Route::post('/reminders/trigger', [ReminderController::class, 'trigger']);
 
-    // WhatsApp
-    Route::get('/whatsapp/instances', [WhatsAppController::class, 'instances']);
-    Route::get('/whatsapp/config', [WhatsAppController::class, 'config']);
-    Route::put('/whatsapp/config', [WhatsAppController::class, 'updateConfig']);
-    Route::post('/whatsapp/instance', [WhatsAppController::class, 'createInstance']);
-    Route::get('/whatsapp/qr', [WhatsAppController::class, 'qrCode']);
-    Route::get('/whatsapp/status', [WhatsAppController::class, 'status']);
-    Route::post('/whatsapp/disconnect', [WhatsAppController::class, 'disconnect']);
-    Route::post('/whatsapp/test', [WhatsAppController::class, 'sendTest']);
-    Route::get('/whatsapp/templates', [WhatsAppController::class, 'templates']);
-    Route::post('/whatsapp/templates', [WhatsAppController::class, 'saveTemplate']);
-    Route::delete('/whatsapp/templates/{id}', [WhatsAppController::class, 'deleteTemplate']);
+    // WhatsApp — conecta/desconecta el numero del negocio y gestiona plantillas, admin-only
+    // (un empleado normal no debe poder desconectar el canal ni tocar las plantillas).
+    Route::middleware('admin-panel')->group(function () {
+        Route::get('/whatsapp/instances', [WhatsAppController::class, 'instances']);
+        Route::get('/whatsapp/config', [WhatsAppController::class, 'config']);
+        Route::put('/whatsapp/config', [WhatsAppController::class, 'updateConfig']);
+        Route::post('/whatsapp/instance', [WhatsAppController::class, 'createInstance']);
+        Route::get('/whatsapp/qr', [WhatsAppController::class, 'qrCode']);
+        Route::get('/whatsapp/status', [WhatsAppController::class, 'status']);
+        Route::post('/whatsapp/disconnect', [WhatsAppController::class, 'disconnect']);
+        Route::post('/whatsapp/test', [WhatsAppController::class, 'sendTest']);
+        Route::get('/whatsapp/templates', [WhatsAppController::class, 'templates']);
+        Route::post('/whatsapp/templates', [WhatsAppController::class, 'saveTemplate']);
+        Route::delete('/whatsapp/templates/{id}', [WhatsAppController::class, 'deleteTemplate']);
+    });
     Route::get('/whatsapp/variables', [WhatsAppController::class, 'variables']);
 
     // Superadmin only
