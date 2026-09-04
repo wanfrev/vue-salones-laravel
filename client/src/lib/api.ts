@@ -84,6 +84,31 @@ export async function apiDownloadFile(path: string, fallbackFilename: string): P
   URL.revokeObjectURL(blobUrl)
 }
 
+/**
+ * Opens a file from an authenticated endpoint in a new tab for viewing, instead of forcing it
+ * to disk like apiDownloadFile — the browser's own PDF/image viewer renders it inline as long
+ * as the blob carries the right MIME type (from the response's Content-Type), regardless of the
+ * server's Content-Disposition (irrelevant here since we never navigate to the URL directly).
+ */
+export async function apiViewFile(path: string): Promise<void> {
+  const url = `${API_BASE}${path}`
+  const headers: Record<string, string> = {}
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`
+  }
+
+  const res = await fetch(url, { headers })
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`)
+  }
+
+  const blob = await res.blob()
+  const blobUrl = URL.createObjectURL(blob)
+  window.open(blobUrl, '_blank')
+  // The new tab needs time to actually load the blob before its URL is revoked.
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+}
+
 let authToken: string | null = localStorage.getItem('auth_token')
 
 export function getAuthToken(): string | null {

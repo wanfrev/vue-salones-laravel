@@ -7,8 +7,8 @@ use App\Models\StaffingIncident;
 use App\Services\Staffing\StaffingIncidentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StaffingIncidentController
 {
@@ -123,7 +123,7 @@ class StaffingIncidentController
         return response()->json($incident, 201);
     }
 
-    public function downloadSingleFile(Request $request, string $id, string $field): Response|JsonResponse
+    public function downloadSingleFile(Request $request, string $id, string $field): StreamedResponse|JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId) {
@@ -140,6 +140,19 @@ class StaffingIncidentController
         }
 
         return Storage::disk('local')->download($path, $incident->{$nameColumn} ?? 'documento');
+    }
+
+    public function destroySingleFile(Request $request, string $id, string $field): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
+            return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        }
+
+        $incident = $this->incidents->deleteSingleFile($id, $businessId, $field);
+        EntityChanged::safe($businessId, 'staffing_incident', 'updated', $id);
+
+        return response()->json($incident);
     }
 
     /** Facturas, Paperwork, Drug Test, Fotos — adds one more file, never replaces. */
@@ -177,7 +190,7 @@ class StaffingIncidentController
         return response()->json(null, 204);
     }
 
-    public function downloadFile(Request $request, string $fileId): Response|JsonResponse
+    public function downloadFile(Request $request, string $fileId): StreamedResponse|JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId) {

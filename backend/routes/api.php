@@ -452,6 +452,8 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
             ->where('field', 'reporte|relief_form');
         Route::get('/staffing-incidents/{id}/files/{field}/download', [StaffingIncidentController::class, 'downloadSingleFile'])
             ->where('field', 'reporte|relief_form');
+        Route::delete('/staffing-incidents/{id}/files/{field}', [StaffingIncidentController::class, 'destroySingleFile'])
+            ->where('field', 'reporte|relief_form');
         Route::post('/staffing-incidents/{id}/attachments', [StaffingIncidentController::class, 'addFile']);
         Route::get('/staffing-incident-files/{fileId}/download', [StaffingIncidentController::class, 'downloadFile']);
         Route::delete('/staffing-incident-files/{fileId}', [StaffingIncidentController::class, 'destroyFile']);

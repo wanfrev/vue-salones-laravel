@@ -115,6 +115,26 @@ class StaffingIncidentService
         return $incident->fresh(['employee:id,full_name', 'company:id,name', 'files']);
     }
 
+    /** Clears a Reporte or Relief Form slot without requiring a replacement upload. */
+    public function deleteSingleFile(string $id, string $businessId, string $field): StaffingIncident
+    {
+        if (!in_array($field, self::SINGLE_FILE_FIELDS, true)) {
+            throw new NotFoundHttpException('Campo de archivo no válido.');
+        }
+
+        $incident = $this->findForBusiness($id, $businessId);
+        $pathColumn = "{$field}_file_path";
+        $nameColumn = "{$field}_file_original_name";
+
+        if ($incident->{$pathColumn}) {
+            Storage::disk(self::DISK)->delete($incident->{$pathColumn});
+        }
+
+        $incident->update([$pathColumn => null, $nameColumn => null]);
+
+        return $incident->fresh(['employee:id,full_name', 'company:id,name', 'files']);
+    }
+
     /** Facturas, Paperwork, Drug Test, Fotos — adds one more file, never replaces. */
     public function addFile(string $id, string $businessId, string $fileType, UploadedFile $file, ?string $uploadedBy = null): StaffingIncidentFile
     {

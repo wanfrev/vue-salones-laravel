@@ -1,4 +1,4 @@
-import { apiDownloadFile, apiRequest, apiUpload } from '../../lib/api'
+import { apiRequest, apiUpload, apiViewFile } from '../../lib/api'
 
 export const staffingIncidentKeys = {
   all: (businessId?: string | null, companyId?: string | null, status?: string | null) =>
@@ -136,8 +136,13 @@ export const uploadIncidentSingleFile = async (
   return toIncidentRow(row)
 }
 
-export const downloadIncidentSingleFile = (incidentId: string, field: 'reporte' | 'relief_form', fallbackFilename: string): Promise<void> =>
-  apiDownloadFile(`/staffing-incidents/${incidentId}/files/${field}/download`, fallbackFilename)
+export const viewIncidentSingleFile = (incidentId: string, field: 'reporte' | 'relief_form'): Promise<void> =>
+  apiViewFile(`/staffing-incidents/${incidentId}/files/${field}/download`)
+
+export const deleteIncidentSingleFile = async (incidentId: string, field: 'reporte' | 'relief_form'): Promise<StaffingIncidentRow> => {
+  const row = await apiRequest<StaffingIncidentApiRow>('DELETE', `/staffing-incidents/${incidentId}/files/${field}`)
+  return toIncidentRow(row)
+}
 
 /** Facturas, Paperwork, Drug Test, Fotos — adds one more file, never replaces. */
 export const addIncidentFile = async (incidentId: string, fileType: IncidentFileType, file: File): Promise<StaffingIncidentFileRow> => {
@@ -153,5 +158,5 @@ export const addIncidentFile = async (incidentId: string, fileType: IncidentFile
 export const deleteIncidentFile = (fileId: string): Promise<void> =>
   apiRequest<void>('DELETE', `/staffing-incident-files/${fileId}`)
 
-export const downloadIncidentFile = (fileId: string, fallbackFilename: string): Promise<void> =>
-  apiDownloadFile(`/staffing-incident-files/${fileId}/download`, fallbackFilename)
+export const viewIncidentFile = (fileId: string): Promise<void> =>
+  apiViewFile(`/staffing-incident-files/${fileId}/download`)

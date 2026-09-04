@@ -6,8 +6,8 @@ use App\Events\EntityChanged;
 use App\Services\Staffing\StaffingTaxEntryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StaffingTaxEntryController
 {
@@ -69,7 +69,7 @@ class StaffingTaxEntryController
      * route is gated by the same capability+admin-panel middleware as the rest of Taxes, and
      * double-checks the entry actually belongs to the caller's business before streaming it.
      */
-    public function download(Request $request, string $id): Response|JsonResponse
+    public function download(Request $request, string $id): StreamedResponse|JsonResponse
     {
         $p = $request->user()?->load('profile')?->profile;
         if (!$p || !$p->business_id) {
