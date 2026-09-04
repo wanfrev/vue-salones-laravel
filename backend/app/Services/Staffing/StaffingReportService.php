@@ -517,19 +517,25 @@ class StaffingReportService
             ->orderBy('name')
             ->get();
 
-        $employees = Profile::with('staffingCompanyEmployees.company')
-            ->where('business_id', $businessId)
-            ->orderBy('full_name')
-            ->get();
-
         $entries = StaffingTaxEntry::where('business_id', $businessId)
             ->where('year', $year)
             ->get();
-            
+
         $annualTaxes = StaffingAnnualTax::where('business_id', $businessId)
             ->where('year', $year)
             ->get()
             ->keyBy('employee_id');
+
+        // The grid starts empty for a year and only ever shows employees explicitly added via
+        // "Agregar información" (which upserts a StaffingAnnualTax row) or who already have at
+        // least one entity amount/file saved — never every business employee by default.
+        $addedEmployeeIds = $annualTaxes->keys()->merge($entries->pluck('employee_id'))->unique();
+
+        $employees = Profile::with('staffingCompanyEmployees.company')
+            ->where('business_id', $businessId)
+            ->whereIn('id', $addedEmployeeIds)
+            ->orderBy('full_name')
+            ->get();
 
         // employee_id => tax_entity_id => entry
         $byEmployeeAndEntity = [];

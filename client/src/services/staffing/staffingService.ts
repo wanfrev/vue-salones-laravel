@@ -1,4 +1,4 @@
-import { apiDownloadFile, apiRequest, apiUpload, db } from '../../lib/api'
+import { apiDownloadFile, apiRequest, apiUpload, apiViewFile, db } from '../../lib/api'
 import { handleDbError } from '../../lib/errors'
 import { staffingCompanyFormSchema, staffingCompanyPaymentFormSchema, staffingRateFormSchema } from '../../lib/validation'
 import type {
@@ -923,9 +923,14 @@ export const saveAnnualTaxGlobal = (data: StaffingAnnualTaxGlobalFormData): Prom
 export const updateStaffingEmployeeProfile = (employeeId: string, data: { staffing_company_id?: string | null, phone?: string | null, address?: string | null, ssn?: string | null }): Promise<void> =>
   apiRequest('PUT', `/staffing-annual-taxes/employee/${employeeId}`, data)
 
-export const downloadGlobalTaxFile = (employeeId: string, fallbackFilename: string): Promise<void> =>
-  apiDownloadFile(`/staffing-annual-taxes/${employeeId}/download`, fallbackFilename)
+export const viewGlobalTaxFile = (employeeId: string, year: number): Promise<void> =>
+  apiViewFile(`/staffing-annual-taxes/employee/${employeeId}/download?year=${year}`)
 
-/** Fetches the attached document as a blob (auth header) and triggers a browser save. */
-export const downloadTaxEntryFile = (entryId: string, fallbackFilename: string): Promise<void> =>
-  apiDownloadFile(`/staffing-tax-entries/${entryId}/download`, fallbackFilename)
+export const deleteGlobalTaxFile = (employeeId: string, year: number): Promise<void> =>
+  apiRequest('DELETE', `/staffing-annual-taxes/employee/${employeeId}?year=${year}`)
+
+export const viewTaxEntryFile = (entryId: string): Promise<void> =>
+  apiViewFile(`/staffing-tax-entries/${entryId}/download`)
+
+export const deleteTaxEntryFile = (entryId: string): Promise<void> =>
+  apiRequest('DELETE', `/staffing-tax-entries/${entryId}/file`)

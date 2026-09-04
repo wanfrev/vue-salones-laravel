@@ -4,12 +4,14 @@ import { useNotification } from '../common/useNotification'
 import { translateError } from '../../lib/errors'
 import {
   deleteTaxEntry,
-  downloadTaxEntryFile,
+  deleteTaxEntryFile,
+  viewTaxEntryFile,
   getAnnualTaxReport,
   saveTaxEntry,
   saveAnnualTaxGlobal,
   updateStaffingEmployeeProfile,
-  downloadGlobalTaxFile,
+  viewGlobalTaxFile,
+  deleteGlobalTaxFile,
   type StaffingTaxEntryFormData,
   type StaffingAnnualTaxGlobalFormData,
 } from '../../services/staffing/staffingService'
@@ -81,21 +83,33 @@ export function useAnnualTaxReport(businessId: Ref<string | null>, year: Ref<num
     onError: (err) => showError(translateError(err)),
   })
 
-  const downloadFile = async (entryId: string, fallbackFilename: string) => {
+  const viewFile = async (entryId: string) => {
     try {
-      await downloadTaxEntryFile(entryId, fallbackFilename)
+      await viewTaxEntryFile(entryId)
     } catch (err) {
       showError(translateError(err))
     }
   }
 
-  const downloadGlobalFile = async (employeeId: string, fallbackFilename: string) => {
+  const deleteFileMutation = useMutation({
+    mutationFn: (entryId: string) => deleteTaxEntryFile(entryId),
+    onSuccess: async () => { await invalidate(); success('Archivo eliminado') },
+    onError: (err) => showError(translateError(err, 'No se pudo eliminar el archivo.')),
+  })
+
+  const viewGlobalFile = async (employeeId: string) => {
     try {
-      await downloadGlobalTaxFile(employeeId, fallbackFilename)
+      await viewGlobalTaxFile(employeeId, year.value)
     } catch (err) {
       showError(translateError(err))
     }
   }
+
+  const deleteGlobalFileMutation = useMutation({
+    mutationFn: (employeeId: string) => deleteGlobalTaxFile(employeeId, year.value),
+    onSuccess: async () => { await invalidate(); success('Archivo eliminado') },
+    onError: (err) => showError(translateError(err, 'No se pudo eliminar el archivo.')),
+  })
 
   return {
     entities: computed(() => data.value?.entities ?? []),
@@ -108,7 +122,9 @@ export function useAnnualTaxReport(businessId: Ref<string | null>, year: Ref<num
     saveGlobalEntry: async (form: any) => saveGlobalMutation.mutateAsync(form),
     updateEmployee: async (employeeId: string, data: any) => updateEmployeeMutation.mutateAsync({ employeeId, data }),
     removeEntry: (id: string) => deleteMutation.mutate(id),
-    downloadFile,
-    downloadGlobalFile,
+    viewFile,
+    removeFile: (entryId: string) => deleteFileMutation.mutate(entryId),
+    viewGlobalFile,
+    removeGlobalFile: (employeeId: string) => deleteGlobalFileMutation.mutate(employeeId),
   }
 }

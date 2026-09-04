@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StaffingAnnualTaxController extends Controller
 {
@@ -45,16 +46,21 @@ class StaffingAnnualTaxController extends Controller
 
         if ($request->hasFile('file')) {
             if ($annualTax->file_path) {
-                Storage::disk('private')->delete($annualTax->file_path);
+                Storage::disk('local')->delete($annualTax->file_path);
             }
 
             $file = $request->file('file');
-            $path = $file->store('staffing_annual_taxes', 'private');
+            $path = $file->store('staffing_annual_taxes', 'local');
             $annualTax->file_path = $path;
             $annualTax->file_original_name = $file->getClientOriginalName();
         }
 
         if (!$annualTax->exists) {
+            // firstOrNew() never assigns a key for a genuinely new row — the model has no
+            // creating-event UUID hook (unlike StaffingIncident/StaffingTaxEntry, which set 'id'
+            // explicitly on ::create()) — without this, save() hits a NOT NULL violation on
+            // every first-time status/file save for an employee/year.
+            $annualTax->id = \Illuminate\Support\Str::uuid()->toString();
             $annualTax->created_by = $request->user()->id;
         }
 
@@ -63,25 +69,60 @@ class StaffingAnnualTaxController extends Controller
         return response()->json($annualTax);
     }
 
-    public function download(Request $request, string $id)
+    /**
+     * Scoped by (business, employee, year) rather than the StaffingAnnualTax row's own id — the
+     * frontend report never exposes that id (see StaffingReportService::annualTaxReport), only
+     * employeeId/year, which is also how the sibling updateEmployee() route below is addressed.
+     */
+    public function download(Request $request, string $employeeId): StreamedResponse|JsonResponse
     {
         $p = $request->user()?->load('profile')?->profile;
         if (!$p || !$p->business_id) {
-            abort(403, 'Sin acceso.');
+            return response()->json(['error' => ['message' => 'Sin acceso.']], 403);
         }
+
+        $year = (int) $request->query('year');
 
         $annualTax = StaffingAnnualTax::where('business_id', $p->business_id)
-            ->findOrFail($id);
+            ->where('employee_id', $employeeId)
+            ->where('year', $year)
+            ->first();
 
-        if (!$annualTax->file_path) {
-            abort(404, 'No file attached');
+        if (!$annualTax || !$annualTax->file_path) {
+            return response()->json(['error' => ['message' => 'Archivo no encontrado.']], 404);
         }
 
-        return Storage::disk('private')->download(
+        return Storage::disk('local')->download(
             $annualTax->file_path,
             $annualTax->file_original_name ?? 'document'
         );
     }
+
+    /** Clears the global file for one employee/year without touching status or the row itself. */
+    public function destroyFile(Request $request, string $employeeId): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json(['error' => ['message' => 'Sin acceso.']], 403);
+        }
+
+        $year = (int) $request->query('year');
+
+        $annualTax = StaffingAnnualTax::where('business_id', $p->business_id)
+            ->where('employee_id', $employeeId)
+            ->where('year', $year)
+            ->first();
+
+        if ($annualTax && $annualTax->file_path) {
+            Storage::disk('local')->delete($annualTax->file_path);
+            $annualTax->file_path = null;
+            $annualTax->file_original_name = null;
+            $annualTax->save();
+        }
+
+        return response()->json(['success' => true]);
+    }
+
     
     public function updateEmployee(Request $request, string $employeeId): JsonResponse
     {
