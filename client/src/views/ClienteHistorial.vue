@@ -1,59 +1,41 @@
 <template>
-  <header class="relative mb-6 overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
-    <div class="absolute inset-x-0 top-0 h-1 bg-primary"></div>
-    <div class="p-5 sm:p-7">
-      <div class="mb-6 flex items-center justify-between gap-3">
-        <button @click="goBack" class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-xs font-semibold text-text-secondary transition-theme hover:border-primary/40 hover:bg-primary/5 hover:text-primary">
-          <ArrowLeftIcon class="h-4 w-4" />
-          Volver al directorio
-        </button>
-        <span class="hidden text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted sm:block">Expediente clínico</span>
-      </div>
-      <div class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
-        <div class="flex min-w-0 items-start gap-4">
-          <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-xl font-bold text-primary ring-1 ring-primary/15 sm:h-20 sm:w-20 sm:text-2xl">
+  <header class="mb-6 flex items-center justify-between gap-3">
+    <button @click="goBack" class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-xs font-semibold text-text-secondary transition-theme hover:border-primary/40 hover:bg-primary/5 hover:text-primary">
+      <ArrowLeftIcon class="h-4 w-4" />
+      Volver al directorio
+    </button>
+    <button v-if="cliente?.phone" @click="handleWhatsApp" class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:border-success/40 hover:bg-success/5 hover:text-success" title="Contactar por WhatsApp">
+      <ChatRoundLineIcon class="h-4 w-4" />
+      Contactar
+    </button>
+  </header>
+
+  <section v-if="isDentalNiche" class="mb-6">
+    <div class="mb-5">
+      <div>
+        <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">Atención odontológica</p>
+        <div class="mt-4 flex min-w-0 items-start gap-4">
+          <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-lg font-bold text-primary ring-1 ring-primary/15 sm:h-16 sm:w-16">
             {{ getInitials(cliente?.name || '') }}
           </div>
           <div class="min-w-0">
-            <div class="mb-2 flex flex-wrap items-center gap-2">
-              <span class="text-[11px] font-bold uppercase tracking-[0.18em] text-primary">Expediente del paciente</span>
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Expediente del paciente</span>
               <span v-if="cliente?.code" class="rounded-md bg-bg-secondary px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-text-muted">ID {{ cliente.code }}</span>
             </div>
-            <h1 class="truncate text-2xl font-bold tracking-tight text-text sm:text-3xl">{{ cliente?.name || businessStore.terminology.client || 'Paciente' }}</h1>
-            <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-muted">
+            <h1 class="mt-1 truncate text-2xl font-bold tracking-tight text-text sm:text-3xl">{{ cliente?.name || businessStore.terminology.client || 'Paciente' }}</h1>
+            <div class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-muted">
               <span v-if="cliente?.phone">{{ cliente.phone }}</span>
               <span v-if="cliente?.email">{{ cliente.email }}</span>
               <span v-if="cliente?.documentId">Documento {{ cliente.documentId }}</span>
             </div>
           </div>
         </div>
-        <div class="flex flex-wrap items-center gap-2 xl:justify-end">
-          <button v-if="isDentalNiche" @click="goToHistoriaClinica" class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover">
-            <ClipboardIcon class="h-4 w-4" />
-            Historia clínica
-          </button>
-          <button v-if="isDentalNiche" @click="goToOdontograma" class="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm font-semibold text-primary transition-theme hover:bg-primary/10">
-            <ClipboardIcon class="h-4 w-4" />
-            Odontograma
-          </button>
-          <button v-if="isPetNiche" @click="goToConsultorio" class="inline-flex items-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm font-semibold text-primary transition-theme hover:bg-primary/10">
-            <ClipboardIcon class="h-4 w-4" />
-            {{ businessStore.terminology.historyPlural || 'Historias clínicas' }}
-          </button>
-          <button v-if="cliente?.phone" @click="handleWhatsApp" class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-semibold text-text-secondary transition-theme hover:border-success/40 hover:bg-success/5 hover:text-success" title="Contactar por WhatsApp">
-            <ChatRoundLineIcon class="h-4 w-4" />
-            Contactar
-          </button>
-        </div>
       </div>
     </div>
-  </header>
-
-  <section v-if="isDentalNiche" class="mb-6">
     <div class="mb-3 flex items-end justify-between gap-3">
       <div>
-        <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">Atención odontológica</p>
-        <h2 class="mt-1 text-lg font-bold text-text">Herramientas clínicas</h2>
+        <h2 class="text-lg font-bold text-text">Herramientas clínicas</h2>
       </div>
       <span class="hidden text-xs text-text-muted sm:block">Accesos rápidos del expediente</span>
     </div>
@@ -88,6 +70,17 @@
         <span class="mt-3 block text-sm font-semibold text-text">Consentimientos</span>
         <span class="mt-1 block text-[11px] leading-4 text-text-muted">Documentos firmados</span>
       </button>
+    </div>
+  </section>
+
+  <section v-else class="mb-6 flex min-w-0 items-start gap-4">
+    <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-lg font-bold text-primary ring-1 ring-primary/15">
+      {{ getInitials(cliente?.name || '') }}
+    </div>
+    <div class="min-w-0">
+      <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Expediente del paciente</p>
+      <h1 class="mt-1 truncate text-2xl font-bold tracking-tight text-text">{{ cliente?.name || businessStore.terminology.client || 'Paciente' }}</h1>
+      <p class="mt-1 text-xs text-text-muted">{{ cliente?.phone || 'Sin teléfono' }}<span v-if="cliente?.email"> · {{ cliente.email }}</span></p>
     </div>
   </section>
 
