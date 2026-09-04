@@ -2,10 +2,13 @@
   <header class="relative mb-6 overflow-hidden rounded-3xl border border-border bg-surface shadow-sm">
     <div class="absolute inset-x-0 top-0 h-1 bg-primary"></div>
     <div class="p-5 sm:p-7">
-      <button @click="goBack" class="mb-6 inline-flex items-center gap-2 text-xs font-semibold text-text-muted transition-theme hover:text-primary">
-        <ArrowLeftIcon class="h-4 w-4" />
-        Volver al directorio
-      </button>
+      <div class="mb-6 flex items-center justify-between gap-3">
+        <button @click="goBack" class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-xs font-semibold text-text-secondary transition-theme hover:border-primary/40 hover:bg-primary/5 hover:text-primary">
+          <ArrowLeftIcon class="h-4 w-4" />
+          Volver al directorio
+        </button>
+        <span class="hidden text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted sm:block">Expediente clínico</span>
+      </div>
       <div class="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
         <div class="flex min-w-0 items-start gap-4">
           <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-xl font-bold text-primary ring-1 ring-primary/15 sm:h-20 sm:w-20 sm:text-2xl">
