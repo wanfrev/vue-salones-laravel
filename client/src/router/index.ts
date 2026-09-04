@@ -140,6 +140,18 @@ const router = createRouter({
           meta: { gate: { capability: 'dental.clinical_history' } },
         },
         {
+          path: 'clientes/:id/anexo-endodoncia',
+          name: 'admin-cliente-anexo-endodoncia',
+          component: () => import('../views/ClienteAnexoEndodoncia.vue'),
+          meta: { gate: { capability: 'dental.endo_annex' } },
+        },
+        {
+          path: 'clientes/:id/anexo-periodoncia',
+          name: 'admin-cliente-anexo-periodoncia',
+          component: () => import('../views/ClientePerioAnexo.vue'),
+          meta: { gate: { capability: 'dental.perio_annex' } },
+        },
+        {
           path: 'finanzas',
           name: 'admin-finanzas',
           component: () => import('../views/Finanzas.vue'),

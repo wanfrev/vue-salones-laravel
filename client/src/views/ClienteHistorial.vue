@@ -48,6 +48,22 @@
           <ClipboardIcon class="h-4 w-4" />
           Ver odontograma
         </button>
+        <button
+          v-if="isDentalNiche"
+          @click="goToAnexoEndodoncia"
+          class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
+        >
+          <ClipboardIcon class="h-4 w-4" />
+          Anexo de endodoncia
+        </button>
+        <button
+          v-if="isDentalNiche"
+          @click="goToAnexoPeriodoncia"
+          class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
+        >
+          <ClipboardIcon class="h-4 w-4" />
+          Anexo de periodoncia
+        </button>
       </div>
     </div>
   </header>
@@ -177,6 +193,14 @@ const goToOdontograma = () => {
 
 const goToHistoriaClinica = () => {
   router.push(`/admin/clientes/${clienteId.value}/historia-clinica`)
+}
+
+const goToAnexoEndodoncia = () => {
+  router.push(`/admin/clientes/${clienteId.value}/anexo-endodoncia`)
+}
+
+const goToAnexoPeriodoncia = () => {
+  router.push(`/admin/clientes/${clienteId.value}/anexo-periodoncia`)
 }
 
 const handleWhatsApp = () => {

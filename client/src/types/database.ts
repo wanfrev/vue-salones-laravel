@@ -798,6 +798,146 @@ export interface ClinicalHistoryDiagnostico {
   }
 }
 
+export const ENDO_EXAM_ITEMS = [
+  'deformacion_contorno_extraoral', 'deformacion_contorno_intraoral', 'cambio_color',
+  'fractura_dental', 'caries', 'obturaciones', 'fistula', 'bolsa_periodontal', 'movilidad',
+  'drenaje_por_surco', 'oclusion_traumatica', 'perdida_obturacion', 'camara_expuesta_cavidad_oral',
+] as const
+export type EndoExamItemKey = typeof ENDO_EXAM_ITEMS[number]
+
+export interface EndoConducto {
+  nombre: string
+  conductometria_tentativa: string
+  conductometria_definitiva: string
+  lap: string
+  referencia: string
+}
+
+export interface EndoAnnexExamen {
+  historia_dolor: {
+    dolor: boolean
+    intensidad: string
+    tipo_dolor: string
+    ubicacion: string
+    duracion_dolor: string
+    tiempo_evolucion: string
+    descripcion: string
+  }
+  examen_clinico: Partial<Record<EndoExamItemKey, SystemReview>>
+  trauma_dentoalveolar: { se_realiza_historia: boolean; descripcion: string }
+  pruebas_periapicales: {
+    se_realizan: boolean
+    percusion: boolean
+    palpacion: boolean
+    masticacion: boolean
+    diente_control: string
+    dientes_control_adicionales: string
+  }
+  pruebas_sensibilidad: {
+    se_realizan: boolean
+    calor: string
+    frio_respuesta: string
+    electrica: string
+    vitalometro: string
+    diente_control: string
+    dientes_control_adicionales: string
+  }
+  examen_radiografico: {
+    coronal_radiolucida: string
+    coronal_radiopaca: string
+    radicular_radiolucida: string
+    radicular_radiopaca: string
+    periapical_radiolucida: string
+    periapical_radiopaca: string
+    descripcion_final: string
+    requiere_examen_complementario: boolean
+  }
+  clasificacion_fisuras: string
+}
+
+export interface EndoAnnexDiagnostico {
+  codigo_cie10: string
+  diagnostico_pulpar: string
+  diagnostico_periapical: string
+  lesion_endo_periodontal: boolean
+  relaciones_prosto_endo: boolean
+  pronostico_general: string
+  pronostico_individual: string
+}
+
+export interface EndoAnnexTratamiento {
+  tipo: string
+  descripcion: string
+  grapa_no: string
+  conductos: EndoConducto[]
+  tecnica_instrumentacion: string
+  tecnica_obturacion: string
+  desobturacion_retenedor: string
+  longitud: string
+  referencia: string
+  observaciones: string
+}
+
+export interface EndoAnnex {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  tooth_number: number
+  created_by: string | null
+  examen: EndoAnnexExamen
+  diagnostico: EndoAnnexDiagnostico
+  tratamiento: EndoAnnexTratamiento
+  created_at: string
+  updated_at: string
+}
+
+export const PERIO_RISK_FACTORS = [
+  'factores_anatomicos', 'restauraciones_subgingivales', 'restauraciones_sobrecontorneadas',
+  'aparatologia_ortodontica', 'provisionales_desadaptadas', 'calculos_dentales',
+  'malposiciones_dentales', 'fuerzas_oclusales_excesivas', 'factores_sistemicos', 'medicamentos',
+] as const
+export type PerioRiskFactorKey = typeof PERIO_RISK_FACTORS[number]
+
+export interface PerioAnnexCondicionesClinicas {
+  aspecto_liso_brillante: boolean
+  color_rojo: boolean
+  consistencia_blanda: boolean
+  fenotipo_gingival: string
+  frenillos_sobreinsertados: boolean
+  fremitus: boolean
+  condiciones_mucogingivales: boolean
+}
+
+export interface PerioAnnexDiagnostico {
+  codigo_cie10: string
+  impresion_diagnostica_individual: string
+  diagnostico_caso: string
+  pronostico_general: string
+  pronostico_individual: string
+  plan_tratamiento: {
+    fase_urgencias: string
+    fase_sistemica: string
+    fase_higienica: string
+    fase_correctiva: string
+    fase_mantenimiento: string
+  }
+}
+
+export interface PerioAnnex {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  created_by: string | null
+  condiciones_clinicas: PerioAnnexCondicionesClinicas
+  factores_riesgo: Partial<Record<PerioRiskFactorKey, SystemReview>>
+  diagnostico: PerioAnnexDiagnostico
+  observaciones_generales: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface ClinicalHistory {
   id: string
   business_id: string

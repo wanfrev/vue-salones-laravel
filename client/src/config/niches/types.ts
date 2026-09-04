@@ -40,6 +40,8 @@ export type Capability =
   | 'staffing.incidents'
   | 'dental.odontogram'
   | 'dental.clinical_history'
+  | 'dental.endo_annex'
+  | 'dental.perio_annex'
 
 export interface NicheCopy {
   serviceNamePlaceholder?: string
