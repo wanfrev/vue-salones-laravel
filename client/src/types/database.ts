@@ -165,6 +165,12 @@ export interface Client {
   notes: string | null
   birthday: string | null
   metadata: Record<string, unknown>
+  middle_name: string | null
+  last_name: string | null
+  second_last_name: string | null
+  document_id: string | null
+  medical_insurance: string | null
+  emergency_phone: string | null
   created_at: string
   updated_at: string
 }

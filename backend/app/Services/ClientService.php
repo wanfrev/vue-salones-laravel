@@ -41,6 +41,12 @@ class ClientService
                     'notes' => $data['notes'] ?? null,
                     'birthday' => $data['birthday'] ?? null,
                     'metadata' => $data['metadata'] ?? [],
+                    'middle_name' => $data['middle_name'] ?? null,
+                    'last_name' => $data['last_name'] ?? null,
+                    'second_last_name' => $data['second_last_name'] ?? null,
+                    'document_id' => $data['document_id'] ?? null,
+                    'medical_insurance' => $data['medical_insurance'] ?? null,
+                    'emergency_phone' => $data['emergency_phone'] ?? null,
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
@@ -68,6 +74,7 @@ class ClientService
             DB::transaction(function () use ($client, $data, $businessId) {
                 $client->update(array_filter($data, fn($k) => in_array($k, [
                     'full_name', 'phone', 'email', 'client_code', 'branch_id', 'notes', 'birthday', 'metadata',
+                    'middle_name', 'last_name', 'second_last_name', 'document_id', 'medical_insurance', 'emergency_phone',
                 ]), ARRAY_FILTER_USE_KEY) + ['updated_at' => now()]);
 
                 if (array_key_exists('pets', $data)) {
@@ -146,7 +153,8 @@ class ClientService
             ->where(function ($q) use ($term) {
                 $q->where('full_name', 'ilike', $term)
                   ->orWhere('phone', 'ilike', $term)
-                  ->orWhere('client_code', 'ilike', $term);
+                  ->orWhere('client_code', 'ilike', $term)
+                  ->orWhere('document_id', 'ilike', $term);
             })
             ->orderBy('full_name')
             ->limit(20);

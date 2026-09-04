@@ -24,6 +24,12 @@ export interface Cliente {
   preferredServices?: string[]
   metadata?: Record<string, unknown>
   pets?: PetFormData[]
+  middleName?: string
+  lastName?: string
+  secondLastName?: string
+  documentId?: string
+  medicalInsurance?: string
+  emergencyPhone?: string
 }
 
 export interface ClienteFormData {
@@ -36,4 +42,10 @@ export interface ClienteFormData {
   preferredServices: string[]
   metadata?: Record<string, unknown>
   pets?: PetFormData[]
+  middleName: string
+  lastName: string
+  secondLastName: string
+  documentId: string
+  medicalInsurance: string
+  emergencyPhone: string
 }

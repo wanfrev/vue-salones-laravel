@@ -22,6 +22,8 @@ class Client extends Model
         'id', 'business_id', 'branch_id',
         'full_name', 'phone', 'email', 'client_code',
         'notes', 'birthday', 'metadata',
+        'middle_name', 'last_name', 'second_last_name',
+        'document_id', 'medical_insurance', 'emergency_phone',
     ];
 
     protected function casts(): array

@@ -87,6 +87,21 @@
             :rows="3"
             :error="errors.notes"
           />
+
+          <p class="text-xs font-semibold uppercase tracking-wider text-primary pt-2">Identificación y contacto (opcional)</p>
+
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <FormInput v-model="formData.middleName" label="Segundo nombre" placeholder="Ej: Isabel" />
+            <FormInput v-model="formData.lastName" label="Primer apellido" placeholder="Ej: González" />
+            <FormInput v-model="formData.secondLastName" label="Segundo apellido" placeholder="Ej: Pérez" />
+          </div>
+
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <FormInput v-model="formData.documentId" label="Cédula / documento de identidad" placeholder="Ej: V-12345678" />
+            <FormInput v-model="formData.emergencyPhone" label="Teléfono de emergencia" type="tel" placeholder="+58 412 1234567" />
+          </div>
+
+          <FormInput v-model="formData.medicalInsurance" label="Seguro médico" placeholder="Ej: Seguros Caracas, póliza 12345" />
         </div>
 
         <!-- COLUMNA DERECHA: Ficha técnica -->
@@ -175,6 +190,12 @@ const defaultFormData: ClienteFormData = {
   birthday: '',
   preferredServices: [],
   metadata: {},
+  middleName: '',
+  lastName: '',
+  secondLastName: '',
+  documentId: '',
+  medicalInsurance: '',
+  emergencyPhone: '',
 }
 
 const formData = ref<ClienteFormData>({ ...defaultFormData })
@@ -268,6 +289,12 @@ watch(
         birthday: cliente.birthday || '',
         preferredServices: cliente.preferredServices || [],
         metadata: { ...meta },
+        middleName: cliente.middleName || '',
+        lastName: cliente.lastName || '',
+        secondLastName: cliente.secondLastName || '',
+        documentId: cliente.documentId || '',
+        medicalInsurance: cliente.medicalInsurance || '',
+        emergencyPhone: cliente.emergencyPhone || '',
       }
       Object.assign(nicheValues, meta)
       if (isPet.value && cliente.id) {
