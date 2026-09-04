@@ -8,18 +8,25 @@
 
         <form class="space-y-3" @submit.prevent="submit">
           <div>
-            <label class="mb-1 block text-sm font-medium text-text" for="inc-company">Empresa</label>
-            <select id="inc-company" v-model="form.companyId" :class="inputClass" @change="form.employeeId = ''">
-              <option value="">Sin empresa</option>
-              <option v-for="c in companyOptions" :key="c.value" :value="c.value">{{ c.label }}</option>
-            </select>
+            <label class="mb-1 block text-sm font-medium text-text">Empresa</label>
+            <FormSearchSelect
+              v-model="form.companyId"
+              :options="companySelectOptions"
+              placeholder="Sin empresa"
+              search-placeholder="Buscar empresa..."
+              @update:model-value="form.employeeId = ''"
+            />
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-text" for="inc-employee">Empleado</label>
-            <select id="inc-employee" v-model="form.employeeId" required :class="inputClass" :disabled="!form.companyId">
-              <option value="" disabled>{{ form.companyId ? 'Selecciona un empleado' : 'Selecciona primero una empresa' }}</option>
-              <option v-for="e in employeeOptions" :key="e.value" :value="e.value">{{ e.label }}</option>
-            </select>
+            <label class="mb-1 block text-sm font-medium text-text">Empleado</label>
+            <FormSearchSelect
+              v-model="form.employeeId"
+              :options="employeeOptions"
+              :disabled="!form.companyId"
+              :placeholder="form.companyId ? 'Selecciona un empleado' : 'Selecciona primero una empresa'"
+              search-placeholder="Buscar empleado..."
+              :error="attemptedSubmit && !form.employeeId ? 'Selecciona un empleado' : undefined"
+            />
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
@@ -75,9 +82,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { translateError } from '../../lib/errors'
+import { FormSearchSelect } from '../forms'
 import { listStaffingCompanies, staffingCompanyKeys, listCompanyEmployees } from '../../services/staffing/staffingService'
 import {
   INCIDENT_STATUS_OPTIONS, DRUG_TEST_OPTIONS,
@@ -129,6 +137,9 @@ const { data: companies } = useQuery({
   enabled: computed(() => !!props.businessId),
 })
 const companyOptions = computed(() => (companies.value ?? []).map(c => ({ value: c.id, label: c.name })))
+// FormSearchSelect has no separate "unselected" placeholder state distinct from a real empty
+// option — "Sin empresa" has to be a genuine, searchable option carrying the empty value.
+const companySelectOptions = computed(() => [{ value: '', label: 'Sin empresa' }, ...companyOptions.value])
 
 const { data: employees } = useQuery({
   queryKey: computed(() => ['staffing-company-employees', props.businessId, form.companyId] as const),
@@ -148,7 +159,16 @@ const employeeOptions = computed(() => {
   return base
 })
 
+// FormSearchSelect isn't a native form control, so it never participates in HTML5 `required`
+// validation the way the plain <select> it replaced did — this stands in for that.
+const attemptedSubmit = ref(false)
+
 const submit = () => {
+  if (!form.employeeId) {
+    attemptedSubmit.value = true
+    return
+  }
+
   emit('save', {
     employeeId: form.employeeId,
     companyId: form.companyId || null,
