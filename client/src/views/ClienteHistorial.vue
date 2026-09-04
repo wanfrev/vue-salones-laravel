@@ -1,92 +1,114 @@
 <template>
-  <header class="mb-4 lg:mb-6">
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+  <header class="mb-6 flex items-center justify-between gap-3">
+    <button @click="goBack" class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-xs font-semibold text-text-secondary transition-theme hover:border-primary/40 hover:bg-primary/5 hover:text-primary">
+      <ArrowLeftIcon class="h-4 w-4" />
+      Volver al directorio
+    </button>
+    <button v-if="cliente?.phone" @click="handleWhatsApp" class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:border-success/40 hover:bg-success/5 hover:text-success" title="Contactar por WhatsApp">
+      <ChatRoundLineIcon class="h-4 w-4" />
+      Contactar
+    </button>
+  </header>
+
+  <section v-if="isDentalNiche" class="mb-6">
+    <div class="mb-5">
       <div>
-        <div class="flex items-center gap-2 text-sm text-primary mb-0.5">
-          <ListIcon class="h-4 w-4" />
-          <span class="font-medium uppercase tracking-wider">{{ businessStore.terminology.clientPlural || 'Clientes' }}</span>
+        <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">Atención odontológica</p>
+        <div class="mt-4 flex min-w-0 items-start gap-4">
+          <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-lg font-bold text-primary ring-1 ring-primary/15 sm:h-16 sm:w-16">
+            {{ getInitials(cliente?.name || '') }}
+          </div>
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Expediente del paciente</span>
+              <span v-if="cliente?.code" class="rounded-md bg-bg-secondary px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-text-muted">ID {{ cliente.code }}</span>
+            </div>
+            <h1 class="mt-1 truncate text-2xl font-bold tracking-tight text-text sm:text-3xl">{{ cliente?.name || businessStore.terminology.client || 'Paciente' }}</h1>
+            <div class="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-muted">
+              <span v-if="cliente?.phone">{{ cliente.phone }}</span>
+              <span v-if="cliente?.email">{{ cliente.email }}</span>
+              <span v-if="cliente?.documentId">Documento {{ cliente.documentId }}</span>
+            </div>
+          </div>
         </div>
-        <p class="text-sm font-semibold text-text sm:text-base">{{ cliente?.name || businessStore.terminology.client || 'Cliente' }}</p>
-      </div>
-      <div class="flex gap-2">
-        <button
-          @click="goBack"
-          class="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary transition-theme hover:bg-bg-secondary"
-        >
-          <ArrowLeftIcon class="h-4 w-4" />
-          Volver
-        </button>
-        <button
-          v-if="cliente?.phone"
-          @click="handleWhatsApp"
-          class="flex items-center gap-2 rounded-xl bg-success px-3 py-2 text-sm font-medium text-text-inverse shadow-lg shadow-success/25 transition-theme hover:bg-success/90"
-        >
-          <CheckCircleIcon class="h-4 w-4" />
-          WhatsApp
-        </button>
-        <button
-          v-if="isPetNiche"
-          @click="goToConsultorio"
-          class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
-        >
-          <ClipboardIcon class="h-4 w-4" />
-          Ver {{ businessStore.terminology.historyPlural || 'Historias clínicas' }}
-        </button>
-        <button
-          v-if="isDentalNiche"
-          @click="goToHistoriaClinica"
-          class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
-        >
-          <ClipboardIcon class="h-4 w-4" />
-          Historia clínica
-        </button>
-        <button
-          v-if="isDentalNiche"
-          @click="goToOdontograma"
-          class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
-        >
-          <ClipboardIcon class="h-4 w-4" />
-          Ver odontograma
-        </button>
-        <button
-          v-if="isDentalNiche"
-          @click="goToAnexoEndodoncia"
-          class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
-        >
-          <ClipboardIcon class="h-4 w-4" />
-          Anexo de endodoncia
-        </button>
-        <button
-          v-if="isDentalNiche"
-          @click="goToAnexoPeriodoncia"
-          class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
-        >
-          <ClipboardIcon class="h-4 w-4" />
-          Anexo de periodoncia
-        </button>
-        <button
-          v-if="isDentalNiche"
-          @click="goToPeriodontograma"
-          class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
-        >
-          <ClipboardIcon class="h-4 w-4" />
-          Periodontograma
-        </button>
-        <button
-          v-if="isDentalNiche"
-          @click="goToConsentimiento"
-          class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
-        >
-          <ClipboardIcon class="h-4 w-4" />
-          Consentimiento informado
-        </button>
       </div>
     </div>
-  </header>
+    <div class="mb-3 flex items-end justify-between gap-3">
+      <div>
+        <h2 class="text-lg font-bold text-text">Herramientas clínicas</h2>
+      </div>
+      <span class="hidden text-xs text-text-muted sm:block">Accesos rápidos del expediente</span>
+    </div>
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+      <button @click="goToHistoriaClinica" class="group rounded-2xl border border-primary/30 bg-primary/5 p-4 text-left transition-theme hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/10 hover:shadow-sm">
+        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-text-inverse"><ClipboardIcon class="h-4 w-4" /></span>
+        <span class="mt-3 block text-sm font-semibold text-text">Historia clínica</span>
+        <span class="mt-1 block text-[11px] leading-4 text-text-muted">Antecedentes y evolución</span>
+      </button>
+      <button @click="goToOdontograma" class="group rounded-2xl border border-border bg-surface p-4 text-left transition-theme hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm">
+        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-bg-secondary text-primary"><ClipboardIcon class="h-4 w-4" /></span>
+        <span class="mt-3 block text-sm font-semibold text-text">Odontograma</span>
+        <span class="mt-1 block text-[11px] leading-4 text-text-muted">Estado de cada pieza</span>
+      </button>
+      <button @click="goToPeriodontograma" class="group rounded-2xl border border-border bg-surface p-4 text-left transition-theme hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm">
+        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-bg-secondary text-primary"><ClipboardIcon class="h-4 w-4" /></span>
+        <span class="mt-3 block text-sm font-semibold text-text">Periodontograma</span>
+        <span class="mt-1 block text-[11px] leading-4 text-text-muted">Registro periodontal</span>
+      </button>
+      <button @click="goToAnexoEndodoncia" class="group rounded-2xl border border-border bg-surface p-4 text-left transition-theme hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm">
+        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-bg-secondary text-primary"><ClipboardIcon class="h-4 w-4" /></span>
+        <span class="mt-3 block text-sm font-semibold text-text">Endodoncia</span>
+        <span class="mt-1 block text-[11px] leading-4 text-text-muted">Anexo del tratamiento</span>
+      </button>
+      <button @click="goToAnexoPeriodoncia" class="group rounded-2xl border border-border bg-surface p-4 text-left transition-theme hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm">
+        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-bg-secondary text-primary"><ClipboardIcon class="h-4 w-4" /></span>
+        <span class="mt-3 block text-sm font-semibold text-text">Periodoncia</span>
+        <span class="mt-1 block text-[11px] leading-4 text-text-muted">Anexo periodontal</span>
+      </button>
+      <button @click="goToConsentimiento" class="group rounded-2xl border border-border bg-surface p-4 text-left transition-theme hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm">
+        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-bg-secondary text-primary"><ClipboardIcon class="h-4 w-4" /></span>
+        <span class="mt-3 block text-sm font-semibold text-text">Consentimientos</span>
+        <span class="mt-1 block text-[11px] leading-4 text-text-muted">Documentos firmados</span>
+      </button>
+    </div>
+  </section>
+
+  <section v-else class="mb-6 flex min-w-0 items-start gap-4">
+    <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-lg font-bold text-primary ring-1 ring-primary/15">
+      {{ getInitials(cliente?.name || '') }}
+    </div>
+    <div class="min-w-0">
+      <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Expediente del paciente</p>
+      <h1 class="mt-1 truncate text-2xl font-bold tracking-tight text-text">{{ cliente?.name || businessStore.terminology.client || 'Paciente' }}</h1>
+      <p class="mt-1 text-xs text-text-muted">{{ cliente?.phone || 'Sin teléfono' }}<span v-if="cliente?.email"> · {{ cliente.email }}</span></p>
+    </div>
+  </section>
+
+  <section class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+      <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">Resumen del paciente</p>
+      <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div><p class="text-xs text-text-muted">{{ businessStore.terminology.appointmentPlural || 'Consultas' }}</p><p class="mt-1 text-xl font-bold text-text">{{ historial.length }}</p></div>
+        <div><p class="text-xs text-text-muted">Última atención</p><p class="mt-1 truncate text-sm font-semibold text-text">{{ ultimaVisita || 'Sin registros' }}</p></div>
+        <div><p class="text-xs text-text-muted">Seguro / HCM</p><p class="mt-1 truncate text-sm font-semibold text-text">{{ cliente?.medicalInsurance || 'No registrado' }}</p></div>
+        <div><p class="text-xs text-text-muted">Contacto de emergencia</p><p class="mt-1 truncate text-sm font-semibold text-text">{{ cliente?.emergencyPhone || 'No registrado' }}</p></div>
+      </div>
+    </div>
+    <div class="rounded-2xl border border-border bg-bg-secondary/35 p-5">
+      <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Notas de seguimiento</p>
+      <p class="mt-3 line-clamp-3 text-sm leading-6 text-text-secondary">{{ cliente?.notes || 'No hay notas generales registradas para este paciente.' }}</p>
+    </div>
+  </section>
 
   <section class="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
     <div class="rounded-xl border border-border bg-surface p-4 shadow-sm lg:col-span-2">
-       <h3 class="mb-4 text-base font-semibold text-text">{{ businessStore.terminology.servicePlural || 'Servicios' }} realizados</h3>
+       <div class="mb-4 flex items-center justify-between gap-3">
+         <div>
+           <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">Actividad del expediente</p>
+           <h3 class="mt-1 text-base font-semibold text-text">{{ businessStore.terminology.servicePlural || 'Tratamientos' }} y consultas</h3>
+         </div>
+         <span class="rounded-lg bg-bg-secondary px-2.5 py-1.5 text-xs font-semibold text-text-muted">{{ historial.length }} registros</span>
+       </div>
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead>
@@ -124,7 +146,7 @@
           <p class="text-lg font-bold text-text">{{ historial.length }}</p>
         </div>
         <div class="rounded-lg bg-bg-secondary p-3">
-          <p class="text-xs text-text-muted">Gasto total</p>
+           <p class="text-xs text-text-muted">Total facturado</p>
           <p class="text-lg font-bold text-text">${{ totalGasto }}</p>
         </div>
         <div class="rounded-lg bg-bg-secondary p-3">
@@ -137,17 +159,17 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
-import { sanitizePhone } from '../lib/formatters'
+import { sanitizePhone, getInitials } from '../lib/formatters'
 import { useAuth } from '../composables/common/useAuth'
 import { useBusinessStore } from '../store/business'
 import { listCitas } from '../services/agendaService'
 import { getClienteById } from '../services/clientesService'
 import { isPetNiche as checkPetNiche } from '../config/nicheFields'
 import { isDentalNiche as checkDentalNiche } from '../config/niches'
-import { ListIcon, ArrowLeftIcon, CheckCircleIcon, ClipboardIcon } from '@solar-icons/vue/linear'
+import { ArrowLeftIcon, ChatRoundLineIcon, ClipboardIcon } from '@solar-icons/vue/linear'
 import type { Cliente } from '../types/cliente'
 
 const { authStore } = useAuth()
