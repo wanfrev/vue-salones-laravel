@@ -965,6 +965,20 @@ export interface Periodontogram {
   updated_at: string
 }
 
+export interface Consent {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  created_by: string | null
+  procedure_description: string
+  risks_text: string
+  signature_data: string
+  signed_at: string
+  created_at: string
+  updated_at: string
+}
+
 export interface ClinicalHistory {
   id: string
   business_id: string

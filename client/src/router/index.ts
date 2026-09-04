@@ -158,6 +158,12 @@ const router = createRouter({
           meta: { gate: { capability: 'dental.periodontogram' } },
         },
         {
+          path: 'clientes/:id/consentimiento',
+          name: 'admin-cliente-consentimiento',
+          component: () => import('../views/ClienteConsentimiento.vue'),
+          meta: { gate: { capability: 'dental.consent' } },
+        },
+        {
           path: 'finanzas',
           name: 'admin-finanzas',
           component: () => import('../views/Finanzas.vue'),

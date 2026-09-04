@@ -43,6 +43,7 @@ export type Capability =
   | 'dental.endo_annex'
   | 'dental.perio_annex'
   | 'dental.periodontogram'
+  | 'dental.consent'
 
 export interface NicheCopy {
   serviceNamePlaceholder?: string

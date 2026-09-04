@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\Dental\ClinicalHistoryController;
 use App\Http\Controllers\Api\Dental\DentalChartController;
+use App\Http\Controllers\Api\Dental\ConsentController;
 use App\Http\Controllers\Api\Dental\EndoAnnexController;
 use App\Http\Controllers\Api\Dental\PerioAnnexController;
 use App\Http\Controllers\Api\Dental\PeriodontogramController;
@@ -218,6 +219,13 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
             Route::get('/clients/{clientId}/periodontograms/{id}', [PeriodontogramController::class, 'show']);
             Route::post('/clients/{clientId}/periodontograms', [PeriodontogramController::class, 'store']);
             Route::put('/clients/{clientId}/periodontograms/{id}', [PeriodontogramController::class, 'update']);
+        });
+
+        // Consentimiento informado (nicho odontologia) — inmutable una vez firmado, sin update.
+        Route::middleware(['capability:dental.consent'])->group(function () {
+            Route::get('/clients/{clientId}/consents', [ConsentController::class, 'index']);
+            Route::get('/clients/{clientId}/consents/{id}', [ConsentController::class, 'show']);
+            Route::post('/clients/{clientId}/consents', [ConsentController::class, 'store']);
         });
 
         // Appointments

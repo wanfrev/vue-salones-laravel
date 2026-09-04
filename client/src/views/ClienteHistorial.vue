@@ -72,6 +72,14 @@
           <ClipboardIcon class="h-4 w-4" />
           Periodontograma
         </button>
+        <button
+          v-if="isDentalNiche"
+          @click="goToConsentimiento"
+          class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
+        >
+          <ClipboardIcon class="h-4 w-4" />
+          Consentimiento informado
+        </button>
       </div>
     </div>
   </header>
@@ -213,6 +221,10 @@ const goToAnexoPeriodoncia = () => {
 
 const goToPeriodontograma = () => {
   router.push(`/admin/clientes/${clienteId.value}/periodontograma`)
+}
+
+const goToConsentimiento = () => {
+  router.push(`/admin/clientes/${clienteId.value}/consentimiento`)
 }
 
 const handleWhatsApp = () => {
