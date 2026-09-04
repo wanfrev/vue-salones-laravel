@@ -61,13 +61,23 @@
             <td class="px-4 py-2.5 text-text-secondary hidden md:table-cell">{{ formatDate(c.created_at) }}</td>
             <td class="px-4 py-2.5 text-text-secondary hidden md:table-cell">{{ c.paid_at ? formatDate(c.paid_at) : '—' }}</td>
             <td class="px-4 py-2.5 text-center">
-              <button
-                v-if="activeTab === 'pending'"
-                @click="openPay(c)"
-                class="inline-flex items-center gap-1 rounded-lg bg-success/10 px-3 py-1.5 text-xs font-semibold text-success transition-theme hover:bg-success/20"
-              >
-                Registrar abono
-              </button>
+              <div v-if="activeTab === 'pending'" class="flex items-center justify-center gap-1.5">
+                <button
+                  @click="openPay(c)"
+                  class="inline-flex items-center gap-1 rounded-lg bg-success/10 px-3 py-1.5 text-xs font-semibold text-success transition-theme hover:bg-success/20"
+                >
+                  Registrar abono
+                </button>
+                <button
+                  v-if="Number(c.paid_amount) === 0"
+                  @click="handleDelete(c)"
+                  :disabled="deleteMutation.isPending.value"
+                  title="Eliminar crédito"
+                  class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+                >
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+              </div>
               <span v-else class="text-xs text-text-secondary">{{ formatMethod(c.paid_method || '') }}</span>
             </td>
           </tr>
@@ -178,7 +188,7 @@ import type { Credit } from '../../types/database'
 
 const { formatUSD, exchangeRate } = useCurrency()
 const businessStore = useBusinessStore()
-const { pendingCredits, paidCredits, pendingTotal, isLoading, payMutation, usePaymentsForCredit } = useCredits()
+const { pendingCredits, paidCredits, pendingTotal, isLoading, payMutation, usePaymentsForCredit, deleteMutation } = useCredits()
 
 const tabs: { key: 'pending' | 'paid'; label: string }[] = [
   { key: 'pending', label: 'Pendientes' },
@@ -215,6 +225,13 @@ const closeModal = () => {
   showModal.value = false
   selectedCredit.value = null
   selectedCreditId.value = null
+}
+
+const handleDelete = async (credit: Credit) => {
+  if (!window.confirm(`¿Eliminar el crédito de ${credit.client_name} por ${formatUSD(credit.amount)}? Esta acción no se puede deshacer.`)) return
+  try {
+    await deleteMutation.mutateAsync(credit.id)
+  } catch { /* handled by composable */ }
 }
 
 const handleConfirm = async () => {

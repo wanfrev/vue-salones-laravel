@@ -69,6 +69,24 @@ export function useCredits() {
     enabled: computed(() => !!creditId()),
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      getBusinessId()
+      await apiRequest('DELETE', `/credits/${id}`)
+    },
+    onSuccess: () => {
+      Promise.allSettled([
+        queryClient.invalidateQueries({ queryKey: ['credits'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['financial-summary'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['transactions'], exact: false }),
+      ])
+      success('Crédito eliminado')
+    },
+    onError: (err) => {
+      showError(translateError(err, 'Error al eliminar el crédito'))
+    },
+  })
+
   return {
     creditsQuery,
     credits,
@@ -78,5 +96,6 @@ export function useCredits() {
     isLoading: creditsQuery.isLoading,
     payMutation,
     usePaymentsForCredit,
+    deleteMutation,
   }
 }
