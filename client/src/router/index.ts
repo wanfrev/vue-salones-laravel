@@ -152,6 +152,12 @@ const router = createRouter({
           meta: { gate: { capability: 'dental.perio_annex' } },
         },
         {
+          path: 'clientes/:id/periodontograma',
+          name: 'admin-cliente-periodontograma',
+          component: () => import('../views/ClientePeriodontograma.vue'),
+          meta: { gate: { capability: 'dental.periodontogram' } },
+        },
+        {
           path: 'finanzas',
           name: 'admin-finanzas',
           component: () => import('../views/Finanzas.vue'),

@@ -119,7 +119,7 @@ return [
         ],
         'odontologia' => [
             'status' => 'creatable',
-            'capabilities' => ['dental.odontogram', 'dental.clinical_history', 'dental.endo_annex', 'dental.perio_annex'],
+            'capabilities' => ['dental.odontogram', 'dental.clinical_history', 'dental.endo_annex', 'dental.perio_annex', 'dental.periodontogram'],
             'feature_defaults' => [],
         ],
         'staffing' => [

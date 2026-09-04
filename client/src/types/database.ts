@@ -938,6 +938,33 @@ export interface PerioAnnex {
   updated_at: string
 }
 
+export const PERIODONTAL_SITES = ['mv', 'v', 'dv', 'dl', 'l', 'ml'] as const
+export type PeriodontalSite = typeof PERIODONTAL_SITES[number]
+
+export interface PeriodontalSiteMeasurement {
+  profundidad: string
+  sangrado: boolean
+  recesion: string
+}
+
+export interface PeriodontalToothMeasurement {
+  sitios: Partial<Record<PeriodontalSite, PeriodontalSiteMeasurement>>
+  movilidad: string
+  furca: string
+}
+
+export interface Periodontogram {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  created_by: string | null
+  teeth: Record<string, PeriodontalToothMeasurement>
+  observaciones_generales: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface ClinicalHistory {
   id: string
   business_id: string

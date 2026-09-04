@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Dental\ClinicalHistoryController;
 use App\Http\Controllers\Api\Dental\DentalChartController;
 use App\Http\Controllers\Api\Dental\EndoAnnexController;
 use App\Http\Controllers\Api\Dental\PerioAnnexController;
+use App\Http\Controllers\Api\Dental\PeriodontogramController;
 use App\Http\Controllers\Api\EmployeeCommissionController;
 use App\Http\Controllers\Api\EmployeeDocumentController;
 use App\Http\Controllers\Api\EmployeePaymentController;
@@ -209,6 +210,14 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
             Route::get('/clients/{clientId}/perio-annexes/{id}', [PerioAnnexController::class, 'show']);
             Route::post('/clients/{clientId}/perio-annexes', [PerioAnnexController::class, 'store']);
             Route::put('/clients/{clientId}/perio-annexes/{id}', [PerioAnnexController::class, 'update']);
+        });
+
+        // Periodontograma (nicho odontologia)
+        Route::middleware(['capability:dental.periodontogram'])->group(function () {
+            Route::get('/clients/{clientId}/periodontograms', [PeriodontogramController::class, 'index']);
+            Route::get('/clients/{clientId}/periodontograms/{id}', [PeriodontogramController::class, 'show']);
+            Route::post('/clients/{clientId}/periodontograms', [PeriodontogramController::class, 'store']);
+            Route::put('/clients/{clientId}/periodontograms/{id}', [PeriodontogramController::class, 'update']);
         });
 
         // Appointments

@@ -64,6 +64,14 @@
           <ClipboardIcon class="h-4 w-4" />
           Anexo de periodoncia
         </button>
+        <button
+          v-if="isDentalNiche"
+          @click="goToPeriodontograma"
+          class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
+        >
+          <ClipboardIcon class="h-4 w-4" />
+          Periodontograma
+        </button>
       </div>
     </div>
   </header>
@@ -201,6 +209,10 @@ const goToAnexoEndodoncia = () => {
 
 const goToAnexoPeriodoncia = () => {
   router.push(`/admin/clientes/${clienteId.value}/anexo-periodoncia`)
+}
+
+const goToPeriodontograma = () => {
+  router.push(`/admin/clientes/${clienteId.value}/periodontograma`)
 }
 
 const handleWhatsApp = () => {
