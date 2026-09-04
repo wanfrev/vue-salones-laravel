@@ -108,11 +108,20 @@ class CreditController
             $rate = (float) ($data['exchange_rate'] ?? 1);
             $amount = (float) $data['amount'];
 
+            // Hereda la cita de la venta original a crédito (si la hubo) para que este abono se
+            // vea en Finanzas como "Cobro cita" con el cliente/servicio reales, no como una
+            // "Venta directa" sin contexto — la comisión del empleado ya quedó registrada en la
+            // transacción original 'credito' (ver EmployeeCommissionService), por eso esta sigue
+            // en 0: es solo el dinero entrando, no un servicio nuevo.
+            $originalAppointmentId = $credit->transaction_id
+                ? Transaction::where('business_id', $businessId)->where('id', $credit->transaction_id)->value('appointment_id')
+                : null;
+
             $tx = Transaction::create([
                 'id' => Str::uuid()->toString(),
                 'business_id' => $businessId,
                 'branch_id' => $credit->branch_id,
-                'appointment_id' => null,
+                'appointment_id' => $originalAppointmentId,
                 'employee_id' => null,
                 'total_amount' => $amount,
                 'local_amount' => $amount,

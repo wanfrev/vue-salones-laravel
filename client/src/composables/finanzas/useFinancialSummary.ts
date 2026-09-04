@@ -721,6 +721,10 @@ function useFinancialSummary(
       const amt = Number(tx.total_amount ?? 0)
       const empAmt = Number(tx.employee_amount ?? 0)
       const pct = Number(tx.employee_percentage ?? 0)
+      // Un abono a credito hereda la cita (para mostrarse como "Cobro cita" y no "Venta
+      // directa") pero no genera comision nueva -- ya se registro en la transaccion 'credito'
+      // original. Sin este filtro aparecia aqui una fila fantasma de "costo" con 0% y $0.
+      if (pct === 0 && empAmt === 0 && tip === 0) continue
       rows.push({
         id: tx.id,
         employee: tx.employee_name ?? '—',
