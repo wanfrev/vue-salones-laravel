@@ -34,6 +34,14 @@
         </button>
         <button
           v-if="isDentalNiche"
+          @click="goToHistoriaClinica"
+          class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
+        >
+          <ClipboardIcon class="h-4 w-4" />
+          Historia clínica
+        </button>
+        <button
+          v-if="isDentalNiche"
           @click="goToOdontograma"
           class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
         >
@@ -165,6 +173,10 @@ const goToConsultorio = () => {
 
 const goToOdontograma = () => {
   router.push(`/admin/clientes/${clienteId.value}/odontograma`)
+}
+
+const goToHistoriaClinica = () => {
+  router.push(`/admin/clientes/${clienteId.value}/historia-clinica`)
 }
 
 const handleWhatsApp = () => {

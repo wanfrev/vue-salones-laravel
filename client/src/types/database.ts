@@ -722,6 +722,99 @@ export interface DentalChart {
   updated_at: string
 }
 
+/** Sí/No + observación — el patrón repetido ~27 veces en la anamnesis (antecedentes médicos y odontológicos). */
+export interface SystemReview {
+  refiere: boolean
+  observaciones: string
+}
+
+export const MEDICAL_SYSTEMS = [
+  'sistema_nervioso', 'sistema_endocrino', 'sistema_osteomuscular', 'sistema_cardiovascular',
+  'sistema_respiratorio', 'sistema_inmunologico', 'sistema_dermatologico', 'ginecobstetricos',
+  'sistema_hematologico', 'sistema_digestivo', 'sistema_renal', 'hereditarios', 'perinatales',
+  'toxico_alergicos', 'farmacologicos', 'quirurgicos', 'hospitalarios', 'familiares',
+  'psicosociales', 'otros',
+] as const
+export type MedicalSystemKey = typeof MEDICAL_SYSTEMS[number]
+
+export const DENTAL_HISTORY_SPECIALTIES = [
+  'patologia_cirugia_bucal', 'cirugia_maxilofacial', 'ortodoncia', 'endodoncia',
+  'rehabilitacion_oral', 'periodoncia', 'odontopediatria',
+] as const
+export type DentalHistorySpecialtyKey = typeof DENTAL_HISTORY_SPECIALTIES[number]
+
+export interface ClinicalHistoryAnamnesis {
+  motivo_consulta: string
+  historia_motivo_consulta: string
+  asistio_consulta_ultimo_anio: boolean
+  motivo_ultima_consulta_urgencia: boolean
+  atendido_en_esta_clinica_previamente: boolean
+  grupo_sanguineo: string
+  antecedentes_medicos: Partial<Record<MedicalSystemKey, SystemReview>>
+  antecedentes_odontologicos: Partial<Record<DentalHistorySpecialtyKey, SystemReview>>
+  tmd: {
+    dolor_cara_mandibula_ultimo_mes: boolean
+    mandibula_bloqueada: boolean
+    ruido_articulacion: boolean
+    mordida_incomoda: boolean
+    traumatismo_reciente: boolean
+    dolores_cabeza_6meses: boolean
+    dolor_orofacial: string
+    otros: string
+    observaciones: string
+  }
+  observaciones: string
+}
+
+export interface ClinicalHistoryExamenFisico {
+  signos_vitales: {
+    pulso: string
+    tension_arterial: string
+    temperatura: string
+    frecuencia_respiratoria: string
+    peso: string
+    talla: string
+  }
+  examen_extraoral: Record<string, string>
+  examen_intraoral: Record<string, string>
+  cop: { c: string; o: string; p: string }
+  ceo: { c: string; e: string; o: string }
+}
+
+export interface ClinicalHistoryExamenesComplementarios {
+  hallazgos_radiologicos: Record<string, string>
+}
+
+export interface ClinicalHistoryDiagnostico {
+  codigo_cie10: string
+  diagnostico: string
+  pronostico: string
+  plan_tratamiento: {
+    fase_urgencias: string
+    fase_sistemica: string
+    fase_higienica: string
+    fase_correctiva: string
+    fase_mantenimiento: string
+  }
+}
+
+export interface ClinicalHistory {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  folio_number: number
+  created_by: string | null
+  anamnesis: ClinicalHistoryAnamnesis
+  examen_fisico: ClinicalHistoryExamenFisico
+  examenes_complementarios: ClinicalHistoryExamenesComplementarios
+  diagnostico: ClinicalHistoryDiagnostico
+  certificado_veracidad: boolean
+  observaciones_generales: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface Database {
   public: {
     Tables: {

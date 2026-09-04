@@ -158,7 +158,7 @@ export const NICHES: Record<string, NicheDefinition> = {
         { key: 'dental_insurance', label: 'Seguro dental / HCM', type: 'input', placeholder: 'Aseguradora y número de póliza (opcional)' },
       ],
     },
-    capabilities: ['dental.odontogram'],
+    capabilities: ['dental.odontogram', 'dental.clinical_history'],
     featureDefaults: {},
     terminologyDefaults: {
       client: 'Paciente',

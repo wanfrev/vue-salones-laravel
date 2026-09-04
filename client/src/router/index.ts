@@ -134,6 +134,12 @@ const router = createRouter({
           meta: { gate: { capability: 'dental.odontogram' } },
         },
         {
+          path: 'clientes/:id/historia-clinica',
+          name: 'admin-cliente-historia-clinica',
+          component: () => import('../views/ClienteHistoriaClinica.vue'),
+          meta: { gate: { capability: 'dental.clinical_history' } },
+        },
+        {
           path: 'finanzas',
           name: 'admin-finanzas',
           component: () => import('../views/Finanzas.vue'),

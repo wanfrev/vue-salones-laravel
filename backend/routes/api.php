@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\CreditController;
+use App\Http\Controllers\Api\Dental\ClinicalHistoryController;
 use App\Http\Controllers\Api\Dental\DentalChartController;
 use App\Http\Controllers\Api\EmployeeCommissionController;
 use App\Http\Controllers\Api\EmployeeDocumentController;
@@ -182,6 +183,14 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::middleware(['capability:dental.odontogram'])->group(function () {
             Route::get('/clients/{clientId}/dental-chart', [DentalChartController::class, 'show']);
             Route::put('/clients/{clientId}/dental-chart', [DentalChartController::class, 'update']);
+        });
+
+        // Historia clínica (nicho odontologia)
+        Route::middleware(['capability:dental.clinical_history'])->group(function () {
+            Route::get('/clients/{clientId}/clinical-histories', [ClinicalHistoryController::class, 'index']);
+            Route::get('/clients/{clientId}/clinical-histories/{id}', [ClinicalHistoryController::class, 'show']);
+            Route::post('/clients/{clientId}/clinical-histories', [ClinicalHistoryController::class, 'store']);
+            Route::put('/clients/{clientId}/clinical-histories/{id}', [ClinicalHistoryController::class, 'update']);
         });
 
         // Appointments
