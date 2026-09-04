@@ -64,6 +64,20 @@ class StaffingTaxEntryController
         return response()->json(null, 204);
     }
 
+    /** Removes the attached file only — the amount/date on this cell stay untouched. */
+    public function destroyFile(Request $request, string $id): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        }
+
+        $entry = $this->entries->deleteFile($id, $p->business_id);
+        EntityChanged::safe($p->business_id, 'staffing_tax_entry', 'updated', $entry->id);
+
+        return response()->json($entry);
+    }
+
     /**
      * The only way to read one of these documents. Never served from a public disk/URL — this
      * route is gated by the same capability+admin-panel middleware as the rest of Taxes, and

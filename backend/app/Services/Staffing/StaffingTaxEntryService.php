@@ -82,6 +82,18 @@ class StaffingTaxEntryService
         $entry->delete();
     }
 
+    /** Clears just the attached file, keeping the amount/date — unlike destroy(), which drops the whole cell. */
+    public function deleteFile(string $id, string $businessId): StaffingTaxEntry
+    {
+        $entry = $this->findForBusiness($id, $businessId);
+        if ($entry->file_path) {
+            Storage::disk(self::DISK)->delete($entry->file_path);
+        }
+        $entry->update(['file_path' => null, 'file_original_name' => null]);
+
+        return $entry;
+    }
+
     public function findForBusiness(string $id, string $businessId): StaffingTaxEntry
     {
         $entry = StaffingTaxEntry::find($id);
