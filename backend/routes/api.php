@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\CreditController;
+use App\Http\Controllers\Api\Dental\DentalChartController;
 use App\Http\Controllers\Api\EmployeeCommissionController;
 use App\Http\Controllers\Api\EmployeeDocumentController;
 use App\Http\Controllers\Api\EmployeePaymentController;
@@ -176,6 +177,12 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
 
         // Global Pets (Consultorio)
         Route::get('/pets', [PetController::class, 'index']);
+
+        // Odontograma (nicho odontologia)
+        Route::middleware(['capability:dental.odontogram'])->group(function () {
+            Route::get('/clients/{clientId}/dental-chart', [DentalChartController::class, 'show']);
+            Route::put('/clients/{clientId}/dental-chart', [DentalChartController::class, 'update']);
+        });
 
         // Appointments
     Route::get('/appointments', [AppointmentController::class, 'index']);

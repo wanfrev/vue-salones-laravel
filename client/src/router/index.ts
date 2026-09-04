@@ -128,6 +128,12 @@ const router = createRouter({
           meta: { gate: { capability: 'clients.pets' } },
         },
         {
+          path: 'clientes/:id/odontograma',
+          name: 'admin-cliente-odontograma',
+          component: () => import('../views/ClienteOdontograma.vue'),
+          meta: { gate: { capability: 'dental.odontogram' } },
+        },
+        {
           path: 'finanzas',
           name: 'admin-finanzas',
           component: () => import('../views/Finanzas.vue'),

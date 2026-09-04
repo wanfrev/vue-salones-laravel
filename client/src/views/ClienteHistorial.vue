@@ -32,6 +32,14 @@
           <ClipboardIcon class="h-4 w-4" />
           Ver {{ businessStore.terminology.historyPlural || 'Historias clínicas' }}
         </button>
+        <button
+          v-if="isDentalNiche"
+          @click="goToOdontograma"
+          class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
+        >
+          <ClipboardIcon class="h-4 w-4" />
+          Ver odontograma
+        </button>
       </div>
     </div>
   </header>
@@ -98,6 +106,7 @@ import { useBusinessStore } from '../store/business'
 import { listCitas } from '../services/agendaService'
 import { getClienteById } from '../services/clientesService'
 import { isPetNiche as checkPetNiche } from '../config/nicheFields'
+import { isDentalNiche as checkDentalNiche } from '../config/niches'
 import { ListIcon, ArrowLeftIcon, CheckCircleIcon, ClipboardIcon } from '@solar-icons/vue/linear'
 import type { Cliente } from '../types/cliente'
 
@@ -109,6 +118,7 @@ const router = useRouter()
 const clienteId = computed(() => route.params.id as string)
 const businessId = computed(() => authStore.businessId)
 const isPetNiche = computed(() => checkPetNiche(businessStore.nicheType))
+const isDentalNiche = computed(() => checkDentalNiche(businessStore.nicheType))
 
 const { data: clienteData } = useQuery({
   queryKey: computed(() => ['cliente', clienteId.value]),
@@ -151,6 +161,10 @@ const goToConsultorio = () => {
   } else {
     router.push('/admin/consultorio')
   }
+}
+
+const goToOdontograma = () => {
+  router.push(`/admin/clientes/${clienteId.value}/odontograma`)
 }
 
 const handleWhatsApp = () => {

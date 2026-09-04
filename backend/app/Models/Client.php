@@ -4,8 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\Concerns\BelongsToBranch;
 use App\Models\Concerns\BelongsToBusiness;
+use App\Models\Dental\DentalChart;
 
 class Client extends Model
 {
@@ -32,5 +34,10 @@ class Client extends Model
     public function pets(): HasMany
     {
         return $this->hasMany(Pet::class);
+    }
+
+    public function dentalChart(): HasOne
+    {
+        return $this->hasOne(DentalChart::class);
     }
 }

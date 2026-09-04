@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getNicheConfig, isPetNiche, isVetNiche, getNiche, resolveFeatures, resolveTerminology, creatableIds } from './index'
+import { getNicheConfig, isPetNiche, isVetNiche, isDentalNiche, getNiche, resolveFeatures, resolveTerminology, creatableIds } from './index'
 
 // Equivalence table against the pre-registry behaviour of nicheFields.ts:
 //   isPetNiche(x)    === ['dog_spa','vet'].includes(x)
@@ -114,6 +114,21 @@ describe('resolveTerminology()', () => {
   it('derives a custom plural unless the business stores one explicitly', () => {
     expect(resolveTerminology('odontologia', { client: 'Usuario' }).clientPlural).toBe('Usuarios')
     expect(resolveTerminology('odontologia', { client: 'Usuario', clientPlural: 'Personas' }).clientPlural).toBe('Personas')
+  })
+})
+
+describe('isDentalNiche()', () => {
+  it('is true only for odontologia', () => {
+    expect(isDentalNiche('odontologia')).toBe(true)
+    for (const id of creatableIds().filter(id => id !== 'odontologia')) {
+      expect(isDentalNiche(id)).toBe(false)
+    }
+    expect(isDentalNiche(undefined)).toBe(false)
+    expect(isDentalNiche(null)).toBe(false)
+  })
+
+  it('has the dental.odontogram capability', () => {
+    expect(getNiche('odontologia').capabilities).toContain('dental.odontogram')
   })
 })
 

@@ -688,6 +688,34 @@ export interface Pet {
   updated_at: string
 }
 
+/** Dentición permanente, notación FDI/ISO de 2 dígitos (11-48). */
+export type DentalFace = 'vestibular' | 'lingual' | 'mesial' | 'distal' | 'oclusal'
+
+export type DentalCondition =
+  | 'sano'
+  | 'caries'
+  | 'obturado'
+  | 'corona'
+  | 'ausente'
+  | 'extraccion_indicada'
+  | 'endodoncia'
+  | 'sellante'
+  | 'implante'
+  | 'puente'
+
+/** Keyed by tooth number (FDI, as string) -> face -> current condition. Snapshot only, no history. */
+export type DentalTeeth = Record<string, Partial<Record<DentalFace, DentalCondition>>>
+
+export interface DentalChart {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  teeth: DentalTeeth
+  created_at: string
+  updated_at: string
+}
+
 export interface Database {
   public: {
     Tables: {

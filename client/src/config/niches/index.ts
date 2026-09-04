@@ -30,6 +30,10 @@ export function isStaffingNiche(nicheType?: string | null): boolean {
   return nicheType === 'staffing'
 }
 
+export function isDentalNiche(nicheType?: string | null): boolean {
+  return nicheType === 'odontologia'
+}
+
 /**
  * True for a "pure" tienda business, and also for any other niche that's had the retail module
  * explicitly turned on for it (features.retail_module_enabled) — e.g. a spa business that also
