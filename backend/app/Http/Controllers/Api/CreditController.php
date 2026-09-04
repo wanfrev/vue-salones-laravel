@@ -166,4 +166,72 @@ class CreditController
             'payment' => $payment,
         ]);
     }
+
+    /**
+     * Delete a credit that was created by mistake. Only allowed while it has zero payments
+     * against it — a partial/full payment already produced a real income Transaction, and
+     * silently deleting the credit would leave that money uncoupled from any credit record
+     * (or, worse, tempt a future version of this endpoint into cascading the deletion into
+     * that income too). Force the user to sort out the payments first instead.
+     */
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
+            return response()->json(['message' => 'No autorizado.'], 403);
+        }
+
+        $credit = Credit::where('business_id', $businessId)->find($id);
+        if (!$credit) {
+            return response()->json(['message' => 'Crédito no encontrado.'], 404);
+        }
+
+        if ((float) $credit->paid_amount > 0) {
+            return response()->json([
+                'message' => 'No se puede eliminar un crédito con abonos registrados.',
+            ], 422);
+        }
+
+        DB::transaction(function () use ($credit, $businessId) {
+            if ($credit->transaction_id) {
+                $tx = Transaction::where('business_id', $businessId)->find($credit->transaction_id);
+                if ($tx) {
+                    if ($tx->appointment_id) {
+                        \App\Models\Appointment::where('id', $tx->appointment_id)
+                            ->update(['payment_status' => 'unpaid', 'updated_at' => now()]);
+                    } else {
+                        // Revert inventory for a direct product sale made on credit — same
+                        // reversal TransactionController::destroy() does for a regular sale.
+                        $movements = \App\Models\InventoryMovement::where('business_id', $businessId)
+                            ->where('reference_type', 'direct')
+                            ->where('reference_id', $tx->id)
+                            ->get();
+
+                        foreach ($movements as $movement) {
+                            app(\App\Services\InventoryService::class)->adjust([
+                                'product_id' => $movement->product_id,
+                                'variant_id' => $movement->variant_id,
+                                'quantity' => abs($movement->quantity),
+                                'location_id' => $movement->location_id,
+                                'branch_id' => $movement->branch_id,
+                                'unit_cost' => $movement->unit_cost,
+                                'reference_type' => 'correction',
+                                'reference_id' => $movement->id,
+                                'notes' => 'Corrección de crédito eliminado',
+                            ], $businessId, request()->user()->id);
+
+                            $movement->delete();
+                        }
+                    }
+                    $tx->delete();
+                }
+            }
+
+            $credit->delete();
+        });
+
+        EntityChanged::safe($businessId, 'credit', 'deleted', $id);
+
+        return response()->json(null, 204);
+    }
 }
