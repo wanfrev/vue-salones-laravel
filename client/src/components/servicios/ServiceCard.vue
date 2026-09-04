@@ -50,7 +50,7 @@
 
     <div class="mt-3 sm:mt-4 border-t border-border-subtle pt-3 sm:pt-4">
       <div class="flex items-center justify-between text-xs">
-        <span class="text-text-muted">{{ service.citasMes }} {{ appointmentLabel }}s este mes</span>
+         <span class="text-text-muted">{{ service.citasMes }} {{ appointmentLabel.toLowerCase() }} este mes</span>
         <span class="font-semibold text-success tabular-nums">{{ formatUSD(service.ingresos) }} ingresos</span>
       </div>
     </div>

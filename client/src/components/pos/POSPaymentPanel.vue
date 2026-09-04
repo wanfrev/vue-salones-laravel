@@ -14,13 +14,13 @@
         <div class="rounded-lg border border-border-subtle bg-bg-secondary p-3">
           <template v-if="isTipMode">
             <div class="flex items-center justify-between text-sm">
-              <span class="text-text-muted">Empleado</span>
-              <span class="font-medium text-text">{{ tipEmployeeName ? toTitleCase(tipEmployeeName) : 'Selecciona un empleado' }}</span>
+               <span class="text-text-muted">{{ businessStore.terminology.employee }}</span>
+               <span class="font-medium text-text">{{ tipEmployeeName ? toTitleCase(tipEmployeeName) : `Selecciona un ${businessStore.terminology.employee.toLowerCase()}` }}</span>
             </div>
           </template>
           <template v-else-if="isDirectService && !selectedAppointment">
             <div class="flex items-center justify-between text-sm mb-2 pb-2 border-b border-border">
-              <span class="text-text-muted">Cliente</span>
+               <span class="text-text-muted">{{ businessStore.terminology.client }}</span>
               <span class="font-medium text-text">{{ toTitleCase(retailClientName) || 'Servicio Directo' }}</span>
             </div>
             <div v-if="directServicesList && directServicesList.length > 0" class="space-y-2">
@@ -42,17 +42,17 @@
           </template>
           <template v-else-if="isRetailOnly && !selectedAppointment">
             <div class="flex items-center justify-between text-sm">
-              <span class="text-text-muted">Cliente</span>
+               <span class="text-text-muted">{{ businessStore.terminology.client }}</span>
               <span class="font-medium text-text">{{ toTitleCase(retailClientName) || 'Venta Directa / Mostrador' }}</span>
             </div>
             <div class="flex items-center justify-between text-sm mt-1">
-              <span class="text-text-muted">Servicio</span>
+               <span class="text-text-muted">{{ businessStore.terminology.service }}</span>
               <span class="font-medium text-text-muted">—</span>
             </div>
           </template>
           <template v-else-if="selectedAppointment">
             <div class="flex items-center justify-between text-sm mt-1">
-              <span class="text-text-muted">Cliente</span>
+               <span class="text-text-muted">{{ businessStore.terminology.client }}</span>
               <span class="font-medium text-text">{{ toTitleCase(selectedAppointment.client?.full_name || selectedAppointment.clients?.full_name) || '—' }}</span>
             </div>
             <div v-if="selectedAppointment.appointment_date" class="flex items-center justify-between text-sm mt-1">

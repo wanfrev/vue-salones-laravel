@@ -4,7 +4,7 @@
       <div>
         <div class="flex items-center gap-2 text-sm text-primary mb-0.5">
           <ListIcon class="h-4 w-4" />
-          <span class="font-medium uppercase tracking-wider">{{ businessStore.terminology.client || 'Cliente' }}s</span>
+          <span class="font-medium uppercase tracking-wider">{{ businessStore.terminology.clientPlural || 'Clientes' }}</span>
         </div>
         <p class="text-sm font-semibold text-text sm:text-base">{{ cliente?.name || businessStore.terminology.client || 'Cliente' }}</p>
       </div>
@@ -30,7 +30,7 @@
           class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
         >
           <ClipboardIcon class="h-4 w-4" />
-          Ver Historias Clínicas
+          Ver {{ businessStore.terminology.historyPlural || 'Historias clínicas' }}
         </button>
       </div>
     </div>
@@ -38,14 +38,14 @@
 
   <section class="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
     <div class="rounded-xl border border-border bg-surface p-4 shadow-sm lg:col-span-2">
-      <h3 class="mb-4 text-base font-semibold text-text">Servicios realizados</h3>
+       <h3 class="mb-4 text-base font-semibold text-text">{{ businessStore.terminology.servicePlural || 'Servicios' }} realizados</h3>
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead>
             <tr class="border-b border-border-subtle">
               <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Fecha</th>
-              <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">{{ businessStore.terminology.service || 'Servicio' }}</th>
-              <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">{{ businessStore.terminology.employee || 'Empleado' }}</th>
+               <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">{{ businessStore.terminology.service || 'Servicio' }}</th>
+               <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">{{ businessStore.terminology.employee || 'Empleado' }}</th>
               <th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Monto</th>
               <th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Estado</th>
             </tr>
@@ -72,7 +72,7 @@
       <h3 class="mb-4 text-base font-semibold text-text">Resumen</h3>
       <div class="space-y-3">
         <div class="rounded-lg bg-bg-secondary p-3">
-          <p class="text-xs text-text-muted">Total {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}s</p>
+           <p class="text-xs text-text-muted">Total {{ (businessStore.terminology.appointmentPlural || 'Citas').toLowerCase() }}</p>
           <p class="text-lg font-bold text-text">{{ historial.length }}</p>
         </div>
         <div class="rounded-lg bg-bg-secondary p-3">
@@ -80,8 +80,8 @@
           <p class="text-lg font-bold text-text">${{ totalGasto }}</p>
         </div>
         <div class="rounded-lg bg-bg-secondary p-3">
-          <p class="text-xs text-text-muted">Última visita</p>
-          <p class="text-lg font-bold text-text">{{ ultimaVisita || 'Sin visitas' }}</p>
+           <p class="text-xs text-text-muted">Última {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}</p>
+           <p class="text-lg font-bold text-text">{{ ultimaVisita || `Sin ${(businessStore.terminology.appointmentPlural || 'citas').toLowerCase()}` }}</p>
         </div>
       </div>
     </div>

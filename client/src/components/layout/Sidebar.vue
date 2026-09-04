@@ -178,7 +178,7 @@ const toggleExpanded = (to: string) => {
 const resolveLabel = (link: SidebarLink): string => {
   if (link.labelKey) {
     const term = (businessStore.terminology as Record<string, string>)[link.labelKey]
-    return `${term || link.label}s`
+    return term || link.label
   }
   return link.label
 }

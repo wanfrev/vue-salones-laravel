@@ -60,11 +60,11 @@
       <div v-else class="content-area">
         <!-- STEP EMPLEADO (solo cuando el link no trae uno fijo) -->
         <div v-if="!hasPresetEmployee && currentStep === stepEmployee" class="step-view">
-          <p class="step-hint">¿Con quién te gustaría atenderte?</p>
+           <p class="step-hint">¿Con qué {{ terminology.employee.toLowerCase() }} te gustaría atenderte?</p>
 
           <div v-if="loadingEmployeesList" class="flex-1 flex items-center justify-center"><div class="spinner" /></div>
           <div v-else-if="(employeesList ?? []).length === 0" class="flex-1 flex items-center justify-center">
-            <p class="text-xs text-text-muted">No hay empleados disponibles.</p>
+             <p class="text-xs text-text-muted">No hay {{ terminology.employeePlural.toLowerCase() }} disponibles.</p>
           </div>
           <div v-else class="svc-list">
             <button
@@ -147,10 +147,10 @@
             </button>
             <span class="text-[10px] sm:text-xs text-text-muted font-medium shrink-0">{{ formatDuration(availableMinutes) }} disp.</span>
           </div>
-          <p class="step-hint">Puedes elegir varios servicios</p>
+           <p class="step-hint">Puedes elegir varios {{ terminology.servicePlural.toLowerCase() }}</p>
 
           <div v-if="(services ?? []).length === 0" class="flex-1 flex items-center justify-center">
-            <p class="text-xs text-text-muted">Sin servicios disponibles.</p>
+             <p class="text-xs text-text-muted">Sin {{ terminology.servicePlural.toLowerCase() }} disponibles.</p>
           </div>
           <div v-else class="svc-list">
             <button
@@ -188,8 +188,8 @@
             @click="goToConfirm"
           >
             {{ chosenServices.length
-              ? `Continuar con ${chosenServices.length} servicio${chosenServices.length !== 1 ? 's' : ''}`
-              : 'Selecciona al menos un servicio' }}
+               ? `Continuar con ${chosenServices.length} ${chosenServices.length === 1 ? terminology.service.toLowerCase() : terminology.servicePlural.toLowerCase()}`
+               : `Selecciona al menos un ${terminology.service.toLowerCase()}` }}
           </button>
         </div>
 
@@ -200,7 +200,7 @@
 
           <div class="summary">
             <div class="sum-row">
-              <span class="sum-lbl">Servicios</span>
+               <span class="sum-lbl">{{ terminology.servicePlural }}</span>
               <span class="sum-val">{{ chosenServices.map(s => s.name).join(', ') }}</span>
             </div>
             <div class="sum-row">
@@ -221,11 +221,11 @@
             </div>
           </div>
 
-          <label class="name-label">¿Cómo te llamas? <span class="text-danger">*</span></label>
+           <label class="name-label">¿Cuál es el nombre del {{ terminology.client.toLowerCase() }}? <span class="text-danger">*</span></label>
           <input
             v-model="clientName"
             type="text"
-            placeholder="Tu nombre completo"
+             :placeholder="`Nombre completo del ${terminology.client.toLowerCase()}`"
             maxlength="200"
             class="name-inp"
             :class="{ 'name-err': nameTouched && !nameValid }"
@@ -284,6 +284,7 @@ import {
   getCalendarData,
 } from '../../services/publicBookingService'
 import type { PublicEmployee, PublicService } from '../../services/publicBookingService'
+import { resolveTerminology } from '../../config/niches'
 import logoLight from '../../assets/Luma.svg'
 import logoDark from '../../assets/Luma blanco.svg'
 
@@ -307,13 +308,6 @@ const maxCalStr = maxCal.toISOString().slice(0, 10)
 const calendarMonth = ref(new Date(today.getFullYear(), today.getMonth(), 1))
 const selectedDate = ref(todayStr)
 
-// The "Empleado" step only exists when the invitation link doesn't already pin one — every
-// other step index shifts by one to make room for it.
-const steps = computed(() =>
-  hasPresetEmployee.value
-    ? ['Día', 'Horario', 'Servicios', 'Confirmar', 'Listo']
-    : ['Empleado', 'Día', 'Horario', 'Servicios', 'Confirmar', 'Listo'],
-)
 const stepOffset = computed(() => (hasPresetEmployee.value ? 0 : 1))
 const stepEmployee = 0
 const stepDay = computed(() => stepOffset.value)
@@ -402,6 +396,15 @@ const { data: business, error: businessError, isLoading: loadingBusiness } = use
   queryFn: () => getBusinessPublic(slug.value),
   staleTime: 5 * 60 * 1000,
 })
+const terminology = computed(() => resolveTerminology(business.value?.niche_type, business.value?.terminology))
+
+// The professional step only exists when the invitation link doesn't already pin one — every
+// other step index shifts by one to make room for it.
+const steps = computed(() =>
+  hasPresetEmployee.value
+    ? ['Día', 'Horario', terminology.value.servicePlural, 'Confirmar', 'Listo']
+    : [terminology.value.employee, 'Día', 'Horario', terminology.value.servicePlural, 'Confirmar', 'Listo'],
+)
 
 const primaryColor = computed(() => business.value?.theme_config?.primary_color || '#869C84')
 const cssVars = computed(() => ({ '--color-primary': primaryColor.value }))

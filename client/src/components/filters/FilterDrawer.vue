@@ -14,7 +14,7 @@
       <div v-if="showDaysSinceFilter" class="space-y-2">
         <label class="text-sm font-medium text-text-secondary">Ventana de inactividad</label>
         <FormInput v-model="localFilters.daysSinceVisit" type="number" min="1" placeholder="30" size="sm"
-          hint="Mostrar clientes que no han visitado en los últimos N días" />
+           :hint="`Mostrar ${entityLabel} que no han realizado una visita en los últimos N días`" />
       </div>
 
       <!-- Fecha -->
@@ -60,17 +60,21 @@ interface Props {
   showDateFilter?: boolean
   sortOptions?: { value: string; label: string }[]
   showDaysSinceFilter?: boolean
+  entityLabel?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   showDateFilter: true,
   showDaysSinceFilter: false,
+  entityLabel: 'clientes',
   sortOptions: () => [
     { value: 'newest', label: 'Más reciente', icon: '↓' },
     { value: 'oldest', label: 'Más antiguo', icon: '↑' },
     { value: 'name', label: 'Nombre', icon: 'A' },
   ],
 })
+
+const entityLabel = computed(() => props.entityLabel || 'clientes')
 
 const emit = defineEmits<{
   apply: [filters: FilterState]

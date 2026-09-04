@@ -51,6 +51,10 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { toISODate, dateToHHmm, dateToHHmm12, getStatusLabel, normalizeAppointmentStatus, parseLocalDate } from '../../lib/formatters'
+import { useBusinessStore } from '../../store/business'
+
+const businessStore = useBusinessStore()
+const terminology = businessStore.terminology
 
 const props = defineProps<{
   appointments: any[]
@@ -155,12 +159,12 @@ const cells = computed(() => {
       const groupAll = a.group_id ? (groupMembers.get(a.group_id) ?? []) : []
       const isGroup = groupAll.length > 1
       const groupNames = isGroup
-        ? groupAll.map((m: any) => serviceMap.get(m.service_id)?.name || 'Servicio')
+         ? groupAll.map((m: any) => serviceMap.get(m.service_id)?.name || terminology.service)
         : undefined
       return {
         id: a.id,
-        clientName: a.client?.full_name || a.clients?.full_name || 'Cliente',
-        service: isGroup ? groupNames!.join(' + ') : (svc?.name || 'Servicio'),
+         clientName: a.client?.full_name || a.clients?.full_name || terminology.client,
+         service: isGroup ? groupNames!.join(' + ') : (svc?.name || terminology.service),
         time: dateToHHmm12(new Date(a.start_time)),
         status: normalizeAppointmentStatus(a),
         employeeName: emp,

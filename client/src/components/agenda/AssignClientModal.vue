@@ -3,17 +3,17 @@
     <div v-if="visible" class="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="close"></div>
       <div class="relative w-full max-w-md rounded-2xl border border-border bg-surface shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-150">
-        <h2 class="text-lg font-bold text-text mb-4">Asignar cliente a reserva</h2>
+         <h2 class="text-lg font-bold text-text mb-4">Asignar {{ terminology.client.toLowerCase() }} a reserva</h2>
 
         <div v-if="appointment" class="rounded-lg bg-bg-secondary p-3 mb-4 text-xs space-y-1">
-          <p><span class="text-text-muted">Servicio:</span> {{ appointment.service_name || 'Servicio' }}</p>
+           <p><span class="text-text-muted">{{ terminology.service }}:</span> {{ appointment.service_name || terminology.service }}</p>
           <p><span class="text-text-muted">Fecha:</span> {{ formatDate(appointment.start_time) }}</p>
           <p><span class="text-text-muted">Hora:</span> {{ formatTime(appointment.start_time) }}</p>
         </div>
 
-        <!-- Buscador de clientes existentes -->
+         <!-- Buscador de pacientes/clientes existentes -->
         <div class="mb-4">
-          <label class="block text-xs font-semibold text-text mb-1.5">Buscar cliente existente</label>
+           <label class="block text-xs font-semibold text-text mb-1.5">Buscar {{ terminology.client.toLowerCase() }} existente</label>
           <div class="relative">
             <input
               v-model="searchQuery"
@@ -39,7 +39,7 @@
             </button>
           </div>
           <div v-else-if="searchQuery.length >= 2 && !loadingSearch" class="mt-2 text-xs text-text-muted px-1">
-            No se encontraron clientes.
+             No se encontraron {{ terminology.clientPlural.toLowerCase() }}.
           </div>
         </div>
 
@@ -49,11 +49,11 @@
           <div class="flex-1 h-px bg-border"></div>
         </div>
 
-        <!-- Crear nuevo cliente -->
+         <!-- Crear nuevo cliente/paciente -->
         <div class="rounded-lg border border-dashed border-border p-4 mb-4">
-          <p class="text-xs font-semibold text-text mb-3">Crear nuevo cliente</p>
+           <p class="text-xs font-semibold text-text mb-3">Crear nuevo {{ terminology.client.toLowerCase() }}</p>
           <p v-if="props.appointment?.internal_notes" class="text-[10px] text-text-muted bg-primary-light/30 rounded-md px-2 py-1 mb-2">
-            Nombre proporcionado por el cliente en la reserva. Verifica antes de guardar.
+             Nombre proporcionado por el {{ terminology.client.toLowerCase() }} en la reserva. Verifica antes de guardar.
           </p>
           <div class="space-y-2">
             <input v-model="newClientName" type="text" placeholder="Nombre completo" class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-primary" />
@@ -66,8 +66,8 @@
           <button @click="close" class="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm font-medium text-text hover:bg-bg-secondary">
             Cancelar
           </button>
-          <button @click="handleAssignNew" :disabled="assigning || !newClientName.trim()" class="flex-1 rounded-lg border border-primary/20 px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary-light disabled:opacity-40">
-            {{ assigning ? 'Asignando...' : 'Crear y asignar' }}
+           <button @click="handleAssignNew" :disabled="assigning || !newClientName.trim()" class="flex-1 rounded-lg border border-primary/20 px-4 py-2.5 text-sm font-semibold text-primary hover:bg-primary-light disabled:opacity-40">
+             {{ assigning ? 'Asignando...' : `Crear y asignar ${terminology.client.toLowerCase()}` }}
           </button>
         </div>
       </div>
@@ -76,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useBusinessStore } from '../../store/business'
 import { db } from '../../lib/api'
 
@@ -101,6 +101,7 @@ const assigning = ref(false)
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 const businessStore = useBusinessStore()
+const terminology = computed(() => businessStore.terminology)
 
 function onSearchInput() {
   if (searchTimer) clearTimeout(searchTimer)

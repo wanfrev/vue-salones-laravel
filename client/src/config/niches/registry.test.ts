@@ -94,8 +94,13 @@ describe('resolveTerminology()', () => {
   it("applies odontologia's terminologyDefaults without touching other niches", () => {
     const dental = resolveTerminology('odontologia', undefined)
     expect(dental.client).toBe('Paciente')
+    expect(dental.clientPlural).toBe('Pacientes')
     expect(dental.appointment).toBe('Consulta')
+    expect(dental.appointmentPlural).toBe('Consultas')
     expect(dental.service).toBe('Tratamiento')
+    expect(dental.servicePlural).toBe('Tratamientos')
+    expect(dental.employee).toBe('Odontólogo')
+    expect(dental.employeePlural).toBe('Odontólogos')
 
     expect(resolveTerminology('salon', undefined).client).toBe('Cliente')
   })
@@ -103,6 +108,12 @@ describe('resolveTerminology()', () => {
   it('lets a stored (DB) value override the niche default', () => {
     const resolved = resolveTerminology('odontologia', { client: 'Cliente' })
     expect(resolved.client).toBe('Cliente')
+    expect(resolved.clientPlural).toBe('Clientes')
+  })
+
+  it('derives a custom plural unless the business stores one explicitly', () => {
+    expect(resolveTerminology('odontologia', { client: 'Usuario' }).clientPlural).toBe('Usuarios')
+    expect(resolveTerminology('odontologia', { client: 'Usuario', clientPlural: 'Personas' }).clientPlural).toBe('Personas')
   })
 })
 

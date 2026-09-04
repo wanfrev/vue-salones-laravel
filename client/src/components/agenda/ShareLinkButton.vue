@@ -23,12 +23,12 @@
             <LinkIcon class="h-3 w-3" />
           </div>
           <span class="truncate text-text">
-            Cualquier empleado
-            <span class="block text-[10px] text-text-muted">El cliente elige con quién atenderse</span>
+             Cualquier {{ businessStore.terminology.employee?.toLowerCase() || 'empleado' }}
+             <span class="block text-[10px] text-text-muted">El {{ businessStore.terminology.client?.toLowerCase() || 'cliente' }} elige con quién atenderse</span>
           </span>
         </button>
         <div class="my-1 h-px bg-border"></div>
-        <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider px-2.5 py-1.5">Un empleado específico</p>
+         <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider px-2.5 py-1.5">Un {{ businessStore.terminology.employee?.toLowerCase() || 'empleado' }} específico</p>
         <button
           v-for="emp in employees"
           :key="emp.id"
@@ -41,7 +41,7 @@
           <span class="truncate text-text">{{ emp.label }}</span>
         </button>
         <div v-if="employees.length === 0" class="px-2.5 py-3 text-xs text-text-muted text-center">
-          No hay empleados disponibles
+           No hay {{ (businessStore.terminology.employeePlural || 'Empleados').toLowerCase() }} disponibles
         </div>
       </div>
     </Transition>
@@ -93,7 +93,7 @@ function copyGeneralShareLink() {
   const slug = businessStore.business?.slug || 'salon'
   const link = `${origin}/reservar/${slug}`
   navigator.clipboard.writeText(link).then(() => {
-    success('Link de reserva copiado — el cliente elige el empleado')
+     success(`Link de reserva copiado — el ${businessStore.terminology.client?.toLowerCase() || 'cliente'} elige el ${businessStore.terminology.employee?.toLowerCase() || 'empleado'}`)
   }).catch(() => {
     prompt('Copia este link:', link)
   })

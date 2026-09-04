@@ -334,7 +334,7 @@ const confirmDeleteServicio = async () => {
       <!-- Tab: Cobros de Citas -->
       <div v-if="activeDetailTab === 'cobros'">
         <div class="relative mb-3">
-          <input v-model="cobrosSearch" type="text" placeholder="Buscar por cliente, empleado o servicio..."
+          <input v-model="cobrosSearch" type="text" :placeholder="`Buscar por ${detailBusinessStore.terminology.client.toLowerCase()}, ${detailBusinessStore.terminology.employee.toLowerCase()} o ${detailBusinessStore.terminology.service.toLowerCase()}...`"
             class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15" />
           <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -351,16 +351,16 @@ const confirmDeleteServicio = async () => {
                   Fecha</th>
                 <th
                   class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-                  Cliente</th>
+                   {{ detailBusinessStore.terminology.client }}</th>
                 <th v-if="isTienda"
                   class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
                   Código</th>
                 <th
                   class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
-                  Empleado</th>
+                   {{ detailBusinessStore.terminology.employee }}</th>
                 <th
                   class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
-                  Servicio</th>
+                   {{ detailBusinessStore.terminology.service }}</th>
                 <th
                   class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden md:table-cell">
                   Notas</th>
@@ -449,8 +449,8 @@ const confirmDeleteServicio = async () => {
               <thead>
                 <tr class="border-b border-border-subtle">
                   <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">Fecha</th>
-                  <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">Cliente</th>
-                  <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden md:table-cell">Empleado</th>
+                   <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">{{ detailBusinessStore.terminology.client }}</th>
+                   <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden md:table-cell">{{ detailBusinessStore.terminology.employee }}</th>
                   <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">Factura / Resumen</th>
                   <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">Cant. Prod.</th>
                   <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">Método</th>
@@ -534,7 +534,7 @@ const confirmDeleteServicio = async () => {
                             <svg class="h-3.5 w-3.5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                               <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                             </svg>
-                            Factura · Cliente: <strong class="text-text">{{ inv.clientName || 'Venta directa' }}</strong>
+                             Factura · {{ detailBusinessStore.terminology.client }}: <strong class="text-text">{{ inv.clientName || 'Venta directa' }}</strong>
                             <span v-if="inv.employeeName" class="text-text-muted font-normal ml-2">
                               (Vendido por: <strong class="text-primary font-medium">{{ inv.employeeName }}</strong>)
                             </span>
@@ -591,7 +591,7 @@ const confirmDeleteServicio = async () => {
                     Fecha</th>
                   <th
                     class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
-                    Cliente</th>
+                     {{ detailBusinessStore.terminology.client }}</th>
                   <th
                     class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
                     Producto</th>

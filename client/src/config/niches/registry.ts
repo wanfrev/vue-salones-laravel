@@ -162,9 +162,17 @@ export const NICHES: Record<string, NicheDefinition> = {
     featureDefaults: {},
     terminologyDefaults: {
       client: 'Paciente',
+      clientPlural: 'Pacientes',
       appointment: 'Consulta',
+      appointmentPlural: 'Consultas',
       service: 'Tratamiento',
+      servicePlural: 'Tratamientos',
       employee: 'Odontólogo',
+      employeePlural: 'Odontólogos',
+      history: 'Historia clínica',
+      historyPlural: 'Historias clínicas',
+      professional: 'Odontólogo',
+      professionalPlural: 'Odontólogos',
     },
     copy: {
       serviceNamePlaceholder: 'Ej: Limpieza dental, Extracción, Resina, Endodoncia',

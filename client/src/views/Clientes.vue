@@ -3,7 +3,7 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
         <UserIcon class="h-3.5 w-3.5" />
-        {{ businessStore.terminology.client || 'Cliente' }}s
+        {{ businessStore.terminology.clientPlural || 'Clientes' }}
       </div>
       <div class="flex items-center gap-2">
         <button
@@ -23,6 +23,7 @@
     :clientes-con-historial="clientesConHistorial"
     :clientes-sin-visitar="clientesSinVisitar"
     :days-since-visit-filter="daysSinceVisitFilter"
+    :terminology="businessStore.terminology"
   />
 
   <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -66,11 +67,11 @@
             <span v-if="client.code" class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary bg-primary/10">{{ client.code }}</span>
           </div>
           <p class="text-xs text-text-muted">{{ client.phone }}</p>
-          <p class="text-xs text-text-muted">Última visita: {{ lastVisitLabel(client) }}</p>
+           <p class="text-xs text-text-muted">Última {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}: {{ lastVisitLabel(client) }}</p>
         </div>
         <div class="text-right shrink-0">
           <p class="text-sm font-bold tabular-nums text-text">${{ client.totalSpent }}</p>
-          <p class="text-xs text-text-muted">{{ client.totalAppointments }} {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}s</p>
+           <p class="text-xs text-text-muted">{{ client.totalAppointments }} {{ businessStore.terminology.appointmentPlural || 'Citas' }}</p>
         </div>
       </div>
       <div class="mt-3 flex gap-2">
@@ -89,7 +90,7 @@
       </div>
     </div>
     <div v-if="filteredClients.length === 0" class="py-12 text-center">
-      <p class="text-sm text-text-muted">No se encontraron clientes.</p>
+       <p class="text-sm text-text-muted">No se encontraron {{ (businessStore.terminology.clientPlural || 'Clientes').toLowerCase() }}.</p>
     </div>
   </div>
 
@@ -101,8 +102,8 @@
           <tr class="border-b border-border">
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">{{ businessStore.terminology.client || 'Cliente' }}</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Contacto</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Última visita</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">{{ businessStore.terminology.appointment || 'Cita' }}s</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Última {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">{{ businessStore.terminology.appointmentPlural || 'Citas' }}</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Gasto</th>
             <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-text-muted">Acciones</th>
           </tr>
@@ -226,6 +227,7 @@
     ref="filterDrawerRef"
     :show-date-filter="false"
     :show-days-since-filter="true"
+    :entity-label="(businessStore.terminology.clientPlural || 'Clientes').toLowerCase()"
     @apply="handleApplyFilters"
     @clear="handleClearFilters"
   />
@@ -314,7 +316,9 @@ const openFilterDrawer = () => {
 }
 
 const lastVisitLabel = (client: Cliente) =>
-  client.lastVisit && client.lastVisit !== 'Sin visitas' ? formatDateHuman(client.lastVisit) : 'Sin visitas'
+  client.lastVisit && client.lastVisit !== 'Sin visitas'
+    ? formatDateHuman(client.lastVisit)
+    : `Sin ${(businessStore.terminology.appointmentPlural || 'citas').toLowerCase()}`
 
 const handleWhatsApp = (cliente: Cliente) => {
   const phone = sanitizePhone(cliente.phone)
