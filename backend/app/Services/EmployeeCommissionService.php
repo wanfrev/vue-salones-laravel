@@ -691,9 +691,16 @@ class EmployeeCommissionService
 
         $appointmentRows = $query->get()->map(function ($row) use ($employeeId) {
             $isAssistant = $row->assistant_employee_id === $employeeId;
+            // El % realmente aplicado al pagar vive en transactions.employee_percentage — es
+            // historico e inmutable. appointments.employee_percentage_override es solo el valor
+            // ACTUAL de la cita y puede haber cambiado despues del pago (igual que ya se hace
+            // para el asistente arriba, que solo lee su columna de transactions). Priorizar el
+            // override aqui reconstruia mal el "costo total" cuando alguien editaba la cita
+            // despues de cobrada: el monto se recalculaba con un % distinto al que realmente
+            // generó employee_amount.
             $pct = (float) ($isAssistant
                 ? ($row->assistant_percentage ?? 0)
-                : ($row->employee_percentage_override ?? $row->employee_percentage ?? 0));
+                : ($row->employee_percentage ?? $row->employee_percentage_override ?? 0));
             $tip = (float) ($row->tip_amount ?? 0);
             $empAmount = (float) ($isAssistant
                 ? ($row->assistant_amount ?? 0)
