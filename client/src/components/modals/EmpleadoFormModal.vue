@@ -160,7 +160,7 @@
           <label v-if="formData.systemRole !== 'cajero' && businessStore.features.enable_public_booking" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
               <p class="text-sm font-medium text-text">Visible en reserva pública</p>
-              <p class="text-xs text-text-muted">Aparece como opción cuando el cliente elige "cualquier empleado" en el link de reserva. Desactívalo para puestos que no atienden clientes (mantenimiento, limpieza, etc).</p>
+               <p class="text-xs text-text-muted">Aparece como opción cuando el {{ businessStore.terminology.client?.toLowerCase() || 'cliente' }} elige "cualquier {{ businessStore.terminology.employee?.toLowerCase() || 'empleado' }}" en el link de reserva. Desactívalo para puestos que no atienden {{ (businessStore.terminology.clientPlural || 'clientes').toLowerCase() }} (mantenimiento, limpieza, etc).</p>
             </div>
             <button type="button" role="switch" :aria-checked="formData.showInPublicBooking"
               @click="formData.showInPublicBooking = !formData.showInPublicBooking"
@@ -171,8 +171,8 @@
 
           <label v-if="formData.systemRole !== 'cajero'" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
-              <p class="text-sm font-medium text-text">Puede crear clientes</p>
-              <p class="text-xs text-text-muted">Permite registrar nuevos clientes desde su perfil</p>
+               <p class="text-sm font-medium text-text">Puede crear {{ (businessStore.terminology.clientPlural || 'clientes').toLowerCase() }}</p>
+               <p class="text-xs text-text-muted">Permite registrar nuevos {{ (businessStore.terminology.clientPlural || 'clientes').toLowerCase() }} desde su perfil</p>
             </div>
             <button type="button" role="switch" :aria-checked="formData.canCreateClients"
               @click="formData.canCreateClients = !formData.canCreateClients"

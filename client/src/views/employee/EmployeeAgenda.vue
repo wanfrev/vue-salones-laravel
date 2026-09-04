@@ -49,7 +49,9 @@
         :citas="citas"
         :loading="isLoading"
         :error="citasError"
-        :t="(t.appointment || 'cita').toLowerCase()"
+         :t="(t.appointment || 'cita').toLowerCase()"
+         :t-plural="(t.appointmentPlural || 'Citas').toLowerCase()"
+         :labels="t"
         @edit="handleEditCita"
         @delete="handleDeleteCita"
       />

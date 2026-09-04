@@ -4,7 +4,7 @@
       <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
           <UsersGroupRoundedIcon class="h-3.5 w-3.5" />
-          {{ t.client || 'Cliente' }}s
+          {{ t.clientPlural || 'Clientes' }}
         </div>
         <button
           v-if="canCreateClients"
@@ -36,7 +36,7 @@
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">{{ t.client || 'Cliente' }}</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Contacto</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Última visita</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">{{ t.appointment || 'Cita' }}s</th>
+        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">{{ t.appointmentPlural || 'Citas' }}</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Gasto</th>
                 <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-text-muted">WhatsApp</th>
               </tr>
@@ -204,7 +204,9 @@ const {
 } = useClientFilters(clients)
 
 const lastVisitLabel = (client: Cliente) =>
-  client.lastVisit && client.lastVisit !== 'Sin visitas' ? formatDateHuman(client.lastVisit) : 'Sin visitas'
+  client.lastVisit && client.lastVisit !== 'Sin visitas'
+    ? formatDateHuman(client.lastVisit)
+    : `Sin ${(businessStore.terminology.appointmentPlural || 'citas').toLowerCase()}`
 
 const handleViewClient = (cliente: Cliente) => {
   router.push(`/dashboard/clientes/${cliente.id}`)

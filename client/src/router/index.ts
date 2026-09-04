@@ -128,6 +128,42 @@ const router = createRouter({
           meta: { gate: { capability: 'clients.pets' } },
         },
         {
+          path: 'clientes/:id/odontograma',
+          name: 'admin-cliente-odontograma',
+          component: () => import('../views/ClienteOdontograma.vue'),
+          meta: { gate: { capability: 'dental.odontogram' } },
+        },
+        {
+          path: 'clientes/:id/historia-clinica',
+          name: 'admin-cliente-historia-clinica',
+          component: () => import('../views/ClienteHistoriaClinica.vue'),
+          meta: { gate: { capability: 'dental.clinical_history' } },
+        },
+        {
+          path: 'clientes/:id/anexo-endodoncia',
+          name: 'admin-cliente-anexo-endodoncia',
+          component: () => import('../views/ClienteAnexoEndodoncia.vue'),
+          meta: { gate: { capability: 'dental.endo_annex' } },
+        },
+        {
+          path: 'clientes/:id/anexo-periodoncia',
+          name: 'admin-cliente-anexo-periodoncia',
+          component: () => import('../views/ClientePerioAnexo.vue'),
+          meta: { gate: { capability: 'dental.perio_annex' } },
+        },
+        {
+          path: 'clientes/:id/periodontograma',
+          name: 'admin-cliente-periodontograma',
+          component: () => import('../views/ClientePeriodontograma.vue'),
+          meta: { gate: { capability: 'dental.periodontogram' } },
+        },
+        {
+          path: 'clientes/:id/consentimiento',
+          name: 'admin-cliente-consentimiento',
+          component: () => import('../views/ClienteConsentimiento.vue'),
+          meta: { gate: { capability: 'dental.consent' } },
+        },
+        {
           path: 'finanzas',
           name: 'admin-finanzas',
           component: () => import('../views/Finanzas.vue'),

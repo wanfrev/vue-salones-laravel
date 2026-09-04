@@ -31,8 +31,8 @@
             d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       </div>
-      <h3 class="mt-4 text-lg font-medium text-text">No hay {{ t || 'cita' }}s</h3>
-      <p class="mt-1 text-sm text-text-muted">No se encontraron {{ t || 'cita' }}s para mostrar.</p>
+       <h3 class="mt-4 text-lg font-medium text-text">No hay {{ tPlural || `${t || 'cita'}s` }}</h3>
+       <p class="mt-1 text-sm text-text-muted">No se encontraron {{ tPlural || `${t || 'cita'}s` }} para mostrar.</p>
     </div>
 
     <!-- Content -->
@@ -43,7 +43,7 @@
           <thead>
             <tr class="border-b border-border bg-bg-secondary/50">
               <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-text-muted cursor-pointer select-none hover:text-text" @click="toggleSort('client')">
-                <span class="inline-flex items-center gap-1">Cliente
+                <span class="inline-flex items-center gap-1">{{ labels.client }}
                   <svg v-if="sortKey === 'client'" class="h-3 w-3 transition-transform" :class="{ 'rotate-180': sortDir === 'desc' }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
@@ -59,9 +59,9 @@
               <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-text-muted">Hora
               </th>
               <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-text-muted">
-                Servicio</th>
+                 {{ labels.service }}</th>
               <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-text-muted">
-                Empleado</th>
+                 {{ labels.employee }}</th>
               <th class="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-widest text-text-muted cursor-pointer select-none hover:text-text" @click="toggleSort('status')">
                 <span class="inline-flex items-center gap-1">Estado
                   <svg v-if="sortKey === 'status'" class="h-3 w-3 transition-transform" :class="{ 'rotate-180': sortDir === 'desc' }" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
@@ -100,7 +100,7 @@
                 <span v-if="(cita.groupServiceNames?.length ?? 0) > 1"
                   :title="cita.groupServiceNames!.join(', ')"
                   class="ml-1.5 inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                  +{{ cita.groupServiceNames!.length - 1 }} {{ cita.groupServiceNames!.length - 1 === 1 ? 'servicio' : 'servicios' }}
+                   +{{ cita.groupServiceNames!.length - 1 }} {{ cita.groupServiceNames!.length - 1 === 1 ? labels.service.toLowerCase() : labels.servicePlural.toLowerCase() }}
                 </span>
               </td>
               <td class="px-4 py-3">
@@ -169,7 +169,7 @@
                 <span v-if="(cita.groupServiceNames?.length ?? 0) > 1"
                   :title="cita.groupServiceNames!.join(', ')"
                   class="inline-flex items-center rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
-                  +{{ cita.groupServiceNames!.length - 1 }} {{ cita.groupServiceNames!.length - 1 === 1 ? 'servicio' : 'servicios' }}
+                   +{{ cita.groupServiceNames!.length - 1 }} {{ cita.groupServiceNames!.length - 1 === 1 ? labels.service.toLowerCase() : labels.servicePlural.toLowerCase() }}
                 </span>
               </div>
               <p v-if="cita.employee" class="text-[11px] text-text-muted truncate">{{ cita.employee }}</p>
@@ -255,6 +255,8 @@ const props = defineProps<{
   loading?: boolean
   error?: unknown
   t?: string
+  tPlural?: string
+  labels?: Record<string, string>
   pageSize?: number
 }>()
 
@@ -264,6 +266,12 @@ defineEmits<{
 }>()
 
 const citasRef = toRef(props, 'citas')
+const labels = computed(() => ({
+  client: props.labels?.client || 'Cliente',
+  service: props.labels?.service || 'Servicio',
+  servicePlural: props.labels?.servicePlural || 'Servicios',
+  employee: props.labels?.employee || 'Empleado',
+}))
 
 type SortKey = 'client' | 'date' | 'status' | null
 const sortKey = ref<SortKey>(null)

@@ -6,6 +6,12 @@ use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\CreditController;
+use App\Http\Controllers\Api\Dental\ClinicalHistoryController;
+use App\Http\Controllers\Api\Dental\DentalChartController;
+use App\Http\Controllers\Api\Dental\ConsentController;
+use App\Http\Controllers\Api\Dental\EndoAnnexController;
+use App\Http\Controllers\Api\Dental\PerioAnnexController;
+use App\Http\Controllers\Api\Dental\PeriodontogramController;
 use App\Http\Controllers\Api\EmployeeCommissionController;
 use App\Http\Controllers\Api\EmployeeDocumentController;
 use App\Http\Controllers\Api\EmployeePaymentController;
@@ -176,6 +182,51 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
 
         // Global Pets (Consultorio)
         Route::get('/pets', [PetController::class, 'index']);
+
+        // Odontograma (nicho odontologia)
+        Route::middleware(['capability:dental.odontogram'])->group(function () {
+            Route::get('/clients/{clientId}/dental-chart', [DentalChartController::class, 'show']);
+            Route::put('/clients/{clientId}/dental-chart', [DentalChartController::class, 'update']);
+        });
+
+        // Historia clínica (nicho odontologia)
+        Route::middleware(['capability:dental.clinical_history'])->group(function () {
+            Route::get('/clients/{clientId}/clinical-histories', [ClinicalHistoryController::class, 'index']);
+            Route::get('/clients/{clientId}/clinical-histories/{id}', [ClinicalHistoryController::class, 'show']);
+            Route::post('/clients/{clientId}/clinical-histories', [ClinicalHistoryController::class, 'store']);
+            Route::put('/clients/{clientId}/clinical-histories/{id}', [ClinicalHistoryController::class, 'update']);
+        });
+
+        // Anexo de endodoncia (nicho odontologia)
+        Route::middleware(['capability:dental.endo_annex'])->group(function () {
+            Route::get('/clients/{clientId}/endo-annexes', [EndoAnnexController::class, 'index']);
+            Route::get('/clients/{clientId}/endo-annexes/{id}', [EndoAnnexController::class, 'show']);
+            Route::post('/clients/{clientId}/endo-annexes', [EndoAnnexController::class, 'store']);
+            Route::put('/clients/{clientId}/endo-annexes/{id}', [EndoAnnexController::class, 'update']);
+        });
+
+        // Anexo de periodoncia (nicho odontologia)
+        Route::middleware(['capability:dental.perio_annex'])->group(function () {
+            Route::get('/clients/{clientId}/perio-annexes', [PerioAnnexController::class, 'index']);
+            Route::get('/clients/{clientId}/perio-annexes/{id}', [PerioAnnexController::class, 'show']);
+            Route::post('/clients/{clientId}/perio-annexes', [PerioAnnexController::class, 'store']);
+            Route::put('/clients/{clientId}/perio-annexes/{id}', [PerioAnnexController::class, 'update']);
+        });
+
+        // Periodontograma (nicho odontologia)
+        Route::middleware(['capability:dental.periodontogram'])->group(function () {
+            Route::get('/clients/{clientId}/periodontograms', [PeriodontogramController::class, 'index']);
+            Route::get('/clients/{clientId}/periodontograms/{id}', [PeriodontogramController::class, 'show']);
+            Route::post('/clients/{clientId}/periodontograms', [PeriodontogramController::class, 'store']);
+            Route::put('/clients/{clientId}/periodontograms/{id}', [PeriodontogramController::class, 'update']);
+        });
+
+        // Consentimiento informado (nicho odontologia) — inmutable una vez firmado, sin update.
+        Route::middleware(['capability:dental.consent'])->group(function () {
+            Route::get('/clients/{clientId}/consents', [ConsentController::class, 'index']);
+            Route::get('/clients/{clientId}/consents/{id}', [ConsentController::class, 'show']);
+            Route::post('/clients/{clientId}/consents', [ConsentController::class, 'store']);
+        });
 
         // Appointments
     Route::get('/appointments', [AppointmentController::class, 'index']);
@@ -400,6 +451,8 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::post('/staffing-incidents/{id}/files/{field}', [StaffingIncidentController::class, 'uploadSingleFile'])
             ->where('field', 'reporte|relief_form');
         Route::get('/staffing-incidents/{id}/files/{field}/download', [StaffingIncidentController::class, 'downloadSingleFile'])
+            ->where('field', 'reporte|relief_form');
+        Route::delete('/staffing-incidents/{id}/files/{field}', [StaffingIncidentController::class, 'destroySingleFile'])
             ->where('field', 'reporte|relief_form');
         Route::post('/staffing-incidents/{id}/attachments', [StaffingIncidentController::class, 'addFile']);
         Route::get('/staffing-incident-files/{fileId}/download', [StaffingIncidentController::class, 'downloadFile']);

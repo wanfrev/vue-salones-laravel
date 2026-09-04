@@ -19,6 +19,12 @@ export const mapClientToCliente = (
   totalAppointments: stats?.totalAppointments ?? 0,
   totalSpent: (stats?.totalSpent ?? 0).toLocaleString(),
   preferredServices: [],
+  middleName: client.middle_name ?? '',
+  lastName: client.last_name ?? '',
+  secondLastName: client.second_last_name ?? '',
+  documentId: client.document_id ?? '',
+  medicalInsurance: client.medical_insurance ?? '',
+  emergencyPhone: client.emergency_phone ?? '',
 })
 
 export const mapClienteFormToClientInsert = (businessId: string, data: ClienteFormData) => ({
@@ -31,4 +37,10 @@ export const mapClienteFormToClientInsert = (businessId: string, data: ClienteFo
   birthday: data.birthday || null,
   metadata: data.metadata ?? {},
   pets: data.pets ?? [],
+  middle_name: data.middleName?.trim() || null,
+  last_name: data.lastName?.trim() || null,
+  second_last_name: data.secondLastName?.trim() || null,
+  document_id: data.documentId?.trim() || null,
+  medical_insurance: data.medicalInsurance?.trim() || null,
+  emergency_phone: data.emergencyPhone?.trim() || null,
 })

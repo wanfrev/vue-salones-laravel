@@ -117,6 +117,11 @@ return [
                 'servicios' => false,
             ],
         ],
+        'odontologia' => [
+            'status' => 'creatable',
+            'capabilities' => ['dental.odontogram', 'dental.clinical_history', 'dental.endo_annex', 'dental.perio_annex', 'dental.periodontogram', 'dental.consent'],
+            'feature_defaults' => [],
+        ],
         'staffing' => [
             'status' => 'creatable',
             'capabilities' => ['staffing.timesheets', 'staffing.billing', 'staffing.crm', 'staffing.reports', 'staffing.spreadsheet', 'staffing.incidents'],

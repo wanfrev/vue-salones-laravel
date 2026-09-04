@@ -38,6 +38,12 @@ export type Capability =
   | 'staffing.reports'
   | 'staffing.spreadsheet'
   | 'staffing.incidents'
+  | 'dental.odontogram'
+  | 'dental.clinical_history'
+  | 'dental.endo_annex'
+  | 'dental.perio_annex'
+  | 'dental.periodontogram'
+  | 'dental.consent'
 
 export interface NicheCopy {
   serviceNamePlaceholder?: string
@@ -56,6 +62,8 @@ export interface NicheDefinition {
   featureDefaults: Partial<Record<FeatureKey, boolean>>
   /** Hard runtime override for structural impossibilities. Wins over everything, including superadmin. */
   featureLocks?: Partial<Record<FeatureKey, boolean>>
+  /** Seed/fallback layer for businesses.terminology — same precedence rule as featureDefaults. */
+  terminologyDefaults?: Partial<Record<string, string>>
   copy?: NicheCopy
   locale?: 'es' | 'en'
   currencyMode?: 'dual' | 'single'

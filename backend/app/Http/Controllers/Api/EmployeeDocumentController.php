@@ -6,8 +6,8 @@ use App\Events\EntityChanged;
 use App\Services\EmployeeDocumentService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class EmployeeDocumentController
 {
@@ -63,7 +63,7 @@ class EmployeeDocumentController
         return response()->json(null, 204);
     }
 
-    public function download(Request $request, string $id): Response|JsonResponse
+    public function download(Request $request, string $id): StreamedResponse|JsonResponse
     {
         $p = $request->user()?->load('profile')?->profile;
         if (!$p || !$p->business_id) {

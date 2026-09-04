@@ -574,7 +574,7 @@ const horariosP = computed(() => pageProps(props.teamSchedule))
             <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">{{
               businessStore.terminology.employee || 'Empleado' }}</th>
             <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-              Cliente</th>
+               {{ businessStore.terminology.client || 'Cliente' }}</th>
             <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">{{
               businessStore.terminology.service || 'Servicio' }}</th>
             <th

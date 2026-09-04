@@ -165,6 +165,12 @@ export interface Client {
   notes: string | null
   birthday: string | null
   metadata: Record<string, unknown>
+  middle_name: string | null
+  last_name: string | null
+  second_last_name: string | null
+  document_id: string | null
+  medical_insurance: string | null
+  emergency_phone: string | null
   created_at: string
   updated_at: string
 }
@@ -684,6 +690,308 @@ export interface Pet {
   birthday: string | null
   notes: string | null
   metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+/** Dentición permanente, notación FDI/ISO de 2 dígitos (11-48). */
+export type DentalFace = 'vestibular' | 'lingual' | 'mesial' | 'distal' | 'oclusal'
+
+export type DentalCondition =
+  | 'sano'
+  | 'caries'
+  | 'obturado'
+  | 'corona'
+  | 'ausente'
+  | 'extraccion_indicada'
+  | 'endodoncia'
+  | 'sellante'
+  | 'implante'
+  | 'puente'
+
+/** Keyed by tooth number (FDI, as string) -> face -> current condition. Snapshot only, no history. */
+export type DentalTeeth = Record<string, Partial<Record<DentalFace, DentalCondition>>>
+
+export interface DentalChart {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  teeth: DentalTeeth
+  created_at: string
+  updated_at: string
+}
+
+/** Sí/No + observación — el patrón repetido ~27 veces en la anamnesis (antecedentes médicos y odontológicos). */
+export interface SystemReview {
+  refiere: boolean
+  observaciones: string
+}
+
+export const MEDICAL_SYSTEMS = [
+  'sistema_nervioso', 'sistema_endocrino', 'sistema_osteomuscular', 'sistema_cardiovascular',
+  'sistema_respiratorio', 'sistema_inmunologico', 'sistema_dermatologico', 'ginecobstetricos',
+  'sistema_hematologico', 'sistema_digestivo', 'sistema_renal', 'hereditarios', 'perinatales',
+  'toxico_alergicos', 'farmacologicos', 'quirurgicos', 'hospitalarios', 'familiares',
+  'psicosociales', 'otros',
+] as const
+export type MedicalSystemKey = typeof MEDICAL_SYSTEMS[number]
+
+export const DENTAL_HISTORY_SPECIALTIES = [
+  'patologia_cirugia_bucal', 'cirugia_maxilofacial', 'ortodoncia', 'endodoncia',
+  'rehabilitacion_oral', 'periodoncia', 'odontopediatria',
+] as const
+export type DentalHistorySpecialtyKey = typeof DENTAL_HISTORY_SPECIALTIES[number]
+
+export interface ClinicalHistoryAnamnesis {
+  motivo_consulta: string
+  historia_motivo_consulta: string
+  asistio_consulta_ultimo_anio: boolean
+  motivo_ultima_consulta_urgencia: boolean
+  atendido_en_esta_clinica_previamente: boolean
+  grupo_sanguineo: string
+  antecedentes_medicos: Partial<Record<MedicalSystemKey, SystemReview>>
+  antecedentes_odontologicos: Partial<Record<DentalHistorySpecialtyKey, SystemReview>>
+  tmd: {
+    dolor_cara_mandibula_ultimo_mes: boolean
+    mandibula_bloqueada: boolean
+    ruido_articulacion: boolean
+    mordida_incomoda: boolean
+    traumatismo_reciente: boolean
+    dolores_cabeza_6meses: boolean
+    dolor_orofacial: string
+    otros: string
+    observaciones: string
+  }
+  observaciones: string
+}
+
+export interface ClinicalHistoryExamenFisico {
+  signos_vitales: {
+    pulso: string
+    tension_arterial: string
+    temperatura: string
+    frecuencia_respiratoria: string
+    peso: string
+    talla: string
+  }
+  examen_extraoral: Record<string, string>
+  examen_intraoral: Record<string, string>
+  cop: { c: string; o: string; p: string }
+  ceo: { c: string; e: string; o: string }
+}
+
+export interface ClinicalHistoryExamenesComplementarios {
+  hallazgos_radiologicos: Record<string, string>
+}
+
+export interface ClinicalHistoryDiagnostico {
+  codigo_cie10: string
+  diagnostico: string
+  pronostico: string
+  plan_tratamiento: {
+    fase_urgencias: string
+    fase_sistemica: string
+    fase_higienica: string
+    fase_correctiva: string
+    fase_mantenimiento: string
+  }
+}
+
+export const ENDO_EXAM_ITEMS = [
+  'deformacion_contorno_extraoral', 'deformacion_contorno_intraoral', 'cambio_color',
+  'fractura_dental', 'caries', 'obturaciones', 'fistula', 'bolsa_periodontal', 'movilidad',
+  'drenaje_por_surco', 'oclusion_traumatica', 'perdida_obturacion', 'camara_expuesta_cavidad_oral',
+] as const
+export type EndoExamItemKey = typeof ENDO_EXAM_ITEMS[number]
+
+export interface EndoConducto {
+  nombre: string
+  conductometria_tentativa: string
+  conductometria_definitiva: string
+  lap: string
+  referencia: string
+}
+
+export interface EndoAnnexExamen {
+  historia_dolor: {
+    dolor: boolean
+    intensidad: string
+    tipo_dolor: string
+    ubicacion: string
+    duracion_dolor: string
+    tiempo_evolucion: string
+    descripcion: string
+  }
+  examen_clinico: Partial<Record<EndoExamItemKey, SystemReview>>
+  trauma_dentoalveolar: { se_realiza_historia: boolean; descripcion: string }
+  pruebas_periapicales: {
+    se_realizan: boolean
+    percusion: boolean
+    palpacion: boolean
+    masticacion: boolean
+    diente_control: string
+    dientes_control_adicionales: string
+  }
+  pruebas_sensibilidad: {
+    se_realizan: boolean
+    calor: string
+    frio_respuesta: string
+    electrica: string
+    vitalometro: string
+    diente_control: string
+    dientes_control_adicionales: string
+  }
+  examen_radiografico: {
+    coronal_radiolucida: string
+    coronal_radiopaca: string
+    radicular_radiolucida: string
+    radicular_radiopaca: string
+    periapical_radiolucida: string
+    periapical_radiopaca: string
+    descripcion_final: string
+    requiere_examen_complementario: boolean
+  }
+  clasificacion_fisuras: string
+}
+
+export interface EndoAnnexDiagnostico {
+  codigo_cie10: string
+  diagnostico_pulpar: string
+  diagnostico_periapical: string
+  lesion_endo_periodontal: boolean
+  relaciones_prosto_endo: boolean
+  pronostico_general: string
+  pronostico_individual: string
+}
+
+export interface EndoAnnexTratamiento {
+  tipo: string
+  descripcion: string
+  grapa_no: string
+  conductos: EndoConducto[]
+  tecnica_instrumentacion: string
+  tecnica_obturacion: string
+  desobturacion_retenedor: string
+  longitud: string
+  referencia: string
+  observaciones: string
+}
+
+export interface EndoAnnex {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  tooth_number: number
+  created_by: string | null
+  examen: EndoAnnexExamen
+  diagnostico: EndoAnnexDiagnostico
+  tratamiento: EndoAnnexTratamiento
+  created_at: string
+  updated_at: string
+}
+
+export const PERIO_RISK_FACTORS = [
+  'factores_anatomicos', 'restauraciones_subgingivales', 'restauraciones_sobrecontorneadas',
+  'aparatologia_ortodontica', 'provisionales_desadaptadas', 'calculos_dentales',
+  'malposiciones_dentales', 'fuerzas_oclusales_excesivas', 'factores_sistemicos', 'medicamentos',
+] as const
+export type PerioRiskFactorKey = typeof PERIO_RISK_FACTORS[number]
+
+export interface PerioAnnexCondicionesClinicas {
+  aspecto_liso_brillante: boolean
+  color_rojo: boolean
+  consistencia_blanda: boolean
+  fenotipo_gingival: string
+  frenillos_sobreinsertados: boolean
+  fremitus: boolean
+  condiciones_mucogingivales: boolean
+}
+
+export interface PerioAnnexDiagnostico {
+  codigo_cie10: string
+  impresion_diagnostica_individual: string
+  diagnostico_caso: string
+  pronostico_general: string
+  pronostico_individual: string
+  plan_tratamiento: {
+    fase_urgencias: string
+    fase_sistemica: string
+    fase_higienica: string
+    fase_correctiva: string
+    fase_mantenimiento: string
+  }
+}
+
+export interface PerioAnnex {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  created_by: string | null
+  condiciones_clinicas: PerioAnnexCondicionesClinicas
+  factores_riesgo: Partial<Record<PerioRiskFactorKey, SystemReview>>
+  diagnostico: PerioAnnexDiagnostico
+  observaciones_generales: string | null
+  created_at: string
+  updated_at: string
+}
+
+export const PERIODONTAL_SITES = ['mv', 'v', 'dv', 'dl', 'l', 'ml'] as const
+export type PeriodontalSite = typeof PERIODONTAL_SITES[number]
+
+export interface PeriodontalSiteMeasurement {
+  profundidad: string
+  sangrado: boolean
+  recesion: string
+}
+
+export interface PeriodontalToothMeasurement {
+  sitios: Partial<Record<PeriodontalSite, PeriodontalSiteMeasurement>>
+  movilidad: string
+  furca: string
+}
+
+export interface Periodontogram {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  created_by: string | null
+  teeth: Record<string, PeriodontalToothMeasurement>
+  observaciones_generales: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Consent {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  created_by: string | null
+  procedure_description: string
+  risks_text: string
+  signature_data: string
+  signed_at: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ClinicalHistory {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  folio_number: number
+  created_by: string | null
+  anamnesis: ClinicalHistoryAnamnesis
+  examen_fisico: ClinicalHistoryExamenFisico
+  examenes_complementarios: ClinicalHistoryExamenesComplementarios
+  diagnostico: ClinicalHistoryDiagnostico
+  certificado_veracidad: boolean
+  observaciones_generales: string | null
   created_at: string
   updated_at: string
 }

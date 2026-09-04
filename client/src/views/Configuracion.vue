@@ -233,30 +233,30 @@
               <svg class="h-3.5 w-3.5 text-warning shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
               </svg>
-              <span class="text-[10.5px] font-bold text-text-muted uppercase tracking-widest">Empleados</span>
+               <span class="text-[10.5px] font-bold text-text-muted uppercase tracking-widest">{{ businessStore.terminology.employeePlural || 'Empleados' }}</span>
             </div>
             <div class="pl-[22px]">
               <FormToggle
                 :model-value="!!businessStore.features.employees_see_clients"
                 @update:model-value="handleToggleEmployeesSeeClients"
-                label="Permitir módulo de clientes"
-                hint="Los empleados tendrán acceso al módulo de Clientes en su menú lateral"
+                 :label="`Permitir módulo de ${(businessStore.terminology.clientPlural || 'Clientes').toLowerCase()}`"
+                 :hint="`Los ${(businessStore.terminology.employeePlural || 'empleados').toLowerCase()} tendrán acceso al módulo de ${(businessStore.terminology.clientPlural || 'clientes').toLowerCase()} en su menú lateral`"
                 :disabled="updatingFeatures"
                 class="py-3.5 border-b border-border-subtle"
               />
               <FormToggle
                 :model-value="!!businessStore.features.hide_client_phone_from_employees"
                 @update:model-value="handleToggleHideClientPhone"
-                label="Ocultar teléfono y email de clientes"
-                hint="Los empleados no verán datos de contacto de clientes. No impedirá crear citas."
+                 :label="`Ocultar teléfono y email de ${(businessStore.terminology.clientPlural || 'clientes').toLowerCase()}`"
+                 :hint="`Los ${(businessStore.terminology.employeePlural || 'empleados').toLowerCase()} no verán datos de contacto de ${(businessStore.terminology.clientPlural || 'clientes').toLowerCase()}. No impedirá crear ${(businessStore.terminology.appointmentPlural || 'citas').toLowerCase()}.`"
                 :disabled="updatingFeatures"
                 class="py-3.5 border-b border-border-subtle"
               />
               <FormToggle
                 :model-value="!!businessStore.features.employees_recibo_only"
                 @update:model-value="handleToggleFeature('employees_recibo_only')"
-                label="Los empleados solo ven su recibo"
-                hint="Oculta Agenda, Historial, Comisiones, Clientes y todo lo demás del menú del empleado — solo queda Recibo. No afecta a encargados."
+                 :label="`Los ${(businessStore.terminology.employeePlural || 'empleados').toLowerCase()} solo ven su recibo`"
+                 :hint="`Oculta Agenda, Historial, Comisiones, ${(businessStore.terminology.clientPlural || 'Clientes').toLowerCase()} y todo lo demás del menú del empleado — solo queda Recibo. No afecta a encargados.`"
                 :disabled="updatingFeatures"
                 class="py-3.5 last:border-b-0"
               />
@@ -286,7 +286,7 @@
                 :model-value="!!businessStore.features.payroll_currency_breakdown_enabled"
                 @update:model-value="handleToggleFeature('payroll_currency_breakdown_enabled')"
                 label="Desglose de comisión por moneda de cobro"
-                hint="Al pagar nómina, muestra cuánto generó el empleado en dólares y cuánto en bolívares según cómo le cobraron a cada cliente"
+                 :hint="`Al pagar nómina, muestra cuánto generó el empleado en dólares y cuánto en bolívares según cómo le cobraron a cada ${(businessStore.terminology.client || 'cliente').toLowerCase()}`"
                 :disabled="updatingFeatures"
                 class="py-3.5 border-b border-border-subtle"
               />
@@ -316,8 +316,8 @@
                 v-if="businessStore.features.agenda"
                 :model-value="!!businessStore.features.pos_direct_service_sale"
                 @update:model-value="handleToggleDirectServiceSale"
-                label="Cobro directo de servicios en POS"
-                hint="Permite cobrar servicios al instante sin necesidad de agendar una cita previamente"
+                 :label="`Cobro directo de ${(businessStore.terminology.servicePlural || 'servicios').toLowerCase()} en POS`"
+                 :hint="`Permite cobrar ${(businessStore.terminology.servicePlural || 'servicios').toLowerCase()} al instante sin necesidad de agendar una ${(businessStore.terminology.appointment || 'cita').toLowerCase()} previamente`"
                 :disabled="updatingFeatures"
                 class="py-3.5 border-b border-border-subtle"
               />
@@ -349,19 +349,19 @@
               <svg class="h-3.5 w-3.5 text-info shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span class="text-[10.5px] font-bold text-text-muted uppercase tracking-widest">Recordatorios de citas</span>
+               <span class="text-[10.5px] font-bold text-text-muted uppercase tracking-widest">Recordatorios de {{ businessStore.terminology.appointmentPlural || 'citas' }}</span>
             </div>
             <div class="pl-[22px]">
               <FormToggle
                 :model-value="!!businessStore.features.reminder_24h_enabled"
                 @update:model-value="handleToggleFeature('reminder_24h_enabled')"
-                label="Recordatorios internos de citas"
-                hint="Notifica en la campanita con la anticipación que elijas para cada cita. No requiere WhatsApp."
+                 :label="`Recordatorios internos de ${(businessStore.terminology.appointmentPlural || 'citas').toLowerCase()}`"
+                 :hint="`Notifica en la campanita con la anticipación que elijas para cada ${(businessStore.terminology.appointment || 'cita').toLowerCase()}. No requiere WhatsApp.`"
                 :disabled="updatingFeatures"
                 class="py-3.5 border-b border-border-subtle"
               />
               <div v-if="businessStore.features.reminder_24h_enabled" class="py-3.5 border-b border-border-subtle">
-                <span class="text-xs text-text-secondary">Avisar con estas anticipaciones antes de cada cita:</span>
+                 <span class="text-xs text-text-secondary">Avisar con estas anticipaciones antes de cada {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}:</span>
                 <div class="mt-2.5 flex flex-wrap items-center gap-2">
                   <span
                     v-for="(offset, idx) in reminderOffsets"
@@ -434,7 +434,7 @@
                 :model-value="!!businessStore.features.enable_public_booking"
                 @update:model-value="handleToggleFeature('enable_public_booking')"
                 label="Reservas por link público"
-                hint="Permite que clientes agenden citas mediante un link compartible. Los empleados podrán enviar invitaciones desde su agenda."
+                 :hint="`Permite que los ${(businessStore.terminology.clientPlural || 'clientes').toLowerCase()} agenden ${(businessStore.terminology.appointmentPlural || 'citas').toLowerCase()} mediante un link compartible. Los ${(businessStore.terminology.employeePlural || 'empleados').toLowerCase()} podrán enviar invitaciones desde su agenda.`"
                 :disabled="updatingFeatures"
                 class="py-3.5"
               />
@@ -808,7 +808,7 @@ async function handleToggleEmployeesSeeClients(val: boolean) {
       features: updatedFeatures,
     })
     businessStore.updateBusiness(res as any)
-    success(val ? 'Módulo de clientes activado para empleados' : 'Módulo de clientes desactivado para empleados (seguirán viendo nombres en sus citas)')
+    success(val ? `Módulo de ${businessStore.terminology.clientPlural.toLowerCase()} activado para ${businessStore.terminology.employeePlural.toLowerCase()}` : `Módulo de ${businessStore.terminology.clientPlural.toLowerCase()} desactivado para ${businessStore.terminology.employeePlural.toLowerCase()} (seguirán viendo nombres en sus ${businessStore.terminology.appointmentPlural.toLowerCase()})`)
   } catch (err: any) {
     showError(err?.message ?? 'Error al actualizar el permiso')
   } finally {

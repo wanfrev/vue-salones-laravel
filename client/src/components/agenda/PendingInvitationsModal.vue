@@ -6,7 +6,7 @@
         <!-- Header -->
         <div class="flex items-center justify-between px-5 py-4 border-b border-border">
           <div>
-            <h2 class="text-base font-bold text-text">Invitaciones de citas</h2>
+             <h2 class="text-base font-bold text-text">Invitaciones de {{ businessStore.terminology.appointmentPlural.toLowerCase() }}</h2>
             <p class="text-xs text-text-muted mt-0.5">{{ invitations.length }} solicitud{{ invitations.length !== 1 ? 'es' : '' }} pendiente{{ invitations.length !== 1 ? 's' : '' }}</p>
           </div>
           <button @click="close" class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary transition-colors">
@@ -30,7 +30,7 @@
                   <span v-if="inv.employeeName" class="text-[11px] text-text-muted">{{ inv.employeeName }}</span>
                 </div>
                 <p class="text-sm font-semibold text-text">{{ inv.service }}</p>
-                <p v-if="inv.clientName" class="text-xs text-text-secondary mt-0.5">Cliente: {{ inv.clientName }}</p>
+                 <p v-if="inv.clientName" class="text-xs text-text-secondary mt-0.5">{{ businessStore.terminology.client }}: {{ inv.clientName }}</p>
                 <div class="flex items-center gap-2 mt-1 text-xs text-text-secondary">
                   <span>{{ inv.date }}</span>
                   <span>·</span>
@@ -77,10 +77,12 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { db } from '../../lib/api'
 import { useNotification } from '../../composables/common/useNotification'
 import { usePendingInvitations } from '../../composables/agenda/usePendingInvitations'
+import { useBusinessStore } from '../../store/business'
 import AssignClientModal from '../agenda/AssignClientModal.vue'
 
 const queryClient = useQueryClient()
 const { success } = useNotification()
+const businessStore = useBusinessStore()
 const visible = ref(false)
 
 const { invitations: rawInvitations, refetch } = usePendingInvitations()
@@ -94,7 +96,7 @@ const invitations = computed(() => {
       id: inv.id,
       employeeId: inv.employee_id,
       employeeName: inv.profiles?.full_name || inv.employee_profile?.full_name || '',
-      service: inv.services?.name || inv.service?.name || 'Servicio',
+       service: inv.services?.name || inv.service?.name || businessStore.terminology.service,
       clientName: inv.internal_notes || '',
       date: startTime.toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' }),
       time: startTime.toLocaleTimeString('es-VE', { hour: '2-digit', minute: '2-digit', hour12: true }),
@@ -137,7 +139,7 @@ function onAssigned() {
   }
   assigningId.value = null
   assigningAppointment.value = null
-  success('Cliente asignado correctamente')
+  success(`${businessStore.terminology.client} asignado correctamente`)
   refetch()
   queryClient.invalidateQueries({ queryKey: ['appointments'], exact: false })
 }

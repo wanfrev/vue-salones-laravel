@@ -55,7 +55,7 @@
               v-model="formData.code"
               label="Código de identificación (opcional)"
               placeholder="Ej: MG-482"
-              hint="Te ayuda a buscar o reconocer al cliente rápido. No es obligatorio ni sigue un formato fijo."
+               :hint="`Te ayuda a buscar o reconocer al ${terminology.client.toLowerCase()} rápido. No es obligatorio ni sigue un formato fijo.`"
               prefix-icon="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 9V4a1 1 0 011-1z"
               class="flex-1"
             />
@@ -83,10 +83,25 @@
           <FormTextarea
             v-model="formData.notes"
             label="Notas / Preferencias"
-            placeholder="Alergias, preferencias de corte, indicaciones especiales..."
+             :placeholder="isDental ? 'Alergias, medicamentos e indicaciones especiales...' : 'Alergias, preferencias de corte, indicaciones especiales...'"
             :rows="3"
             :error="errors.notes"
           />
+
+          <p class="text-xs font-semibold uppercase tracking-wider text-primary pt-2">Identificación y contacto (opcional)</p>
+
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <FormInput v-model="formData.middleName" label="Segundo nombre" placeholder="Ej: Isabel" />
+            <FormInput v-model="formData.lastName" label="Primer apellido" placeholder="Ej: González" />
+            <FormInput v-model="formData.secondLastName" label="Segundo apellido" placeholder="Ej: Pérez" />
+          </div>
+
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <FormInput v-model="formData.documentId" label="Cédula / documento de identidad" placeholder="Ej: V-12345678" />
+            <FormInput v-model="formData.emergencyPhone" label="Teléfono de emergencia" type="tel" placeholder="+58 412 1234567" />
+          </div>
+
+          <FormInput v-model="formData.medicalInsurance" label="Seguro médico" placeholder="Ej: Seguros Caracas, póliza 12345" />
         </div>
 
         <!-- COLUMNA DERECHA: Ficha técnica -->
@@ -141,6 +156,7 @@ import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormTextarea } from '../forms'
 import NicheFields from '../clients/NicheFields.vue'
 import { getNicheConfig, isPetNiche, isVetNiche } from '../../config/nicheFields'
+import { isDentalNiche } from '../../config/niches'
 import { listPetsByClient } from '../../services/petService'
 
 const MODAL_ID = 'cliente-form-modal'
@@ -174,6 +190,12 @@ const defaultFormData: ClienteFormData = {
   birthday: '',
   preferredServices: [],
   metadata: {},
+  middleName: '',
+  lastName: '',
+  secondLastName: '',
+  documentId: '',
+  medicalInsurance: '',
+  emergencyPhone: '',
 }
 
 const formData = ref<ClienteFormData>({ ...defaultFormData })
@@ -190,6 +212,7 @@ const nicheConfig = computed(() => getNicheConfig(nicheType.value))
 
 const isPet = computed(() => isPetNiche(nicheType.value))
 const isVet = computed(() => isVetNiche(nicheType.value))
+const isDental = computed(() => isDentalNiche(nicheType.value))
 
 function birthdayDisplay(value: string | undefined): string {
   if (!value) return ''
@@ -266,6 +289,12 @@ watch(
         birthday: cliente.birthday || '',
         preferredServices: cliente.preferredServices || [],
         metadata: { ...meta },
+        middleName: cliente.middleName || '',
+        lastName: cliente.lastName || '',
+        secondLastName: cliente.secondLastName || '',
+        documentId: cliente.documentId || '',
+        medicalInsurance: cliente.medicalInsurance || '',
+        emergencyPhone: cliente.emergencyPhone || '',
       }
       Object.assign(nicheValues, meta)
       if (isPet.value && cliente.id) {

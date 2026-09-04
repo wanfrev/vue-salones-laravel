@@ -15,7 +15,7 @@ const props = defineProps<{
   clientPhone: string
   businessId: string | null
   branchId: string | null
-  t: { client: string }
+  t: Record<string, string>
   canCreateClients: boolean
   error?: string
 }>()
@@ -68,7 +68,7 @@ const onFocus = () => { if (suggestions.value.length > 0) showSuggestions.value 
 
 <template>
   <div class="relative">
-    <FormInput :model-value="modelValue" :label="t.client" :placeholder="`Nombre del ${t.client.toLowerCase()}`"
+     <FormInput :model-value="modelValue" :label="t.client || 'Cliente'" :placeholder="`Nombre del ${(t.client || 'Cliente').toLowerCase()}`"
       required prefix-icon="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" :error="error"
       @update:model-value="$emit('update:modelValue', String($event))" @blur="onBlur" @focus="onFocus" @input="onInput" />
     <div v-if="showSuggestions && suggestions.length > 0"
@@ -93,7 +93,7 @@ const onFocus = () => { if (suggestions.value.length > 0) showSuggestions.value 
     <div v-if="showSuggestions && suggestions.length === 0 && modelValue.trim().length >= 1"
       class="absolute z-50 mt-1 w-full rounded-xl border border-border bg-surface shadow-lg px-4 py-3 text-center text-sm text-text-muted">
       <template v-if="searchLoading">Buscando...</template>
-      <template v-else-if="!canCreateClients">No puedes crear clientes.</template>
+       <template v-else-if="!canCreateClients">No puedes crear {{ t.client.toLowerCase() }}s.</template>
       <template v-else>Sin resultados</template>
     </div>
   </div>

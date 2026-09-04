@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getNicheConfig, isPetNiche, isVetNiche, getNiche, resolveFeatures, creatableIds } from './index'
+import { getNicheConfig, isPetNiche, isVetNiche, isDentalNiche, getNiche, resolveFeatures, resolveTerminology, creatableIds } from './index'
 
 // Equivalence table against the pre-registry behaviour of nicheFields.ts:
 //   isPetNiche(x)    === ['dog_spa','vet'].includes(x)
@@ -22,6 +22,7 @@ const CASES: Array<{
   { nicheType: 'vet', isPet: true, isVet: true, hasClientProfile: false },
   { nicheType: 'nail_bar', isPet: false, isVet: false, hasClientProfile: false },
   { nicheType: 'centro_estetico', isPet: false, isVet: false, hasClientProfile: false },
+  { nicheType: 'odontologia', isPet: false, isVet: false, hasClientProfile: true },
   { nicheType: 'Negocios', isPet: false, isVet: false, hasClientProfile: false },
   { nicheType: '', isPet: false, isVet: false, hasClientProfile: false },
   { nicheType: undefined, isPet: false, isVet: false, hasClientProfile: false },
@@ -83,9 +84,57 @@ describe('resolveFeatures()', () => {
   })
 })
 
+describe('resolveTerminology()', () => {
+  it('falls through DEFAULT_TERMINOLOGY for a niche with no overrides', () => {
+    const resolved = resolveTerminology('salon', undefined)
+    expect(resolved.client).toBe('Cliente')
+    expect(resolved.appointment).toBe('Cita')
+  })
+
+  it("applies odontologia's terminologyDefaults without touching other niches", () => {
+    const dental = resolveTerminology('odontologia', undefined)
+    expect(dental.client).toBe('Paciente')
+    expect(dental.clientPlural).toBe('Pacientes')
+    expect(dental.appointment).toBe('Consulta')
+    expect(dental.appointmentPlural).toBe('Consultas')
+    expect(dental.service).toBe('Tratamiento')
+    expect(dental.servicePlural).toBe('Tratamientos')
+    expect(dental.employee).toBe('Odontólogo')
+    expect(dental.employeePlural).toBe('Odontólogos')
+
+    expect(resolveTerminology('salon', undefined).client).toBe('Cliente')
+  })
+
+  it('lets a stored (DB) value override the niche default', () => {
+    const resolved = resolveTerminology('odontologia', { client: 'Cliente' })
+    expect(resolved.client).toBe('Cliente')
+    expect(resolved.clientPlural).toBe('Clientes')
+  })
+
+  it('derives a custom plural unless the business stores one explicitly', () => {
+    expect(resolveTerminology('odontologia', { client: 'Usuario' }).clientPlural).toBe('Usuarios')
+    expect(resolveTerminology('odontologia', { client: 'Usuario', clientPlural: 'Personas' }).clientPlural).toBe('Personas')
+  })
+})
+
+describe('isDentalNiche()', () => {
+  it('is true only for odontologia', () => {
+    expect(isDentalNiche('odontologia')).toBe(true)
+    for (const id of creatableIds().filter(id => id !== 'odontologia')) {
+      expect(isDentalNiche(id)).toBe(false)
+    }
+    expect(isDentalNiche(undefined)).toBe(false)
+    expect(isDentalNiche(null)).toBe(false)
+  })
+
+  it('has the dental.odontogram capability', () => {
+    expect(getNiche('odontologia').capabilities).toContain('dental.odontogram')
+  })
+})
+
 describe('creatableIds()', () => {
   it('includes every niche offered in the superadmin selects today', () => {
-    for (const id of ['salon', 'barberia', 'spa', 'mixto', 'dog_spa', 'nail_bar', 'centro_estetico', 'tienda', 'staffing']) {
+    for (const id of ['salon', 'barberia', 'spa', 'mixto', 'dog_spa', 'nail_bar', 'centro_estetico', 'odontologia', 'tienda', 'staffing']) {
       expect(creatableIds()).toContain(id)
     }
   })

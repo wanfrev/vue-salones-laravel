@@ -64,7 +64,7 @@
               <td class="px-3 py-2.5 whitespace-nowrap text-text-secondary">{{ incident.followUpDate ? formatDateUS(incident.followUpDate) : '—' }}</td>
               <td class="px-3 py-2.5">
                 <IncidentSingleFileCell :incident-id="incident.id" field="reporte" :file-name="incident.reporteFileName"
-                  @upload="(file) => handleUploadSingle(incident.id, 'reporte', file)" />
+                  @upload="(file) => handleUploadSingle(incident.id, 'reporte', file)" @remove="handleRemoveSingleFile(incident.id, 'reporte')" />
               </td>
               <td class="px-3 py-2.5 text-center">
                 <span v-if="incident.wantsUrgentCare === true" class="rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">Sí</span>
@@ -79,7 +79,7 @@
               </td>
               <td class="px-3 py-2.5">
                 <IncidentSingleFileCell :incident-id="incident.id" field="relief_form" :file-name="incident.reliefFormFileName"
-                  @upload="(file) => handleUploadSingle(incident.id, 'relief_form', file)" />
+                  @upload="(file) => handleUploadSingle(incident.id, 'relief_form', file)" @remove="handleRemoveSingleFile(incident.id, 'relief_form')" />
               </td>
               <td class="px-3 py-2.5">
                 <IncidentFilesCell :files="filesByType(incident, 'factura')" file-type="factura"
@@ -165,7 +165,7 @@ const companyOptions = computed(() => (companies.value ?? []).map(c => ({ value:
 const {
   incidents, isLoading, saveError,
   createMutation, updateMutation, deleteMutation,
-  uploadSingleMutation, addFileMutation, deleteFileMutation,
+  uploadSingleMutation, deleteSingleFileMutation, addFileMutation, deleteFileMutation,
 } = useStaffingIncidents(
   businessId,
   computed(() => filterCompanyId.value || null),
@@ -212,6 +212,10 @@ const handleDelete = (id: string) => {
 
 const handleUploadSingle = (incidentId: string, field: 'reporte' | 'relief_form', file: File) => {
   uploadSingleMutation.mutate({ incidentId, field, file })
+}
+
+const handleRemoveSingleFile = (incidentId: string, field: 'reporte' | 'relief_form') => {
+  deleteSingleFileMutation.mutate({ incidentId, field })
 }
 
 const handleAddFile = (incidentId: string, fileType: IncidentFileType, file: File) => {

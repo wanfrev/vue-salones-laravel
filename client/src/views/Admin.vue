@@ -54,7 +54,7 @@
             </div>
             <div class="min-w-0">
               <p class="text-lg font-bold tabular-nums text-text sm:text-2xl">{{ stats.citasHoy }}</p>
-              <p class="text-[10px] text-text-muted sm:text-xs truncate">{{ businessStore.terminology.appointment || 'Cita' }}s {{ periodLabel }}</p>
+               <p class="text-[10px] text-text-muted sm:text-xs truncate">{{ businessStore.terminology.appointmentPlural || 'Citas' }} {{ periodLabel }}</p>
             </div>
           </div>
         </button>
@@ -103,8 +103,8 @@
       <!-- Agenda List -->
       <section class="mb-4">
         <div class="mb-3">
-          <h2 class="text-base font-bold text-text lg:text-lg">{{ viewMode === 'historial' ? 'Historial' : (businessStore.terminology.appointment || 'Cita') + 's' }}</h2>
-          <p v-if="filteredCitas.length > 0" class="text-xs text-text-muted">{{ filteredCitas.length }} {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}{{ filteredCitas.length !== 1 ? 's' : '' }}</p>
+           <h2 class="text-base font-bold text-text lg:text-lg">{{ viewMode === 'historial' ? 'Historial' : (businessStore.terminology.appointmentPlural || 'Citas') }}</h2>
+           <p v-if="filteredCitas.length > 0" class="text-xs text-text-muted">{{ filteredCitas.length }} {{ filteredCitas.length === 1 ? (businessStore.terminology.appointment || 'cita').toLowerCase() : (businessStore.terminology.appointmentPlural || 'Citas').toLowerCase() }}</p>
         </div>
 
         <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
@@ -114,7 +114,7 @@
               @input="setSearchQuery(($event.target as HTMLInputElement).value)"
               type="text"
               placeholder="Buscar..."
-              title="Buscar por cliente, servicio o empleado"
+               :title="`Buscar por ${businessStore.terminology.client?.toLowerCase() || 'cliente'}, ${businessStore.terminology.service?.toLowerCase() || 'servicio'} o ${businessStore.terminology.employee?.toLowerCase() || 'empleado'}`"
               class="w-full rounded-lg border border-border bg-surface pl-8 pr-3 py-1.5 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
             />
             <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
@@ -125,12 +125,12 @@
           </div>
           <select v-model="employeeFilter"
             class="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto sm:max-w-[180px]">
-            <option value="all">Todos los empleados</option>
+             <option value="all">Todos los {{ (businessStore.terminology.employeePlural || 'Empleados').toLowerCase() }}</option>
             <option v-for="e in empleadosList" :key="e.id" :value="e.id">{{ e.name }}</option>
           </select>
           <select v-model="serviceFilter"
             class="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto sm:max-w-[180px]">
-            <option value="all">Todos los servicios</option>
+             <option value="all">Todos los {{ (businessStore.terminology.servicePlural || 'Servicios').toLowerCase() }}</option>
             <option v-for="s in serviciosList" :key="s.id" :value="s.id">{{ s.name }}</option>
           </select>
 
@@ -211,9 +211,11 @@
         </div>
 
         <AgendaListView
-          :citas="filteredCitas"
-          :loading="isLoading"
-          :t="(businessStore.terminology.appointment || 'cita').toLowerCase()"
+           :citas="filteredCitas"
+           :loading="isLoading"
+           :t="(businessStore.terminology.appointment || 'cita').toLowerCase()"
+           :t-plural="(businessStore.terminology.appointmentPlural || 'Citas').toLowerCase()"
+           :labels="businessStore.terminology"
           @edit="handleEditCita"
           @delete="handleDeleteCita"
         />

@@ -96,6 +96,12 @@ export const clienteFormSchema = z.object({
   birthday: z.string().default(''),
   preferredServices: z.array(z.string()).default([]),
   metadata: z.record(z.string(), z.unknown()).optional(),
+  middleName: z.string().default(''),
+  lastName: z.string().default(''),
+  secondLastName: z.string().default(''),
+  documentId: z.string().max(50, 'Máximo 50 caracteres').default(''),
+  medicalInsurance: z.string().default(''),
+  emergencyPhone: z.string().default(''),
   pets: z.array(z.object({
     id: z.string().optional(),
     name: z.string().min(1),

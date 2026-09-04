@@ -4,7 +4,7 @@ import { useNotification } from '../common/useNotification'
 import { translateError } from '../../lib/errors'
 import {
   listStaffingIncidents, createStaffingIncident, updateStaffingIncident, deleteStaffingIncident,
-  uploadIncidentSingleFile, addIncidentFile, deleteIncidentFile,
+  uploadIncidentSingleFile, deleteIncidentSingleFile, addIncidentFile, deleteIncidentFile,
   staffingIncidentKeys,
   type StaffingIncidentFormData, type IncidentFileType,
 } from '../../services/staffing/staffingIncidentService'
@@ -51,6 +51,13 @@ export function useStaffingIncidents(businessId: Ref<string | null>, companyId: 
     onError: (err) => showError(translateError(err, 'No se pudo subir el archivo.')),
   })
 
+  const deleteSingleFileMutation = useMutation({
+    mutationFn: ({ incidentId, field }: { incidentId: string; field: 'reporte' | 'relief_form' }) =>
+      deleteIncidentSingleFile(incidentId, field),
+    onSuccess: async () => { await invalidate(); success('Archivo eliminado') },
+    onError: (err) => showError(translateError(err, 'No se pudo eliminar el archivo.')),
+  })
+
   const addFileMutation = useMutation({
     mutationFn: ({ incidentId, fileType, file }: { incidentId: string; fileType: IncidentFileType; file: File }) =>
       addIncidentFile(incidentId, fileType, file),
@@ -72,6 +79,7 @@ export function useStaffingIncidents(businessId: Ref<string | null>, companyId: 
     updateMutation,
     deleteMutation,
     uploadSingleMutation,
+    deleteSingleFileMutation,
     addFileMutation,
     deleteFileMutation,
   }

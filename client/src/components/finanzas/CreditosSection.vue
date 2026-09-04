@@ -34,7 +34,7 @@
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-border bg-bg-secondary">
-            <th class="px-4 py-2.5 text-left font-medium text-text-muted text-xs">Cliente</th>
+             <th class="px-4 py-2.5 text-left font-medium text-text-muted text-xs">{{ businessStore.terminology.client }}</th>
             <th class="px-4 py-2.5 text-right font-medium text-text-muted text-xs">{{ activeTab === 'pending' ? 'Saldo / Total' : 'Monto' }}</th>
             <th class="px-4 py-2.5 text-left font-medium text-text-muted text-xs hidden md:table-cell">Fecha venta</th>
             <th class="px-4 py-2.5 text-left font-medium text-text-muted text-xs hidden md:table-cell">{{ activeTab === 'paid' ? 'Fecha pago' : '' }}</th>
@@ -173,9 +173,11 @@ import { ref, computed } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { formatMethod, formatDate } from '../../lib/formatters'
 import { useCredits } from '../../composables/finanzas/useCredits'
+import { useBusinessStore } from '../../store/business'
 import type { Credit } from '../../types/database'
 
 const { formatUSD, exchangeRate } = useCurrency()
+const businessStore = useBusinessStore()
 const { pendingCredits, paidCredits, pendingTotal, isLoading, payMutation, usePaymentsForCredit } = useCredits()
 
 const tabs: { key: 'pending' | 'paid'; label: string }[] = [

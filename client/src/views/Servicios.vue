@@ -3,7 +3,7 @@
     <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
         <StarIcon class="h-3.5 w-3.5" />
-        <span>{{ businessStore.terminology.service || 'Servicio' }}s</span>
+        <span>{{ businessStore.terminology.servicePlural || 'Servicios' }}</span>
       </div>
       <div class="flex items-center gap-2">
         <div class="relative">
@@ -55,7 +55,7 @@
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
           </svg>
-          <span>Nuevo {{ businessStore.terminology.service || 'Servicio' }}</span>
+          <span>Nuevo {{ businessStore.terminology.service?.toLowerCase() || 'servicio' }}</span>
         </button>
       </div>
     </div>
@@ -64,7 +64,7 @@
   <!-- Stats -->
   <div class="mb-5 flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-x-8 lg:mb-8">
     <div>
-      <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">{{ businessStore.terminology.service || 'Servicio' }}s activos</p>
+      <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">{{ businessStore.terminology.servicePlural || 'Servicios' }} activos</p>
       <p class="mt-1 text-4xl font-extrabold leading-none tabular-nums text-text sm:text-5xl">{{ totalServicios }}</p>
     </div>
     <div class="grid grid-cols-3 gap-x-4 gap-y-3 sm:flex sm:gap-x-8">
@@ -122,7 +122,7 @@
       v-for="service in paginatedServices"
       :key="service.id"
       :service="service"
-      :appointment-label="(businessStore.terminology.appointment || 'cita').toLowerCase()"
+       :appointment-label="businessStore.terminology.appointmentPlural || 'Citas'"
       @edit="handleEditServicio"
       @delete="handleDeleteServicio"
     />
@@ -132,8 +132,8 @@
   <EmptyState
     v-if="filteredServices.length === 0"
     icon="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-    title="No hay servicios"
-    :subtitle="searchQuery ? 'No se encontraron servicios con ese criterio de búsqueda.' : 'No se encontraron servicios en esta categoría.'"
+     :title="`No hay ${(businessStore.terminology.servicePlural || 'Servicios').toLowerCase()}`"
+     :subtitle="searchQuery ? `No se encontraron ${(businessStore.terminology.servicePlural || 'Servicios').toLowerCase()} con ese criterio de búsqueda.` : `No se encontraron ${(businessStore.terminology.servicePlural || 'Servicios').toLowerCase()} en esta categoría.`"
   />
 
   <!-- Pagination -->
@@ -213,7 +213,7 @@
   >
     <p class="text-sm text-text-secondary">
       ¿Estás seguro de que deseas eliminar <strong>{{ servicioToDelete?.name }}</strong>?
-      Este servicio será eliminado permanentemente del catálogo.
+       Este {{ businessStore.terminology.service?.toLowerCase() || 'servicio' }} será eliminado permanentemente del catálogo.
     </p>
   </ModalBase>
 

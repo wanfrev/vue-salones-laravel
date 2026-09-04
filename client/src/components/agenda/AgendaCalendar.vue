@@ -27,7 +27,7 @@
                       <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                   </div>
-                  Todos los empleados
+                   Todos los {{ (businessStore.terminology.employeePlural || 'Empleados').toLowerCase() }}
                 </button>
                 <div class="my-1 h-px bg-border"></div>
                 <div class="max-h-64 overflow-y-auto touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
@@ -61,7 +61,7 @@
         </div>
         <div class="hidden h-5 w-px bg-border sm:block"></div>
         <div class="relative w-full sm:w-48 lg:w-56">
-          <input v-model="searchQuery" type="text" placeholder="Buscar cliente..."
+           <input v-model="searchQuery" type="text" :placeholder="`Buscar ${businessStore.terminology.client?.toLowerCase() || 'cliente'}...`"
             @focus="searchDropdownOpen = true" @blur="searchDropdownOpen = false"
             class="w-full rounded-lg border border-border bg-surface pl-8 pr-3 py-1.5 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15" />
           <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
@@ -72,7 +72,7 @@
           <div v-if="searchDropdownOpen && globalSearchEnabled"
             class="absolute left-0 top-full z-50 mt-1.5 w-[min(20rem,92vw)] max-h-80 overflow-y-auto rounded-xl border border-border bg-surface p-1.5 shadow-xl">
             <div v-if="globalSearchLoading" class="px-3 py-2 text-xs text-text-muted">Buscando...</div>
-            <div v-else-if="!globalSearchRows.length" class="px-3 py-2 text-xs text-text-muted">Sin citas para "{{ debouncedSearch }}"</div>
+             <div v-else-if="!globalSearchRows.length" class="px-3 py-2 text-xs text-text-muted">Sin {{ businessStore.terminology.appointmentPlural?.toLowerCase() || 'citas' }} para "{{ debouncedSearch }}"</div>
             <button v-for="r in globalSearchRows" :key="r.id" type="button"
               @mousedown.prevent="selectGlobalResult(r.raw)"
               class="flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors hover:bg-bg-secondary">
@@ -166,7 +166,7 @@
             <div v-if="occupancyOpen"
               class="absolute right-0 top-full z-50 mt-1.5 w-[min(20rem,92vw)] max-h-96 overflow-y-auto rounded-xl border border-border bg-surface p-2 shadow-xl" @click.stop>
               <p class="px-2 py-1.5 text-[11px] font-bold text-text-muted uppercase tracking-wide">{{ selectedDayLabel }}</p>
-              <div v-if="!occupancyRows.length" class="px-2 py-3 text-xs text-text-muted">Sin empleados para mostrar.</div>
+               <div v-if="!occupancyRows.length" class="px-2 py-3 text-xs text-text-muted">Sin {{ businessStore.terminology.employeePlural?.toLowerCase() || 'empleados' }} para mostrar.</div>
               <div v-for="row in occupancyRows" :key="row.id" class="px-2 py-2 border-b border-border-subtle last:border-b-0">
                 <div class="flex items-center justify-between gap-2 mb-1">
                   <span class="text-sm font-semibold text-text truncate">{{ row.name }}</span>
@@ -345,16 +345,16 @@
           </div>
         </div>
         <div class="space-y-1.5 mb-3 text-sm">
-          <div class="flex justify-between"><span class="text-text-muted">Servicio</span><span
+           <div class="flex justify-between"><span class="text-text-muted">{{ businessStore.terminology.service }}</span><span
               class="font-medium text-text">{{ detailPopup.appt.service }}</span></div>
           <div
             v-if="detailPopup.appt.isGroup && detailPopup.appt.groupServices && detailPopup.appt.groupServices.length > 1"
             class="flex flex-col gap-0.5">
-            <span class="text-text-muted text-xs">Servicios incluidos</span>
+             <span class="text-text-muted text-xs">{{ businessStore.terminology.servicePlural }} incluidos</span>
             <span v-for="(gs, i) in detailPopup.appt.groupServices" :key="i" class="text-xs text-text pl-2">{{ gs
               }}</span>
           </div>
-          <div class="flex justify-between"><span class="text-text-muted">Empleado</span><span
+           <div class="flex justify-between"><span class="text-text-muted">{{ businessStore.terminology.employee }}</span><span
               class="font-medium text-text">{{ detailPopup.appt.employeeName }}</span></div>
           <div v-if="detailPopup.appt.raw.internal_notes" class="flex justify-between"><span
               class="text-text-muted">Notas</span><span class="font-medium text-text truncate max-w-[140px]">{{
@@ -366,10 +366,10 @@
         <div class="flex items-center gap-2 justify-end border-t border-border pt-3">
           <button @click="handleDeleteClick"
             class="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors">Borrar
-            cita</button>
+             {{ businessStore.terminology.appointment.toLowerCase() }}</button>
           <button @click="handleEditClick"
             class="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse hover:bg-primary-hover transition-colors">Editar
-            cita</button>
+             {{ businessStore.terminology.appointment.toLowerCase() }}</button>
         </div>
       </div>
     </Teleport>
@@ -451,7 +451,7 @@ const globalSearchRows = computed(() => {
   const groupServiceNames = new Map<string, string[]>()
 
   for (const a of raws as any[]) {
-    const serviceName = serviceMap.value.get(a.service_id)?.name || 'Servicio'
+     const serviceName = serviceMap.value.get(a.service_id)?.name || businessStore.terminology.service
     if (a.group_id && groupRowIndex.has(a.group_id)) {
       const idx = groupRowIndex.get(a.group_id)!
       const names = groupServiceNames.get(a.group_id)!
@@ -463,7 +463,7 @@ const globalSearchRows = computed(() => {
     rows.push({
       raw: a,
       id: a.id,
-      clientName: a.client?.full_name || a.clients?.full_name || 'Cliente',
+       clientName: a.client?.full_name || a.clients?.full_name || businessStore.terminology.client,
       serviceName,
       dateLabel: start.toLocaleDateString('es-VE', { day: 'numeric', month: 'short' }),
       time: dateToHHmm12(start),
@@ -726,12 +726,12 @@ function mapAppt(a: any, svcMap: Map<string, any>, empName: string, groupMemberM
   const groupAllMembers = a.group_id ? (groupMemberMap.get(a.group_id) ?? []) : []
   const isGroup = groupAllMembers.length > 1
   const groupServices = isGroup
-    ? groupAllMembers.map((m: any) => svcMap.get(m.service_id)?.name || 'Servicio')
+     ? groupAllMembers.map((m: any) => svcMap.get(m.service_id)?.name || businessStore.terminology.service)
     : undefined
   return {
     id: a.id,
     clientName: a.client?.full_name || a.clients?.full_name || 'Cliente',
-    service: svc?.name || 'Servicio',
+     service: svc?.name || businessStore.terminology.service,
     time: dateToHHmm12(start),
     top: Math.max(0, (topMin / 60) * HOUR_HEIGHT + 1),
     height: ((end.getTime() - start.getTime()) / 60000 / 60) * HOUR_HEIGHT,
@@ -782,13 +782,13 @@ const gridColumns = computed<GridColumn[]>(() => {
   }
 
   let cols = empId !== 'all' ? emps.filter(e => e.id === empId).map(e => ({ id: e.id, name: e.full_name })) : emps.map(e => ({ id: e.id, name: e.full_name }))
-  if (!cols.length) cols = [{ id: '__default__', name: 'Citas' }]
+   if (!cols.length) cols = [{ id: '__default__', name: businessStore.terminology.appointmentPlural }]
 
   return cols.map(c => {
     const cAppts = layoutOverlaps(appts
       .filter(a => (c.id === '__default__' || (isoDateByAppt.get(a) === selectedDate.value && a.employee_id === c.id)) && (!q || ((a.client?.full_name || a.clients?.full_name) || '').toLowerCase().includes(q)))
       .map(a => mapAppt(a, svcMap, c.name, groupMemberMap, colorMap)))
-    return { key: c.id, label: c.id === '__default__' ? 'Citas' : c.name.split(' ')[0], avatar: c.id === '__default__' ? undefined : getInitials(c.name), widthPercent: 100 / cols.length, appointments: cAppts }
+     return { key: c.id, label: c.id === '__default__' ? businessStore.terminology.appointmentPlural : c.name.split(' ')[0], avatar: c.id === '__default__' ? undefined : getInitials(c.name), widthPercent: 100 / cols.length, appointments: cAppts }
   })
 })
 
@@ -967,7 +967,7 @@ function emitEventClick(raw: any) {
   const status = normalizeAppointmentStatus(raw)
   const citaData = mapAppointmentToCita(raw)
   emit('eventClick', {
-    id: raw.id, title: raw.client?.full_name || raw.clients?.full_name || 'Cliente', start, end, status,
+     id: raw.id, title: raw.client?.full_name || raw.clients?.full_name || businessStore.terminology.client, start, end, status,
     citaData,
   })
 }

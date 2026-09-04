@@ -27,10 +27,10 @@
     <div v-if="activeTab === 'historial'" class="space-y-4">
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-lg font-semibold text-text">Servicios realizados</h2>
-          <p class="text-sm text-text-muted">Historial de servicios que has completado</p>
+           <h2 class="text-lg font-semibold text-text">{{ t.servicePlural }} realizados</h2>
+           <p class="text-sm text-text-muted">Historial de {{ t.servicePlural.toLowerCase() }} que has completado</p>
         </div>
-        <span class="text-sm font-medium text-text-muted">{{ historyAppointments.length }} servicios</span>
+         <span class="text-sm font-medium text-text-muted">{{ historyAppointments.length }} {{ t.servicePlural.toLowerCase() }}</span>
       </div>
 
       <div v-if="loadingHistory" class="flex items-center justify-center py-12">
@@ -41,7 +41,7 @@
       </div>
 
       <div v-else-if="historyAppointments.length === 0" class="rounded-lg border border-border bg-surface p-8 text-center">
-        <p class="text-sm text-text-muted">Aún no tienes servicios realizados.</p>
+         <p class="text-sm text-text-muted">Aún no tienes {{ t.servicePlural.toLowerCase() }} realizados.</p>
       </div>
 
       <div v-else class="overflow-hidden rounded-xl border border-border bg-surface">
@@ -49,8 +49,8 @@
           <thead>
             <tr class="border-b border-border bg-bg-secondary">
               <th class="px-4 py-3 text-left font-medium text-text-muted">Fecha</th>
-              <th class="px-4 py-3 text-left font-medium text-text-muted">Cliente</th>
-              <th class="px-4 py-3 text-left font-medium text-text-muted">Servicio</th>
+               <th class="px-4 py-3 text-left font-medium text-text-muted">{{ t.client }}</th>
+               <th class="px-4 py-3 text-left font-medium text-text-muted">{{ t.service }}</th>
               <th class="px-4 py-3 text-right font-medium text-text-muted">Precio</th>
               <th class="px-4 py-3 text-center font-medium text-text-muted">Estado</th>
             </tr>
@@ -86,7 +86,7 @@
       <!-- Summary Cards -->
       <div class="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div class="rounded-xl border border-border bg-surface p-4">
-          <p class="text-xs font-medium uppercase tracking-wider text-text-muted">Servicios realizados</p>
+           <p class="text-xs font-medium uppercase tracking-wider text-text-muted">{{ t.servicePlural }} realizados</p>
           <p class="mt-1 text-2xl font-bold text-text">{{ earnings.length }}</p>
         </div>
         <div class="rounded-xl border border-border bg-surface p-4">
@@ -123,8 +123,8 @@
           <thead>
             <tr class="border-b border-border bg-bg-secondary">
               <th class="px-4 py-2.5 text-left font-medium text-text-muted">Fecha</th>
-              <th class="px-4 py-2.5 text-left font-medium text-text-muted">Cliente</th>
-              <th class="px-4 py-2.5 text-left font-medium text-text-muted">Servicio</th>
+               <th class="px-4 py-2.5 text-left font-medium text-text-muted">{{ t.client }}</th>
+               <th class="px-4 py-2.5 text-left font-medium text-text-muted">{{ t.service }}</th>
               <th class="px-4 py-2.5 text-right font-medium text-text-muted">Total</th>
               <th class="px-4 py-2.5 text-right font-medium text-text-muted">%</th>
               <th class="px-4 py-2.5 text-right font-medium text-text-muted">Ganancia</th>
@@ -200,7 +200,7 @@
           <!-- Summary -->
           <div class="grid grid-cols-2 gap-4 mb-6">
             <div class="rounded-lg bg-bg-secondary p-3">
-              <p class="text-xs text-text-muted uppercase tracking-wider">Servicios</p>
+               <p class="text-xs text-text-muted uppercase tracking-wider">{{ t.servicePlural }}</p>
               <p class="text-xl font-bold text-text mt-0.5">{{ earnings.length }}</p>
             </div>
             <div class="rounded-lg bg-bg-secondary p-3">
@@ -212,7 +212,7 @@
           <!-- Earnings Breakdown -->
           <div class="space-y-2 mb-6">
             <div class="flex justify-between py-2 text-sm">
-              <span class="text-text-muted">Total facturado en servicios</span>
+               <span class="text-text-muted">Total facturado en {{ t.servicePlural.toLowerCase() }}</span>
               <span class="font-medium text-text">${{ totalBilled }}</span>
             </div>
             <div class="flex justify-between py-2 text-sm">
@@ -276,6 +276,11 @@ const businessId = computed(() => authStore.businessId)
 const employeeId = computed(() => authStore.profile?.id ?? '')
 const branchId = computed(() => businessStore.currentBranchId)
 const businessName = computed(() => businessStore.business?.name ?? '')
+const t = computed(() => ({
+  client: businessStore.terminology.client || 'Cliente',
+  service: businessStore.terminology.service || 'Servicio',
+  servicePlural: businessStore.terminology.servicePlural || 'Servicios',
+}))
 
 type TabId = 'historial' | 'comisiones' | 'recibo'
 const activeTab = ref<TabId>('historial')

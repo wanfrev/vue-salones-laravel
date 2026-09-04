@@ -5,7 +5,7 @@
         <div>
           <div class="flex items-center gap-2 text-sm text-primary mb-0.5">
             <DocumentIcon class="h-4 w-4" />
-            <span class="font-medium uppercase tracking-wider">{{ t.client || 'Cliente' }}s</span>
+             <span class="font-medium uppercase tracking-wider">{{ t.clientPlural || 'Clientes' }}</span>
           </div>
           <p class="text-sm font-semibold text-text sm:text-base">{{ cliente?.name || t.client || 'Cliente' }}</p>
         </div>
@@ -31,7 +31,7 @@
             class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
           >
             <DocumentIcon class="h-4 w-4" />
-            Ver Historias Clínicas
+             Ver {{ t.historyPlural || 'Historias clínicas' }}
           </button>
         </div>
       </div>
@@ -57,9 +57,9 @@
 
     <section class="grid grid-cols-1 gap-4 lg:grid-cols-3">
       <div class="rounded-xl border border-border bg-surface p-4 shadow-sm lg:col-span-2">
-        <h3 class="mb-4 text-base font-semibold text-text">Servicios realizados</h3>
+         <h3 class="mb-4 text-base font-semibold text-text">{{ t.servicePlural || 'Servicios' }} realizados</h3>
         <div v-if="historial.length === 0" class="py-8 text-center text-sm text-text-muted">
-          Este cliente no tiene servicios registrados.
+           Este {{ t.client.toLowerCase() }} no tiene {{ t.servicePlural.toLowerCase() }} registrados.
         </div>
         <div v-else class="overflow-x-auto">
           <table class="w-full">
@@ -94,7 +94,7 @@
         <h3 class="mb-4 text-base font-semibold text-text">Resumen</h3>
         <div class="space-y-3">
           <div class="rounded-lg bg-bg-secondary p-3">
-            <p class="text-xs text-text-muted">Total {{ (t.appointment || 'cita').toLowerCase() }}s</p>
+             <p class="text-xs text-text-muted">Total {{ (t.appointmentPlural || 'Citas').toLowerCase() }}</p>
             <p class="text-lg font-bold text-text">{{ historial.length }}</p>
           </div>
           <div class="rounded-lg bg-bg-secondary p-3">
@@ -102,8 +102,8 @@
             <p class="text-lg font-bold text-text">${{ totalGasto }}</p>
           </div>
           <div class="rounded-lg bg-bg-secondary p-3">
-            <p class="text-xs text-text-muted">Última visita</p>
-            <p class="text-lg font-bold text-text">{{ ultimaVisita || 'Sin visitas' }}</p>
+             <p class="text-xs text-text-muted">Última {{ (t.appointment || 'cita').toLowerCase() }}</p>
+             <p class="text-lg font-bold text-text">{{ ultimaVisita || `Sin ${(t.appointmentPlural || 'citas').toLowerCase()}` }}</p>
           </div>
         </div>
       </div>

@@ -15,7 +15,7 @@
       <!-- Nombre -->
       <FormInput
         v-model="formData.name"
-        label="Nombre del servicio"
+         :label="`Nombre del ${t.service?.toLowerCase() || 'servicio'}`"
         :placeholder="serviceNamePlaceholder"
         required
         prefix-icon="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"
@@ -102,10 +102,10 @@
       <div class="rounded-lg border border-border p-4">
         <label class="flex items-center space-x-2 text-sm font-medium text-text-primary cursor-pointer">
           <input type="checkbox" v-model="formData.is_fixed_commission" class="rounded border-border text-primary focus:ring-primary" />
-          <span>Comisión fija por servicio (Monto en vez de porcentaje)</span>
+           <span>Comisión fija por {{ t.service?.toLowerCase() || 'servicio' }} (Monto en vez de porcentaje)</span>
         </label>
         <p class="mt-1 text-xs text-text-muted ml-6">
-          Al activar esta opción, los empleados y asistentes que realicen este servicio ganarán un monto de dinero exacto, ignorando su porcentaje de comisión habitual.
+           Al activar esta opción, los {{ (t.employeePlural || 'empleados').toLowerCase() }} y asistentes que realicen este {{ t.service?.toLowerCase() || 'servicio' }} ganarán un monto de dinero exacto, ignorando su porcentaje de comisión habitual.
         </p>
         
         <div v-if="formData.is_fixed_commission" class="mt-4 ml-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -133,7 +133,7 @@
           <span>Visible en el link de reserva pública</span>
         </label>
         <p class="mt-1 text-xs text-text-muted ml-6">
-          Si lo desactivas, este servicio no aparecerá en el catálogo que ven los clientes al reservar por su cuenta desde el link de invitación.
+           Si lo desactivas, este {{ t.service?.toLowerCase() || 'servicio' }} no aparecerá en el catálogo que ven los {{ (t.clientPlural || 'clientes').toLowerCase() }} al reservar por su cuenta desde el link de invitación.
         </p>
       </div>
 
@@ -221,6 +221,7 @@ import { ref, computed, watch } from 'vue'
 import { useModal } from '../../composables/common/useModal'
 import { useNotification } from '../../composables/common/useNotification'
 import { useBusinessStore } from '../../store/business'
+import { getNiche } from '../../config/niches'
 import { getEntityServiceCategories } from '../../services/serviciosService'
 import { listProductos } from '../../services/productosService'
 import { useFormValidation } from '../../composables/common/useFormValidation'
@@ -249,6 +250,7 @@ const businessStore = useBusinessStore()
 
 const t = computed(() => businessStore.terminology)
 const nicheType = computed(() => businessStore.nicheType)
+const nicheCopy = computed(() => getNiche(nicheType.value).copy ?? {})
 
 const isEditing = computed(() => !!modalData.value?.servicio)
 
@@ -263,7 +265,7 @@ const serviceNamePlaceholder = computed(() => {
     nail_bar: 'Ej: Manicure',
     centro_estetico: 'Ej: Limpieza facial',
   }
-  return map[nicheType.value] || 'Ej: Corte Mujer'
+   return nicheCopy.value.serviceNamePlaceholder || map[nicheType.value] || 'Ej: Corte Mujer'
 })
 
 const descriptionPlaceholder = computed(() => {
@@ -277,7 +279,7 @@ const descriptionPlaceholder = computed(() => {
     nail_bar: 'Diseños, productos y técnicas utilizadas...',
     centro_estetico: 'Productos, cuidados y beneficios del tratamiento...',
   }
-  return map[nicheType.value] || 'Describe el servicio, incluye detalles importantes...'
+   return nicheCopy.value.serviceDescriptionPlaceholder || map[nicheType.value] || 'Describe el servicio, incluye detalles importantes...'
 })
 
 const showingCustomCategory = ref(false)
