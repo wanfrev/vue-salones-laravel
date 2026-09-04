@@ -78,7 +78,17 @@
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                 </button>
               </div>
-              <span v-else class="text-xs text-text-secondary">{{ formatMethod(c.paid_method || '') }}</span>
+              <div v-else class="flex items-center justify-center gap-2">
+                <span class="text-xs text-text-secondary">{{ formatMethod(c.paid_method || '') }}</span>
+                <button
+                  @click="handleDelete(c)"
+                  :disabled="deleteMutation.isPending.value"
+                  title="Eliminar crédito"
+                  class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+                >
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -228,7 +238,10 @@ const closeModal = () => {
 }
 
 const handleDelete = async (credit: Credit) => {
-  if (!window.confirm(`¿Eliminar el crédito de ${credit.client_name} por ${formatUSD(credit.amount)}? Esta acción no se puede deshacer.`)) return
+  const message = Number(credit.paid_amount) > 0
+    ? `¿Eliminar el crédito de ${credit.client_name}? El ingreso ya cobrado (${formatUSD(credit.paid_amount)}) se queda en Finanzas — solo se borra el registro del crédito.`
+    : `¿Eliminar el crédito de ${credit.client_name} por ${formatUSD(credit.amount)}? Esta acción no se puede deshacer.`
+  if (!window.confirm(message)) return
   try {
     await deleteMutation.mutateAsync(credit.id)
   } catch { /* handled by composable */ }

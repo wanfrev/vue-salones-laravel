@@ -177,11 +177,22 @@ class CreditController
     }
 
     /**
-     * Delete a credit that was created by mistake. Only allowed while it has zero payments
-     * against it — a partial/full payment already produced a real income Transaction, and
-     * silently deleting the credit would leave that money uncoupled from any credit record
-     * (or, worse, tempt a future version of this endpoint into cascading the deletion into
-     * that income too). Force the user to sort out the payments first instead.
+     * Delete a credit. Two very different cases, by design:
+     *
+     * - No payments at all (paid_amount == 0): nothing real was ever collected, so this reverts
+     *   the original sale (appointment back to 'unpaid', or restocks a direct product sale) and
+     *   deletes that 'credito' transaction along with the credit — as if the sale never happened.
+     *
+     * - Fully paid (status == 'paid'): every dollar was already collected via one or more real
+     *   abonos, each its own income Transaction (method != 'credito', showing in Finanzas as
+     *   "Cobro cita" / "Venta de productos" — see pay()). That income is real and stays exactly
+     *   as it is; only the credit's own tracking row goes away. credit_payments cascades on
+     *   credit_id (see the 2026_09_02_000001 migration) so its rows disappear too, but its
+     *   transaction_id has no reverse cascade — the income Transactions are untouched.
+     *
+     * - Partial (some paid, balance still outstanding): blocked. Deleting it would either erase
+     *   evidence of an uncollected debt (if we left the balance uncollected) or require guessing
+     *   how to split "keep the collected part, revert the rest" — neither is safe to automate.
      */
     public function destroy(Request $request, string $id): JsonResponse
     {
@@ -195,14 +206,16 @@ class CreditController
             return response()->json(['message' => 'Crédito no encontrado.'], 404);
         }
 
-        if ((float) $credit->paid_amount > 0) {
+        if ($credit->status === 'partial') {
             return response()->json([
-                'message' => 'No se puede eliminar un crédito con abonos registrados.',
+                'message' => 'No se puede eliminar un crédito con abonos parciales — cóbralo por completo o elimina primero sus abonos.',
             ], 422);
         }
 
         DB::transaction(function () use ($credit, $businessId) {
-            if ($credit->transaction_id) {
+            $hasNoPayments = (float) $credit->paid_amount == 0.0;
+
+            if ($hasNoPayments && $credit->transaction_id) {
                 $tx = Transaction::where('business_id', $businessId)->find($credit->transaction_id);
                 if ($tx) {
                     if ($tx->appointment_id) {
@@ -236,6 +249,8 @@ class CreditController
                 }
             }
 
+            // Pagado por completo: no se toca ninguna Transaction, solo el credito (y sus
+            // credit_payments, por el cascadeOnDelete de la FK).
             $credit->delete();
         });
 
