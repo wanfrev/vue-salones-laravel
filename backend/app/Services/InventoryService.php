@@ -109,7 +109,12 @@ class InventoryService
             else $query->whereNull('variant_id');
         }
 
-        return $query->limit(200)->get()->map(function ($stock) {
+        // Sin limit: esta lista ya viene acotada por business_id (y opcionalmente
+        // branch/product/location arriba). Un limit(200) fijo, sin order y sin paginacion real,
+        // hacia que cualquier negocio con mas de 200 filas de stock perdiera filas al azar en
+        // cada consulta (Postgres no garantiza orden sin ORDER BY) -- el frontend interpretaba
+        // esas filas ausentes como "0 unidades" aunque el dato seguia intacto en la BD.
+        return $query->orderBy('product_id')->get()->map(function ($stock) {
             $data = $stock->toArray();
             $data['products'] = $stock->product ? [
                 'name' => $stock->product->name,
