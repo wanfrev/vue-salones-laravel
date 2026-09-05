@@ -745,8 +745,18 @@ class EmployeeCommissionService
                 'payment_status' => $row->payment_status,
                 'exchange_rate_used' => (float) ($row->exchange_rate_used ?? 1),
                 'tip_currency' => $tipCurrency,
+                '_zeroCommissionAndTip' => $empAmount === 0.0 && $pct === 0.0 && $tip === 0.0,
             ];
-        });
+        })
+            // Un abono a credito hereda la cita del cobro original (para verse como "Cobro cita"
+            // en Finanzas, no "Venta directa" — ver CreditController::pay()), pero no genera
+            // comision nueva: ya quedo registrada en la transaccion 'credito' original, que
+            // tambien aparece aqui con su propio employee_amount real. Sin este filtro, el abono
+            // se colaba como un "servicio" fantasma extra de la misma cita, con 0% y el precio de
+            // catalogo del servicio (no el cobrado) en vez de nada.
+            ->reject(fn ($row) => $row['_zeroCommissionAndTip'])
+            ->map(fn ($row) => collect($row)->except('_zeroCommissionAndTip')->all())
+            ->values();
 
         $profile = Profile::find($employeeId);
         $productPct = (float) ($profile?->product_commission_percentage ?? 0);
