@@ -239,6 +239,14 @@ class FinancialSummaryService
 
     /**
      * Transaction list with appointment details for "Cobros de Citas".
+     *
+     * Includes 'credito' transactions on purpose (unlike every other query in this service) —
+     * this is the only owner-facing screen that lists individual transactions, so it's also the
+     * only place to find/edit/delete one after its Credit tracking row is gone (see
+     * CreditController::destroy(): a fully-paid credit's original sale transaction is
+     * deliberately left untouched, since it still carries the employee's real commission).
+     * Income aggregates (getKPIs/summary above, and the frontend's own income-building loop)
+     * keep excluding 'credito' independently, so surfacing it here doesn't double-count it.
      */
     public function getTransactionsWithDetails(
         string $businessId,
@@ -255,7 +263,6 @@ class FinancialSummaryService
             'employeeProfile',
         ])
             ->where('business_id', $businessId)
-            ->where('method', '!=', 'credito')
             ->orderByRaw('COALESCE(paid_at, created_at) DESC');
 
         $tz = $this->resolveTimezone($businessId);

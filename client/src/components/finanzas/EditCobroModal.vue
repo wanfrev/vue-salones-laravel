@@ -98,6 +98,18 @@ const ctx = reactive(props.summaryCtx)
               Es 100% del empleado — no se cuenta como ingreso del negocio.
             </p>
           </div>
+          <div v-if="ctx.canEditEmployeePercentage">
+            <label class="mb-1 block text-sm font-medium text-text">% de comisión de {{ ctx.editingTransaction.employee }}</label>
+            <div class="relative">
+              <input v-model.number="ctx.editingEmployeePercentage" type="number" min="0" max="100" step="0.5"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 pr-8 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+                placeholder="0" />
+              <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-text-muted">%</span>
+            </div>
+            <p class="mt-1 text-xs text-text-muted">
+              Recalcula la comisión ya pagada sobre este cobro — úsalo para corregir un % equivocado.
+            </p>
+          </div>
           <div>
             <label class="mb-1 block text-sm font-medium text-text">Notas</label>
             <textarea v-model="ctx.editingNotes" placeholder="Notas del cobro (opcional)" rows="2"
