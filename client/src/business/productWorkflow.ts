@@ -42,7 +42,14 @@ export async function ensureDefaultLocation(
       .select("id")
       .single();
     if (insertErr) {
-      const isDuplicate = insertErr.message.includes('inventory_locations_business_id_name_key')
+      // La migracion 2026_07_12_000000 reemplazo la unique key global original
+      // (inventory_locations_business_id_name_key) por dos indices parciales -- uno por
+      // sucursal (inventory_locations_unique_branch_idx) y uno global para negocios sin
+      // sucursales (inventory_locations_unique_global_idx). Sin reconocer los nombres nuevos,
+      // una carrera real (dos productos creados casi al mismo tiempo en una sucursal que aun
+      // no tiene su ubicacion "Principal") ya no se recuperaba aqui -- el error subia intacto
+      // y saveProducto() lo tragaba en silencio, dejando el producto creado sin stock.
+      const isDuplicate = /inventory_locations_(business_id_name_key|unique_branch_idx|unique_global_idx)/.test(insertErr.message)
       if (isDuplicate && branchId) {
         const { data: existingLoc } = await db
           .from("inventory_locations")
