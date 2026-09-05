@@ -48,6 +48,7 @@ export type TransactionRow = {
   tipAmount?: number
   transactionIds?: string[]
   receiptCode?: string
+  employeePercentage?: number
 }
 
 export type ProductSaleDetail = {
@@ -258,11 +259,16 @@ function useFinancialSummary(
         tipAmount: tip,
         transactionIds: [tx.id],
         receiptCode: tx.receipt_code ?? undefined,
+        employeePercentage: Number(tx.employee_percentage ?? 0),
       }
     })
 
-    // Group by group_id (appointments with same group_id are merged into one row)
-    const groupKey = (row: TransactionRow) => (row as any).groupId ?? row.appointmentId ?? row.id
+    // Group by group_id (appointments with same group_id are merged into one row) — excepto una
+    // transaccion 'credito': es la venta original, distinta del abono que la cobra despues (ambos
+    // comparten appointmentId desde que el abono lo hereda -- ver CreditController::pay()).
+    // Agruparlas sumaria su monto contra el del abono real, duplicando el "cobro" visualmente.
+    const groupKey = (row: TransactionRow) =>
+      row.rawMethod === 'credito' ? row.id : ((row as any).groupId ?? row.appointmentId ?? row.id)
     const groupMap = new Map<string, TransactionRow & { employees: string[]; services: string[]; transactionIds: string[]; rawRows: TransactionRow[] }>()
 
     for (const row of raw) {
@@ -803,6 +809,7 @@ function useFinancialSummary(
       exchangeRate?: number
       paymentsBreakdown?: PaymentBreakdownItem[]
       tipAmount?: number
+      employeePercentage?: number
     }) => apiRequest('PUT', `/transactions/${params.transactionId}`, {
       total_amount: params.totalAmount,
       method: params.method,
@@ -810,6 +817,7 @@ function useFinancialSummary(
       exchange_rate_used: params.exchangeRate,
       payments_breakdown: params.paymentsBreakdown,
       tip_amount: params.tipAmount,
+      employee_percentage: params.employeePercentage,
     }),
     onSuccess: async () => {
       await Promise.allSettled([
@@ -861,6 +869,15 @@ function useFinancialSummary(
   const editingBreakdown = ref<PaymentBreakdownItem[]>([])
   const editingNotes = ref('')
   const editingTipAmount = ref(0)
+  const editingEmployeePercentage = ref<number | null>(null)
+  // Solo tiene sentido editar el % de comisión de un cobro sin agrupar (una sola transaccion,
+  // un solo empleado) -- un grupo de varios servicios/transacciones no tiene un unico % que
+  // cambiar.
+  const canEditEmployeePercentage = computed(() =>
+    !!editingTransaction.value?.employee &&
+    editingTransaction.value.employee !== '—' &&
+    (editingTransaction.value.transactionIds?.length ?? 1) <= 1,
+  )
   // Una propina directa (sin cita) no tiene "monto" propio -- ese campo es siempre 0, es 100%
   // del empleado y no cuenta como ingreso del negocio. Lo único editable ahí es la propina misma.
   const isEditingStandaloneTip = computed(() => editingTransaction.value?.source === 'standalone_tip')
@@ -890,6 +907,7 @@ function useFinancialSummary(
     editingMethod.value = hasMixed ? 'mixed' : (item.rawMethod ?? 'cash')
     editingNotes.value = item.notes ?? ''
     editingTipAmount.value = item.tipAmount ?? 0
+    editingEmployeePercentage.value = item.employeePercentage ?? null
     editingBreakdown.value = item.breakdown && item.breakdown.length > 0
       ? [...item.breakdown]
       : [{
@@ -930,6 +948,9 @@ function useFinancialSummary(
       notes: editingNotes.value || null,
       paymentsBreakdown: breakdown ?? undefined,
       tipAmount: editingTipAmount.value,
+      employeePercentage: canEditEmployeePercentage.value && editingEmployeePercentage.value !== null
+        ? editingEmployeePercentage.value
+        : undefined,
     })
     showEditModal.value = false
   }
@@ -991,6 +1012,8 @@ function useFinancialSummary(
     editingBreakdown,
     editingNotes,
     editingTipAmount,
+    editingEmployeePercentage,
+    canEditEmployeePercentage,
     isEditingStandaloneTip,
     isEditingMixed,
     editingTotalAmount,

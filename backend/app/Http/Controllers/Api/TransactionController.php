@@ -57,6 +57,7 @@ class TransactionController
             'payments_breakdown' => 'nullable|array',
             'tip_amount' => 'nullable|numeric|min:0',
             'paid_at' => 'nullable|date',
+            'employee_percentage' => 'nullable|numeric|min:0|max:100',
         ]);
 
         $tx = \App\Models\Transaction::where('business_id', $businessId)->find($id);
@@ -66,7 +67,17 @@ class TransactionController
 
         $newTotal = $data['total_amount'];
         $oldTotal = (float) $tx->total_amount;
-        if ($oldTotal > 0 && abs($newTotal - $oldTotal) > 0.001) {
+
+        if (array_key_exists('employee_percentage', $data) && $data['employee_percentage'] !== null) {
+            // Recalcular manualmente la comision de un cobro ya hecho -- p.ej. una venta a
+            // credito cuyo % vigente al momento de pagar resulto ser el equivocado y ya no hay
+            // forma de "reabrir" el cobro para rehacerlo. Reemplaza employee_amount directamente
+            // en vez de escalarlo junto con el monto total (rama de abajo).
+            $data['employee_percentage'] = round((float) $data['employee_percentage'], 2);
+            $data['employee_amount'] = round($newTotal * $data['employee_percentage'] / 100, 2);
+            $assistantAmount = (float) $tx->assistant_amount;
+            $data['local_amount'] = round($newTotal - $data['employee_amount'] - $assistantAmount, 2);
+        } elseif ($oldTotal > 0 && abs($newTotal - $oldTotal) > 0.001) {
             $ratio = $newTotal / $oldTotal;
             $data['local_amount'] = round((float) $tx->local_amount * $ratio, 2);
             $data['employee_amount'] = round((float) $tx->employee_amount * $ratio, 2);
