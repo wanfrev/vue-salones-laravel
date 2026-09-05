@@ -207,6 +207,19 @@ class PosService
                 $assistantAmount = round($serviceAmount * $assistantPct / 100, 2);
             }
 
+            // Una comisión fija (employee_amount_override, assistant_amount_override, o el monto
+            // fijo del servicio) no escala con lo que se cobra hoy -- si es mayor que el total,
+            // el negocio terminaría "pagando" de más y el % recalculado abajo se dispara sobre
+            // 100%, lo cual la constraint de la BD rechaza con un error críptico. Se valida acá
+            // con un mensaje claro en vez de dejar que llegue al insert.
+            if (($employeeAmount + $assistantAmount) > $totalAmount + 0.01) {
+                throw new RuntimeException(
+                    "La comisión configurada para esta cita ($" . number_format($employeeAmount + $assistantAmount, 2) .
+                    ") supera el monto que se está cobrando ($" . number_format($totalAmount, 2) .
+                    "). Corrige el precio o la comisión de la cita antes de cobrar."
+                );
+            }
+
             $localAmount = round($totalAmount - $employeeAmount - $assistantAmount, 2);
 
             $employeePct = $serviceAmount > 0 ? round(($employeeAmount / $serviceAmount) * 100, 2) : 0;

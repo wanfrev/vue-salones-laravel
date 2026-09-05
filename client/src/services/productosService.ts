@@ -1,5 +1,6 @@
 import { db, apiRequest } from '../lib/api'
 import { ensureDefaultLocation, createInitialStock } from '../business/productWorkflow'
+import { useNotification } from '../composables/common/useNotification'
 import { mapProductToProducto, mapProductoFormToProductInsert } from '../mappers/productosMapper'
 import type { Product, ProductCategory } from '../types/database'
 import type { Producto, ProductoFormData } from '../types/producto'
@@ -100,7 +101,16 @@ export const saveProducto = async (
       const loc = await ensureDefaultLocation(businessId, branchId)
       await createInitialStock(businessId, saved.id, loc.id, Number(initialStock ?? 0), branchId)
     } catch (err) {
+      // El producto ya se guardo (arriba) -- no relanzar el error aca, o el formulario lo
+      // mostraria como "no se pudo crear el producto" y el usuario reintentaria, creando un
+      // duplicado. Pero tragarse el error en silencio (como antes) dejaba el producto con 0 de
+      // stock sin que nadie se enterara. Avisar es el termino medio: el producto queda creado,
+      // y el usuario sabe de inmediato que tiene que ajustar el stock a mano.
       console.error('[saveProducto] Error creando stock inicial:', err)
+      useNotification().warning(
+        `"${saved.name}" se creó, pero no se pudo asignar el stock inicial automáticamente. Ajusta el stock manualmente desde Inventario.`,
+        8000,
+      )
     }
   }
 
