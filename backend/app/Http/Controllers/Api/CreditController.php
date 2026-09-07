@@ -221,6 +221,32 @@ class CreditController
                     if ($tx->appointment_id) {
                         \App\Models\Appointment::where('id', $tx->appointment_id)
                             ->update(['payment_status' => 'unpaid', 'updated_at' => now()]);
+
+                        // Productos vendidos junto con la cita (PosService::processSale) quedan
+                        // con reference_type='appointment' y reference_id=appointment_id, no el
+                        // id de esta transaccion. Seguro revertirlos aqui sin comprobar otras
+                        // transacciones de la cita -- hasNoPayments ya garantiza que esta es la
+                        // unica transaccion real que existio para este credito.
+                        $movements = \App\Models\InventoryMovement::where('business_id', $businessId)
+                            ->where('reference_type', 'appointment')
+                            ->where('reference_id', $tx->appointment_id)
+                            ->get();
+
+                        foreach ($movements as $movement) {
+                            app(\App\Services\InventoryService::class)->adjust([
+                                'product_id' => $movement->product_id,
+                                'variant_id' => $movement->variant_id,
+                                'quantity' => abs($movement->quantity),
+                                'location_id' => $movement->location_id,
+                                'branch_id' => $movement->branch_id,
+                                'unit_cost' => $movement->unit_cost,
+                                'reference_type' => 'correction',
+                                'reference_id' => $movement->id,
+                                'notes' => 'Corrección de crédito eliminado',
+                            ], $businessId, request()->user()->id);
+
+                            $movement->delete();
+                        }
                     } else {
                         // Revert inventory for a direct product sale made on credit — same
                         // reversal TransactionController::destroy() does for a regular sale.
