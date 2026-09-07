@@ -104,20 +104,7 @@ class TransactionController
         }
 
         DB::transaction(function () use ($tx, $businessId) {
-            if ($tx->appointment_id) {
-                $appointment = \App\Models\Appointment::find($tx->appointment_id);
-                if ($appointment) {
-                    $appointment->update(['payment_status' => 'unpaid', 'updated_at' => now()]);
-                }
-            }
-
-            // Revert inventory movements for direct sales
-            if (!$tx->appointment_id) {
-                $movements = InventoryMovement::where('business_id', $businessId)
-                    ->where('reference_type', 'direct')
-                    ->where('reference_id', $tx->id)
-                    ->get();
-
+            $revertMovements = function ($movements) use ($businessId) {
                 foreach ($movements as $movement) {
                     $this->inventoryService->adjust([
                         'product_id' => $movement->product_id,
@@ -133,6 +120,38 @@ class TransactionController
 
                     $movement->delete();
                 }
+            };
+
+            if ($tx->appointment_id) {
+                $appointment = \App\Models\Appointment::find($tx->appointment_id);
+                if ($appointment) {
+                    $appointment->update(['payment_status' => 'unpaid', 'updated_at' => now()]);
+                }
+
+                // Productos vendidos junto con la cita (PosService::processSale) quedan con
+                // reference_type='appointment' y reference_id=appointment_id, no el id de esta
+                // transaccion (asi los lee getProductSales() para el reporte de ventas) -- por
+                // eso antes se saltaban aqui por completo. Solo se revierten si esta es la UNICA
+                // transaccion de la cita: si quedan otras (p.ej. un credito con su abono aparte),
+                // no hay forma segura de saber si esos productos pertenecen a la que se esta
+                // borrando o a la que sigue en pie, asi que se deja para revision manual.
+                $otherTransactionsExist = \App\Models\Transaction::where('business_id', $businessId)
+                    ->where('appointment_id', $tx->appointment_id)
+                    ->where('id', '!=', $tx->id)
+                    ->exists();
+
+                if (!$otherTransactionsExist) {
+                    $revertMovements(InventoryMovement::where('business_id', $businessId)
+                        ->where('reference_type', 'appointment')
+                        ->where('reference_id', $tx->appointment_id)
+                        ->get());
+                }
+            } else {
+                // Revert inventory movements for direct sales
+                $revertMovements(InventoryMovement::where('business_id', $businessId)
+                    ->where('reference_type', 'direct')
+                    ->where('reference_id', $tx->id)
+                    ->get());
             }
 
             $tx->delete();
