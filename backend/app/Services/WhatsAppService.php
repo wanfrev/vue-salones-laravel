@@ -36,12 +36,17 @@ class WhatsAppService
         $business = Business::find($appointment->business_id);
         $pet = $appointment->pet;
 
+        // start_time se guarda en UTC -- sin convertir a la zona horaria del negocio antes de
+        // formatear, el mensaje mostraba la hora UTC cruda (p.ej. "03:05 PM" en vez de "11:05 AM"
+        // para un negocio en Venezuela, UTC-4).
+        $localStartTime = $appointment->start_time->copy()->setTimezone($business?->timezone ?: 'UTC');
+
         $replacements = [
             '{cliente}' => $client->full_name ?? '',
             '{mascota}' => $pet->name ?? '',
             '{servicio}' => $serviceNameOverride ?? ($service->name ?? ''),
-            '{fecha}' => $appointment->start_time->format('d/m/Y'),
-            '{hora}' => $appointment->start_time->format('h:i A'),
+            '{fecha}' => $localStartTime->format('d/m/Y'),
+            '{hora}' => $localStartTime->format('h:i A'),
             '{empleado}' => $employee->full_name ?? '',
             '{negocio}' => $business->name ?? '',
             '{precio}' => number_format($appointment->price_override ?? $service->price ?? 0, 2),

@@ -1135,9 +1135,12 @@ const triggerPrint = () => {
     visibility: hidden;
   }
 
+  /* !important is required here, not stylistic: :has(#id) counts as ID-level specificity, so the
+     hide rule above (class + :has(#id) + body type selector) is MORE specific than a plain
+     "#admin-recibo-printable *" override — without !important the receipt printed entirely blank. */
   #admin-recibo-printable,
   #admin-recibo-printable * {
-    visibility: visible;
+    visibility: visible !important;
   }
 
   /* ModalBase renders this content inside a fixed-height, scrollable panel (its "Body" div is
