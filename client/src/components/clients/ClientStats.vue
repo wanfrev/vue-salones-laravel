@@ -1,9 +1,9 @@
 <template>
   <section class="mb-6 grid grid-cols-2 gap-3 xl:grid-cols-4">
     <div class="col-span-2 rounded-2xl border border-primary/25 bg-primary/5 p-4 shadow-sm xl:col-span-1">
-      <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">Total {{ terminology?.clientPlural || 'Pacientes' }}</p>
+      <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">Total {{ terminology?.clientPlural || 'Clientes' }}</p>
       <p class="mt-2 text-3xl font-bold leading-none tabular-nums text-text sm:text-4xl">{{ totalClientes }}</p>
-      <p class="mt-2 text-xs text-text-muted">Expedientes en el directorio</p>
+      <p class="mt-2 text-xs text-text-muted">{{ isDental ? 'Expedientes en el directorio' : 'Registros en el directorio' }}</p>
     </div>
     <div class="rounded-2xl border border-border bg-surface p-4 shadow-sm">
       <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-text-muted">Recientes</p>
@@ -31,5 +31,6 @@ defineProps<{
   clientesSinVisitar: number
   daysSinceVisitFilter: number
   terminology?: Record<string, string>
+  isDental?: boolean
 }>()
 </script>
