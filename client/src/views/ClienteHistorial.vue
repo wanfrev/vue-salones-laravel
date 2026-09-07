@@ -78,15 +78,15 @@
       {{ getInitials(cliente?.name || '') }}
     </div>
     <div class="min-w-0">
-      <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Expediente del paciente</p>
-      <h1 class="mt-1 truncate text-2xl font-bold tracking-tight text-text">{{ cliente?.name || businessStore.terminology.client || 'Paciente' }}</h1>
+      <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Perfil del cliente</p>
+      <h1 class="mt-1 truncate text-2xl font-bold tracking-tight text-text">{{ cliente?.name || businessStore.terminology.client || 'Cliente' }}</h1>
       <p class="mt-1 text-xs text-text-muted">{{ cliente?.phone || 'Sin teléfono' }}<span v-if="cliente?.email"> · {{ cliente.email }}</span></p>
     </div>
   </section>
 
   <section class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
     <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm">
-      <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">Resumen del paciente</p>
+      <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">{{ isDentalNiche ? 'Resumen del paciente' : 'Resumen del cliente' }}</p>
       <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div><p class="text-xs text-text-muted">{{ businessStore.terminology.appointmentPlural || 'Consultas' }}</p><p class="mt-1 text-xl font-bold text-text">{{ historial.length }}</p></div>
         <div><p class="text-xs text-text-muted">Última atención</p><p class="mt-1 truncate text-sm font-semibold text-text">{{ ultimaVisita || 'Sin registros' }}</p></div>
@@ -96,7 +96,7 @@
     </div>
     <div class="rounded-2xl border border-border bg-bg-secondary/35 p-5">
       <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Notas de seguimiento</p>
-      <p class="mt-3 line-clamp-3 text-sm leading-6 text-text-secondary">{{ cliente?.notes || 'No hay notas generales registradas para este paciente.' }}</p>
+      <p class="mt-3 line-clamp-3 text-sm leading-6 text-text-secondary">{{ cliente?.notes || `No hay notas generales registradas para este ${(businessStore.terminology.client || 'cliente').toLowerCase()}.` }}</p>
     </div>
   </section>
 
@@ -104,8 +104,8 @@
     <div class="rounded-xl border border-border bg-surface p-4 shadow-sm lg:col-span-2">
        <div class="mb-4 flex items-center justify-between gap-3">
          <div>
-           <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">Actividad del expediente</p>
-           <h3 class="mt-1 text-base font-semibold text-text">{{ businessStore.terminology.servicePlural || 'Tratamientos' }} y consultas</h3>
+           <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">{{ isDentalNiche ? 'Actividad del expediente' : 'Actividad del cliente' }}</p>
+           <h3 class="mt-1 text-base font-semibold text-text">{{ businessStore.terminology.servicePlural || 'Servicios' }} y {{ (businessStore.terminology.appointmentPlural || 'citas').toLowerCase() }}</h3>
          </div>
          <span class="rounded-lg bg-bg-secondary px-2.5 py-1.5 text-xs font-semibold text-text-muted">{{ historial.length }} registros</span>
        </div>
