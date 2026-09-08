@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col h-full bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
-    <div v-if="showSearch" class="p-3 sm:p-4 border-b border-border">
-      <div class="relative">
+    <div v-if="showSearch" class="flex items-center gap-3 border-b border-border p-2.5 sm:p-3">
+      <div class="relative min-w-0 flex-1">
         <input
           ref="searchInputRef"
           v-model="search"
@@ -22,12 +22,16 @@
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
         </button>
       </div>
+      <span class="hidden shrink-0 text-xs font-medium text-text-muted xl:inline">
+        {{ filteredProducts.length }} producto{{ filteredProducts.length === 1 ? '' : 's' }}
+      </span>
     </div>
 
-    <div class="px-3 sm:px-4 py-3 border-b border-border bg-bg-secondary flex gap-2 overflow-x-auto no-scrollbar touch-pan-x">
+    <div class="flex items-center gap-1.5 overflow-x-auto border-b border-border bg-bg-secondary px-3 py-1.5 no-scrollbar touch-pan-x sm:px-4">
+      <span class="hidden shrink-0 pr-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted md:inline">Categorías</span>
       <button
         @click="selectedCategory = 'all'"
-        class="shrink-0 px-4 py-2.5 rounded-xl text-sm font-semibold transition duration-200"
+        class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition duration-200"
         :class="selectedCategory === 'all' ? 'bg-primary text-text-inverse shadow-md shadow-primary/20' : 'bg-surface border border-border text-text-secondary hover:text-text hover:border-primary/50'"
       >
         Todos
@@ -36,14 +40,14 @@
         v-for="cat in categories"
         :key="cat"
         @click="selectedCategory = cat"
-        class="shrink-0 px-4 py-2.5 rounded-xl text-sm font-semibold transition duration-200"
+        class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition duration-200"
         :class="selectedCategory === cat ? 'bg-primary text-text-inverse shadow-md shadow-primary/20' : 'bg-surface border border-border text-text-secondary hover:text-text hover:border-primary/50'"
       >
         {{ cat }}
       </button>
     </div>
 
-    <div class="p-3 sm:p-4 overflow-y-auto flex-1 bg-bg-secondary/20">
+    <div class="flex-1 overflow-y-auto bg-bg-secondary/20 p-3 sm:p-4">
       <div v-if="filteredProducts.length === 0" class="flex flex-col items-center justify-center py-12 text-text-muted">
         <svg class="h-12 w-12 mb-3 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
@@ -55,10 +59,11 @@
         <div
           v-for="product in filteredProducts"
           :key="product.id"
+          v-memo="[product.id, product.available_qty, cartQty(product.id)]"
           @click="onProductClick(product)"
           role="button"
           tabindex="0"
-          class="relative flex flex-col items-start p-4 sm:p-5 rounded-2xl border-2 transition duration-150 text-left bg-surface h-full min-h-[152px] sm:min-h-[168px] group"
+          class="group relative flex h-full min-h-[148px] flex-col items-start rounded-2xl border-2 bg-surface p-3 text-left transition duration-150 sm:min-h-[160px] sm:p-4"
           :class="[
             Number(product.available_qty ?? 0) > 0
               ? 'border-border hover:border-primary/60 hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-0.5 cursor-pointer'
