@@ -1,7 +1,7 @@
 <template>
   <FeatureGate feature="pos">
   <div class="lg:flex lg:flex-col lg:h-[calc(100dvh-var(--header-total)-3rem)] lg:overflow-hidden">
-  <header class="mb-4 lg:mb-6 lg:shrink-0">
+  <header v-if="!isTiendaNiche(businessStore.nicheType)" class="mb-4 lg:mb-6 lg:shrink-0">
     <div class="grid grid-cols-1 items-center gap-3 lg:grid-cols-[1fr_auto_1fr]">
       <div class="flex items-center gap-2 text-xs text-primary">
         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
@@ -532,7 +532,7 @@ import POSConfirmModal from '../components/pos/POSConfirmModal.vue'
 import RetailClientSearch from '../components/pos/RetailClientSearch.vue'
 import RetailProductGrid from '../components/pos/RetailProductGrid.vue'
 import HeldSalesPanel from '../components/pos/HeldSalesPanel.vue'
-import { hasRetailModule } from '../config/niches'
+import { hasRetailModule, isTiendaNiche } from '../config/niches'
 import { confirmAction } from '../lib/confirmDialog'
 import AppointmentList from '../components/pos/AppointmentList.vue'
 import AddProductModal from '../components/pos/AddProductModal.vue'

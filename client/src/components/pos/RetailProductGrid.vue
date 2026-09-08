@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col h-full bg-surface border border-border rounded-2xl overflow-hidden shadow-sm">
-    <div v-if="showSearch" class="flex items-center gap-3 border-b border-border p-3 sm:p-4">
+    <div v-if="showSearch" class="flex items-center gap-3 border-b border-border p-2.5 sm:p-3">
       <div class="relative min-w-0 flex-1">
         <input
           ref="searchInputRef"
@@ -27,11 +27,11 @@
       </span>
     </div>
 
-    <div class="flex items-center gap-2 overflow-x-auto border-b border-border bg-bg-secondary px-3 py-2.5 no-scrollbar touch-pan-x sm:px-4">
+    <div class="flex items-center gap-1.5 overflow-x-auto border-b border-border bg-bg-secondary px-3 py-1.5 no-scrollbar touch-pan-x sm:px-4">
       <span class="hidden shrink-0 pr-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted md:inline">Categorías</span>
       <button
         @click="selectedCategory = 'all'"
-        class="shrink-0 rounded-lg px-3.5 py-2 text-sm font-semibold transition duration-200"
+        class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition duration-200"
         :class="selectedCategory === 'all' ? 'bg-primary text-text-inverse shadow-md shadow-primary/20' : 'bg-surface border border-border text-text-secondary hover:text-text hover:border-primary/50'"
       >
         Todos
@@ -40,14 +40,14 @@
         v-for="cat in categories"
         :key="cat"
         @click="selectedCategory = cat"
-        class="shrink-0 rounded-lg px-3.5 py-2 text-sm font-semibold transition duration-200"
+        class="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold transition duration-200"
         :class="selectedCategory === cat ? 'bg-primary text-text-inverse shadow-md shadow-primary/20' : 'bg-surface border border-border text-text-secondary hover:text-text hover:border-primary/50'"
       >
         {{ cat }}
       </button>
     </div>
 
-    <div class="flex-1 overflow-y-auto bg-bg-secondary/20 p-3 sm:p-5">
+    <div class="flex-1 overflow-y-auto bg-bg-secondary/20 p-3 sm:p-4">
       <div v-if="filteredProducts.length === 0" class="flex flex-col items-center justify-center py-12 text-text-muted">
         <svg class="h-12 w-12 mb-3 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
           <path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
@@ -55,7 +55,7 @@
         <p class="text-sm font-medium">{{ search ? 'Sin resultados para tu búsqueda' : 'No hay productos en esta categoría' }}</p>
       </div>
 
-      <div v-else class="grid gap-3 sm:gap-4 xl:gap-5" style="grid-template-columns: repeat(auto-fill, minmax(190px, 1fr))">
+      <div v-else class="grid gap-3 sm:gap-4" style="grid-template-columns: repeat(auto-fill, minmax(168px, 1fr))">
         <div
           v-for="product in filteredProducts"
           :key="product.id"
@@ -63,7 +63,7 @@
           @click="onProductClick(product)"
           role="button"
           tabindex="0"
-          class="group relative flex h-full min-h-[168px] flex-col items-start rounded-2xl border-2 bg-surface p-4 text-left transition duration-150 sm:min-h-[184px] sm:p-5"
+          class="group relative flex h-full min-h-[148px] flex-col items-start rounded-2xl border-2 bg-surface p-3 text-left transition duration-150 sm:min-h-[160px] sm:p-4"
           :class="[
             Number(product.available_qty ?? 0) > 0
               ? 'border-border hover:border-primary/60 hover:shadow-lg hover:shadow-primary/10 hover:-translate-y-0.5 cursor-pointer'
