@@ -28,11 +28,21 @@ class NotificationService
                 return;
             }
             $query->where('profile_id', $profileId);
-        } elseif ($role === 'encargado' && $branchId) {
+        } elseif ($role === 'encargado') {
+            // Sin `orWhereNull('branch_id')` a propósito: un aviso dirigido a un empleado
+            // puntual (nueva cita, etc.) puede quedar sin branch_id por un bug o una carrera
+            // en su creación (ya paso — ver commit que agrego este comentario), y ese hueco
+            // dejaba a CUALQUIER encargada ver avisos de empleados de OTRA sucursal. Los avisos
+            // realmente globales (stock bajo, etc.) ya llegan con profile_id = la propia
+            // encargada, asi que igual los ve por la primera condicion — no hacia falta el
+            // catch-all de branch_id nulo.
+            // Tampoco se exige `$branchId` (una encargada sin sucursal asignada en su perfil
+            // ya no cae al bloque de abajo, que la trataria como admin viendo todo el negocio).
             $query->where(function ($q) use ($profileId, $branchId) {
-                $q->where('profile_id', $profileId)
-                  ->orWhere('branch_id', $branchId)
-                  ->orWhereNull('branch_id');
+                $q->where('profile_id', $profileId);
+                if ($branchId) {
+                    $q->orWhere('branch_id', $branchId);
+                }
             });
         } else {
             // admin / superadmin: ven toda la actividad del negocio, pero no las filas
