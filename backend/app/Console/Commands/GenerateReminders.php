@@ -244,29 +244,43 @@ class GenerateReminders extends Command
 
         if ($lowStockProducts->isNotEmpty()) {
             foreach ($lowStockProducts as $bizId => $stocks) {
-                $names = $stocks->pluck('product.name')->unique()->take(5)->toArray();
-                $count = $stocks->pluck('product.id')->unique()->count();
-                $remaining = $count - 5;
-                $extra = $count > 5 ? " y {$remaining} más" : '';
-
+                // Borra los avisos viejos de este negocio (todas las sucursales) antes de
+                // recrearlos frescos por sucursal abajo -- evita acumular duplicados de una
+                // corrida a otra.
                 \App\Models\Notification::where('business_id', $bizId)
                     ->where('type', 'low_stock')
                     ->delete();
 
-                $admins = $this->getAdminsToNotify($bizId, null);
+                // Un producto puede estar bajo en la Sucursal A y bien en la B (cada fila de
+                // inventory_stock ya es por sucursal) -- agrupar tambien por branch_id para que
+                // el encargado de cada sucursal solo se entere de LO SUYO. El admin sigue
+                // viendolo todo: getAdminsToNotify() siempre incluye admin/superadmin sin
+                // importar el branchId, asi que recibe un aviso por cada sucursal con stock bajo.
+                $byBranch = $stocks->groupBy(fn ($s) => $s->branch_id ?? '');
 
-                $lowStockRows = [];
-                foreach ($admins as $admin) {
-                    $lowStockRows[] = [
-                        'business_id' => $bizId,
-                        'profile_id' => $admin->id,
-                        'type' => 'low_stock',
-                        'title' => 'Stock bajo',
-                        'message' => "{$count} producto(s) con stock bajo: " . implode(', ', $names) . $extra,
-                        'metadata' => ['product_count' => $count],
-                    ];
+                foreach ($byBranch as $branchId => $branchStocks) {
+                    $branchId = $branchId ?: null;
+                    $names = $branchStocks->pluck('product.name')->unique()->take(5)->toArray();
+                    $count = $branchStocks->pluck('product.id')->unique()->count();
+                    $remaining = $count - 5;
+                    $extra = $count > 5 ? " y {$remaining} más" : '';
+
+                    $admins = $this->getAdminsToNotify($bizId, $branchId);
+
+                    $lowStockRows = [];
+                    foreach ($admins as $admin) {
+                        $lowStockRows[] = [
+                            'business_id' => $bizId,
+                            'branch_id' => $branchId,
+                            'profile_id' => $admin->id,
+                            'type' => 'low_stock',
+                            'title' => 'Stock bajo',
+                            'message' => "{$count} producto(s) con stock bajo: " . implode(', ', $names) . $extra,
+                            'metadata' => ['product_count' => $count],
+                        ];
+                    }
+                    $lowStockGenerated += $this->notificationService->createMany($lowStockRows)->count();
                 }
-                $lowStockGenerated += $this->notificationService->createMany($lowStockRows)->count();
 
                 $affectedBusinesses[$bizId] = true;
             }
