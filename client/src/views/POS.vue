@@ -48,7 +48,7 @@
         </div>
       </div>
 
-      <div class="flex items-center justify-start gap-2 lg:justify-end">
+      <div v-if="activeSaleType !== 'retail_only'" class="flex items-center justify-start gap-2 lg:justify-end">
         <button type="button" title="Configurar impresora térmica"
           class="rounded-lg border border-border bg-surface p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
           @click="showPrinterSettings = true">
@@ -72,7 +72,7 @@
 
   <div
     class="grid grid-cols-1 gap-4 lg:flex-1 lg:min-h-0"
-    :class="activeSaleType === 'retail_only' ? 'lg:grid-cols-[1.7fr_1fr]' : 'lg:grid-cols-2'"
+    :class="activeSaleType === 'retail_only' ? 'lg:grid-cols-[minmax(0,2fr)_minmax(360px,1fr)]' : 'lg:grid-cols-2'"
   >
     <!-- LEFT PANEL -->
     <div class="min-w-0 space-y-4 lg:h-full lg:overflow-y-auto lg:pr-1">
@@ -277,13 +277,45 @@
       </div>
 
       <div v-if="activeSaleType === 'retail_only'" class="flex flex-col h-full space-y-3">
-        <div v-if="hasRetail" class="flex justify-end">
-          <HeldSalesPanel
-            :held-sales="heldSales"
-            :is-loading="heldSalesLoading"
-            @resume="resumeHeldSaleAction"
-            @cancel="cancelHeldSaleAction"
-          />
+        <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface/70 p-2.5 shadow-sm">
+          <div class="hidden min-w-0 items-center gap-2 sm:flex">
+            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
+              </svg>
+            </div>
+            <div class="min-w-0">
+              <p class="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Caja</p>
+              <p class="truncate text-xs font-medium text-text">Venta de mostrador</p>
+            </div>
+          </div>
+
+          <div class="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
+            <HeldSalesPanel
+              v-if="hasRetail"
+              :held-sales="heldSales"
+              :is-loading="heldSalesLoading"
+              @resume="resumeHeldSaleAction"
+              @cancel="cancelHeldSaleAction"
+            />
+            <button
+              type="button"
+              title="Configurar impresora térmica y recibos"
+              aria-label="Configurar impresora térmica y recibos"
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
+              @click="showPrinterSettings = true"
+            >
+              <PrinterIcon class="h-4 w-4" />
+            </button>
+            <ExchangeRateCard
+              :is-editable="isRateEditable"
+              :edit-rate-value="editRateValue"
+              :updating-rate="updatingRate"
+              :display-rate="displayRate"
+              @update:edit-rate-value="editRateValue = $event"
+              @update-rate="handleRateUpdate"
+            />
+          </div>
         </div>
         <RetailClientSearch
           ref="retailClientSearchRef"
