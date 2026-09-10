@@ -1,4 +1,4 @@
-import { db } from '../lib/api'
+import { db, apiRequest } from '../lib/api'
 import { handleDbError } from '../lib/errors'
 import { citaFormSchema } from '../lib/validation'
 import { mapAppointmentToCita, mapCitaFormToAppointmentInsert, mapServiceItemToAppointmentInsert } from '../mappers/agendaMapper'
@@ -472,6 +472,37 @@ export const saveCita = async (
   }
 
   return saveNewGroup(desiredPayloads, parsed.data.service, parsed.data.employee)
+}
+
+// Odontología-only — separate endpoint (capability-gated server-side) rather than the generic
+// appointment update, so this stays impossible to trigger for any other niche even by mistake.
+// Propagates to every appointment sharing the same group_id (a visit with several services
+// booked together), same as updateCitaStatus below — otherwise checking in one service of a
+// grouped booking would leave the rest looking un-arrived.
+export const setAppointmentCheckedIn = async (id: string, checkedIn: boolean): Promise<void> => {
+  const { data: appt } = await db
+    .from('appointments')
+    .select('group_id')
+    .eq('id', id)
+    .maybeSingle()
+
+  const groupId = (appt as any)?.group_id
+
+  if (groupId) {
+    const { data: members, error: membersError } = await db
+      .from('appointments')
+      .select('id')
+      .eq('group_id', groupId)
+
+    if (membersError) throw membersError
+
+    for (const member of (members ?? []) as Array<{ id: string }>) {
+      await apiRequest('PATCH', `/appointments/${member.id}/check-in`, { checked_in: checkedIn })
+    }
+    return
+  }
+
+  await apiRequest('PATCH', `/appointments/${id}/check-in`, { checked_in: checkedIn })
 }
 
 export const updateCitaStatus = async (

@@ -25,6 +25,7 @@ class Appointment extends Model
         'is_fixed_commission_override', 'employee_amount_override', 'assistant_amount_override',
         'duration_override', 'diagnosis', 'treatment', 'associated_products', 'clinical_history',
         'reminder_sent_at', 'reminder_1h_sent_at', 'pending_reminder_sent_at', 'reminders_sent',
+        'checked_in_at',
     ];
 
     protected function casts(): array
@@ -35,6 +36,7 @@ class Appointment extends Model
             'associated_products' => 'array',
             'clinical_history' => 'array',
             'reminders_sent' => 'array',
+            'checked_in_at' => 'datetime',
         ];
     }
 

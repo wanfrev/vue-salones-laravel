@@ -8,6 +8,7 @@
       @slot-select="handleSlotSelect"
       @checkout="handleCheckout"
       @delete="handleDeleteCita"
+      @check-in-toggle="handleCheckInToggle"
     />
   </section>
 
@@ -68,6 +69,7 @@ const {
   handleSaveCita,
   handleStatusChange,
   handleEventChange,
+  handleCheckInToggle,
   handleDeleteCita,
 } = useAppointmentMutations({
   businessId,

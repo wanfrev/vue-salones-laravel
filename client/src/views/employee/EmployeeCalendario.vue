@@ -21,6 +21,7 @@
           @slot-select="handleSlotSelect"
           @checkout="handleCheckout"
           @delete="handleDeleteCita"
+          @check-in-toggle="handleCheckInToggle"
         />
     </div>
   </AppLayout>
@@ -102,6 +103,7 @@ const {
   handleSaveCita,
   handleStatusChange,
   handleEventChange,
+  handleCheckInToggle,
   handleDeleteCita,
 } = useAppointmentMutations({
   businessId,

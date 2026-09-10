@@ -72,6 +72,13 @@ const router = createRouter({
       meta: { requiresAuth: true, gate: { capability: 'clients.pets', profileFlag: 'can_access_consultorio' } },
     },
     {
+      // Odontólogo home screen — today's checked-in ("en sala de espera") patients only.
+      path: '/dashboard/gabinete',
+      name: 'employee-gabinete',
+      component: () => import('../views/employee/EmployeeGabinete.vue'),
+      meta: { requiresAuth: true, gate: { capability: 'dental.clinical_history', profileFlag: 'can_access_dental_clinical' } },
+    },
+    {
       // Employee-side mirror of the admin dental tab shell — same PatientDentalShell.vue and the
       // same 6 leaf view components, wrapped in AppLayout the way EmployeeConsultorio.vue wraps
       // ConsultorioMain.vue (employee routes are flat, not nested under a layout route).

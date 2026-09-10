@@ -129,6 +129,7 @@ const submitLogin = async () => {
       businessStore.hasFeature('servicios'),
       businessStore.hasCapability('staffing.timesheets'),
       businessStore.hasFeature('employees_recibo_only'),
+      !!authStore.profile?.gabinete_mode,
     ))
   }
 }

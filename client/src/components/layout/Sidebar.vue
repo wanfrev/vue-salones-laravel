@@ -121,7 +121,7 @@ const isStrictAdmin = computed(() => authStore.role === 'admin' || authStore.rol
 // can_access_dental_clinical (default true for every employee): a secretary/assistant in the
 // same dental business must keep their full menu unless the admin explicitly narrows THEIRS too.
 const isGabineteMode = computed(() => authStore.role === 'empleado' && !!authStore.profile?.gabinete_mode)
-const GABINETE_ALLOWED_PATHS = ['/dashboard/agenda', '/dashboard/clientes']
+const GABINETE_ALLOWED_PATHS = ['/dashboard/gabinete', '/dashboard/agenda', '/dashboard/clientes']
 
 const isLinkVisible = (link: SidebarLink): boolean => {
   if (isGabineteMode.value && !GABINETE_ALLOWED_PATHS.includes(link.to)) return false

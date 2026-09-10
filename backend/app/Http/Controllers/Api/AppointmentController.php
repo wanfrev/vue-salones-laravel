@@ -342,6 +342,23 @@ class AppointmentController
         return response()->json($appointment);
     }
 
+    // Odontología-only "en sala de espera" toggle — deliberately separate from updateStatus()
+    // (see the checked_in_at migration note): orthogonal to `status`, no notification needed.
+    public function checkIn(Request $request, string $id): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+
+        $data = $request->validate([
+            'checked_in' => 'required|boolean',
+        ]);
+
+        $appointment = $this->appointmentService->setCheckedIn($id, $data['checked_in'], $businessId);
+        $appointment->load(['client', 'service', 'employeeProfile', 'assistantProfile']);
+        EntityChanged::safe($businessId, 'appointment', 'updated', $id);
+        return response()->json($appointment);
+    }
+
     public function petHistory(Request $request, string $clientId, string $petId): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);

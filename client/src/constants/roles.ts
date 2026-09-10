@@ -36,6 +36,7 @@ export const resolveHomeByRole = (
   hasServiciosFeature: boolean = true,
   hasStaffingCapability: boolean = false,
   employeesRecibioOnly: boolean = false,
+  gabineteMode: boolean = false,
 ): string => {
   if (role === ROLES.EMPLEADO && employeesRecibioOnly) {
     return '/dashboard/recibo'
@@ -45,6 +46,12 @@ export const resolveHomeByRole = (
     // (staffing, tienda). Recibo has no gate and applies to every employee regardless of niche,
     // so it's the one screen that's always a safe landing page.
     return hasServiciosFeature ? '/dashboard/historial' : '/dashboard/recibo'
+  }
+  // Modo Gabinete's home is the waiting-room board instead of the plain agenda — only ever true
+  // for a dental-niche odontólogo (see Sidebar.vue's identical gate), every other caller keeps
+  // the default `false` and this branch never fires.
+  if (role === ROLES.EMPLEADO && gabineteMode) {
+    return '/dashboard/gabinete'
   }
   if (isAdminPanelRole(role)) {
     if (!hasAgendaFeature) {
