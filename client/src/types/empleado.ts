@@ -37,6 +37,7 @@ export interface Empleado {
   canCreateClients?: boolean
   canAccessConsultorio?: boolean
   canAccessDentalClinical?: boolean
+  gabineteMode?: boolean
   canAccessInventory?: boolean
   canAccessPos?: boolean
   canAccessSuppliers?: boolean
@@ -85,6 +86,7 @@ export interface EmpleadoFormData {
   canCreateClients: boolean
   canAccessConsultorio: boolean
   canAccessDentalClinical: boolean
+  gabineteMode: boolean
   canAccessInventory: boolean
   canAccessPos: boolean
   canAccessSuppliers: boolean

@@ -83,6 +83,7 @@ const submit = async () => {
       can_create_clients: false,
       can_access_consultorio: false,
       can_access_dental_clinical: false,
+      gabinete_mode: false,
     })
     success('Vendedor creado')
     emit('created')

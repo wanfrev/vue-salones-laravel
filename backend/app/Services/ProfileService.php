@@ -138,6 +138,7 @@ class ProfileService
                 'can_create_clients' => $data['can_create_clients'] ?? true,
                 'can_access_consultorio' => $data['can_access_consultorio'] ?? true,
                 'can_access_dental_clinical' => $data['can_access_dental_clinical'] ?? true,
+                'gabinete_mode' => $data['gabinete_mode'] ?? false,
                 'can_access_inventory' => $data['can_access_inventory'] ?? false,
                 'can_access_pos' => $data['can_access_pos'] ?? false,
                 'can_access_suppliers' => $data['can_access_suppliers'] ?? false,
@@ -233,6 +234,9 @@ class ProfileService
             }
             if (array_key_exists('can_access_dental_clinical', $data)) {
                 $profileFields['can_access_dental_clinical'] = $data['can_access_dental_clinical'];
+            }
+            if (array_key_exists('gabinete_mode', $data)) {
+                $profileFields['gabinete_mode'] = $data['gabinete_mode'];
             }
             if (array_key_exists('can_access_inventory', $data)) {
                 $profileFields['can_access_inventory'] = $data['can_access_inventory'];

@@ -20,6 +20,7 @@ export interface AuthProfile {
   can_create_clients?: boolean
   can_access_consultorio?: boolean
   can_access_dental_clinical?: boolean
+  gabinete_mode?: boolean
   can_access_inventory?: boolean
   can_access_pos?: boolean
   can_access_suppliers?: boolean

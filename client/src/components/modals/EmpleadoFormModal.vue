@@ -205,6 +205,18 @@
             </button>
           </label>
 
+          <label v-if="formData.systemRole !== 'cajero' && isDentalNicheBusiness && formData.canAccessDentalClinical" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-text">Modo Gabinete</p>
+              <p class="text-xs text-text-muted">Simplifica su menú a solo Agenda del día y Pacientes — para el odontólogo, no para recepción</p>
+            </div>
+            <button type="button" role="switch" :aria-checked="formData.gabineteMode"
+              @click="formData.gabineteMode = !formData.gabineteMode"
+              :class="['relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2', formData.gabineteMode ? 'bg-primary border-primary' : 'bg-border border-border']">
+              <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.gabineteMode ? 'translate-x-4' : 'translate-x-0']" />
+            </button>
+          </label>
+
           <!-- Store Permissions -->
           <label v-if="formData.systemRole !== 'encargado' && businessStore.features.inventario" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
@@ -423,6 +435,7 @@ const defaultFormData: EmpleadoFormData = {
   canCreateClients: true,
   canAccessConsultorio: true,
   canAccessDentalClinical: true,
+  gabineteMode: false,
   canAccessInventory: false,
   canAccessPos: false,
   canAccessSuppliers: false,
@@ -514,6 +527,7 @@ watch(
         canCreateClients: empleado.canCreateClients ?? true,
         canAccessConsultorio: empleado.canAccessConsultorio ?? true,
         canAccessDentalClinical: empleado.canAccessDentalClinical ?? true,
+        gabineteMode: empleado.gabineteMode ?? false,
         canAccessInventory: empleado.canAccessInventory ?? false,
         canAccessPos: empleado.canAccessPos ?? false,
         canAccessSuppliers: empleado.canAccessSuppliers ?? false,
@@ -575,6 +589,7 @@ watch(
       formData.value.canCreateClients = false
       formData.value.canAccessConsultorio = false
       formData.value.canAccessDentalClinical = false
+      formData.value.gabineteMode = false
       formData.value.canAccessInventory = false
       formData.value.canAccessPos = true
       formData.value.canAccessSuppliers = false
@@ -605,6 +620,15 @@ watch(
   () => formData.value.disableInventoryEdit,
   (disabled) => {
     if (disabled) formData.value.canAddPurchaseInvoice = false
+  }
+)
+
+// Modo Gabinete only makes sense alongside dental clinical access — turning the latter off
+// hides the toggle, so clear the granted-but-hidden value underneath it too.
+watch(
+  () => formData.value.canAccessDentalClinical,
+  (enabled) => {
+    if (!enabled) formData.value.gabineteMode = false
   }
 )
 
