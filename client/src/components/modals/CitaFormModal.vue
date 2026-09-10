@@ -199,8 +199,8 @@
         </div>
       </div>
 
-      <!-- BLOQUE 4: PRODUCTOS / INSUMOS ASOCIADOS (Solo Nicho Canino / Vet) -->
-      <div v-if="showPetSelector" class="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-3.5">
+      <!-- BLOQUE 4: PRODUCTOS / INSUMOS ASOCIADOS (Vet y Odontología) -->
+      <div v-if="showAssociatedProducts" class="space-y-3 rounded-xl border border-primary/20 bg-primary/5 p-3.5">
         <div class="flex items-center justify-between">
           <div>
             <label class="text-xs font-bold uppercase tracking-wider text-primary">Productos / Insumos a usar en la cita</label>
@@ -268,6 +268,7 @@ import { FormInput, FormSelect, FormDropdown, FormTextarea, FormTime } from '../
 import CitaClientSearch from '../forms/CitaClientSearch.vue'
 import PaymentEditor from './PaymentEditor.vue'
 import { isPetNiche as checkPetNiche } from '../../config/nicheFields'
+import { isDentalNiche as checkDentalNiche } from '../../config/niches'
 import { listPetsByClient } from '../../services/petService'
 import { listSaleableProducts } from '../../services/posService'
 
@@ -312,6 +313,10 @@ const disableCommissionEdit = computed(() => {
 const t = computed(() => businessStore.terminology)
 const nicheType = computed(() => businessStore.nicheType)
 const showPetSelector = computed(() => checkPetNiche(nicheType.value))
+// Insumos/productos usados en la cita — mismo mecanismo que veterinaria (Appointment.associated_
+// products, ya genérico en backend/POS), extendido a odontología. NO incluye el bloque de
+// "Historia Clínica Veterinaria" ni el selector de mascota, que siguen siendo solo showPetSelector.
+const showAssociatedProducts = computed(() => showPetSelector.value || checkDentalNiche(nicheType.value))
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 
@@ -335,7 +340,7 @@ const loadAvailableProducts = async () => {
     availableProducts.value = props.productos
     return
   }
-  if (!showPetSelector.value || !businessId.value) return
+  if (!showAssociatedProducts.value || !businessId.value) return
   try {
     const list = await listSaleableProducts(businessId.value, branchId.value)
     availableProducts.value = list ?? []
@@ -732,7 +737,7 @@ const confirmButtonLabel = computed(() => {
 
 watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData], async ([open, cita, paymentData]) => {
   if (!open) return; commissionDetailOpen.clear(); commissionSnapshots.clear(); activeEmployeeOverrides.clear()
-  if (showPetSelector.value) {
+  if (showAssociatedProducts.value) {
     loadAvailableProducts()
   }
   if (cita) {
