@@ -1,18 +1,4 @@
 <template>
-  <header class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between lg:mb-6">
-    <div>
-      <div class="flex items-center gap-2 text-sm text-primary mb-0.5">
-        <ClipboardIcon class="h-4 w-4" />
-        <span class="font-medium uppercase tracking-wider">Periodontograma</span>
-      </div>
-      <p class="text-sm font-semibold text-text sm:text-base">{{ cliente?.name || terminology.client || 'Paciente' }}</p>
-    </div>
-    <button @click="goBack" class="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary transition-theme hover:bg-bg-secondary">
-      <ArrowLeftIcon class="h-4 w-4" />
-      Volver
-    </button>
-  </header>
-
   <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
     <div class="flex items-center gap-2">
       <label class="text-xs font-semibold uppercase tracking-wider text-text-muted">Medición</label>
@@ -77,11 +63,8 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
-import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeftIcon, ClipboardIcon, AddCircleIcon } from '@solar-icons/vue/linear'
-import { useBusinessStore } from '../store/business'
-import { getClienteById } from '../services/clientesService'
+import { useRoute } from 'vue-router'
+import { AddCircleIcon } from '@solar-icons/vue/linear'
 import { usePeriodontograms } from '../composables/dental/usePeriodontograms'
 import PeriodontogramToothCard from '../components/dental/PeriodontogramToothCard.vue'
 import { FormTextarea } from '../components/forms'
@@ -90,18 +73,8 @@ import type { Periodontogram, PeriodontalToothMeasurement } from '../types/datab
 import type { PeriodontogramSections } from '../services/dental/periodontogramService'
 
 const route = useRoute()
-const router = useRouter()
-const businessStore = useBusinessStore()
 
 const clienteId = computed(() => route.params.id as string)
-const terminology = computed(() => businessStore.terminology)
-
-const { data: clienteData } = useQuery({
-  queryKey: computed(() => ['cliente', clienteId.value]),
-  queryFn: () => getClienteById(clienteId.value),
-  enabled: computed(() => !!clienteId.value),
-})
-const cliente = computed(() => clienteData.value ?? null)
 
 const { periodontograms, isLoading, createMutation, updateMutation } = usePeriodontograms(() => clienteId.value)
 
@@ -173,9 +146,5 @@ async function handleSave() {
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric' })
-}
-
-function goBack() {
-  router.push(`/admin/clientes/${clienteId.value}`)
 }
 </script>

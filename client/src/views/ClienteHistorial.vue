@@ -226,27 +226,27 @@ const goToConsultorio = () => {
 }
 
 const goToOdontograma = () => {
-  router.push(`/admin/clientes/${clienteId.value}/odontograma`)
+  router.push(`/admin/clientes/${clienteId.value}/expediente/odontograma`)
 }
 
 const goToHistoriaClinica = () => {
-  router.push(`/admin/clientes/${clienteId.value}/historia-clinica`)
+  router.push(`/admin/clientes/${clienteId.value}/expediente/historia-clinica`)
 }
 
 const goToAnexoEndodoncia = () => {
-  router.push(`/admin/clientes/${clienteId.value}/anexo-endodoncia`)
+  router.push(`/admin/clientes/${clienteId.value}/expediente/anexo-endodoncia`)
 }
 
 const goToAnexoPeriodoncia = () => {
-  router.push(`/admin/clientes/${clienteId.value}/anexo-periodoncia`)
+  router.push(`/admin/clientes/${clienteId.value}/expediente/anexo-periodoncia`)
 }
 
 const goToPeriodontograma = () => {
-  router.push(`/admin/clientes/${clienteId.value}/periodontograma`)
+  router.push(`/admin/clientes/${clienteId.value}/expediente/periodontograma`)
 }
 
 const goToConsentimiento = () => {
-  router.push(`/admin/clientes/${clienteId.value}/consentimiento`)
+  router.push(`/admin/clientes/${clienteId.value}/expediente/consentimiento`)
 }
 
 const handleWhatsApp = () => {

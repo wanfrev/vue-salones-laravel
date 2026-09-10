@@ -193,6 +193,18 @@
             </button>
           </label>
 
+          <label v-if="formData.systemRole !== 'cajero' && isDentalNicheBusiness" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-text">Puede ver Expediente Dental</p>
+              <p class="text-xs text-text-muted">Permite acceder al odontograma, historia clínica y anexos</p>
+            </div>
+            <button type="button" role="switch" :aria-checked="formData.canAccessDentalClinical"
+              @click="formData.canAccessDentalClinical = !formData.canAccessDentalClinical"
+              :class="['relative inline-flex h-5 w-9 shrink-0 rounded-full transition-theme border-2', formData.canAccessDentalClinical ? 'bg-primary border-primary' : 'bg-border border-border']">
+              <span :class="['inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform', formData.canAccessDentalClinical ? 'translate-x-4' : 'translate-x-0']" />
+            </button>
+          </label>
+
           <!-- Store Permissions -->
           <label v-if="formData.systemRole !== 'encargado' && businessStore.features.inventario" class="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary/50 px-3 py-2.5 cursor-pointer transition-theme hover:border-border-strong">
             <div class="flex-1">
@@ -326,7 +338,7 @@ import { addBusinessJobTitle } from '../../services/equipoService'
 import { useFormValidation } from '../../composables/common/useFormValidation'
 import { empleadoFormSchema } from '../../lib/validation'
 import { isPetNiche } from '../../config/nicheFields'
-import { isTiendaNiche } from '../../config/niches'
+import { isTiendaNiche, isDentalNiche } from '../../config/niches'
 import type { Empleado, EmpleadoFormData } from '../../types/empleado'
 import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormDropdown } from '../forms'
@@ -354,6 +366,7 @@ const businessStore = useBusinessStore()
 const t = computed(() => businessStore.terminology)
 
 const isPetNicheBusiness = computed(() => isPetNiche(businessStore.nicheType))
+const isDentalNicheBusiness = computed(() => isDentalNiche(businessStore.nicheType))
 const isTienda = computed(() => isTiendaNiche(businessStore.nicheType))
 // A staffing niche has two very different kinds of "team member": the workers placed at
 // client companies (no login at all — pay comes from the company + rate card) and the
@@ -409,6 +422,7 @@ const defaultFormData: EmpleadoFormData = {
   canCreateAppointments: true,
   canCreateClients: true,
   canAccessConsultorio: true,
+  canAccessDentalClinical: true,
   canAccessInventory: false,
   canAccessPos: false,
   canAccessSuppliers: false,
@@ -499,6 +513,7 @@ watch(
         canCreateAppointments: empleado.canCreateAppointments ?? true,
         canCreateClients: empleado.canCreateClients ?? true,
         canAccessConsultorio: empleado.canAccessConsultorio ?? true,
+        canAccessDentalClinical: empleado.canAccessDentalClinical ?? true,
         canAccessInventory: empleado.canAccessInventory ?? false,
         canAccessPos: empleado.canAccessPos ?? false,
         canAccessSuppliers: empleado.canAccessSuppliers ?? false,
@@ -559,6 +574,7 @@ watch(
       formData.value.canCreateAppointments = false
       formData.value.canCreateClients = false
       formData.value.canAccessConsultorio = false
+      formData.value.canAccessDentalClinical = false
       formData.value.canAccessInventory = false
       formData.value.canAccessPos = true
       formData.value.canAccessSuppliers = false

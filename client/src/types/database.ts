@@ -75,6 +75,7 @@ export interface Profile {
   can_access_finanzas?: boolean
   can_access_requirements?: boolean
   can_add_purchase_invoice?: boolean
+  can_access_dental_clinical?: boolean
   // Deprecated — a profile can now be assigned to more than one staffing company at once, see
   // staffing_assignments below. staffing_role stays populated on company-scoped responses
   // (Nómina's employee grid, RateCardEditor's headcount) as "this employee's role at THAT
