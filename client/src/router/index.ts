@@ -72,6 +72,62 @@ const router = createRouter({
       meta: { requiresAuth: true, gate: { capability: 'clients.pets', profileFlag: 'can_access_consultorio' } },
     },
     {
+      // Odontólogo home screen — today's checked-in ("en sala de espera") patients only.
+      path: '/dashboard/gabinete',
+      name: 'employee-gabinete',
+      component: () => import('../views/employee/EmployeeGabinete.vue'),
+      meta: { requiresAuth: true, gate: { capability: 'dental.clinical_history', profileFlag: 'can_access_dental_clinical' } },
+    },
+    {
+      // Employee-side mirror of the admin dental tab shell — same PatientDentalShell.vue and the
+      // same 6 leaf view components, wrapped in AppLayout the way EmployeeConsultorio.vue wraps
+      // ConsultorioMain.vue (employee routes are flat, not nested under a layout route).
+      path: '/dashboard/clientes/:id/expediente',
+      component: () => import('../views/employee/EmployeePatientDentalShell.vue'),
+      // Every child below carries its own specific dental.* capability, but the bare parent path
+      // (no child segment) matches too and would render the shell — with real patient data in its
+      // header — for any niche's employee if this weren't here.
+      meta: { requiresAuth: true, gate: { feature: 'employees_see_clients', capability: 'dental.odontogram', profileFlag: 'can_access_dental_clinical' } },
+      children: [
+        {
+          path: 'historia-clinica',
+          name: 'employee-cliente-historia-clinica',
+          component: () => import('../views/ClienteHistoriaClinica.vue'),
+          meta: { gate: { capability: 'dental.clinical_history', profileFlag: 'can_access_dental_clinical' } },
+        },
+        {
+          path: 'odontograma',
+          name: 'employee-cliente-odontograma',
+          component: () => import('../views/ClienteOdontograma.vue'),
+          meta: { gate: { capability: 'dental.odontogram', profileFlag: 'can_access_dental_clinical' } },
+        },
+        {
+          path: 'periodontograma',
+          name: 'employee-cliente-periodontograma',
+          component: () => import('../views/ClientePeriodontograma.vue'),
+          meta: { gate: { capability: 'dental.periodontogram', profileFlag: 'can_access_dental_clinical' } },
+        },
+        {
+          path: 'anexo-endodoncia',
+          name: 'employee-cliente-anexo-endodoncia',
+          component: () => import('../views/ClienteAnexoEndodoncia.vue'),
+          meta: { gate: { capability: 'dental.endo_annex', profileFlag: 'can_access_dental_clinical' } },
+        },
+        {
+          path: 'anexo-periodoncia',
+          name: 'employee-cliente-anexo-periodoncia',
+          component: () => import('../views/ClientePerioAnexo.vue'),
+          meta: { gate: { capability: 'dental.perio_annex', profileFlag: 'can_access_dental_clinical' } },
+        },
+        {
+          path: 'consentimiento',
+          name: 'employee-cliente-consentimiento',
+          component: () => import('../views/ClienteConsentimiento.vue'),
+          meta: { gate: { capability: 'dental.consent', profileFlag: 'can_access_dental_clinical' } },
+        },
+      ],
+    },
+    {
       path: '/dashboard/pagos',
       name: 'employee-payments',
       component: () => import('../views/employee/EmployeePayments.vue'),
@@ -128,40 +184,55 @@ const router = createRouter({
           meta: { gate: { capability: 'clients.pets' } },
         },
         {
-          path: 'clientes/:id/odontograma',
-          name: 'admin-cliente-odontograma',
-          component: () => import('../views/ClienteOdontograma.vue'),
+          // Shared tab shell for the 6 dental clinical modules — see PatientDentalShell.vue.
+          // Deliberately a distinct path segment (not nested directly under `clientes/:id`, which
+          // stays ClienteHistorial.vue for every niche) so this whole subtree is additive and
+          // unreachable outside odontología (each child still carries its own capability gate).
+          path: 'clientes/:id/expediente',
+          component: () => import('../components/dental/PatientDentalShell.vue'),
+          // Every child below carries its own specific dental.* capability, but the bare parent
+          // path (no child segment) matches too and would render the shell — with real patient
+          // data in its header — for any niche if this weren't here. Any dental.* capability
+          // works as the "is this business odontología" proxy since only that niche has them.
           meta: { gate: { capability: 'dental.odontogram' } },
-        },
-        {
-          path: 'clientes/:id/historia-clinica',
-          name: 'admin-cliente-historia-clinica',
-          component: () => import('../views/ClienteHistoriaClinica.vue'),
-          meta: { gate: { capability: 'dental.clinical_history' } },
-        },
-        {
-          path: 'clientes/:id/anexo-endodoncia',
-          name: 'admin-cliente-anexo-endodoncia',
-          component: () => import('../views/ClienteAnexoEndodoncia.vue'),
-          meta: { gate: { capability: 'dental.endo_annex' } },
-        },
-        {
-          path: 'clientes/:id/anexo-periodoncia',
-          name: 'admin-cliente-anexo-periodoncia',
-          component: () => import('../views/ClientePerioAnexo.vue'),
-          meta: { gate: { capability: 'dental.perio_annex' } },
-        },
-        {
-          path: 'clientes/:id/periodontograma',
-          name: 'admin-cliente-periodontograma',
-          component: () => import('../views/ClientePeriodontograma.vue'),
-          meta: { gate: { capability: 'dental.periodontogram' } },
-        },
-        {
-          path: 'clientes/:id/consentimiento',
-          name: 'admin-cliente-consentimiento',
-          component: () => import('../views/ClienteConsentimiento.vue'),
-          meta: { gate: { capability: 'dental.consent' } },
+          children: [
+            {
+              path: 'historia-clinica',
+              name: 'admin-cliente-historia-clinica',
+              component: () => import('../views/ClienteHistoriaClinica.vue'),
+              meta: { gate: { capability: 'dental.clinical_history' } },
+            },
+            {
+              path: 'odontograma',
+              name: 'admin-cliente-odontograma',
+              component: () => import('../views/ClienteOdontograma.vue'),
+              meta: { gate: { capability: 'dental.odontogram' } },
+            },
+            {
+              path: 'periodontograma',
+              name: 'admin-cliente-periodontograma',
+              component: () => import('../views/ClientePeriodontograma.vue'),
+              meta: { gate: { capability: 'dental.periodontogram' } },
+            },
+            {
+              path: 'anexo-endodoncia',
+              name: 'admin-cliente-anexo-endodoncia',
+              component: () => import('../views/ClienteAnexoEndodoncia.vue'),
+              meta: { gate: { capability: 'dental.endo_annex' } },
+            },
+            {
+              path: 'anexo-periodoncia',
+              name: 'admin-cliente-anexo-periodoncia',
+              component: () => import('../views/ClientePerioAnexo.vue'),
+              meta: { gate: { capability: 'dental.perio_annex' } },
+            },
+            {
+              path: 'consentimiento',
+              name: 'admin-cliente-consentimiento',
+              component: () => import('../views/ClienteConsentimiento.vue'),
+              meta: { gate: { capability: 'dental.consent' } },
+            },
+          ],
         },
         {
           path: 'finanzas',

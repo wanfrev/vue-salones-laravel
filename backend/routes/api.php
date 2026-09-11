@@ -239,6 +239,12 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::delete('/appointments/{id}', [AppointmentController::class, 'destroy']);
         Route::patch('/appointments/{id}/status', [AppointmentController::class, 'updateStatus']);
         Route::patch('/appointments/{id}/time', [AppointmentController::class, 'updateTime']);
+
+        // Odontología-only "en sala de espera" toggle (checked_in_at) — gated so no other niche
+        // can even call it, on top of the appointments-edit permission above.
+        Route::middleware('capability:dental.clinical_history')->group(function () {
+            Route::patch('/appointments/{id}/check-in', [AppointmentController::class, 'checkIn']);
+        });
     });
 
     // Products — read needs perm:inventory (tienda employee "acceso a inventario"),

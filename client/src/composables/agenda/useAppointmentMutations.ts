@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
 import { useNotification } from '../common/useNotification'
-import { saveCita, updateCitaStatus, updateAppointmentTime, deleteCita } from '../../services/agendaService'
+import { saveCita, updateCitaStatus, updateAppointmentTime, deleteCita, setAppointmentCheckedIn } from '../../services/agendaService'
+import { listConsents } from '../../services/dental/consentService'
 import { posKeys, updateTransaction } from '../../services/posService'
 import { clientesKeys } from '../../services/clientesService'
 import { dashboardKeys } from '../../services/employeeDashboardService'
@@ -19,7 +20,7 @@ export function useAppointmentMutations(options: {
   invalidateKeys?: ((businessId: string) => readonly any[])
 }) {
   const queryClient = useQueryClient()
-  const { success, error: showError } = useNotification()
+  const { success, error: showError, warning } = useNotification()
   const businessStore = useBusinessStore()
   const authStore = useAuthStore()
 
@@ -192,6 +193,18 @@ export function useAppointmentMutations(options: {
     },
   })
 
+  // Odontología-only — see AgendaCalendar.vue's isDentalNiche gate on the button that triggers
+  // this. No optimistic cache patch needed: it's a secondary field nobody else reads on the
+  // shared appointment list, unlike status/time which drive the calendar's own rendering.
+  const checkInMutation = useMutation({
+    mutationFn: ({ id, checkedIn }: { id: string; clientId: string; checkedIn: boolean }) =>
+      setAppointmentCheckedIn(id, checkedIn),
+    onError: (err) => showError(translateError(err)),
+    onSettled: async () => {
+      await invalidate()
+    },
+  })
+
   const updateTimeMutation = useMutation({
     mutationFn: ({ id, start, end, employeeId }: { id: string; start: string; end: string; employeeId?: string }) =>
       updateAppointmentTime(id, start, end, employeeId),
@@ -277,6 +290,27 @@ export function useAppointmentMutations(options: {
     success(`Estado actualizado a ${status}`)
   }
 
+  const handleCheckInToggle = async ({ id, clientId, checkedIn }: { id: string; clientId: string; checkedIn: boolean }) => {
+    if (checkInMutation.isPending.value) return
+    try {
+      await checkInMutation.mutateAsync({ id, clientId, checkedIn })
+    } catch {
+      return
+    }
+    success(checkedIn ? 'Paciente marcado en sala de espera' : 'Paciente retirado de sala de espera')
+
+    if (checkedIn) {
+      try {
+        const consents = await listConsents(clientId)
+        if (!consents || consents.length === 0) {
+          warning('Este paciente no tiene ningún consentimiento informado firmado.', 6000)
+        }
+      } catch {
+        // Consent check is a courtesy heads-up, not a blocker — swallow failures silently.
+      }
+    }
+  }
+
   const handleEventChange = async ({ id, start, end, employeeId }: { id: string; start: string; end: string; employeeId?: string }) => {
     if (updateTimeMutation.isPending.value) return
     const newStart = new Date(start)
@@ -318,10 +352,12 @@ export function useAppointmentMutations(options: {
     saveCitaMutation,
     updateStatusMutation,
     updateTimeMutation,
+    checkInMutation,
     deleteCitaMutation,
     handleSaveCita,
     handleStatusChange,
     handleEventChange,
+    handleCheckInToggle,
     handleDeleteCita,
   }
 }

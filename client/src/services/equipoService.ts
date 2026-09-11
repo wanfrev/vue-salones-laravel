@@ -76,6 +76,8 @@ export const saveEmpleado = async (
       can_create_appointments: data.systemRole !== 'cajero' ? data.canCreateAppointments : false,
       can_create_clients: data.systemRole !== 'cajero' ? data.canCreateClients : false,
       can_access_consultorio: data.systemRole !== 'cajero' ? data.canAccessConsultorio : false,
+      can_access_dental_clinical: data.systemRole !== 'cajero' ? data.canAccessDentalClinical : false,
+      gabinete_mode: data.systemRole !== 'cajero' ? data.gabineteMode : false,
       can_access_inventory: profileUpdate.can_access_inventory,
       can_access_pos: profileUpdate.can_access_pos,
       can_access_suppliers: profileUpdate.can_access_suppliers,
@@ -115,6 +117,8 @@ export const saveEmpleado = async (
     can_create_appointments: data.systemRole !== 'cajero' ? data.canCreateAppointments : false,
     can_create_clients: data.systemRole !== 'cajero' ? data.canCreateClients : false,
     can_access_consultorio: data.systemRole !== 'cajero' ? data.canAccessConsultorio : false,
+    can_access_dental_clinical: data.systemRole !== 'cajero' ? data.canAccessDentalClinical : false,
+    gabinete_mode: data.systemRole !== 'cajero' ? data.gabineteMode : false,
     branch_id: branchId ?? null,
     schedules: scheduleBlocks,
   })

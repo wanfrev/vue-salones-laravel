@@ -33,6 +33,8 @@ export interface Cita {
   treatment?: string
   associatedProducts?: CitaAssociatedProduct[]
   clinicalHistory?: Record<string, string>
+  /** Odontología-only "en sala de espera" marker — orthogonal to `status`, null for every other niche. */
+  checkedInAt?: string | null
 }
 
 export interface CitaAssociatedProduct {

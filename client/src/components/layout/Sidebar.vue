@@ -116,7 +116,15 @@ const isAdmin = computed(() => isAdminPanelRole(authStore.role ?? undefined))
 // links whose page content is itself gated that strictly (e.g. Configuración's sub-pages).
 const isStrictAdmin = computed(() => authStore.role === 'admin' || authStore.role === 'superadmin')
 
+// "Modo Gabinete" — an opt-in, per-employee toggle (default false) that trims the sidebar down
+// to just what a dentist needs mid-consultation. Deliberately its own flag rather than reusing
+// can_access_dental_clinical (default true for every employee): a secretary/assistant in the
+// same dental business must keep their full menu unless the admin explicitly narrows THEIRS too.
+const isGabineteMode = computed(() => authStore.role === 'empleado' && !!authStore.profile?.gabinete_mode)
+const GABINETE_ALLOWED_PATHS = ['/dashboard/gabinete', '/dashboard/agenda', '/dashboard/clientes']
+
 const isLinkVisible = (link: SidebarLink): boolean => {
+  if (isGabineteMode.value && !GABINETE_ALLOWED_PATHS.includes(link.to)) return false
   if (link.strictAdminOnly && !isStrictAdmin.value) return false
   if (link.adminOnly && !isAdmin.value) {
     // Empleados de tienda con permisos

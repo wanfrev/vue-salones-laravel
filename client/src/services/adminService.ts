@@ -19,6 +19,8 @@ export interface EmployeeInput {
   can_create_appointments?: boolean
   can_create_clients?: boolean
   can_access_consultorio?: boolean
+  can_access_dental_clinical?: boolean
+  gabinete_mode?: boolean
   can_access_inventory?: boolean
   can_access_pos?: boolean
   can_access_suppliers?: boolean
@@ -72,6 +74,8 @@ export const adminCreateEmployee = async (input: EmployeeInput): Promise<{ id: s
       can_create_appointments: input.can_create_appointments ?? true,
       can_create_clients: input.can_create_clients ?? true,
       can_access_consultorio: input.can_access_consultorio ?? true,
+      can_access_dental_clinical: input.can_access_dental_clinical ?? true,
+      gabinete_mode: input.gabinete_mode ?? false,
       can_access_inventory: input.can_access_inventory ?? false,
       can_access_pos: input.can_access_pos ?? false,
       can_access_suppliers: input.can_access_suppliers ?? false,

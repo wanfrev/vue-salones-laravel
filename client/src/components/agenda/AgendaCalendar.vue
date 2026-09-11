@@ -325,6 +325,16 @@
             <path d="M5 13l4 4L19 7" />
           </svg>
         </button>
+        <template v-if="isDental">
+          <div class="my-1 border-t border-border"></div>
+          <button
+            @click="toggleCheckIn"
+            class="flex items-center gap-2 w-full rounded-md px-2.5 py-1.5 text-[11px] font-medium text-text transition-colors hover:bg-bg-secondary"
+          >
+            <span class="h-2 w-2 rounded-full flex-shrink-0" :class="statusMenu?.checkedIn ? 'bg-warning' : 'bg-border'" />
+            <span class="flex-1 text-left">{{ statusMenu?.checkedIn ? 'Quitar de sala de espera' : 'Marcar en sala de espera' }}</span>
+          </button>
+        </template>
       </div>
     </Teleport>
 
@@ -384,6 +394,7 @@ import { useAgenda } from '../../composables/agenda/useAgenda'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { isAdminPanelRole } from '../../constants/roles'
+import { isDentalNiche } from '../../config/niches'
 import { normalizeAppointmentStatus, getStatusLabel, dateToHHmm, dateToHHmm12, toISODate, getInitials, parseLocalDate } from '../../lib/formatters'
 import { mapAppointmentToCita } from '../../mappers/agendaMapper'
 import { searchAppointmentsGlobal } from '../../services/agendaService'
@@ -396,6 +407,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 const businessStore = useBusinessStore()
 const isAdmin = computed(() => isAdminPanelRole(authStore.role ?? undefined))
+const isDental = computed(() => isDentalNiche(businessStore.nicheType))
 const businessId = computed(() => authStore.businessId)
 const currentBranchId = computed(() => businessStore.currentBranchId)
 
@@ -410,6 +422,7 @@ const emit = defineEmits<{
   slotSelect: [payload: { start: Date; end: Date; employeeId?: string }]
   checkout: [appointmentId: string]
   delete: [id: string]
+  checkInToggle: [payload: { id: string; clientId: string; checkedIn: boolean }]
 }>()
 
 const { selectedEmployeeId, setDateRange, employees, loadingEmployees, services, appointments, appointmentsError, schedules } = useAgenda()
@@ -515,7 +528,7 @@ const { data: globalSearchResults, isFetching: globalSearchLoading } = useQuery(
 const viewMode = ref<'day' | 'week' | 'month' | 'year'>('day')
 const selectedDate = ref(toISODate(new Date()))
 const gridContainer = ref<HTMLElement | null>(null)
-const statusMenu = ref<{ appointmentId: string; currentStatus: string; x: number; y: number } | null>(null)
+const statusMenu = ref<{ appointmentId: string; currentStatus: string; clientId: string; checkedIn: boolean; x: number; y: number } | null>(null)
 const empDropdownOpen = ref(false)
 
 // ---- Drag to reschedule (vertical only — same day/employee column, just changes the time) ----
@@ -978,11 +991,26 @@ function emitCheckout(id: string) { emit('checkout', id) }
 function toggleStatusMenu(appt: DisplayAppointment, e: MouseEvent) {
   if (statusMenu.value?.appointmentId === appt.id) { statusMenu.value = null; return }
   const r = (e.target as HTMLElement).getBoundingClientRect()
-  statusMenu.value = { appointmentId: appt.id, currentStatus: appt.status, x: r.left - 8, y: r.bottom + 4 }
+  statusMenu.value = {
+    appointmentId: appt.id,
+    currentStatus: appt.status,
+    clientId: appt.raw?.client_id,
+    checkedIn: !!appt.raw?.checked_in_at,
+    x: r.left - 8,
+    y: r.bottom + 4,
+  }
 }
 
 function changeStatus(id: string, s: string) {
   emit('statusChange', { id, status: s as 'pending' | 'confirmed' | 'paid' })
+  statusMenu.value = null
+}
+
+function toggleCheckIn() {
+  if (!statusMenu.value) return
+  const { appointmentId, clientId, checkedIn } = statusMenu.value
+  if (!clientId) return
+  emit('checkInToggle', { id: appointmentId, clientId, checkedIn: !checkedIn })
   statusMenu.value = null
 }
 

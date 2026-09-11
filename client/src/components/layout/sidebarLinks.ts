@@ -60,6 +60,7 @@ export const sidebarSections: SidebarSection[] = [
       { to: '/dashboard/clientes', label: 'Clientes', labelKey: 'clientPlural', icon: UsersGroupRoundedIcon, employeeOnly: true, gate: { feature: 'employees_see_clients', hideIfCapability: 'staffing.timesheets' } },
       { to: '/admin/consultorio', label: 'Consultorio', icon: HeartPulseIcon, adminOnly: true, gate: { capability: 'clients.pets' } },
       { to: '/dashboard/consultorio', label: 'Consultorio', icon: HeartPulseIcon, employeeOnly: true, gate: { capability: 'clients.pets', profileFlag: 'can_access_consultorio' } },
+      { to: '/dashboard/gabinete', label: 'Tablero de Gabinete', icon: ClockCircleIcon, employeeOnly: true, gate: { capability: 'dental.clinical_history', profileFlag: 'can_access_dental_clinical' } },
       { to: '/admin/equipo', label: 'Equipo', labelKey: 'employeePlural', icon: BagIcon, adminOnly: true },
       { to: '/admin/empresas', label: 'Empresas', icon: BuildingsIcon, adminOnly: true, gate: { capability: 'staffing.timesheets' } },
       { to: '/admin/nomina', label: 'Nómina', icon: WalletMoneyIcon, adminOnly: true, gate: { capability: 'staffing.timesheets' } },

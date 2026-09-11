@@ -198,6 +198,13 @@ class AppointmentService
         return $appointment->fresh();
     }
 
+    public function setCheckedIn(string $id, bool $checkedIn, string $businessId): Appointment
+    {
+        $appointment = $this->findForBusiness($id, $businessId);
+        $appointment->update(['checked_in_at' => $checkedIn ? now() : null]);
+        return $appointment->fresh();
+    }
+
     public function updateTime(string $id, string $startTime, string $endTime, string $businessId): Appointment
     {
         $appointment = $this->findForBusiness($id, $businessId);

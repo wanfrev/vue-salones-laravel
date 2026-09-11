@@ -101,6 +101,7 @@ export const mapAppointmentToCita = (appointment: AppointmentWithRelations): Cit
     treatment: appointment.treatment ?? (appointment as any).treatment ?? undefined,
     associatedProducts,
     clinicalHistory: appointment.clinical_history ?? (appointment as any).clinical_history ?? undefined,
+    checkedInAt: (appointment as any).checked_in_at ?? null,
   }
 }
 
