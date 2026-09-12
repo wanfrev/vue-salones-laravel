@@ -36,7 +36,7 @@
       </div>
       <div class="min-w-[180px] flex-1">
         <label class="mb-1 block text-xs font-medium text-text-muted" for="doc-file">Archivo</label>
-        <input id="doc-file" ref="fileInputEl" type="file" accept=".pdf,.jpg,.jpeg,.png"
+        <input id="doc-file" ref="fileInputEl" type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp"
           class="w-full text-sm text-text-secondary" @change="onFileChange" />
       </div>
       <button type="button" :disabled="!selectedFile || ctx.uploadMutation.isPending.value" @click="submit"
@@ -44,7 +44,7 @@
         {{ ctx.uploadMutation.isPending.value ? 'Subiendo...' : 'Adjuntar' }}
       </button>
     </div>
-    <p class="mt-1 text-[10px] text-text-muted">PDF, JPG o PNG — máx. 10 MB.</p>
+    <p class="mt-1 text-[10px] text-text-muted">PDF, JPG, PNG o foto de celular (HEIC/WEBP) — máx. 10 MB.</p>
   </div>
 </template>
 

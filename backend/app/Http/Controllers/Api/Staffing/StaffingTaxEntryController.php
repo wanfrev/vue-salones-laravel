@@ -45,7 +45,8 @@ class StaffingTaxEntryController
             'year' => 'required|integer|min:2000|max:2100',
             'amount' => 'nullable|numeric|min:0',
             'entry_date' => 'nullable|date',
-            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            // heic/heif/webp — see EmployeeDocumentController for why these matter.
+            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png,heic,heif,webp|max:10240',
         ]);
 
         $entry = $this->entries->upsert($data, $p->business_id, $request->file('file'), $p->id);

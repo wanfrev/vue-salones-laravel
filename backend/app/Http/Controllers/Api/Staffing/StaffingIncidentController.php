@@ -115,7 +115,8 @@ class StaffingIncidentController
             return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
         }
 
-        $request->validate(['file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240']);
+        // heic/heif/webp — see EmployeeDocumentController for why these matter.
+        $request->validate(['file' => 'required|file|mimes:pdf,jpg,jpeg,png,heic,heif,webp|max:10240']);
 
         $incident = $this->incidents->uploadSingleFile($id, $businessId, $field, $request->file('file'));
         EntityChanged::safe($businessId, 'staffing_incident', 'updated', $id);
@@ -165,7 +166,8 @@ class StaffingIncidentController
 
         $data = $request->validate([
             'file_type' => 'required|in:factura,paperwork,drug_test,foto',
-            'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            // heic/heif/webp — see EmployeeDocumentController for why these matter.
+            'file' => 'required|file|mimes:pdf,jpg,jpeg,png,heic,heif,webp|max:10240',
         ]);
 
         $p = $request->user()?->load('profile')?->profile;

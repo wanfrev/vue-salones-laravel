@@ -112,21 +112,45 @@ export function handleDbError(error: unknown, fallback: string): never {
   throw new AppError(fallback)
 }
 
+/**
+ * Laravel's file-upload validation messages arrive in raw English (`apiUpload` just forwards
+ * the JSON body's `message` field) — a non-technical user has no way to connect "The file field
+ * must be a file of type: pdf, jpg..." to "my phone photo didn't save." These are the only
+ * validation rules every upload endpoint in the app actually uses (see mimes:.../max:10240 on
+ * EmployeeDocumentController, StaffingIncidentController, StaffingTaxEntryController,
+ * StaffingAnnualTaxController), so pattern-matching them here covers every upload form at once.
+ */
+const FILE_VALIDATION_PATTERNS: [RegExp, string][] = [
+  [/file field must be a file of type/i, 'Formato de archivo no soportado. Usa PDF, JPG, PNG, HEIC o WEBP.'],
+  [/file field must not be greater than/i, 'El archivo es demasiado grande. El máximo permitido es 10 MB.'],
+  [/file field is required/i, 'Debes seleccionar un archivo.'],
+  [/file field must be a file/i, 'El archivo seleccionado no es válido.'],
+]
+
+function translateFileValidationMessage(msg: string): string | null {
+  for (const [pattern, translated] of FILE_VALIDATION_PATTERNS) {
+    if (pattern.test(msg)) return translated
+  }
+  return null
+}
+
 export function translateError(err: unknown, fallback?: string): string {
   if (err instanceof DOMException && err.name === 'AbortError') {
     return 'La operación tardó demasiado. Verifica tu conexión a internet e intenta de nuevo.'
   }
-  if (err instanceof AppError) return err.message
+  if (err instanceof AppError) return translateFileValidationMessage(err.message) ?? err.message
   if (err instanceof Error) {
     const msg = err.message || ''
     if (/timeout|timed out|aborted/i.test(msg)) {
       return 'La operación tardó demasiado. Verifica tu conexión a internet e intenta de nuevo.'
     }
+    const translated = translateFileValidationMessage(msg)
+    if (translated) return translated
     return msg || fallback || 'Error inesperado al procesar la solicitud.'
   }
   if (err && typeof err === 'object' && 'message' in err) {
     const msg = (err as Record<string, unknown>).message
-    if (typeof msg === 'string' && msg.trim()) return msg.trim()
+    if (typeof msg === 'string' && msg.trim()) return translateFileValidationMessage(msg) ?? msg.trim()
   }
   return fallback || 'Error inesperado al procesar la solicitud.'
 }

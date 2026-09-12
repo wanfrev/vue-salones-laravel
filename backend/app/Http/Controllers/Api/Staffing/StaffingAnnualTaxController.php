@@ -24,7 +24,8 @@ class StaffingAnnualTaxController extends Controller
             'employee_id' => 'required|uuid|exists:profiles,id',
             'year' => 'required|integer|min:2000|max:2100',
             'status' => ['nullable', 'string', Rule::in(['BLANK', 'SENT_TO_EMPLOYEE', 'SENT_TO_ACCOUNTANT', 'PENDING_TO_SEND'])],
-            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            // heic/heif/webp — see EmployeeDocumentController for why these matter.
+            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png,heic,heif,webp|max:10240',
             'file_date' => 'nullable|date',
         ]);
 
