@@ -214,7 +214,7 @@
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-text">Archivo</label>
-              <input type="file" accept=".pdf,.jpg,.jpeg,.png" class="w-full text-sm text-text-secondary"
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp" class="w-full text-sm text-text-secondary"
                 @change="onGlobalFileChange" />
               <p v-if="globalFileModal.employee.globalFilePath" class="mt-1 flex items-center gap-2 text-xs text-text-muted">
                 <PaperclipIcon class="h-3.5 w-3.5" />
@@ -267,7 +267,7 @@
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-text" for="cell-file">Archivo</label>
-              <input id="cell-file" type="file" accept=".pdf,.jpg,.jpeg,.png" class="w-full text-sm text-text-secondary"
+              <input id="cell-file" type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp" class="w-full text-sm text-text-secondary"
                 @change="onFileChange" />
               <p v-if="existingFileName" class="mt-1 flex items-center gap-2 text-xs text-text-muted">
                 <PaperclipIcon class="h-3.5 w-3.5" />
@@ -361,7 +361,7 @@
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-text">Archivo</label>
-              <input type="file" accept=".pdf,.jpg,.jpeg,.png" class="w-full text-sm text-text-secondary"
+              <input type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp" class="w-full text-sm text-text-secondary"
                 @change="onAddInfoFileChange" />
             </div>
 
@@ -375,7 +375,7 @@
                 </div>
                 <div>
                   <label class="mb-1 block text-xs text-text-muted">{{ entity.name }} — Archivo</label>
-                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" class="w-full text-xs text-text-secondary"
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp" class="w-full text-xs text-text-secondary"
                     @change="onAddInfoEntityFileChange(entity.id, $event)" />
                 </div>
               </div>

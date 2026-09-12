@@ -41,7 +41,10 @@ class EmployeeDocumentController
         $data = $request->validate([
             'employee_id' => 'required|uuid',
             'label' => 'nullable|string|max:120',
-            'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+            // heic/heif covers the iPhone camera's default photo format, and webp covers Android's
+            // Google Photos exports — without these, a photo of a document taken straight from a
+            // phone (the overwhelmingly common case here) silently 422s on upload.
+            'file' => 'required|file|mimes:pdf,jpg,jpeg,png,heic,heif,webp|max:10240',
         ]);
 
         $document = $this->documents->store($data, $p->business_id, $request->file('file'), $p->id);

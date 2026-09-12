@@ -11,7 +11,7 @@
       </span>
     </button>
     <label class="cursor-pointer rounded p-1 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary" title="Agregar archivo">
-      <input type="file" class="hidden" accept=".pdf,.jpg,.jpeg,.png" @change="handleUpload" />
+      <input type="file" class="hidden" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp" @change="handleUpload" />
       <UploadIcon class="h-4 w-4" />
     </label>
   </div>
