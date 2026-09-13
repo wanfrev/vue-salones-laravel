@@ -19,11 +19,21 @@
                 :points="pointsFor(side)"
                 class="cursor-pointer transition-opacity hover:opacity-75"
                 :fill="faceColor(layout, side)"
-                @click="onFaceClick(layout, side)"
+                @click="onFaceClick(layout, side, $event)"
               />
             </g>
             <path :d="TOOTH_SHAPE_PATHS[shapeFor(layout.tooth)]" fill="none" class="stroke-border" stroke-width="1.4" />
           </g>
+          <circle
+            v-if="hasEndoAnnex(layout.tooth)"
+            :cx="CELL - 4"
+            :cy="row.arch === 'upper' ? -4 : CELL + 4"
+            r="4.5"
+            class="fill-primary stroke-surface"
+            stroke-width="1.2"
+          >
+            <title>Diente {{ layout.tooth }}: tiene anexo de endodoncia</title>
+          </circle>
         </g>
       </g>
     </svg>
@@ -37,12 +47,16 @@ import { CONDITION_COLORS } from './odontogramConditions'
 import { UPPER_ARCH, LOWER_ARCH, facesForTooth, mirrorFor, toothCellShapes, type ToothLayout } from './odontogramGeometry'
 import { TOOTH_SHAPE_PATHS, shapeForTooth } from './odontogramShapes'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   teeth: DentalTeeth
-}>()
+  /** Tooth numbers that already have an endodoncia annex — drawn as a small badge on the cell. */
+  teethWithEndoAnnex?: number[]
+}>(), {
+  teethWithEndoAnnex: () => [],
+})
 
 const emit = defineEmits<{
-  'face-click': [tooth: number, face: DentalFace]
+  'face-click': [tooth: number, face: DentalFace, position: { x: number; y: number }]
 }>()
 
 const CELL = 40
@@ -91,9 +105,14 @@ function faceColor(layout: ToothLayout, side: CellSide): string {
   return CONDITION_COLORS[conditionFor(layout, side)]
 }
 
-function onFaceClick(layout: ToothLayout, side: CellSide) {
+const endoAnnexTeeth = computed(() => new Set(props.teethWithEndoAnnex))
+function hasEndoAnnex(tooth: number): boolean {
+  return endoAnnexTeeth.value.has(tooth)
+}
+
+function onFaceClick(layout: ToothLayout, side: CellSide, event: MouseEvent) {
   const face = faceNameFor(layout, side)
   if (!face) return
-  emit('face-click', layout.tooth, face)
+  emit('face-click', layout.tooth, face, { x: event.clientX, y: event.clientY })
 }
 </script>

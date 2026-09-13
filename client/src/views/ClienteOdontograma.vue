@@ -4,70 +4,60 @@
       <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
     </div>
     <template v-else>
-      <Odontogram :teeth="teeth" @face-click="openPicker" />
+      <Odontogram :teeth="teeth" :teeth-with-endo-annex="teethWithEndoAnnex" @face-click="openPicker" />
       <div class="mt-6 border-t border-border pt-4">
         <OdontogramLegend />
       </div>
     </template>
   </div>
 
-  <ModalBase
-    :is-open="pickerOpen"
-    :title="pickerTitle"
-    size="sm"
-    :show-footer="false"
+  <ConditionRadialMenu
+    v-if="pickerOpen"
+    :x="pickerPosition.x"
+    :y="pickerPosition.y"
+    :active-condition="activeToothCondition"
+    :has-endo-annex="activeToothHasEndoAnnex"
+    @select="selectCondition"
+    @open-endo="goToEndoAnnex"
     @close="pickerOpen = false"
-  >
-    <div class="grid grid-cols-2 gap-2">
-      <button
-        v-for="condition in CONDITION_ORDER"
-        :key="condition"
-        @click="selectCondition(condition)"
-        class="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-left text-sm transition-theme hover:bg-bg-secondary"
-      >
-        <span class="h-3 w-3 shrink-0 rounded-sm border border-border" :style="{ backgroundColor: CONDITION_COLORS[condition] }" />
-        {{ CONDITION_LABELS[condition] }}
-      </button>
-    </div>
-  </ModalBase>
+  />
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useDentalChart } from '../composables/dental/useDentalChart'
+import { useEndoAnnexes } from '../composables/dental/useEndoAnnexes'
 import Odontogram from '../components/dental/Odontogram.vue'
 import OdontogramLegend from '../components/dental/OdontogramLegend.vue'
-import ModalBase from '../components/common/ModalBase.vue'
-import { CONDITION_COLORS, CONDITION_LABELS, CONDITION_ORDER } from '../components/dental/odontogramConditions'
+import ConditionRadialMenu from '../components/dental/ConditionRadialMenu.vue'
 import type { DentalCondition, DentalFace, DentalTeeth } from '../types/database'
 
 const route = useRoute()
+const router = useRouter()
 
 const clienteId = computed(() => route.params.id as string)
 
 const { chart, isLoading, saveMutation } = useDentalChart(() => clienteId.value)
 const teeth = computed<DentalTeeth>(() => chart.value?.teeth ?? {})
 
+const { annexes: endoAnnexes } = useEndoAnnexes(() => clienteId.value)
+const teethWithEndoAnnex = computed(() => [...new Set(endoAnnexes.value.map(a => a.tooth_number))])
+
 const pickerOpen = ref(false)
+const pickerPosition = ref({ x: 0, y: 0 })
 const activeTooth = ref<number | null>(null)
 const activeFace = ref<DentalFace | null>(null)
 
-const FACE_LABELS: Record<DentalFace, string> = {
-  vestibular: 'Vestibular',
-  lingual: 'Lingual / Palatino',
-  mesial: 'Mesial',
-  distal: 'Distal',
-  oclusal: 'Oclusal / Incisal',
-}
+const activeToothCondition = computed<DentalCondition | null>(() => {
+  if (activeTooth.value == null || !activeFace.value) return null
+  return teeth.value[String(activeTooth.value)]?.[activeFace.value] ?? 'sano'
+})
 
-const pickerTitle = computed(() =>
-  activeTooth.value ? `Pieza ${activeTooth.value} · ${FACE_LABELS[activeFace.value!]}` : ''
-)
-
-function openPicker(tooth: number, face: DentalFace) {
+function openPicker(tooth: number, face: DentalFace, position: { x: number; y: number }) {
   activeTooth.value = tooth
   activeFace.value = face
+  pickerPosition.value = position
   pickerOpen.value = true
 }
 
@@ -80,5 +70,18 @@ function selectCondition(condition: DentalCondition) {
   }
   saveMutation.mutate(nextTeeth)
   pickerOpen.value = false
+}
+
+const activeToothHasEndoAnnex = computed(() =>
+  activeTooth.value != null && endoAnnexes.value.some(a => a.tooth_number === activeTooth.value)
+)
+
+// Jumps straight into the endodoncia tab with this tooth pre-selected — same shell, same base
+// path (/admin or /dashboard) this page is already mounted under.
+function goToEndoAnnex() {
+  if (activeTooth.value == null) return
+  const basePath = route.path.startsWith('/dashboard') ? '/dashboard' : '/admin'
+  pickerOpen.value = false
+  router.push(`${basePath}/clientes/${clienteId.value}/expediente/anexo-endodoncia?tooth=${activeTooth.value}`)
 }
 </script>

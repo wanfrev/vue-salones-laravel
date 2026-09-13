@@ -54,7 +54,16 @@
         <FormInput v-model="form.anamnesis.grupo_sanguineo" label="Grupo sanguíneo" placeholder="Ej: O+" class="max-w-xs" />
 
         <div>
-          <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">Antecedentes médicos y personales</p>
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <p class="text-xs font-semibold uppercase tracking-wider text-primary">Antecedentes médicos y personales</p>
+            <button
+              type="button"
+              @click="markAllNormal('antecedentes_medicos')"
+              class="shrink-0 rounded-lg border border-border px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition-theme hover:border-primary/40 hover:text-primary"
+            >
+              Marcar todo como normal
+            </button>
+          </div>
           <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <SystemReviewField
               v-for="key in MEDICAL_SYSTEMS"
@@ -66,7 +75,16 @@
         </div>
 
         <div>
-          <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">Antecedentes odontológicos patológicos y de tratamiento</p>
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <p class="text-xs font-semibold uppercase tracking-wider text-primary">Antecedentes odontológicos patológicos y de tratamiento</p>
+            <button
+              type="button"
+              @click="markAllNormal('antecedentes_odontologicos')"
+              class="shrink-0 rounded-lg border border-border px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition-theme hover:border-primary/40 hover:text-primary"
+            >
+              Marcar todo como normal
+            </button>
+          </div>
           <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <SystemReviewField
               v-for="key in DENTAL_HISTORY_SPECIALTIES"
@@ -294,6 +312,14 @@ const { histories, isLoading, createMutation, updateMutation } = useClinicalHist
 
 function emptySystemReview(): SystemReview {
   return { refiere: false, observaciones: '' }
+}
+
+// "Todo normal" atajo — la mayoría de los pacientes no refiere nada en la mayoría de los
+// sistemas, así que forzar un toggle por campo (27 entre ambas secciones) es puro trabajo
+// mecánico. Un clic los deja todos en "No refiere"; el doctor solo activa los que sí aplican.
+function markAllNormal(section: 'antecedentes_medicos' | 'antecedentes_odontologicos') {
+  const keys = section === 'antecedentes_medicos' ? MEDICAL_SYSTEMS : DENTAL_HISTORY_SPECIALTIES
+  form.anamnesis[section] = Object.fromEntries(keys.map(k => [k, emptySystemReview()])) as any
 }
 
 function emptyAnamnesis(): ClinicalHistoryAnamnesis {

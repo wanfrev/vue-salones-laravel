@@ -145,7 +145,7 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { AddCircleIcon } from '@solar-icons/vue/linear'
 import { useEndoAnnexes } from '../composables/dental/useEndoAnnexes'
 import SystemReviewField from '../components/dental/SystemReviewField.vue'
@@ -177,8 +177,13 @@ const ENDO_EXAM_LABELS: Record<string, string> = {
 const toothOptions = [...UPPER_ARCH, ...LOWER_ARCH].map(l => ({ value: String(l.tooth), label: String(l.tooth) }))
 
 const route = useRoute()
+const router = useRouter()
 
 const clienteId = computed(() => route.params.id as string)
+// Set when arriving from the odontograma's "Crear/Ver anexo de endodoncia" shortcut
+// (?tooth=<n>) — consumed once by the annexes watcher below, then cleared from the URL.
+const incomingTooth = route.query.tooth ? Number(route.query.tooth) : null
+if (route.query.tooth) router.replace({ query: {} })
 
 const { annexes, isLoading, createMutation, updateMutation } = useEndoAnnexes(() => clienteId.value)
 
@@ -237,6 +242,19 @@ function loadIntoForm(annex: EndoAnnex | null) {
 
 watch(annexes, (list) => {
   if (selectedId.value || isCreatingNew.value) return
+
+  if (incomingTooth != null) {
+    const existing = list.find(a => a.tooth_number === incomingTooth)
+    if (existing) {
+      selectedId.value = existing.id
+      loadIntoForm(existing)
+    } else {
+      startNew()
+      toothNumber.value = String(incomingTooth)
+    }
+    return
+  }
+
   if (list.length > 0) {
     selectedId.value = list[0].id
     loadIntoForm(list[0])
