@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Models\DailyReport;
+use App\Models\Transaction;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Agrega los reportes diarios ya guardados en un rango de fechas, para el
@@ -94,6 +96,54 @@ class DailyReportSummaryService
                 // con su propia tasa para no introducir error.
                 'avg_exchange_rate' => count($rates) > 0 ? round(array_sum($rates) / count($rates), 4) : null,
             ],
+            // A diferencia de todo lo de arriba (que viene de daily_reports, cargado a mano),
+            // esto sale directo de las transacciones reales del Punto de Venta -- el banco
+            // elegido al cobrar con pago movil/transferencia/punto de venta (ver Finanzas >
+            // Bancos). No hace falta que nadie lo escriba, se suma solo.
+            'banks' => $this->getBankBreakdown($businessId, $start, $end, $branchId),
         ];
+    }
+
+    /**
+     * Cuanto entro a cada banco en el periodo, sumando payments_breakdown de las transacciones
+     * reales (no daily_reports). Solo las lineas de pago que llevan bank_name cuentan -- eso ya
+     * garantiza que son en bolivares (pago_movil/transfer/punto_venta son los unicos metodos que
+     * permiten elegir banco), asi que inputAmount ya esta en Bs sin necesidad de convertir.
+     *
+     * @return array<int, array{name: string, amount_bs: float}>
+     */
+    private function getBankBreakdown(string $businessId, string $start, string $end, ?string $branchId): array
+    {
+        // $start/$end llegan como fecha simple ("YYYY-MM-DD") -- a diferencia de daily_reports.date
+        // (una columna DATE, sin ambiguedad), paid_at/created_at son timestamps completos, asi que
+        // sin extender el limite superior a fin de dia se perderian las transacciones de la
+        // ultima fecha del rango.
+        $query = Transaction::where('business_id', $businessId)
+            ->where('method', '!=', 'credito')
+            ->whereBetween(DB::raw('COALESCE(paid_at, created_at)'), [$start . ' 00:00:00', $end . ' 23:59:59']);
+
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
+
+        $totals = [];
+        foreach ($query->get(['payments_breakdown']) as $tx) {
+            $breakdown = is_array($tx->payments_breakdown) ? $tx->payments_breakdown : [];
+            foreach ($breakdown as $split) {
+                $bankName = $split['bank_name'] ?? null;
+                if (!$bankName) continue;
+                $totals[$bankName] = ($totals[$bankName] ?? 0) + (float) ($split['inputAmount'] ?? 0);
+            }
+        }
+
+        $banks = [];
+        foreach ($totals as $name => $amount) {
+            $banks[] = ['name' => $name, 'amount_bs' => round($amount, 2)];
+        }
+        usort($banks, fn ($a, $b) => $b['amount_bs'] <=> $a['amount_bs']);
+
+        return $banks;
     }
 }
