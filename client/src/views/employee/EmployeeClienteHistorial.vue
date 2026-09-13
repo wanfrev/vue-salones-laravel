@@ -33,17 +33,16 @@
             <DocumentIcon class="h-4 w-4" />
              Ver {{ t.historyPlural || 'Historias clínicas' }}
           </button>
-          <button
-            v-if="isDentalNiche"
-            @click="goToDentalRecord"
-            class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
-          >
-            <DocumentIcon class="h-4 w-4" />
-             Ver expediente dental
-          </button>
         </div>
       </div>
     </header>
+
+    <!-- Same nav (icons + "has data" dots) PatientDentalShell uses once inside the expediente —
+         shared so opening a tool from here doesn't feel like a different app. -->
+    <section v-if="isDentalNiche" class="mb-4">
+      <h3 class="mb-3 text-sm font-semibold text-text">Herramientas clínicas</h3>
+      <DentalToolsNav :tabs="navTabs" model-value="" @update:model-value="goToTab" />
+    </section>
 
     <!-- Client Info Card -->
     <div v-if="cliente" class="mb-4 rounded-xl border border-border bg-surface p-4 shadow-sm">
@@ -130,6 +129,8 @@ import { listCitas } from '../../services/agendaService'
 import { getClienteById } from '../../services/clientesService'
 import { isPetNiche as checkPetNiche } from '../../config/nicheFields'
 import { isDentalNiche as checkDentalNiche } from '../../config/niches'
+import { useDentalToolsNavTabs } from '../../composables/dental/useDentalToolsNavTabs'
+import DentalToolsNav from '../../components/dental/DentalToolsNav.vue'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import type { Cliente } from '../../types/cliente'
 import { DocumentIcon, ArrowLeftIcon, CheckCircleIcon } from '@solar-icons/vue/linear'
@@ -143,6 +144,7 @@ const clienteId = computed(() => route.params.id as string)
 const businessId = computed(() => authStore.businessId)
 const isPetNiche = computed(() => checkPetNiche(businessStore.nicheType))
 const isDentalNiche = computed(() => checkDentalNiche(businessStore.nicheType))
+const { navTabs } = useDentalToolsNavTabs(() => clienteId.value, () => isDentalNiche.value)
 const t = computed(() => businessStore.terminology)
 const hidePhoneFromEmployee = computed(() => authStore.role === 'empleado' && businessStore.hasFeature('hide_client_phone_from_employees'))
 
@@ -192,8 +194,8 @@ const goToConsultorio = () => {
   }
 }
 
-const goToDentalRecord = () => {
-  router.push(`/dashboard/clientes/${clienteId.value}/expediente/historia-clinica`)
+const goToTab = (key: string) => {
+  router.push(`/dashboard/clientes/${clienteId.value}/expediente/${key}`)
 }
 
 const handleWhatsApp = () => {

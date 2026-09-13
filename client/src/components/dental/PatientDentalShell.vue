@@ -1,4 +1,22 @@
 <template>
+  <div v-if="medicalAlerts.length > 0" class="mb-4 rounded-xl border-2 border-danger/50 bg-danger/5 px-4 py-3">
+    <div class="flex items-center gap-2 text-sm font-bold text-danger">
+      <DangerTriangleIcon class="h-5 w-5 shrink-0" />
+      Alertas médicas
+    </div>
+    <div class="mt-2 flex flex-wrap gap-2">
+      <span
+        v-for="alert in medicalAlerts"
+        :key="alert.key"
+        class="inline-flex items-center gap-1.5 rounded-lg border border-danger/30 bg-surface px-2.5 py-1 text-xs text-danger"
+        :title="alert.note || undefined"
+      >
+        <span class="font-bold">{{ alert.label }}</span>
+        <span v-if="alert.note" class="max-w-[16rem] truncate font-medium text-text-secondary">— {{ alert.note }}</span>
+      </span>
+    </div>
+  </div>
+
   <div v-if="encounterCitaId" class="sticky top-0 z-20 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 shadow-sm backdrop-blur">
     <div class="flex min-w-0 items-center gap-2 text-sm">
       <span class="flex h-2 w-2 shrink-0 animate-pulse rounded-full bg-primary"></span>
@@ -83,17 +101,10 @@ import { getClienteById } from '../../services/clientesService'
 import { finalizeAttention } from '../../services/agendaService'
 import { useNotification } from '../../composables/common/useNotification'
 import { translateError } from '../../lib/errors'
-import { useClinicalHistories } from '../../composables/dental/useClinicalHistories'
-import { useDentalChart } from '../../composables/dental/useDentalChart'
-import { usePeriodontograms } from '../../composables/dental/usePeriodontograms'
-import { useEndoAnnexes } from '../../composables/dental/useEndoAnnexes'
-import { usePerioAnnexes } from '../../composables/dental/usePerioAnnexes'
-import { useConsents } from '../../composables/dental/useConsents'
-import DentalToolsNav, { type DentalNavTab } from './DentalToolsNav.vue'
-import {
-  ArrowLeftIcon, ArrowRightIcon, ChatRoundLineIcon,
-  ClipboardTextIcon, Widget2Icon, ChartSquareIcon, DocumentMedicineIcon, HealthIcon, ClipboardCheckIcon,
-} from '@solar-icons/vue/linear'
+import { useDentalToolsNavTabs } from '../../composables/dental/useDentalToolsNavTabs'
+import DentalToolsNav from './DentalToolsNav.vue'
+import { MEDICAL_SYSTEM_LABELS, HIGH_RISK_MEDICAL_SYSTEMS } from './medicalSystemLabels'
+import { ArrowLeftIcon, ArrowRightIcon, ChatRoundLineIcon, DangerTriangleIcon } from '@solar-icons/vue/linear'
 import type { Cliente } from '../../types/cliente'
 
 const businessStore = useBusinessStore()
@@ -123,24 +134,20 @@ const { data: clienteData } = useQuery({
 
 const cliente = computed<Cliente | null>(() => clienteData.value ?? null)
 
-// One lightweight query per clinical tool, keyed exactly like each tab's own view — this both
-// drives the "has data" dots below and warms the cache, so a tab a doctor switches into during
-// the same visit renders instantly instead of showing its own loading spinner again.
-const { histories, isLoading: historiaLoading } = useClinicalHistories(() => clienteId.value)
-const { chart, isLoading: odontogramaLoading } = useDentalChart(() => clienteId.value)
-const { periodontograms, isLoading: periodontogramaLoading } = usePeriodontograms(() => clienteId.value)
-const { annexes: endoAnnexes, isLoading: endoLoading } = useEndoAnnexes(() => clienteId.value)
-const { annexes: perioAnnexes, isLoading: perioAnexoLoading } = usePerioAnnexes(() => clienteId.value)
-const { consents, isLoading: consentimientoLoading } = useConsents(() => clienteId.value)
+// Same tab list (icons, "has data" dots, shortcuts) the client summary page's quick-access
+// cards use — shared so the two screens can't drift into different visual languages again.
+const { navTabs, currentHistory } = useDentalToolsNavTabs(() => clienteId.value)
 
-const navTabs = computed<DentalNavTab[]>(() => [
-  { key: 'historia-clinica', label: 'Historia clínica', icon: ClipboardTextIcon, shortcut: 1, isLoading: historiaLoading.value, hasData: histories.value.length > 0 },
-  { key: 'odontograma', label: 'Odontograma', icon: Widget2Icon, shortcut: 2, isLoading: odontogramaLoading.value, hasData: Object.keys(chart.value?.teeth ?? {}).length > 0 },
-  { key: 'periodontograma', label: 'Periodontograma', icon: ChartSquareIcon, shortcut: 3, isLoading: periodontogramaLoading.value, hasData: periodontograms.value.length > 0 },
-  { key: 'anexo-endodoncia', label: 'Endodoncia', shortLabel: 'Endodoncia', icon: DocumentMedicineIcon, shortcut: 4, isLoading: endoLoading.value, hasData: endoAnnexes.value.length > 0 },
-  { key: 'anexo-periodoncia', label: 'Periodoncia', icon: HealthIcon, shortcut: 5, isLoading: perioAnexoLoading.value, hasData: perioAnnexes.value.length > 0 },
-  { key: 'consentimiento', label: 'Consentimientos', icon: ClipboardCheckIcon, shortcut: 6, isLoading: consentimientoLoading.value, hasData: consents.value.length > 0 },
-])
+// Red alert badges in the header — pulled straight from Historia Clínica's "antecedentes
+// médicos" so a doctor (or the secretary booking the visit) sees allergies/meds/conditions
+// that change chairside decisions without having to open that tab first.
+const medicalAlerts = computed(() => {
+  const antecedentes = currentHistory.value?.anamnesis?.antecedentes_medicos
+  if (!antecedentes) return []
+  return HIGH_RISK_MEDICAL_SYSTEMS
+    .filter(key => antecedentes[key]?.refiere)
+    .map(key => ({ key, label: MEDICAL_SYSTEM_LABELS[key], note: antecedentes[key]?.observaciones || '' }))
+})
 
 const activeTabKey = computed(() => navTabs.value.find(t => route.path.endsWith(`/${t.key}`))?.key ?? '')
 const activeTabIndex = computed(() => navTabs.value.findIndex(t => t.key === activeTabKey.value))

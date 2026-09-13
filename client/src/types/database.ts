@@ -714,12 +714,22 @@ export type DentalCondition =
 /** Keyed by tooth number (FDI, as string) -> face -> current condition. Snapshot only, no history. */
 export type DentalTeeth = Record<string, Partial<Record<DentalFace, DentalCondition>>>
 
+/** ICDAS caries severity (0-6) and/or G.V. Black restoration class (I-VI) for one face. */
+export interface ToothFaceCode {
+  icdas?: number
+  black?: string
+}
+
+/** Sibling map to DentalTeeth, same keying — kept separate so plain condition charting never needs these. */
+export type DentalTeethCodes = Record<string, Partial<Record<DentalFace, ToothFaceCode>>>
+
 export interface DentalChart {
   id: string
   business_id: string
   branch_id: string | null
   client_id: string
   teeth: DentalTeeth
+  codes: DentalTeethCodes
   created_at: string
   updated_at: string
 }

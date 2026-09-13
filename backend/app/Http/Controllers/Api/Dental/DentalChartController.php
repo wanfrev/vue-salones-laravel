@@ -63,10 +63,11 @@ class DentalChartController
 
         $data = $request->validate([
             'teeth' => ['required', 'array'],
+            'codes' => ['sometimes', 'array'],
         ]);
 
         $chart = $this->service->getOrCreateForClient($clientId, $businessId, $client->branch_id);
-        $chart = $this->service->updateTeeth($chart, $data['teeth']);
+        $chart = $this->service->updateTeeth($chart, $data['teeth'], $data['codes'] ?? null);
 
         EntityChanged::safe($businessId, 'dental_chart', 'updated', $chart->id);
 

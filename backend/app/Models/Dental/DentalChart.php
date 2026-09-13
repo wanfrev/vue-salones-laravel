@@ -18,13 +18,14 @@ class DentalChart extends Model
     protected $table = 'dental_charts';
 
     protected $fillable = [
-        'id', 'business_id', 'branch_id', 'client_id', 'teeth',
+        'id', 'business_id', 'branch_id', 'client_id', 'teeth', 'codes',
     ];
 
     protected function casts(): array
     {
         return [
             'teeth' => 'json',
+            'codes' => 'json',
         ];
     }
 

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { getDentalChart, saveDentalChart } from '../../services/dental/dentalChartService'
 import { useNotification } from '../common/useNotification'
 import { translateError } from '../../lib/errors'
-import type { DentalTeeth } from '../../types/database'
+import type { DentalTeeth, DentalTeethCodes } from '../../types/database'
 
 export function useDentalChart(clientId: () => string | null) {
   const queryClient = useQueryClient()
@@ -21,10 +21,10 @@ export function useDentalChart(clientId: () => string | null) {
   })
 
   const saveMutation = useMutation({
-    mutationFn: async (teeth: DentalTeeth) => {
+    mutationFn: async (payload: { teeth: DentalTeeth; codes?: DentalTeethCodes }) => {
       const id = clientId()
       if (!id) throw new Error('No client selected')
-      return await saveDentalChart(id, teeth)
+      return await saveDentalChart(id, payload.teeth, payload.codes)
     },
     onSuccess: (chart) => {
       queryClient.setQueryData(['dental-chart', clientId()], chart)

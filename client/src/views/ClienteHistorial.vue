@@ -39,38 +39,9 @@
       </div>
       <span class="hidden text-xs text-text-muted sm:block">Accesos rápidos del expediente</span>
     </div>
-    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-      <button @click="goToHistoriaClinica" class="group rounded-2xl border border-primary/30 bg-primary/5 p-4 text-left transition-theme hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/10 hover:shadow-sm">
-        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-text-inverse"><ClipboardIcon class="h-4 w-4" /></span>
-        <span class="mt-3 block text-sm font-semibold text-text">Historia clínica</span>
-        <span class="mt-1 block text-[11px] leading-4 text-text-muted">Antecedentes y evolución</span>
-      </button>
-      <button @click="goToOdontograma" class="group rounded-2xl border border-border bg-surface p-4 text-left transition-theme hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm">
-        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-bg-secondary text-primary"><ClipboardIcon class="h-4 w-4" /></span>
-        <span class="mt-3 block text-sm font-semibold text-text">Odontograma</span>
-        <span class="mt-1 block text-[11px] leading-4 text-text-muted">Estado de cada pieza</span>
-      </button>
-      <button @click="goToPeriodontograma" class="group rounded-2xl border border-border bg-surface p-4 text-left transition-theme hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm">
-        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-bg-secondary text-primary"><ClipboardIcon class="h-4 w-4" /></span>
-        <span class="mt-3 block text-sm font-semibold text-text">Periodontograma</span>
-        <span class="mt-1 block text-[11px] leading-4 text-text-muted">Registro periodontal</span>
-      </button>
-      <button @click="goToAnexoEndodoncia" class="group rounded-2xl border border-border bg-surface p-4 text-left transition-theme hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm">
-        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-bg-secondary text-primary"><ClipboardIcon class="h-4 w-4" /></span>
-        <span class="mt-3 block text-sm font-semibold text-text">Endodoncia</span>
-        <span class="mt-1 block text-[11px] leading-4 text-text-muted">Anexo del tratamiento</span>
-      </button>
-      <button @click="goToAnexoPeriodoncia" class="group rounded-2xl border border-border bg-surface p-4 text-left transition-theme hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm">
-        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-bg-secondary text-primary"><ClipboardIcon class="h-4 w-4" /></span>
-        <span class="mt-3 block text-sm font-semibold text-text">Periodoncia</span>
-        <span class="mt-1 block text-[11px] leading-4 text-text-muted">Anexo periodontal</span>
-      </button>
-      <button @click="goToConsentimiento" class="group rounded-2xl border border-border bg-surface p-4 text-left transition-theme hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-sm">
-        <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-bg-secondary text-primary"><ClipboardIcon class="h-4 w-4" /></span>
-        <span class="mt-3 block text-sm font-semibold text-text">Consentimientos</span>
-        <span class="mt-1 block text-[11px] leading-4 text-text-muted">Documentos firmados</span>
-      </button>
-    </div>
+    <!-- Same nav used inside the expediente (PatientDentalShell) — identical icons and "has
+         data" dots here and there, so opening a tool doesn't feel like jumping to another app. -->
+    <DentalToolsNav :tabs="navTabs" model-value="" @update:model-value="goToTab" />
   </section>
 
   <section v-else class="mb-6 flex min-w-0 items-start gap-4">
@@ -169,7 +140,9 @@ import { listCitas } from '../services/agendaService'
 import { getClienteById } from '../services/clientesService'
 import { isPetNiche as checkPetNiche } from '../config/nicheFields'
 import { isDentalNiche as checkDentalNiche } from '../config/niches'
-import { ArrowLeftIcon, ChatRoundLineIcon, ClipboardIcon } from '@solar-icons/vue/linear'
+import { useDentalToolsNavTabs } from '../composables/dental/useDentalToolsNavTabs'
+import DentalToolsNav from '../components/dental/DentalToolsNav.vue'
+import { ArrowLeftIcon, ChatRoundLineIcon } from '@solar-icons/vue/linear'
 import type { Cliente } from '../types/cliente'
 
 const { authStore } = useAuth()
@@ -181,6 +154,7 @@ const clienteId = computed(() => route.params.id as string)
 const businessId = computed(() => authStore.businessId)
 const isPetNiche = computed(() => checkPetNiche(businessStore.nicheType))
 const isDentalNiche = computed(() => checkDentalNiche(businessStore.nicheType))
+const { navTabs } = useDentalToolsNavTabs(() => clienteId.value, () => isDentalNiche.value)
 
 const { data: clienteData } = useQuery({
   queryKey: computed(() => ['cliente', clienteId.value]),
@@ -225,28 +199,8 @@ const goToConsultorio = () => {
   }
 }
 
-const goToOdontograma = () => {
-  router.push(`/admin/clientes/${clienteId.value}/expediente/odontograma`)
-}
-
-const goToHistoriaClinica = () => {
-  router.push(`/admin/clientes/${clienteId.value}/expediente/historia-clinica`)
-}
-
-const goToAnexoEndodoncia = () => {
-  router.push(`/admin/clientes/${clienteId.value}/expediente/anexo-endodoncia`)
-}
-
-const goToAnexoPeriodoncia = () => {
-  router.push(`/admin/clientes/${clienteId.value}/expediente/anexo-periodoncia`)
-}
-
-const goToPeriodontograma = () => {
-  router.push(`/admin/clientes/${clienteId.value}/expediente/periodontograma`)
-}
-
-const goToConsentimiento = () => {
-  router.push(`/admin/clientes/${clienteId.value}/expediente/consentimiento`)
+const goToTab = (key: string) => {
+  router.push(`/admin/clientes/${clienteId.value}/expediente/${key}`)
 }
 
 const handleWhatsApp = () => {

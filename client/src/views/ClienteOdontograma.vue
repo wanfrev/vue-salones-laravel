@@ -4,7 +4,35 @@
       <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
     </div>
     <template v-else>
-      <Odontogram :teeth="teeth" :teeth-with-endo-annex="teethWithEndoAnnex" @face-click="openPicker" />
+      <div class="mb-4 flex items-center gap-2">
+        <label class="text-xs font-semibold uppercase tracking-wider text-text-muted">Dentición</label>
+        <div class="inline-flex rounded-xl border border-border-subtle bg-bg-secondary p-1">
+          <button
+            type="button"
+            class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-theme"
+            :class="denticion === 'permanente' ? 'bg-surface text-text shadow-sm' : 'text-text-secondary hover:text-text'"
+            @click="denticion = 'permanente'"
+          >
+            Permanente
+          </button>
+          <button
+            type="button"
+            class="rounded-lg px-3 py-1.5 text-xs font-semibold transition-theme"
+            :class="denticion === 'temporal' ? 'bg-surface text-text shadow-sm' : 'text-text-secondary hover:text-text'"
+            @click="denticion = 'temporal'"
+          >
+            Temporal (niños)
+          </button>
+        </div>
+      </div>
+
+      <Odontogram
+        :teeth="teeth"
+        :codes="codes"
+        :denticion="denticion"
+        :teeth-with-endo-annex="denticion === 'permanente' ? teethWithEndoAnnex : []"
+        @face-click="openPicker"
+      />
       <div class="mt-6 border-t border-border pt-4">
         <OdontogramLegend />
       </div>
@@ -16,6 +44,8 @@
     :x="pickerPosition.x"
     :y="pickerPosition.y"
     :active-condition="activeToothCondition"
+    :active-icdas="activeToothCode?.icdas ?? null"
+    :active-black="activeToothCode?.black ?? null"
     :has-endo-annex="activeToothHasEndoAnnex"
     @select="selectCondition"
     @open-endo="goToEndoAnnex"
@@ -31,7 +61,7 @@ import { useEndoAnnexes } from '../composables/dental/useEndoAnnexes'
 import Odontogram from '../components/dental/Odontogram.vue'
 import OdontogramLegend from '../components/dental/OdontogramLegend.vue'
 import ConditionRadialMenu from '../components/dental/ConditionRadialMenu.vue'
-import type { DentalCondition, DentalFace, DentalTeeth } from '../types/database'
+import type { DentalCondition, DentalFace, DentalTeeth, DentalTeethCodes, ToothFaceCode } from '../types/database'
 
 const route = useRoute()
 const router = useRouter()
@@ -40,6 +70,12 @@ const clienteId = computed(() => route.params.id as string)
 
 const { chart, isLoading, saveMutation } = useDentalChart(() => clienteId.value)
 const teeth = computed<DentalTeeth>(() => chart.value?.teeth ?? {})
+const codes = computed<DentalTeethCodes>(() => chart.value?.codes ?? {})
+
+// Only the permanent set is charted by default; a doctor charting a child's mouth switches
+// this to see/edit the primary (deciduous) teeth instead — both live in the same DentalTeeth
+// record since the FDI numbers never overlap, so nothing extra needs saving here.
+const denticion = ref<'permanente' | 'temporal'>('permanente')
 
 const { annexes: endoAnnexes } = useEndoAnnexes(() => clienteId.value)
 const teethWithEndoAnnex = computed(() => [...new Set(endoAnnexes.value.map(a => a.tooth_number))])
@@ -54,6 +90,11 @@ const activeToothCondition = computed<DentalCondition | null>(() => {
   return teeth.value[String(activeTooth.value)]?.[activeFace.value] ?? 'sano'
 })
 
+const activeToothCode = computed<ToothFaceCode | null>(() => {
+  if (activeTooth.value == null || !activeFace.value) return null
+  return codes.value[String(activeTooth.value)]?.[activeFace.value] ?? null
+})
+
 function openPicker(tooth: number, face: DentalFace, position: { x: number; y: number }) {
   activeTooth.value = tooth
   activeFace.value = face
@@ -61,14 +102,27 @@ function openPicker(tooth: number, face: DentalFace, position: { x: number; y: n
   pickerOpen.value = true
 }
 
-function selectCondition(condition: DentalCondition) {
+function selectCondition(condition: DentalCondition, code?: number | string) {
   if (activeTooth.value == null || !activeFace.value) return
   const toothKey = String(activeTooth.value)
+  const face = activeFace.value
+
   const nextTeeth: DentalTeeth = {
     ...teeth.value,
-    [toothKey]: { ...teeth.value[toothKey], [activeFace.value]: condition },
+    [toothKey]: { ...teeth.value[toothKey], [face]: condition },
   }
-  saveMutation.mutate(nextTeeth)
+
+  // Codes are a sibling map, same keying — clear any existing code for this face unless a new
+  // one was just picked (e.g. switching a tooth from "caries" to "sano" drops its ICDAS code).
+  const nextFaceCodes = { ...codes.value[toothKey] }
+  if (code !== undefined) {
+    nextFaceCodes[face] = condition === 'caries' ? { icdas: code as number } : { black: code as string }
+  } else {
+    delete nextFaceCodes[face]
+  }
+  const nextCodes: DentalTeethCodes = { ...codes.value, [toothKey]: nextFaceCodes }
+
+  saveMutation.mutate({ teeth: nextTeeth, codes: nextCodes })
   pickerOpen.value = false
 }
 

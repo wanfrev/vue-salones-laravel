@@ -232,23 +232,13 @@ import { AddCircleIcon } from '@solar-icons/vue/linear'
 import { useClinicalHistories } from '../composables/dental/useClinicalHistories'
 import SystemReviewField from '../components/dental/SystemReviewField.vue'
 import { FormInput, FormTextarea, FormToggle } from '../components/forms'
+import { MEDICAL_SYSTEM_LABELS } from '../components/dental/medicalSystemLabels'
 import {
   MEDICAL_SYSTEMS, DENTAL_HISTORY_SPECIALTIES,
   type ClinicalHistory, type ClinicalHistoryAnamnesis, type ClinicalHistoryExamenFisico,
   type ClinicalHistoryExamenesComplementarios, type ClinicalHistoryDiagnostico, type SystemReview,
 } from '../types/database'
 import type { ClinicalHistorySections } from '../services/dental/clinicalHistoryService'
-
-const MEDICAL_SYSTEM_LABELS: Record<string, string> = {
-  sistema_nervioso: 'Sistema Nervioso', sistema_endocrino: 'Sistema Endocrino',
-  sistema_osteomuscular: 'Sistema Osteomuscular', sistema_cardiovascular: 'Sistema Cardiovascular',
-  sistema_respiratorio: 'Sistema Respiratorio', sistema_inmunologico: 'Sistema Inmunológico',
-  sistema_dermatologico: 'Sistema Dermatológico', ginecobstetricos: 'Ginecobstétricos',
-  sistema_hematologico: 'Sistema Hematológico', sistema_digestivo: 'Sistema Digestivo',
-  sistema_renal: 'Sistema Renal', hereditarios: 'Hereditarios', perinatales: 'Perinatales',
-  toxico_alergicos: 'Tóxico-Alérgicos', farmacologicos: 'Farmacológicos', quirurgicos: 'Quirúrgicos',
-  hospitalarios: 'Hospitalarios', familiares: 'Familiares', psicosociales: 'Psicosociales', otros: 'Otros',
-}
 
 const DENTAL_HISTORY_LABELS: Record<string, string> = {
   patologia_cirugia_bucal: 'Patología y Cirugía Bucal', cirugia_maxilofacial: 'Cirugía Maxilofacial',
