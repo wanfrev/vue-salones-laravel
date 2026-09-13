@@ -110,7 +110,7 @@ function formatBreakdownLabel(breakdown: PaymentBreakdownItem[] | null | undefin
   if (!breakdown || !Array.isArray(breakdown) || breakdown.length <= 1) return ''
   return breakdown
     .map((p) => {
-      const methodLabel = formatMethod(p.method)
+      const methodLabel = formatMethod(p.method) + (p.bank_name ? ` (${p.bank_name})` : '')
       const amt = p.currency === 'VES'
         ? `${new Intl.NumberFormat('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(p.inputAmount)} Bs`
         : `$${p.inputAmount.toFixed(2)}`
@@ -230,6 +230,7 @@ function useFinancialSummary(
       const firstBreakdown = breakdown?.[0]
       const isVES = firstBreakdown?.currency === 'VES'
       const method = breakdown && breakdown.length > 0 ? breakdown[0].method : tx.method
+      const bankName = breakdown && breakdown.length === 1 ? breakdown[0].bank_name : null
       const breakdownLabel = formatBreakdownLabel(breakdown)
       const sumVES = sumVESBreakdown(breakdown)
       const tip = Number(tx.tip_amount ?? 0)
@@ -247,7 +248,7 @@ function useFinancialSummary(
         client,
         employee: tx.employee_name ?? '—',
         service: tx.service_name ?? 'Producto',
-        method: breakdownLabel || formatMethod(method),
+        method: breakdownLabel || formatMethod(method) + (bankName ? ` (${bankName})` : ''),
         rawMethod: method as PaymentMethod,
         amount: serviceAmt,
         exchangeRateUsed: Number(tx.exchange_rate_used ?? 1),
@@ -497,6 +498,7 @@ function useFinancialSummary(
       const originalAmount = isVES
         ? (breakdown ? breakdown.filter(b => b.currency === 'VES').reduce((s, b) => s + Number(b.inputAmount ?? 0), 0) : amt * exchangeRateUsed)
         : amt * exchangeRateUsed
+      const singleBankName = breakdown && breakdown.length === 1 ? breakdown[0].bank_name : null
 
       result.push({
         id: tx.id,
@@ -506,7 +508,7 @@ function useFinancialSummary(
         description: isStandaloneTip ? clientLabel : `${clientLabel} · ${serviceLabel}`,
         clientName: clientLabel,
         employee: (tx.employee_name as string) || undefined,
-        method: formatMethod(tx.method),
+        method: formatMethod(tx.method) + (singleBankName ? ` (${singleBankName})` : ''),
         rawMethod: tx.method,
         // El monto que cuenta como ingreso del negocio es total_amount (0 para una propina
         // directa — es 100% del empleado); tipAmount se muestra aparte, nunca se suma aquí.
