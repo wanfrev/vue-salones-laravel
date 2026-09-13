@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../common/useAuth'
 import { useNotification } from '../common/useNotification'
 import { useBusinessStore } from '../../store/business'
+import { useBanks } from '../finanzas/useBanks'
 import { recordSale, recordDirectSale, recordDirectServiceSale, recordStandaloneTip, posKeys } from '../../services/posService'
 import type { PaymentMethod } from '../../types/database'
 import type { POSProductItem, PaymentBreakdownItem } from '../../types/pos'
@@ -14,6 +15,8 @@ export function usePOSPayment() {
   const businessStore = useBusinessStore()
   const businessId = computed(() => authStore.businessId)
   const branchId = computed(() => businessStore.currentBranchId)
+  const { banks } = useBanks()
+  const bankName = (id: string | null | undefined): string | null => banks.value.find(b => b.id === id)?.name ?? null
 
   const paymentMethod = ref<PaymentMethod>('cash')
   const otherCurrency = ref<'USD' | 'VES'>('USD')
@@ -23,6 +26,11 @@ export function usePOSPayment() {
   const tipCurrency = ref<'USD' | 'VES'>('USD')
   const paymentsBreakdown = ref<PaymentBreakdownItem[]>([])
   const selectedGiftCardId = ref<string | null>(null)
+  /** Banco elegido para un metodo unico (pago_movil/transfer/punto_venta) en bolivares — en un
+   *  pago mixto cada linea de paymentsBreakdown lleva su propio bank_id/bank_name en su lugar. */
+  const selectedBankId = ref<string | null>(null)
+  const BANK_METHODS: PaymentMethod[] = ['pago_movil', 'transfer', 'punto_venta']
+  const isBankMethod = (method: PaymentMethod): boolean => BANK_METHODS.includes(method)
 
   const paymentMethods = computed(() => {
     const methods = [
@@ -70,6 +78,9 @@ export function usePOSPayment() {
     } else {
       paymentsBreakdown.value = []
     }
+    if (!isBankMethod(method)) {
+      selectedBankId.value = null
+    }
   }
 
   const addSplit = () => {
@@ -88,6 +99,7 @@ export function usePOSPayment() {
     tipCurrency.value = 'USD'
     paymentsBreakdown.value = []
     selectedGiftCardId.value = null
+    selectedBankId.value = null
   }
 
   /** Bulk-restore the payment draft — used when resuming a held sale. */
@@ -99,6 +111,7 @@ export function usePOSPayment() {
     tipCurrency?: 'USD' | 'VES'
     paymentsBreakdown?: PaymentBreakdownItem[]
     selectedGiftCardId?: string | null
+    selectedBankId?: string | null
   }) => {
     paymentMethod.value = snapshot.paymentMethod ?? 'cash'
     otherCurrency.value = snapshot.otherCurrency ?? 'USD'
@@ -107,6 +120,7 @@ export function usePOSPayment() {
     tipCurrency.value = snapshot.tipCurrency ?? 'USD'
     paymentsBreakdown.value = snapshot.paymentsBreakdown ?? []
     selectedGiftCardId.value = snapshot.selectedGiftCardId ?? null
+    selectedBankId.value = snapshot.selectedBankId ?? null
   }
 
   const invalidateQueries = async () => {
@@ -392,6 +406,8 @@ export function usePOSPayment() {
             amount: memberAmount,
             gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined,
             giftCardId: method === 'gift_card' ? selectedGiftCardId.value : undefined,
+            bank_id: isBankMethod(method) ? selectedBankId.value : undefined,
+            bank_name: isBankMethod(method) ? bankName(selectedBankId.value) : undefined,
           }]
         } else {
           const grand = params.serviceAmount + productsTotal + tipAmount.value || 1
@@ -429,6 +445,8 @@ export function usePOSPayment() {
           amount: totalAmount,
           gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined,
           giftCardId: method === 'gift_card' ? selectedGiftCardId.value : undefined,
+          bank_id: isBankMethod(method) ? selectedBankId.value : undefined,
+          bank_name: isBankMethod(method) ? bankName(selectedBankId.value) : undefined,
         }]
       } else {
         breakdown = breakdownSource.map(item => ({
@@ -483,6 +501,8 @@ export function usePOSPayment() {
         amount: params.totalAmount,
         gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined,
         giftCardId: method === 'gift_card' ? selectedGiftCardId.value : undefined,
+        bank_id: isBankMethod(method) ? selectedBankId.value : undefined,
+        bank_name: isBankMethod(method) ? bankName(selectedBankId.value) : undefined,
       }]
     } else {
       breakdown = paymentsBreakdown.value.map(item => ({
@@ -544,6 +564,8 @@ export function usePOSPayment() {
         amount: totalAmount,
         gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined,
         giftCardId: method === 'gift_card' ? selectedGiftCardId.value : undefined,
+        bank_id: isBankMethod(method) ? selectedBankId.value : undefined,
+        bank_name: isBankMethod(method) ? bankName(selectedBankId.value) : undefined,
       }]
     } else {
       breakdown = paymentsBreakdown.value.map(item => ({
@@ -597,5 +619,8 @@ export function usePOSPayment() {
     reset,
     loadState,
     selectedGiftCardId,
+    selectedBankId,
+    isBankMethod,
+    banks,
   }
 }

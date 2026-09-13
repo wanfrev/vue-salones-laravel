@@ -29,6 +29,8 @@ export interface PaymentBreakdownItem {
   currency: 'USD' | 'VES'
   amount: number
   gift_card_id?: string | null
+  bank_id?: string | null
+  bank_name?: string | null
 }
 
 export interface TipAllocationItem {

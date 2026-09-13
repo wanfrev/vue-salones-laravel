@@ -108,6 +108,11 @@
     <PropinasSection :ctx="summaryCtx" />
   </template>
 
+  <!-- TAB 6: Bancos (cuentas para pago movil/transferencia/punto de venta) -->
+  <template v-if="activeTab === 'bancos'">
+    <BankAccountsSection />
+  </template>
+
   <ExpenseFormModal :is-open="expensesCtx.showExpenseModal.value" :is-editing="!!expensesCtx.editingExpenseId.value" :form="expensesCtx.expenseForm.value" :save-error="expensesCtx.saveError.value" :form-errors="expensesCtx.formErrors.value" :is-saving="expensesCtx.saveMutation.isPending.value" @close="expensesCtx.closeModal" @save="handleExpenseSave" />
   <EditCobroModal :show="summaryCtx.showEditModal.value" :summary-ctx="summaryCtx" @close="summaryCtx.cancelEdit()" />
   <CobroActionsModal
@@ -144,6 +149,7 @@ import RecentTransactionsCard from '../components/finanzas/RecentTransactionsCar
 import DetailMovimientos from '../components/finanzas/DetailMovimientos.vue'
 import CreditosSection from '../components/finanzas/CreditosSection.vue'
 import PropinasSection from '../components/finanzas/PropinasSection.vue'
+import BankAccountsSection from '../components/finanzas/BankAccountsSection.vue'
 import EditCobroModal from '../components/finanzas/EditCobroModal.vue'
 import CobroActionsModal from '../components/finanzas/CobroActionsModal.vue'
 import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
@@ -194,10 +200,13 @@ function onCustomToChange(e: Event) {
 const isTienda = computed(() => isTiendaNiche(businessStore.nicheType) || (!businessStore.features.agenda && !businessStore.features.calendario && !businessStore.features.servicios))
 const isTiendaEmployee = computed(() => isTienda.value && !isAdminPanelRole(authStore.role ?? undefined))
 const isStaffing = computed(() => businessStore.hasCapability('staffing.timesheets'))
+// Gestionar la lista de bancos (cuentas para pago movil/transferencia/punto de venta) es
+// configuracion financiera del negocio -- solo la dueña, no un encargado de sucursal.
+const isStrictAdmin = computed(() => authStore.role === 'admin' || authStore.role === 'superadmin')
 
-const activeTab = ref<'resumen' | 'ingresos' | 'egresos' | 'creditos' | 'propinas'>('resumen')
-const mainTabs = computed<{ key: 'resumen' | 'ingresos' | 'egresos' | 'creditos' | 'propinas'; label: string }[]>(() => {
-  const tabs: { key: 'resumen' | 'ingresos' | 'egresos' | 'creditos' | 'propinas'; label: string }[] = [
+const activeTab = ref<'resumen' | 'ingresos' | 'egresos' | 'creditos' | 'propinas' | 'bancos'>('resumen')
+const mainTabs = computed<{ key: 'resumen' | 'ingresos' | 'egresos' | 'creditos' | 'propinas' | 'bancos'; label: string }[]>(() => {
+  const tabs: { key: 'resumen' | 'ingresos' | 'egresos' | 'creditos' | 'propinas' | 'bancos'; label: string }[] = [
     { key: 'resumen', label: 'Resumen' },
     { key: 'ingresos', label: 'Ingresos' },
   ]
@@ -206,6 +215,9 @@ const mainTabs = computed<{ key: 'resumen' | 'ingresos' | 'egresos' | 'creditos'
     tabs.push({ key: 'creditos', label: 'Créditos' })
     tabs.push({ key: 'propinas', label: 'Propinas' })
   }
+  if (isStrictAdmin.value && !isStaffing.value) {
+    tabs.push({ key: 'bancos', label: 'Bancos' })
+  }
   return tabs
 })
 
@@ -213,6 +225,9 @@ watch(
   [activeTab, isTiendaEmployee],
   ([tab, hideEgresos]) => {
     if (hideEgresos && (tab === 'egresos' || tab === 'creditos' || tab === 'propinas')) {
+      activeTab.value = 'resumen'
+    }
+    if (tab === 'bancos' && (!isStrictAdmin.value || isStaffing.value)) {
       activeTab.value = 'resumen'
     }
   },

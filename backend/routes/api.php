@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BankController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\ClientController;
@@ -113,6 +114,15 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     Route::post('/branches', [BranchController::class, 'store']);
     Route::put('/branches/{id}', [BranchController::class, 'update']);
     Route::delete('/branches/{id}', [BranchController::class, 'destroy']);
+
+    // Bancos (cuentas para pagos en bolivares - pago movil/transferencia/punto de venta). index()
+    // queda abierto a cualquiera que llegue a Punto de Venta (necesita la lista para elegir uno
+    // al cobrar); gestionar la lista (store/update/destroy) esta restringido a admin/superadmin
+    // dentro del propio controller, no a nivel de ruta -- un encargado no debe poder tocarla.
+    Route::get('/banks', [BankController::class, 'index']);
+    Route::post('/banks', [BankController::class, 'store']);
+    Route::put('/banks/{id}', [BankController::class, 'update']);
+    Route::delete('/banks/{id}', [BankController::class, 'destroy']);
 
     // Profiles / Employees
     Route::get('/profiles', [ProfileController::class, 'index']);

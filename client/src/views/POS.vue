@@ -367,6 +367,7 @@
         :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
         :retail-client-name="activeSaleType === 'retail_only' ? retailClientSearch : directServiceClientSearch"
         :selected-gift-card-id="selectedGiftCardId"
+        :selected-bank-id="selectedBankId" :banks="banks" :is-bank-method="isBankMethod"
         :custom-total-amount="customTotalAmount"
         :custom-total-currency="customTotalCurrency"
         :is-direct-service="activeSaleType === 'direct_service'"
@@ -377,6 +378,7 @@
         @update:custom-total-amount="customTotalAmount = $event"
         @update:custom-total-currency="customTotalCurrency = $event"
         @update:selected-gift-card-id="selectedGiftCardId = $event"
+        @update:selected-bank-id="selectedBankId = $event"
         @update:are-products-included="areProductsIncluded = $event"
         @select-method="selectMethod"
         @update:other-currency="otherCurrency = $event"
@@ -440,6 +442,7 @@
             :show-tip-adjust="showTipAdjust" :is-retail-only="activeSaleType === 'retail_only'"
             :retail-client-name="activeSaleType === 'retail_only' ? retailClientSearch : directServiceClientSearch"
             :selected-gift-card-id="selectedGiftCardId"
+            :selected-bank-id="selectedBankId" :banks="banks" :is-bank-method="isBankMethod"
             :custom-total-amount="customTotalAmount"
             :custom-total-currency="customTotalCurrency"
             :is-direct-service="activeSaleType === 'direct_service'"
@@ -450,6 +453,7 @@
             @update:custom-total-amount="customTotalAmount = $event"
             @update:custom-total-currency="customTotalCurrency = $event"
             @update:selected-gift-card-id="selectedGiftCardId = $event"
+            @update:selected-bank-id="selectedBankId = $event"
             @update:are-products-included="areProductsIncluded = $event"
             @select-method="selectMethod"
             @update:other-currency="otherCurrency = $event"
@@ -586,6 +590,9 @@ const {
   tipAmount,
   tipCurrency,
   selectedGiftCardId,
+  selectedBankId,
+  isBankMethod,
+  banks,
   isProcessing: posIsProcessing,
   paymentMethods,
   mixedMethods,
