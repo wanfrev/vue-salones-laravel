@@ -367,6 +367,18 @@
           </div>
         </div>
 
+        <div v-if="isBankMethod?.(paymentMethod) && banks && banks.length > 0" class="space-y-2 mt-4">
+          <label class="block text-xs sm:text-sm font-medium text-text">Banco (opcional)</label>
+          <select
+            :value="selectedBankId ?? ''"
+            @change="$emit('update:selected-bank-id', ($event.target as HTMLSelectElement).value || null)"
+            class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs sm:text-sm font-medium text-text outline-none focus:border-primary"
+          >
+            <option value="">-- Selecciona un banco --</option>
+            <option v-for="b in banks" :key="b.id" :value="b.id">{{ b.name }}</option>
+          </select>
+        </div>
+
         <div v-if="paymentMethod === 'other'" class="space-y-2 mt-4">
           <label class="block text-xs sm:text-sm font-medium text-text">Moneda</label>
           <div class="flex rounded-lg border border-border bg-bg-secondary/50 p-0.5">
@@ -412,7 +424,8 @@
 
         <div v-if="paymentMethod === 'mixed'" class="space-y-2 border-t border-border-subtle pt-3 mt-4">
           <label class="block text-xs sm:text-sm font-medium text-text">Distribución del pago</label>
-          <div v-for="(split, idx) in paymentsBreakdown" :key="idx" class="grid grid-cols-[1fr_3.8rem_1fr_auto] gap-1.5 items-center">
+          <template v-for="(split, idx) in paymentsBreakdown" :key="idx">
+          <div class="grid grid-cols-[1fr_3.8rem_1fr_auto] gap-1.5 items-center">
             <select
               v-model="split.method"
               class="w-full min-w-0 rounded-lg border border-border bg-surface px-2 py-2 text-xs text-text outline-none focus:border-primary truncate"
@@ -442,6 +455,16 @@
               </svg>
             </button>
           </div>
+          <select
+            v-if="isBankMethod?.(split.method) && banks && banks.length > 0"
+            :value="split.bank_id ?? ''"
+            @change="onSplitBankChange(idx, ($event.target as HTMLSelectElement).value)"
+            class="w-full rounded-lg border border-border bg-surface px-2 py-2 text-xs text-text outline-none focus:border-primary"
+          >
+            <option value="">-- Banco (opcional) --</option>
+            <option v-for="b in banks" :key="b.id" :value="b.id">{{ b.name }}</option>
+          </select>
+          </template>
           <div class="flex items-center justify-between text-xs pt-1">
             <button @click="$emit('add-split')" class="text-primary hover:text-primary-hover transition-theme font-medium">
               + Agregar método
@@ -559,6 +582,9 @@ const props = defineProps<{
   isRetailOnly?: boolean
   retailClientName?: string | null
   selectedGiftCardId?: string | null
+  selectedBankId?: string | null
+  banks?: { id: string; name: string }[]
+  isBankMethod?: (method: PaymentMethod) => boolean
   customTotalAmount?: number | null
   customTotalCurrency?: 'USD' | 'VES'
   isDirectService?: boolean
@@ -597,6 +623,7 @@ const emit = defineEmits<{
   'remove-item': [idx: number]
   'update:are-products-included': [value: boolean]
   'update:selected-gift-card-id': [value: string | null]
+  'update:selected-bank-id': [value: string | null]
   'add-suggested-product': [product: any]
   'hold-sale': []
 }>()
@@ -609,6 +636,17 @@ const businessStore = useBusinessStore()
 
 const cartRef = computed(() => props.cart)
 const { suggestions: suggestedProducts } = useProductSuggestions(cartRef)
+
+// Igual que split.method/split.currency arriba (v-model directo sobre el array que llega por
+// prop) -- pero bank_name tambien hay que resolverlo aqui mismo, ya que a diferencia del pago
+// unico (que lo resuelve usePOSPayment.ts al armar el breakdown), cada linea de un pago mixto
+// se edita directamente en este componente.
+const onSplitBankChange = (idx: number, bankId: string) => {
+  const split = props.paymentsBreakdown[idx]
+  if (!split) return
+  split.bank_id = bankId || null
+  split.bank_name = bankId ? (props.banks ?? []).find(b => b.id === bankId)?.name ?? null : null
+}
 
 // The exact number the cashier typed, in whatever currency is currently selected — kept as
 // local state so toggling $/Bs never rewrites what's on screen. `props.tipAmount` (always USD)
