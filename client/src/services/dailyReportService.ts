@@ -87,6 +87,9 @@ export interface DailyReportDashboardSummary {
     reports_count: number
     avg_exchange_rate: number | null
   }
+  /** Sale directo de transactions.payments_breakdown reales (no de daily_reports cargados a
+   *  mano) -- cuanto entro a cada banco configurado en Finanzas > Bancos en el periodo. */
+  banks: Array<{ name: string; amount_bs: number }>
 }
 
 export const dailyReportsKeys = {

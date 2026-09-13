@@ -113,6 +113,24 @@
           </div>
         </div>
       </div>
+
+      <!-- Desglose por banco -- sale directo de las transacciones reales del POS, no de lo
+           cargado a mano en el reporte diario. Solo aparece si hay al menos un banco configurado
+           en Finanzas > Bancos y con movimientos en el periodo. -->
+      <div v-if="bankBreakdown.length > 0" class="rounded-xl border border-border bg-surface p-4">
+        <h3 class="text-sm font-bold text-text-secondary uppercase tracking-wider mb-3">Ingresos por Banco (Bs)</h3>
+        <div class="space-y-3">
+          <div v-for="row in bankBreakdown" :key="row.name">
+            <div class="mb-1 flex items-center justify-between">
+              <span class="text-sm text-text-secondary">{{ row.name }}</span>
+              <span class="text-sm font-medium text-text">{{ formatCurrency(row.amount_bs) }} Bs</span>
+            </div>
+            <div class="h-2 w-full rounded-full bg-bg-secondary">
+              <div class="h-2 rounded-full bg-warning transition-all" :style="{ width: row.percentage + '%' }"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </template>
 
     <div v-else class="rounded-2xl border border-border bg-surface p-12 text-center">
@@ -185,4 +203,10 @@ function buildBreakdown(labelsRef: import('vue').ComputedRef<Record<string, stri
 
 const bsBreakdown = buildBreakdown(BS_LABELS)
 const usdBreakdown = buildBreakdown(USD_LABELS)
+
+const bankBreakdown = computed(() => {
+  const banks = summary.value?.banks ?? []
+  const max = Math.max(...banks.map(b => b.amount_bs), 0)
+  return banks.map(b => ({ ...b, percentage: max > 0 ? Math.max((b.amount_bs / max) * 100, b.amount_bs > 0 ? 3 : 0) : 0 }))
+})
 </script>
