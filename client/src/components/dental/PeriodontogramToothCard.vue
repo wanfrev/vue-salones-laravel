@@ -20,11 +20,12 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="site in PERIODONTAL_SITES" :key="site" class="border-b border-border-subtle last:border-b-0">
+          <tr v-for="(site, si) in PERIODONTAL_SITES" :key="site" class="border-b border-border-subtle last:border-b-0">
             <td class="px-1.5 py-1 font-medium text-text-secondary">{{ SITE_LABELS[site] }}</td>
             <td class="px-1.5 py-1">
               <input
                 :value="sitio(site).profundidad"
+                :data-perio-nav="`${tooth}:${si * 3}`"
                 @input="updateSite(site, 'profundidad', ($event.target as HTMLInputElement).value)"
                 class="w-16 rounded border border-border bg-surface px-1.5 py-1 text-text outline-none focus:border-primary"
               />
@@ -33,6 +34,7 @@
               <input
                 type="checkbox"
                 :checked="sitio(site).sangrado"
+                :data-perio-nav="`${tooth}:${si * 3 + 1}`"
                 @change="updateSite(site, 'sangrado', ($event.target as HTMLInputElement).checked)"
                 class="h-4 w-4 rounded border-border text-danger focus:ring-danger"
               />
@@ -40,6 +42,7 @@
             <td class="px-1.5 py-1">
               <input
                 :value="sitio(site).recesion"
+                :data-perio-nav="`${tooth}:${si * 3 + 2}`"
                 @input="updateSite(site, 'recesion', ($event.target as HTMLInputElement).value)"
                 class="w-16 rounded border border-border bg-surface px-1.5 py-1 text-text outline-none focus:border-primary"
               />

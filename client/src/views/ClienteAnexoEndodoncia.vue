@@ -183,7 +183,11 @@ const clienteId = computed(() => route.params.id as string)
 // Set when arriving from the odontograma's "Crear/Ver anexo de endodoncia" shortcut
 // (?tooth=<n>) — consumed once by the annexes watcher below, then cleared from the URL.
 const incomingTooth = route.query.tooth ? Number(route.query.tooth) : null
-if (route.query.tooth) router.replace({ query: {} })
+if (route.query.tooth) {
+  // Strip only `tooth` once consumed — keep any active-encounter params (cita/service/time).
+  const { tooth: _tooth, ...rest } = route.query
+  router.replace({ query: rest })
+}
 
 const { annexes, isLoading, createMutation, updateMutation } = useEndoAnnexes(() => clienteId.value)
 

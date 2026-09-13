@@ -108,7 +108,10 @@ function formatTime(iso: string): string {
 
 function openRecord(cita: Cita) {
   if (!cita.clientId) return
-  router.push(`/dashboard/clientes/${cita.clientId}/expediente/historia-clinica`)
+  router.push({
+    path: `/dashboard/clientes/${cita.clientId}/expediente/historia-clinica`,
+    query: { cita: cita.id, service: cita.service, time: cita.time },
+  })
 }
 
 const finalizingId = ref<string | null>(null)

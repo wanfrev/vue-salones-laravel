@@ -82,6 +82,10 @@ function goToEndoAnnex() {
   if (activeTooth.value == null) return
   const basePath = route.path.startsWith('/dashboard') ? '/dashboard' : '/admin'
   pickerOpen.value = false
-  router.push(`${basePath}/clientes/${clienteId.value}/expediente/anexo-endodoncia?tooth=${activeTooth.value}`)
+  // Preserve any active-encounter params (cita/service/time) already on the URL.
+  router.push({
+    path: `${basePath}/clientes/${clienteId.value}/expediente/anexo-endodoncia`,
+    query: { ...route.query, tooth: activeTooth.value },
+  })
 }
 </script>
