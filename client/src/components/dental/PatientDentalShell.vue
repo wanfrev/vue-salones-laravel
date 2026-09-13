@@ -1,5 +1,15 @@
 <template>
-  <div v-if="medicalAlerts.length > 0" class="mb-4 rounded-xl border-2 border-danger/50 bg-danger/5 px-4 py-3">
+  <!-- Only shown when printing a leaf tab (e.g. Presupuesto) — the shell's own header/nav/alerts
+       are hidden by the @media print rules below, so this stands in as the printed identity block. -->
+  <div class="print-only mb-4">
+    <p class="text-lg font-bold text-text">{{ cliente?.name }}</p>
+    <p class="text-xs text-text-secondary">
+      <span v-if="cliente?.phone">{{ cliente.phone }}</span>
+      <span v-if="cliente?.documentId"> · Documento {{ cliente.documentId }}</span>
+    </p>
+  </div>
+
+  <div v-if="medicalAlerts.length > 0" class="mb-4 rounded-xl border-2 border-danger/50 bg-danger/5 px-4 py-3 no-print">
     <div class="flex items-center gap-2 text-sm font-bold text-danger">
       <DangerTriangleIcon class="h-5 w-5 shrink-0" />
       Alertas médicas
@@ -17,7 +27,7 @@
     </div>
   </div>
 
-  <div v-if="encounterCitaId" class="sticky top-0 z-20 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 shadow-sm backdrop-blur">
+  <div v-if="encounterCitaId" class="sticky top-0 z-20 mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 shadow-sm backdrop-blur no-print">
     <div class="flex min-w-0 items-center gap-2 text-sm">
       <span class="flex h-2 w-2 shrink-0 animate-pulse rounded-full bg-primary"></span>
       <span class="font-semibold text-text">Atendiendo ahora</span>
@@ -34,7 +44,7 @@
     </button>
   </div>
 
-  <header class="mb-6 flex items-center justify-between gap-3">
+  <header class="mb-6 flex items-center justify-between gap-3 no-print">
     <button @click="goBack" class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-xs font-semibold text-text-secondary transition-theme hover:border-primary/40 hover:bg-primary/5 hover:text-primary">
       <ArrowLeftIcon class="h-4 w-4" />
       {{ encounterCitaId ? 'Volver al Gabinete' : 'Volver al directorio' }}
@@ -45,7 +55,7 @@
     </button>
   </header>
 
-  <section class="mb-5 flex min-w-0 items-start gap-4">
+  <section class="mb-5 flex min-w-0 items-start gap-4 no-print">
     <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-lg font-bold text-primary ring-1 ring-primary/15 sm:h-16 sm:w-16">
       {{ getInitials(cliente?.name || '') }}
     </div>
@@ -64,11 +74,11 @@
     </div>
   </section>
 
-  <DentalToolsNav :tabs="navTabs" :model-value="activeTabKey" @update:model-value="goToTab" />
+  <DentalToolsNav class="no-print" :tabs="navTabs" :model-value="activeTabKey" @update:model-value="goToTab" />
 
   <router-view />
 
-  <div class="mt-6 flex items-center justify-between gap-3 border-t border-border pt-4">
+  <div class="mt-6 flex items-center justify-between gap-3 border-t border-border pt-4 no-print">
     <button
       v-if="prevTab"
       type="button"
@@ -201,3 +211,45 @@ const handleWhatsApp = () => {
   window.open(`https://wa.me/${phone}`, '_blank')
 }
 </script>
+
+<style>
+@media print {
+  @page { size: auto; margin: 10mm; }
+
+  html, body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  header, aside, nav, footer {
+    display: none !important;
+  }
+
+  main {
+    margin-left: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  main > div {
+    padding: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .fixed.inset-0 {
+    display: none !important;
+  }
+
+  .min-h-screen > .fixed {
+    display: none !important;
+  }
+}
+</style>

@@ -125,6 +125,18 @@ const router = createRouter({
           component: () => import('../views/ClienteConsentimiento.vue'),
           meta: { gate: { capability: 'dental.consent', profileFlag: 'can_access_dental_clinical' } },
         },
+        {
+          path: 'biofilm',
+          name: 'employee-cliente-biofilm',
+          component: () => import('../views/ClienteBiofilm.vue'),
+          meta: { gate: { capability: 'dental.biofilm', profileFlag: 'can_access_dental_clinical' } },
+        },
+        {
+          path: 'presupuesto',
+          name: 'employee-cliente-presupuesto',
+          component: () => import('../views/ClientePresupuesto.vue'),
+          meta: { gate: { capability: 'dental.budget', profileFlag: 'can_access_dental_clinical' } },
+        },
       ],
     },
     {
@@ -231,6 +243,18 @@ const router = createRouter({
               name: 'admin-cliente-consentimiento',
               component: () => import('../views/ClienteConsentimiento.vue'),
               meta: { gate: { capability: 'dental.consent' } },
+            },
+            {
+              path: 'biofilm',
+              name: 'admin-cliente-biofilm',
+              component: () => import('../views/ClienteBiofilm.vue'),
+              meta: { gate: { capability: 'dental.biofilm' } },
+            },
+            {
+              path: 'presupuesto',
+              name: 'admin-cliente-presupuesto',
+              component: () => import('../views/ClientePresupuesto.vue'),
+              meta: { gate: { capability: 'dental.budget' } },
             },
           ],
         },

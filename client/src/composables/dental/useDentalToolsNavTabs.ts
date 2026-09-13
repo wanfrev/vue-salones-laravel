@@ -1,6 +1,7 @@
 import { computed } from 'vue'
 import {
   ClipboardTextIcon, Widget2Icon, ChartSquareIcon, DocumentMedicineIcon, HealthIcon, ClipboardCheckIcon,
+  WaterdropsIcon, CalculatorIcon,
 } from '@solar-icons/vue/linear'
 import { useClinicalHistories } from './useClinicalHistories'
 import { useDentalChart } from './useDentalChart'
@@ -8,6 +9,8 @@ import { usePeriodontograms } from './usePeriodontograms'
 import { useEndoAnnexes } from './useEndoAnnexes'
 import { usePerioAnnexes } from './usePerioAnnexes'
 import { useConsents } from './useConsents'
+import { useBiofilmRecords } from './useBiofilmRecords'
+import { useBudgets } from './useBudgets'
 import type { DentalNavTab } from '../../components/dental/DentalToolsNav.vue'
 
 /**
@@ -31,6 +34,8 @@ export function useDentalToolsNavTabs(clientId: () => string | null, enabled: ()
   const { annexes: endoAnnexes, isLoading: endoLoading } = useEndoAnnexes(gatedClientId)
   const { annexes: perioAnnexes, isLoading: perioAnexoLoading } = usePerioAnnexes(gatedClientId)
   const { consents, isLoading: consentimientoLoading } = useConsents(gatedClientId)
+  const { records: biofilmRecords, isLoading: biofilmLoading } = useBiofilmRecords(gatedClientId)
+  const { budgets, isLoading: budgetsLoading } = useBudgets(gatedClientId)
 
   const navTabs = computed<DentalNavTab[]>(() => [
     { key: 'historia-clinica', label: 'Historia clínica', icon: ClipboardTextIcon, shortcut: 1, isLoading: historiaLoading.value, hasData: histories.value.length > 0 },
@@ -39,6 +44,8 @@ export function useDentalToolsNavTabs(clientId: () => string | null, enabled: ()
     { key: 'anexo-endodoncia', label: 'Endodoncia', icon: DocumentMedicineIcon, shortcut: 4, isLoading: endoLoading.value, hasData: endoAnnexes.value.length > 0 },
     { key: 'anexo-periodoncia', label: 'Periodoncia', icon: HealthIcon, shortcut: 5, isLoading: perioAnexoLoading.value, hasData: perioAnnexes.value.length > 0 },
     { key: 'consentimiento', label: 'Consentimientos', icon: ClipboardCheckIcon, shortcut: 6, isLoading: consentimientoLoading.value, hasData: consents.value.length > 0 },
+    { key: 'biofilm', label: 'Biopelícula', icon: WaterdropsIcon, shortcut: 7, isLoading: biofilmLoading.value, hasData: biofilmRecords.value.length > 0 },
+    { key: 'presupuesto', label: 'Presupuesto', icon: CalculatorIcon, shortcut: 8, isLoading: budgetsLoading.value, hasData: budgets.value.length > 0 },
   ])
 
   return { navTabs, currentHistory }

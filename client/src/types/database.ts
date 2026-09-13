@@ -991,6 +991,43 @@ export interface Consent {
   updated_at: string
 }
 
+/** O'Leary plaque index — only the 4 periodontally-relevant faces, no oclusal. */
+export type BiofilmFace = Exclude<DentalFace, 'oclusal'>
+export type BiofilmTeeth = Record<string, Partial<Record<BiofilmFace, boolean>>>
+
+export interface BiofilmRecord {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  created_by: string | null
+  teeth: BiofilmTeeth
+  observaciones_generales: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface BudgetItem {
+  tooth?: number | null
+  description: string
+  service_id?: string | null
+  price: number
+  included: boolean
+}
+
+export interface Budget {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  created_by: string | null
+  items: BudgetItem[]
+  total: number
+  observaciones_generales: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface ClinicalHistory {
   id: string
   business_id: string

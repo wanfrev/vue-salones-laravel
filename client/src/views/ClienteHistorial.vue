@@ -1,16 +1,31 @@
 <template>
-  <header class="mb-6 flex items-center justify-between gap-3">
+  <header class="mb-6 flex items-center justify-between gap-3 no-print">
     <button @click="goBack" class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-xs font-semibold text-text-secondary transition-theme hover:border-primary/40 hover:bg-primary/5 hover:text-primary">
       <ArrowLeftIcon class="h-4 w-4" />
       Volver al directorio
     </button>
-    <button v-if="cliente?.phone" @click="handleWhatsApp" class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:border-success/40 hover:bg-success/5 hover:text-success" title="Contactar por WhatsApp">
-      <ChatRoundLineIcon class="h-4 w-4" />
-      Contactar
-    </button>
+    <div class="flex items-center gap-2">
+      <button v-if="isDentalNiche" @click="windowPrint" class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:border-primary/40 hover:bg-primary/5 hover:text-primary" title="Imprimir estado de cuenta">
+        <PrinterIcon class="h-4 w-4" />
+        Estado de cuenta
+      </button>
+      <button v-if="cliente?.phone" @click="handleWhatsApp" class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:border-success/40 hover:bg-success/5 hover:text-success" title="Contactar por WhatsApp">
+        <ChatRoundLineIcon class="h-4 w-4" />
+        Contactar
+      </button>
+    </div>
   </header>
 
-  <section v-if="isDentalNiche" class="mb-6">
+  <!-- Only shown when printing (triggered by "Estado de cuenta" above) — a plain header with the
+       business/client identity, since the sidebar and nav are hidden by the @media print rules.
+       Odontología-only, same as the button that triggers it. -->
+  <div v-if="isDentalNiche" class="print-only mb-6">
+    <p class="text-lg font-bold text-text">{{ businessStore.business?.name || 'Estado de cuenta' }}</p>
+    <p class="text-sm text-text-secondary">{{ cliente?.name }}<span v-if="cliente?.phone"> · {{ cliente.phone }}</span></p>
+    <p class="text-xs text-text-muted">Emitido el {{ new Date().toLocaleDateString('es-VE') }}</p>
+  </div>
+
+  <section v-if="isDentalNiche" class="mb-6 no-print">
     <div class="mb-5">
       <div>
         <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">Atención odontológica</p>
@@ -44,7 +59,7 @@
     <DentalToolsNav :tabs="navTabs" model-value="" @update:model-value="goToTab" />
   </section>
 
-  <section v-else class="mb-6 flex min-w-0 items-start gap-4">
+  <section v-else class="mb-6 flex min-w-0 items-start gap-4 no-print">
     <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-lg font-bold text-primary ring-1 ring-primary/15">
       {{ getInitials(cliente?.name || '') }}
     </div>
@@ -56,7 +71,7 @@
   </section>
 
   <section class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
-    <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+    <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm no-print">
       <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">{{ isDentalNiche ? 'Resumen del paciente' : 'Resumen del cliente' }}</p>
       <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div><p class="text-xs text-text-muted">{{ businessStore.terminology.appointmentPlural || 'Consultas' }}</p><p class="mt-1 text-xl font-bold text-text">{{ historial.length }}</p></div>
@@ -65,7 +80,7 @@
         <div><p class="text-xs text-text-muted">Contacto de emergencia</p><p class="mt-1 truncate text-sm font-semibold text-text">{{ cliente?.emergencyPhone || 'No registrado' }}</p></div>
       </div>
     </div>
-    <div class="rounded-2xl border border-border bg-bg-secondary/35 p-5">
+    <div class="rounded-2xl border border-border bg-bg-secondary/35 p-5 no-print">
       <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-text-muted">Notas de seguimiento</p>
       <p class="mt-3 line-clamp-3 text-sm leading-6 text-text-secondary">{{ cliente?.notes || `No hay notas generales registradas para este ${(businessStore.terminology.client || 'cliente').toLowerCase()}.` }}</p>
     </div>
@@ -96,7 +111,7 @@
               <td class="py-3 text-text-secondary">{{ item.date }}</td>
               <td class="py-3 font-medium text-text">{{ item.service }}</td>
               <td class="py-3 text-text-secondary">{{ item.employee }}</td>
-              <td class="py-3 text-right text-text">${{ item.amount }}</td>
+              <td class="py-3 text-right text-text">${{ item.amount.toLocaleString() }}</td>
               <td class="py-3 text-right">
                 <span class="inline-flex items-center gap-2 rounded-full bg-bg-secondary px-2.5 py-1 text-xs font-medium text-text">
                   <span class="h-2 w-2 rounded-full" :style="{ background: item.statusColor }"></span>
@@ -110,7 +125,7 @@
     </div>
 
     <div class="rounded-xl border border-border bg-surface p-4 shadow-sm">
-      <h3 class="mb-4 text-base font-semibold text-text">Resumen</h3>
+      <h3 class="mb-4 text-base font-semibold text-text">{{ isDentalNiche ? 'Estado de cuenta' : 'Resumen' }}</h3>
       <div class="space-y-3">
         <div class="rounded-lg bg-bg-secondary p-3">
            <p class="text-xs text-text-muted">Total {{ (businessStore.terminology.appointmentPlural || 'Citas').toLowerCase() }}</p>
@@ -120,6 +135,16 @@
            <p class="text-xs text-text-muted">Total facturado</p>
           <p class="text-lg font-bold text-text">${{ totalGasto }}</p>
         </div>
+        <template v-if="isDentalNiche">
+          <div class="rounded-lg bg-success/10 p-3">
+             <p class="text-xs text-text-muted">Total pagado</p>
+            <p class="text-lg font-bold text-success">${{ totalPagado }}</p>
+          </div>
+          <div class="rounded-lg p-3" :class="saldoPendiente > 0 ? 'bg-danger/10' : 'bg-bg-secondary'">
+             <p class="text-xs text-text-muted">Saldo pendiente</p>
+            <p class="text-lg font-bold" :class="saldoPendiente > 0 ? 'text-danger' : 'text-text'">${{ saldoPendiente.toLocaleString() }}</p>
+          </div>
+        </template>
         <div class="rounded-lg bg-bg-secondary p-3">
            <p class="text-xs text-text-muted">Última {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}</p>
            <p class="text-lg font-bold text-text">{{ ultimaVisita || `Sin ${(businessStore.terminology.appointmentPlural || 'citas').toLowerCase()}` }}</p>
@@ -142,7 +167,7 @@ import { isPetNiche as checkPetNiche } from '../config/nicheFields'
 import { isDentalNiche as checkDentalNiche } from '../config/niches'
 import { useDentalToolsNavTabs } from '../composables/dental/useDentalToolsNavTabs'
 import DentalToolsNav from '../components/dental/DentalToolsNav.vue'
-import { ArrowLeftIcon, ChatRoundLineIcon } from '@solar-icons/vue/linear'
+import { ArrowLeftIcon, ChatRoundLineIcon, PrinterIcon } from '@solar-icons/vue/linear'
 import type { Cliente } from '../types/cliente'
 
 const { authStore } = useAuth()
@@ -178,14 +203,21 @@ const historial = computed(() => (citasData.value || [])
     date: c.date,
     service: c.service,
     employee: c.employee,
-    amount: c.price.toLocaleString(),
+    amount: c.price,
+    paymentStatus: c.paymentStatus,
     statusLabel: c.statusLabel || c.status,
     statusColor: c.statusColor || 'var(--color-primary)',
   }))
 )
 
-const totalGasto = computed(() => historial.value.reduce((sum, item) => sum + Number(item.amount.toString().replace(/,/g, '')), 0).toLocaleString())
+const totalGasto = computed(() => historial.value.reduce((sum, item) => sum + item.amount, 0).toLocaleString())
+// "paid" is the only status guaranteed to have actually collected the full amount — "partial"
+// still has an unresolved balance, same as "unpaid", so it counts toward saldoPendiente instead.
+const totalPagado = computed(() => historial.value.filter(i => i.paymentStatus === 'paid').reduce((sum, i) => sum + i.amount, 0).toLocaleString())
+const saldoPendiente = computed(() => historial.value.filter(i => i.paymentStatus !== 'paid').reduce((sum, i) => sum + i.amount, 0))
 const ultimaVisita = computed(() => historial.value[0]?.date || '')
+
+const windowPrint = () => window.print()
 
 const goBack = () => {
   router.push('/admin/clientes')
@@ -209,3 +241,45 @@ const handleWhatsApp = () => {
   window.open(`https://wa.me/${phone}`, '_blank')
 }
 </script>
+
+<style>
+@media print {
+  @page { size: auto; margin: 10mm; }
+
+  html, body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  header, aside, nav, footer {
+    display: none !important;
+  }
+
+  main {
+    margin-left: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  main > div {
+    padding: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .fixed.inset-0 {
+    display: none !important;
+  }
+
+  .min-h-screen > .fixed {
+    display: none !important;
+  }
+}
+</style>
