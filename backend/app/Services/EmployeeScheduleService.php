@@ -27,6 +27,8 @@ class EmployeeScheduleService
             'weekday' => $data['weekday'],
             'start_time' => $data['start_time'],
             'end_time' => $data['end_time'],
+            'break_start' => $data['break_start'] ?? null,
+            'break_end' => $data['break_end'] ?? null,
         ]);
     }
 

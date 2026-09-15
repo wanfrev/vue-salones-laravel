@@ -54,7 +54,16 @@
         <FormInput v-model="form.anamnesis.grupo_sanguineo" label="Grupo sanguíneo" placeholder="Ej: O+" class="max-w-xs" />
 
         <div>
-          <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">Antecedentes médicos y personales</p>
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <p class="text-xs font-semibold uppercase tracking-wider text-primary">Antecedentes médicos y personales</p>
+            <button
+              type="button"
+              @click="markAllNormal('antecedentes_medicos')"
+              class="shrink-0 rounded-lg border border-border px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition-theme hover:border-primary/40 hover:text-primary"
+            >
+              Marcar todo como normal
+            </button>
+          </div>
           <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <SystemReviewField
               v-for="key in MEDICAL_SYSTEMS"
@@ -66,7 +75,16 @@
         </div>
 
         <div>
-          <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">Antecedentes odontológicos patológicos y de tratamiento</p>
+          <div class="mb-2 flex items-center justify-between gap-2">
+            <p class="text-xs font-semibold uppercase tracking-wider text-primary">Antecedentes odontológicos patológicos y de tratamiento</p>
+            <button
+              type="button"
+              @click="markAllNormal('antecedentes_odontologicos')"
+              class="shrink-0 rounded-lg border border-border px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition-theme hover:border-primary/40 hover:text-primary"
+            >
+              Marcar todo como normal
+            </button>
+          </div>
           <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <SystemReviewField
               v-for="key in DENTAL_HISTORY_SPECIALTIES"
@@ -214,23 +232,13 @@ import { AddCircleIcon } from '@solar-icons/vue/linear'
 import { useClinicalHistories } from '../composables/dental/useClinicalHistories'
 import SystemReviewField from '../components/dental/SystemReviewField.vue'
 import { FormInput, FormTextarea, FormToggle } from '../components/forms'
+import { MEDICAL_SYSTEM_LABELS } from '../components/dental/medicalSystemLabels'
 import {
   MEDICAL_SYSTEMS, DENTAL_HISTORY_SPECIALTIES,
   type ClinicalHistory, type ClinicalHistoryAnamnesis, type ClinicalHistoryExamenFisico,
   type ClinicalHistoryExamenesComplementarios, type ClinicalHistoryDiagnostico, type SystemReview,
 } from '../types/database'
 import type { ClinicalHistorySections } from '../services/dental/clinicalHistoryService'
-
-const MEDICAL_SYSTEM_LABELS: Record<string, string> = {
-  sistema_nervioso: 'Sistema Nervioso', sistema_endocrino: 'Sistema Endocrino',
-  sistema_osteomuscular: 'Sistema Osteomuscular', sistema_cardiovascular: 'Sistema Cardiovascular',
-  sistema_respiratorio: 'Sistema Respiratorio', sistema_inmunologico: 'Sistema Inmunológico',
-  sistema_dermatologico: 'Sistema Dermatológico', ginecobstetricos: 'Ginecobstétricos',
-  sistema_hematologico: 'Sistema Hematológico', sistema_digestivo: 'Sistema Digestivo',
-  sistema_renal: 'Sistema Renal', hereditarios: 'Hereditarios', perinatales: 'Perinatales',
-  toxico_alergicos: 'Tóxico-Alérgicos', farmacologicos: 'Farmacológicos', quirurgicos: 'Quirúrgicos',
-  hospitalarios: 'Hospitalarios', familiares: 'Familiares', psicosociales: 'Psicosociales', otros: 'Otros',
-}
 
 const DENTAL_HISTORY_LABELS: Record<string, string> = {
   patologia_cirugia_bucal: 'Patología y Cirugía Bucal', cirugia_maxilofacial: 'Cirugía Maxilofacial',
@@ -294,6 +302,14 @@ const { histories, isLoading, createMutation, updateMutation } = useClinicalHist
 
 function emptySystemReview(): SystemReview {
   return { refiere: false, observaciones: '' }
+}
+
+// "Todo normal" atajo — la mayoría de los pacientes no refiere nada en la mayoría de los
+// sistemas, así que forzar un toggle por campo (27 entre ambas secciones) es puro trabajo
+// mecánico. Un clic los deja todos en "No refiere"; el doctor solo activa los que sí aplican.
+function markAllNormal(section: 'antecedentes_medicos' | 'antecedentes_odontologicos') {
+  const keys = section === 'antecedentes_medicos' ? MEDICAL_SYSTEMS : DENTAL_HISTORY_SPECIALTIES
+  form.anamnesis[section] = Object.fromEntries(keys.map(k => [k, emptySystemReview()])) as any
 }
 
 function emptyAnamnesis(): ClinicalHistoryAnamnesis {

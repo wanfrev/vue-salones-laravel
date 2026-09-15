@@ -23,6 +23,22 @@ export const LOWER_ARCH: ToothLayout[] = [
 ]
 
 /**
+ * FDI/ISO primary (deciduous) dentition — quadrants 5-8, 5 pieces each (no premolars, no 3rd
+ * molar). Numbers never overlap with the permanent set, so both can be charted on the same
+ * patient's DentalTeeth record at once (mixed dentition) — "selector de dentición" just picks
+ * which of these two arrays the odontogram currently renders/edits.
+ */
+export const PRIMARY_UPPER_ARCH: ToothLayout[] = [
+  ...[55, 54, 53, 52, 51].map((tooth): ToothLayout => ({ tooth, arch: 'upper', half: 'left' })),
+  ...[61, 62, 63, 64, 65].map((tooth): ToothLayout => ({ tooth, arch: 'upper', half: 'right' })),
+]
+
+export const PRIMARY_LOWER_ARCH: ToothLayout[] = [
+  ...[85, 84, 83, 82, 81].map((tooth): ToothLayout => ({ tooth, arch: 'lower', half: 'left' })),
+  ...[71, 72, 73, 74, 75].map((tooth): ToothLayout => ({ tooth, arch: 'lower', half: 'right' })),
+]
+
+/**
  * Maps the 4 geometric sides of a tooth cell (top/bottom/left/right, as drawn) to their clinical
  * face name. Upper arch: top faces outward (vestibular), bottom faces the tongue (lingual/palatino).
  * Lower arch is mirrored. Left/right map to mesial/distal depending on which side of the midline

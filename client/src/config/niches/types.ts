@@ -44,6 +44,8 @@ export type Capability =
   | 'dental.perio_annex'
   | 'dental.periodontogram'
   | 'dental.consent'
+  | 'dental.biofilm'
+  | 'dental.budget'
 
 export interface NicheCopy {
   serviceNamePlaceholder?: string

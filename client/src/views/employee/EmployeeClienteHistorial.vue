@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <header class="mb-4 lg:mb-6">
+    <header class="mb-4 lg:mb-6 no-print">
       <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div class="flex items-center gap-2 text-sm text-primary mb-0.5">
@@ -18,6 +18,15 @@
             Volver
           </button>
           <button
+            v-if="isDentalNiche"
+            @click="windowPrint"
+            class="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary transition-theme hover:bg-bg-secondary"
+            title="Imprimir estado de cuenta"
+          >
+            <PrinterIcon class="h-4 w-4" />
+            Estado de cuenta
+          </button>
+          <button
             v-if="!hidePhoneFromEmployee && cliente?.phone"
             @click="handleWhatsApp"
             class="flex items-center gap-2 rounded-xl bg-success px-3 py-2 text-sm font-medium text-text-inverse shadow-lg shadow-success/25 transition-theme hover:bg-success/90"
@@ -33,20 +42,27 @@
             <DocumentIcon class="h-4 w-4" />
              Ver {{ t.historyPlural || 'Historias clínicas' }}
           </button>
-          <button
-            v-if="isDentalNiche"
-            @click="goToDentalRecord"
-            class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5"
-          >
-            <DocumentIcon class="h-4 w-4" />
-             Ver expediente dental
-          </button>
         </div>
       </div>
     </header>
 
+    <!-- Only shown when printing — a plain header since the sidebar/nav are hidden by @media print.
+         Odontología-only, same as the button that triggers it. -->
+    <div v-if="isDentalNiche" class="print-only mb-6">
+      <p class="text-lg font-bold text-text">{{ businessStore.business?.name || 'Estado de cuenta' }}</p>
+      <p class="text-sm text-text-secondary">{{ cliente?.name }}<span v-if="!hidePhoneFromEmployee && cliente?.phone"> · {{ cliente.phone }}</span></p>
+      <p class="text-xs text-text-muted">Emitido el {{ new Date().toLocaleDateString('es-VE') }}</p>
+    </div>
+
+    <!-- Same nav (icons + "has data" dots) PatientDentalShell uses once inside the expediente —
+         shared so opening a tool from here doesn't feel like a different app. -->
+    <section v-if="isDentalNiche" class="mb-4 no-print">
+      <h3 class="mb-3 text-sm font-semibold text-text">Herramientas clínicas</h3>
+      <DentalToolsNav :tabs="navTabs" model-value="" @update:model-value="goToTab" />
+    </section>
+
     <!-- Client Info Card -->
-    <div v-if="cliente" class="mb-4 rounded-xl border border-border bg-surface p-4 shadow-sm">
+    <div v-if="cliente" class="mb-4 rounded-xl border border-border bg-surface p-4 shadow-sm no-print">
       <div class="flex items-center gap-4">
         <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/10 text-lg font-bold text-primary">
           {{ getInitials(cliente.name) }}
@@ -85,7 +101,7 @@
                 <td class="py-3 text-text-secondary">{{ formatDate(item.date) }}</td>
                 <td class="py-3 font-medium text-text">{{ item.service }}</td>
                 <td class="py-3 text-text-secondary">{{ item.employee }}</td>
-                <td class="py-3 text-right text-text">${{ item.amount }}</td>
+                <td class="py-3 text-right text-text">${{ item.amount.toLocaleString() }}</td>
                 <td class="py-3 text-right">
                   <span class="inline-flex items-center gap-2 rounded-full bg-bg-secondary px-2.5 py-1 text-xs font-medium text-text">
                     <span class="h-2 w-2 rounded-full" :style="{ background: item.statusColor }"></span>
@@ -99,7 +115,7 @@
       </div>
 
       <div class="rounded-xl border border-border bg-surface p-4 shadow-sm">
-        <h3 class="mb-4 text-base font-semibold text-text">Resumen</h3>
+        <h3 class="mb-4 text-base font-semibold text-text">{{ isDentalNiche ? 'Estado de cuenta' : 'Resumen' }}</h3>
         <div class="space-y-3">
           <div class="rounded-lg bg-bg-secondary p-3">
              <p class="text-xs text-text-muted">Total {{ (t.appointmentPlural || 'Citas').toLowerCase() }}</p>
@@ -109,6 +125,16 @@
             <p class="text-xs text-text-muted">Gasto total</p>
             <p class="text-lg font-bold text-text">${{ totalGasto }}</p>
           </div>
+          <template v-if="isDentalNiche">
+            <div class="rounded-lg bg-success/10 p-3">
+              <p class="text-xs text-text-muted">Total pagado</p>
+              <p class="text-lg font-bold text-success">${{ totalPagado }}</p>
+            </div>
+            <div class="rounded-lg p-3" :class="saldoPendiente > 0 ? 'bg-danger/10' : 'bg-bg-secondary'">
+              <p class="text-xs text-text-muted">Saldo pendiente</p>
+              <p class="text-lg font-bold" :class="saldoPendiente > 0 ? 'text-danger' : 'text-text'">${{ saldoPendiente.toLocaleString() }}</p>
+            </div>
+          </template>
           <div class="rounded-lg bg-bg-secondary p-3">
              <p class="text-xs text-text-muted">Última {{ (t.appointment || 'cita').toLowerCase() }}</p>
              <p class="text-lg font-bold text-text">{{ ultimaVisita || `Sin ${(t.appointmentPlural || 'citas').toLowerCase()}` }}</p>
@@ -130,9 +156,11 @@ import { listCitas } from '../../services/agendaService'
 import { getClienteById } from '../../services/clientesService'
 import { isPetNiche as checkPetNiche } from '../../config/nicheFields'
 import { isDentalNiche as checkDentalNiche } from '../../config/niches'
+import { useDentalToolsNavTabs } from '../../composables/dental/useDentalToolsNavTabs'
+import DentalToolsNav from '../../components/dental/DentalToolsNav.vue'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import type { Cliente } from '../../types/cliente'
-import { DocumentIcon, ArrowLeftIcon, CheckCircleIcon } from '@solar-icons/vue/linear'
+import { DocumentIcon, ArrowLeftIcon, CheckCircleIcon, PrinterIcon } from '@solar-icons/vue/linear'
 
 const authStore = useAuthStore()
 const businessStore = useBusinessStore()
@@ -143,6 +171,7 @@ const clienteId = computed(() => route.params.id as string)
 const businessId = computed(() => authStore.businessId)
 const isPetNiche = computed(() => checkPetNiche(businessStore.nicheType))
 const isDentalNiche = computed(() => checkDentalNiche(businessStore.nicheType))
+const { navTabs } = useDentalToolsNavTabs(() => clienteId.value, () => isDentalNiche.value)
 const t = computed(() => businessStore.terminology)
 const hidePhoneFromEmployee = computed(() => authStore.role === 'empleado' && businessStore.hasFeature('hide_client_phone_from_employees'))
 
@@ -168,17 +197,22 @@ const historial = computed(() => (citasData.value || [])
     date: c.date,
     service: c.service,
     employee: c.employee,
-    amount: c.price.toLocaleString(),
+    amount: c.price,
+    paymentStatus: c.paymentStatus,
     statusLabel: c.statusLabel || c.status,
     statusColor: c.statusColor || 'var(--color-primary)',
   }))
 )
 
-const totalGasto = computed(() => historial.value.reduce((sum, item) => sum + Number(item.amount.toString().replace(/,/g, '')), 0).toLocaleString())
+const totalGasto = computed(() => historial.value.reduce((sum, item) => sum + item.amount, 0).toLocaleString())
+const totalPagado = computed(() => historial.value.filter(i => i.paymentStatus === 'paid').reduce((sum, i) => sum + i.amount, 0).toLocaleString())
+const saldoPendiente = computed(() => historial.value.filter(i => i.paymentStatus !== 'paid').reduce((sum, i) => sum + i.amount, 0))
 const ultimaVisita = computed(() => {
   const d = historial.value[0]?.date
   return d ? formatDate(d) : ''
 })
+
+const windowPrint = () => window.print()
 
 const goBack = () => {
   router.push('/dashboard/clientes')
@@ -192,8 +226,8 @@ const goToConsultorio = () => {
   }
 }
 
-const goToDentalRecord = () => {
-  router.push(`/dashboard/clientes/${clienteId.value}/expediente/historia-clinica`)
+const goToTab = (key: string) => {
+  router.push(`/dashboard/clientes/${clienteId.value}/expediente/${key}`)
 }
 
 const handleWhatsApp = () => {
@@ -202,3 +236,45 @@ const handleWhatsApp = () => {
   window.open(`https://wa.me/${phone}`, '_blank')
 }
 </script>
+
+<style>
+@media print {
+  @page { size: auto; margin: 10mm; }
+
+  html, body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  header, aside, nav, footer {
+    display: none !important;
+  }
+
+  main {
+    margin-left: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  main > div {
+    padding: 0 !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .fixed.inset-0 {
+    display: none !important;
+  }
+
+  .min-h-screen > .fixed {
+    display: none !important;
+  }
+}
+</style>

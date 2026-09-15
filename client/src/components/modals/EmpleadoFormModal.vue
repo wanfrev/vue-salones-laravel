@@ -419,7 +419,8 @@ const defaultFormData: EmpleadoFormData = {
   specialties: [],
   scheduleStart: '09:00',
   scheduleEnd: '18:00',
-  scheduleBreak: '13:00 - 14:00',
+  scheduleBreakStart: '13:00',
+  scheduleBreakEnd: '14:00',
   payType: 'percentage',
   payPercentage: 50,
   baseSalary: 0,
@@ -513,13 +514,18 @@ watch(
         specialties: empleado.specialties || [],
         scheduleStart: empleado.schedule?.start || '09:00',
         scheduleEnd: empleado.schedule?.end || '18:00',
-        scheduleBreak: empleado.schedule?.break || '13:00 - 14:00',
+        // Respects an explicitly-cleared break ('' saved as no break) instead of re-defaulting
+        // it back to 13:00-14:00 on every edit.
+        scheduleBreakStart: empleado.schedule?.breakStart ?? '',
+        scheduleBreakEnd: empleado.schedule?.breakEnd ?? '',
         payType: empleado.payType || 'percentage',
         payPercentage: empleado.payPercentage || 0,
         baseSalary: empleado.baseSalary || 0,
         salaryFrequency: empleado.salaryFrequency || 'monthly',
         productCommissionPercentage: empleado.productCommissionPercentage || 0,
-        activeDays: [1, 2, 3, 4, 5, 6],
+        // Was hardcoded to Mon-Sat regardless of what was actually saved — every edit silently
+        // wiped a configured day off. Now reflects the real weekdays on file.
+        activeDays: empleado.workDays?.length ? empleado.workDays : [1, 2, 3, 4, 5, 6],
         disableAgenda: empleado.disableAgenda ?? false,
         disableInventoryEdit: empleado.disableInventoryEdit ?? false,
         showInPublicBooking: empleado.showInPublicBooking ?? true,

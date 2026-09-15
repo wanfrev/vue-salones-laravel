@@ -21,7 +21,12 @@
   </div>
 
   <template v-else>
-    <div class="space-y-4">
+    <p class="mb-3 text-xs text-text-muted">
+      Navega la tabla con <kbd class="rounded border border-border bg-bg-secondary px-1 py-0.5 font-mono">↑↓</kbd> entre dientes,
+      <kbd class="rounded border border-border bg-bg-secondary px-1 py-0.5 font-mono">←→</kbd> entre campos, y
+      <kbd class="rounded border border-border bg-bg-secondary px-1 py-0.5 font-mono">Enter</kbd> para bajar sin usar el mouse.
+    </p>
+    <div class="space-y-4" @keydown="onGridKeydown">
       <div>
         <p class="mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">Arco superior</p>
         <div class="grid grid-cols-1 gap-2 lg:grid-cols-2">
@@ -91,6 +96,53 @@ function toothData(tooth: number): PeriodontalToothMeasurement {
 
 function updateTooth(tooth: number, value: PeriodontalToothMeasurement) {
   teeth[String(tooth)] = value
+}
+
+// Keyboard grid navigation across the 32 tooth cards — each measurement cell renders a
+// `data-perio-nav="{tooth}:{cellIndex}"` marker (cellIndex 0-17: 6 sites × [profundidad,
+// sangrado, recesion]). One tooth is a full periodontogram row of 18 fields, so tabbing
+// through the whole chart by mouse/Tab alone is the exact tedium this is meant to remove.
+const ALL_TEETH = [...UPPER_ARCH, ...LOWER_ARCH].map(l => l.tooth)
+const CELLS_PER_TOOTH = 18
+
+function focusNav(tooth: number, cell: number) {
+  const el = document.querySelector<HTMLInputElement>(`[data-perio-nav="${tooth}:${cell}"]`)
+  if (!el) return
+  el.focus()
+  if (el.type !== 'checkbox') el.select()
+}
+
+function isAtTextEdge(el: HTMLInputElement, edge: 'start' | 'end'): boolean {
+  if (el.type === 'checkbox') return true
+  const pos = edge === 'start' ? 0 : el.value.length
+  return el.selectionStart === pos && el.selectionEnd === pos
+}
+
+function onGridKeydown(e: KeyboardEvent) {
+  const target = e.target as HTMLInputElement
+  const raw = target?.dataset?.perioNav
+  if (!raw) return
+  const [toothStr, cellStr] = raw.split(':')
+  const tooth = Number(toothStr)
+  const cell = Number(cellStr)
+  const toothIndex = ALL_TEETH.indexOf(tooth)
+  if (toothIndex === -1) return
+
+  if (e.key === 'ArrowDown' || (e.key === 'Enter' && !e.shiftKey)) {
+    e.preventDefault()
+    if (toothIndex < ALL_TEETH.length - 1) focusNav(ALL_TEETH[toothIndex + 1], cell)
+  } else if (e.key === 'ArrowUp' || (e.key === 'Enter' && e.shiftKey)) {
+    e.preventDefault()
+    if (toothIndex > 0) focusNav(ALL_TEETH[toothIndex - 1], cell)
+  } else if (e.key === 'ArrowRight') {
+    if (!isAtTextEdge(target, 'end')) return
+    e.preventDefault()
+    if (cell < CELLS_PER_TOOTH - 1) focusNav(tooth, cell + 1)
+  } else if (e.key === 'ArrowLeft') {
+    if (!isAtTextEdge(target, 'start')) return
+    e.preventDefault()
+    if (cell > 0) focusNav(tooth, cell - 1)
+  }
 }
 
 const selectedId = ref<string | null>(null)

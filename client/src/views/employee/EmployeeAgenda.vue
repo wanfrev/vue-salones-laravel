@@ -3,6 +3,16 @@
     <template #header-actions>
       <div class="flex items-center gap-1 sm:gap-2">
         <button
+          v-if="isDentalNiche"
+          @click="quickCitaModalRef?.open()"
+          aria-label="Cita rápida"
+          title="Buscar por nombre, teléfono o cédula y agendar en segundos"
+          class="flex items-center gap-1 rounded-lg border border-primary/30 bg-primary/5 px-1.5 py-2 text-sm font-semibold text-primary transition-theme hover:bg-primary/10 sm:gap-2 sm:px-4"
+        >
+          <BoltIcon class="h-4 w-4" />
+          <span class="hidden sm:inline">Cita rápida</span>
+        </button>
+        <button
           @click="handleNewCita"
           :aria-label="`Nueva ${t.appointment?.toLowerCase() || 'cita'}`"
           class="flex items-center gap-1 rounded-lg bg-primary px-1.5 py-2 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover sm:gap-2 sm:px-4"
@@ -65,14 +75,22 @@
     @save="handleSaveCita"
     @delete="handleDeleteCita"
   />
+  <QuickCitaModal
+    v-if="isDentalNiche"
+    ref="quickCitaModalRef"
+    :servicios="serviciosList"
+    :empleados="empleadosList"
+    @save="handleSaveQuickCita"
+  />
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { AddCircleIcon, LinkIcon } from '@solar-icons/vue/linear'
+import { AddCircleIcon, LinkIcon, BoltIcon } from '@solar-icons/vue/linear'
 import { useQuery } from '@tanstack/vue-query'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
+import { isDentalNiche as checkDentalNiche } from '../../config/niches'
 import { useAppointmentMutations } from '../../composables/agenda/useAppointmentMutations'
 import { useNotification } from '../../composables/common/useNotification'
 import { listServicios, serviciosKeys } from '../../services/serviciosService'
@@ -81,7 +99,7 @@ import { listCitas, agendaKeys } from '../../services/agendaService'
 import { toISODate } from '../../lib/formatters'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import AgendaListView from '../../components/agenda/AgendaListView.vue'
-import { CitaFormModal } from '../../components/modals'
+import { CitaFormModal, QuickCitaModal } from '../../components/modals'
 import type { Cita } from '../../types/cita'
 
 const authStore = useAuthStore()
@@ -89,8 +107,10 @@ const businessStore = useBusinessStore()
 
 const t = computed(() => businessStore.terminology)
 const businessId = computed(() => authStore.businessId)
+const isDentalNiche = computed(() => checkDentalNiche(businessStore.nicheType))
 
 const citaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
+const quickCitaModalRef = ref<InstanceType<typeof QuickCitaModal> | null>(null)
 const editingCita = ref<Cita | null>(null)
 
 const selectedDate = ref<Date>(new Date())
@@ -157,6 +177,14 @@ const {
   businessId,
   createdBy: computed(() => authStore.profile?.id),
   modalRef: citaModalRef,
+})
+
+// Separate mutation instance so its onSuccess/onError close & reset the QUICK modal specifically
+// — reusing handleSaveCita above would call citaModalRef's close()/onSaveComplete() instead.
+const { handleSaveCita: handleSaveQuickCita } = useAppointmentMutations({
+  businessId,
+  createdBy: computed(() => authStore.profile?.id),
+  modalRef: quickCitaModalRef,
 })
 
 const { success } = useNotification()

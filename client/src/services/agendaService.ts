@@ -505,6 +505,39 @@ export const setAppointmentCheckedIn = async (id: string, checkedIn: boolean): P
   await apiRequest('PATCH', `/appointments/${id}/check-in`, { checked_in: checkedIn })
 }
 
+// Odontología-only "Finalizar Atención" — marks the visit done and clears the waiting-room
+// marker. Deliberately goes through the dedicated status endpoint (unlike updateCitaStatus below,
+// which uses the generic update) because that endpoint already notifies admins/encargados on
+// status change — reused here for free, not new backend work. `completed` + unpaid is already a
+// recognized state elsewhere (PosService::getPendingPayments), so the appointment shows up in the
+// front desk's pending-checkout list automatically once this runs.
+export const finalizeAttention = async (id: string): Promise<void> => {
+  const { data: appt } = await db
+    .from('appointments')
+    .select('group_id')
+    .eq('id', id)
+    .maybeSingle()
+
+  const groupId = (appt as any)?.group_id
+  let ids = [id]
+
+  if (groupId) {
+    const { data: members, error: membersError } = await db
+      .from('appointments')
+      .select('id')
+      .eq('group_id', groupId)
+
+    if (membersError) throw membersError
+    ids = ((members ?? []) as Array<{ id: string }>).map(m => m.id)
+  }
+
+  for (const memberId of ids) {
+    await apiRequest('PATCH', `/appointments/${memberId}/status`, { status: 'completed' })
+  }
+
+  await setAppointmentCheckedIn(id, false)
+}
+
 export const updateCitaStatus = async (
   id: string,
   status: 'pending' | 'confirmed' | 'paid'

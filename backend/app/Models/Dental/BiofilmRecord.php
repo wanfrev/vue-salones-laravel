@@ -8,24 +8,24 @@ use App\Models\Concerns\BelongsToBusiness;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class DentalChart extends Model
+class BiofilmRecord extends Model
 {
     use BelongsToBranch;
     use BelongsToBusiness;
 
     public $incrementing = false;
     protected $keyType = 'string';
-    protected $table = 'dental_charts';
+    protected $table = 'dental_biofilm_records';
 
     protected $fillable = [
-        'id', 'business_id', 'branch_id', 'client_id', 'teeth', 'codes',
+        'id', 'business_id', 'branch_id', 'client_id', 'created_by',
+        'teeth', 'observaciones_generales',
     ];
 
     protected function casts(): array
     {
         return [
             'teeth' => 'json',
-            'codes' => 'json',
         ];
     }
 

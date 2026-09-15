@@ -44,6 +44,8 @@ class EmployeeScheduleController
             'weekday' => 'required|integer|min:0|max:6',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i',
+            'break_start' => 'nullable|date_format:H:i',
+            'break_end' => 'nullable|date_format:H:i',
         ]);
 
         $schedule = $this->scheduleService->store($data);
@@ -57,6 +59,8 @@ class EmployeeScheduleController
             'weekday' => 'sometimes|integer|min:0|max:6',
             'start_time' => 'sometimes|date_format:H:i',
             'end_time' => 'sometimes|date_format:H:i',
+            'break_start' => 'nullable|date_format:H:i',
+            'break_end' => 'nullable|date_format:H:i',
             'branch_id' => 'nullable|uuid',
         ]);
 

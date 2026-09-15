@@ -16,7 +16,10 @@ export interface Empleado {
   active?: boolean
   citasHoy: number
   producido: string
-  schedule?: { start: string; end: string; break: string }
+  schedule?: { start: string; end: string; breakStart: string; breakEnd: string }
+  /** Weekdays (0=domingo..6=sábado) this employee actually has a schedule row for — the days
+   *  they work. Empty/undefined means no schedule has ever been configured for them. */
+  workDays?: number[]
   phone?: string
   email?: string
   specialties?: string[]
@@ -72,7 +75,9 @@ export interface EmpleadoFormData {
   specialties: string[]
   scheduleStart: string
   scheduleEnd: string
-  scheduleBreak: string
+  /** Empty string on either end means "sin descanso" — no break is applied. */
+  scheduleBreakStart: string
+  scheduleBreakEnd: string
   payType: 'salary' | 'percentage' | 'mixed'
   payPercentage: number
   baseSalary: number

@@ -13,6 +13,8 @@ use App\Http\Controllers\Api\Dental\ConsentController;
 use App\Http\Controllers\Api\Dental\EndoAnnexController;
 use App\Http\Controllers\Api\Dental\PerioAnnexController;
 use App\Http\Controllers\Api\Dental\PeriodontogramController;
+use App\Http\Controllers\Api\Dental\BiofilmRecordController;
+use App\Http\Controllers\Api\Dental\BudgetController;
 use App\Http\Controllers\Api\EmployeeCommissionController;
 use App\Http\Controllers\Api\EmployeeDocumentController;
 use App\Http\Controllers\Api\EmployeePaymentController;
@@ -229,6 +231,22 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
             Route::get('/clients/{clientId}/periodontograms/{id}', [PeriodontogramController::class, 'show']);
             Route::post('/clients/{clientId}/periodontograms', [PeriodontogramController::class, 'store']);
             Route::put('/clients/{clientId}/periodontograms/{id}', [PeriodontogramController::class, 'update']);
+        });
+
+        // Biopelícula / índice de placa bacteriana (nicho odontologia)
+        Route::middleware(['capability:dental.biofilm'])->group(function () {
+            Route::get('/clients/{clientId}/biofilm-records', [BiofilmRecordController::class, 'index']);
+            Route::get('/clients/{clientId}/biofilm-records/{id}', [BiofilmRecordController::class, 'show']);
+            Route::post('/clients/{clientId}/biofilm-records', [BiofilmRecordController::class, 'store']);
+            Route::put('/clients/{clientId}/biofilm-records/{id}', [BiofilmRecordController::class, 'update']);
+        });
+
+        // Presupuesto de tratamiento (nicho odontologia)
+        Route::middleware(['capability:dental.budget'])->group(function () {
+            Route::get('/clients/{clientId}/budgets', [BudgetController::class, 'index']);
+            Route::get('/clients/{clientId}/budgets/{id}', [BudgetController::class, 'show']);
+            Route::post('/clients/{clientId}/budgets', [BudgetController::class, 'store']);
+            Route::put('/clients/{clientId}/budgets/{id}', [BudgetController::class, 'update']);
         });
 
         // Consentimiento informado (nicho odontologia) — inmutable una vez firmado, sin update.

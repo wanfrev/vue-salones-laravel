@@ -2,17 +2,21 @@
   <div class="space-y-3">
     <div>
       <p class="text-xs font-medium text-text-muted mb-2">Horario laboral</p>
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <FormTime :model-value="formData.scheduleStart"
           @update:model-value="emit('update:modelValue', { ...formData, scheduleStart: $event })" label="Entrada"
           required :error="errors.scheduleStart" />
         <FormTime :model-value="formData.scheduleEnd"
           @update:model-value="emit('update:modelValue', { ...formData, scheduleEnd: $event })" label="Salida" required
           :error="errors.scheduleEnd" />
-        <FormInput :model-value="formData.scheduleBreak"
-          @update:model-value="emit('update:modelValue', { ...formData, scheduleBreak: String($event) })"
-          label="Descanso" type="text" placeholder="13:00-14:00" :error="errors.scheduleBreak" />
+        <FormTime :model-value="formData.scheduleBreakStart"
+          @update:model-value="emit('update:modelValue', { ...formData, scheduleBreakStart: $event })"
+          label="Inicio descanso" :error="errors.scheduleBreakStart" />
+        <FormTime :model-value="formData.scheduleBreakEnd"
+          @update:model-value="emit('update:modelValue', { ...formData, scheduleBreakEnd: $event })"
+          label="Fin descanso" :error="errors.scheduleBreakEnd" />
       </div>
+      <p class="mt-1.5 text-[11px] text-text-muted">Deja el descanso vacío si {{ (formData.name || 'esta persona').split(' ')[0] }} no tiene hora fija de almuerzo. Mientras dure, no aparecerá como disponible en la agenda.</p>
     </div>
 
     <div>
@@ -30,7 +34,7 @@
 </template>
 
 <script setup lang="ts">
-import { FormInput, FormTime } from '../forms'
+import { FormTime } from '../forms'
 import type { EmpleadoFormData } from '../../types/empleado'
 
 const props = defineProps<{ formData: EmpleadoFormData; errors: Partial<Record<string, string>> }>()

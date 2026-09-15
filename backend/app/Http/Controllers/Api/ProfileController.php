@@ -122,6 +122,8 @@ class ProfileController
             'schedules.*.weekday' => 'required|integer|min:0|max:6',
             'schedules.*.start_time' => 'required|date_format:H:i',
             'schedules.*.end_time' => 'required|date_format:H:i',
+            'schedules.*.break_start' => 'nullable|date_format:H:i',
+            'schedules.*.break_end' => 'nullable|date_format:H:i',
         ], $this->staffingFieldRules()));
 
         try {
@@ -175,6 +177,8 @@ class ProfileController
             'schedules.*.weekday' => 'required|integer|min:0|max:6',
             'schedules.*.start_time' => 'required|date_format:H:i',
             'schedules.*.end_time' => 'required|date_format:H:i',
+            'schedules.*.break_start' => 'nullable|date_format:H:i',
+            'schedules.*.break_end' => 'nullable|date_format:H:i',
         ], $this->staffingFieldRules()));
 
         try {

@@ -4,6 +4,15 @@
 /* Class-based dark mode so ThemeStore's .dark class on <html> drives Tailwind's dark: utilities */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Global (not per-component `scoped`) so it applies no matter which SFC renders a `.print-only`
+   element — a printable leaf view (e.g. ClientePresupuesto.vue) is nested inside a different
+   component's template (PatientDentalShell.vue) via <router-view>, and Vue's scoped styles never
+   cross that boundary. Each view's own `@media print { .print-only { display: block } }` block
+   still overrides this when the user actually prints. */
+.print-only {
+  display: none;
+}
+
 /* ============================================================
    SISTEMA DE DISEÑO SEMANTICO - TOKENS PARA CLARO/OSCURO
    ============================================================ */
