@@ -797,7 +797,26 @@ const gridColumns = computed<GridColumn[]>(() => {
     })
   }
 
-  let cols = empId !== 'all' ? emps.filter(e => e.id === empId).map(e => ({ id: e.id, name: e.full_name })) : emps.map(e => ({ id: e.id, name: e.full_name }))
+  // Employees with a day off today shouldn't clutter the "todos" view with an empty column —
+  // unless they still have an appointment that day (a manually-booked exception), in which case
+  // hiding the column would hide that appointment too.
+  const todayWeekday = parseLocalDate(selectedDate.value, 12, 0, 0).getDay()
+  const withScheduleIds = new Set<string>()
+  const workingTodayIds = new Set<string>()
+  for (const s of (schedules.value ?? []) as any[]) {
+    if (!s.employee_id) continue
+    withScheduleIds.add(s.employee_id)
+    if (s.weekday === todayWeekday) workingTodayIds.add(s.employee_id)
+  }
+  const empHasApptToday = new Set<string>()
+  for (const a of appts) {
+    if (isoDateByAppt.get(a) === selectedDate.value) empHasApptToday.add(a.employee_id)
+  }
+  const isOffToday = (id: string) => withScheduleIds.has(id) && !workingTodayIds.has(id) && !empHasApptToday.has(id)
+
+  let cols = empId !== 'all'
+    ? emps.filter(e => e.id === empId).map(e => ({ id: e.id, name: e.full_name }))
+    : emps.filter(e => !isOffToday(e.id)).map(e => ({ id: e.id, name: e.full_name }))
    if (!cols.length) cols = [{ id: '__default__', name: businessStore.terminology.appointmentPlural }]
 
   return cols.map(c => {
