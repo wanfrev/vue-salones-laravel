@@ -420,9 +420,17 @@ class StaffingReportService
             ->join('staffing_timesheets as st', 'st.id', '=', 'ste.timesheet_id')
             ->join('profiles as p', 'p.id', '=', 'ste.employee_id')
             ->join('staffing_companies as sc', 'sc.id', '=', 'st.company_id')
+            // Matched on the full assignment key, not just employee+company — a worker holding two
+            // roles (or the same role on two projects) at one company has two staffing_company_
+            // employees rows for it (see 2026_08_24_000001's widened unique constraint), and
+            // matching only employee+company fanned one ste payout row out into one row per
+            // matching sce row, duplicating it in the list and inflating the printed total.
             ->leftJoin('staffing_company_employees as sce', function ($join) {
                 $join->on('sce.company_id', '=', 'st.company_id')
-                    ->on('sce.employee_id', '=', 'ste.employee_id');
+                    ->on('sce.employee_id', '=', 'ste.employee_id')
+                    ->on(DB::raw("coalesce(sce.project_id::text, '')"), '=', DB::raw("coalesce(st.project_id::text, '')"))
+                    ->on(DB::raw("coalesce(sce.role, '')"), '=', DB::raw("coalesce(ste.role, '')"))
+                    ->on(DB::raw("coalesce(sce.shift, '')"), '=', DB::raw("coalesce(ste.shift, '')"));
             })
             ->where('st.business_id', $businessId)
             ->where('st.week_start', $weekStart)
