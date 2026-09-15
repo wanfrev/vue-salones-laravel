@@ -13,7 +13,7 @@ class EmployeeSchedule extends Model
 
     protected $fillable = [
         'id', 'employee_id', 'branch_id', 'weekday',
-        'start_time', 'end_time',
+        'start_time', 'end_time', 'break_start', 'break_end',
     ];
 
     protected function casts(): array

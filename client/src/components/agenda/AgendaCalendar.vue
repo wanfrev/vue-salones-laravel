@@ -167,22 +167,25 @@
               class="absolute right-0 top-full z-50 mt-1.5 w-[min(20rem,92vw)] max-h-96 overflow-y-auto rounded-xl border border-border bg-surface p-2 shadow-xl" @click.stop>
               <p class="px-2 py-1.5 text-[11px] font-bold text-text-muted uppercase tracking-wide">{{ selectedDayLabel }}</p>
                <div v-if="!occupancyRows.length" class="px-2 py-3 text-xs text-text-muted">Sin {{ businessStore.terminology.employeePlural?.toLowerCase() || 'empleados' }} para mostrar.</div>
-              <div v-for="row in occupancyRows" :key="row.id" class="px-2 py-2 border-b border-border-subtle last:border-b-0">
-                <div class="flex items-center justify-between gap-2 mb-1">
+              <div v-for="row in occupancyRows" :key="row.id" class="px-2 py-2 border-b border-border-subtle last:border-b-0" :class="{ 'opacity-60': row.dayOff }">
+                <div class="flex items-center justify-between gap-2" :class="row.dayOff ? '' : 'mb-1'">
                   <span class="text-sm font-semibold text-text truncate">{{ row.name }}</span>
-                  <span class="shrink-0 text-xs font-bold"
+                  <span v-if="row.dayOff" class="shrink-0 text-xs font-medium text-text-muted italic">No trabaja hoy</span>
+                  <span v-else class="shrink-0 text-xs font-bold"
                     :class="row.pctBooked >= 80 ? 'text-danger' : row.pctBooked >= 50 ? 'text-warning' : 'text-success'">{{ row.pctBooked }}% ocupado</span>
                 </div>
-                <div class="h-1.5 rounded-full bg-bg-secondary overflow-hidden mb-1.5">
-                  <div class="h-full rounded-full transition-all"
-                    :class="row.pctBooked >= 80 ? 'bg-danger' : row.pctBooked >= 50 ? 'bg-warning' : 'bg-success'"
-                    :style="{ width: `${Math.min(100, row.pctBooked)}%` }" />
-                </div>
-                <div v-if="row.gaps.length" class="flex flex-wrap gap-1">
-                  <span v-for="(g, i) in row.gaps" :key="i"
-                    class="rounded-full bg-bg-secondary px-2 py-0.5 text-[10px] font-medium text-text-secondary">{{ g.label }}</span>
-                </div>
-                <p v-else class="text-[10px] text-text-muted italic">Sin huecos libres</p>
+                <template v-if="!row.dayOff">
+                  <div class="h-1.5 rounded-full bg-bg-secondary overflow-hidden mb-1.5">
+                    <div class="h-full rounded-full transition-all"
+                      :class="row.pctBooked >= 80 ? 'bg-danger' : row.pctBooked >= 50 ? 'bg-warning' : 'bg-success'"
+                      :style="{ width: `${Math.min(100, row.pctBooked)}%` }" />
+                  </div>
+                  <div v-if="row.gaps.length" class="flex flex-wrap gap-1">
+                    <span v-for="(g, i) in row.gaps" :key="i"
+                      class="rounded-full bg-bg-secondary px-2 py-0.5 text-[10px] font-medium text-text-secondary">{{ g.label }}</span>
+                  </div>
+                  <p v-else class="text-[10px] text-text-muted italic">Sin huecos libres</p>
+                </template>
               </div>
             </div>
           </Transition>
@@ -830,17 +833,29 @@ function formatMinutesAsClock(totalMin: number): string {
 }
 
 interface OccupancyGap { label: string; minutes: number }
-interface OccupancyRow { id: string; name: string; pctBooked: number; gaps: OccupancyGap[] }
+interface OccupancyRow { id: string; name: string; pctBooked: number; gaps: OccupancyGap[]; dayOff: boolean }
 
 const occupancyRows = computed<OccupancyRow[]>(() => {
   const emps = employees.value ?? []
   const weekday = parseLocalDate(selectedDate.value, 12, 0, 0).getDay()
   const gridWindow = { start: START_HOUR * 60, end: END_HOUR * 60 }
 
-  const schedMap = new Map<string, { start: number; end: number }>()
+  type SchedWin = { start: number; end: number; breakStart: number | null; breakEnd: number | null }
+  const schedMap = new Map<string, SchedWin>()
+  // Employees with a schedule row on ANY weekday — used to tell "no schedule configured at all"
+  // (falls back to the business's default grid hours) apart from "configured, but not today"
+  // (a real day off, which must not show the default hours as available).
+  const employeesWithSchedule = new Set<string>()
   for (const s of (schedules.value ?? []) as any[]) {
-    if (s.weekday === weekday && s.employee_id) {
-      schedMap.set(s.employee_id, { start: timeStrToMinutes(s.start_time), end: timeStrToMinutes(s.end_time) })
+    if (!s.employee_id) continue
+    employeesWithSchedule.add(s.employee_id)
+    if (s.weekday === weekday) {
+      schedMap.set(s.employee_id, {
+        start: timeStrToMinutes(s.start_time),
+        end: timeStrToMinutes(s.end_time),
+        breakStart: s.break_start ? timeStrToMinutes(s.break_start) : null,
+        breakEnd: s.break_end ? timeStrToMinutes(s.break_end) : null,
+      })
     }
   }
 
@@ -851,8 +866,12 @@ const occupancyRows = computed<OccupancyRow[]>(() => {
   })
 
   return emps.map((emp: any) => {
-    const win = schedMap.get(emp.id) ?? gridWindow
-    const winMinutes = Math.max(0, win.end - win.start)
+    const sched = schedMap.get(emp.id)
+    const dayOff = !sched && employeesWithSchedule.has(emp.id)
+    if (dayOff) {
+      return { id: emp.id, name: emp.full_name, pctBooked: 0, gaps: [], dayOff: true }
+    }
+    const win = sched ?? { ...gridWindow, breakStart: null, breakEnd: null }
 
     const busy: [number, number][] = []
     for (const a of dayAppts) {
@@ -862,14 +881,21 @@ const occupancyRows = computed<OccupancyRow[]>(() => {
       const eMin = Math.min(win.end, e.getHours() * 60 + e.getMinutes())
       if (eMin > sMin) busy.push([sMin, eMin])
     }
-    busy.sort((a, b) => a[0] - b[0])
-    const merged: [number, number][] = []
-    for (const [s, e] of busy) {
-      const last = merged[merged.length - 1]
-      if (last && s <= last[1]) last[1] = Math.max(last[1], e)
-      else merged.push([s, e])
+    const bookedMinutes = mergeRanges(busy).reduce((sum, [s, e]) => sum + (e - s), 0)
+
+    // The break counts toward neither "booked" (it's not an appointment) nor an available gap
+    // (the employee simply isn't there) — it shrinks the workable window and blocks out its own
+    // slot, same as a real appointment does for gap purposes.
+    let breakMinutes = 0
+    const blocked = [...busy]
+    if (win.breakStart != null && win.breakEnd != null) {
+      const bs = Math.max(win.start, win.breakStart)
+      const be = Math.min(win.end, win.breakEnd)
+      if (be > bs) { breakMinutes = be - bs; blocked.push([bs, be]) }
     }
-    const bookedMinutes = merged.reduce((sum, [s, e]) => sum + (e - s), 0)
+    const merged = mergeRanges(blocked)
+
+    const winMinutes = Math.max(0, win.end - win.start - breakMinutes)
     const pctBooked = winMinutes > 0 ? Math.round((bookedMinutes / winMinutes) * 100) : 100
 
     const gaps: OccupancyGap[] = []
@@ -880,9 +906,20 @@ const occupancyRows = computed<OccupancyRow[]>(() => {
     }
     if (win.end - cursor >= 15) gaps.push({ label: `${formatMinutesAsClock(cursor)} – ${formatMinutesAsClock(win.end)}`, minutes: win.end - cursor })
 
-    return { id: emp.id, name: emp.full_name, pctBooked, gaps }
-  }).sort((a, b) => a.pctBooked - b.pctBooked)
+    return { id: emp.id, name: emp.full_name, pctBooked, gaps, dayOff: false }
+  }).sort((a, b) => Number(a.dayOff) - Number(b.dayOff) || a.pctBooked - b.pctBooked)
 })
+
+function mergeRanges(ranges: [number, number][]): [number, number][] {
+  const sorted = [...ranges].sort((a, b) => a[0] - b[0])
+  const merged: [number, number][] = []
+  for (const [s, e] of sorted) {
+    const last = merged[merged.length - 1]
+    if (last && s <= last[1]) last[1] = Math.max(last[1], e)
+    else merged.push([s, e])
+  }
+  return merged
+}
 
 // ---- Card styling ----
 const statusColors: Record<string, { bg: string; dot: string; stripe: string; checkout: string }> = {

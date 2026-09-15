@@ -48,9 +48,14 @@ export const mapProfileToEmpleado = (
       ? {
           start: firstSchedule.start_time.slice(0, 5),
           end: firstSchedule.end_time.slice(0, 5),
-          break: '',
+          breakStart: firstSchedule.break_start?.slice(0, 5) || '',
+          breakEnd: firstSchedule.break_end?.slice(0, 5) || '',
         }
       : undefined,
+    // Distinct weekdays with a schedule row — the days this employee actually works. Used to
+    // repopulate "Días laborales" when editing; without this the form always fell back to its
+    // Mon-Sat default and silently wiped any configured day off on the next unrelated save.
+    workDays: [...new Set((profile.employee_schedules ?? []).map(s => s.weekday))].sort(),
     phone: profile.phone ?? '',
     email: profile.email ?? '',
     specialties: [],
@@ -135,11 +140,16 @@ export const mapEmpleadoFormToProfileUpdate = (data: EmpleadoFormData) => ({
 
 export const mapEmpleadoFormToScheduleBlocks = (employeeId: string, data: EmpleadoFormData & { branchId?: string | null }) => {
   const days = data.activeDays?.length ? data.activeDays : [1, 2, 3, 4, 5, 6]
+  // Both ends required to count as a real break — a lone start or end without its pair is
+  // treated as "sin descanso" rather than guessing the missing half.
+  const hasBreak = !!data.scheduleBreakStart && !!data.scheduleBreakEnd
   return days.map(weekday => ({
     employee_id: employeeId,
     branch_id: data.branchId || null,
     weekday,
     start_time: data.scheduleStart,
     end_time: data.scheduleEnd,
+    break_start: hasBreak ? data.scheduleBreakStart : null,
+    break_end: hasBreak ? data.scheduleBreakEnd : null,
   }))
 }

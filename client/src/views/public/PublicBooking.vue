@@ -453,7 +453,7 @@ const { data: calendarData, isLoading: loadingCalendar } = useQuery({
   staleTime: 0,
 })
 
-const schedules = computed(() => (calendarData.value?.schedules ?? []) as Array<{ weekday: number; start_time: string; end_time: string }>)
+const schedules = computed(() => (calendarData.value?.schedules ?? []) as Array<{ weekday: number; start_time: string; end_time: string; break_start: string | null; break_end: string | null }>)
 const occupied = computed(() => (calendarData.value?.occupied ?? []) as Array<{ start: string; end: string }>)
 const absences = computed(() => (calendarData.value?.absences ?? []) as Array<{ start: string; end: string }>)
 const selDow = computed(() => new Date(selectedDate.value + 'T12:00:00').getDay())
@@ -466,9 +466,17 @@ const freeSlots = computed<FreeSlot[]>(() => {
   const daySchedules = schedules.value.filter(s => Number(s.weekday) === selDow.value)
   if (!daySchedules.length) return []
 
+  const breaks = daySchedules
+    .filter(s => s.break_start && s.break_end)
+    .map(s => ({
+      s: new Date(`${date}T${s.break_start!.slice(0, 5)}:00`).getTime(),
+      e: new Date(`${date}T${s.break_end!.slice(0, 5)}:00`).getTime(),
+    }))
+
   const occ = [
     ...occupied.value.map(o => ({ s: new Date(o.start).getTime(), e: new Date(o.end).getTime() })),
     ...absences.value.map(a => ({ s: new Date(a.start).getTime(), e: new Date(a.end).getTime() })),
+    ...breaks,
   ].sort((a, b) => a.s - b.s)
 
   const results: FreeSlot[] = []

@@ -259,7 +259,10 @@ const visibleTeam = computed(() => {
 
 const teamSchedule = computed(() => team.value.filter(m => m.schedule).map(m => ({
   id: m.id, name: m.name, start: m.schedule?.start ?? '', end: m.schedule?.end ?? '',
-  break: m.schedule?.break || 'Sin descanso registrado', appointments: 0, available: true,
+  break: (m.schedule?.breakStart && m.schedule?.breakEnd)
+    ? `${m.schedule.breakStart} - ${m.schedule.breakEnd}`
+    : 'Sin descanso registrado',
+  appointments: 0, available: true,
 })))
 
 const totalEmpleados = computed(() => team.value.length)

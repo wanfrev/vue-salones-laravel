@@ -339,6 +339,8 @@ class ProfileService
                 'weekday' => $s['weekday'],
                 'start_time' => $s['start_time'],
                 'end_time' => $s['end_time'],
+                'break_start' => $s['break_start'] ?? null,
+                'break_end' => $s['break_end'] ?? null,
                 'created_at' => now(),
             ]);
         }

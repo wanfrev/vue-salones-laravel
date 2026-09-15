@@ -111,7 +111,7 @@ class PublicBookingController extends Controller
 
         // Working hours for each day
         $schedules = DB::table('employee_schedules')->where('employee_id', $employeeId)
-            ->select('weekday', 'start_time', 'end_time')->get();
+            ->select('weekday', 'start_time', 'end_time', 'break_start', 'break_end')->get();
 
         // Existing appointments (anonymized — no client info)
         $occupied = Appointment::where('business_id', $business->id)

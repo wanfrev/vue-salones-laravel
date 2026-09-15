@@ -116,6 +116,8 @@ export interface EmployeeSchedule {
   weekday: number
   start_time: string
   end_time: string
+  break_start: string | null
+  break_end: string | null
   created_at: string
 }
 
