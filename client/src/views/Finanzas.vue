@@ -94,13 +94,15 @@
     <DetailMovimientos :summary-ctx="summaryCtx" :expenses-ctx="expensesCtx" :selected-period="{ value: selectedPeriod }" :selected-month="{ value: selectedMonth }" :business-id="businessId" :show-only="'gastos'" />
     <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
       <SupplierPaymentsSection :ctx="supplierPaymentsCtx" />
-      <EmployeePaymentsSection :business-id="businessId" />
+      <EmployeePaymentsSection :business-id="businessId" :period-dates="periodDates"
+        :employee-payments="summaryCtx.employeePayments.value" :employee-earnings-by-employee="summaryCtx.employeeEarningsByEmployee.value"
+        :terminology="businessStore.terminology" />
     </div>
   </template>
 
   <!-- TAB 4: Créditos -->
   <template v-if="activeTab === 'creditos'">
-    <CreditosSection />
+    <CreditosSection :period-dates="periodDates" />
   </template>
 
   <!-- TAB 5: Propinas directas -->

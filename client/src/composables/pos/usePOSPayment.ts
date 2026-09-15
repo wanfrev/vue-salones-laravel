@@ -32,6 +32,19 @@ export function usePOSPayment() {
   const BANK_METHODS: PaymentMethod[] = ['pago_movil', 'transfer', 'punto_venta']
   const isBankMethod = (method: PaymentMethod): boolean => BANK_METHODS.includes(method)
 
+  /** The mixed-payment panel only ever lets the cashier type `inputAmount` (the split's own
+   *  currency) — nothing derived `amount` (its USD equivalent) from that, so every mixed split
+   *  was saved with `amount: 0` regardless of what was actually typed. Most readers of
+   *  payments_breakdown fall back to inputAmount and looked fine, but anything that trusts
+   *  `amount` directly (Finanzas' USD totals, reprint/edit flows) saw a mixed sale as if it had
+   *  no real split. */
+  const withUsdAmount = (item: PaymentBreakdownItem, rate: number): PaymentBreakdownItem => ({
+    ...item,
+    amount: item.currency === 'VES'
+      ? Number((rate > 0 ? item.inputAmount / rate : 0).toFixed(2))
+      : Number((item.inputAmount || 0).toFixed(2)),
+  })
+
   const paymentMethods = computed(() => {
     const methods = [
       { label: 'Efectivo ($)', value: 'cash' as PaymentMethod, currency: 'USD' as const },
@@ -360,7 +373,7 @@ export function usePOSPayment() {
     const method = paymentMethod.value
     const notes = paymentNotes.value
     const exchangeRt = params.exchangeRate
-    const breakdownSource = paymentsBreakdown.value
+    const breakdownSource = paymentsBreakdown.value.map(item => withUsdAmount(item, exchangeRt))
     const pMethodObj = paymentMethods.value.find(m => m.value === method)
     const paymentCurrency = pMethodObj?.currency ?? otherCurrency.value
 
@@ -506,7 +519,7 @@ export function usePOSPayment() {
       }]
     } else {
       breakdown = paymentsBreakdown.value.map(item => ({
-        ...item,
+        ...withUsdAmount(item, params.exchangeRate),
         gift_card_id: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
         giftCardId: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
       }))
@@ -569,7 +582,7 @@ export function usePOSPayment() {
       }]
     } else {
       breakdown = paymentsBreakdown.value.map(item => ({
-        ...item,
+        ...withUsdAmount(item, params.exchangeRate),
         gift_card_id: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
         giftCardId: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
       }))
