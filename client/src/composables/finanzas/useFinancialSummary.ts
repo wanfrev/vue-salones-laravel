@@ -103,6 +103,16 @@ export type PaymentRow = {
   tipAmount: number
 }
 
+export type EmployeeEarningSummary = {
+  employeeId: string
+  employeeName: string
+  payType: string
+  payPercentage: number
+  baseSalary: number
+  commissionTotal: number
+  totalEarned: number
+}
+
 export type ServiceRevenue = { name: string; amount: number; percentage: number }
 export type ChartBar = { label: string; income: number; expense: number }
 
@@ -748,8 +758,8 @@ function useFinancialSummary(
   })
 
   // ── Employee earnings by employee ──
-  const employeeEarningsByEmployee = computed(() => {
-    const map = new Map<string, { employeeId: string; employeeName: string; payType: string; payPercentage: number; baseSalary: number; commissionTotal: number; totalEarned: number }>()
+  const employeeEarningsByEmployee = computed<EmployeeEarningSummary[]>(() => {
+    const map = new Map<string, EmployeeEarningSummary>()
     for (const tx of (transactionsData.value ?? [])) {
       if (!tx.employee_name) continue
       const eid = (tx.is_direct_sale ? 'direct' : tx.appointment_id) ?? tx.employee_name

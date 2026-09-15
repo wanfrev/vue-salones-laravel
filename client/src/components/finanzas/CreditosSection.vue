@@ -196,9 +196,13 @@ import { useCredits } from '../../composables/finanzas/useCredits'
 import { useBusinessStore } from '../../store/business'
 import type { Credit } from '../../types/database'
 
+const props = defineProps<{
+  periodDates?: { start: string; end: string }
+}>()
+
 const { formatUSD, exchangeRate } = useCurrency()
 const businessStore = useBusinessStore()
-const { pendingCredits, paidCredits, pendingTotal, isLoading, payMutation, usePaymentsForCredit, deleteMutation } = useCredits()
+const { pendingCredits, paidCredits, pendingTotal, isLoading, payMutation, usePaymentsForCredit, deleteMutation } = useCredits(computed(() => props.periodDates))
 
 const tabs: { key: 'pending' | 'paid'; label: string }[] = [
   { key: 'pending', label: 'Pendientes' },

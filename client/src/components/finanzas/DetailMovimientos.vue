@@ -487,7 +487,14 @@ const confirmDeleteServicio = async () => {
                     </td>
                     <td class="px-3 py-3 text-right tabular-nums text-text font-medium">{{ inv.totalQuantity }}</td>
                     <td class="px-3 py-3 text-text-secondary hidden sm:table-cell">
-                      <span v-if="inv.paymentMethod === 'mixed'" class="font-medium text-warning">Mixto</span>
+                      <span v-if="inv.paymentMethod === 'mixed'">
+                        <span class="font-medium text-warning">Mixto</span>
+                        <div v-if="inv.breakdown && inv.breakdown.length > 1" class="text-[10px] text-text-muted mt-0.5">
+                          <span v-for="(b, bi) in inv.breakdown" :key="bi">
+                            {{ formatMethod(b.method) }} {{ b.currency === 'VES' ? b.inputAmount.toLocaleString('es-VE', { minimumFractionDigits: 2 }) + ' Bs' : '$' + b.inputAmount.toFixed(2) }}<span v-if="bi < inv.breakdown.length - 1"> / </span>
+                          </span>
+                        </div>
+                      </span>
                       <span v-else>{{ formatMethod(inv.paymentMethod) }}</span>
                     </td>
                     <td class="px-3 py-3 text-right font-semibold text-info tabular-nums whitespace-nowrap">
@@ -540,6 +547,12 @@ const confirmDeleteServicio = async () => {
                             </span>
                           </span>
                           <span class="text-text-muted font-normal">{{ inv.items.length }} {{ inv.items.length === 1 ? 'ítem' : 'ítems' }}</span>
+                        </div>
+                        <div v-if="inv.paymentMethod === 'mixed' && inv.breakdown && inv.breakdown.length > 1" class="text-xs text-text-secondary border-b border-border-subtle pb-2">
+                          <span class="font-medium text-warning">Pago mixto:</span>
+                          <span v-for="(b, bi) in inv.breakdown" :key="bi">
+                            {{ formatMethod(b.method) }} {{ b.currency === 'VES' ? b.inputAmount.toLocaleString('es-VE', { minimumFractionDigits: 2 }) + ' Bs' : '$' + b.inputAmount.toFixed(2) }}<span v-if="bi < inv.breakdown.length - 1">, </span>
+                          </span>
                         </div>
                         <div class="divide-y divide-border-subtle/50">
                           <div v-for="item in inv.items" :key="item.id" class="flex items-center justify-between py-2 text-xs">

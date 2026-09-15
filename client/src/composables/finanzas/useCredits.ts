@@ -6,7 +6,7 @@ import { useNotification } from '../common/useNotification'
 import { translateError } from '../../lib/errors'
 import type { Credit, CreditPayment } from '../../types/database'
 
-export function useCredits() {
+export function useCredits(periodDates?: import('vue').Ref<{ start: string; end: string } | null | undefined>) {
   const queryClient = useQueryClient()
   const authStore = useAuthStore()
   const { success, error: showError } = useNotification()
@@ -28,11 +28,24 @@ export function useCredits() {
   })
 
   const credits = computed(() => creditsQuery.data.value ?? [])
+  const inRange = (dateStr: string | null): boolean => {
+    const range = periodDates?.value
+    if (!range) return true
+    if (!dateStr) return false
+    // dateStr is a full timestamp (created_at/paid_at); range is a plain YYYY-MM-DD pair —
+    // compare on the date portion only, or a same-day timestamp after 00:00 would sort past
+    // range.end and get dropped from its own last day.
+    const day = dateStr.slice(0, 10)
+    return day >= range.start && day <= range.end
+  }
   // "Pendientes" agrupa pending + partial: ambos todavía tienen saldo por cobrar y necesitan
   // la misma acción (registrar abono) — separarlos en tabs distintos no aporta, solo divide
-  // la misma cola de trabajo en dos.
-  const pendingCredits = computed(() => credits.value.filter(c => c.status !== 'paid'))
-  const paidCredits = computed(() => credits.value.filter(c => c.status === 'paid'))
+  // la misma cola de trabajo en dos. Se filtra por fecha de la venta (created_at): el rango
+  // seleccionado en Finanzas responde "qué créditos se generaron en este período y siguen
+  // pendientes", igual que cualquier otra pestaña.
+  const pendingCredits = computed(() => credits.value.filter(c => c.status !== 'paid' && inRange(c.created_at)))
+  // "Pagados" se filtra por fecha de pago (paid_at) — es el ingreso que entró en el período.
+  const paidCredits = computed(() => credits.value.filter(c => c.status === 'paid' && inRange(c.paid_at)))
   const pendingTotal = computed(() => pendingCredits.value.reduce((sum, c) => sum + Number(c.remaining ?? c.amount ?? 0), 0))
 
   const payMutation = useMutation({

@@ -129,7 +129,7 @@
               <div class="font-medium text-danger text-sm">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) :
                 formatUSD(ep.amount) }}</div>
               <div class="text-xs text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) :
-                formatEmployeeSecondary(ep.amount, ep.employeeVesRate) }}</div>
+                formatEmployeeSecondary(ep.amount, ep.employeeVesRate ?? undefined) }}</div>
             </div>
           </div>
         </div>
@@ -163,7 +163,7 @@
                 <div class="font-medium text-danger">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) :
                   formatUSD(ep.amount) }}</div>
                 <div class="text-xs text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) :
-                  formatEmployeeSecondary(ep.amount, ep.employeeVesRate) }}</div>
+                  formatEmployeeSecondary(ep.amount, ep.employeeVesRate ?? undefined) }}</div>
               </td>
               <td class="py-2 text-center">
                 <div class="flex items-center justify-center gap-1">
@@ -260,11 +260,11 @@
           <p class="text-sm text-text-muted">{{ paymentsCtx.editingPaymentId.value ? 'Modifica los datos del pago' : 'Registra un adelanto, sueldo o comisión pagada' }}</p>
         </div>
         <form class="space-y-4" @submit.prevent="handleSubmitPayment">
-          <div v-if="paymentsCtx.paymentError.value"
+          <div v-if="paymentsCtx.saveError.value"
             class="rounded-lg border border-danger/30 bg-danger/10 p-3 text-sm text-danger">
             <p class="font-medium">{{ paymentsCtx.editingPaymentId.value ? 'Error al actualizar' : 'Error al registrar'
               }}</p>
-            <p class="mt-0.5">{{ paymentsCtx.paymentError.value }}</p>
+            <p class="mt-0.5">{{ paymentsCtx.saveError.value }}</p>
           </div>
           <div v-if="!paymentsCtx.editingPaymentId.value">
             <label class="mb-1 block text-sm font-medium text-text">{{ terminology.employee || 'Empleado' }}</label>
@@ -445,7 +445,7 @@
               class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
               placeholder="Ej: Comisión servicios, adelanto..." />
           </div>
-          <p v-if="paymentsCtx.paymentError.value" class="hidden">{{ paymentsCtx.paymentError.value }}</p>
+          <p v-if="paymentsCtx.saveError.value" class="hidden">{{ paymentsCtx.saveError.value }}</p>
           <p v-if="paymentsCtx.formErrors.value?.employeeId" class="text-xs text-danger mt-1">{{ paymentsCtx.formErrors.value.employeeId }}</p>
           <p v-if="paymentsCtx.formErrors.value?.amount" class="text-xs text-danger mt-1">{{ paymentsCtx.formErrors.value.amount }}</p>
           <p v-if="paymentsCtx.formErrors.value?.paymentMethod" class="text-xs text-danger mt-1">{{ paymentsCtx.formErrors.value.paymentMethod }}</p>
@@ -455,9 +455,9 @@
               class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
               @click="closePaymentModal">Cancelar</button>
             <button type="submit"
-              :disabled="paymentsCtx.createMutation.isPending.value || paymentsCtx.updateMutation.isPending.value"
+              :disabled="paymentsCtx.isSaving.value"
               class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-sm transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">
-              {{ paymentsCtx.createMutation.isPending.value || paymentsCtx.updateMutation.isPending.value ?
+              {{ paymentsCtx.isSaving.value ?
                 'Guardando...' : (paymentsCtx.editingPaymentId.value ? 'Actualizar pago' : 'Guardar pago') }}
             </button>
           </div>
@@ -497,9 +497,11 @@ interface PaymentRow {
 const props = defineProps<{
   employeePayments: PaymentRow[]
   employeeEarningsByEmployee?: EmployeeEarningSummary[]
-  paymentsMade: EmployeePaymentRecord[]
   terminology: Record<string, string>
   businessId: string | null
+  /** The same date range every other Finanzas tab is scoped to — without this, the nómina list
+   *  below silently fell back to the whole current year regardless of what was selected up top. */
+  periodDates: { start: string; end: string }
 }>()
 
 const emit = defineEmits<{
@@ -510,8 +512,10 @@ const emit = defineEmits<{
 const { formatUSD, formatVESEs, formatEmployeeSecondary, formatSecondary, employeeRate } = useCurrency()
 const businessStore = useBusinessStore()
 const branchId = computed(() => businessStore.currentBranchId)
+const terminology = computed(() => props.terminology)
 
-const paymentsCtx = useEmployeePayments(computed(() => props.businessId))
+const paymentsCtx = useEmployeePayments(computed(() => props.businessId), computed(() => props.periodDates))
+const paymentsMade = computed(() => paymentsCtx.paymentsMade.value)
 
 const selectedBalance = ref<EmployeeBalance | null>(null)
 
@@ -534,13 +538,13 @@ const earningsStartDate = ref(toYmd(new Date(nowDate.getFullYear(), nowDate.getM
 const earningsEndDate = ref(toYmd(nowDate))
 
 const visibleEmployeePayments = computed(() => props.employeePayments.slice(0, 5))
-const visiblePaymentsMade = computed(() => props.paymentsMade.slice(0, 5))
-const canViewAllPayments = computed(() => props.employeePayments.length > 5 || props.paymentsMade.length > 5)
+const visiblePaymentsMade = computed(() => paymentsMade.value.slice(0, 5))
+const canViewAllPayments = computed(() => props.employeePayments.length > 5 || paymentsMade.value.length > 5)
 
 const employeeDebtSummary = computed(() => {
   const summaries = props.employeeEarningsByEmployee ?? []
   return summaries.map(s => {
-    const employeeRecords = props.paymentsMade.filter(p => p.employeeId === s.employeeId)
+    const employeeRecords = paymentsMade.value.filter(p => p.employeeId === s.employeeId)
     const totalPaid = employeeRecords
       .filter(p => (p as any).type !== 'consumption')
       .reduce((sum, p) => sum + p.amount, 0)
@@ -574,7 +578,7 @@ const openPaymentModal = () => {
 }
 
 const closePaymentModal = () => {
-  paymentsCtx.closeModal()
+  paymentsCtx.closePaymentModal()
   selectedBalance.value = null
 }
 
@@ -634,7 +638,7 @@ const handleSavePayment = async () => {
   }
 }
 
-const openEditPaymentModal = (payment: EmployeePaymentRecord) => {
+const openEditPaymentModal = (payment: EmployeePaymentRecord | (typeof paymentsCtx.paymentsMade.value)[number]) => {
   paymentsCtx.openEditPayment(payment)
   selectedBalance.value = null
 }
