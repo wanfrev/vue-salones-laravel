@@ -99,18 +99,30 @@ class DailyReportSummaryService
             // A diferencia de todo lo de arriba (que viene de daily_reports, cargado a mano),
             // esto sale directo de las transacciones reales del Punto de Venta -- el banco
             // elegido al cobrar con pago movil/transferencia/punto de venta (ver Finanzas >
-            // Bancos). No hace falta que nadie lo escriba, se suma solo.
+            // Bancos). No hace falta que nadie lo escriba, se suma solo. Viene agrupado por
+            // campo del reporte (pago_movil_bs/transfer_bs/pos_bs) para poder mostrarse anidado
+            // bajo cada método en vez de mezclados en una sola lista.
             'banks' => $this->getBankBreakdown($businessId, $start, $end, $branchId),
         ];
     }
 
+    /** Único método por el que un split de pago puede llevar banco (ver Finanzas > Bancos) --
+     *  el mismo mapeo que usa DailyReportPosSummaryService para sus campos "*_bs". */
+    private const BANK_METHOD_TO_FIELD = [
+        'pago_movil' => 'pago_movil_bs',
+        'transfer' => 'transfer_bs',
+        'punto_venta' => 'pos_bs',
+    ];
+
     /**
-     * Cuanto entro a cada banco en el periodo, sumando payments_breakdown de las transacciones
-     * reales (no daily_reports). Solo las lineas de pago que llevan bank_name cuentan -- eso ya
-     * garantiza que son en bolivares (pago_movil/transfer/punto_venta son los unicos metodos que
-     * permiten elegir banco), asi que inputAmount ya esta en Bs sin necesidad de convertir.
+     * Cuánto entró a cada banco en el período, sumando payments_breakdown de las transacciones
+     * reales (no daily_reports), agrupado por el campo del reporte al que pertenece cada método
+     * (pago_movil/transfer/punto_venta) -- así se puede mostrar el banco anidado bajo "Pago
+     * Móvil", "Transferencia" o "Punto de Venta" en vez de una sola lista mezclada. Solo las
+     * líneas de pago que llevan bank_name cuentan -- eso ya garantiza que son en bolívares, así
+     * que inputAmount ya está en Bs sin necesidad de convertir.
      *
-     * @return array<int, array{name: string, amount_bs: float}>
+     * @return array<string, array<int, array{name: string, amount_bs: float}>>
      */
     private function getBankBreakdown(string $businessId, string $start, string $end, ?string $branchId): array
     {
@@ -134,16 +146,22 @@ class DailyReportSummaryService
             foreach ($breakdown as $split) {
                 $bankName = $split['bank_name'] ?? null;
                 if (!$bankName) continue;
-                $totals[$bankName] = ($totals[$bankName] ?? 0) + (float) ($split['inputAmount'] ?? 0);
+                $field = self::BANK_METHOD_TO_FIELD[$split['method'] ?? ''] ?? null;
+                if (!$field) continue;
+                $totals[$field][$bankName] = ($totals[$field][$bankName] ?? 0) + (float) ($split['inputAmount'] ?? 0);
             }
         }
 
-        $banks = [];
-        foreach ($totals as $name => $amount) {
-            $banks[] = ['name' => $name, 'amount_bs' => round($amount, 2)];
+        $result = [];
+        foreach ($totals as $field => $banks) {
+            $rows = [];
+            foreach ($banks as $name => $amount) {
+                $rows[] = ['name' => $name, 'amount_bs' => round($amount, 2)];
+            }
+            usort($rows, fn ($a, $b) => $b['amount_bs'] <=> $a['amount_bs']);
+            $result[$field] = $rows;
         }
-        usort($banks, fn ($a, $b) => $b['amount_bs'] <=> $a['amount_bs']);
 
-        return $banks;
+        return $result;
     }
 }
