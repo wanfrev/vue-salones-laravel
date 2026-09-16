@@ -15,6 +15,9 @@ export interface CurrencyBreakdownData {
   usdLabel: string
   vesLabel: string
   usdVesRate?: number
+  /** Ventas a crédito del período (en USD) — no es dinero cobrado, así que no suma a usdTotal;
+   *  se muestra aparte solo como referencia de cuánto se está fiando. */
+  pendingCredit?: number
 }
 
 defineProps<{
@@ -95,6 +98,12 @@ const { formatVESEs, isSingleCurrency } = useCurrency()
           Sin detalle
         </div>
       </div>
+    </div>
+
+    <div v-if="(data.pendingCredit ?? 0) > 0"
+      class="flex items-center justify-between border-t border-border bg-warning/5 px-4 py-2.5 text-xs">
+      <span class="text-text-secondary">Vendido a crédito en este período (no cobrado todavía, no está sumado arriba)</span>
+      <span class="font-semibold text-warning tabular-nums">${{ (data.pendingCredit ?? 0).toFixed(2) }}</span>
     </div>
   </div>
 </template>
