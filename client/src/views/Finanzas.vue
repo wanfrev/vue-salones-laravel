@@ -139,6 +139,7 @@ import { useFinancialSummary } from '../composables/finanzas/useFinancialSummary
 import { useExpenses } from '../composables/finanzas/useExpenses'
 import { isTiendaNiche } from '../config/niches'
 import { useSupplierPayments } from '../composables/suppliers/useSuppliers'
+import { useCredits } from '../composables/finanzas/useCredits'
 import { useEmployeePayments } from '../composables/empleados/useEmployeePayments'
 import { useStaffingFinance } from '../composables/staffing/useStaffingFinance'
 import StaffingManualIncomeSection from '../components/staffing/StaffingManualIncomeSection.vue'
@@ -244,6 +245,9 @@ const periodDates = computed(() => {
 const expensesCtx = useExpenses(businessId, selectedPeriod, selectedMonth, customFrom, customTo)
 const expenses = expensesCtx.expenses
 const supplierPaymentsCtx = useSupplierPayments(businessId, selectedPeriod, selectedMonth, customTo)
+// Misma fuente que la pestaña Créditos, para que "pendiente por cobrar" nunca se desincronice
+// entre esa pestaña y la línea de crédito del Desglose de Ingresos.
+const { pendingTotal: pendingCreditTotal } = useCredits(periodDates)
 const employeePaymentsCtx = useEmployeePayments(businessId, periodDates)
 const summaryCtx = useFinancialSummary(businessId, selectedPeriod, expenses, selectedMonth, customTo)
 
@@ -323,7 +327,6 @@ const incomeBreakdown = computed(() => {
   const vesByMethod: Record<string, number> = {}
   let totalUSD = 0
   let totalVES = 0
-  let pendingCredit = 0
 
   const addIncome = (method: string, usdAmt: number, vesAmt: number) => {
     if (usdAmt > 0) { totalUSD += usdAmt; usdByMethod[method] = (usdByMethod[method] ?? 0) + usdAmt }
@@ -334,9 +337,11 @@ const incomeBreakdown = computed(() => {
     if (tx.breakdown && tx.breakdown.length > 0) {
       for (const item of tx.breakdown) {
         // Una venta a crédito todavía no es dinero cobrado -- no cuenta como ingreso aquí
-        // (su abono, cuando llegue, sí aparece con su propio método real). Se guarda aparte
-        // solo para mostrarlo como referencia (ver pendingCredit más abajo).
-        if (item.method === 'credito') { pendingCredit += item.amount > 0 ? item.amount : item.inputAmount; continue }
+        // (su abono, cuando llegue, sí aparece con su propio método real). Lo pendiente de
+        // cobrar se muestra aparte (pendingCreditTotal, más abajo) tomado de la pestaña
+        // Créditos -- no de aquí -- porque un crédito emitido hoy puede haberse abonado
+        // el mismo día, y contarlo aquí de nuevo lo duplicaría con su abono real.
+        if (item.method === 'credito') continue
         if (item.currency === 'VES') {
           addIncome(item.method, 0, item.inputAmount)
         } else {
@@ -350,7 +355,7 @@ const incomeBreakdown = computed(() => {
       }
     } else {
       const method = tx.rawMethod as string
-      if (method === 'credito') { pendingCredit += tx.amount; continue }
+      if (method === 'credito') continue
       const isVesMethod = ['cash_ves', 'transfer', 'pago_movil', 'punto_venta'].includes(method)
       if (isVesMethod) {
         addIncome(tx.rawMethod, 0, tx.amount * (tx.exchangeRateUsed || 1))
@@ -365,7 +370,7 @@ const incomeBreakdown = computed(() => {
     usdItems: Object.entries(usdByMethod).map(([method, amount]) => ({ label: formatMethod(method), amount })).sort((a, b) => b.amount - a.amount),
     vesItems: Object.entries(vesByMethod).map(([method, amount]) => ({ label: formatMethod(method), amount })).sort((a, b) => b.amount - a.amount),
     usdLabel: 'Método de pago', vesLabel: 'Método de pago',
-    pendingCredit,
+    pendingCredit: pendingCreditTotal.value,
   }
 })
 
