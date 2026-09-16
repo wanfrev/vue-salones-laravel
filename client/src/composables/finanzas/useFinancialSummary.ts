@@ -311,23 +311,40 @@ function useFinancialSummary(
       const allMethods = new Set<string>()
       let anyVES = false
       let anyUSD = false
+      // Reconstruye el desglose combinado del grupo sumando por método+moneda en vez de
+      // descartarlo -- un appointment de grupo genera una transacción por integrante, cada una
+      // con su porción del MISMO pago (ver PosService), así que sumar sus líneas reproduce
+      // exactamente el pago original. Esto también cubre el caso real de "cada integrante pagó
+      // distinto": el resultado sigue siendo la suma correcta por método.
+      const mergedBreakdownMap = new Map<string, PaymentBreakdownItem>()
       if (isGrouped) {
         for (const x of groupedRows) {
-            if (x.breakdown && x.breakdown.length > 0) {
-              for (const item of x.breakdown) {
-                allMethods.add(item.method)
-                if (item.currency === 'VES') anyVES = true
-                else anyUSD = true
-              }
-            } else {
-              allMethods.add(x.rawMethod)
-              if (['cash_ves', 'transfer', 'pago_movil', 'punto_venta'].includes(x.rawMethod)) anyVES = true
+            const items = (x.breakdown && x.breakdown.length > 0)
+              ? x.breakdown
+              : [{
+                  method: x.rawMethod,
+                  currency: (['cash_ves', 'transfer', 'pago_movil', 'punto_venta'].includes(x.rawMethod) ? 'VES' : 'USD') as 'USD' | 'VES',
+                  inputAmount: x.amount,
+                  amount: x.amount,
+                }]
+            for (const item of items) {
+              allMethods.add(item.method)
+              if (item.currency === 'VES') anyVES = true
               else anyUSD = true
+              const key = `${item.method}:${item.currency}`
+              const existing = mergedBreakdownMap.get(key)
+              if (existing) {
+                existing.inputAmount += item.inputAmount
+                existing.amount += item.amount
+              } else {
+                mergedBreakdownMap.set(key, { ...item })
+              }
             }
         }
       }
       const methodsDifferAcrossGroup = allMethods.size > 1
       const currenciesMixed = anyVES && anyUSD
+      const mergedBreakdown = isGrouped ? [...mergedBreakdownMap.values()] : null
       return {
         ...r,
         employee: r.employees.filter(e => e && e !== '—').join(', ') || '—',
@@ -335,8 +352,8 @@ function useFinancialSummary(
         method: isGrouped && (isMixed || methodsDifferAcrossGroup || currenciesMixed)
           ? 'Mixto'
           : r.method,
-        breakdownLabel: isGrouped ? '' : r.breakdownLabel,
-        breakdown: isGrouped && (methodsDifferAcrossGroup || currenciesMixed) ? null : r.breakdown,
+        breakdownLabel: isGrouped ? formatBreakdownLabel(mergedBreakdown) : r.breakdownLabel,
+        breakdown: isGrouped ? (mergedBreakdown && mergedBreakdown.length > 0 ? mergedBreakdown : null) : r.breakdown,
         employees: undefined as any,
         services: undefined as any,
         rawRows: undefined as any,
