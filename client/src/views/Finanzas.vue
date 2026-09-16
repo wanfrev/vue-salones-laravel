@@ -323,6 +323,7 @@ const incomeBreakdown = computed(() => {
   const vesByMethod: Record<string, number> = {}
   let totalUSD = 0
   let totalVES = 0
+  let pendingCredit = 0
 
   const addIncome = (method: string, usdAmt: number, vesAmt: number) => {
     if (usdAmt > 0) { totalUSD += usdAmt; usdByMethod[method] = (usdByMethod[method] ?? 0) + usdAmt }
@@ -333,8 +334,9 @@ const incomeBreakdown = computed(() => {
     if (tx.breakdown && tx.breakdown.length > 0) {
       for (const item of tx.breakdown) {
         // Una venta a crédito todavía no es dinero cobrado -- no cuenta como ingreso aquí
-        // (su abono, cuando llegue, sí aparece con su propio método real).
-        if (item.method === 'credito') continue
+        // (su abono, cuando llegue, sí aparece con su propio método real). Se guarda aparte
+        // solo para mostrarlo como referencia (ver pendingCredit más abajo).
+        if (item.method === 'credito') { pendingCredit += item.amount > 0 ? item.amount : item.inputAmount; continue }
         if (item.currency === 'VES') {
           addIncome(item.method, 0, item.inputAmount)
         } else {
@@ -348,7 +350,7 @@ const incomeBreakdown = computed(() => {
       }
     } else {
       const method = tx.rawMethod as string
-      if (method === 'credito') continue
+      if (method === 'credito') { pendingCredit += tx.amount; continue }
       const isVesMethod = ['cash_ves', 'transfer', 'pago_movil', 'punto_venta'].includes(method)
       if (isVesMethod) {
         addIncome(tx.rawMethod, 0, tx.amount * (tx.exchangeRateUsed || 1))
@@ -363,6 +365,7 @@ const incomeBreakdown = computed(() => {
     usdItems: Object.entries(usdByMethod).map(([method, amount]) => ({ label: formatMethod(method), amount })).sort((a, b) => b.amount - a.amount),
     vesItems: Object.entries(vesByMethod).map(([method, amount]) => ({ label: formatMethod(method), amount })).sort((a, b) => b.amount - a.amount),
     usdLabel: 'Método de pago', vesLabel: 'Método de pago',
+    pendingCredit,
   }
 })
 
