@@ -332,11 +332,23 @@ const incomeBreakdown = computed(() => {
   for (const tx of summaryCtx.transactionsAll.value) {
     if (tx.breakdown && tx.breakdown.length > 0) {
       for (const item of tx.breakdown) {
-        if (item.currency === 'VES') addIncome(item.method, 0, item.inputAmount)
-        else addIncome(item.method, item.amount, 0)
+        // Una venta a crédito todavía no es dinero cobrado -- no cuenta como ingreso aquí
+        // (su abono, cuando llegue, sí aparece con su propio método real).
+        if (item.method === 'credito') continue
+        if (item.currency === 'VES') {
+          addIncome(item.method, 0, item.inputAmount)
+        } else {
+          // Ventas mixtas guardadas antes de que se corrigiera usePOSPayment.ts nunca
+          // calcularon `amount` (equivalente en USD) -- se quedó en 0 aunque inputAmount
+          // (lo que realmente se cobró) sea correcto. Sin este respaldo, esa plata real
+          // desaparece del desglose. Mismo criterio que ya usa el backend en
+          // DailyReportPosSummaryService::usdEquivalent().
+          addIncome(item.method, item.amount > 0 ? item.amount : item.inputAmount, 0)
+        }
       }
     } else {
       const method = tx.rawMethod as string
+      if (method === 'credito') continue
       const isVesMethod = ['cash_ves', 'transfer', 'pago_movil', 'punto_venta'].includes(method)
       if (isVesMethod) {
         addIncome(tx.rawMethod, 0, tx.amount * (tx.exchangeRateUsed || 1))
