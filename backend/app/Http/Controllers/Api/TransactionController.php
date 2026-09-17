@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
 use App\Models\InventoryMovement;
+use App\Models\Transaction;
+use App\Models\TransactionAuditLog;
 use App\Services\FinancialSummaryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class TransactionController
 {
@@ -58,12 +61,20 @@ class TransactionController
             'tip_amount' => 'nullable|numeric|min:0',
             'paid_at' => 'nullable|date',
             'employee_percentage' => 'nullable|numeric|min:0|max:100',
+            // No forma parte del modelo Transaction -- se guarda aparte en el log, ver abajo.
+            'reason' => 'nullable|string|max:500',
         ]);
+        $reason = $data['reason'] ?? null;
+        unset($data['reason']);
 
-        $tx = \App\Models\Transaction::where('business_id', $businessId)->find($id);
+        $tx = Transaction::where('business_id', $businessId)->find($id);
         if (!$tx) {
             return response()->json(['message' => 'Transacción no encontrada.'], 404);
         }
+
+        // Antes de tocar nada: para poder mostrar después "así se veía este cobro antes de la
+        // corrección" sin depender de que nadie haya escrito un motivo.
+        $beforeSnapshot = $tx->toArray();
 
         $newTotal = $data['total_amount'];
         $oldTotal = (float) $tx->total_amount;
@@ -88,22 +99,41 @@ class TransactionController
         }
 
         $tx->update($data);
+        $fresh = $tx->fresh();
+
+        TransactionAuditLog::create([
+            'id' => Str::uuid()->toString(),
+            'business_id' => $businessId,
+            'transaction_id' => $id,
+            'branch_id' => $fresh->branch_id,
+            'action' => 'updated',
+            'performed_by' => $request->user()?->id,
+            'reason' => $reason,
+            'before_snapshot' => $beforeSnapshot,
+            'after_snapshot' => $fresh->toArray(),
+        ]);
 
         EntityChanged::safe($businessId, 'transaction', 'updated', $id);
 
-        return response()->json($tx->fresh());
+        return response()->json($fresh);
     }
 
     public function destroy(Request $request, string $id): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
+        $reason = $request->input('reason');
+        $reason = is_string($reason) ? mb_substr(trim($reason), 0, 500) : null;
 
-        $tx = \App\Models\Transaction::where('business_id', $businessId)->find($id);
+        $tx = Transaction::where('business_id', $businessId)->find($id);
         if (!$tx) {
             return response()->json(['message' => 'Transacción no encontrada.'], 404);
         }
 
-        DB::transaction(function () use ($tx, $businessId) {
+        // Antes de borrar nada: es la única foto que va a quedar de este cobro una vez que la
+        // fila ya no exista.
+        $beforeSnapshot = $tx->toArray();
+
+        DB::transaction(function () use ($tx, $businessId, $beforeSnapshot, $reason, $request) {
             $revertMovements = function ($movements) use ($businessId) {
                 foreach ($movements as $movement) {
                     $this->inventoryService->adjust([
@@ -154,11 +184,94 @@ class TransactionController
                     ->get());
             }
 
+            TransactionAuditLog::create([
+                'id' => Str::uuid()->toString(),
+                'business_id' => $businessId,
+                'transaction_id' => $tx->id,
+                'branch_id' => $tx->branch_id,
+                'action' => 'deleted',
+                'performed_by' => $request->user()?->id,
+                'reason' => $reason,
+                'before_snapshot' => $beforeSnapshot,
+                'after_snapshot' => null,
+            ]);
+
             $tx->delete();
         });
 
         EntityChanged::safe($businessId, 'transaction', 'deleted', $id);
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Historial de correcciones y eliminaciones de cobros -- quién, cuándo, y qué aspecto tenía
+     * antes. Igual que "Cobros por Persona" en Reportes, es información de supervisión: solo
+     * admin/superadmin, no un encargado o cajero (ver BankController::ensureStrictAdmin() para
+     * el mismo criterio ya usado en Finanzas > Bancos).
+     */
+    public function auditLogs(Request $request): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json([]);
+
+        $role = $request->user()?->profile?->role;
+        if (!in_array($role, ['admin', 'superadmin'], true)) {
+            return response()->json(['error' => ['message' => 'No autorizado.']], 403);
+        }
+
+        $validated = $request->validate([
+            'start' => 'required|date',
+            'end' => 'required|date|after_or_equal:start',
+            'branch_id' => 'nullable|string',
+        ]);
+
+        $query = TransactionAuditLog::where('business_id', $businessId)
+            ->whereBetween('created_at', [$validated['start'] . ' 00:00:00', $validated['end'] . ' 23:59:59']);
+
+        if (!empty($validated['branch_id'])) {
+            $query->where(function ($q) use ($validated) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $validated['branch_id']);
+            });
+        }
+
+        $logs = $query->with('performedBy:id,full_name')->orderByDesc('created_at')->get();
+
+        // Resuelve el nombre del cliente de una sola pasada (evita N+1) -- el snapshot solo
+        // guarda appointment_id, no el nombre, porque ese pudo cambiar desde entonces.
+        $appointmentIds = $logs
+            ->map(fn ($log) => $log->before_snapshot['appointment_id'] ?? null)
+            ->filter()
+            ->unique()
+            ->values();
+
+        $appointments = $appointmentIds->isNotEmpty()
+            ? \App\Models\Appointment::whereIn('id', $appointmentIds)->with('client:id,full_name')->get()->keyBy('id')
+            : collect();
+
+        return response()->json($logs->map(function (TransactionAuditLog $log) use ($appointments) {
+            $appointmentId = $log->before_snapshot['appointment_id'] ?? null;
+            $appointment = $appointmentId ? $appointments->get($appointmentId) : null;
+
+            return [
+                'id' => $log->id,
+                'transaction_id' => $log->transaction_id,
+                'action' => $log->action,
+                'performed_by' => $log->performedBy?->full_name ?? 'Desconocido',
+                'reason' => $log->reason,
+                'client_name' => $appointment?->client?->full_name,
+                'before' => [
+                    'method' => $log->before_snapshot['method'] ?? null,
+                    'total_amount' => $log->before_snapshot['total_amount'] ?? null,
+                    'notes' => $log->before_snapshot['notes'] ?? null,
+                ],
+                'after' => $log->after_snapshot ? [
+                    'method' => $log->after_snapshot['method'] ?? null,
+                    'total_amount' => $log->after_snapshot['total_amount'] ?? null,
+                    'notes' => $log->after_snapshot['notes'] ?? null,
+                ] : null,
+                'created_at' => $log->created_at,
+            ];
+        }));
     }
 }

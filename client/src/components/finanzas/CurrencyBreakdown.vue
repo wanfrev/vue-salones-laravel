@@ -20,9 +20,14 @@ export interface CurrencyBreakdownData {
   pendingCredit?: number
 }
 
-defineProps<{
+withDefaults(defineProps<{
   data: CurrencyBreakdownData
-}>()
+  /** Para incrustar esto en una pantalla fija (como Cuadre del Día) en vez de como una tarjeta
+   *  que el usuario abre y cierra -- ahí una X no tiene nada que cerrar. */
+  hideClose?: boolean
+}>(), {
+  hideClose: false,
+})
 
 defineEmits<{
   close: []
@@ -43,7 +48,7 @@ const { formatVESEs, isSingleCurrency } = useCurrency()
         </div>
         <h3 class="text-sm font-semibold text-text">{{ data.title }}</h3>
       </div>
-      <button @click="$emit('close')"
+      <button v-if="!hideClose" @click="$emit('close')"
         class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text">
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />

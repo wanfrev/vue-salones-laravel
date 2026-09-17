@@ -52,4 +52,11 @@ class Transaction extends Model
     {
         return $this->belongsTo(Profile::class, 'employee_id');
     }
+
+    /** Quien cobró/registró este pago en el POS (para el cuadre por persona) — distinto de
+     *  employee_id, que es quien prestó el servicio. */
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(Profile::class, 'created_by');
+    }
 }

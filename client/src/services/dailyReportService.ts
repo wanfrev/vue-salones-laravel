@@ -92,6 +92,18 @@ export interface DailyReportDashboardSummary {
    *  por el campo del reporte al que pertenece (pago_movil_bs/transfer_bs/pos_bs) para mostrarlo
    *  anidado bajo ese método en vez de una sola lista mezclada. */
   banks: Partial<Record<'pago_movil_bs' | 'transfer_bs' | 'pos_bs', Array<{ name: string; amount_bs: number }>>>
+  /** Cuánto cobró cada persona (por quién registró el pago en el POS) -- para cuadrar cajas
+   *  entre varias personas sin cruzar la base de datos a mano. El backend quita esta llave por
+   *  completo si quien pregunta no es admin/superadmin, así que puede no venir. */
+  by_cashier?: Array<{
+    user_id: string | null
+    name: string
+    usd_total: number
+    ves_total: number
+    credito_issued: number
+    usd_items: Array<{ method: string; amount: number }>
+    ves_items: Array<{ method: string; amount: number }>
+  }>
 }
 
 export const dailyReportsKeys = {

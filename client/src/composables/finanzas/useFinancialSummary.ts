@@ -860,8 +860,8 @@ function useFinancialSummary(
   })
 
   const deleteTransactionMutation = useMutation({
-    mutationFn: (params: { transactionId: string }) =>
-      apiRequest('DELETE', `/transactions/${params.transactionId}`),
+    mutationFn: (params: { transactionId: string; reason?: string | null }) =>
+      apiRequest('DELETE', `/transactions/${params.transactionId}`, params.reason ? { reason: params.reason } : undefined),
     onSuccess: async () => {
       await Promise.allSettled([
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
@@ -989,7 +989,10 @@ function useFinancialSummary(
     const ids = item?.transactionIds && item.transactionIds.length > 1 ? item.transactionIds : [txId]
     const label = ids.length > 1 ? `¿Eliminar los ${ids.length} cobros de esta cita?` : '¿Eliminar este cobro?'
     if (window.confirm(label)) {
-      Promise.all(ids.map(id => deleteTransactionMutation.mutateAsync({ transactionId: id })))
+      // Opcional: queda guardado en el historial de correcciones aunque se deje en blanco, esto
+      // solo añade el porqué para quien lo revise después.
+      const reason = window.prompt('Motivo (opcional) -- queda guardado en el historial de correcciones:') || null
+      Promise.all(ids.map(id => deleteTransactionMutation.mutateAsync({ transactionId: id, reason })))
         .catch((err: unknown) => showError(translateError(err, 'Error al eliminar cobro')))
     }
   }

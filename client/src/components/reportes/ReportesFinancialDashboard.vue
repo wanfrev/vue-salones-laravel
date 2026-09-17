@@ -121,6 +121,39 @@
           </div>
         </div>
       </div>
+
+      <!-- Cobros por persona -- solo admin/superadmin (ver isStrictAdmin más arriba). El backend
+           ya quita by_cashier de la respuesta para cualquier otro rol; esto además evita pintar
+           la sección vacía si por lo que sea llegara sin datos. -->
+      <div v-if="isStrictAdmin && cashierBreakdown.length > 0" class="rounded-xl border border-border bg-surface p-4">
+        <div class="mb-3 flex items-center justify-between">
+          <h3 class="text-sm font-bold text-text-secondary uppercase tracking-wider">Cobros por Persona</h3>
+          <span class="text-[11px] text-text-muted">Para cuadrar cada caja por separado</span>
+        </div>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div v-for="cashier in cashierBreakdown" :key="cashier.user_id ?? cashier.name"
+            class="rounded-lg border border-border-subtle bg-bg-secondary/40 p-3">
+            <p class="mb-2 text-sm font-semibold text-text">{{ cashier.name }}</p>
+            <div class="mb-2 flex items-baseline gap-3">
+              <span class="text-base font-bold text-text">${{ formatCurrency(cashier.usd_total) }}</span>
+              <span v-if="cashier.ves_total > 0" class="text-sm font-medium text-text-secondary">{{ formatCurrency(cashier.ves_total) }} Bs</span>
+            </div>
+            <div class="space-y-1">
+              <div v-for="item in cashier.usd_items" :key="'usd-' + item.method" class="flex items-center justify-between text-xs">
+                <span class="text-text-muted">{{ formatMethod(item.method) }}</span>
+                <span class="font-medium text-text-secondary">${{ formatCurrency(item.amount) }}</span>
+              </div>
+              <div v-for="item in cashier.ves_items" :key="'ves-' + item.method" class="flex items-center justify-between text-xs">
+                <span class="text-text-muted">{{ formatMethod(item.method) }}</span>
+                <span class="font-medium text-text-secondary">{{ formatCurrency(item.amount) }} Bs</span>
+              </div>
+            </div>
+            <p v-if="cashier.credito_issued > 0" class="mt-2 border-t border-border-subtle pt-1.5 text-[11px] text-warning">
+              + ${{ formatCurrency(cashier.credito_issued) }} en ventas a crédito (no cobrado)
+            </p>
+          </div>
+        </div>
+      </div>
     </template>
 
     <div v-else class="rounded-2xl border border-border bg-surface p-12 text-center">
@@ -134,8 +167,16 @@ import { computed } from 'vue'
 import StatCard from '../common/StatCard.vue'
 import { useDailyReportDashboard } from '../../composables/reportes/useDailyReportDashboard'
 import { useBusinessStore } from '../../store/business'
+import { useAuth } from '../../composables/common/useAuth'
+import { formatMethod } from '../../lib/formatters'
 
 const businessStore = useBusinessStore()
+const { authStore } = useAuth()
+// Quién cobró cuánto es información de supervisión entre personas -- mismo criterio que
+// Finanzas > Bancos (ver BankController::ensureStrictAdmin()), no algo que un encargado deba
+// ver de sus compañeros. El backend ya quita `by_cashier` de la respuesta si no calza, esto solo
+// evita que la sección intente pintarse para quien de todas formas no recibe el dato.
+const isStrictAdmin = computed(() => authStore.role === 'admin' || authStore.role === 'superadmin')
 const {
   periods, selectedPeriod, selectedMonth, customFrom, customTo,
   goPrev, goNext, resetToCurrent,
@@ -197,4 +238,6 @@ function buildBreakdown(labelsRef: import('vue').ComputedRef<Record<string, stri
 
 const bsBreakdown = buildBreakdown(BS_LABELS)
 const usdBreakdown = buildBreakdown(USD_LABELS)
+
+const cashierBreakdown = computed(() => summary.value?.by_cashier ?? [])
 </script>
