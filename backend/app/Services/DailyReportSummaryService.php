@@ -103,6 +103,11 @@ class DailyReportSummaryService
             // campo del reporte (pago_movil_bs/transfer_bs/pos_bs) para poder mostrarse anidado
             // bajo cada método en vez de mezclados en una sola lista.
             'banks' => $this->getBankBreakdown($businessId, $start, $end, $branchId),
+            // Cuánto cobró cada persona (por quién registró el pago en el POS, no por quién
+            // atendió el servicio) -- para que cada quien pueda cuadrar su propia caja sin
+            // depender de que alguien cruce la base de datos. El controlador (dashboardSummary)
+            // quita esta llave de la respuesta si quien pregunta no es admin/superadmin.
+            'by_cashier' => $this->getCashierBreakdown($businessId, $start, $end, $branchId),
         ];
     }
 
@@ -161,6 +166,107 @@ class DailyReportSummaryService
             usort($rows, fn ($a, $b) => $b['amount_bs'] <=> $a['amount_bs']);
             $result[$field] = $rows;
         }
+
+        return $result;
+    }
+
+    /**
+     * Cuánto cobró cada persona en el período, agrupado por quien registró el pago
+     * (`created_by`) -- no por quién atendió el servicio (`employee_id`), que es otra cosa. Un
+     * abono a crédito cuenta para quien lo cobró, no para quien emitió la venta original.
+     *
+     * @return array<int, array{
+     *   user_id: string|null, name: string, usd_total: float, ves_total: float, credito_issued: float,
+     *   usd_items: array<int, array{method: string, amount: float}>,
+     *   ves_items: array<int, array{method: string, amount: float}>,
+     * }>
+     */
+    private function getCashierBreakdown(string $businessId, string $start, string $end, ?string $branchId): array
+    {
+        $query = Transaction::where('business_id', $businessId)
+            ->whereBetween(DB::raw('COALESCE(paid_at, created_at)'), [$start . ' 00:00:00', $end . ' 23:59:59']);
+
+        if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
+            });
+        }
+
+        $usd = [];     // [userKey][method] => monto
+        $ves = [];     // [userKey][method] => monto
+        $credito = []; // [userKey] => monto
+        $names = [];
+
+        foreach ($query->with('createdBy:id,full_name')->get() as $tx) {
+            $userKey = $tx->created_by ?: '__sin_registrar__';
+            $names[$userKey] = $tx->createdBy?->full_name ?? 'Sin registrar';
+
+            if ($tx->method === 'credito') {
+                $credito[$userKey] = ($credito[$userKey] ?? 0) + (float) $tx->total_amount;
+                continue;
+            }
+
+            $breakdown = is_array($tx->payments_breakdown) ? $tx->payments_breakdown : [];
+
+            // Dato viejo o venta de un solo método sin desglose guardado: usa el método y el
+            // monto de la transacción tal cual, convirtiendo a Bs con su propia tasa si aplica.
+            if (empty($breakdown)) {
+                $isVes = in_array($tx->method, ['cash_ves', 'transfer', 'pago_movil', 'punto_venta'], true);
+                if ($isVes) {
+                    $rate = (float) ($tx->exchange_rate_used ?: 0);
+                    $ves[$userKey][$tx->method] = ($ves[$userKey][$tx->method] ?? 0) + (float) $tx->total_amount * $rate;
+                } else {
+                    $usd[$userKey][$tx->method] = ($usd[$userKey][$tx->method] ?? 0) + (float) $tx->total_amount;
+                }
+                continue;
+            }
+
+            foreach ($breakdown as $split) {
+                $method = $split['method'] ?? $tx->method;
+                if ($method === 'credito') continue;
+                $isVesSplit = strtoupper((string) ($split['currency'] ?? '')) === 'VES';
+                if ($isVesSplit) {
+                    $ves[$userKey][$method] = ($ves[$userKey][$method] ?? 0) + (float) ($split['inputAmount'] ?? 0);
+                } else {
+                    // Igual que en Finanzas > incomeBreakdown: ventas mixtas guardadas antes de
+                    // corregir usePOSPayment.ts se quedaron con `amount` en 0 -- se cae a
+                    // inputAmount para no perder esa plata real del cuadre de esta persona.
+                    $amount = (float) ($split['amount'] ?? 0);
+                    $input = (float) ($split['inputAmount'] ?? 0);
+                    $usd[$userKey][$method] = ($usd[$userKey][$method] ?? 0) + ($amount > 0 ? $amount : $input);
+                }
+            }
+        }
+
+        $userKeys = array_unique([...array_keys($usd), ...array_keys($ves), ...array_keys($credito)]);
+        $result = [];
+        foreach ($userKeys as $userKey) {
+            $usdItems = [];
+            foreach ($usd[$userKey] ?? [] as $method => $amount) {
+                if ($amount <= 0) continue;
+                $usdItems[] = ['method' => $method, 'amount' => round($amount, 2)];
+            }
+            usort($usdItems, fn ($a, $b) => $b['amount'] <=> $a['amount']);
+
+            $vesItems = [];
+            foreach ($ves[$userKey] ?? [] as $method => $amount) {
+                if ($amount <= 0) continue;
+                $vesItems[] = ['method' => $method, 'amount' => round($amount, 2)];
+            }
+            usort($vesItems, fn ($a, $b) => $b['amount'] <=> $a['amount']);
+
+            $result[] = [
+                'user_id' => $userKey === '__sin_registrar__' ? null : $userKey,
+                'name' => $names[$userKey] ?? 'Sin registrar',
+                'usd_total' => round(array_sum(array_column($usdItems, 'amount')), 2),
+                'ves_total' => round(array_sum(array_column($vesItems, 'amount')), 2),
+                'credito_issued' => round($credito[$userKey] ?? 0, 2),
+                'usd_items' => $usdItems,
+                'ves_items' => $vesItems,
+            ];
+        }
+
+        usort($result, fn ($a, $b) => $b['usd_total'] <=> $a['usd_total']);
 
         return $result;
     }

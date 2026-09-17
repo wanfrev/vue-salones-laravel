@@ -115,6 +115,16 @@
     <BankAccountsSection />
   </template>
 
+  <!-- TAB 7: Cuadre del Día -- todo lo necesario para cuadrar caja en un solo lugar, en vez de
+       ir y venir entre Resumen, Ingresos, Créditos y Reportes. -->
+  <template v-if="activeTab === 'cuadre'">
+    <CuadreDelDiaSection
+      :business-id="businessId" :period-dates="periodDates" :branch-id="businessStore.currentBranchId"
+      :income-breakdown="incomeBreakdown" :pending-credit-total="pendingCreditTotal"
+      :is-strict-admin="isStrictAdmin" @view-creditos="activeTab = 'creditos'"
+    />
+  </template>
+
   <ExpenseFormModal :is-open="expensesCtx.showExpenseModal.value" :is-editing="!!expensesCtx.editingExpenseId.value" :form="expensesCtx.expenseForm.value" :save-error="expensesCtx.saveError.value" :form-errors="expensesCtx.formErrors.value" :is-saving="expensesCtx.saveMutation.isPending.value" @close="expensesCtx.closeModal" @save="handleExpenseSave" />
   <EditCobroModal :show="summaryCtx.showEditModal.value" :summary-ctx="summaryCtx" @close="summaryCtx.cancelEdit()" />
   <CobroActionsModal
@@ -153,6 +163,7 @@ import DetailMovimientos from '../components/finanzas/DetailMovimientos.vue'
 import CreditosSection from '../components/finanzas/CreditosSection.vue'
 import PropinasSection from '../components/finanzas/PropinasSection.vue'
 import BankAccountsSection from '../components/finanzas/BankAccountsSection.vue'
+import CuadreDelDiaSection from '../components/finanzas/CuadreDelDiaSection.vue'
 import EditCobroModal from '../components/finanzas/EditCobroModal.vue'
 import CobroActionsModal from '../components/finanzas/CobroActionsModal.vue'
 import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
@@ -207,9 +218,10 @@ const isStaffing = computed(() => businessStore.hasCapability('staffing.timeshee
 // configuracion financiera del negocio -- solo la dueña, no un encargado de sucursal.
 const isStrictAdmin = computed(() => authStore.role === 'admin' || authStore.role === 'superadmin')
 
-const activeTab = ref<'resumen' | 'ingresos' | 'egresos' | 'creditos' | 'propinas' | 'bancos'>('resumen')
-const mainTabs = computed<{ key: 'resumen' | 'ingresos' | 'egresos' | 'creditos' | 'propinas' | 'bancos'; label: string }[]>(() => {
-  const tabs: { key: 'resumen' | 'ingresos' | 'egresos' | 'creditos' | 'propinas' | 'bancos'; label: string }[] = [
+type FinanzasTab = 'resumen' | 'ingresos' | 'egresos' | 'creditos' | 'propinas' | 'bancos' | 'cuadre'
+const activeTab = ref<FinanzasTab>('resumen')
+const mainTabs = computed<{ key: FinanzasTab; label: string }[]>(() => {
+  const tabs: { key: FinanzasTab; label: string }[] = [
     { key: 'resumen', label: 'Resumen' },
     { key: 'ingresos', label: 'Ingresos' },
   ]
@@ -221,16 +233,25 @@ const mainTabs = computed<{ key: 'resumen' | 'ingresos' | 'egresos' | 'creditos'
   if (isStrictAdmin.value && !isStaffing.value) {
     tabs.push({ key: 'bancos', label: 'Bancos' })
   }
+  // Cuadre de caja no aplica a staffing (no tiene punto de venta ni métodos de pago) -- mismo
+  // criterio que Bancos, pero visible para encargado también (cuadrar caja es su trabajo del
+  // día a día; solo la sección "Por Persona" adentro queda oculta para ese rol).
+  if (!isTiendaEmployee.value && !isStaffing.value) {
+    tabs.push({ key: 'cuadre', label: 'Cuadre del Día' })
+  }
   return tabs
 })
 
 watch(
   [activeTab, isTiendaEmployee],
   ([tab, hideEgresos]) => {
-    if (hideEgresos && (tab === 'egresos' || tab === 'creditos' || tab === 'propinas')) {
+    if (hideEgresos && (tab === 'egresos' || tab === 'creditos' || tab === 'propinas' || tab === 'cuadre')) {
       activeTab.value = 'resumen'
     }
     if (tab === 'bancos' && (!isStrictAdmin.value || isStaffing.value)) {
+      activeTab.value = 'resumen'
+    }
+    if (tab === 'cuadre' && isStaffing.value) {
       activeTab.value = 'resumen'
     }
   },
@@ -559,11 +580,11 @@ const openCobroActions = async (tx: any) => {
   cobroActionsShow.value = true
 }
 
-const handleRollbackCobro = async (payload: { transactionIds: string[]; appointmentId?: string; prefill: any }) => {
+const handleRollbackCobro = async (payload: { transactionIds: string[]; appointmentId?: string; prefill: any; reason: string | null }) => {
   cobroActionsShow.value = false
   try {
     await Promise.all(payload.transactionIds.map(id =>
-      summaryCtx.deleteTransactionMutation.mutateAsync({ transactionId: id }),
+      summaryCtx.deleteTransactionMutation.mutateAsync({ transactionId: id, reason: payload.reason }),
     ))
     await Promise.allSettled([
       queryClientFin.invalidateQueries({ queryKey: ['pos-pending'], exact: false }),
@@ -579,11 +600,11 @@ const handleRollbackCobro = async (payload: { transactionIds: string[]; appointm
   }
 }
 
-const handleDeleteCobroAction = async (transactionIds: string[]) => {
+const handleDeleteCobroAction = async (transactionIds: string[], reason: string | null) => {
   cobroActionsShow.value = false
   try {
     await Promise.all(transactionIds.map(id =>
-      summaryCtx.deleteTransactionMutation.mutateAsync({ transactionId: id }),
+      summaryCtx.deleteTransactionMutation.mutateAsync({ transactionId: id, reason }),
     ))
   } catch (err) {
     showErrorFin(translateError(err, 'Error al eliminar cobro'))

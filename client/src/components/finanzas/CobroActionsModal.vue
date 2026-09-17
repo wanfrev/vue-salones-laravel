@@ -33,8 +33,9 @@ const emit = defineEmits<{
       breakdown: PaymentBreakdownItem[] | null
       products: { productId: string; productName: string; quantity: number; unitCost: number }[] | null
     } | null
+    reason: string | null
   }]
-  delete: [transactionIds: string[]]
+  delete: [transactionIds: string[], reason: string | null]
 }>()
 
 const { formatUSD, formatSecondary, exchangeRate } = useCurrency()
@@ -50,7 +51,8 @@ const appointmentProductsTotal = computed(() =>
   appointmentProducts.value.reduce((s, p) => s + p.quantity * p.unitCost, 0),
 )
 
-watch(() => props.show, (visible) => { if (visible) { mode.value = 'actions'; groupMembers.value = [] } })
+const reasonText = ref('')
+watch(() => props.show, (visible) => { if (visible) { mode.value = 'actions'; groupMembers.value = []; reasonText.value = '' } })
 
 watch(() => props.paymentData, (data) => {
   appointmentProducts.value = []
@@ -149,11 +151,11 @@ const onRollback = () => {
       unitCost: p.unitCost,
     })),
   } : null
-  emit('rollback', { transactionIds: props.transactionIds, appointmentId: apptId, prefill })
+  emit('rollback', { transactionIds: props.transactionIds, appointmentId: apptId, prefill, reason: reasonText.value.trim() || null })
 }
 
 const onDelete = () => {
-  emit('delete', props.transactionIds)
+  emit('delete', props.transactionIds, reasonText.value.trim() || null)
 }
 
 const printReceipt = async () => {
@@ -309,6 +311,14 @@ const displayReceiptCode = computed(() => props.paymentData?.receipt_code || nul
               <p class="text-xs text-text-muted">Regresar la cita a pendiente</p>
             </div>
           </button>
+        </div>
+
+        <div class="mt-3">
+          <label class="mb-1 block text-xs font-medium text-text-muted" for="cobro-reason">Motivo (opcional)</label>
+          <input id="cobro-reason" v-model="reasonText" type="text" maxlength="500"
+            placeholder="Ej: cliente pidió cambiar el método de pago"
+            class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary" />
+          <p class="mt-1 text-[11px] text-text-muted">Si vuelves a Punto de Venta o eliminas el cobro, esto queda guardado en el historial de correcciones.</p>
         </div>
 
         <button

@@ -514,6 +514,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     Route::get('/transactions', [TransactionController::class, 'index']);
     Route::put('/transactions/{id}', [TransactionController::class, 'update']);
     Route::delete('/transactions/{id}', [TransactionController::class, 'destroy']);
+    Route::get('/transaction-audit-logs', [TransactionController::class, 'auditLogs']);
 
     Route::get('/credits', [CreditController::class, 'index']);
     Route::get('/credits/{id}/payments', [CreditController::class, 'payments']);

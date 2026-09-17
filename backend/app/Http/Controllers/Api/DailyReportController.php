@@ -30,12 +30,22 @@ class DailyReportController extends Controller
             'end' => 'required|date|after_or_equal:start',
         ]);
 
-        return response()->json($this->summaryService->summarize(
+        $summary = $this->summaryService->summarize(
             $validated['business_id'],
             $validated['start'],
             $validated['end'],
             $validated['branch_id'] ?? null,
-        ));
+        );
+
+        // Quién cobró cuánto es información de supervisión (para cuadrar cajas entre personas),
+        // no algo que un encargado o cajero deba ver de sus compañeros -- ver BankController's
+        // ensureStrictAdmin() para el mismo criterio ya usado en Finanzas > Bancos.
+        $role = $request->user()?->profile?->role;
+        if (!in_array($role, ['admin', 'superadmin'], true)) {
+            unset($summary['by_cashier']);
+        }
+
+        return response()->json($summary);
     }
 
     /**
