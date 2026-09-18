@@ -45,6 +45,17 @@ export const listEquipo = async (
   return profiles.map(profile => mapProfileToEmpleado(profile))
 }
 
+/**
+ * The one place that actually gets the real SSN/bank/routing/card values — see
+ * ProfileController::withSensitiveFields(). Used to prefill EmpleadoFormModal right before
+ * opening it for edit/view; the bulk team list (listEquipo) never carries these.
+ */
+export const getEmpleado = async (id: string): Promise<Empleado> => {
+  const { data, error } = await db.from('profiles').select('*, employee_schedules(*)').eq('id', id).single()
+  if (error) throw error
+  return mapProfileToEmpleado(data as EmployeeProfile)
+}
+
 export const saveEmpleado = async (
   data: EmpleadoFormData & { id?: string },
   _businessId?: string,
@@ -108,12 +119,12 @@ export const saveEmpleado = async (
     ...(data.email ? { email: data.email } : {}),
     ...(data.password ? { password: data.password } : {}),
     ...profileUpdate,
-    // Write-only: only sent when the admin actually typed a new value, so re-saving the
-    // employee for an unrelated change (e.g. phone number) never clobbers what's on file.
-    ...(data.bankRoutingNumber?.trim() ? { bank_routing_number: data.bankRoutingNumber.trim() } : {}),
-    ...(data.bankAccountNumber?.trim() ? { bank_account_number: data.bankAccountNumber.trim() } : {}),
-    ...(data.payrollCardNumber?.trim() ? { payroll_card_number: data.payrollCardNumber.trim() } : {}),
-    ...(data.ssn?.trim() ? { ssn: data.ssn.trim() } : {}),
+    // The field is prefilled with the real value on open (see getEmpleado), so — like every
+    // other field here — whatever's in it now is sent as-is; clearing it clears it on file.
+    bank_routing_number: data.bankRoutingNumber?.trim() || null,
+    bank_account_number: data.bankAccountNumber?.trim() || null,
+    payroll_card_number: data.payrollCardNumber?.trim() || null,
+    ssn: data.ssn?.trim() || null,
     can_create_appointments: data.systemRole !== 'cajero' ? data.canCreateAppointments : false,
     can_create_clients: data.systemRole !== 'cajero' ? data.canCreateClients : false,
     can_access_consultorio: data.systemRole !== 'cajero' ? data.canAccessConsultorio : false,

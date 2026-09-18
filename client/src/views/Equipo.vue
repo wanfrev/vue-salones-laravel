@@ -52,7 +52,7 @@
   <EmployeeGrid
     :employees="visibleTeam" :show-all="showAll" :has-more="hasMoreThanDefault" :total-count="team.length"
     :get-initials="getInitials" :is-staffing="isStaffing" :show-agenda="showAgenda"
-    @edit="handleEditEmpleado" @view-agenda="handleViewAgenda" @view-recibo="handleOpenRecibo"
+    @edit="handleEditEmpleado" @view-info="handleViewEmpleado" @view-agenda="handleViewAgenda" @view-recibo="handleOpenRecibo"
     @toggle-active="handleToggleActive" @toggle-show-all="showAll = !showAll"
   />
 
@@ -272,6 +272,7 @@ const empleadosMixto = computed(() => team.value.filter(e => e.payType === 'mixe
 
 const handleNewEmpleado = () => empleadoModalRef.value?.open()
 const handleEditEmpleado = (e: Empleado) => empleadoModalRef.value?.open(e)
+const handleViewEmpleado = (e: Empleado) => empleadoModalRef.value?.open(e, { readOnly: true })
 const handleViewAgenda = (e: Empleado) => { router.push('/admin?employee=' + e.id) }
 
 const { success: notifySuccess, error: notifyError } = useNotification()

@@ -184,7 +184,7 @@ class ProfileController
         try {
             $profile = $this->profileService->update($id, $data, $businessId);
             EntityChanged::safe($businessId, 'profile', 'updated', $id);
-            return response()->json($profile);
+            return response()->json($this->withSensitiveFields($profile));
         } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
             return response()->json(['error' => ['message' => 'Ese empleado ya tiene exactamente esa misma asignación (empresa, rol y turno). Cambia el rol/turno o elimina la duplicada.']], 422);
         } catch (\Throwable $e) {
@@ -195,7 +195,23 @@ class ProfileController
     public function show(Request $request, string $id): JsonResponse
     {
         $profile = $this->profileService->findForBusiness($id, $this->resolveBusinessId($request) ?? '');
-        return response()->json($profile);
+        return response()->json($this->withSensitiveFields($profile));
+    }
+
+    /**
+     * Adds the real decrypted values of the fields Profile::$hidden always strips, for the one
+     * employee actually being opened — never used by list()/index(), which stays last4-only so a
+     * page rendering the whole team never ships everyone's SSN/bank details over the wire.
+     */
+    private function withSensitiveFields(\App\Models\Profile $profile): array
+    {
+        $data = $profile->toArray();
+        $data['ssn'] = $profile->safeDecrypt('ssn');
+        $data['bank_routing_number'] = $profile->safeDecrypt('bank_routing_number');
+        $data['bank_account_number'] = $profile->safeDecrypt('bank_account_number');
+        $data['payroll_card_number'] = $profile->safeDecrypt('payroll_card_number');
+
+        return $data;
     }
 
     public function destroy(Request $request, string $id): JsonResponse

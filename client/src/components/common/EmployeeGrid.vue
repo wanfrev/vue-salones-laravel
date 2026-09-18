@@ -52,7 +52,7 @@
         </template>
       </div>
 
-      <div class="mt-4 grid gap-1.5" :class="showAgenda ? 'grid-cols-3' : 'grid-cols-2'">
+      <div class="mt-4 grid gap-1.5" :class="showAgenda ? 'grid-cols-4' : 'grid-cols-3'">
         <button v-if="showAgenda" @click="$emit('viewAgenda', member)"
           class="rounded-lg border border-border py-2 text-xs font-medium text-text-secondary transition-theme hover:bg-primary/5 hover:text-primary hover:border-primary/30 flex items-center justify-center gap-1"
           title="Ver Agenda">
@@ -60,6 +60,15 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
           <span class="hidden sm:inline">Agenda</span>
+        </button>
+        <button @click="$emit('viewInfo', member)"
+          class="rounded-lg border border-border py-2 text-xs font-medium text-text-secondary transition-theme hover:bg-primary/5 hover:text-primary hover:border-primary/30 flex items-center justify-center gap-1"
+          title="Ver información">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span class="hidden sm:inline">Ver</span>
         </button>
         <button @click="$emit('viewRecibo', member)"
           class="rounded-lg border border-border py-2 text-xs font-medium text-text-secondary transition-theme hover:bg-primary/5 hover:text-primary hover:border-primary/30 flex items-center justify-center gap-1"
@@ -110,6 +119,7 @@ withDefaults(defineProps<{
 
 defineEmits<{
   edit: [employee: any]
+  viewInfo: [employee: any]
   viewAgenda: [employee: any]
   viewRecibo: [employee: any]
   toggleActive: [employee: any]

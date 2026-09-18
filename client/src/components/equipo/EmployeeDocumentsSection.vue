@@ -22,14 +22,14 @@
           @click="ctx.download(doc.id, doc.fileOriginalName)">
           Descargar
         </button>
-        <button type="button" class="shrink-0 rounded-md p-1 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+        <button v-if="!readOnly" type="button" class="shrink-0 rounded-md p-1 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
           title="Eliminar documento" @click="confirmDelete(doc)">
           <TrashBin2Icon class="h-4 w-4" />
         </button>
       </li>
     </ul>
 
-    <div class="mt-3 flex flex-wrap items-end gap-2">
+    <div v-if="!readOnly" class="mt-3 flex flex-wrap items-end gap-2">
       <div class="min-w-[140px] flex-1">
         <label class="mb-1 block text-xs font-medium text-text-muted" for="doc-label">Etiqueta (opcional)</label>
         <input id="doc-label" v-model="label" type="text" placeholder="Ej: Cédula" :class="inputClass" />
@@ -44,7 +44,7 @@
         {{ ctx.uploadMutation.isPending.value ? 'Subiendo...' : 'Adjuntar' }}
       </button>
     </div>
-    <p class="mt-1 text-[10px] text-text-muted">PDF, JPG, PNG o foto de celular (HEIC/WEBP) — máx. 10 MB.</p>
+    <p v-if="!readOnly" class="mt-1 text-[10px] text-text-muted">PDF, JPG, PNG o foto de celular (HEIC/WEBP) — máx. 10 MB.</p>
   </div>
 </template>
 
@@ -54,7 +54,7 @@ import { useEmployeeDocuments } from '../../composables/empleados/useEmployeeDoc
 import type { EmployeeDocument } from '../../services/employeeDocumentsService'
 import { PaperclipIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
 
-const props = defineProps<{ employeeId: string }>()
+const props = defineProps<{ employeeId: string; readOnly?: boolean }>()
 
 const inputClass =
   'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30'

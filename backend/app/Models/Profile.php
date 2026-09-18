@@ -119,16 +119,24 @@ class Profile extends Model
 
     private function last4Of(string $attribute): ?string
     {
+        $value = $this->safeDecrypt($attribute);
+
+        return $value ? substr($value, -4) : null;
+    }
+
+    /**
+     * Decrypts one of the always-$hidden encrypted attributes, swallowing failures (a corrupted
+     * row, or legacy plaintext saved before the `encrypted` cast existed) instead of 500ing the
+     * caller. Deliberately not an accessor/append — ProfileController calls this explicitly, only
+     * for the single employee actually being opened, so a business-wide employee list never
+     * decrypts and ships every employee's SSN/bank details just to render a name grid.
+     */
+    public function safeDecrypt(string $attribute): ?string
+    {
         try {
-            $value = $this->{$attribute};
+            return $this->{$attribute};
         } catch (\Throwable) {
             return null;
         }
-
-        if (!$value) {
-            return null;
-        }
-
-        return substr($value, -4);
     }
 }
