@@ -1,27 +1,34 @@
 <template>
   <ModalBase
     :is-open="isOpen"
-    :title="isEditing ? `Editar ${t.employee}` : `Nuevo ${t.employee}`"
-    :subtitle="isEditing ? `Editando a ${formData.name}` : `Agrega un nuevo ${t.employee.toLowerCase()} al equipo`"
+    :title="readOnly ? `Información del ${t.employee.toLowerCase()}` : (isEditing ? `Editar ${t.employee}` : `Nuevo ${t.employee}`)"
+    :subtitle="readOnly ? `Viendo a ${formData.name}` : (isEditing ? `Editando a ${formData.name}` : `Agrega un nuevo ${t.employee.toLowerCase()} al equipo`)"
     :icon="isEditing ? 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z' : 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'"
     :size="isStaffing ? 'xl' : 'full'"
     :is-loading="isLoading"
     :is-confirm-disabled="!isFormValid"
+    :show-confirm-button="!readOnly"
+    :cancel-text="readOnly ? 'Cerrar' : 'Cancelar'"
     :confirm-text="`Guardar ${t.employee}`"
     @close="close"
     @confirm="handleSubmit"
   >
     <form @submit.prevent>
+      <!--
+        `display: contents` here would be the tidy choice (no layout box of its own) but
+        Chromium has a long-standing bug where a `display:contents` fieldset's own `disabled`
+        never propagates to descendant form controls — the fieldset itself reports
+        `disabled === true` while every input/button inside stays enabled. `border-0 p-0 m-0
+        min-w-0` neutralizes the browser's default fieldset box instead, keeping native disabled
+        propagation intact.
+      -->
+      <fieldset :disabled="readOnly" class="border-0 p-0 m-0 min-w-0">
       <template v-if="isStaffing">
         <div class="mx-auto max-w-2xl space-y-6">
           <StaffingEmployeeFields
             :form-data="formData"
             :business-id="authStore.businessId"
             :is-editing="isEditing"
-            :bank-routing-last4="editingBankRoutingLast4"
-            :bank-account-last4="editingBankAccountLast4"
-            :payroll-card-last4="editingPayrollCardLast4"
-            :ssn-last4="editingSsnLast4"
             :errors="errors"
             @blur="handleBlur"
             @update:model-value="formData = $event"
@@ -326,9 +333,12 @@
         </div>
       </div>
 
-      <EmployeeDocumentsSection v-if="isStaffing && isEditing && modalData?.empleado?.id" :employee-id="modalData.empleado.id" />
+      </fieldset>
 
-      <div v-if="isEditing" class="border-t border-border mt-6 pt-4">
+      <EmployeeDocumentsSection v-if="isStaffing && isEditing && modalData?.empleado?.id"
+        :employee-id="modalData.empleado.id" :read-only="readOnly" />
+
+      <div v-if="isEditing && !readOnly" class="border-t border-border mt-6 pt-4">
         <button
           type="button"
           class="rounded-lg border border-danger/30 px-4 py-2 text-sm font-semibold text-danger transition-theme hover:bg-danger/10"
@@ -347,7 +357,8 @@ import { useModal } from '../../composables/common/useModal'
 import { useNotification } from '../../composables/common/useNotification'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
-import { addBusinessJobTitle } from '../../services/equipoService'
+import { addBusinessJobTitle, getEmpleado } from '../../services/equipoService'
+import { translateError } from '../../lib/errors'
 import { useFormValidation } from '../../composables/common/useFormValidation'
 import { empleadoFormSchema } from '../../lib/validation'
 import { isPetNiche } from '../../config/nicheFields'
@@ -390,6 +401,10 @@ const isStaffing = computed(() => businessStore.hasCapability('staffing.timeshee
 const isSubmitting = ref(false)
 const isLoading = computed(() => isSubmitting.value || props.isSaving)
 const isEditing = computed(() => !!modalData.value?.empleado)
+// Opened via the grid's "Ver" button instead of "Editar" — same modal, same data, but every
+// field is disabled (native <fieldset disabled>, not per-field props) and there's no save action,
+// so a quick look never risks an accidental change.
+const readOnly = computed(() => !!modalData.value?.readOnly)
 
 const systemRoleOptions = [
   { value: 'empleado' as const, label: 'Empleado' },
@@ -461,12 +476,6 @@ const defaultFormData: EmpleadoFormData = {
 const formData = ref<EmpleadoFormData>({ ...defaultFormData })
 const { errors, isValid, validate, clearErrors, handleBlur } = useFormValidation(empleadoFormSchema as any, formData) as any as ReturnType<typeof useFormValidation>
 
-// Populated from the saved record on edit — masked hints only, the modal never sees the
-// full number. See Profile::$hidden / bank_account_last4 / payroll_card_last4 / ssn_last4.
-const editingBankRoutingLast4 = ref<string | null>(null)
-const editingBankAccountLast4 = ref<string | null>(null)
-const editingPayrollCardLast4 = ref<string | null>(null)
-const editingSsnLast4 = ref<string | null>(null)
 
 // Two assignments with the same (company, project, role, shift) are indistinguishable once
 // saved — the backend has no way to tell which one an hours entry belongs to, and Nómina fails
@@ -549,27 +558,38 @@ watch(
         bankAccountHolder: empleado.bankAccountHolder ?? '',
         bankAccountType: empleado.bankAccountType ?? '',
         paymentMethod: empleado.paymentMethod ?? '',
-        // Write-only — never prefilled from the saved record, only the masked hints below are.
+        // Blank until the fresh fetch below resolves — the list-sourced `empleado` never carries
+        // these (see ProfileController::withSensitiveFields), only a dedicated single fetch does.
         bankRoutingNumber: '',
         bankAccountNumber: '',
         payrollCardNumber: '',
         ssn: '',
         active: empleado.active ?? true,
       }
-      editingBankRoutingLast4.value = empleado.bankRoutingLast4 ?? null
-      editingBankAccountLast4.value = empleado.bankAccountLast4 ?? null
-      editingPayrollCardLast4.value = empleado.payrollCardLast4 ?? null
-      editingSsnLast4.value = empleado.ssnLast4 ?? null
+      // Fetch the real SSN/bank/routing/card values — staffing-only field, and only this one
+      // record, never the bulk team list. Guarded by id so a fast close+reopen (or switching to
+      // a different employee before this resolves) can never land a stale response in the form.
+      if (isStaffing.value && empleado.id) {
+        const targetId = empleado.id
+        getEmpleado(targetId)
+          .then((fresh) => {
+            if (modalData.value?.empleado?.id !== targetId) return
+            formData.value = {
+              ...formData.value,
+              ssn: fresh.ssn ?? '',
+              bankRoutingNumber: fresh.bankRoutingNumber ?? '',
+              bankAccountNumber: fresh.bankAccountNumber ?? '',
+              payrollCardNumber: fresh.payrollCardNumber ?? '',
+            }
+          })
+          .catch((err) => showError(translateError(err, 'No se pudo cargar la información completa del empleado.')))
+      }
     } else {
       const presetCompanyId = modalData.value?.presetCompanyId
       formData.value = {
         ...defaultFormData,
         staffingAssignments: presetCompanyId ? [{ companyId: presetCompanyId, role: '' }] : [],
       }
-      editingBankRoutingLast4.value = null
-      editingBankAccountLast4.value = null
-      editingPayrollCardLast4.value = null
-      editingSsnLast4.value = null
     }
     clearErrors()
   },
@@ -691,8 +711,8 @@ const handleSubmit = async () => {
   }
 }
 
-const open = (empleado?: Empleado) => {
-  useModal(MODAL_ID).open({ empleado })
+const open = (empleado?: Empleado, options?: { readOnly?: boolean }) => {
+  useModal(MODAL_ID).open({ empleado, readOnly: options?.readOnly ?? false })
 }
 
 defineExpose({

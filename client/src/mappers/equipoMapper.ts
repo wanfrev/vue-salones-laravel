@@ -92,6 +92,13 @@ export const mapProfileToEmpleado = (
     bankRoutingLast4: profile.bank_routing_last4 ?? null,
     bankAccountLast4: profile.bank_account_last4 ?? null,
     payrollCardLast4: profile.payroll_card_last4 ?? null,
+    // Only present on a single-employee fetch (ProfileController::withSensitiveFields) — a
+    // bulk list response never carries these keys at all, so they fall back to '' there same
+    // as any other never-loaded field.
+    ssn: profile.ssn ?? '',
+    bankRoutingNumber: profile.bank_routing_number ?? '',
+    bankAccountNumber: profile.bank_account_number ?? '',
+    payrollCardNumber: profile.payroll_card_number ?? '',
   }
 }
 

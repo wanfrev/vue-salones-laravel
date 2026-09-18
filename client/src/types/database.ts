@@ -100,12 +100,18 @@ export interface Profile {
   bank_account_holder?: string | null
   bank_account_type?: string | null
   payment_method?: string | null
-  // The raw numbers/SSN are never present in an API response — Profile::$hidden strips them
-  // server-side. Only the masked last-4 accessors below ever reach the client.
+  // The last-4 accessors are always present (cheap, safe to decrypt in bulk) — used by list
+  // views like the Taxes report. The full raw values below are NOT: ProfileController only adds
+  // them onto a single show()/update() response (see withSensitiveFields()), so this key is
+  // absent on anything sourced from the bulk employee list.
   bank_routing_last4?: string | null
   bank_account_last4?: string | null
   payroll_card_last4?: string | null
   ssn_last4?: string | null
+  ssn?: string | null
+  bank_routing_number?: string | null
+  bank_account_number?: string | null
+  payroll_card_number?: string | null
   created_at: string
   updated_at: string
 }

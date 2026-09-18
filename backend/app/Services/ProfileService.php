@@ -269,6 +269,23 @@ class ProfileService
                 $profileFields['active'] = $data['active'];
             }
 
+            // A pre-existing value that no longer decrypts (a corrupted row, or a legacy
+            // plaintext value saved before the `encrypted` cast existed on this column) makes
+            // Eloquent's own dirty-check throw the moment we set ANY of these fields — it
+            // decrypts the OLD value to compare against the new one before deciding what
+            // changed. Self-heal by clearing just that column first (raw, no decrypt needed for
+            // a NULL write) so the update below never crashes over data nobody could read back
+            // anyway — safeDecrypt()/last4Of() already treat it as gone.
+            foreach (['ssn', 'bank_routing_number', 'bank_account_number', 'payroll_card_number'] as $encryptedField) {
+                if (!array_key_exists($encryptedField, $profileFields) || $profile->getRawOriginal($encryptedField) === null) {
+                    continue;
+                }
+                if ($profile->safeDecrypt($encryptedField) === null) {
+                    DB::table('profiles')->where('id', $id)->update([$encryptedField => null]);
+                    $profile->setRawAttributes(array_merge($profile->getAttributes(), [$encryptedField => null]), true);
+                }
+            }
+
             $profile->update($profileFields);
 
             if (array_key_exists('schedules', $data)) {
