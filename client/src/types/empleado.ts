@@ -61,6 +61,7 @@ export interface Empleado {
   bankAccountType?: 'checking' | 'savings' | ''
   paymentMethod?: 'direct_deposit' | 'payroll_card' | ''
   /** Last 4 digits only — the full number never leaves the server. See Profile::$hidden. */
+  bankRoutingLast4?: string | null
   bankAccountLast4?: string | null
   payrollCardLast4?: string | null
 }

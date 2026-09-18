@@ -18,6 +18,7 @@
             :form-data="formData"
             :business-id="authStore.businessId"
             :is-editing="isEditing"
+            :bank-routing-last4="editingBankRoutingLast4"
             :bank-account-last4="editingBankAccountLast4"
             :payroll-card-last4="editingPayrollCardLast4"
             :ssn-last4="editingSsnLast4"
@@ -462,6 +463,7 @@ const { errors, isValid, validate, clearErrors, handleBlur } = useFormValidation
 
 // Populated from the saved record on edit — masked hints only, the modal never sees the
 // full number. See Profile::$hidden / bank_account_last4 / payroll_card_last4 / ssn_last4.
+const editingBankRoutingLast4 = ref<string | null>(null)
 const editingBankAccountLast4 = ref<string | null>(null)
 const editingPayrollCardLast4 = ref<string | null>(null)
 const editingSsnLast4 = ref<string | null>(null)
@@ -554,6 +556,7 @@ watch(
         ssn: '',
         active: empleado.active ?? true,
       }
+      editingBankRoutingLast4.value = empleado.bankRoutingLast4 ?? null
       editingBankAccountLast4.value = empleado.bankAccountLast4 ?? null
       editingPayrollCardLast4.value = empleado.payrollCardLast4 ?? null
       editingSsnLast4.value = empleado.ssnLast4 ?? null
@@ -563,6 +566,7 @@ watch(
         ...defaultFormData,
         staffingAssignments: presetCompanyId ? [{ companyId: presetCompanyId, role: '' }] : [],
       }
+      editingBankRoutingLast4.value = null
       editingBankAccountLast4.value = null
       editingPayrollCardLast4.value = null
       editingSsnLast4.value = null

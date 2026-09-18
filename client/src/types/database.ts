@@ -102,6 +102,7 @@ export interface Profile {
   payment_method?: string | null
   // The raw numbers/SSN are never present in an API response — Profile::$hidden strips them
   // server-side. Only the masked last-4 accessors below ever reach the client.
+  bank_routing_last4?: string | null
   bank_account_last4?: string | null
   payroll_card_last4?: string | null
   ssn_last4?: string | null

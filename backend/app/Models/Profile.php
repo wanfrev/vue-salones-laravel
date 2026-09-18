@@ -34,7 +34,7 @@ class Profile extends Model
     ];
 
     protected $appends = [
-        'bank_account_last4', 'payroll_card_last4', 'ssn_last4',
+        'bank_routing_last4', 'bank_account_last4', 'payroll_card_last4', 'ssn_last4',
     ];
 
     protected function casts(): array
@@ -97,6 +97,11 @@ class Profile extends Model
      * Last 4 digits only — the full number is in $hidden and never leaves the server. Swallows
      * decryption failures instead of 500ing a list endpoint over one corrupted/legacy row.
      */
+    protected function getBankRoutingLast4Attribute(): ?string
+    {
+        return $this->last4Of('bank_routing_number');
+    }
+
     protected function getBankAccountLast4Attribute(): ?string
     {
         return $this->last4Of('bank_account_number');

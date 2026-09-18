@@ -89,6 +89,7 @@ export const mapProfileToEmpleado = (
     bankAccountHolder: profile.bank_account_holder ?? '',
     bankAccountType: (profile.bank_account_type as Empleado['bankAccountType']) ?? '',
     paymentMethod: (profile.payment_method as Empleado['paymentMethod']) ?? '',
+    bankRoutingLast4: profile.bank_routing_last4 ?? null,
     bankAccountLast4: profile.bank_account_last4 ?? null,
     payrollCardLast4: profile.payroll_card_last4 ?? null,
   }

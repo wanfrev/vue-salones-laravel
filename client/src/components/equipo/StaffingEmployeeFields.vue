@@ -184,7 +184,7 @@
           v-model="bankRoutingNumber"
           label="Routing number"
           placeholder="9 dígitos"
-          :hint="isEditing ? 'Dejar vacío para mantener el número actual' : undefined"
+          :hint="routingHint"
         />
         <FormInput
           v-model="bankAccountNumber"
@@ -226,6 +226,7 @@ const props = defineProps<{
   formData: EmpleadoFormData
   businessId: string | null
   isEditing?: boolean
+  bankRoutingLast4?: string | null
   bankAccountLast4?: string | null
   payrollCardLast4?: string | null
   ssnLast4?: string | null
@@ -389,6 +390,13 @@ const taxRatePercent = computed<number | string>({
   },
 })
 
+// Unlike the other masked hints, routing number has no last4 concept of its own on file until
+// now — this used to be a static "leave empty to keep the current one" message shown whenever
+// editing, regardless of whether anything was actually saved, making a genuinely-empty routing
+// number look identical to a saved one and leaving no way to tell the two apart after saving.
+const routingHint = computed(() =>
+  props.bankRoutingLast4 ? `Terminado en ${props.bankRoutingLast4} — deja vacío para mantenerlo` : undefined,
+)
 const accountHint = computed(() =>
   props.bankAccountLast4 ? `Terminada en ${props.bankAccountLast4} — deja vacío para mantenerla` : undefined,
 )
