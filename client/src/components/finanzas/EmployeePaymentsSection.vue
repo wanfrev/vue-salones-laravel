@@ -193,7 +193,31 @@
 
     <div v-if="employeeDebtSummary.length > 0" class="mt-4 border-t border-border-subtle px-4 sm:px-5 pt-4 shrink-0">
       <h4 class="mb-3 text-sm font-semibold text-text">Deuda por {{ terminology.employee || 'empleado' }}</h4>
-      <div class="overflow-x-auto">
+      <div class="lg:hidden space-y-2">
+        <div v-for="row in employeeDebtSummary" :key="row.employeeId" class="rounded-lg border border-border-subtle bg-bg-secondary p-3">
+          <div class="mb-1.5 flex items-center justify-between">
+            <span class="font-medium text-text text-sm">{{ row.employeeName }}</span>
+            <span class="text-xs text-text-muted">
+              <span v-if="row.payType === 'salary'">Sueldo base</span>
+              <span v-else-if="row.payType === 'mixed'">Sueldo + {{ row.payPercentage }}%</span>
+              <span v-else-if="row.payType === 'percentage'">{{ row.payPercentage }}%</span>
+              <span v-else>—</span>
+            </span>
+          </div>
+          <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
+            <span class="text-text-muted">Comisión</span><span class="text-right text-text">{{ formatUSD(row.commissionTotal) }}</span>
+            <span class="text-text-muted">Sueldo base</span><span class="text-right text-text">{{ formatUSD(row.baseSalary) }}</span>
+            <span class="text-text-muted">Total</span><span class="text-right font-semibold text-text">{{ formatUSD(row.totalEarned) }}</span>
+            <span class="text-text-muted">Pagado</span><span class="text-right text-danger">{{ formatUSD(row.totalPaid) }}</span>
+            <span class="text-text-muted">Consumo</span><span class="text-right text-warning">{{ formatUSD((row as any).totalConsumed ?? 0) }}</span>
+          </div>
+          <div class="mt-2 flex items-center justify-between border-t border-border-subtle pt-2">
+            <span class="text-xs font-medium text-text-secondary">Pendiente</span>
+            <span class="text-sm font-bold" :class="row.pendingBalance > 0 ? 'text-primary' : 'text-text-muted'">{{ formatUSD(row.pendingBalance) }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="hidden overflow-x-auto lg:block">
         <table class="w-full">
           <thead>
             <tr class="border-b border-border-subtle">
