@@ -76,14 +76,31 @@
           </div>
         </div>
       </div>
-      <div class="mt-3 flex items-center justify-between border-t border-border-subtle pt-3">
-        <span class="text-xs text-text-muted">Última {{ (businessStore.terminology.appointment || 'consulta').toLowerCase() }}: {{ lastVisitLabel(client) }}</span>
-        <button
-          @click.stop="handleViewAgenda(client)"
-          class="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/15"
-        >
-          {{ isDentalNiche ? 'Abrir expediente' : 'Ver historial' }}
-        </button>
+      <div class="mt-3 flex items-center justify-between border-t border-border-subtle pt-3 gap-2">
+        <span class="text-xs text-text-muted truncate">Última {{ (businessStore.terminology.appointment || 'consulta').toLowerCase() }}: {{ lastVisitLabel(client) }}</span>
+        <div class="flex shrink-0 items-center gap-1">
+          <button
+            @click.stop="handleViewAgenda(client)"
+            class="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/15"
+          >
+            {{ isDentalNiche ? 'Abrir expediente' : 'Ver historial' }}
+          </button>
+          <button
+            v-if="canEditClients"
+            @click.stop="clienteModalRef?.open(client)"
+            class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
+            :title="`Editar ${label}`"
+          >
+            <PenIcon class="h-4 w-4" />
+          </button>
+          <button
+            @click.stop="handleWhatsApp(client)"
+            class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-success"
+            title="Escribir por WhatsApp"
+          >
+            <ChatRoundLineIcon class="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
     <div v-if="filteredClients.length === 0" class="py-12 text-center">
