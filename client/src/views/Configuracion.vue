@@ -220,6 +220,14 @@
                 label="Comisión por venta de productos"
                 hint="Los encargados ganarán el % que les asignes sobre las ventas directas de productos que ellos mismos procesen en el POS"
                 :disabled="updatingFeatures"
+                class="py-3.5 border-b border-border-subtle"
+              />
+              <FormToggle
+                :model-value="!!businessStore.features.encargados_edit_clients"
+                @update:model-value="handleToggleFeature('encargados_edit_clients')"
+                :label="`Permitir editar ${(businessStore.terminology.clientPlural || 'clientes').toLowerCase()}`"
+                :hint="`Los encargados podrán modificar los datos de los ${(businessStore.terminology.clientPlural || 'clientes').toLowerCase()} existentes. Si lo desactivas, solo podrán consultarlos y crear nuevos.`"
+                :disabled="updatingFeatures"
                 class="py-3.5 last:border-b-0"
               />
             </div>
@@ -1002,6 +1010,7 @@ const featureLabels: Record<string, string> = {
   reminder_24h_enabled: 'Recordatorios internos',
   whatsapp_reminders_enabled: 'Recordatorios por WhatsApp',
   encargado_product_commission_enabled: 'Comisión por venta de productos',
+  encargados_edit_clients: 'Permitir editar clientes',
   payroll_currency_breakdown_enabled: 'Desglose de comisión por moneda de cobro',
   employees_recibo_only: 'Empleados solo ven su recibo',
   enable_public_booking: 'Reservas públicas',

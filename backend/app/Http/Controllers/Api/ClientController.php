@@ -47,6 +47,20 @@ class ClientController
         return (bool) ($features['employees_see_clients'] ?? true);
     }
 
+    private function canEncargadoEditClients(Request $request): bool
+    {
+        $profile = $request->user()?->profile;
+        if (!$profile || $profile->role !== 'encargado') {
+            return true;
+        }
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return true;
+        $business = Business::find($businessId);
+        if (!$business) return true;
+        $features = is_array($business->features) ? $business->features : json_decode($business->features ?? '[]', true);
+        return (bool) ($features['encargados_edit_clients'] ?? true);
+    }
+
     private function shouldHideClientPhoneFromEmployee(Request $request): bool
     {
         $profile = $request->user()?->profile;
@@ -109,6 +123,9 @@ class ClientController
     {
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId) return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        if (!$this->canEncargadoEditClients($request)) {
+            return response()->json(['error' => ['message' => 'No tienes permiso para editar clientes.']], 403);
+        }
 
         $client = $this->clientService->update($id, $request->validated(), $businessId);
         EntityChanged::safe($businessId, 'client', 'updated', $id);
