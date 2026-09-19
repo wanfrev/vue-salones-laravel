@@ -33,6 +33,9 @@ return [
         'encargados_change_employee_rate' => false,
         'disable_employee_commission_edit' => false,
         'encargado_product_commission_enabled' => false,
+        // Default true to match client/src/config/features.ts — preserves today's unrestricted
+        // behaviour for the 8 live businesses; only an explicit opt-out changes anything.
+        'encargados_edit_clients' => true,
         'manual_reports' => false,
         'daily_report_autofill_from_pos' => false,
         'pos_direct_service_sale' => false,

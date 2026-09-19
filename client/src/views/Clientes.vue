@@ -140,6 +140,7 @@
               <div class="flex items-center justify-end gap-1.5">
                 <button @click.stop="handleViewAgenda(client)" class="rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/15">{{ isDentalNiche ? 'Abrir expediente' : 'Ver historial' }}</button>
                 <button
+                  v-if="canEditClients"
                   @click.stop="clienteModalRef?.open(client)"
                   class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
                   :title="`Editar ${label}`"
@@ -307,6 +308,9 @@ const {
 
 const label = computed(() => (businessStore.terminology.client || 'cliente').toLowerCase())
 const isDentalNiche = computed(() => checkDentalNiche(businessStore.nicheType))
+const canEditClients = computed(() =>
+  authStore.role !== 'encargado' || businessStore.hasFeature('encargados_edit_clients')
+)
 
 const handleViewAgenda = (cliente: Cliente) => {
   router.push(`/admin/clientes/${cliente.id}`)

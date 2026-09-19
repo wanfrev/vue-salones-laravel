@@ -18,6 +18,10 @@ export const DEFAULT_FEATURES = {
   encargados_change_employee_rate: false,
   disable_employee_commission_edit: false,
   encargado_product_commission_enabled: false,
+  // Default true — encargados have always been able to edit clients with no gate at all (they're
+  // an admin-panel role); this flag exists purely so a business can opt OUT per-tenant, not to
+  // grant a new capability. See ClientController::canEncargadoEditClients().
+  encargados_edit_clients: true,
   manual_reports: false,
   daily_report_autofill_from_pos: false,
   pos_direct_service_sale: false,
