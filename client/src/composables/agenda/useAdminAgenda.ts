@@ -44,8 +44,10 @@ function getWeekRange(date: Date): { start: Date; end: Date } {
 
 export function useAdminAgenda(businessId: () => string | null) {
   const selectedDate = ref<Date>(new Date())
-  const filterDate = ref<string | null>(toISODate(new Date()))
-  const dateFilterMode = ref<DateFilterMode>('day')
+  // Arranca en modo semana (no día) al entrar al módulo -- ver `isToday`/`isThisWeek` más abajo,
+  // que dependen de `filterDate`/`dateFilterMode` para saber cuál botón resaltar como activo.
+  const filterDate = ref<string | null>(null)
+  const dateFilterMode = ref<DateFilterMode>('week')
   const rangeStart = ref<string | null>(null)
   const rangeEnd = ref<string | null>(null)
   const businessStore = useBusinessStore()
@@ -154,6 +156,24 @@ export function useAdminAgenda(businessId: () => string | null) {
 
   const setWeekMode = () => {
     selectedDate.value = new Date()
+    filterDate.value = null
+    dateFilterMode.value = 'week'
+  }
+
+  // Botones ◀ ▶ para moverse un día/semana a la vez sin tener que abrir el selector de fecha.
+  const stepDay = (delta: number) => {
+    const base = filterDate.value ? parseLocalDate(filterDate.value, 12, 0, 0) : new Date()
+    const next = new Date(base)
+    next.setDate(next.getDate() + delta)
+    filterDate.value = toISODate(next)
+    selectedDate.value = next
+    dateFilterMode.value = 'day'
+  }
+
+  const stepWeek = (delta: number) => {
+    const next = new Date(selectedDate.value)
+    next.setDate(next.getDate() + delta * 7)
+    selectedDate.value = next
     filterDate.value = null
     dateFilterMode.value = 'week'
   }
@@ -298,6 +318,8 @@ export function useAdminAgenda(businessId: () => string | null) {
     goToToday,
     showAll,
     setWeekMode,
+    stepDay,
+    stepWeek,
     setFilterDate,
     openRangeMode,
     setCustomRange,

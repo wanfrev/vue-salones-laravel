@@ -138,15 +138,42 @@
             <p v-if="isSearching" class="text-xs text-text-muted italic">Buscando en todas las fechas</p>
             <template v-else>
               <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div v-if="dateFilterMode === 'day' || dateFilterMode === 'week'" class="flex w-full items-center gap-1.5 sm:w-auto">
+                  <button
+                    type="button"
+                    @click="dateFilterMode === 'week' ? stepWeek(-1) : stepDay(-1)"
+                    :title="dateFilterMode === 'week' ? 'Semana anterior' : 'Día anterior'"
+                    :aria-label="dateFilterMode === 'week' ? 'Semana anterior' : 'Día anterior'"
+                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-text-secondary transition-theme hover:border-border-strong hover:bg-bg-secondary hover:text-text"
+                  >
+                    <ArrowLeftIcon class="h-4 w-4" />
+                  </button>
+                  <input
+                    v-if="dateFilterMode === 'day'"
+                    type="date"
+                    :value="filterDate ?? ''"
+                    @change="setFilterDate(($event.target as HTMLInputElement).value || null)"
+                    class="w-full flex-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto sm:flex-none"
+                  />
+                  <span v-else class="flex-1 whitespace-nowrap rounded-lg border border-border bg-surface px-3 py-1.5 text-center text-sm text-text sm:flex-none sm:w-auto">{{ todayLabel }}</span>
+                  <button
+                    type="button"
+                    @click="dateFilterMode === 'week' ? stepWeek(1) : stepDay(1)"
+                    :title="dateFilterMode === 'week' ? 'Semana siguiente' : 'Día siguiente'"
+                    :aria-label="dateFilterMode === 'week' ? 'Semana siguiente' : 'Día siguiente'"
+                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-text-secondary transition-theme hover:border-border-strong hover:bg-bg-secondary hover:text-text"
+                  >
+                    <ArrowRightIcon class="h-4 w-4" />
+                  </button>
+                </div>
                 <input
-                  v-if="dateFilterMode !== 'range'"
+                  v-else-if="dateFilterMode === 'all'"
                   type="date"
                   :value="filterDate ?? ''"
                   @change="setFilterDate(($event.target as HTMLInputElement).value || null)"
-                  :disabled="dateFilterMode === 'week'"
-                  class="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 disabled:opacity-40 sm:w-auto"
+                  class="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto"
                 />
-                <div v-else class="flex items-center gap-1.5">
+                <div v-else-if="dateFilterMode === 'range'" class="flex items-center gap-1.5">
                   <input
                     type="date"
                     :value="rangeStart ?? ''"
@@ -201,7 +228,7 @@
             v-if="hasActiveFilters"
             type="button"
             @click="resetFilters"
-            class="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1.5 text-[11px] font-medium text-text-secondary transition-theme hover:border-danger/30 hover:bg-danger/10 hover:text-danger sm:text-xs"
+            class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-danger/30 bg-danger/10 px-3 py-1.5 text-[11px] font-semibold text-danger transition-theme hover:border-danger/50 hover:bg-danger/15 sm:w-auto sm:justify-start sm:text-xs"
           >
             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -246,7 +273,7 @@ import ShareLinkButton from '../components/agenda/ShareLinkButton.vue'
 import InvitationsButton from '../components/agenda/InvitationsButton.vue'
 import type { Cita, PaymentEditContext } from '../types/cita'
 import type { PaymentMethod } from '../types/database'
-import { CalendarIcon, AddCircleIcon, ClipboardIcon, ClockCircleIcon, CheckCircleIcon, DollarIcon } from '@solar-icons/vue/linear'
+import { CalendarIcon, AddCircleIcon, ClipboardIcon, ClockCircleIcon, CheckCircleIcon, DollarIcon, ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
@@ -298,6 +325,8 @@ const {
   goToToday,
   showAll,
   setWeekMode,
+  stepDay,
+  stepWeek,
   setFilterDate,
   openRangeMode,
   setCustomRange,
@@ -311,7 +340,9 @@ const hasActiveFilters = computed(() =>
   employeeFilter.value !== 'all' ||
   serviceFilter.value !== 'all' ||
   statusFilter.value !== 'all' ||
-  !isToday.value
+  // La vista arranca en "Semana" (no "Hoy"), así que esa es la línea base -- no marcar
+  // "Limpiar filtros" como activo solo por estar en la semana actual sin tocar nada.
+  !(isToday.value || isThisWeek.value)
 )
 
 function resetFilters() {
@@ -320,7 +351,7 @@ function resetFilters() {
   serviceFilter.value = 'all'
   statusFilter.value = 'all'
   viewMode.value = 'active'
-  goToToday()
+  setWeekMode()
 }
 
 // Llegada desde "Ver cita" en una notificación (NotificationDropdown → useNotifications.ts),
