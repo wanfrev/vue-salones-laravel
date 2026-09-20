@@ -37,6 +37,21 @@
 
     <!-- Content -->
     <template v-else>
+      <!-- Sort control (shared by desktop table and mobile cards) -->
+      <div class="mb-3 flex items-center justify-end">
+        <button
+          type="button"
+          @click="toggleSort('date')"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-theme hover:border-border-strong hover:bg-bg-secondary hover:text-text"
+          :title="sortDir === 'asc' ? 'Mostrando de más antigua a más reciente' : 'Mostrando de más reciente a más antigua'"
+        >
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h13M3 12h9m-9 5h5M17 4v16m0 0l-4-4m4 4l4-4" />
+          </svg>
+          Fecha: {{ sortDir === 'asc' ? 'ascendente' : 'descendente' }}
+        </button>
+      </div>
+
       <!-- Desktop Table -->
       <div class="hidden overflow-hidden rounded-xl border border-border bg-surface sm:block">
         <table class="w-full">
@@ -274,7 +289,9 @@ const labels = computed(() => ({
 }))
 
 type SortKey = 'client' | 'date' | 'status' | null
-const sortKey = ref<SortKey>(null)
+// Ordenado por fecha ascendente por defecto -- antes no había orden explícito (dependía del
+// orden en que llegaban del API) y no había forma de cambiarlo desde las tarjetas móviles.
+const sortKey = ref<SortKey>('date')
 const sortDir = ref<'asc' | 'desc'>('asc')
 const STATUS_ORDER: Record<string, number> = { pending: 0, confirmed: 1, paid: 2, cancelled: 3 }
 
