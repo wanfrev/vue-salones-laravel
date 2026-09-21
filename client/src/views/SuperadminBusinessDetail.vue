@@ -185,6 +185,31 @@
             </div>
           </div>
 
+          <!-- Nomenclatura -->
+          <div class="rounded-2xl border border-border bg-surface p-5">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-base font-bold text-text">Nomenclatura</h2>
+              <span v-if="hasTerminologyOverride" class="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-bold uppercase text-warning">Personalizada</span>
+            </div>
+            <p v-if="!hasTerminologyOverride" class="py-2 text-sm text-text-muted">
+              Usa los términos por defecto del nicho "{{ business.niche_type }}" (ej. Paciente/Odontólogo para odontología). Sin personalización guardada.
+            </p>
+            <template v-else>
+              <p class="mb-3 text-[11px] text-text-muted">
+                Este negocio tiene términos guardados que <strong>reemplazan</strong> los del nicho — esto puede ser la causa de que veas "Cliente/Empleado" en vez de la nomenclatura del nicho en producción.
+              </p>
+              <div class="mb-3 flex flex-wrap gap-1.5">
+                <span v-for="(value, key) in storedTerminology" :key="key" class="rounded-lg border border-border-subtle bg-bg-secondary/50 px-2 py-1 text-[11px] text-text-secondary">
+                  <span class="font-semibold text-text">{{ key }}</span>: {{ value }}
+                </span>
+              </div>
+              <button type="button" :disabled="isResettingTerminology" @click="confirmResetTerminology"
+                class="w-full rounded-xl border border-danger/20 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors disabled:opacity-50">
+                {{ isResettingTerminology ? 'Restableciendo...' : 'Restablecer al nicho (borrar personalización)' }}
+              </button>
+            </template>
+          </div>
+
           <!-- Administradores -->
           <div class="rounded-2xl border border-border bg-surface p-5">
             <div class="flex items-center justify-between mb-3">
@@ -414,6 +439,30 @@ const toggleFeature = async (key: string) => {
     showError(translateError(err, 'Error al cambiar'))
   } finally {
     isTogglingFeature.value = false
+  }
+}
+
+// resolveTerminology.ts precedence: DEFAULT_TERMINOLOGY -> niche.terminologyDefaults -> stored
+// (this column) — whatever is saved here always wins over the niche's own labels, with no UI
+// anywhere else in the app to edit or clear it (there's no owner-facing terminology editor).
+// A business that picked up stray generic values (e.g. from before the niche system existed)
+// stays stuck showing "Cliente/Empleado" forever unless cleared from here.
+const storedTerminology = computed<Record<string, string>>(() => (business.value as any)?.terminology ?? {})
+const hasTerminologyOverride = computed(() => Object.keys(storedTerminology.value).length > 0)
+
+const isResettingTerminology = ref(false)
+const confirmResetTerminology = async () => {
+  if (!business.value) return
+  if (!window.confirm(`¿Restablecer la nomenclatura de "${business.value.name}" a la del nicho "${business.value.niche_type}"? Se perderán los términos personalizados guardados.`)) return
+  isResettingTerminology.value = true
+  try {
+    await updateBusiness({ business_id: business.value.id, terminology: null })
+    success('Nomenclatura restablecida al nicho')
+    queryClient.invalidateQueries({ queryKey: superadminKeys.businesses() }).catch(() => {})
+  } catch (err: unknown) {
+    showError(translateError(err, 'Error al restablecer la nomenclatura'))
+  } finally {
+    isResettingTerminology.value = false
   }
 }
 

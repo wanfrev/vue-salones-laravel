@@ -59,6 +59,10 @@ class SuperadminController
             'ves_exchange_rate' => ['nullable', 'numeric', 'min:0'],
             'multi_branch_enabled' => ['sometimes', 'boolean'],
             'features' => ['nullable', 'array'],
+            // Per-business override of niche.terminologyDefaults (resolveTerminology.ts) — null/[]
+            // clears it so the niche's defaults take over again. See SuperadminBusinessDetail.vue's
+            // "Nomenclatura" card, the only place this is exposed (there is no owner-facing UI for it).
+            'terminology' => ['nullable', 'array'],
         ]);
 
         $business = $this->superadminService->update($id, $validated, $request->user()->id);
