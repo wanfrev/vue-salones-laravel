@@ -113,6 +113,9 @@ export type UpdateBusinessInput = {
   ves_exchange_rate?: number
   multi_branch_enabled?: boolean
   features?: Record<string, boolean>
+  /** Per-business override of the niche's default labels (Cliente/Paciente, etc.) — null clears
+   * it so the niche default takes over again. See resolveTerminology's precedence order. */
+  terminology?: Record<string, string> | null
 }
 
 export const updateBusiness = async (input: UpdateBusinessInput): Promise<Business> => {
@@ -127,6 +130,7 @@ export const updateBusiness = async (input: UpdateBusinessInput): Promise<Busine
   if (input.ves_exchange_rate !== undefined) payload.ves_exchange_rate = input.ves_exchange_rate
   if (input.multi_branch_enabled !== undefined) payload.multi_branch_enabled = input.multi_branch_enabled
   if (input.features !== undefined) payload.features = input.features
+  if (input.terminology !== undefined) payload.terminology = input.terminology
 
   return apiRequest<Business>('PUT', `/admin/businesses/${input.business_id}`, payload)
 }
