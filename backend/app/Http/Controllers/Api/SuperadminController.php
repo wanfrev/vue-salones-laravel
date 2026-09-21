@@ -59,11 +59,17 @@ class SuperadminController
             'ves_exchange_rate' => ['nullable', 'numeric', 'min:0'],
             'multi_branch_enabled' => ['sometimes', 'boolean'],
             'features' => ['nullable', 'array'],
-            // Per-business override of niche.terminologyDefaults (resolveTerminology.ts) — null/[]
+            // Per-business override of niche.terminologyDefaults (resolveTerminology.ts) — []
             // clears it so the niche's defaults take over again. See SuperadminBusinessDetail.vue's
             // "Nomenclatura" card, the only place this is exposed (there is no owner-facing UI for it).
             'terminology' => ['nullable', 'array'],
         ]);
+
+        // The column predates this repo's Laravel migrations and may be NOT NULL at the DB level
+        // — coerce an explicit null to an empty object so "reset" can never 500 on that constraint.
+        if (array_key_exists('terminology', $validated) && $validated['terminology'] === null) {
+            $validated['terminology'] = [];
+        }
 
         $business = $this->superadminService->update($id, $validated, $request->user()->id);
         return response()->json(new BusinessResource($business));
