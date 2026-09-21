@@ -228,6 +228,15 @@
                 :label="`Permitir editar ${(businessStore.terminology.clientPlural || 'clientes').toLowerCase()}`"
                 :hint="`Los encargados podrán modificar los datos de los ${(businessStore.terminology.clientPlural || 'clientes').toLowerCase()} existentes. Si lo desactivas, solo podrán consultarlos y crear nuevos.`"
                 :disabled="updatingFeatures"
+                class="py-3.5 border-b border-border-subtle"
+              />
+              <FormToggle
+                v-if="businessStore.features.agenda || businessStore.features.pos"
+                :model-value="!!businessStore.features.encargados_view_financial_summary"
+                @update:model-value="handleToggleFeature('encargados_view_financial_summary')"
+                label="Ver resumen financiero"
+                hint="Los encargados podrán ver los montos totales (ingresos, gastos, ganancia neta) en la pestaña Resumen de Finanzas. Sin esto, solo ven el detalle de cobros y gastos, sin los totales."
+                :disabled="updatingFeatures"
                 class="py-3.5 last:border-b-0"
               />
             </div>
@@ -1011,6 +1020,7 @@ const featureLabels: Record<string, string> = {
   whatsapp_reminders_enabled: 'Recordatorios por WhatsApp',
   encargado_product_commission_enabled: 'Comisión por venta de productos',
   encargados_edit_clients: 'Permitir editar clientes',
+  encargados_view_financial_summary: 'Ver resumen financiero',
   payroll_currency_breakdown_enabled: 'Desglose de comisión por moneda de cobro',
   employees_recibo_only: 'Empleados solo ven su recibo',
   enable_public_booking: 'Reservas públicas',

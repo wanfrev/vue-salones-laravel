@@ -185,7 +185,14 @@ const { formatUSD, formatVESInline } = useCurrency()
 const router = useRouter()
 const rateCtx = useExchangeRate()
 const businessStore = useBusinessStore()
-const hideFinancialDashboard = computed(() => authStore.role !== 'superadmin' && authStore.role !== 'admin')
+// Por defecto los encargados no ven los montos totales (KPIs de Resumen) aunque sí puedan
+// entrar al módulo de Finanzas -- solo admin/superadmin los ven, salvo que el negocio active
+// el permiso "Ver resumen financiero" para encargados desde Configuración.
+const hideFinancialDashboard = computed(() => {
+  if (authStore.role === 'superadmin' || authStore.role === 'admin') return false
+  if (authStore.role === 'encargado' && businessStore.hasFeature('encargados_view_financial_summary')) return false
+  return true
+})
 
 // Cobros de Citas has nothing to show when the business runs with agenda/calendario/
 // servicios all off (tienda niche) — there's no appointment flow to have collected income
