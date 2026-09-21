@@ -184,7 +184,7 @@ const goToTab = (key: string) => {
 
 const goBack = () => {
   if (encounterCitaId.value) {
-    router.push('/dashboard/gabinete')
+    router.push(`${basePath.value}/gabinete`)
     return
   }
   router.push(`${basePath.value}/clientes/${clienteId.value}`)
@@ -196,7 +196,7 @@ const finalizeMutation = useMutation({
   onSuccess: async () => {
     await queryClient.invalidateQueries({ queryKey: ['appointments'], exact: false })
     success('Atención finalizada — enviada al Punto de Venta')
-    router.push('/dashboard/gabinete')
+    router.push(`${basePath.value}/gabinete`)
   },
 })
 

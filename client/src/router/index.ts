@@ -185,6 +185,15 @@ const router = createRouter({
           component: () => import('../views/Clientes.vue'),
         },
         {
+          // Same board as /dashboard/gabinete (employee) — a solo dentist who owns her own
+          // practice logs in as admin and has no separate secretary account, so this needs to
+          // exist here too rather than only under the employee tree.
+          path: 'gabinete',
+          name: 'admin-gabinete',
+          component: () => import('../components/dental/GabineteBoard.vue'),
+          meta: { gate: { capability: 'dental.clinical_history' } },
+        },
+        {
           path: 'clientes/:id',
           name: 'admin-cliente-historial',
           component: () => import('../views/ClienteHistorial.vue'),
