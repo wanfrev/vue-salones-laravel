@@ -22,6 +22,9 @@ export const DEFAULT_FEATURES = {
   // an admin-panel role); this flag exists purely so a business can opt OUT per-tenant, not to
   // grant a new capability. See ClientController::canEncargadoEditClients().
   encargados_edit_clients: true,
+  // Default false -- preserva el comportamiento actual (los KPIs de Resumen en Finanzas están
+  // ocultos para encargados). Ver Finanzas.vue::hideFinancialDashboard.
+  encargados_view_financial_summary: false,
   manual_reports: false,
   daily_report_autofill_from_pos: false,
   pos_direct_service_sale: false,
