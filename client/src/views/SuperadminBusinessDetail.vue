@@ -456,7 +456,10 @@ const confirmResetTerminology = async () => {
   if (!window.confirm(`¿Restablecer la nomenclatura de "${business.value.name}" a la del nicho "${business.value.niche_type}"? Se perderán los términos personalizados guardados.`)) return
   isResettingTerminology.value = true
   try {
-    await updateBusiness({ business_id: business.value.id, terminology: null })
+    // {} rather than null — resolveTerminology treats both as "no override" identically, but
+    // the businesses.terminology column may be NOT NULL (its original migration predates this
+    // repo's Laravel migration history), so an explicit null risks a DB-level 500 on save.
+    await updateBusiness({ business_id: business.value.id, terminology: {} })
     success('Nomenclatura restablecida al nicho')
     queryClient.invalidateQueries({ queryKey: superadminKeys.businesses() }).catch(() => {})
   } catch (err: unknown) {
