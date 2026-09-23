@@ -42,7 +42,7 @@ class FinancialSummaryService
     ): Collection {
         $query = DB::table('transactions')
             ->leftJoin('appointments', 'transactions.appointment_id', '=', 'appointments.id')
-            ->where('transactions.method', '!=', 'credito')
+            ->whereNotIn('transactions.method', ['credito', 'cortesia'])
             ->where('transactions.business_id', $businessId)
             ->select(
                 DB::raw("to_char(COALESCE(transactions.paid_at, transactions.created_at), 'YYYY-MM-DD') as bucket"),
@@ -81,7 +81,7 @@ class FinancialSummaryService
         // Income from transactions
         $txQuery = DB::table('transactions')
             ->where('business_id', $businessId)
-            ->where('method', '!=', 'credito');
+            ->whereNotIn('method', ['credito', 'cortesia']);
 
         $tz = $this->resolveTimezone($businessId);
 
@@ -186,7 +186,7 @@ class FinancialSummaryService
             ->whereIn('inventory_movements.movement_type', ['sale', 'consumption'])
             ->where(function ($q) {
                 $q->whereNull('transactions.id')
-                  ->orWhere('transactions.method', '!=', 'credito');
+                  ->orWhereNotIn('transactions.method', ['credito', 'cortesia']);
             });
 
         if ($start && $end) {
@@ -350,7 +350,7 @@ class FinancialSummaryService
             ->where('inventory_movements.movement_type', 'sale')
             ->where(function ($q) {
                 $q->whereNull('transactions.id')
-                  ->orWhere('transactions.method', '!=', 'credito');
+                  ->orWhereNotIn('transactions.method', ['credito', 'cortesia']);
             })
             ->select(
                 'inventory_movements.id',

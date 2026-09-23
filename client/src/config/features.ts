@@ -25,6 +25,10 @@ export const DEFAULT_FEATURES = {
   // Default false -- preserva el comportamiento actual (los KPIs de Resumen en Finanzas están
   // ocultos para encargados). Ver Finanzas.vue::hideFinancialDashboard.
   encargados_view_financial_summary: false,
+  // Habilita "Cortesía" como método de pago en el POS: el empleado sí gana su comisión, pero el
+  // monto no cuenta como ingreso del negocio (igual que 'credito', pero sin nada pendiente por
+  // cobrar). Ver PaymentMethod en types/database.ts.
+  courtesy_charge_enabled: false,
   manual_reports: false,
   daily_report_autofill_from_pos: false,
   pos_direct_service_sale: false,

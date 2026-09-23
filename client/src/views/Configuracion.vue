@@ -345,6 +345,15 @@
                 label="Traer del POS en el Reporte Diario"
                 hint="Habilita el botón que llena los montos por método de pago del Reporte Diario con lo cobrado ese día en el POS"
                 :disabled="updatingFeatures"
+                class="py-3.5 border-b border-border-subtle"
+              />
+              <FormToggle
+                v-if="businessStore.features.pos"
+                :model-value="!!businessStore.features.courtesy_charge_enabled"
+                @update:model-value="handleToggleFeature('courtesy_charge_enabled')"
+                label="Permitir cobro por cortesía"
+                :hint="`Agrega 'Cortesía' como método de pago en el POS: el ${(businessStore.terminology.employee || 'empleado').toLowerCase()} sí gana su comisión normal, pero el monto NO se cuenta como ingreso del negocio.`"
+                :disabled="updatingFeatures"
                 class="py-3.5 last:border-b-0"
               />
             </div>
@@ -1021,6 +1030,7 @@ const featureLabels: Record<string, string> = {
   encargado_product_commission_enabled: 'Comisión por venta de productos',
   encargados_edit_clients: 'Permitir editar clientes',
   encargados_view_financial_summary: 'Ver resumen financiero',
+  courtesy_charge_enabled: 'Permitir cobro por cortesía',
   payroll_currency_breakdown_enabled: 'Desglose de comisión por moneda de cobro',
   employees_recibo_only: 'Empleados solo ven su recibo',
   enable_public_booking: 'Reservas públicas',

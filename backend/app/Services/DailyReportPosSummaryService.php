@@ -98,6 +98,12 @@ class DailyReportPosSummaryService
                     continue;
                 }
 
+                // Cortesía no es dinero cobrado -- a diferencia del crédito, no hay nada
+                // pendiente que registrar, así que simplemente no entra al reporte diario.
+                if ($split['method'] === 'cortesia') {
+                    continue;
+                }
+
                 $field = self::METHOD_MAP[$split['method']][$split['currency']] ?? null;
 
                 if ($field === null) {

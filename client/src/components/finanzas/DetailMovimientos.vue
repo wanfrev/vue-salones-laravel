@@ -81,7 +81,7 @@ const filteredCobrosRows = computed(() => {
 // el comentario sobre groupKey en useFinancialSummary.ts). Sumar ambas duplicaría ese ingreso: el
 // Resumen ya excluye 'credito' de su total, así que este total debe hacerlo también para cuadrar.
 const detailTabTotal = computed(() => {
-  if (activeDetailTab.value === 'cobros') return filteredCobrosRows.value.reduce((acc, row) => acc + (row.rawMethod === 'credito' ? 0 : Number(row.amount ?? 0)), 0)
+  if (activeDetailTab.value === 'cobros') return filteredCobrosRows.value.reduce((acc, row) => acc + ((row.rawMethod === 'credito' || row.rawMethod === 'cortesia') ? 0 : Number(row.amount ?? 0)), 0)
   if (activeDetailTab.value === 'ventas') return allVentasRows.value.reduce((acc, row) => acc + Number(row.total ?? 0), 0)
   if (activeDetailTab.value === 'servicios') return servicios.value.filter(s => s.status === 'Activo').length
   return allGastosRows.value.reduce((acc, row) => acc + row.amount, 0)
@@ -89,7 +89,7 @@ const detailTabTotal = computed(() => {
 
 const detailTabVesTotal = computed(() => {
   if (activeDetailTab.value === 'cobros') {
-    const ves = filteredCobrosRows.value.reduce((acc, row) => acc + (row.rawMethod === 'credito' ? 0 : Number(row.amount ?? 0) * Number(row.exchangeRateUsed ?? 1)), 0)
+    const ves = filteredCobrosRows.value.reduce((acc, row) => acc + ((row.rawMethod === 'credito' || row.rawMethod === 'cortesia') ? 0 : Number(row.amount ?? 0) * Number(row.exchangeRateUsed ?? 1)), 0)
     return formatVESEs(ves)
   }
   if (activeDetailTab.value === 'ventas') {

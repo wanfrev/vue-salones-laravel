@@ -34,6 +34,7 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   gift_card: 'Gift Card',
   day_average_rate: 'Tasa promedio del día',
   credito: 'Crédito',
+  cortesia: 'Cortesía',
 }
 
 export function formatMethod(method: string): string {
