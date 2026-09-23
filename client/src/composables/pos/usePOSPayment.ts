@@ -64,7 +64,11 @@ export function usePOSPayment() {
     if (businessStore.nicheType !== 'staffing') {
       methods.push({ label: 'Crédito', value: 'credito' as PaymentMethod, currency: 'USD' as const })
     }
-    
+
+    if (businessStore.features.courtesy_charge_enabled) {
+      methods.push({ label: 'Cortesía', value: 'cortesia' as PaymentMethod, currency: 'USD' as const })
+    }
+
     methods.push(
       { label: 'Mixto', value: 'mixed' as PaymentMethod, currency: null as null },
       { label: 'Punto de Vta (Bs)', value: 'punto_venta' as PaymentMethod, currency: 'VES' as const },
@@ -78,7 +82,9 @@ export function usePOSPayment() {
     return [...methods].sort((a, b) => (groupRank[a.currency ?? ''] ?? 2) - (groupRank[b.currency ?? ''] ?? 2))
   })
 
-  const mixedMethods = computed(() => paymentMethods.value.filter(m => m.value !== 'mixed'))
+  // Cortesía es "todo o nada" para un cobro -- no tiene sentido como una de varias líneas de un
+  // pago mixto (regalar solo una parte del servicio ya es simplemente un descuento manual).
+  const mixedMethods = computed(() => paymentMethods.value.filter(m => m.value !== 'mixed' && m.value !== 'cortesia'))
 
   const methodCurrency = (method: PaymentMethod): 'USD' | 'VES' | null => {
     return paymentMethods.value.find(m => m.value === method)?.currency ?? null

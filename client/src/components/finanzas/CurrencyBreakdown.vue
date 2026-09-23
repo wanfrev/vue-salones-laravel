@@ -4,6 +4,9 @@ import { useCurrency } from '../../composables/common/useCurrency'
 export interface BreakdownItem {
   label: string
   amount: number
+  /** Para métodos como Pago Móvil/Transferencia/Punto de Venta -- desglosa a qué banco entró
+   *  cada monto, cuando la transacción original guardó un `bank_name`. */
+  subItems?: { label: string; amount: number }[]
 }
 
 export interface CurrencyBreakdownData {
@@ -69,10 +72,17 @@ const { formatVESEs, isSingleCurrency } = useCurrency()
 
         <div v-if="data.usdItems.length > 0" class="space-y-1.5">
           <p class="text-[10px] font-semibold uppercase tracking-wider text-text-muted mb-2">{{ data.usdLabel }}</p>
-          <div v-for="item in data.usdItems" :key="item.label"
-            class="flex items-center justify-between rounded-md bg-bg-secondary/60 px-3 py-2 text-sm">
-            <span class="text-text-secondary">{{ item.label }}</span>
-            <span class="font-medium text-text tabular-nums">${{ item.amount.toFixed(2) }}</span>
+          <div v-for="item in data.usdItems" :key="item.label" class="rounded-md bg-bg-secondary/60 px-3 py-2 text-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-text-secondary">{{ item.label }}</span>
+              <span class="font-medium text-text tabular-nums">${{ item.amount.toFixed(2) }}</span>
+            </div>
+            <div v-if="item.subItems?.length" class="mt-1.5 space-y-1 border-t border-border-subtle pt-1.5">
+              <div v-for="sub in item.subItems" :key="sub.label" class="flex items-center justify-between pl-2 text-xs">
+                <span class="text-text-muted">{{ sub.label }}</span>
+                <span class="text-text-secondary tabular-nums">${{ sub.amount.toFixed(2) }}</span>
+              </div>
+            </div>
           </div>
         </div>
         <div v-else class="py-4 text-center text-sm text-text-muted">
@@ -93,10 +103,17 @@ const { formatVESEs, isSingleCurrency } = useCurrency()
 
         <div v-if="data.vesItems.length > 0" class="space-y-1.5">
           <p class="text-[10px] font-semibold uppercase tracking-wider text-text-muted mb-2">{{ data.vesLabel }}</p>
-          <div v-for="item in data.vesItems" :key="item.label"
-            class="flex items-center justify-between rounded-md bg-bg-secondary/60 px-3 py-2 text-sm">
-            <span class="text-text-secondary">{{ item.label }}</span>
-            <span class="font-medium text-text tabular-nums">{{ formatVESEs(item.amount) }}</span>
+          <div v-for="item in data.vesItems" :key="item.label" class="rounded-md bg-bg-secondary/60 px-3 py-2 text-sm">
+            <div class="flex items-center justify-between">
+              <span class="text-text-secondary">{{ item.label }}</span>
+              <span class="font-medium text-text tabular-nums">{{ formatVESEs(item.amount) }}</span>
+            </div>
+            <div v-if="item.subItems?.length" class="mt-1.5 space-y-1 border-t border-border-subtle pt-1.5">
+              <div v-for="sub in item.subItems" :key="sub.label" class="flex items-center justify-between pl-2 text-xs">
+                <span class="text-text-muted">{{ sub.label }}</span>
+                <span class="text-text-secondary tabular-nums">{{ formatVESEs(sub.amount) }}</span>
+              </div>
+            </div>
           </div>
         </div>
         <div v-else class="py-4 text-center text-sm text-text-muted">

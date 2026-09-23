@@ -7,8 +7,11 @@ import { hasRetailModule } from '../../config/niches'
 import { translateError } from '../../lib/errors'
 import { toYmd, resolvePeriod } from '../../lib/periodUtils'
 import { formatMethod, formatDate } from '../../lib/formatters'
+import { useBanks } from './useBanks'
 import type { PaymentBreakdownItem } from '../../types/pos'
 import type { PaymentMethod } from '../../types/database'
+
+const BANK_METHODS = ['pago_movil', 'transfer', 'punto_venta']
 
 export type UnifiedTransaction = {
   id: string
@@ -151,6 +154,9 @@ function useFinancialSummary(
   const queryClient = useQueryClient()
   const businessStore = useBusinessStore()
   const branchId = computed(() => businessStore.currentBranchId)
+  const { banks } = useBanks()
+  const isBankMethod = (method: string) => BANK_METHODS.includes(method)
+  const bankName = (bankId: string | null | undefined) => banks.value.find(b => b.id === bankId)?.name ?? null
   const periodConfig = computed(() => resolvePeriod(selectedPeriod.value, selectedMonth?.value, customTo?.value))
   // ── Summary + KPIs ──
   const summaryQueryKey = computed(() => [
@@ -193,7 +199,7 @@ function useFinancialSummary(
   const vesIncomeTotal = computed(() => {
     let total = 0
     for (const tx of (transactionsData.value ?? [])) {
-      if (tx.method === 'credito') continue
+      if (tx.method === 'credito' || tx.method === 'cortesia') continue
       const breakdown = tx.payments_breakdown as PaymentBreakdownItem[] | null
       const exchangeRateUsed = Number(tx.exchange_rate_used ?? 1)
       const amount = Number(tx.total_amount ?? 0)
@@ -505,7 +511,7 @@ function useFinancialSummary(
 
     // Appointment payments (skip direct sales that have product sales entries)
     for (const tx of (transactionsData.value ?? [])) {
-      if (tx.method === 'credito' || tx.method === 'crédito') continue
+      if (tx.method === 'credito' || tx.method === 'crédito' || tx.method === 'cortesia') continue
       const isDirectSale = !tx.appointment_id
       if (isDirectSale && directSaleTxIds.has(tx.id)) continue
 
@@ -637,7 +643,7 @@ function useFinancialSummary(
       }
 
       for (const inv of psGroupMap.values()) {
-        if (inv.method.toLowerCase() === 'crédito' || inv.method.toLowerCase() === 'credito') continue
+        if (inv.method.toLowerCase() === 'crédito' || inv.method.toLowerCase() === 'credito' || inv.method.toLowerCase() === 'cortesia') continue
         const prodCount = inv.items.reduce((s, i) => s + i.quantity, 0)
         const prodCountLabel = prodCount === 1 ? '1 producto' : `${prodCount} productos`
         const desc = inv.clientName ? `${inv.clientName} · ${prodCountLabel}` : `Venta · ${prodCountLabel}`
@@ -672,7 +678,7 @@ function useFinancialSummary(
       // Non-tienda niche (product sales per item line)
       for (const ps of (productSalesData.value ?? [])) {
         const method = (ps as any).payment_method ?? 'cash'
-        if (method === 'credito' || method === 'crédito') continue
+        if (method === 'credito' || method === 'crédito' || method === 'cortesia') continue
         const clientLabel = (ps as any).client_name as string | undefined
         const productName = (ps as any).product ?? 'Producto'
         const breakdown = (ps as any).payments_breakdown ?? null
@@ -899,6 +905,9 @@ function useFinancialSummary(
   const editingNotes = ref('')
   const editingTipAmount = ref(0)
   const editingEmployeePercentage = ref<number | null>(null)
+  // Banco del método principal (no-mixto) cuando es pago_movil/transfer/punto_venta -- el
+  // desglose por banco de "Desglose de Ingresos" depende de que esto se guarde correctamente.
+  const editingBankId = ref<string | null>(null)
   // Solo tiene sentido editar el % de comisión de un cobro sin agrupar (una sola transaccion,
   // un solo empleado) -- un grupo de varios servicios/transacciones no tiene un unico % que
   // cambiar.
@@ -945,6 +954,7 @@ function useFinancialSummary(
         currency: item.primaryCurrency ?? 'USD',
         amount: item.amount,
       }]
+    editingBankId.value = (!hasMixed && editingBreakdown.value[0]?.bank_id) || null
     showEditModal.value = true
   }
 
@@ -952,9 +962,14 @@ function useFinancialSummary(
 
   const setEditingMethod = (v: string) => { editingMethod.value = v }
 
-  const updateBreakdownItem = (idx: number, data: any) => {
+  const setEditingBankId = (v: string | null) => { editingBankId.value = v }
+
+  // (idx, key, value) -- antes recibía un tercer argumento que ignoraba silenciosamente
+  // (el template ya llamaba con 3 args), así que cambiar el método/monto de una fila del
+  // desglose mixto nunca se aplicaba realmente.
+  const updateBreakdownItem = (idx: number, key: keyof PaymentBreakdownItem, value: any) => {
     if (editingBreakdown.value[idx]) {
-      editingBreakdown.value[idx] = { ...editingBreakdown.value[idx], ...data }
+      editingBreakdown.value[idx] = { ...editingBreakdown.value[idx], [key]: value }
     }
   }
 
@@ -966,10 +981,33 @@ function useFinancialSummary(
     editingBreakdown.value.splice(idx, 1)
   }
 
+  // Reconstruye el único item del desglose para el caso NO mixto, tomando el método/monto/banco
+  // tal como quedaron editados -- sin esto, `payments_breakdown` se quedaba con el método viejo
+  // aunque `transactions.method` sí se actualizara, y todo lo que lee el banco/método desde el
+  // desglose (Desglose de Ingresos, la lista de Cobros) seguía mostrando el dato desactualizado.
+  const buildSingleBreakdownItem = (): PaymentBreakdownItem => {
+    const method = editingMethod.value as PaymentMethod
+    const base = editingBreakdown.value[0]
+    const currency = base?.currency ?? editingCurrency.value
+    const rate = Number(editingTransaction.value?.exchange_rate_used ?? editingTransaction.value?.exchangeRateUsed ?? 1) || 1
+    const inputAmount = currency === 'VES' ? editingAmount.value * rate : editingAmount.value
+    const bankId = isBankMethod(method) ? editingBankId.value : null
+    return {
+      method,
+      currency,
+      inputAmount,
+      amount: editingAmount.value,
+      bank_id: bankId ?? undefined,
+      bank_name: bankId ? bankName(bankId) ?? undefined : undefined,
+    }
+  }
+
   const saveEdit = () => {
     const tx = editingTransaction.value
     if (!tx) return
-    const breakdown = editingBreakdown.value.length > 1 ? editingBreakdown.value : null
+    const breakdown = isEditingStandaloneTip.value
+      ? null
+      : (isEditingMixed.value ? editingBreakdown.value : [buildSingleBreakdownItem()])
     editTransactionMutation.mutate({
       transactionId: tx.id,
       totalAmount: isEditingStandaloneTip.value ? 0 : (isEditingMixed.value ? editingTotalAmount.value : editingAmount.value),
@@ -1050,6 +1088,10 @@ function useFinancialSummary(
     isEditingMixed,
     editingTotalAmount,
     paymentMethodOptions,
+    editingBankId,
+    setEditingBankId,
+    banks,
+    isBankMethod,
     startEdit,
     cancelEdit,
     setEditingMethod,

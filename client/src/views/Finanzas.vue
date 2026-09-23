@@ -353,12 +353,31 @@ const incomeBreakdown = computed(() => {
 
   const usdByMethod: Record<string, number> = {}
   const vesByMethod: Record<string, number> = {}
+  // Solo para pago_movil/transfer/punto_venta -- a qué banco entró cada monto, cuando la
+  // transacción original guardó un bank_name (ver PaymentBreakdownItem en types/pos.ts).
+  const BANK_METHODS = ['pago_movil', 'transfer', 'punto_venta']
+  const usdBankByMethod: Record<string, Record<string, number>> = {}
+  const vesBankByMethod: Record<string, Record<string, number>> = {}
   let totalUSD = 0
   let totalVES = 0
 
-  const addIncome = (method: string, usdAmt: number, vesAmt: number) => {
-    if (usdAmt > 0) { totalUSD += usdAmt; usdByMethod[method] = (usdByMethod[method] ?? 0) + usdAmt }
-    if (vesAmt > 0) { totalVES += vesAmt; vesByMethod[method] = (vesByMethod[method] ?? 0) + vesAmt }
+  const addIncome = (method: string, usdAmt: number, vesAmt: number, bankName?: string | null) => {
+    if (usdAmt > 0) {
+      totalUSD += usdAmt
+      usdByMethod[method] = (usdByMethod[method] ?? 0) + usdAmt
+      if (bankName && BANK_METHODS.includes(method)) {
+        usdBankByMethod[method] ??= {}
+        usdBankByMethod[method][bankName] = (usdBankByMethod[method][bankName] ?? 0) + usdAmt
+      }
+    }
+    if (vesAmt > 0) {
+      totalVES += vesAmt
+      vesByMethod[method] = (vesByMethod[method] ?? 0) + vesAmt
+      if (bankName && BANK_METHODS.includes(method)) {
+        vesBankByMethod[method] ??= {}
+        vesBankByMethod[method][bankName] = (vesBankByMethod[method][bankName] ?? 0) + vesAmt
+      }
+    }
   }
 
   for (const tx of summaryCtx.transactionsAll.value) {
@@ -369,21 +388,23 @@ const incomeBreakdown = computed(() => {
         // cobrar se muestra aparte (pendingCreditTotal, más abajo) tomado de la pestaña
         // Créditos -- no de aquí -- porque un crédito emitido hoy puede haberse abonado
         // el mismo día, y contarlo aquí de nuevo lo duplicaría con su abono real.
-        if (item.method === 'credito') continue
+        // Una cortesía tampoco es dinero cobrado -- el servicio se regaló, aunque el
+        // empleado sí haya ganado su comisión sobre ella (ver PosService::processSale).
+        if (item.method === 'credito' || item.method === 'cortesia') continue
         if (item.currency === 'VES') {
-          addIncome(item.method, 0, item.inputAmount)
+          addIncome(item.method, 0, item.inputAmount, item.bank_name)
         } else {
           // Ventas mixtas guardadas antes de que se corrigiera usePOSPayment.ts nunca
           // calcularon `amount` (equivalente en USD) -- se quedó en 0 aunque inputAmount
           // (lo que realmente se cobró) sea correcto. Sin este respaldo, esa plata real
           // desaparece del desglose. Mismo criterio que ya usa el backend en
           // DailyReportPosSummaryService::usdEquivalent().
-          addIncome(item.method, item.amount > 0 ? item.amount : item.inputAmount, 0)
+          addIncome(item.method, item.amount > 0 ? item.amount : item.inputAmount, 0, item.bank_name)
         }
       }
     } else {
       const method = tx.rawMethod as string
-      if (method === 'credito') continue
+      if (method === 'credito' || method === 'cortesia') continue
       const isVesMethod = ['cash_ves', 'transfer', 'pago_movil', 'punto_venta'].includes(method)
       if (isVesMethod) {
         addIncome(tx.rawMethod, 0, tx.amount * (tx.exchangeRateUsed || 1))
@@ -393,10 +414,19 @@ const incomeBreakdown = computed(() => {
     }
   }
 
+  const toItems = (byMethod: Record<string, number>, bankByMethod: Record<string, Record<string, number>>) =>
+    Object.entries(byMethod).map(([method, amount]) => ({
+      label: formatMethod(method),
+      amount,
+      subItems: bankByMethod[method]
+        ? Object.entries(bankByMethod[method]).map(([bank, amt]) => ({ label: bank, amount: amt })).sort((a, b) => b.amount - a.amount)
+        : undefined,
+    })).sort((a, b) => b.amount - a.amount)
+
   return {
     title: 'Desglose de Ingresos', usdTotal: totalUSD, vesTotal: totalVES,
-    usdItems: Object.entries(usdByMethod).map(([method, amount]) => ({ label: formatMethod(method), amount })).sort((a, b) => b.amount - a.amount),
-    vesItems: Object.entries(vesByMethod).map(([method, amount]) => ({ label: formatMethod(method), amount })).sort((a, b) => b.amount - a.amount),
+    usdItems: toItems(usdByMethod, usdBankByMethod),
+    vesItems: toItems(vesByMethod, vesBankByMethod),
     usdLabel: 'Método de pago', vesLabel: 'Método de pago',
     pendingCredit: pendingCreditTotal.value,
   }

@@ -127,6 +127,7 @@ class EmployeeCommissionService
         'pago_movil' => 'VES',
         'gift_card' => 'USD',
         'credito' => 'USD',
+        'cortesia' => 'USD',
         'punto_venta' => 'VES',
     ];
 

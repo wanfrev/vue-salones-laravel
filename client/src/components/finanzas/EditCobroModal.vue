@@ -37,6 +37,15 @@ const ctx = reactive(props.summaryCtx)
               </option>
             </select>
           </div>
+          <div v-if="!ctx.isEditingMixed && ctx.isBankMethod(ctx.editingMethod) && ctx.banks.length > 0">
+            <label class="mb-1 block text-sm font-medium text-text">Banco</label>
+            <select :value="ctx.editingBankId"
+              @change="ctx.setEditingBankId(($event.target as HTMLSelectElement).value || null)"
+              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30">
+              <option :value="null">Sin especificar</option>
+              <option v-for="bank in ctx.banks" :key="bank.id" :value="bank.id">{{ bank.name }}</option>
+            </select>
+          </div>
           <div>
             <label class="mb-1 block text-sm font-medium text-text">Moneda</label>
             <select :value="ctx.editingCurrency"
@@ -55,26 +64,34 @@ const ctx = reactive(props.summaryCtx)
                 Agregar método</button>
             </div>
             <div v-for="(breakItem, bidx) in ctx.editingBreakdown" :key="bidx"
-              class="flex items-center gap-2 rounded-lg border border-border-subtle bg-surface p-2">
-              <select :value="breakItem.method"
-                @change="ctx.updateBreakdownItem(bidx, 'method', ($event.target as HTMLSelectElement).value as any)"
-                class="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30 flex-1 min-w-0">
-                <option v-for="opt in ctx.paymentMethodOptions.filter((o: any) => o.value !== 'mixed')"
-                  :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              class="space-y-2 rounded-lg border border-border-subtle bg-surface p-2">
+              <div class="flex items-center gap-2">
+                <select :value="breakItem.method"
+                  @change="ctx.updateBreakdownItem(bidx, 'method', ($event.target as HTMLSelectElement).value as any)"
+                  class="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30 flex-1 min-w-0">
+                  <option v-for="opt in ctx.paymentMethodOptions.filter((o: any) => o.value !== 'mixed')"
+                    :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                </select>
+                <input type="number" :value="breakItem.amount"
+                  @input="ctx.updateBreakdownItem(bidx, 'amount', Number(($event.target as HTMLInputElement).value))"
+                  class="w-28 rounded-lg border border-border bg-surface px-2 py-1.5 text-right text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
+                  min="0" step="0.01" placeholder="0.00" />
+                <span class="text-xs font-medium text-text-muted w-8 text-center">{{ ctx.editingCurrency
+                  }}</span>
+                <button v-if="ctx.editingBreakdown.length > 1" type="button"
+                  @click="ctx.removeBreakdownItem(bidx)"
+                  class="rounded-lg p-1 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger shrink-0">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <select v-if="ctx.isBankMethod(breakItem.method) && ctx.banks.length > 0" :value="breakItem.bank_id ?? null"
+                @change="ctx.updateBreakdownItem(bidx, 'bank_id', ($event.target as HTMLSelectElement).value || null); ctx.updateBreakdownItem(bidx, 'bank_name', ctx.banks.find((b: any) => b.id === ($event.target as HTMLSelectElement).value)?.name ?? null)"
+                class="w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30">
+                <option :value="null">Banco: sin especificar</option>
+                <option v-for="bank in ctx.banks" :key="bank.id" :value="bank.id">{{ bank.name }}</option>
               </select>
-              <input type="number" :value="breakItem.amount"
-                @input="ctx.updateBreakdownItem(bidx, 'amount', Number(($event.target as HTMLInputElement).value))"
-                class="w-28 rounded-lg border border-border bg-surface px-2 py-1.5 text-right text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
-                min="0" step="0.01" placeholder="0.00" />
-              <span class="text-xs font-medium text-text-muted w-8 text-center">{{ ctx.editingCurrency
-                }}</span>
-              <button v-if="ctx.editingBreakdown.length > 1" type="button"
-                @click="ctx.removeBreakdownItem(bidx)"
-                class="rounded-lg p-1 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger shrink-0">
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
             </div>
           </div>
           <div v-if="!ctx.isEditingStandaloneTip">

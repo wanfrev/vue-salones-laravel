@@ -136,7 +136,7 @@ class DailyReportSummaryService
         // sin extender el limite superior a fin de dia se perderian las transacciones de la
         // ultima fecha del rango.
         $query = Transaction::where('business_id', $businessId)
-            ->where('method', '!=', 'credito')
+            ->whereNotIn('method', ['credito', 'cortesia'])
             ->whereBetween(DB::raw('COALESCE(paid_at, created_at)'), [$start . ' 00:00:00', $end . ' 23:59:59']);
 
         if ($branchId) {
@@ -205,6 +205,11 @@ class DailyReportSummaryService
                 $credito[$userKey] = ($credito[$userKey] ?? 0) + (float) $tx->total_amount;
                 continue;
             }
+            // Cortesía no es dinero cobrado (el servicio se regaló) -- no cuenta para el cuadre
+            // de caja de nadie, a diferencia del crédito que sí queda registrado como pendiente.
+            if ($tx->method === 'cortesia') {
+                continue;
+            }
 
             $breakdown = is_array($tx->payments_breakdown) ? $tx->payments_breakdown : [];
 
@@ -223,7 +228,7 @@ class DailyReportSummaryService
 
             foreach ($breakdown as $split) {
                 $method = $split['method'] ?? $tx->method;
-                if ($method === 'credito') continue;
+                if ($method === 'credito' || $method === 'cortesia') continue;
                 $isVesSplit = strtoupper((string) ($split['currency'] ?? '')) === 'VES';
                 if ($isVesSplit) {
                     $ves[$userKey][$method] = ($ves[$userKey][$method] ?? 0) + (float) ($split['inputAmount'] ?? 0);
