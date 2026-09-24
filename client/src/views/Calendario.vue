@@ -117,13 +117,22 @@ const serviciosList = computed(() => (serviciosData.value ?? []).map(service => 
   fixed_commission_assistant_amount: service.fixed_commission_assistant_amount,
 })))
 
-const empleadosList = computed(() => (empleadosData.value ?? []).map(employee => ({
-  id: employee.id,
-  name: employee.name,
-  payType: employee.payType,
-  payPercentage: employee.payPercentage,
-  disableAgenda: employee.disableAgenda,
-})))
+const empleadosList = computed(() => {
+  const list = (empleadosData.value ?? []).map(employee => ({
+    id: employee.id,
+    name: employee.name,
+    payType: employee.payType,
+    payPercentage: employee.payPercentage,
+    disableAgenda: employee.disableAgenda,
+  }))
+  // Solo-doctor setup (dental only): listEquipo excludes the admin role, so a doctor who is the
+  // business admin with no staff would have nobody to assign the consulta to. Offer them themselves.
+  const me = authStore.profile
+  if (isDentalNiche.value && authStore.role === 'admin' && me?.id && !list.some(e => e.id === me.id)) {
+    list.unshift({ id: me.id, name: me.full_name || 'Yo', payType: 'salary' as const, payPercentage: undefined, disableAgenda: false })
+  }
+  return list
+})
 
 const handleSlotSelect = ({ start, employeeId }: { start: Date; employeeId?: string }) => {
   const date = toISODate(start)
