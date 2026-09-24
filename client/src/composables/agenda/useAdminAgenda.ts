@@ -5,6 +5,8 @@ import { listCitas, agendaKeys, searchCitasGlobal } from '../../services/agendaS
 import { listServicios, serviciosKeys } from '../../services/serviciosService'
 import { listEquipo, equipoKeys } from '../../services/equipoService'
 import { useBusinessStore } from '../../store/business'
+import { useAuthStore } from '../../store/auth'
+import { isDentalNiche } from '../../config/niches'
 import type { Cita } from '../../types/cita'
 
 // Una cita de grupo (varios servicios reservados en la misma visita) llega como
@@ -51,6 +53,7 @@ export function useAdminAgenda(businessId: () => string | null) {
   const rangeStart = ref<string | null>(null)
   const rangeEnd = ref<string | null>(null)
   const businessStore = useBusinessStore()
+  const authStore = useAuthStore()
 
   const currentBranchId = computed(() => businessStore.currentBranchId)
 
@@ -288,14 +291,22 @@ export function useAdminAgenda(businessId: () => string | null) {
     fixed_commission_assistant_amount: service.fixed_commission_assistant_amount,
   })))
 
-  const empleadosList = computed(() => (empleadosData.value ?? []).map(employee => ({
-    id: employee.id,
-    name: employee.name,
-    payType: employee.payType,
-    payPercentage: employee.payPercentage,
-    disableAgenda: employee.disableAgenda,
-    showInPublicBooking: employee.showInPublicBooking,
-  })))
+  const empleadosList = computed(() => {
+    const list = (empleadosData.value ?? []).map(employee => ({
+      id: employee.id,
+      name: employee.name,
+      payType: employee.payType,
+      payPercentage: employee.payPercentage,
+      disableAgenda: employee.disableAgenda,
+      showInPublicBooking: employee.showInPublicBooking,
+    }))
+    // Solo-doctor setup (dental only): listEquipo excludes the admin role — see Calendario.vue.
+    const me = authStore.profile
+    if (isDentalNiche(businessStore.nicheType) && authStore.role === 'admin' && me?.id && !list.some(e => e.id === me.id)) {
+      list.unshift({ id: me.id, name: me.full_name || 'Yo', payType: 'salary' as const, payPercentage: undefined, disableAgenda: false, showInPublicBooking: false })
+    }
+    return list
+  })
 
   return {
     selectedDate,
