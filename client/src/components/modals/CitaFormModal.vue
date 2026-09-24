@@ -83,7 +83,7 @@
         <div v-for="(row, index) in serviceRows" :key="index" class="rounded-lg border border-border bg-bg-secondary/30">
           <div class="grid grid-cols-1 sm:grid-cols-[2fr_1.5fr_1fr_80px_60px_36px_36px] gap-2 p-2.5 items-start">
             <FormDropdown :model-value="row.serviceId" :placeholder="`Seleccionar ${t.service.toLowerCase()}`" :options="serviceOptions" :error="getRowError(index, 'serviceId')" size="sm" searchable @update:model-value="updateServiceRow(index, 'serviceId', $event)" />
-            <FormDropdown :model-value="row.employeeId" :placeholder="t.employee" :options="employeeOptions" :disabled="isSingleEmployee" :error="getRowError(index, 'employeeId')" size="sm" searchable @update:model-value="updateServiceRow(index, 'employeeId', $event)" />
+            <FormDropdown :model-value="row.employeeId" :placeholder="t.employee" :options="employeeOptions" :error="getRowError(index, 'employeeId')" size="sm" searchable @update:model-value="updateServiceRow(index, 'employeeId', $event)" />
             <FormDropdown :model-value="row.assistantEmployeeId" placeholder="Sin asist." :options="assistantOptions" :error="getRowError(index, 'assistantEmployeeId')" size="sm" @update:model-value="updateServiceRow(index, 'assistantEmployeeId', $event)" />
             <div>
               <div class="relative"><span class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm font-medium">$</span>
@@ -390,7 +390,6 @@ const assistantOptions = computed(() => {
   if (isEmployee.value) return [{ value: '', label: 'Sin asistente' }]
   return [{ value: '', label: 'Sin asistente' }, ...empList.map(e => ({ value: e.id, label: e.name, icon: getInitials(e.name) }))]
 })
-const isSingleEmployee = computed(() => employeeOptions.value.length <= 1)
 const statusOptions = [
   { value: 'pending', label: 'Pendiente', icon: '◉' },
   { value: 'confirmed', label: 'Confirmada', icon: '✓' },
