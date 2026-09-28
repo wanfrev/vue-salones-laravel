@@ -493,12 +493,35 @@ const globalSearchRows = computed(() => {
 })
 
 // ---- Constants ----
-const START_HOUR = 7
-const END_HOUR = 21
+const DEFAULT_START_HOUR = 7
+const DEFAULT_END_HOUR = 21
 const HOUR_HEIGHT = 160
 const TIME_COL_WIDTH = 40
-const totalGridHeight = (END_HOUR - START_HOUR) * HOUR_HEIGHT
-const totalHours = END_HOUR - START_HOUR
+
+// La grilla arrancaba fija a las 7am: cualquier cita antes de esa hora quedaba con
+// `top: Math.max(0, ...)` clampeado a 0 en mapAppt(), así que dos citas tempranas (ej. 5am y
+// 6am) terminaban una encima de la otra en vez de en su posición real. Se extiende la grilla
+// hacia atrás/adelante según la cita más temprana/tardía del período visible, sin encogerse
+// nunca por debajo del rango por defecto.
+const START_HOUR = computed(() => {
+  let min = DEFAULT_START_HOUR
+  for (const a of (appointments.value ?? []) as any[]) {
+    const h = new Date(a.start_time).getHours()
+    if (h < min) min = h
+  }
+  return min
+})
+const END_HOUR = computed(() => {
+  let max = DEFAULT_END_HOUR
+  for (const a of (appointments.value ?? []) as any[]) {
+    const end = new Date(a.end_time)
+    const h = end.getHours() + (end.getMinutes() > 0 ? 1 : 0)
+    if (h > max) max = h
+  }
+  return Math.min(max, 24)
+})
+const totalGridHeight = computed(() => (END_HOUR.value - START_HOUR.value) * HOUR_HEIGHT)
+const totalHours = computed(() => END_HOUR.value - START_HOUR.value)
 
 const legend = [
   { label: 'Pendiente', color: 'var(--color-danger)' },
@@ -600,12 +623,12 @@ const titleText = computed(() => {
 const nowLineTop = computed(() => {
   if (!isToday.value) return -1
   const m = new Date().getHours() * 60 + new Date().getMinutes()
-  if (m < START_HOUR * 60 || m > END_HOUR * 60) return -1
-  return ((m - START_HOUR * 60) / 60) * HOUR_HEIGHT
+  if (m < START_HOUR.value * 60 || m > END_HOUR.value * 60) return -1
+  return ((m - START_HOUR.value * 60) / 60) * HOUR_HEIGHT
 })
 
-const hourSlots = computed(() => Array.from({ length: totalHours }, (_, h) => {
-  const hour24 = START_HOUR + h
+const hourSlots = computed(() => Array.from({ length: totalHours.value }, (_, h) => {
+  const hour24 = START_HOUR.value + h
   const ampm = hour24 >= 12 ? 'PM' : 'AM'
   const h12 = hour24 % 12 || 12
   return `${h12}:00 ${ampm}`
@@ -738,7 +761,7 @@ function buildGroupMemberMap(appts: any[]): Map<string, any[]> {
 function mapAppt(a: any, svcMap: Map<string, any>, empName: string, groupMemberMap: Map<string, any[]>, colorMap: Map<string, string>): DisplayAppointment {
   const start = new Date(a.start_time); const end = new Date(a.end_time)
   const svc = svcMap.get(a.service_id)
-  const topMin = (start.getHours() * 60 + start.getMinutes()) - (START_HOUR * 60)
+  const topMin = (start.getHours() * 60 + start.getMinutes()) - (START_HOUR.value * 60)
   const groupAllMembers = a.group_id ? (groupMemberMap.get(a.group_id) ?? []) : []
   const isGroup = groupAllMembers.length > 1
   const groupServices = isGroup
@@ -857,7 +880,9 @@ interface OccupancyRow { id: string; name: string; pctBooked: number; gaps: Occu
 const occupancyRows = computed<OccupancyRow[]>(() => {
   const emps = employees.value ?? []
   const weekday = parseLocalDate(selectedDate.value, 12, 0, 0).getDay()
-  const gridWindow = { start: START_HOUR * 60, end: END_HOUR * 60 }
+  // Ventana por defecto del negocio (no la grilla dinámica) -- una cita suelta madrugadora no
+  // debe cambiar cómo se calcula el % de ocupación de quien no tiene horario configurado.
+  const gridWindow = { start: DEFAULT_START_HOUR * 60, end: DEFAULT_END_HOUR * 60 }
 
   type SchedWin = { start: number; end: number; breakStart: number | null; breakEnd: number | null }
   const schedMap = new Map<string, SchedWin>()
@@ -958,9 +983,9 @@ function onColumnClick(col: GridColumn, e: MouseEvent) {
   const c = gridContainer.value; if (!c) return
   const clickY = e.clientY - c.getBoundingClientRect().top + c.scrollTop
   const mins = (clickY / HOUR_HEIGHT) * 60
-  const hour = START_HOUR + Math.floor(mins / 60)
+  const hour = START_HOUR.value + Math.floor(mins / 60)
   const minute = Math.floor((mins % 60) / 15) * 15
-  if (hour >= END_HOUR || hour < START_HOUR) return
+  if (hour >= END_HOUR.value || hour < START_HOUR.value) return
   const dateStr = viewMode.value === 'week' ? col.key : selectedDate.value
   const start = new Date(dateStr + 'T12:00:00'); start.setHours(hour, minute, 0, 0)
   const end = new Date(start); end.setMinutes(end.getMinutes() + 30)
@@ -1000,13 +1025,13 @@ function onDragPointerMove(e: PointerEvent) {
   ds.moved = true
 
   let newTop = ds.originalTop + deltaY
-  newTop = Math.max(0, Math.min(newTop, totalGridHeight - ds.height))
+  newTop = Math.max(0, Math.min(newTop, totalGridHeight.value - ds.height))
   const minsFromStart = (newTop / HOUR_HEIGHT) * 60
   const snappedMins = Math.round(minsFromStart / 15) * 15
   ds.previewTop = (snappedMins / 60) * HOUR_HEIGHT
 
   const newStart = parseLocalDate(ds.columnDateIso, 0, 0, 0)
-  newStart.setMinutes(START_HOUR * 60 + snappedMins)
+  newStart.setMinutes(START_HOUR.value * 60 + snappedMins)
   ds.snappedStartMs = newStart.getTime()
 }
 
@@ -1133,9 +1158,9 @@ function statusTextClass(status: string) {
 onMounted(() => {
   const now = new Date()
   const m = now.getHours() * 60 + now.getMinutes()
-  if (m >= START_HOUR * 60 && m <= END_HOUR * 60) {
+  if (m >= START_HOUR.value * 60 && m <= END_HOUR.value * 60) {
     nextTick(() => {
-      if (gridContainer.value) gridContainer.value.scrollTop = Math.max(0, ((m - START_HOUR * 60) / 60) * HOUR_HEIGHT - 200)
+      if (gridContainer.value) gridContainer.value.scrollTop = Math.max(0, ((m - START_HOUR.value * 60) / 60) * HOUR_HEIGHT - 200)
     })
   }
   if (!isAdmin.value && authStore.profile?.id) selectedEmployeeId.value = authStore.profile.id
