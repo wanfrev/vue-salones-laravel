@@ -147,14 +147,15 @@
                     <td class="px-3 py-2 text-center">
                       <input type="checkbox"
                         :checked="grid[rowKey(employee)]?.hoursManualOverride"
-                        :disabled="isReadOnly"
+                        :disabled="isReadOnly || isInactive(employee)"
                         class="h-3.5 w-3.5 rounded border-border"
                         @change="toggleManualHours(employee, ($event.target as HTMLInputElement).checked)" />
                     </td>
                     <td class="px-3 py-2">
                       <input v-if="!grid[rowKey(employee)]?.hoursManualOverride"
                         v-model.number="grid[rowKey(employee)].totalHours" type="number" min="0" max="168" step="0.01"
-                        :disabled="isReadOnly" :class="cellInputClass" />
+                        :disabled="isReadOnly || isInactive(employee)" :title="isInactive(employee) ? 'Empleado inactivo — actívalo para poder cargarle horas' : undefined"
+                        :class="cellInputClass" />
                       <span v-else class="block w-24 text-right text-sm tabular-nums text-text-muted">
                         {{ ((grid[rowKey(employee)]?.manualRegularHours || 0) + (grid[rowKey(employee)]?.manualOvertimeHours || 0)).toFixed(2) }}
                       </span>
@@ -162,7 +163,7 @@
                   <td class="px-3 py-2 text-right">
                     <input v-if="grid[rowKey(employee)]?.hoursManualOverride"
                       v-model.number="grid[rowKey(employee)].manualRegularHours" type="number" min="0" step="0.01"
-                      :disabled="isReadOnly" :class="cellInputClass" />
+                      :disabled="isReadOnly || isInactive(employee)" :class="cellInputClass" />
                     <span v-else class="tabular-nums text-text-secondary">{{ rowFor(employee)?.regularHours?.toFixed(2) ?? '—' }}</span>
                   </td>
                   <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee) ? formatUSD(rowFor(employee)!.payRate) : '—' }}</td>
@@ -171,7 +172,7 @@
                   <td class="px-3 py-2 text-right">
                     <input v-if="grid[rowKey(employee)]?.hoursManualOverride"
                       v-model.number="grid[rowKey(employee)].manualOvertimeHours" type="number" min="0" step="0.01"
-                      :disabled="isReadOnly" :class="cellInputClass" />
+                      :disabled="isReadOnly || isInactive(employee)" :class="cellInputClass" />
                     <span v-else class="tabular-nums text-text-secondary">{{ rowFor(employee)?.overtimeHours?.toFixed(2) ?? '—' }}</span>
                   </td>
                   <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee)?.overtimeRate ? formatUSD(rowFor(employee)!.overtimeRate) : '—' }}</td>
@@ -204,7 +205,12 @@
                   <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ rowFor(employee) ? formatUSD(rowFor(employee)!.invoiceTotal) : '—' }}</td>
                   <td class="px-3 py-2 text-right tabular-nums font-semibold text-success">{{ rowFor(employee) ? formatUSD(rowFor(employee)!.margin) : '—' }}</td>
                 </tr>
-                <tr v-if="!rateFor(employee)">
+                <tr v-if="isInactive(employee)">
+                  <td colspan="22" class="px-3 pb-2.5 text-xs text-danger">
+                    Empleado inactivo{{ employee.staffing_assignment_id ? ' en esta empresa' : '' }} — actívalo para poder cargarle horas nuevas.
+                  </td>
+                </tr>
+                <tr v-else-if="!rateFor(employee)">
                   <td colspan="22" class="px-3 pb-2.5 text-xs text-warning">
                     Sin tarifa configurada para "{{ employee.staffing_role || 'sin rol' }}" en esta empresa — agrégala en Empresas antes de cargar horas.
                   </td>
@@ -500,6 +506,13 @@ const rowKey = (employee: { id: string; staffing_role?: string | null; staffing_
 
 const shiftLabel = (shift: string | null | undefined): string =>
   shift ? (SHIFT_OPTIONS.find(o => o.value === shift)?.label ?? shift) : ''
+
+/** A globally-deactivated employee (Profile.active) or one paused at this company
+ *  (staffing_company_employees.active — the checkbox in the first column) can't get NEW hours
+ *  entered — the backend enforces the same rule (StaffingTimesheetService::saveWeek), this just
+ *  disables the inputs so the admin sees it immediately instead of hitting a save error. Already
+ *  saved hours from before they went inactive stay visible and still get resent unchanged. */
+const isInactive = (employee: RosterEmployee): boolean => employee.active === false
 
 /**
  * `timesheets.employees` only lists *active* assignments — right for picking who new hours can
