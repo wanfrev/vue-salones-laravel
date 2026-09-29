@@ -108,11 +108,20 @@ class StaffingTimesheetService
 
             $terms = $this->termsFactory->forCompany($company);
 
+            // Snapshot of whatever's already saved for this week, keyed the same way as the
+            // roster row (employee+role+shift) — used below to tell "resending an inactive
+            // employee's untouched historical hours" (allowed, since the frontend always resends
+            // the whole week) apart from "trying to give an inactive employee new hours" (blocked).
+            $existingHours = StaffingTimesheetEntry::where('timesheet_id', $timesheet->id)
+                ->get()
+                ->keyBy(fn (StaffingTimesheetEntry $e) => $e->employee_id . '::' . ($e->role ?? '') . '::' . ($e->shift ?? ''));
+
             // Fail closed: a role with no rate card entry would otherwise silently compute a
             // $0 wage and a $0 bill — the sheets' equivalent of paying someone nothing without
             // anyone noticing. Collect every problem before throwing so the admin fixes the
             // whole rate card in one pass instead of one entry at a time.
             $missing = [];
+            $inactiveBlocked = [];
             $lines = [];
             foreach ($entries as $entryInput) {
                 $employee = Profile::find($entryInput['employee_id']);
@@ -135,6 +144,27 @@ class StaffingTimesheetService
                 $role = $assignment?->role;
                 $shift = $assignment?->shift;
 
+                // Mirrors StaffingHoursPanel.vue's isInactive(): deactivated globally, or paused
+                // just for this company/role. The frontend already disables the hour inputs for
+                // these rows, so this only fires against a stale UI or a direct API call — reject
+                // it the same way rather than silently paying someone who shouldn't be on the
+                // clock. Only an INCREASE over what's already on file is blocked: the roster always
+                // resends every row (including one that went inactive after its hours were already
+                // saved this week), so an unchanged or reduced resend must still go through.
+                $isInactive = !$employee->active || ($assignment && !$assignment->active);
+                if ($isInactive) {
+                    $hoursManualOverride = (bool) ($entryInput['hours_manual_override'] ?? false);
+                    $requestedHours = $hoursManualOverride
+                        ? (float) ($entryInput['manual_regular_hours'] ?? 0) + (float) ($entryInput['manual_overtime_hours'] ?? 0)
+                        : (float) ($entryInput['total_hours'] ?? 0);
+                    $previousHours = $existingHours->get($employee->id . '::' . ($role ?? '') . '::' . ($shift ?? ''))?->total_hours ?? 0.0;
+
+                    if ($requestedHours > $previousHours + 0.001) {
+                        $inactiveBlocked[] = $employee->full_name . ($role ? " ($role)" : '');
+                        continue;
+                    }
+                }
+
                 $rate = $this->rates->resolveFor($businessId, $company->id, $role, $shift);
                 if (!$rate) {
                     $missing[] = $employee->full_name . ' (' . ($role ?: 'sin rol') . ')';
@@ -148,6 +178,12 @@ class StaffingTimesheetService
                     'rate' => $rate,
                     'input' => $entryInput,
                 ];
+            }
+
+            if ($inactiveBlocked !== []) {
+                throw new RuntimeException(
+                    'Estos empleados están inactivos y no se les puede cargar horas nuevas: ' . implode(', ', $inactiveBlocked) . '.'
+                );
             }
 
             if ($missing !== []) {
