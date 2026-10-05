@@ -46,6 +46,11 @@ export type Capability =
   | 'dental.consent'
   | 'dental.biofilm'
   | 'dental.budget'
+  | 'clinical.intake'
+  | 'clinical.session_notes'
+  | 'clinical.treatment_plan'
+  | 'clinical.consent'
+  | 'clinical.assessments'
 
 export interface NicheCopy {
   serviceNamePlaceholder?: string

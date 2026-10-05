@@ -1054,6 +1054,154 @@ export interface ClinicalHistory {
   updated_at: string
 }
 
+// ── Módulo clínico compartido (nicho psicologia) ──────────────────────────────────────────
+// Los campos `data`/`content` viajan cifrados en reposo en el backend; aquí ya vienen descifrados.
+
+export type ClinicalRiskLevel = 'none' | 'low' | 'moderate' | 'high'
+export type SuicidalIdeation = '' | 'ninguna' | 'pasiva' | 'activa'
+
+export interface ClinicalIntakeData {
+  consulta: { motivo: string; historia_problema: string; expectativas: string; derivado_por: string }
+  antecedentes: {
+    personales: string
+    familiares: string
+    psiquiatricos: string
+    tratamientos_previos: string
+    medicacion_actual: string
+    condiciones_medicas: string
+  }
+  areas: {
+    sueno: string
+    apetito: string
+    consumo_sustancias: string
+    vida_social: string
+    laboral_academico: string
+    pareja_familia: string
+  }
+  riesgo: {
+    ideacion_suicida: SuicidalIdeation
+    intentos_previos: boolean
+    autolesiones: boolean
+    riesgo_hacia_otros: boolean
+    factores_proteccion: string
+    observaciones: string
+  }
+  examen_mental: { apariencia_conducta: string; animo_afecto: string; pensamiento_lenguaje: string; orientacion_cognicion: string }
+  impresion: { hipotesis: string; diagnostico: string; codigo_cie10: string }
+}
+
+export interface ClinicalIntake {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  created_by: string | null
+  updated_by: string | null
+  data: ClinicalIntakeData
+  created_at: string
+  updated_at: string
+}
+
+export interface SessionNoteContent {
+  subjective: string
+  objective: string
+  assessment: string
+  plan: string
+}
+
+export interface SessionNote {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  appointment_id: string | null
+  created_by: string | null
+  session_number: number
+  /** YYYY-MM-DD */
+  session_date: string
+  duration_minutes: number | null
+  risk_level: ClinicalRiskLevel
+  mood_rating: number | null
+  content: SessionNoteContent
+  tasks: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SessionAppointmentOption {
+  id: string
+  start_time: string | null
+  status: string
+  service_name: string | null
+}
+
+export type TreatmentPlanStatus = 'active' | 'paused' | 'completed'
+export type TreatmentGoalStatus = 'pending' | 'in_progress' | 'achieved'
+
+export interface TreatmentGoal {
+  id: string
+  text: string
+  status: TreatmentGoalStatus
+}
+
+export interface TreatmentPlanData {
+  approach: string
+  formulation: string
+  frequency: string
+  notes: string
+  goals: TreatmentGoal[]
+}
+
+export interface TreatmentPlan {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  created_by: string | null
+  status: TreatmentPlanStatus
+  start_date: string | null
+  end_date: string | null
+  data: TreatmentPlanData
+  created_at: string
+  updated_at: string
+}
+
+export interface InformedConsent {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  created_by: string | null
+  title: string
+  content: string
+  signature_data: string
+  signer_name: string | null
+  signer_relationship: string | null
+  signed_at: string
+  created_at: string
+  updated_at: string
+}
+
+export type AssessmentInstrumentId = 'phq9' | 'gad7'
+export type AssessmentSeverityId = 'minimal' | 'mild' | 'moderate' | 'moderately_severe' | 'severe'
+
+export interface ClinicalAssessment {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  created_by: string | null
+  instrument: AssessmentInstrumentId
+  answers: number[]
+  total_score: number
+  severity: AssessmentSeverityId
+  risk_flag: boolean
+  notes: string | null
+  assessed_at: string
+  created_at: string
+  updated_at: string
+}
+
 export interface Database {
   public: {
     Tables: {

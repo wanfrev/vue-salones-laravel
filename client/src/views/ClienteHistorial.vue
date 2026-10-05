@@ -70,6 +70,10 @@
     </div>
   </section>
 
+  <!-- Nicho psicologia: acceso al expediente clínico (módulo clinical.*). Independiente del bloque
+       dental de arriba — solo se renderiza cuando el negocio declara la capability. -->
+  <ClinicalToolsSection v-if="isClinicalNiche" />
+
   <section class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
     <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm no-print">
       <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">{{ isDentalNiche ? 'Resumen del paciente' : 'Resumen del cliente' }}</p>
@@ -164,9 +168,10 @@ import { useBusinessStore } from '../store/business'
 import { listCitas } from '../services/agendaService'
 import { getClienteById } from '../services/clientesService'
 import { isPetNiche as checkPetNiche } from '../config/nicheFields'
-import { isDentalNiche as checkDentalNiche } from '../config/niches'
+import { isDentalNiche as checkDentalNiche, isClinicalNiche as checkClinicalNiche } from '../config/niches'
 import { useDentalToolsNavTabs } from '../composables/dental/useDentalToolsNavTabs'
 import DentalToolsNav from '../components/dental/DentalToolsNav.vue'
+import ClinicalToolsSection from '../components/clinical/ClinicalToolsSection.vue'
 import { ArrowLeftIcon, ChatRoundLineIcon, PrinterIcon } from '@solar-icons/vue/linear'
 import type { Cliente } from '../types/cliente'
 
@@ -179,6 +184,7 @@ const clienteId = computed(() => route.params.id as string)
 const businessId = computed(() => authStore.businessId)
 const isPetNiche = computed(() => checkPetNiche(businessStore.nicheType))
 const isDentalNiche = computed(() => checkDentalNiche(businessStore.nicheType))
+const isClinicalNiche = computed(() => checkClinicalNiche(businessStore.nicheType))
 const { navTabs } = useDentalToolsNavTabs(() => clienteId.value, () => isDentalNiche.value)
 
 const { data: clienteData } = useQuery({

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getNicheConfig, isPetNiche, isVetNiche, isDentalNiche, getNiche, resolveFeatures, resolveTerminology, creatableIds } from './index'
+import { getNicheConfig, isPetNiche, isVetNiche, isDentalNiche, isClinicalNiche, getNiche, resolveFeatures, resolveTerminology, creatableIds } from './index'
 
 // Equivalence table against the pre-registry behaviour of nicheFields.ts:
 //   isPetNiche(x)    === ['dog_spa','vet'].includes(x)
@@ -23,6 +23,7 @@ const CASES: Array<{
   { nicheType: 'nail_bar', isPet: false, isVet: false, hasClientProfile: false },
   { nicheType: 'centro_estetico', isPet: false, isVet: false, hasClientProfile: false },
   { nicheType: 'odontologia', isPet: false, isVet: false, hasClientProfile: true },
+  { nicheType: 'psicologia', isPet: false, isVet: false, hasClientProfile: true },
   { nicheType: 'Negocios', isPet: false, isVet: false, hasClientProfile: false },
   { nicheType: '', isPet: false, isVet: false, hasClientProfile: false },
   { nicheType: undefined, isPet: false, isVet: false, hasClientProfile: false },
@@ -132,9 +133,57 @@ describe('isDentalNiche()', () => {
   })
 })
 
+describe('psicologia niche', () => {
+  const CLINICAL = ['clinical.intake', 'clinical.session_notes', 'clinical.treatment_plan', 'clinical.consent', 'clinical.assessments']
+
+  it('declares the whole clinical.* module and nothing from dental/staffing', () => {
+    expect([...getNiche('psicologia').capabilities]).toEqual(CLINICAL)
+  })
+
+  it('is the only niche with clinical.* capabilities', () => {
+    for (const id of creatableIds().filter(id => id !== 'psicologia')) {
+      expect(isClinicalNiche(id)).toBe(false)
+    }
+    expect(isClinicalNiche('psicologia')).toBe(true)
+    expect(isClinicalNiche(undefined)).toBe(false)
+    expect(isClinicalNiche(null)).toBe(false)
+    expect(isClinicalNiche('Negocios')).toBe(false)
+  })
+
+  it('is not mistaken for odontologia, and odontologia is not mistaken for it', () => {
+    expect(isDentalNiche('psicologia')).toBe(false)
+    expect(isClinicalNiche('odontologia')).toBe(false)
+    expect(getNiche('odontologia').capabilities.some(c => c.startsWith('clinical.'))).toBe(false)
+    expect(getNiche('psicologia').capabilities.some(c => c.startsWith('dental.'))).toBe(false)
+  })
+
+  it('uses patient/session terminology without leaking into other niches', () => {
+    const t = resolveTerminology('psicologia', undefined)
+    expect(t.client).toBe('Paciente')
+    expect(t.appointmentPlural).toBe('Sesiones')
+    expect(t.employee).toBe('Psicólogo')
+    expect(resolveTerminology('salon', undefined).appointment).toBe('Cita')
+    expect(resolveTerminology('odontologia', undefined).appointment).toBe('Consulta')
+  })
+
+  it('turns off inventory/suppliers/gift cards by default but keeps pos and productos (the POS reads the catalog)', () => {
+    const f = resolveFeatures('psicologia', undefined)
+    expect(f.inventario).toBe(false)
+    expect(f.proveedores).toBe(false)
+    expect(f.gift_cards).toBe(false)
+    expect(f.pos).toBe(true)
+    expect(f.productos).toBe(true)
+    expect(f.agenda).toBe(true)
+  })
+
+  it('lets a stored (superadmin) value re-enable a defaulted-off feature', () => {
+    expect(resolveFeatures('psicologia', { inventario: true }).inventario).toBe(true)
+  })
+})
+
 describe('creatableIds()', () => {
   it('includes every niche offered in the superadmin selects today', () => {
-    for (const id of ['salon', 'barberia', 'spa', 'mixto', 'dog_spa', 'nail_bar', 'centro_estetico', 'odontologia', 'tienda', 'staffing']) {
+    for (const id of ['salon', 'barberia', 'spa', 'mixto', 'dog_spa', 'nail_bar', 'centro_estetico', 'odontologia', 'psicologia', 'tienda', 'staffing']) {
       expect(creatableIds()).toContain(id)
     }
   })

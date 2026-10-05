@@ -7,6 +7,11 @@ export const HAIR_TYPE_OPTIONS = [
   { value: 'crespo', label: 'Crespo' },
 ]
 
+export const YES_NO_OPTIONS = [
+  { value: 'si', label: 'Sí' },
+  { value: 'no', label: 'No' },
+]
+
 export const BEARD_STYLE_OPTIONS = [
   { value: 'corta', label: 'Corta' },
   { value: 'media', label: 'Media' },

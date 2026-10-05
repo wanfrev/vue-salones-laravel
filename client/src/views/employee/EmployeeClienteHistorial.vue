@@ -61,6 +61,10 @@
       <DentalToolsNav :tabs="navTabs" model-value="" @update:model-value="goToTab" />
     </section>
 
+    <!-- Nicho psicologia: acceso al expediente clínico (módulo clinical.*), independiente del
+         bloque dental de arriba. Se oculta solo para quien no tenga permiso de expediente. -->
+    <ClinicalToolsSection v-if="isClinicalNiche" />
+
     <!-- Client Info Card -->
     <div v-if="cliente" class="mb-4 rounded-xl border border-border bg-surface p-4 shadow-sm no-print">
       <div class="flex items-center gap-4">
@@ -155,9 +159,10 @@ import { useBusinessStore } from '../../store/business'
 import { listCitas } from '../../services/agendaService'
 import { getClienteById } from '../../services/clientesService'
 import { isPetNiche as checkPetNiche } from '../../config/nicheFields'
-import { isDentalNiche as checkDentalNiche } from '../../config/niches'
+import { isDentalNiche as checkDentalNiche, isClinicalNiche as checkClinicalNiche } from '../../config/niches'
 import { useDentalToolsNavTabs } from '../../composables/dental/useDentalToolsNavTabs'
 import DentalToolsNav from '../../components/dental/DentalToolsNav.vue'
+import ClinicalToolsSection from '../../components/clinical/ClinicalToolsSection.vue'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import type { Cliente } from '../../types/cliente'
 import { DocumentIcon, ArrowLeftIcon, CheckCircleIcon, PrinterIcon } from '@solar-icons/vue/linear'
@@ -171,6 +176,7 @@ const clienteId = computed(() => route.params.id as string)
 const businessId = computed(() => authStore.businessId)
 const isPetNiche = computed(() => checkPetNiche(businessStore.nicheType))
 const isDentalNiche = computed(() => checkDentalNiche(businessStore.nicheType))
+const isClinicalNiche = computed(() => checkClinicalNiche(businessStore.nicheType))
 const { navTabs } = useDentalToolsNavTabs(() => clienteId.value, () => isDentalNiche.value)
 const t = computed(() => businessStore.terminology)
 const hidePhoneFromEmployee = computed(() => authStore.role === 'empleado' && businessStore.hasFeature('hide_client_phone_from_employees'))

@@ -1,7 +1,29 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '../store/auth'
 import { useBusinessStore } from '../store/business'
 import { resolveNavigation } from './navigationGuard'
+
+// Pestañas del expediente clínico (nicho psicologia) — las mismas 5 en el árbol admin y en el de
+// empleado, así que se generan una vez. El empleado además lleva el flag de perfil de expediente
+// clínico (can_access_dental_clinical: flag genérico, reutilizado). Cada hija declara su propia
+// capability clinical.* — ningún otro nicho (ni odontología) las tiene, así que son inalcanzables.
+const clinicalExpedienteChildren = (scope: 'admin' | 'employee'): RouteRecordRaw[] => {
+  const flag = scope === 'employee' ? { profileFlag: 'can_access_dental_clinical' as const } : {}
+  const tab = (path: string, name: string, view: () => Promise<unknown>, capability: string): RouteRecordRaw => ({
+    path,
+    name: `${scope}-cliente-clinica-${name}`,
+    component: view,
+    meta: { gate: { capability, ...flag } },
+  } as RouteRecordRaw)
+  return [
+    { path: '', redirect: to => ({ path: `${to.path.replace(/\/$/, '')}/historia`, query: to.query }) },
+    tab('historia', 'historia', () => import('../views/ClinicalIntakeView.vue'), 'clinical.intake'),
+    tab('sesiones', 'sesiones', () => import('../views/ClinicalSessionsView.vue'), 'clinical.session_notes'),
+    tab('plan', 'plan', () => import('../views/ClinicalPlanView.vue'), 'clinical.treatment_plan'),
+    tab('evaluaciones', 'evaluaciones', () => import('../views/ClinicalAssessmentsView.vue'), 'clinical.assessments'),
+    tab('consentimiento', 'consentimiento', () => import('../views/ClinicalConsentView.vue'), 'clinical.consent'),
+  ]
+}
 
 const router = createRouter({
   history: createWebHistory(),
@@ -140,6 +162,15 @@ const router = createRouter({
       ],
     },
     {
+      // Expediente clínico del nicho psicologia — espejo en el árbol de empleado del de /admin.
+      path: '/dashboard/clientes/:id/expediente-clinico',
+      component: () => import('../views/employee/EmployeePatientClinicalShell.vue'),
+      // La ruta base (sin pestaña) también coincide y mostraría el shell con datos reales del
+      // paciente en otro nicho si no llevara su propio gate.
+      meta: { requiresAuth: true, gate: { feature: 'employees_see_clients', capability: 'clinical.intake', profileFlag: 'can_access_dental_clinical' } },
+      children: clinicalExpedienteChildren('employee'),
+    },
+    {
       path: '/dashboard/pagos',
       name: 'employee-payments',
       component: () => import('../views/employee/EmployeePayments.vue'),
@@ -266,6 +297,14 @@ const router = createRouter({
               meta: { gate: { capability: 'dental.budget' } },
             },
           ],
+        },
+        {
+          // Expediente clínico del nicho psicologia (módulo clinical.*) — path distinto al de
+          // odontología (`expediente`) para que ambos subárboles sean independientes.
+          path: 'clientes/:id/expediente-clinico',
+          component: () => import('../components/clinical/PatientClinicalShell.vue'),
+          meta: { gate: { capability: 'clinical.intake' } },
+          children: clinicalExpedienteChildren('admin'),
         },
         {
           path: 'finanzas',

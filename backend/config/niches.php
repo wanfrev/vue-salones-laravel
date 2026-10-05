@@ -127,6 +127,19 @@ return [
             'capabilities' => ['dental.odontogram', 'dental.clinical_history', 'dental.endo_annex', 'dental.perio_annex', 'dental.periodontogram', 'dental.consent', 'dental.biofilm', 'dental.budget'],
             'feature_defaults' => [],
         ],
+        // Consultorio psicológico — primera vertical del módulo clínico compartido (clinical.*).
+        // Sin inventario/proveedores/gift cards por defecto (el superadmin puede reactivarlos: el
+        // valor guardado gana sobre feature_defaults). `productos` se deja en su default porque el
+        // POS lee el catálogo de productos — apagarlo rompería el cobro si se activa el gate.
+        'psicologia' => [
+            'status' => 'creatable',
+            'capabilities' => ['clinical.intake', 'clinical.session_notes', 'clinical.treatment_plan', 'clinical.consent', 'clinical.assessments'],
+            'feature_defaults' => [
+                'gift_cards' => false,
+                'inventario' => false,
+                'proveedores' => false,
+            ],
+        ],
         'staffing' => [
             'status' => 'creatable',
             'capabilities' => ['staffing.timesheets', 'staffing.billing', 'staffing.crm', 'staffing.reports', 'staffing.spreadsheet', 'staffing.incidents'],

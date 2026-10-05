@@ -15,6 +15,11 @@ use App\Http\Controllers\Api\Dental\PerioAnnexController;
 use App\Http\Controllers\Api\Dental\PeriodontogramController;
 use App\Http\Controllers\Api\Dental\BiofilmRecordController;
 use App\Http\Controllers\Api\Dental\BudgetController;
+use App\Http\Controllers\Api\Clinical\IntakeController as ClinicalIntakeController;
+use App\Http\Controllers\Api\Clinical\SessionNoteController;
+use App\Http\Controllers\Api\Clinical\TreatmentPlanController;
+use App\Http\Controllers\Api\Clinical\InformedConsentController;
+use App\Http\Controllers\Api\Clinical\AssessmentController;
 use App\Http\Controllers\Api\EmployeeCommissionController;
 use App\Http\Controllers\Api\EmployeeDocumentController;
 use App\Http\Controllers\Api\EmployeePaymentController;
@@ -254,6 +259,46 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
             Route::get('/clients/{clientId}/consents', [ConsentController::class, 'index']);
             Route::get('/clients/{clientId}/consents/{id}', [ConsentController::class, 'show']);
             Route::post('/clients/{clientId}/consents', [ConsentController::class, 'store']);
+        });
+
+        // ── Módulo clínico compartido (nicho psicologia) ──────────────────────────────────────
+        // Datos confidenciales: además de la capability, cada controller impone en el servidor el
+        // permiso de expediente clínico (ver Clinical\Concerns\ClinicalRecordAccess).
+
+        // Historia clínica psicológica — una viva por paciente (GET devuelve 204 si aún no existe).
+        Route::middleware(['capability:clinical.intake'])->group(function () {
+            Route::get('/clients/{clientId}/clinical-intake', [ClinicalIntakeController::class, 'show']);
+            Route::put('/clients/{clientId}/clinical-intake', [ClinicalIntakeController::class, 'upsert']);
+        });
+
+        // Notas de sesión (SOAP)
+        Route::middleware(['capability:clinical.session_notes'])->group(function () {
+            Route::get('/clients/{clientId}/session-notes', [SessionNoteController::class, 'index']);
+            Route::get('/clients/{clientId}/session-notes/appointments', [SessionNoteController::class, 'appointments']);
+            Route::get('/clients/{clientId}/session-notes/{id}', [SessionNoteController::class, 'show']);
+            Route::post('/clients/{clientId}/session-notes', [SessionNoteController::class, 'store']);
+            Route::put('/clients/{clientId}/session-notes/{id}', [SessionNoteController::class, 'update']);
+        });
+
+        // Plan terapéutico
+        Route::middleware(['capability:clinical.treatment_plan'])->group(function () {
+            Route::get('/clients/{clientId}/treatment-plans', [TreatmentPlanController::class, 'index']);
+            Route::get('/clients/{clientId}/treatment-plans/{id}', [TreatmentPlanController::class, 'show']);
+            Route::post('/clients/{clientId}/treatment-plans', [TreatmentPlanController::class, 'store']);
+            Route::put('/clients/{clientId}/treatment-plans/{id}', [TreatmentPlanController::class, 'update']);
+        });
+
+        // Consentimiento informado de terapia — inmutable una vez firmado, sin update.
+        Route::middleware(['capability:clinical.consent'])->group(function () {
+            Route::get('/clients/{clientId}/informed-consents', [InformedConsentController::class, 'index']);
+            Route::get('/clients/{clientId}/informed-consents/{id}', [InformedConsentController::class, 'show']);
+            Route::post('/clients/{clientId}/informed-consents', [InformedConsentController::class, 'store']);
+        });
+
+        // Cuestionarios estandarizados (PHQ-9, GAD-7) — el puntaje lo calcula el servidor.
+        Route::middleware(['capability:clinical.assessments'])->group(function () {
+            Route::get('/clients/{clientId}/assessments', [AssessmentController::class, 'index']);
+            Route::post('/clients/{clientId}/assessments', [AssessmentController::class, 'store']);
         });
 
         // Appointments
