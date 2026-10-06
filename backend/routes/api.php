@@ -20,6 +20,13 @@ use App\Http\Controllers\Api\Clinical\SessionNoteController;
 use App\Http\Controllers\Api\Clinical\TreatmentPlanController;
 use App\Http\Controllers\Api\Clinical\InformedConsentController;
 use App\Http\Controllers\Api\Clinical\AssessmentController;
+use App\Http\Controllers\Api\Clinical\AuditController as ClinicalAuditController;
+use App\Http\Controllers\Api\Clinical\FollowUpController as ClinicalFollowUpController;
+use App\Http\Controllers\Api\Clinical\ReportController as ClinicalReportController;
+use App\Http\Controllers\Api\Clinical\CaseController as ClinicalCaseController;
+use App\Http\Controllers\Api\Clinical\CaseRecordsController;
+use App\Http\Controllers\Api\Clinical\AttachmentController as ClinicalAttachmentController;
+use App\Http\Controllers\Api\Clinical\DiagramController as ClinicalDiagramController;
 use App\Http\Controllers\Api\EmployeeCommissionController;
 use App\Http\Controllers\Api\EmployeeDocumentController;
 use App\Http\Controllers\Api\EmployeePaymentController;
@@ -299,6 +306,65 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::middleware(['capability:clinical.assessments'])->group(function () {
             Route::get('/clients/{clientId}/assessments', [AssessmentController::class, 'index']);
             Route::post('/clients/{clientId}/assessments', [AssessmentController::class, 'store']);
+        });
+
+        // Informes imprimibles (constancia, informe psicológico, derivación): el documento se arma
+        // en el navegador; el servidor solo anota en la bitácora que se imprimió.
+        Route::middleware(['capability:clinical.reports'])->group(function () {
+            Route::get('/clients/{clientId}/clinical-reports/attendance', [ClinicalReportController::class, 'attendance']);
+            Route::post('/clients/{clientId}/clinical-reports/audit', [ClinicalReportController::class, 'printed']);
+        });
+
+        // Casos: pareja, familia o grupo en tratamiento conjunto. Las notas y planes conjuntos
+        // cuelgan del caso; en la ficha de cada integrante se leen (solo lectura) por /joint-*.
+        Route::middleware(['capability:clinical.cases'])->group(function () {
+            Route::get('/clinical-cases', [ClinicalCaseController::class, 'index']);
+            Route::post('/clinical-cases', [ClinicalCaseController::class, 'store']);
+            Route::get('/clinical-cases/{caseId}', [ClinicalCaseController::class, 'show']);
+            Route::put('/clinical-cases/{caseId}', [ClinicalCaseController::class, 'update']);
+            Route::post('/clinical-cases/{caseId}/members', [ClinicalCaseController::class, 'addMember']);
+            Route::delete('/clinical-cases/{caseId}/members/{clientId}', [ClinicalCaseController::class, 'removeMember']);
+            Route::put('/clinical-cases/{caseId}/appointments/{appointmentId}', [ClinicalCaseController::class, 'linkAppointment']);
+            Route::delete('/clinical-cases/{caseId}/appointments/{appointmentId}', [ClinicalCaseController::class, 'unlinkAppointment']);
+            Route::get('/clinical-cases/{caseId}/appointments', [CaseRecordsController::class, 'appointments']);
+
+            Route::get('/clinical-cases/{caseId}/session-notes', [CaseRecordsController::class, 'notesIndex']);
+            Route::post('/clinical-cases/{caseId}/session-notes', [CaseRecordsController::class, 'notesStore']);
+            Route::put('/clinical-cases/{caseId}/session-notes/{id}', [CaseRecordsController::class, 'notesUpdate']);
+            Route::get('/clinical-cases/{caseId}/treatment-plans', [CaseRecordsController::class, 'plansIndex']);
+            Route::post('/clinical-cases/{caseId}/treatment-plans', [CaseRecordsController::class, 'plansStore']);
+            Route::put('/clinical-cases/{caseId}/treatment-plans/{id}', [CaseRecordsController::class, 'plansUpdate']);
+
+            Route::get('/clients/{clientId}/clinical-cases', [ClinicalCaseController::class, 'forClient']);
+            Route::get('/clients/{clientId}/joint-session-notes', [CaseRecordsController::class, 'jointNotesForClient']);
+            Route::get('/clients/{clientId}/joint-treatment-plans', [CaseRecordsController::class, 'jointPlansForClient']);
+            Route::get('/clinical/appointments/{appointmentId}/case', [ClinicalCaseController::class, 'forAppointment']);
+        });
+
+        // Adjuntos del expediente — cifrados en reposo; descargar y borrar quedan en la auditoría.
+        Route::middleware(['capability:clinical.attachments'])->group(function () {
+            Route::get('/clients/{clientId}/attachments', [ClinicalAttachmentController::class, 'index']);
+            Route::post('/clients/{clientId}/attachments', [ClinicalAttachmentController::class, 'store']);
+            Route::get('/clients/{clientId}/attachments/{id}/download', [ClinicalAttachmentController::class, 'download']);
+            Route::delete('/clients/{clientId}/attachments/{id}', [ClinicalAttachmentController::class, 'destroy']);
+        });
+
+        // Genograma y línea de vida (de un paciente o de un caso). GET → 204 si aún no existe.
+        Route::middleware(['capability:clinical.diagrams'])->group(function () {
+            Route::get('/clients/{clientId}/diagrams/{type}', [ClinicalDiagramController::class, 'showForClient']);
+            Route::put('/clients/{clientId}/diagrams/{type}', [ClinicalDiagramController::class, 'saveForClient']);
+            Route::get('/clinical-cases/{caseId}/diagrams/{type}', [ClinicalDiagramController::class, 'showForCase']);
+            Route::put('/clinical-cases/{caseId}/diagrams/{type}', [ClinicalDiagramController::class, 'saveForCase']);
+        });
+
+        // Seguimiento: notas pendientes, riesgo sin seguimiento y posibles abandonos.
+        Route::middleware(['capability:clinical.followup'])->group(function () {
+            Route::get('/clinical/follow-up', [ClinicalFollowUpController::class, 'index']);
+        });
+
+        // Auditoría de accesos al expediente — solo la consulta el administrador (lo impone el controller).
+        Route::middleware(['capability:clinical.audit'])->group(function () {
+            Route::get('/clinical/audit', [ClinicalAuditController::class, 'index']);
         });
 
         // Appointments

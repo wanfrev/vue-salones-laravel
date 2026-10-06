@@ -38,7 +38,7 @@ export function useRealtime() {
       employee_payment: ['employee-payments', 'employee-earnings', 'finanzas-transactions', 'financial-summary'],
       branch: ['branches'],
       business: ['businesses'],
-      appointment: ['appointments', 'finanzas-transactions', 'financial-summary', 'employee-earnings', 'pos-pending', 'invitaciones-pendientes'],
+      appointment: ['appointments', 'finanzas-transactions', 'financial-summary', 'employee-earnings', 'pos-pending', 'invitaciones-pendientes', 'clinical-follow-up'],
       transaction: ['finanzas-transactions', 'financial-summary', 'employee-earnings', 'pos-pending'],
       client: ['clientes', 'clients', 'appointments'],
       service: ['servicios', 'services', 'appointments', 'financial-summary'],
@@ -57,6 +57,15 @@ export function useRealtime() {
       employee_balance: ['employee-balance', 'employee-earnings'],
       daily_report: ['daily-reports'],
       daily_reports: ['daily-reports'],
+      // Módulo clínico (nicho psicologia): el nombre de la entidad difiere de la clave de query.
+      clinical_intake: ['clinical-intake'],
+      clinical_session_note: ['clinical-session-notes', 'clinical-case-notes', 'clinical-joint-notes', 'clinical-follow-up'],
+      clinical_treatment_plan: ['clinical-treatment-plans', 'clinical-case-plans', 'clinical-joint-plans'],
+      clinical_informed_consent: ['clinical-consents'],
+      clinical_assessment: ['clinical-assessments'],
+      clinical_case: ['clinical-cases', 'clinical-case', 'clinical-client-cases', 'clinical-follow-up'],
+      clinical_attachment: ['clinical-attachments'],
+      clinical_diagram: ['clinical-diagram'],
     }
 
     const prefixes = queryKeyMap[payload.entity] || [payload.entity]

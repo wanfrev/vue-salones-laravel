@@ -22,6 +22,8 @@ class InformedConsentController
         [$businessId, , $error] = $this->resolveClinicalContext($request, $clientId);
         if ($error) return $error;
 
+        $this->audit($request, $businessId, $clientId, 'viewed', 'consent');
+
         return response()->json($this->service->listForClient($clientId, $businessId));
     }
 
@@ -32,6 +34,8 @@ class InformedConsentController
 
         $consent = $this->service->findForClient($id, $clientId, $businessId);
         if (!$consent) return response()->json(['message' => 'Consentimiento no encontrado.'], 404);
+
+        $this->audit($request, $businessId, $clientId, 'viewed', 'consent', $consent->id);
 
         return response()->json($consent);
     }
@@ -52,6 +56,7 @@ class InformedConsentController
         $consent = $this->service->create($clientId, $businessId, $client->branch_id, $data, $request->user()?->id);
 
         EntityChanged::safe($businessId, 'clinical_informed_consent', 'created', $consent->id);
+        $this->audit($request, $businessId, $clientId, 'created', 'consent', $consent->id);
 
         return response()->json($consent, 201);
     }

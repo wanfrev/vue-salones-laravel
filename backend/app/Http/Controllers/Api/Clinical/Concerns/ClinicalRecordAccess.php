@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\Api\Clinical\Concerns;
 
 use App\Models\Client;
+use App\Models\Clinical\ClinicalCase;
+use App\Services\Clinical\CaseService;
+use App\Services\Clinical\ClinicalAuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Piezas comunes de los controllers del módulo clínico (psicología y futuras verticales de salud
@@ -66,6 +70,67 @@ trait ClinicalRecordAccess
     private function canModify(Request $request, ?string $createdBy): bool
     {
         return $this->isAdminRole($request) || ($createdBy !== null && $createdBy === $request->user()?->id);
+    }
+
+    /**
+     * Anota el acceso en la bitácora clínica (quién, qué, cuándo, desde qué IP). Un fallo al
+     * escribir la bitácora se registra en el log de la aplicación pero NO tumba la petición:
+     * bloquear la atención clínica por un problema de auditoría sería peor que el hueco.
+     */
+    private function audit(
+        Request $request,
+        string $businessId,
+        string $clientId,
+        string $action,
+        string $resource,
+        ?string $resourceId = null,
+        ?string $detail = null,
+        ?string $caseId = null,
+    ): void {
+        try {
+            app(ClinicalAuditService::class)->record(
+                $businessId, $clientId, $request->user()?->id, $action, $resource, $resourceId, $detail, $request->ip(), $caseId,
+            );
+        } catch (\Throwable $e) {
+            Log::error('clinical.audit_failed', [
+                'business_id' => $businessId, 'client_id' => $clientId, 'action' => $action,
+                'resource' => $resource, 'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Negocio + permiso + caso del negocio, en un paso (para los endpoints /clinical-cases/{id}/...).
+     *
+     * @return array{0: ?string, 1: ?ClinicalCase, 2: ?JsonResponse}
+     */
+    private function resolveCaseContext(Request $request, string $caseId): array
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
+            return [null, null, response()->json(['message' => 'No autorizado.'], 403)];
+        }
+        if ($denied = $this->denyUnlessClinicalAccess($request)) {
+            return [null, null, $denied];
+        }
+        $case = app(CaseService::class)->find($caseId, $businessId);
+        if (!$case) {
+            return [null, null, response()->json(['message' => 'Caso no encontrado.'], 404)];
+        }
+
+        return [$businessId, $case, null];
+    }
+
+    /**
+     * Audita un evento de un caso: la bitácora exige un paciente, así que va con client_id = titular
+     * del caso y además case_id. Si el caso no tuviera titular activo no hay a quién atribuirlo.
+     */
+    private function auditCase(Request $request, ClinicalCase $case, string $action, string $resource = 'case', ?string $resourceId = null, ?string $detail = null): void
+    {
+        $titular = app(CaseService::class)->titular($case);
+        if ($titular) {
+            $this->audit($request, $case->business_id, $titular, $action, $resource, $resourceId ?? ($resource === 'case' ? $case->id : null), $detail, $case->id);
+        }
     }
 
     /**

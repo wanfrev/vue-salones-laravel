@@ -7,7 +7,7 @@
     <div v-if="!showForm" class="space-y-3">
       <div class="flex items-center justify-between">
         <p class="text-sm font-semibold text-text">Notas de sesión <span class="font-normal text-text-muted">({{ notes.length }})</span></p>
-        <button @click="openNew" class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5">
+        <button @click="openNew()" class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5">
           <AddCircleIcon class="h-4 w-4" />
           Nueva sesión
         </button>
@@ -24,6 +24,9 @@
         :can-edit="canEditNote(note)"
         @edit="openEdit(note)"
       />
+
+      <!-- Sesiones conjuntas (pareja / familia / grupo): solo lectura aquí; se escriben y editan en el caso. -->
+      <JointRecords :notes="jointNotes" :base-path="basePath" />
     </div>
 
     <SessionNoteForm
@@ -33,6 +36,7 @@
       :appointments="appointments"
       :saving="isSaving"
       :is-editing="!!editing"
+      :sync-date="!editing && !!initialForm.appointment_id"
       @save="handleSave"
       @cancel="closeForm"
     />
@@ -44,59 +48,30 @@ import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { AddCircleIcon } from '@solar-icons/vue/linear'
 import { useSessionNotes } from '../composables/clinical/useSessionNotes'
-import { useAuthStore } from '../store/auth'
-import { isAdminPanelRole } from '../constants/roles'
+import { useSessionsScreen } from '../composables/clinical/useSessionsScreen'
+import { useClientCases } from '../composables/clinical/useCaseRecords'
+import { useBusinessStore } from '../store/business'
 import SessionNoteCard from '../components/clinical/SessionNoteCard.vue'
 import SessionNoteForm from '../components/clinical/SessionNoteForm.vue'
-import { emptySessionNoteForm, formFromNote, type SessionNoteForm as SessionNoteFormState } from '../components/clinical/sessionNotes'
-import type { SessionNotePayload } from '../services/clinical/sessionNoteService'
-import type { SessionNote } from '../types/database'
+import JointRecords from '../components/clinical/JointRecords.vue'
 
 const route = useRoute()
-const authStore = useAuthStore()
+const businessStore = useBusinessStore()
 const clienteId = computed(() => route.params.id as string)
-
-const showForm = ref(false)
-const editing = ref<SessionNote | null>(null)
-const initialForm = ref<SessionNoteFormState>(emptySessionNoteForm())
+const basePath = computed(() => (route.path.startsWith('/dashboard') ? '/dashboard' : '/admin'))
 
 // Las citas recientes solo se piden mientras el formulario está abierto.
-const { notes, appointments, isLoading, createMutation, updateMutation } = useSessionNotes(() => clienteId.value, () => showForm.value)
+const showForm = ref(false)
+const sessions = useSessionNotes(() => clienteId.value, () => showForm.value)
+const { notes, appointments, isLoading } = sessions
 
-const isSaving = computed(() => createMutation.isPending.value || updateMutation.isPending.value)
+const { editing, initialForm, isSaving, canEditNote, openNew, openEdit, closeForm, handleSave } = useSessionsScreen({
+  notes: sessions.notes,
+  isLoading: sessions.isLoading,
+  createMutation: sessions.createMutation,
+  updateMutation: sessions.updateMutation,
+}, showForm)
 
-// Mismo criterio que el servidor: la nota la corrige su autor o un administrador.
-const currentUserId = computed(() => authStore.user?.id ?? authStore.profile?.id ?? null)
-const canEditNote = (note: SessionNote) =>
-  isAdminPanelRole(authStore.role ?? undefined) || (!!note.created_by && note.created_by === currentUserId.value)
-
-function openNew() {
-  editing.value = null
-  initialForm.value = emptySessionNoteForm()
-  showForm.value = true
-}
-
-function openEdit(note: SessionNote) {
-  editing.value = note
-  initialForm.value = formFromNote(note)
-  showForm.value = true
-}
-
-function closeForm() {
-  showForm.value = false
-  editing.value = null
-}
-
-async function handleSave(payload: SessionNotePayload) {
-  try {
-    if (editing.value) {
-      await updateMutation.mutateAsync({ id: editing.value.id, data: payload })
-    } else {
-      await createMutation.mutateAsync(payload)
-    }
-    closeForm()
-  } catch {
-    // El toast de error ya lo muestra onError; el formulario queda abierto para no perder lo escrito.
-  }
-}
+// Solo en negocios con casos (no consulta nada en otros nichos).
+const { jointNotes } = useClientCases(() => clienteId.value, () => businessStore.hasCapability('clinical.cases'))
 </script>

@@ -133,7 +133,7 @@ return [
         // POS lee el catálogo de productos — apagarlo rompería el cobro si se activa el gate.
         'psicologia' => [
             'status' => 'creatable',
-            'capabilities' => ['clinical.intake', 'clinical.session_notes', 'clinical.treatment_plan', 'clinical.consent', 'clinical.assessments'],
+            'capabilities' => ['clinical.intake', 'clinical.session_notes', 'clinical.treatment_plan', 'clinical.consent', 'clinical.assessments', 'clinical.reports', 'clinical.followup', 'clinical.audit', 'clinical.cases', 'clinical.attachments', 'clinical.diagrams'],
             'feature_defaults' => [
                 'gift_cards' => false,
                 'inventario' => false,

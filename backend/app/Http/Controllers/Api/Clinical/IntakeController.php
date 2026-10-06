@@ -29,6 +29,10 @@ class IntakeController
 
         $intake = $this->service->findForClient($clientId, $businessId);
 
+        if ($intake) {
+            $this->audit($request, $businessId, $clientId, 'viewed', 'intake', $intake->id);
+        }
+
         return $intake ? response()->json($intake) : response()->noContent();
     }
 
@@ -45,6 +49,7 @@ class IntakeController
         $intake = $this->service->upsert($clientId, $businessId, $client->branch_id, $payload['data'], $request->user()?->id);
 
         EntityChanged::safe($businessId, 'clinical_intake', $existed ? 'updated' : 'created', $intake->id);
+        $this->audit($request, $businessId, $clientId, $existed ? 'updated' : 'created', 'intake', $intake->id);
 
         return response()->json($intake, $existed ? 200 : 201);
     }

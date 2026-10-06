@@ -16,9 +16,10 @@ class SessionNoteController
     {
     }
 
-    private function validated(Request $request): array
+    /** Reglas de una nota de sesión — las reutilizan también las notas conjuntas de un caso. */
+    public static function rules(): array
     {
-        $data = $request->validate([
+        return [
             'appointment_id' => ['nullable', 'uuid'],
             'session_date' => ['required', 'date_format:Y-m-d'],
             'duration_minutes' => ['nullable', 'integer', 'min:1', 'max:600'],
@@ -30,18 +31,28 @@ class SessionNoteController
             'content.assessment' => ['nullable', 'string', 'max:20000'],
             'content.plan' => ['nullable', 'string', 'max:20000'],
             'tasks' => ['nullable', 'string', 'max:5000'],
-        ]);
+        ];
+    }
 
-        // Solo las 4 secciones SOAP — nada más entra al cuerpo cifrado.
+    /** Solo las 4 secciones SOAP — nada más entra al cuerpo cifrado. */
+    public static function clean(array $data): array
+    {
         $data['content'] = array_intersect_key($data['content'], array_flip(['subjective', 'objective', 'assessment', 'plan']));
 
         return $data;
+    }
+
+    private function validated(Request $request): array
+    {
+        return self::clean($request->validate(self::rules()));
     }
 
     public function index(Request $request, string $clientId): JsonResponse
     {
         [$businessId, , $error] = $this->resolveClinicalContext($request, $clientId);
         if ($error) return $error;
+
+        $this->audit($request, $businessId, $clientId, 'viewed', 'session_note');
 
         return response()->json($this->service->listForClient($clientId, $businessId));
     }
@@ -62,6 +73,8 @@ class SessionNoteController
         $note = $this->service->findForClient($id, $clientId, $businessId);
         if (!$note) return response()->json(['message' => 'Nota de sesión no encontrada.'], 404);
 
+        $this->audit($request, $businessId, $clientId, 'viewed', 'session_note', $note->id);
+
         return response()->json($note);
     }
 
@@ -79,6 +92,7 @@ class SessionNoteController
         $note = $this->service->create($clientId, $businessId, $client->branch_id, $data, $request->user()?->id);
 
         EntityChanged::safe($businessId, 'clinical_session_note', 'created', $note->id);
+        $this->audit($request, $businessId, $clientId, 'created', 'session_note', $note->id);
 
         return response()->json($note, 201);
     }
@@ -105,6 +119,7 @@ class SessionNoteController
         $note = $this->service->update($note, $data);
 
         EntityChanged::safe($businessId, 'clinical_session_note', 'updated', $note->id);
+        $this->audit($request, $businessId, $clientId, 'updated', 'session_note', $note->id);
 
         return response()->json($note);
     }

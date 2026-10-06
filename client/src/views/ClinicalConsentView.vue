@@ -8,7 +8,7 @@
     <div v-if="!showNewForm" class="space-y-3">
       <div class="flex items-center justify-between">
         <p class="text-sm font-semibold text-text">Consentimientos firmados</p>
-        <button @click="showNewForm = true" class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5">
+        <button @click="openNew" class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-3 py-2 text-sm font-medium text-primary transition-theme hover:bg-primary/5">
           <AddCircleIcon class="h-4 w-4" />
           Nuevo consentimiento
         </button>
@@ -75,6 +75,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { useQuery } from '@tanstack/vue-query'
 import { AddCircleIcon } from '@solar-icons/vue/linear'
 import { useInformedConsents } from '../composables/clinical/useInformedConsents'
 import { formatDateTime } from '../lib/formatters'
@@ -82,11 +83,20 @@ import { formatDateTime } from '../lib/formatters'
 import SignaturePad from '../components/dental/SignaturePad.vue'
 import { FormInput, FormSelect, FormTextarea } from '../components/forms'
 import { CLINICAL_CONSENT_TEMPLATES, getClinicalConsentTemplate } from '../components/clinical/consentTemplates'
+import { guardianFromMetadata, isMinor } from '../components/clinical/cases'
+import { getClienteById } from '../services/clientesService'
 
 const route = useRoute()
 const clienteId = computed(() => route.params.id as string)
 
 const { consents, isLoading, createMutation } = useInformedConsents(() => clienteId.value)
+
+// Mismo query que el encabezado del expediente (caché compartida).
+const { data: cliente } = useQuery({
+  queryKey: computed(() => ['cliente', clienteId.value]),
+  queryFn: () => getClienteById(clienteId.value),
+  enabled: computed(() => !!clienteId.value),
+})
 
 const templateOptions = CLINICAL_CONSENT_TEMPLATES.map(t => ({ value: t.id, label: t.label }))
 const selectedTemplateId = ref(CLINICAL_CONSENT_TEMPLATES[0].id)
@@ -104,6 +114,18 @@ function applyTemplate(templateId: string) {
   selectedTemplateId.value = template.id
   title.value = template.title
   content.value = template.content
+}
+
+// Para un menor se abre la plantilla de tutor y se precarga quien firma con los datos del tutor del perfil (editables).
+function openNew() {
+  showNewForm.value = true
+  if (!isMinor(cliente.value?.birthday)) return
+  applyTemplate('minor')
+  const guardian = guardianFromMetadata(cliente.value?.metadata)
+  if (guardian) {
+    signerName.value = guardian.name
+    signerRelationship.value = guardian.relationship
+  }
 }
 
 function resetForm() {

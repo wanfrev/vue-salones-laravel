@@ -24,6 +24,8 @@ class AssessmentController
         [$businessId, , $error] = $this->resolveClinicalContext($request, $clientId);
         if ($error) return $error;
 
+        $this->audit($request, $businessId, $clientId, 'viewed', 'assessment');
+
         return response()->json($this->service->listForClient($clientId, $businessId));
     }
 
@@ -48,6 +50,7 @@ class AssessmentController
         $assessment = $this->service->create($clientId, $businessId, $client->branch_id, $data, $request->user()?->id);
 
         EntityChanged::safe($businessId, 'clinical_assessment', 'created', $assessment->id);
+        $this->audit($request, $businessId, $clientId, 'created', 'assessment', $assessment->id);
 
         return response()->json($assessment, 201);
     }

@@ -18,6 +18,9 @@
       </div>
 
       <TreatmentPlanCard v-for="plan in plans" :key="plan.id" :plan="plan" @edit="openEdit(plan)" />
+
+      <!-- Planes conjuntos (pareja / familia / grupo): solo lectura aquí; se editan en el caso. -->
+      <JointRecords :plans="jointPlans" :base-path="basePath" />
     </div>
 
     <TreatmentPlanForm
@@ -33,55 +36,24 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { AddCircleIcon } from '@solar-icons/vue/linear'
 import { useTreatmentPlans } from '../composables/clinical/useTreatmentPlans'
+import { usePlansScreen } from '../composables/clinical/usePlansScreen'
+import { useClientCases } from '../composables/clinical/useCaseRecords'
+import { useBusinessStore } from '../store/business'
 import TreatmentPlanCard from '../components/clinical/TreatmentPlanCard.vue'
 import TreatmentPlanForm from '../components/clinical/TreatmentPlanForm.vue'
-import { emptyPlanForm, formFromPlan, type TreatmentPlanForm as TreatmentPlanFormState } from '../components/clinical/treatmentPlans'
-import { todayISO } from '../components/clinical/sessionNotes'
-import type { TreatmentPlanPayload } from '../services/clinical/treatmentPlanService'
-import type { TreatmentPlan } from '../types/database'
+import JointRecords from '../components/clinical/JointRecords.vue'
 
 const route = useRoute()
+const businessStore = useBusinessStore()
 const clienteId = computed(() => route.params.id as string)
+const basePath = computed(() => (route.path.startsWith('/dashboard') ? '/dashboard' : '/admin'))
 
 const { plans, isLoading, createMutation, updateMutation } = useTreatmentPlans(() => clienteId.value)
+const { showForm, editing, initialForm, isSaving, openNew, openEdit, closeForm, handleSave } = usePlansScreen({ createMutation, updateMutation })
 
-const showForm = ref(false)
-const editing = ref<TreatmentPlan | null>(null)
-const initialForm = ref<TreatmentPlanFormState>(emptyPlanForm(todayISO()))
-
-const isSaving = computed(() => createMutation.isPending.value || updateMutation.isPending.value)
-
-function openNew() {
-  editing.value = null
-  initialForm.value = emptyPlanForm(todayISO())
-  showForm.value = true
-}
-
-function openEdit(plan: TreatmentPlan) {
-  editing.value = plan
-  initialForm.value = formFromPlan(plan)
-  showForm.value = true
-}
-
-function closeForm() {
-  showForm.value = false
-  editing.value = null
-}
-
-async function handleSave(payload: TreatmentPlanPayload) {
-  try {
-    if (editing.value) {
-      await updateMutation.mutateAsync({ id: editing.value.id, data: payload })
-    } else {
-      await createMutation.mutateAsync(payload)
-    }
-    closeForm()
-  } catch {
-    // El toast de error ya lo muestra onError; el formulario queda abierto para no perder lo escrito.
-  }
-}
+const { jointPlans } = useClientCases(() => clienteId.value, () => businessStore.hasCapability('clinical.cases'))
 </script>

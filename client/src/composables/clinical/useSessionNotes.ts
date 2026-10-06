@@ -39,7 +39,11 @@ export function useSessionNotes(clientId: () => string | null, loadAppointments:
   const notes = computed(() => notesQuery.data.value ?? [])
   const appointments = computed(() => appointmentsQuery.data.value ?? [])
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['clinical-session-notes', clientId()], exact: false })
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['clinical-session-notes', clientId()], exact: false })
+    // Escribir una nota quita al paciente de "notas pendientes" y puede sacarlo de "riesgo sin seguimiento".
+    queryClient.invalidateQueries({ queryKey: ['clinical-follow-up'], exact: false })
+  }
 
   const createMutation = useMutation({
     mutationFn: async (data: SessionNotePayload) => {

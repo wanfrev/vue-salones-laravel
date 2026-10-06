@@ -21,6 +21,8 @@ use Tests\TestCase;
  */
 class ClinicalControllersTest extends TestCase
 {
+    use BuildsClinicalSchema;
+
     private const BIZ = 'biz-1';
     private const CLIENT = 'client-1';
 
@@ -28,31 +30,7 @@ class ClinicalControllersTest extends TestCase
     {
         parent::setUp();
 
-        config(['app.cipher' => 'AES-256-CBC', 'app.key' => 'base64:' . base64_encode(random_bytes(32))]);
-        $this->app->forgetInstance('encrypter');
-
-        Schema::disableForeignKeyConstraints();
-
-        Schema::create('clients', function ($t) {
-            $t->uuid('id')->primary();
-            $t->uuid('business_id');
-            $t->uuid('branch_id')->nullable();
-        });
-        Schema::create('services', function ($t) {
-            $t->uuid('id')->primary();
-            $t->string('name');
-        });
-        Schema::create('appointments', function ($t) {
-            $t->uuid('id')->primary();
-            $t->uuid('business_id');
-            $t->uuid('client_id');
-            $t->uuid('service_id')->nullable();
-            $t->timestamp('start_time')->nullable();
-            $t->string('status')->nullable();
-        });
-        foreach (glob(database_path('migrations/2026_10_05_00000*_create_clinical_*.php')) as $file) {
-            (require $file)->up();
-        }
+        $this->buildClinicalSchema();
 
         DB::table('clients')->insert([
             ['id' => self::CLIENT, 'business_id' => self::BIZ, 'branch_id' => null],

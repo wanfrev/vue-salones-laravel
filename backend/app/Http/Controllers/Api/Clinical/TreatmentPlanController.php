@@ -16,9 +16,10 @@ class TreatmentPlanController
     {
     }
 
-    private function validated(Request $request): array
+    /** Reglas de un plan terapéutico — las reutilizan también los planes conjuntos de un caso. */
+    public static function rules(): array
     {
-        return $request->validate([
+        return [
             'status' => ['required', 'in:active,paused,completed'],
             'start_date' => ['nullable', 'date_format:Y-m-d'],
             'end_date' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:start_date'],
@@ -31,13 +32,20 @@ class TreatmentPlanController
             'data.goals.*.id' => ['required', 'string', 'max:64'],
             'data.goals.*.text' => ['required', 'string', 'max:1000'],
             'data.goals.*.status' => ['required', 'in:pending,in_progress,achieved'],
-        ]);
+        ];
+    }
+
+    private function validated(Request $request): array
+    {
+        return $request->validate(self::rules());
     }
 
     public function index(Request $request, string $clientId): JsonResponse
     {
         [$businessId, , $error] = $this->resolveClinicalContext($request, $clientId);
         if ($error) return $error;
+
+        $this->audit($request, $businessId, $clientId, 'viewed', 'treatment_plan');
 
         return response()->json($this->service->listForClient($clientId, $businessId));
     }
@@ -50,6 +58,8 @@ class TreatmentPlanController
         $plan = $this->service->findForClient($id, $clientId, $businessId);
         if (!$plan) return response()->json(['message' => 'Plan terapéutico no encontrado.'], 404);
 
+        $this->audit($request, $businessId, $clientId, 'viewed', 'treatment_plan', $plan->id);
+
         return response()->json($plan);
     }
 
@@ -61,6 +71,7 @@ class TreatmentPlanController
         $plan = $this->service->create($clientId, $businessId, $client->branch_id, $this->validated($request), $request->user()?->id);
 
         EntityChanged::safe($businessId, 'clinical_treatment_plan', 'created', $plan->id);
+        $this->audit($request, $businessId, $clientId, 'created', 'treatment_plan', $plan->id);
 
         return response()->json($plan, 201);
     }
@@ -76,6 +87,7 @@ class TreatmentPlanController
         $plan = $this->service->update($plan, $this->validated($request));
 
         EntityChanged::safe($businessId, 'clinical_treatment_plan', 'updated', $plan->id);
+        $this->audit($request, $businessId, $clientId, 'updated', 'treatment_plan', $plan->id);
 
         return response()->json($plan);
     }

@@ -51,6 +51,12 @@ export type Capability =
   | 'clinical.treatment_plan'
   | 'clinical.consent'
   | 'clinical.assessments'
+  | 'clinical.reports'
+  | 'clinical.followup'
+  | 'clinical.audit'
+  | 'clinical.cases'
+  | 'clinical.attachments'
+  | 'clinical.diagrams'
 
 export interface NicheCopy {
   serviceNamePlaceholder?: string

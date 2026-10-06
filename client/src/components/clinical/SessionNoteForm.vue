@@ -49,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed, reactive, watch } from 'vue'
 import { FormInput, FormSelect, FormTextarea } from '../forms'
 import { formatDateTime, toISODate } from '../../lib/formatters'
 import { RISK_OPTIONS, SOAP_FIELDS, isSessionNoteSavable, payloadFromForm, type SessionNoteForm } from './sessionNotes'
@@ -62,6 +62,8 @@ const props = defineProps<{
   appointments: SessionAppointmentOption[]
   saving: boolean
   isEditing: boolean
+  /** Nota nueva abierta desde una cita: toma la fecha de esa cita cuando la lista de citas termina de cargar. */
+  syncDate?: boolean
 }>()
 
 const emit = defineEmits<{ save: [payload: SessionNotePayload]; cancel: [] }>()
@@ -82,6 +84,13 @@ const appointmentOptions = computed(() => [
 ])
 
 const canSave = computed(() => isSessionNoteSavable(form))
+
+// Las citas se piden solo al abrir el formulario, así que llegan después del primer render.
+watch(() => props.appointments, list => {
+  if (!props.syncDate || !form.appointment_id) return
+  const appt = list.find(a => a.id === form.appointment_id)
+  if (appt?.start_time) form.session_date = toISODate(appt.start_time)
+}, { immediate: true })
 
 function onAppointmentChange(id: string) {
   form.appointment_id = id

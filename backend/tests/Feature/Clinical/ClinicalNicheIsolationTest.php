@@ -14,7 +14,7 @@ use Tests\TestCase;
  */
 class ClinicalNicheIsolationTest extends TestCase
 {
-    private const CLINICAL = ['clinical.intake', 'clinical.session_notes', 'clinical.treatment_plan', 'clinical.consent', 'clinical.assessments'];
+    private const CLINICAL = ['clinical.intake', 'clinical.session_notes', 'clinical.treatment_plan', 'clinical.consent', 'clinical.assessments', 'clinical.reports', 'clinical.followup', 'clinical.audit', 'clinical.cases', 'clinical.attachments', 'clinical.diagrams'];
 
     private function runCapability(string $niche, string $capability): int
     {

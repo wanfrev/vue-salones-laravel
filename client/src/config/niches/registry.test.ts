@@ -134,7 +134,7 @@ describe('isDentalNiche()', () => {
 })
 
 describe('psicologia niche', () => {
-  const CLINICAL = ['clinical.intake', 'clinical.session_notes', 'clinical.treatment_plan', 'clinical.consent', 'clinical.assessments']
+  const CLINICAL = ['clinical.intake', 'clinical.session_notes', 'clinical.treatment_plan', 'clinical.consent', 'clinical.assessments', 'clinical.reports', 'clinical.followup', 'clinical.audit', 'clinical.cases', 'clinical.attachments', 'clinical.diagrams']
 
   it('declares the whole clinical.* module and nothing from dental/staffing', () => {
     expect([...getNiche('psicologia').capabilities]).toEqual(CLINICAL)

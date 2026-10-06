@@ -189,9 +189,18 @@ export const NICHES: Record<string, NicheDefinition> = {
         { key: 'referred_by', label: 'Referido por', type: 'input', placeholder: 'Médico, familiar, institución... (opcional)' },
         { key: 'previous_therapy', label: '¿Ha recibido terapia antes?', type: 'select', options: YES_NO_OPTIONS },
         { key: 'current_medications', label: 'Medicación actual', type: 'textarea', placeholder: 'Medicamentos que toma actualmente, si aplica...' },
+        // Menores de edad: tutor o representante legal. Colapsado para quien atiende solo adultos.
+        {
+          key: 'guardian_name', label: 'Nombre del tutor', type: 'input', placeholder: 'Madre, padre o representante legal',
+          collapsibleGroup: 'guardian', collapsibleGroupLabel: 'Agregar datos del tutor (menores de edad)',
+        },
+        { key: 'guardian_relationship', label: 'Parentesco', type: 'input', placeholder: 'Ej: Madre, padre, tutor legal', collapsibleGroup: 'guardian' },
+        { key: 'guardian_document', label: 'Documento del tutor', type: 'input', placeholder: 'Cédula o pasaporte', collapsibleGroup: 'guardian' },
+        { key: 'guardian_phone', label: 'Teléfono del tutor', type: 'input', placeholder: '0414-0000000', collapsibleGroup: 'guardian' },
+        { key: 'guardian_share_info', label: '¿Se puede entregar información al tutor?', type: 'select', options: YES_NO_OPTIONS, collapsibleGroup: 'guardian' },
       ],
     },
-    capabilities: ['clinical.intake', 'clinical.session_notes', 'clinical.treatment_plan', 'clinical.consent', 'clinical.assessments'],
+    capabilities: ['clinical.intake', 'clinical.session_notes', 'clinical.treatment_plan', 'clinical.consent', 'clinical.assessments', 'clinical.reports', 'clinical.followup', 'clinical.audit', 'clinical.cases', 'clinical.attachments', 'clinical.diagrams'],
     // Mirror of config/niches.php. Sin inventario/proveedores/gift cards por defecto; `productos`
     // se deja prendido porque el POS lee el catálogo. El valor guardado por superadmin gana.
     featureDefaults: {

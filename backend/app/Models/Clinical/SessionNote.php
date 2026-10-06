@@ -20,7 +20,7 @@ class SessionNote extends Model
     protected $table = 'clinical_session_notes';
 
     protected $fillable = [
-        'id', 'business_id', 'branch_id', 'client_id', 'appointment_id', 'created_by',
+        'id', 'business_id', 'branch_id', 'client_id', 'appointment_id', 'case_id', 'created_by',
         'session_number', 'session_date', 'duration_minutes', 'risk_level', 'mood_rating',
         'content', 'tasks',
     ];

@@ -19,7 +19,7 @@ class TreatmentPlan extends Model
     protected $table = 'clinical_treatment_plans';
 
     protected $fillable = [
-        'id', 'business_id', 'branch_id', 'client_id', 'created_by',
+        'id', 'business_id', 'branch_id', 'client_id', 'case_id', 'created_by',
         'status', 'start_date', 'end_date', 'data',
     ];
 
