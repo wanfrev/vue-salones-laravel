@@ -54,6 +54,15 @@ return [
         // Deliberately separate from pos/productos — those default `true` for every niche purely
         // for nav visibility, so they can't signal that a business actually wants this experience.
         'retail_module_enabled' => false,
+        // Staffing extras — each one is opt-in per business (superadmin toggles it), off by
+        // default so no existing staffing business sees or does anything differently.
+        'staffing_receivables' => false,
+        'staffing_invoice_email' => false,
+        'staffing_pay_stubs' => false,
+        'staffing_doc_expiry' => false,
+        'staffing_commissions' => false,
+        'staffing_profitability' => false,
+        'staffing_assignment_history' => false,
         // Real product variants (structured attributes like Talla/Color) instead of the old
         // free-text-only product_variants.name. Default true — additive, no existing behaviour
         // depends on this being off.

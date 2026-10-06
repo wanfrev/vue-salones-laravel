@@ -517,6 +517,71 @@ class StaffingReportService
     }
 
     /**
+     * Margin compared across companies and roles, from approved/paid weeks only — draft weeks are
+     * still estimates and would make the comparison wobble. Two grouped queries over the already
+     * persisted per-entry numbers; nothing is recalculated here.
+     *
+     * @return array{totals: array<string, float|null>, byCompany: list<array<string, mixed>>, byRole: list<array<string, mixed>>}
+     */
+    public function profitabilityForPeriod(string $businessId, string $periodStart, string $periodEnd): array
+    {
+        $base = fn () => DB::table('staffing_timesheet_entries as ste')
+            ->join('staffing_timesheets as st', 'st.id', '=', 'ste.timesheet_id')
+            ->where('st.business_id', $businessId)
+            ->whereIn('st.status', [StaffingTimesheet::STATUS_APPROVED, StaffingTimesheet::STATUS_PAID])
+            ->whereBetween('st.week_start', [$periodStart, $periodEnd]);
+
+        $sums = 'SUM(ste.total_hours) as hours, SUM(ste.invoice_total) as revenue, SUM(ste.employer_cost) as cost, SUM(ste.margin) as margin';
+
+        $shape = function ($r): array {
+            $revenue = (float) $r->revenue;
+            $hours = (float) $r->hours;
+            return [
+                'label' => $r->label,
+                'hours' => round($hours, 2),
+                'revenue' => round($revenue, 2),
+                'cost' => round((float) $r->cost, 2),
+                'margin' => round((float) $r->margin, 2),
+                'marginPct' => $revenue > 0 ? round(((float) $r->margin / $revenue) * 100, 1) : null,
+                'marginPerHour' => $hours > 0 ? round((float) $r->margin / $hours, 2) : null,
+            ];
+        };
+
+        $byCompany = $base()
+            ->join('staffing_companies as c', 'c.id', '=', 'st.company_id')
+            ->groupBy('c.id', 'c.name')
+            ->selectRaw("c.id as id, c.name as label, {$sums}")
+            ->orderByDesc(DB::raw('SUM(ste.margin)'))
+            ->get()
+            ->map(fn ($r) => ['id' => $r->id] + $shape($r))
+            ->all();
+
+        $byRole = $base()
+            ->groupBy(DB::raw("COALESCE(NULLIF(ste.role, ''), 'Sin rol')"))
+            ->selectRaw("COALESCE(NULLIF(ste.role, ''), 'Sin rol') as label, {$sums}")
+            ->orderByDesc(DB::raw('SUM(ste.margin)'))
+            ->get()
+            ->map($shape)
+            ->all();
+
+        $totals = collect($byCompany);
+        $revenue = (float) $totals->sum('revenue');
+        $margin = (float) $totals->sum('margin');
+
+        return [
+            'totals' => [
+                'hours' => round((float) $totals->sum('hours'), 2),
+                'revenue' => round($revenue, 2),
+                'cost' => round((float) $totals->sum('cost'), 2),
+                'margin' => round($margin, 2),
+                'marginPct' => $revenue > 0 ? round(($margin / $revenue) * 100, 1) : null,
+            ],
+            'byCompany' => $byCompany,
+            'byRole' => $byRole,
+        ];
+    }
+
+    /**
      * @return array{entities: list<array>, employees: list<array>}
      */
     public function annualTaxReport(string $businessId, int $year): array

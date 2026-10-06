@@ -519,6 +519,9 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::delete('/staffing-invoices/{id}', [StaffingInvoiceController::class, 'destroy']);
         Route::get('/staffing-invoices/{id}/download-xlsx', [StaffingInvoiceController::class, 'downloadXlsx']);
         Route::get('/staffing-companies/{companyId}/balance', [StaffingInvoiceController::class, 'balance']);
+        // Opt-in (`staffing_receivables`): purely a new read-only report, nothing above changes.
+        Route::get('/staffing-receivables/aging', [StaffingInvoiceController::class, 'receivablesAging'])
+            ->middleware('feature:staffing_receivables');
 
         Route::get('/staffing-company-payments', [StaffingCompanyPaymentController::class, 'index']);
         Route::post('/staffing-company-payments', [StaffingCompanyPaymentController::class, 'store']);
@@ -540,6 +543,8 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         // Finanzas > Resumen for staffing: invoiced-hours/employer-cost/margin summary, plus the
         // manual income entries that sit alongside it.
         Route::get('/staffing-reports/finance-summary', [StaffingReportController::class, 'financeSummary']);
+        Route::get('/staffing-reports/profitability', [StaffingReportController::class, 'profitability'])
+            ->middleware('feature:staffing_profitability');
         Route::get('/staffing-manual-incomes', [StaffingManualIncomeController::class, 'index']);
         Route::post('/staffing-manual-incomes', [StaffingManualIncomeController::class, 'store']);
         Route::delete('/staffing-manual-incomes/{id}', [StaffingManualIncomeController::class, 'destroy']);

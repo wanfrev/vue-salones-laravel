@@ -75,14 +75,22 @@
               — {{ filteredEmployees.length }} coincidentes
             </span>
           </div>
-          <div class="relative">
-            <MagnifierIcon class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
-            <input
-              v-model="employeeSearch"
-              type="text"
-              placeholder="Buscar empleado..."
-              class="w-40 rounded-lg border border-border bg-surface py-1.5 pl-8 pr-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-48"
-            />
+          <div class="flex flex-wrap items-center gap-2">
+            <button v-if="!isReadOnly" type="button"
+              class="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
+              title="Copia horas, deducciones y fees de la semana anterior (no guarda hasta que presiones Guardar y calcular)"
+              @click="copyPreviousWeek">
+              Copiar semana anterior
+            </button>
+            <div class="relative">
+              <MagnifierIcon class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+              <input
+                v-model="employeeSearch"
+                type="text"
+                placeholder="Buscar empleado..."
+                class="w-40 rounded-lg border border-border bg-surface py-1.5 pl-8 pr-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-48"
+              />
+            </div>
           </div>
         </div>
 
@@ -141,6 +149,11 @@
                       <p class="text-xs text-text-muted">
                         {{ employee.staffing_role || 'Sin rol' }}<template v-if="employee.staffing_shift"> · {{ shiftLabel(employee.staffing_shift) }}</template>
                       </p>
+                      <button v-if="payStubsEnabled && canPrintStub(employee)" type="button"
+                        class="mt-0.5 text-[10px] font-semibold text-primary hover:underline"
+                        @click="handlePrintPayStubs([employee])">
+                        Talón de pago
+                      </button>
                         </div>
                       </div>
                     </td>
@@ -251,6 +264,12 @@
           @click="handlePrintPayroll">
           Imprimir nómina
         </button>
+        <button v-if="payStubsEnabled && currentWeek" type="button"
+          class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
+          title="Un talón por empleado con las horas ya guardadas"
+          @click="handlePrintPayStubs(filteredEmployees)">
+          Imprimir talones
+        </button>
         <button v-if="currentWeek" type="button" :disabled="isDownloadingPayroll"
           class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
           @click="handleDownloadPayrollXlsx">
@@ -354,6 +373,8 @@ import { FormSearchSelect } from '../../components/forms'
 import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
 import { printStaffingPayroll } from '../../lib/staffingPayrollPrint'
 import { formatDateUS, toISODate } from '../../lib/formatters'
+import { previousWeekStart, copyableFieldsFrom } from '../../lib/staffingCopyWeek'
+import { buildPayStub, printStaffingPayStubs } from '../../lib/staffingPayStub'
 import type { StaffingTimesheetEntry, Profile } from '../../types/database'
 import { MagnifierIcon, PenIcon } from '@solar-icons/vue/linear'
 import GenerateInvoiceModal from './GenerateInvoiceModal.vue'
@@ -847,6 +868,40 @@ const handleSave = async () => {
   await timesheets.save(weekStartInput.value, weekEnd.value, entries)
 }
 
+const hasTypedValues = computed(() =>
+  Object.values(grid.value).some(r => r.totalHours || r.preTaxDeduction || r.fixedFees || r.manualRegularHours || r.manualOvertimeHours),
+)
+
+/** Fills the grid from last week's saved sheet — only matching rows (employee+role+shift), and
+ *  never an inactive one (they can't take new hours). Nothing is saved until "Guardar y calcular". */
+const copyPreviousWeek = () => {
+  const prev = timesheets.findWeek(previousWeekStart(weekStartInput.value))
+  if (!prev || prev.entries.length === 0) {
+    showError('No hay horas guardadas en la semana anterior para copiar.')
+    return
+  }
+  if (hasTypedValues.value && !window.confirm('Esto reemplazará las horas, deducciones y fees que ya escribiste en esta semana. ¿Continuar?')) return
+
+  const byKey = new Map(prev.entries.map(e => [`${e.employee_id}::${e.role ?? ''}::${e.shift ?? ''}`, e]))
+  const next = { ...grid.value }
+  let copied = 0
+  let skippedInactive = 0
+  for (const employee of rosterEmployees.value) {
+    const entry = byKey.get(rowKey(employee))
+    if (!entry) continue
+    if (isInactive(employee)) { skippedInactive++; continue }
+    next[rowKey(employee)] = { ...(next[rowKey(employee)] ?? emptyRow()), ...copyableFieldsFrom(entry) }
+    copied++
+  }
+  grid.value = next
+
+  if (copied === 0) {
+    showError('Ningún empleado de la semana anterior coincide con esta lista.')
+    return
+  }
+  success(`Se copiaron ${copied} fila${copied === 1 ? '' : 's'} de la semana anterior${skippedInactive ? ` (${skippedInactive} inactivo${skippedInactive === 1 ? '' : 's'} omitido${skippedInactive === 1 ? '' : 's'})` : ''}. Revisa y guarda.`)
+}
+
 const handleApprove = async () => {
   if (currentWeek.value) await timesheets.approve(currentWeek.value.id)
 }
@@ -966,6 +1021,55 @@ const handlePrintPayroll = () => {
     statusLabel: statusLabel.value,
     rows: printRows,
   })
+}
+
+// Opt-in (`staffing_pay_stubs`): off = no button anywhere, Nómina looks exactly as before.
+const payStubsEnabled = computed(() => !!businessStore.features.staffing_pay_stubs)
+
+/** A stub only prints from SAVED numbers — an unsaved edit would put estimates on a worker's paper. */
+const canPrintStub = (employee: RosterEmployee): boolean => !!resultFor(employee) && !isDirty(employee)
+
+const handlePrintPayStubs = (employees: RosterEmployee[]) => {
+  const company = activeCompany.value
+  if (!company) return
+
+  const printable = employees.filter(canPrintStub)
+  if (printable.length === 0) {
+    showError('Guarda la semana primero: los talones se imprimen solo con horas ya guardadas.')
+    return
+  }
+
+  const stubs = printable.map(employee => {
+    const e = resultFor(employee)!
+    return buildPayStub({
+      employeeName: employee.full_name,
+      role: [employee.staffing_role, shiftLabel(employee.staffing_shift)].filter(Boolean).join(' · '),
+      regularHours: e.regular_hours,
+      overtimeHours: e.overtime_hours,
+      payRate: e.pay_rate,
+      preTaxDeduction: e.pre_tax_deduction,
+      fixedFees: e.fixed_fees,
+      adjustment: e.adjustment,
+      perdiemTotal: e.perdiem_total,
+      travelTotal: e.travel_total,
+      gross: e.gross,
+      taxWithheld: e.tax_withheld,
+      net: e.net,
+      payout: e.payout,
+    })
+  })
+
+  printStaffingPayStubs({
+    agencyName: businessStore.business?.name || 'Delta Work Force',
+    companyName: company.name,
+    projectName: (projects.value ?? []).find(p => p.id === selectedProjectId.value)?.name ?? null,
+    weekStart: weekStartInput.value,
+    weekEnd: weekEnd.value,
+    stubs,
+  })
+  if (printable.length < employees.length) {
+    showError(`${employees.length - printable.length} empleado(s) sin guardar se omitieron del talón.`)
+  }
 }
 
 const handlePrintInvoice = async () => {

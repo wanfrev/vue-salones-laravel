@@ -56,7 +56,10 @@
                 <span v-else class="text-text-muted">General</span>
               </td>
               <td class="px-3 py-2 text-text-secondary">{{ formatDateUS(invoice.issue_date.slice(0, 10)) }}</td>
-              <td class="px-3 py-2 text-text-secondary">{{ formatDateUS(invoice.due_date.slice(0, 10)) }}</td>
+              <td class="px-3 py-2 text-text-secondary">
+                {{ formatDateUS(invoice.due_date.slice(0, 10)) }}
+                <span v-if="isOverdue(invoice)" class="ml-1 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger">Vencida</span>
+              </td>
               <td class="px-3 py-2 text-right tabular-nums text-text">{{ formatUSD(invoice.total) }}</td>
               <td class="px-3 py-2">
                 <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="statusClass(invoice.status)">
@@ -164,7 +167,7 @@ import { useBusinessStore } from '../../store/business'
 import { useBilling } from '../../composables/staffing/useBilling'
 import { getStaffingInvoice } from '../../services/staffing/staffingService'
 import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
-import { formatDateUS } from '../../lib/formatters'
+import { formatDateUS, toISODate } from '../../lib/formatters'
 import type { StaffingCompanyPaymentFormData } from '../../services/staffing/staffingService'
 
 const inputClass =
@@ -195,6 +198,12 @@ const filteredInvoices = computed(() => {
   if (projectFilter.value === '__general__') return invoices.filter(i => !i.project_id)
   return invoices.filter(i => i.project_id === projectFilter.value)
 })
+
+/** Opt-in (`staffing_receivables`) "Vencida" badge: past due date and not fully paid. Off by default. */
+const isOverdue = (invoice: { due_date: string; status: string }): boolean =>
+  !!businessStore.features.staffing_receivables
+  && invoice.status !== 'paid'
+  && invoice.due_date.slice(0, 10) < toISODate(new Date())
 
 const statusClass = (status: string) => ({
   sent: 'bg-warning/10 text-warning',

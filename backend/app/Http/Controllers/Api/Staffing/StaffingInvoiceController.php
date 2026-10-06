@@ -111,6 +111,16 @@ class StaffingInvoiceController
         return response()->json($this->invoices->balanceForCompany($p->business_id, $companyId));
     }
 
+    public function receivablesAging(Request $request): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        }
+
+        return response()->json($this->invoices->receivablesAging($p->business_id));
+    }
+
     public function downloadXlsx(Request $request, string $id): StreamedResponse|JsonResponse
     {
         $p = $request->user()?->load('profile')?->profile;

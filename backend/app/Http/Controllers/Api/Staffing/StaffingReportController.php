@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Staffing;
 
 use App\Services\Staffing\StaffingReportService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -135,6 +136,29 @@ class StaffingReportController
 
         return response()->json(
             $this->reports->financeSummaryForPeriod($p->business_id, $data['period_start'], $data['period_end'])
+        );
+    }
+
+    /** Opt-in (`staffing_profitability`): margin compared across companies and roles for a date range. */
+    public function profitability(Request $request): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json(['totals' => null, 'byCompany' => [], 'byRole' => []]);
+        }
+
+        $data = $request->validate([
+            'period_start' => 'required|date',
+            'period_end' => 'required|date|after_or_equal:period_start',
+        ]);
+
+        // A year at most — same bounded-range rule every historical query here follows.
+        if (Carbon::parse($data['period_start'])->diffInDays(Carbon::parse($data['period_end'])) > 366) {
+            return response()->json(['error' => ['message' => 'El rango máximo es de un año.']], 422);
+        }
+
+        return response()->json(
+            $this->reports->profitabilityForPeriod($p->business_id, $data['period_start'], $data['period_end'])
         );
     }
 
