@@ -1,13 +1,5 @@
 <template>
-  <section v-if="hasAccess" class="mb-6 no-print">
-    <div class="mb-3 flex items-end justify-between gap-3">
-      <div>
-        <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">Atención psicológica</p>
-        <h2 class="mt-1 text-lg font-bold text-text">Expediente clínico</h2>
-      </div>
-      <span class="hidden text-xs text-text-muted sm:block">Accesos rápidos del expediente</span>
-    </div>
-
+  <div v-if="hasAccess">
     <div v-if="riskAlerts.length > 0" class="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-danger/40 bg-danger/5 px-3 py-2">
       <DangerTriangleIcon class="h-4 w-4 shrink-0 text-danger" />
       <span
@@ -20,7 +12,7 @@
     <!-- Mismo nav que usa el shell dentro del expediente — íconos y puntos de "tiene datos"
          idénticos aquí y allá. -->
     <DentalToolsNav :tabs="navTabs" model-value="" @update:model-value="goToTab" />
-  </section>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -31,9 +23,11 @@ import { useClinicalToolsNavTabs } from '../../composables/clinical/useClinicalT
 import DentalToolsNav from '../dental/DentalToolsNav.vue'
 
 /**
- * Bloque de acceso rápido al expediente clínico para la ficha del paciente (ClienteHistorial /
- * EmployeeClienteHistorial). Se renderiza solo con `v-if` del nicho clínico; además se oculta
- * solo si el usuario no tiene permiso de expediente (p. ej. recepción).
+ * Herramientas del expediente clínico (alertas de riesgo + accesos a las 5 pestañas) para la ficha
+ * del paciente (ClienteHistorial / EmployeeClienteHistorial), dentro del mismo bloque
+ * "Herramientas clínicas" que usa odontología. El encabezado lo pone el padre; aquí solo va el
+ * contenido. Se renderiza solo con `v-else-if="isClinicalNiche"`, y se oculta por sí mismo para
+ * quien no tenga permiso de expediente (p. ej. recepción).
  */
 const route = useRoute()
 const router = useRouter()

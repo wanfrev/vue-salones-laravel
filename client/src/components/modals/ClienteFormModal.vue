@@ -156,7 +156,7 @@ import ModalBase from '../common/ModalBase.vue'
 import { FormInput, FormTextarea } from '../forms'
 import NicheFields from '../clients/NicheFields.vue'
 import { getNicheConfig, isPetNiche, isVetNiche } from '../../config/nicheFields'
-import { isDentalNiche } from '../../config/niches'
+import { isPatientNiche } from '../../config/niches'
 import { listPetsByClient } from '../../services/petService'
 
 const MODAL_ID = 'cliente-form-modal'
@@ -212,7 +212,7 @@ const nicheConfig = computed(() => getNicheConfig(nicheType.value))
 
 const isPet = computed(() => isPetNiche(nicheType.value))
 const isVet = computed(() => isVetNiche(nicheType.value))
-const isDental = computed(() => isDentalNiche(nicheType.value))
+const isDental = computed(() => isPatientNiche(nicheType.value))
 
 function birthdayDisplay(value: string | undefined): string {
   if (!value) return ''

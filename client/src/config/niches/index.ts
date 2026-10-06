@@ -45,6 +45,17 @@ export function isClinicalNiche(nicheType?: string | null): boolean {
 }
 
 /**
+ * Niches that treat people as *pacientes* with a clinical record: odontología (dental.*) and the
+ * shared clinical module (psicologia). Use it for what they share — terminology-driven labels
+ * ("Expediente", "Estado de cuenta"), "Cita rápida", the solo-professional agenda column — and keep
+ * isDentalNiche()/isClinicalNiche() for anything specific to one of them (odontograma, sala de
+ * espera, expediente tabs).
+ */
+export function isPatientNiche(nicheType?: string | null): boolean {
+  return isDentalNiche(nicheType) || isClinicalNiche(nicheType)
+}
+
+/**
  * True for a "pure" tienda business, and also for any other niche that's had the retail module
  * explicitly turned on for it (features.retail_module_enabled) — e.g. a spa business that also
  * sells retail products. Deliberately NOT based on features.pos/productos alone: those two

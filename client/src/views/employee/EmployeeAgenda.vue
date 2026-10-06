@@ -3,7 +3,7 @@
     <template #header-actions>
       <div class="flex items-center gap-1 sm:gap-2">
         <button
-          v-if="isDentalNiche"
+          v-if="isPatientNiche"
           @click="quickCitaModalRef?.open()"
           aria-label="Cita rápida"
           title="Buscar por nombre, teléfono o cédula y agendar en segundos"
@@ -76,7 +76,7 @@
     @delete="handleDeleteCita"
   />
   <QuickCitaModal
-    v-if="isDentalNiche"
+    v-if="isPatientNiche"
     ref="quickCitaModalRef"
     :servicios="serviciosList"
     :empleados="empleadosList"
@@ -90,7 +90,7 @@ import { AddCircleIcon, LinkIcon, BoltIcon } from '@solar-icons/vue/linear'
 import { useQuery } from '@tanstack/vue-query'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
-import { isDentalNiche as checkDentalNiche } from '../../config/niches'
+import { isPatientNiche as checkPatientNiche } from '../../config/niches'
 import { useAppointmentMutations } from '../../composables/agenda/useAppointmentMutations'
 import { useNotification } from '../../composables/common/useNotification'
 import { listServicios, serviciosKeys } from '../../services/serviciosService'
@@ -107,7 +107,7 @@ const businessStore = useBusinessStore()
 
 const t = computed(() => businessStore.terminology)
 const businessId = computed(() => authStore.businessId)
-const isDentalNiche = computed(() => checkDentalNiche(businessStore.nicheType))
+const isPatientNiche = computed(() => checkPatientNiche(businessStore.nicheType))
 
 const citaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
 const quickCitaModalRef = ref<InstanceType<typeof QuickCitaModal> | null>(null)

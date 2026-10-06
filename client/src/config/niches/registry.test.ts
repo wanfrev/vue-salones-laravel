@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getNicheConfig, isPetNiche, isVetNiche, isDentalNiche, isClinicalNiche, getNiche, resolveFeatures, resolveTerminology, creatableIds } from './index'
+import { getNicheConfig, isPetNiche, isVetNiche, isDentalNiche, isClinicalNiche, isPatientNiche, getNiche, resolveFeatures, resolveTerminology, creatableIds } from './index'
 
 // Equivalence table against the pre-registry behaviour of nicheFields.ts:
 //   isPetNiche(x)    === ['dog_spa','vet'].includes(x)
@@ -178,6 +178,30 @@ describe('psicologia niche', () => {
 
   it('lets a stored (superadmin) value re-enable a defaulted-off feature', () => {
     expect(resolveFeatures('psicologia', { inventario: true }).inventario).toBe(true)
+  })
+})
+
+describe('isPatientNiche()', () => {
+  it('is true for odontologia and psicologia only — the niches that treat people as pacientes', () => {
+    expect(isPatientNiche('odontologia')).toBe(true)
+    expect(isPatientNiche('psicologia')).toBe(true)
+    for (const id of creatableIds().filter(id => id !== 'odontologia' && id !== 'psicologia')) {
+      expect(isPatientNiche(id)).toBe(false)
+    }
+    expect(isPatientNiche(undefined)).toBe(false)
+    expect(isPatientNiche(null)).toBe(false)
+    expect(isPatientNiche('Negocios')).toBe(false)
+  })
+
+  it('both patient niches use the same patient terminology; the rest keep "Cliente"', () => {
+    for (const id of ['odontologia', 'psicologia']) {
+      const t = resolveTerminology(id, undefined)
+      expect(t.client).toBe('Paciente')
+      expect(t.clientPlural).toBe('Pacientes')
+      expect(t.history).toBe('Historia clínica')
+    }
+    expect(resolveTerminology('salon', undefined).client).toBe('Cliente')
+    expect(resolveTerminology('staffing', undefined).client).toBe('Cliente')
   })
 })
 
