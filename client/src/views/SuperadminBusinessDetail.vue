@@ -137,6 +137,23 @@
             </div>
           </div>
 
+          <!-- Extras opcionales de Staffing -->
+          <div v-if="business.niche_type === 'staffing'" class="mb-4">
+            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Staffing — extras opcionales</p>
+            <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
+              <label v-for="ft in staffingExtraFlags" :key="ft.key" class="flex cursor-pointer items-center justify-between gap-3 px-4 py-3 hover:bg-bg-secondary/30 transition-colors">
+                <div>
+                  <p class="text-sm font-medium text-text">{{ ft.label }}</p>
+                  <p class="text-[11px] text-text-muted">{{ ft.description }}</p>
+                </div>
+                <button type="button" :disabled="isTogglingFeature" @click="toggleFeature(ft.key)"
+                  :class="['relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors', features[ft.key] ? 'bg-primary' : 'bg-border']">
+                  <span :class="['inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform', features[ft.key] ? 'translate-x-4.5' : 'translate-x-0.5']" />
+                </button>
+              </label>
+            </div>
+          </div>
+
           <!-- Comunicación y reservas -->
           <div>
             <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Comunicación y reservas</p>
@@ -415,11 +432,19 @@ const allFlags = [
   { key: 'enable_public_booking', label: 'Reservas públicas', description: 'Links de reserva e invitaciones para clientes' },
   { key: 'whatsapp_available', label: 'WhatsApp', description: 'Configurar WhatsApp via Evolution API con QR' },
   { key: 'hide_client_phone_from_employees', label: 'Ocultar datos a empleados', description: 'Empleados no ven teléfono ni email de clientes' },
+  { key: 'staffing_receivables', label: 'Cuentas por cobrar con antigüedad', description: 'Vencimiento por empresa (net 15/30) y reporte 30/60/90 días. Apagado = Nómina y facturas funcionan igual que hoy' },
+  { key: 'staffing_invoice_email', label: 'Enviar factura por correo', description: 'Botón para enviar la factura al cliente por correo y recordatorios de cobro' },
+  { key: 'staffing_pay_stubs', label: 'Talón de pago', description: 'Comprobante imprimible de bruto, retención, deducciones y neto por empleado' },
+  { key: 'staffing_doc_expiry', label: 'Vencimiento de documentos', description: 'Fecha de vencimiento opcional en documentos de empleados y alertas' },
+  { key: 'staffing_commissions', label: 'Comisiones de vendedoras', description: 'Cálculo de comisión por cliente cerrado o por horas facturadas' },
+  { key: 'staffing_profitability', label: 'Rentabilidad comparativa', description: 'Vista de margen por empresa, rol y vendedora' },
+  { key: 'staffing_assignment_history', label: 'Historial de asignaciones', description: 'Fecha de inicio y fin de cada asignación empleado-empresa' },
 ]
 
 const scheduleFlags = computed(() => allFlags.filter(f => ['agenda', 'calendario', 'servicios'].includes(f.key)))
 const coreModules = computed(() => allFlags.filter(f => ['pos', 'inventario', 'productos', 'proveedores', 'retail_module_enabled'].includes(f.key)))
 const managementFlags = computed(() => allFlags.filter(f => ['employees_create_clients', 'employees_see_clients', 'gift_cards', 'manual_reports', 'multi_branch'].includes(f.key)))
+const staffingExtraFlags = computed(() => allFlags.filter(f => f.key.startsWith('staffing_')))
 const commFlags = computed(() => allFlags.filter(f => ['enable_public_booking', 'whatsapp_available', 'hide_client_phone_from_employees'].includes(f.key)))
 
 const isTogglingFeature = ref(false)

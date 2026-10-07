@@ -5,6 +5,7 @@ namespace App\Services\Staffing;
 use App\Models\StaffingCompanyPayment;
 use App\Models\StaffingInvoice;
 use App\Models\StaffingTimesheet;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -144,6 +145,39 @@ class StaffingInvoiceService
             'paid' => $paid,
             'pending' => max(0.0, $invoiced - $paid),
         ];
+    }
+
+    /**
+     * Accounts receivable by age (opt-in report, `staffing_receivables` flag). Two grouped queries —
+     * what's been applied to each invoice and what each company paid on account — then the pure
+     * ReceivablesAging does the bucketing. Read-only: touches no invoice, payment or balance.
+     */
+    public function receivablesAging(string $businessId, ?CarbonImmutable $asOf = null): array
+    {
+        $appliedPerInvoice = DB::table('staffing_company_payments')
+            ->where('business_id', $businessId)
+            ->whereNotNull('invoice_id')
+            ->selectRaw('invoice_id, SUM(amount) as applied')
+            ->groupBy('invoice_id');
+
+        $invoices = DB::table('staffing_invoices as i')
+            ->join('staffing_companies as c', 'c.id', '=', 'i.company_id')
+            ->leftJoinSub($appliedPerInvoice, 'p', 'p.invoice_id', '=', 'i.id')
+            ->where('i.business_id', $businessId)
+            ->selectRaw('i.id, i.company_id, c.name as company_name, i.invoice_number, i.issue_date, i.due_date, i.total, COALESCE(p.applied, 0) as applied')
+            ->get()
+            ->map(fn ($r) => (array) $r)
+            ->all();
+
+        $onAccount = DB::table('staffing_company_payments')
+            ->where('business_id', $businessId)
+            ->whereNull('invoice_id')
+            ->selectRaw('company_id, SUM(amount) as total')
+            ->groupBy('company_id')
+            ->pluck('total', 'company_id')
+            ->all();
+
+        return ReceivablesAging::compute($invoices, $onAccount, $asOf ?? CarbonImmutable::today());
     }
 
     public function findForBusiness(string $id, string $businessId): StaffingInvoice

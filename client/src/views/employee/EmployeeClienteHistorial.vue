@@ -18,7 +18,7 @@
             Volver
           </button>
           <button
-            v-if="isDentalNiche"
+            v-if="isPatientNiche"
             @click="windowPrint"
             class="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-medium text-text-secondary transition-theme hover:bg-bg-secondary"
             title="Imprimir estado de cuenta"
@@ -48,7 +48,7 @@
 
     <!-- Only shown when printing — a plain header since the sidebar/nav are hidden by @media print.
          Odontología-only, same as the button that triggers it. -->
-    <div v-if="isDentalNiche" class="print-only mb-6">
+    <div v-if="isPatientNiche" class="print-only mb-6">
       <p class="text-lg font-bold text-text">{{ businessStore.business?.name || 'Estado de cuenta' }}</p>
       <p class="text-sm text-text-secondary">{{ cliente?.name }}<span v-if="!hidePhoneFromEmployee && cliente?.phone"> · {{ cliente.phone }}</span></p>
       <p class="text-xs text-text-muted">Emitido el {{ new Date().toLocaleDateString('es-VE') }}</p>
@@ -56,9 +56,11 @@
 
     <!-- Same nav (icons + "has data" dots) PatientDentalShell uses once inside the expediente —
          shared so opening a tool from here doesn't feel like a different app. -->
-    <section v-if="isDentalNiche" class="mb-4 no-print">
+    <section v-if="isPatientNiche" class="mb-4 no-print">
       <h3 class="mb-3 text-sm font-semibold text-text">Herramientas clínicas</h3>
-      <DentalToolsNav :tabs="navTabs" model-value="" @update:model-value="goToTab" />
+      <DentalToolsNav v-if="isDentalNiche" :tabs="navTabs" model-value="" @update:model-value="goToTab" />
+      <!-- Nicho psicologia: herramientas del módulo clinical.* (oculto para quien no tenga permiso de expediente). -->
+      <ClinicalToolsSection v-else-if="isClinicalNiche" />
     </section>
 
     <!-- Client Info Card -->
@@ -115,7 +117,7 @@
       </div>
 
       <div class="rounded-xl border border-border bg-surface p-4 shadow-sm">
-        <h3 class="mb-4 text-base font-semibold text-text">{{ isDentalNiche ? 'Estado de cuenta' : 'Resumen' }}</h3>
+        <h3 class="mb-4 text-base font-semibold text-text">{{ isPatientNiche ? 'Estado de cuenta' : 'Resumen' }}</h3>
         <div class="space-y-3">
           <div class="rounded-lg bg-bg-secondary p-3">
              <p class="text-xs text-text-muted">Total {{ (t.appointmentPlural || 'Citas').toLowerCase() }}</p>
@@ -125,7 +127,7 @@
             <p class="text-xs text-text-muted">Gasto total</p>
             <p class="text-lg font-bold text-text">${{ totalGasto }}</p>
           </div>
-          <template v-if="isDentalNiche">
+          <template v-if="isPatientNiche">
             <div class="rounded-lg bg-success/10 p-3">
               <p class="text-xs text-text-muted">Total pagado</p>
               <p class="text-lg font-bold text-success">${{ totalPagado }}</p>
@@ -155,9 +157,10 @@ import { useBusinessStore } from '../../store/business'
 import { listCitas } from '../../services/agendaService'
 import { getClienteById } from '../../services/clientesService'
 import { isPetNiche as checkPetNiche } from '../../config/nicheFields'
-import { isDentalNiche as checkDentalNiche } from '../../config/niches'
+import { isDentalNiche as checkDentalNiche, isClinicalNiche as checkClinicalNiche, isPatientNiche as checkPatientNiche } from '../../config/niches'
 import { useDentalToolsNavTabs } from '../../composables/dental/useDentalToolsNavTabs'
 import DentalToolsNav from '../../components/dental/DentalToolsNav.vue'
+import ClinicalToolsSection from '../../components/clinical/ClinicalToolsSection.vue'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import type { Cliente } from '../../types/cliente'
 import { DocumentIcon, ArrowLeftIcon, CheckCircleIcon, PrinterIcon } from '@solar-icons/vue/linear'
@@ -171,6 +174,8 @@ const clienteId = computed(() => route.params.id as string)
 const businessId = computed(() => authStore.businessId)
 const isPetNiche = computed(() => checkPetNiche(businessStore.nicheType))
 const isDentalNiche = computed(() => checkDentalNiche(businessStore.nicheType))
+const isClinicalNiche = computed(() => checkClinicalNiche(businessStore.nicheType))
+const isPatientNiche = computed(() => checkPatientNiche(businessStore.nicheType))
 const { navTabs } = useDentalToolsNavTabs(() => clienteId.value, () => isDentalNiche.value)
 const t = computed(() => businessStore.terminology)
 const hidePhoneFromEmployee = computed(() => authStore.role === 'empleado' && businessStore.hasFeature('hide_client_phone_from_employees'))

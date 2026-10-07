@@ -3,10 +3,10 @@
     <div>
       <div class="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-primary">
         <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/10"><UserIcon class="h-3.5 w-3.5" /></span>
-        {{ isDentalNiche ? 'Directorio clínico' : 'Directorio de clientes' }}
+        {{ isPatientNiche ? 'Directorio clínico' : 'Directorio de clientes' }}
       </div>
       <h1 class="text-2xl font-bold tracking-tight text-text sm:text-3xl">{{ businessStore.terminology.clientPlural || 'Clientes' }}</h1>
-      <p class="mt-1 max-w-xl text-sm text-text-muted">{{ isDentalNiche ? 'Consulta perfiles, antecedentes y actividad de atención desde un solo lugar.' : 'Consulta perfiles, historial y actividad desde un solo lugar.' }}</p>
+      <p class="mt-1 max-w-xl text-sm text-text-muted">{{ isPatientNiche ? 'Consulta perfiles, antecedentes y actividad de atención desde un solo lugar.' : 'Consulta perfiles, historial y actividad desde un solo lugar.' }}</p>
     </div>
     <button @click="clienteModalRef?.open()" class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover">
       <AddCircleIcon class="h-4 w-4" />
@@ -21,7 +21,7 @@
     :clientes-sin-visitar="clientesSinVisitar"
     :days-since-visit-filter="daysSinceVisitFilter"
     :terminology="businessStore.terminology"
-    :is-dental="isDentalNiche"
+    :is-dental="isPatientNiche"
   />
 
   <section class="mb-5 rounded-2xl border border-border bg-surface p-3 shadow-sm sm:p-4">
@@ -83,7 +83,7 @@
             @click.stop="handleViewAgenda(client)"
             class="inline-flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/15"
           >
-            {{ isDentalNiche ? 'Abrir expediente' : 'Ver historial' }}
+            {{ isPatientNiche ? 'Abrir expediente' : 'Ver historial' }}
           </button>
           <button
             v-if="canEditClients"
@@ -112,7 +112,7 @@
   <div class="hidden lg:block">
     <div class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
       <div class="border-b border-border bg-bg-secondary/30 px-5 py-3">
-        <p class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">{{ isDentalNiche ? 'Expedientes registrados' : 'Clientes registrados' }}</p>
+        <p class="text-xs font-bold uppercase tracking-[0.16em] text-text-muted">{{ isPatientNiche ? 'Expedientes registrados' : 'Clientes registrados' }}</p>
       </div>
       <div class="overflow-x-auto">
       <table class="w-full">
@@ -120,8 +120,8 @@
           <tr class="border-b border-border bg-bg-secondary/20">
             <th class="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">{{ businessStore.terminology.client || 'Cliente' }}</th>
             <th class="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">Contacto</th>
-            <th class="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">{{ isDentalNiche ? 'Actividad clínica' : (businessStore.terminology.appointmentPlural || 'Citas') }}</th>
-            <th class="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">{{ isDentalNiche ? 'Identificación' : 'Gasto' }}</th>
+            <th class="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">{{ isPatientNiche ? 'Actividad clínica' : (businessStore.terminology.appointmentPlural || 'Citas') }}</th>
+            <th class="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">{{ isPatientNiche ? 'Identificación' : 'Gasto' }}</th>
             <th class="px-5 py-3 text-right text-[11px] font-bold uppercase tracking-wider text-text-muted">Acciones</th>
           </tr>
         </thead>
@@ -134,7 +134,7 @@
                 </div>
                 <div class="min-w-0">
                   <p class="truncate text-sm font-semibold text-text">{{ client.name }}</p>
-                  <p class="mt-0.5 text-xs text-text-muted">{{ isDentalNiche ? 'Paciente' : 'Cliente' }} desde {{ client.joinDate ? formatDateHuman(client.joinDate) : '—' }}</p>
+                  <p class="mt-0.5 text-xs text-text-muted">{{ isPatientNiche ? 'Paciente' : 'Cliente' }} desde {{ client.joinDate ? formatDateHuman(client.joinDate) : '—' }}</p>
                 </div>
               </div>
             </td>
@@ -147,7 +147,7 @@
               <div class="mt-0.5 text-xs text-text-muted">{{ client.totalAppointments || 0 }} {{ (businessStore.terminology.appointmentPlural || 'consultas').toLowerCase() }}</div>
             </td>
             <td class="px-5 py-4">
-              <template v-if="isDentalNiche">
+              <template v-if="isPatientNiche">
                 <div class="text-xs font-medium text-text-secondary">{{ client.documentId || client.code || 'Sin documento' }}</div>
                 <div v-if="client.medicalInsurance" class="mt-0.5 max-w-40 truncate text-xs text-text-muted">{{ client.medicalInsurance }}</div>
               </template>
@@ -155,7 +155,7 @@
             </td>
             <td class="px-5 py-4 text-right">
               <div class="flex items-center justify-end gap-1.5">
-                <button @click.stop="handleViewAgenda(client)" class="rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/15">{{ isDentalNiche ? 'Abrir expediente' : 'Ver historial' }}</button>
+                <button @click.stop="handleViewAgenda(client)" class="rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/15">{{ isPatientNiche ? 'Abrir expediente' : 'Ver historial' }}</button>
                 <button
                   v-if="canEditClients"
                   @click.stop="clienteModalRef?.open(client)"
@@ -260,7 +260,7 @@ import { useClientFilters } from '../composables/common/useClientFilters'
 import { useAuth } from '../composables/common/useAuth'
 import { useNotification } from '../composables/common/useNotification'
 import { useBusinessStore } from '../store/business'
-import { isDentalNiche as checkDentalNiche } from '../config/niches'
+import { isPatientNiche as checkPatientNiche } from '../config/niches'
 import { clientesKeys, deleteCliente, listClientes, saveCliente } from '../services/clientesService'
 import { getInitials, sanitizePhone, formatDateHuman } from '../lib/formatters'
 import ClientStats from '../components/clients/ClientStats.vue'
@@ -324,7 +324,7 @@ const {
 } = useClientFilters(clients)
 
 const label = computed(() => (businessStore.terminology.client || 'cliente').toLowerCase())
-const isDentalNiche = computed(() => checkDentalNiche(businessStore.nicheType))
+const isPatientNiche = computed(() => checkPatientNiche(businessStore.nicheType))
 const canEditClients = computed(() =>
   authStore.role !== 'encargado' || businessStore.hasFeature('encargados_edit_clients')
 )

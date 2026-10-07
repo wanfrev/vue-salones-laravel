@@ -46,6 +46,14 @@ export const DEFAULT_FEATURES = {
   // — those two default to `true` for every niche (see comment above) purely for nav visibility,
   // so they can't be used as a signal that a business actually wants the tienda experience.
   retail_module_enabled: false,
+  // Staffing extras — opt-in per business, off by default (mirror of backend/config/niches.php).
+  staffing_receivables: false,
+  staffing_invoice_email: false,
+  staffing_pay_stubs: false,
+  staffing_doc_expiry: false,
+  staffing_commissions: false,
+  staffing_profitability: false,
+  staffing_assignment_history: false,
   // Real product variants (structured attributes like Talla/Color) instead of the old
   // free-text-only product_variants.name. Default true — additive, no existing behaviour
   // depends on this being off.

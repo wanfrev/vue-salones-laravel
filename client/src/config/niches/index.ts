@@ -1,7 +1,7 @@
 export type { Capability, NicheConfig, NicheFieldConfig, NicheDefinition, NicheCopy } from './types'
 export {
   HAIR_TYPE_OPTIONS, BEARD_STYLE_OPTIONS, FADE_OPTIONS, HAIR_LENGTH_OPTIONS,
-  SKIN_TYPE_OPTIONS, MASSAGE_OPTIONS, PET_FIELDS, VET_EXTRA_FIELDS,
+  SKIN_TYPE_OPTIONS, MASSAGE_OPTIONS, PET_FIELDS, VET_EXTRA_FIELDS, YES_NO_OPTIONS,
 } from './fieldOptions'
 export { NICHES, UNKNOWN_NICHE, getNiche, creatableNiches, creatableIds } from './registry'
 export { resolveFeatures, resolveTerminology, DEFAULT_TERMINOLOGY } from './resolve'
@@ -32,6 +32,27 @@ export function isStaffingNiche(nicheType?: string | null): boolean {
 
 export function isDentalNiche(nicheType?: string | null): boolean {
   return nicheType === 'odontologia'
+}
+
+/**
+ * True for any niche running the shared clinical module (clinical.* capabilities) — today only
+ * `psicologia`. Capability-based on purpose, so a future health niche (psiquiatría, medicina
+ * general) gets the patient-record UI just by declaring the capability. Deliberately NOT true for
+ * odontología, which has its own dental.* module.
+ */
+export function isClinicalNiche(nicheType?: string | null): boolean {
+  return getNiche(nicheType).capabilities.includes('clinical.intake')
+}
+
+/**
+ * Niches that treat people as *pacientes* with a clinical record: odontología (dental.*) and the
+ * shared clinical module (psicologia). Use it for what they share — terminology-driven labels
+ * ("Expediente", "Estado de cuenta"), "Cita rápida", the solo-professional agenda column — and keep
+ * isDentalNiche()/isClinicalNiche() for anything specific to one of them (odontograma, sala de
+ * espera, expediente tabs).
+ */
+export function isPatientNiche(nicheType?: string | null): boolean {
+  return isDentalNiche(nicheType) || isClinicalNiche(nicheType)
 }
 
 /**

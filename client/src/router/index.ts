@@ -1,7 +1,52 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '../store/auth'
 import { useBusinessStore } from '../store/business'
 import { resolveNavigation } from './navigationGuard'
+
+// Pestañas del expediente clínico (nicho psicologia) — las mismas 9 en el árbol admin y en el de
+// empleado, así que se generan una vez. El empleado además lleva el flag de perfil de expediente
+// clínico (can_access_dental_clinical: flag genérico, reutilizado). Cada hija declara su propia
+// capability clinical.* — ningún otro nicho (ni odontología) las tiene, así que son inalcanzables.
+// Hijas de un caso (pareja/familia/grupo): mismas pestañas en admin y empleado. El genograma del caso
+// lleva además la capability clinical.diagrams.
+const caseChildren = (scope: 'admin' | 'employee'): RouteRecordRaw[] => {
+  const flag = scope === 'employee' ? { profileFlag: 'can_access_dental_clinical' as const } : {}
+  const tab = (path: string, view: () => Promise<unknown>, capability: string): RouteRecordRaw => ({
+    path,
+    name: `${scope}-caso-${path}`,
+    component: view,
+    meta: { gate: { capability, ...flag } },
+  } as RouteRecordRaw)
+  return [
+    { path: '', redirect: to => ({ path: `${to.path.replace(/\/$/, '')}/resumen`, query: to.query }) },
+    tab('resumen', () => import('../views/CaseSummaryView.vue'), 'clinical.cases'),
+    tab('sesiones', () => import('../views/CaseSessionsView.vue'), 'clinical.cases'),
+    tab('plan', () => import('../views/CasePlanView.vue'), 'clinical.cases'),
+    tab('genograma', () => import('../views/CaseGenogramView.vue'), 'clinical.diagrams'),
+  ]
+}
+
+const clinicalExpedienteChildren = (scope: 'admin' | 'employee'): RouteRecordRaw[] => {
+  const flag = scope === 'employee' ? { profileFlag: 'can_access_dental_clinical' as const } : {}
+  const tab = (path: string, name: string, view: () => Promise<unknown>, capability: string): RouteRecordRaw => ({
+    path,
+    name: `${scope}-cliente-clinica-${name}`,
+    component: view,
+    meta: { gate: { capability, ...flag } },
+  } as RouteRecordRaw)
+  return [
+    { path: '', redirect: to => ({ path: `${to.path.replace(/\/$/, '')}/historia`, query: to.query }) },
+    tab('historia', 'historia', () => import('../views/ClinicalIntakeView.vue'), 'clinical.intake'),
+    tab('sesiones', 'sesiones', () => import('../views/ClinicalSessionsView.vue'), 'clinical.session_notes'),
+    tab('plan', 'plan', () => import('../views/ClinicalPlanView.vue'), 'clinical.treatment_plan'),
+    tab('evaluaciones', 'evaluaciones', () => import('../views/ClinicalAssessmentsView.vue'), 'clinical.assessments'),
+    tab('consentimiento', 'consentimiento', () => import('../views/ClinicalConsentView.vue'), 'clinical.consent'),
+    tab('informes', 'informes', () => import('../views/ClinicalReportsView.vue'), 'clinical.reports'),
+    tab('adjuntos', 'adjuntos', () => import('../views/ClinicalAttachmentsView.vue'), 'clinical.attachments'),
+    tab('genograma', 'genograma', () => import('../views/ClinicalGenogramView.vue'), 'clinical.diagrams'),
+    tab('linea-de-vida', 'linea-de-vida', () => import('../views/ClinicalLifeLineView.vue'), 'clinical.diagrams'),
+  ]
+}
 
 const router = createRouter({
   history: createWebHistory(),
@@ -140,6 +185,35 @@ const router = createRouter({
       ],
     },
     {
+      // Expediente clínico del nicho psicologia — espejo en el árbol de empleado del de /admin.
+      path: '/dashboard/clientes/:id/expediente-clinico',
+      component: () => import('../views/employee/EmployeePatientClinicalShell.vue'),
+      // La ruta base (sin pestaña) también coincide y mostraría el shell con datos reales del
+      // paciente en otro nicho si no llevara su propio gate.
+      meta: { requiresAuth: true, gate: { feature: 'employees_see_clients', capability: 'clinical.intake', profileFlag: 'can_access_dental_clinical' } },
+      children: clinicalExpedienteChildren('employee'),
+    },
+    {
+      // Casos clínicos (pareja / familia / grupo) — espejo en el árbol de empleado del de /admin.
+      path: '/dashboard/casos',
+      name: 'employee-casos',
+      component: () => import('../views/employee/EmployeeClinicalCases.vue'),
+      meta: { requiresAuth: true, gate: { capability: 'clinical.cases', profileFlag: 'can_access_dental_clinical' } },
+    },
+    {
+      path: '/dashboard/casos/:caseId',
+      component: () => import('../views/employee/EmployeeCaseShell.vue'),
+      meta: { requiresAuth: true, gate: { capability: 'clinical.cases', profileFlag: 'can_access_dental_clinical' } },
+      children: caseChildren('employee'),
+    },
+    {
+      // Seguimiento clínico (nicho psicologia): notas pendientes, riesgo sin seguimiento, abandonos.
+      path: '/dashboard/seguimiento',
+      name: 'employee-seguimiento',
+      component: () => import('../views/employee/EmployeeClinicalFollowUp.vue'),
+      meta: { requiresAuth: true, gate: { capability: 'clinical.followup', profileFlag: 'can_access_dental_clinical' } },
+    },
+    {
       path: '/dashboard/pagos',
       name: 'employee-payments',
       component: () => import('../views/employee/EmployeePayments.vue'),
@@ -266,6 +340,39 @@ const router = createRouter({
               meta: { gate: { capability: 'dental.budget' } },
             },
           ],
+        },
+        {
+          // Expediente clínico del nicho psicologia (módulo clinical.*) — path distinto al de
+          // odontología (`expediente`) para que ambos subárboles sean independientes.
+          path: 'clientes/:id/expediente-clinico',
+          component: () => import('../components/clinical/PatientClinicalShell.vue'),
+          meta: { gate: { capability: 'clinical.intake' } },
+          children: clinicalExpedienteChildren('admin'),
+        },
+        {
+          path: 'casos',
+          name: 'admin-casos',
+          component: () => import('../views/ClinicalCasesView.vue'),
+          meta: { gate: { capability: 'clinical.cases' } },
+        },
+        {
+          path: 'casos/:caseId',
+          component: () => import('../components/clinical/CaseShell.vue'),
+          meta: { gate: { capability: 'clinical.cases' } },
+          children: caseChildren('admin'),
+        },
+        {
+          path: 'seguimiento',
+          name: 'admin-seguimiento',
+          component: () => import('../views/ClinicalFollowUpView.vue'),
+          meta: { gate: { capability: 'clinical.followup' } },
+        },
+        {
+          // Solo el administrador la consulta (lo impone también el API); el link del sidebar es strictAdminOnly.
+          path: 'auditoria-clinica',
+          name: 'admin-auditoria-clinica',
+          component: () => import('../views/ClinicalAuditView.vue'),
+          meta: { gate: { capability: 'clinical.audit' } },
         },
         {
           path: 'finanzas',

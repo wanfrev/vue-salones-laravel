@@ -1054,6 +1054,362 @@ export interface ClinicalHistory {
   updated_at: string
 }
 
+// ── Módulo clínico compartido (nicho psicologia) ──────────────────────────────────────────
+// Los campos `data`/`content` viajan cifrados en reposo en el backend; aquí ya vienen descifrados.
+
+export type ClinicalRiskLevel = 'none' | 'low' | 'moderate' | 'high'
+export type SuicidalIdeation = '' | 'ninguna' | 'pasiva' | 'activa'
+
+export interface ClinicalIntakeData {
+  consulta: { motivo: string; historia_problema: string; expectativas: string; derivado_por: string }
+  antecedentes: {
+    personales: string
+    familiares: string
+    psiquiatricos: string
+    tratamientos_previos: string
+    medicacion_actual: string
+    condiciones_medicas: string
+  }
+  areas: {
+    sueno: string
+    apetito: string
+    consumo_sustancias: string
+    vida_social: string
+    laboral_academico: string
+    pareja_familia: string
+  }
+  riesgo: {
+    ideacion_suicida: SuicidalIdeation
+    intentos_previos: boolean
+    autolesiones: boolean
+    riesgo_hacia_otros: boolean
+    factores_proteccion: string
+    observaciones: string
+  }
+  examen_mental: { apariencia_conducta: string; animo_afecto: string; pensamiento_lenguaje: string; orientacion_cognicion: string }
+  impresion: { hipotesis: string; diagnostico: string; codigo_cie10: string }
+}
+
+export interface ClinicalIntake {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  created_by: string | null
+  updated_by: string | null
+  data: ClinicalIntakeData
+  created_at: string
+  updated_at: string
+}
+
+export interface SessionNoteContent {
+  subjective: string
+  objective: string
+  assessment: string
+  plan: string
+}
+
+export interface SessionNote {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  appointment_id: string | null
+  created_by: string | null
+  session_number: number
+  /** YYYY-MM-DD */
+  session_date: string
+  duration_minutes: number | null
+  risk_level: ClinicalRiskLevel
+  mood_rating: number | null
+  content: SessionNoteContent
+  tasks: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SessionAppointmentOption {
+  id: string
+  start_time: string | null
+  status: string
+  service_name: string | null
+}
+
+export type TreatmentPlanStatus = 'active' | 'paused' | 'completed'
+export type TreatmentGoalStatus = 'pending' | 'in_progress' | 'achieved'
+
+export interface TreatmentGoal {
+  id: string
+  text: string
+  status: TreatmentGoalStatus
+}
+
+export interface TreatmentPlanData {
+  approach: string
+  formulation: string
+  frequency: string
+  notes: string
+  goals: TreatmentGoal[]
+}
+
+export interface TreatmentPlan {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  created_by: string | null
+  status: TreatmentPlanStatus
+  start_date: string | null
+  end_date: string | null
+  data: TreatmentPlanData
+  created_at: string
+  updated_at: string
+}
+
+export interface InformedConsent {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  created_by: string | null
+  title: string
+  content: string
+  signature_data: string
+  signer_name: string | null
+  signer_relationship: string | null
+  signed_at: string
+  created_at: string
+  updated_at: string
+}
+
+export type AssessmentInstrumentId = 'phq9' | 'gad7'
+export type AssessmentSeverityId = 'minimal' | 'mild' | 'moderate' | 'moderately_severe' | 'severe'
+
+export interface ClinicalAssessment {
+  id: string
+  business_id: string
+  branch_id: string | null
+  client_id: string
+  created_by: string | null
+  instrument: AssessmentInstrumentId
+  answers: number[]
+  total_score: number
+  severity: AssessmentSeverityId
+  risk_flag: boolean
+  notes: string | null
+  assessed_at: string
+  created_at: string
+  updated_at: string
+}
+
+export interface AttendanceSession {
+  id: string
+  /** ISO-8601 */
+  start_time: string | null
+  service_name: string | null
+}
+
+export type ClinicalAuditAction = 'viewed' | 'created' | 'updated' | 'report_printed' | 'downloaded' | 'deleted'
+export type ClinicalAuditResource = 'intake' | 'session_note' | 'treatment_plan' | 'consent' | 'assessment' | 'report' | 'case' | 'attachment' | 'diagram'
+export type ClinicalReportKind = 'attendance' | 'psych_report' | 'referral'
+
+export interface ClinicalAuditRow {
+  id: string
+  /** ISO — momento exacto del acceso. */
+  created_at: string
+  action: ClinicalAuditAction
+  resource: ClinicalAuditResource
+  resource_id: string | null
+  /** Tipo de informe cuando action === 'report_printed'. */
+  detail: string | null
+  ip: string | null
+  client_id: string
+  /** null si el paciente fue eliminado después. */
+  client_name: string | null
+  /** Evento de un caso (pareja/familia/grupo): su id y nombre. null en lo individual. */
+  case_id?: string | null
+  case_name?: string | null
+  user_id: string | null
+  /** null si el usuario fue eliminado después. */
+  user_name: string | null
+}
+
+export interface ClinicalAuditPage {
+  rows: ClinicalAuditRow[]
+  has_more: boolean
+  page: number
+  from: string
+  to: string
+}
+
+export interface FollowUpPendingNote {
+  appointment_id: string
+  client_id: string
+  client_name: string
+  start_time: string
+  service_name: string | null
+  /** Si la cita es de un caso, la nota se escribe en el caso (no en el expediente individual). */
+  case_id?: string | null
+  case_name?: string | null
+}
+
+export interface FollowUpRiskCase {
+  case_id: string
+  case_name: string
+  type: ClinicalCaseType
+  risk_level: ClinicalRiskLevel
+  session_date: string
+  session_number: number
+  days_since: number
+}
+
+export interface FollowUpRiskPatient {
+  client_id: string
+  client_name: string
+  phone: string | null
+  risk_level: ClinicalRiskLevel
+  session_date: string
+  session_number: number
+  days_since: number
+}
+
+export interface FollowUpInactivePatient {
+  client_id: string
+  client_name: string
+  phone: string | null
+  last_session: string
+  days_since: number
+  sessions: number
+}
+
+export interface ClinicalFollowUp {
+  weeks: number
+  notes_pending: FollowUpPendingNote[]
+  risk_unfollowed: FollowUpRiskPatient[]
+  risk_cases: FollowUpRiskCase[]
+  inactive: FollowUpInactivePatient[]
+}
+
+// ── Casos (pareja / familia / grupo), adjuntos, genograma y línea de vida ─────────────────
+
+export type ClinicalCaseType = 'couple' | 'family' | 'group'
+export type ClinicalCaseStatus = 'active' | 'closed'
+
+export interface ClinicalCaseMember {
+  client_id: string
+  client_name: string
+  phone: string | null
+  role: string | null
+  /** Titular: el que aparece en la agenda y a quien se cobra la sesión conjunta. */
+  is_primary: boolean
+  joined_on: string | null
+  /** null = integrante activo; con fecha = ya salió (conserva el historial que vivió). */
+  left_on: string | null
+}
+
+export interface ClinicalCase {
+  id: string
+  type: ClinicalCaseType
+  name: string
+  status: ClinicalCaseStatus
+  opened_on: string | null
+  closed_on: string | null
+  members: ClinicalCaseMember[]
+}
+
+/** Caso visto desde la ficha de un paciente (sin la lista de integrantes). */
+export interface ClientCaseLink {
+  id: string
+  type: ClinicalCaseType
+  name: string
+  status: ClinicalCaseStatus
+  role: string | null
+  is_primary: boolean
+  active_member: boolean
+}
+
+export interface CaseOfAppointment {
+  id: string
+  name: string
+  type: ClinicalCaseType
+  status: ClinicalCaseStatus
+}
+
+/** Nota o plan conjunto leído desde la ficha de un integrante (solo lectura): trae el nombre del caso. */
+export type JointSessionNote = SessionNote & { case_id: string; case_name: string | null }
+export type JointTreatmentPlan = TreatmentPlan & { case_id: string; case_name: string | null }
+
+export type AttachmentCategory = 'test_result' | 'external_report' | 'patient_material' | 'other'
+
+export interface ClinicalAttachment {
+  id: string
+  business_id: string
+  client_id: string
+  uploaded_by: string | null
+  category: AttachmentCategory
+  title: string
+  original_name: string
+  mime: string
+  /** Bytes del archivo original. */
+  size: number
+  created_at: string
+}
+
+export type GenogramPersonKind = 'male' | 'female' | 'other'
+export type GenogramEdgeKind = 'married' | 'partner' | 'separated' | 'divorced' | 'parent' | 'close' | 'conflict' | 'distant' | 'cutoff'
+
+export interface GenogramPerson {
+  id: string
+  x: number
+  y: number
+  kind: GenogramPersonKind
+  name: string
+  age: string
+  deceased: boolean
+  /** Paciente índice (el que consulta). */
+  index: boolean
+  notes: string
+}
+
+export interface GenogramEdge {
+  id: string
+  source: string
+  target: string
+  kind: GenogramEdgeKind
+}
+
+export interface GenogramData {
+  nodes: GenogramPerson[]
+  edges: GenogramEdge[]
+}
+
+/** +2 muy positivo … -2 muy negativo. */
+export type LifeValence = -2 | -1 | 0 | 1 | 2
+
+export interface LifeEvent {
+  id: string
+  year: number
+  age: number | null
+  title: string
+  valence: LifeValence
+  note: string
+}
+
+export interface LifeLineData {
+  events: LifeEvent[]
+}
+
+export type DiagramType = 'genogram' | 'life_line'
+
+export interface ClinicalDiagram<T = GenogramData | LifeLineData> {
+  id: string
+  type: DiagramType
+  client_id: string | null
+  case_id: string | null
+  data: T
+  updated_at: string
+}
+
 export interface Database {
   public: {
     Tables: {

@@ -20,6 +20,7 @@ import {
   ShieldKeyholeIcon,
   BellIcon,
   PointOnMapIcon,
+  ClipboardCheckIcon,
 } from '@solar-icons/vue/linear'
 import type { Component } from 'vue'
 import type { RouteGate } from '../../router/gate'
@@ -62,6 +63,10 @@ export const sidebarSections: SidebarSection[] = [
       { to: '/dashboard/consultorio', label: 'Consultorio', icon: HeartPulseIcon, employeeOnly: true, gate: { capability: 'clients.pets', profileFlag: 'can_access_consultorio' } },
       { to: '/admin/gabinete', label: 'Tablero de Gabinete', icon: ClockCircleIcon, adminOnly: true, gate: { capability: 'dental.clinical_history' } },
       { to: '/dashboard/gabinete', label: 'Tablero de Gabinete', icon: ClockCircleIcon, employeeOnly: true, gate: { capability: 'dental.clinical_history', profileFlag: 'can_access_dental_clinical' } },
+      { to: '/admin/casos', label: 'Casos', icon: UsersGroupRoundedIcon, adminOnly: true, gate: { capability: 'clinical.cases' } },
+      { to: '/dashboard/casos', label: 'Casos', icon: UsersGroupRoundedIcon, employeeOnly: true, gate: { capability: 'clinical.cases', profileFlag: 'can_access_dental_clinical' } },
+      { to: '/admin/seguimiento', label: 'Seguimiento', icon: ClipboardCheckIcon, adminOnly: true, gate: { capability: 'clinical.followup' } },
+      { to: '/dashboard/seguimiento', label: 'Seguimiento', icon: ClipboardCheckIcon, employeeOnly: true, gate: { capability: 'clinical.followup', profileFlag: 'can_access_dental_clinical' } },
       { to: '/admin/equipo', label: 'Equipo', labelKey: 'employeePlural', icon: BagIcon, adminOnly: true },
       { to: '/admin/empresas', label: 'Empresas', icon: BuildingsIcon, adminOnly: true, gate: { capability: 'staffing.timesheets' } },
       { to: '/admin/nomina', label: 'Nómina', icon: WalletMoneyIcon, adminOnly: true, gate: { capability: 'staffing.timesheets' } },
@@ -72,6 +77,7 @@ export const sidebarSections: SidebarSection[] = [
       { to: '/admin/spreadsheet', label: 'Spreadsheet', icon: DocumentIcon, adminOnly: true, gate: { capability: 'staffing.spreadsheet' } },
       { to: '/dashboard/spreadsheet', label: 'Spreadsheet', icon: DocumentIcon, employeeOnly: true, gate: { capability: 'staffing.spreadsheet', profileFlag: 'can_access_spreadsheet' } },
       { to: '/admin/incidentes', label: 'Incidentes', icon: DocumentIcon, adminOnly: true, gate: { capability: 'staffing.incidents' } },
+      { to: '/admin/auditoria-clinica', label: 'Auditoría clínica', icon: ShieldKeyholeIcon, adminOnly: true, strictAdminOnly: true, gate: { capability: 'clinical.audit' } },
       { to: '/admin/finanzas', label: 'Finanzas', icon: GraphIcon, adminOnly: true, badge: 'Nuevo' },
       { to: '/admin/finanzas', label: 'Finanzas', icon: GraphIcon, employeeOnly: true, badge: 'Nuevo', gate: { profileFlag: 'can_access_finanzas' } },
       { to: '/admin/servicios', label: 'Servicios', labelKey: 'servicePlural', icon: StarsIcon, adminOnly: true, gate: { feature: 'servicios' } },

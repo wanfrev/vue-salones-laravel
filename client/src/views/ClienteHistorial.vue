@@ -5,7 +5,7 @@
       Volver al directorio
     </button>
     <div class="flex items-center gap-2">
-      <button v-if="isDentalNiche" @click="windowPrint" class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:border-primary/40 hover:bg-primary/5 hover:text-primary" title="Imprimir estado de cuenta">
+      <button v-if="isPatientNiche" @click="windowPrint" class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:border-primary/40 hover:bg-primary/5 hover:text-primary" title="Imprimir estado de cuenta">
         <PrinterIcon class="h-4 w-4" />
         Estado de cuenta
       </button>
@@ -19,16 +19,16 @@
   <!-- Only shown when printing (triggered by "Estado de cuenta" above) — a plain header with the
        business/client identity, since the sidebar and nav are hidden by the @media print rules.
        Odontología-only, same as the button that triggers it. -->
-  <div v-if="isDentalNiche" class="print-only mb-6">
+  <div v-if="isPatientNiche" class="print-only mb-6">
     <p class="text-lg font-bold text-text">{{ businessStore.business?.name || 'Estado de cuenta' }}</p>
     <p class="text-sm text-text-secondary">{{ cliente?.name }}<span v-if="cliente?.phone"> · {{ cliente.phone }}</span></p>
     <p class="text-xs text-text-muted">Emitido el {{ new Date().toLocaleDateString('es-VE') }}</p>
   </div>
 
-  <section v-if="isDentalNiche" class="mb-6 no-print">
+  <section v-if="isPatientNiche" class="mb-6 no-print">
     <div class="mb-5">
       <div>
-        <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">Atención odontológica</p>
+        <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">{{ isDentalNiche ? 'Atención odontológica' : 'Atención psicológica' }}</p>
         <div class="mt-4 flex min-w-0 items-start gap-4">
           <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-lg font-bold text-primary ring-1 ring-primary/15 sm:h-16 sm:w-16">
             {{ getInitials(cliente?.name || '') }}
@@ -56,7 +56,10 @@
     </div>
     <!-- Same nav used inside the expediente (PatientDentalShell) — identical icons and "has
          data" dots here and there, so opening a tool doesn't feel like jumping to another app. -->
-    <DentalToolsNav :tabs="navTabs" model-value="" @update:model-value="goToTab" />
+    <DentalToolsNav v-if="isDentalNiche" :tabs="navTabs" model-value="" @update:model-value="goToTab" />
+    <!-- Nicho psicologia: mismo bloque, con las herramientas del módulo clinical.* (se oculta solo
+         para quien no tenga permiso de expediente). -->
+    <ClinicalToolsSection v-else-if="isClinicalNiche" />
   </section>
 
   <section v-else class="mb-6 flex min-w-0 items-start gap-4 no-print">
@@ -72,7 +75,7 @@
 
   <section class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
     <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm no-print">
-      <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">{{ isDentalNiche ? 'Resumen del paciente' : 'Resumen del cliente' }}</p>
+      <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">{{ isPatientNiche ? 'Resumen del paciente' : 'Resumen del cliente' }}</p>
       <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div><p class="text-xs text-text-muted">{{ businessStore.terminology.appointmentPlural || 'Consultas' }}</p><p class="mt-1 text-xl font-bold text-text">{{ historial.length }}</p></div>
         <div><p class="text-xs text-text-muted">Última atención</p><p class="mt-1 truncate text-sm font-semibold text-text">{{ ultimaVisita || 'Sin registros' }}</p></div>
@@ -90,7 +93,7 @@
     <div class="rounded-xl border border-border bg-surface p-4 shadow-sm lg:col-span-2">
        <div class="mb-4 flex items-center justify-between gap-3">
          <div>
-           <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">{{ isDentalNiche ? 'Actividad del expediente' : 'Actividad del cliente' }}</p>
+           <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">{{ isPatientNiche ? 'Actividad del expediente' : 'Actividad del cliente' }}</p>
            <h3 class="mt-1 text-base font-semibold text-text">{{ businessStore.terminology.servicePlural || 'Servicios' }} y {{ (businessStore.terminology.appointmentPlural || 'citas').toLowerCase() }}</h3>
          </div>
          <span class="rounded-lg bg-bg-secondary px-2.5 py-1.5 text-xs font-semibold text-text-muted">{{ historial.length }} registros</span>
@@ -125,7 +128,7 @@
     </div>
 
     <div class="rounded-xl border border-border bg-surface p-4 shadow-sm">
-      <h3 class="mb-4 text-base font-semibold text-text">{{ isDentalNiche ? 'Estado de cuenta' : 'Resumen' }}</h3>
+      <h3 class="mb-4 text-base font-semibold text-text">{{ isPatientNiche ? 'Estado de cuenta' : 'Resumen' }}</h3>
       <div class="space-y-3">
         <div class="rounded-lg bg-bg-secondary p-3">
            <p class="text-xs text-text-muted">Total {{ (businessStore.terminology.appointmentPlural || 'Citas').toLowerCase() }}</p>
@@ -135,7 +138,7 @@
            <p class="text-xs text-text-muted">Total facturado</p>
           <p class="text-lg font-bold text-text">${{ totalGasto }}</p>
         </div>
-        <template v-if="isDentalNiche">
+        <template v-if="isPatientNiche">
           <div class="rounded-lg bg-success/10 p-3">
              <p class="text-xs text-text-muted">Total pagado</p>
             <p class="text-lg font-bold text-success">${{ totalPagado }}</p>
@@ -164,9 +167,10 @@ import { useBusinessStore } from '../store/business'
 import { listCitas } from '../services/agendaService'
 import { getClienteById } from '../services/clientesService'
 import { isPetNiche as checkPetNiche } from '../config/nicheFields'
-import { isDentalNiche as checkDentalNiche } from '../config/niches'
+import { isDentalNiche as checkDentalNiche, isClinicalNiche as checkClinicalNiche, isPatientNiche as checkPatientNiche } from '../config/niches'
 import { useDentalToolsNavTabs } from '../composables/dental/useDentalToolsNavTabs'
 import DentalToolsNav from '../components/dental/DentalToolsNav.vue'
+import ClinicalToolsSection from '../components/clinical/ClinicalToolsSection.vue'
 import { ArrowLeftIcon, ChatRoundLineIcon, PrinterIcon } from '@solar-icons/vue/linear'
 import type { Cliente } from '../types/cliente'
 
@@ -179,6 +183,8 @@ const clienteId = computed(() => route.params.id as string)
 const businessId = computed(() => authStore.businessId)
 const isPetNiche = computed(() => checkPetNiche(businessStore.nicheType))
 const isDentalNiche = computed(() => checkDentalNiche(businessStore.nicheType))
+const isClinicalNiche = computed(() => checkClinicalNiche(businessStore.nicheType))
+const isPatientNiche = computed(() => checkPatientNiche(businessStore.nicheType))
 const { navTabs } = useDentalToolsNavTabs(() => clienteId.value, () => isDentalNiche.value)
 
 const { data: clienteData } = useQuery({

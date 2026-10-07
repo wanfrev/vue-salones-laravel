@@ -376,6 +376,12 @@
               :class="statusTextClass(detailPopup.appt.status)">{{ getStatusLabel(detailPopup.appt.status) }}</span>
           </div>
         </div>
+        <AppointmentCaseLink v-if="canLinkCases" :key="detailPopup.appt.id" :appointment-id="detailPopup.appt.id" :client-id="detailPopup.appt.raw?.client_id ?? null" @linked="popupCase = $event" />
+        <div v-if="canWriteSessionNote" class="mb-2">
+          <button @click="handleSessionNoteClick"
+            class="w-full rounded-lg border border-primary/40 bg-primary/10 px-3 py-2 text-xs font-semibold text-primary hover:bg-primary/15 transition-colors">
+            {{ popupCase ? 'Nota de sesión del caso' : 'Nota de sesión' }}</button>
+        </div>
         <div class="flex items-center gap-2 justify-end border-t border-border pt-3">
           <button @click="handleDeleteClick"
             class="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors">Borrar
@@ -391,13 +397,16 @@
 
 <script setup lang="ts">
 import { computed, ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { useAgenda } from '../../composables/agenda/useAgenda'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { isAdminPanelRole } from '../../constants/roles'
-import { isDentalNiche } from '../../config/niches'
+import { isDentalNiche, isClinicalNiche } from '../../config/niches'
+import { useClinicalAccess } from '../../composables/clinical/useClinicalToolsNavTabs'
+import AppointmentCaseLink from '../clinical/AppointmentCaseLink.vue'
+import type { CaseOfAppointment } from '../../types/database'
 import { normalizeAppointmentStatus, getStatusLabel, dateToHHmm, dateToHHmm12, toISODate, getInitials, parseLocalDate } from '../../lib/formatters'
 import { mapAppointmentToCita } from '../../mappers/agendaMapper'
 import { searchAppointmentsGlobal } from '../../services/agendaService'
@@ -407,10 +416,20 @@ import AgendaYearView from './AgendaYearView.vue'
 import type { Cita } from '../../types/cita'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const businessStore = useBusinessStore()
 const isAdmin = computed(() => isAdminPanelRole(authStore.role ?? undefined))
 const isDental = computed(() => isDentalNiche(businessStore.nicheType))
+
+// Nicho psicologia: desde la cita se abre la nota de esa sesión en el expediente (ya vinculada).
+const hasClinicalAccess = useClinicalAccess()
+const canWriteSessionNote = computed(() =>
+  isClinicalNiche(businessStore.nicheType) && hasClinicalAccess.value && !!detailPopup.value?.appt.raw?.client_id,
+)
+const canLinkCases = computed(() => canWriteSessionNote.value && businessStore.hasCapability('clinical.cases'))
+// Caso al que está vinculada la cita abierta (lo informa AppointmentCaseLink); decide a dónde va «Nota de sesión».
+const popupCase = ref<CaseOfAppointment | null>(null)
 const businessId = computed(() => authStore.businessId)
 const currentBranchId = computed(() => businessStore.currentBranchId)
 
@@ -1067,6 +1086,20 @@ function emitEventClick(raw: any) {
 }
 
 function emitCheckout(id: string) { emit('checkout', id) }
+
+function handleSessionNoteClick() {
+  const popup = detailPopup.value
+  const clientId = popup?.appt.raw?.client_id
+  if (!popup || !clientId) return
+  detailPopup.value = null
+  const base = route.path.startsWith('/dashboard') ? '/dashboard' : '/admin'
+  // Cita vinculada a un caso → la nota es conjunta y va en el caso; si no, en el expediente individual.
+  const target = popupCase.value
+    ? `${base}/casos/${popupCase.value.id}/sesiones`
+    : `${base}/clientes/${clientId}/expediente-clinico/sesiones`
+  popupCase.value = null
+  router.push({ path: target, query: { cita: popup.appt.id } })
+}
 
 // ---- Status menu ----
 function toggleStatusMenu(appt: DisplayAppointment, e: MouseEvent) {

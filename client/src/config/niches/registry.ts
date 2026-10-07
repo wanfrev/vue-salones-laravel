@@ -1,7 +1,7 @@
 import type { NicheDefinition } from './types'
 import {
   HAIR_TYPE_OPTIONS, BEARD_STYLE_OPTIONS, FADE_OPTIONS, HAIR_LENGTH_OPTIONS,
-  SKIN_TYPE_OPTIONS, MASSAGE_OPTIONS, PET_FIELDS,
+  SKIN_TYPE_OPTIONS, MASSAGE_OPTIONS, PET_FIELDS, YES_NO_OPTIONS,
 } from './fieldOptions'
 
 export const NICHES: Record<string, NicheDefinition> = {
@@ -177,6 +177,54 @@ export const NICHES: Record<string, NicheDefinition> = {
     copy: {
       serviceNamePlaceholder: 'Ej: Limpieza dental, Extracción, Resina, Endodoncia',
       serviceDescriptionPlaceholder: 'Detalles del tratamiento...',
+    },
+  },
+  psicologia: {
+    id: 'psicologia',
+    label: 'Consultorio psicológico',
+    status: 'creatable',
+    clientProfile: {
+      sectionTitle: 'Antecedentes clínicos',
+      fields: [
+        { key: 'referred_by', label: 'Referido por', type: 'input', placeholder: 'Médico, familiar, institución... (opcional)' },
+        { key: 'previous_therapy', label: '¿Ha recibido terapia antes?', type: 'select', options: YES_NO_OPTIONS },
+        { key: 'current_medications', label: 'Medicación actual', type: 'textarea', placeholder: 'Medicamentos que toma actualmente, si aplica...' },
+        // Menores de edad: tutor o representante legal. Colapsado para quien atiende solo adultos.
+        {
+          key: 'guardian_name', label: 'Nombre del tutor', type: 'input', placeholder: 'Madre, padre o representante legal',
+          collapsibleGroup: 'guardian', collapsibleGroupLabel: 'Agregar datos del tutor (menores de edad)',
+        },
+        { key: 'guardian_relationship', label: 'Parentesco', type: 'input', placeholder: 'Ej: Madre, padre, tutor legal', collapsibleGroup: 'guardian' },
+        { key: 'guardian_document', label: 'Documento del tutor', type: 'input', placeholder: 'Cédula o pasaporte', collapsibleGroup: 'guardian' },
+        { key: 'guardian_phone', label: 'Teléfono del tutor', type: 'input', placeholder: '0414-0000000', collapsibleGroup: 'guardian' },
+        { key: 'guardian_share_info', label: '¿Se puede entregar información al tutor?', type: 'select', options: YES_NO_OPTIONS, collapsibleGroup: 'guardian' },
+      ],
+    },
+    capabilities: ['clinical.intake', 'clinical.session_notes', 'clinical.treatment_plan', 'clinical.consent', 'clinical.assessments', 'clinical.reports', 'clinical.followup', 'clinical.audit', 'clinical.cases', 'clinical.attachments', 'clinical.diagrams'],
+    // Mirror of config/niches.php. Sin inventario/proveedores/gift cards por defecto; `productos`
+    // se deja prendido porque el POS lee el catálogo. El valor guardado por superadmin gana.
+    featureDefaults: {
+      gift_cards: false,
+      inventario: false,
+      proveedores: false,
+    },
+    terminologyDefaults: {
+      client: 'Paciente',
+      clientPlural: 'Pacientes',
+      appointment: 'Sesión',
+      appointmentPlural: 'Sesiones',
+      service: 'Tipo de sesión',
+      servicePlural: 'Tipos de sesión',
+      employee: 'Psicólogo',
+      employeePlural: 'Psicólogos',
+      history: 'Historia clínica',
+      historyPlural: 'Historias clínicas',
+      professional: 'Psicólogo',
+      professionalPlural: 'Psicólogos',
+    },
+    copy: {
+      serviceNamePlaceholder: 'Ej: Psicoterapia individual, Terapia de pareja, Evaluación inicial',
+      serviceDescriptionPlaceholder: 'Detalles de la modalidad de sesión...',
     },
   },
   staffing: {

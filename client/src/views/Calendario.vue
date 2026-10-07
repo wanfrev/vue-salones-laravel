@@ -1,5 +1,5 @@
 <template>
-  <div v-if="isDentalNiche" class="mb-3 flex justify-end">
+  <div v-if="isPatientNiche" class="mb-3 flex justify-end">
     <button
       @click="quickCitaModalRef?.open()"
       class="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm font-semibold text-primary transition-theme hover:bg-primary/10"
@@ -31,7 +31,7 @@
     @delete="handleDeleteCita"
   />
   <QuickCitaModal
-    v-if="isDentalNiche"
+    v-if="isPatientNiche"
     ref="quickCitaModalRef"
     :servicios="serviciosList"
     :empleados="empleadosList"
@@ -48,7 +48,7 @@ import { BoltIcon } from '@solar-icons/vue/linear'
 import { useAuth } from '../composables/common/useAuth'
 import { useNotification } from '../composables/common/useNotification'
 import { useBusinessStore } from '../store/business'
-import { isDentalNiche as checkDentalNiche } from '../config/niches'
+import { isPatientNiche as checkPatientNiche } from '../config/niches'
 import { db } from '../lib/api'
 import { equipoKeys, listEquipo } from '../services/equipoService'
 import { listServicios, serviciosKeys } from '../services/serviciosService'
@@ -65,7 +65,7 @@ const router = useRouter()
 const route = useRoute()
 useNotification()
 const businessStore = useBusinessStore()
-const isDentalNiche = computed(() => checkDentalNiche(businessStore.nicheType))
+const isPatientNiche = computed(() => checkPatientNiche(businessStore.nicheType))
 
 const citaModalRef = ref<InstanceType<typeof CitaFormModal> | null>(null)
 const quickCitaModalRef = ref<InstanceType<typeof QuickCitaModal> | null>(null)
@@ -125,10 +125,10 @@ const empleadosList = computed(() => {
     payPercentage: employee.payPercentage,
     disableAgenda: employee.disableAgenda,
   }))
-  // Solo-doctor setup (dental only): listEquipo excludes the admin role, so a doctor who is the
+  // Solo-doctor setup (odontología y psicología): listEquipo excludes the admin role, so a doctor who is the
   // business admin with no staff would have nobody to assign the consulta to. Offer them themselves.
   const me = authStore.profile
-  if (isDentalNiche.value && authStore.role === 'admin' && me?.id && !list.some(e => e.id === me.id)) {
+  if (isPatientNiche.value && authStore.role === 'admin' && me?.id && !list.some(e => e.id === me.id)) {
     list.unshift({ id: me.id, name: me.full_name || 'Yo', payType: 'salary' as const, payPercentage: undefined, disableAgenda: false })
   }
   return list

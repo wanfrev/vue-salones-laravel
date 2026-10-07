@@ -54,6 +54,15 @@ return [
         // Deliberately separate from pos/productos — those default `true` for every niche purely
         // for nav visibility, so they can't signal that a business actually wants this experience.
         'retail_module_enabled' => false,
+        // Staffing extras — each one is opt-in per business (superadmin toggles it), off by
+        // default so no existing staffing business sees or does anything differently.
+        'staffing_receivables' => false,
+        'staffing_invoice_email' => false,
+        'staffing_pay_stubs' => false,
+        'staffing_doc_expiry' => false,
+        'staffing_commissions' => false,
+        'staffing_profitability' => false,
+        'staffing_assignment_history' => false,
         // Real product variants (structured attributes like Talla/Color) instead of the old
         // free-text-only product_variants.name. Default true — additive, no existing behaviour
         // depends on this being off.
@@ -126,6 +135,19 @@ return [
             'status' => 'creatable',
             'capabilities' => ['dental.odontogram', 'dental.clinical_history', 'dental.endo_annex', 'dental.perio_annex', 'dental.periodontogram', 'dental.consent', 'dental.biofilm', 'dental.budget'],
             'feature_defaults' => [],
+        ],
+        // Consultorio psicológico — primera vertical del módulo clínico compartido (clinical.*).
+        // Sin inventario/proveedores/gift cards por defecto (el superadmin puede reactivarlos: el
+        // valor guardado gana sobre feature_defaults). `productos` se deja en su default porque el
+        // POS lee el catálogo de productos — apagarlo rompería el cobro si se activa el gate.
+        'psicologia' => [
+            'status' => 'creatable',
+            'capabilities' => ['clinical.intake', 'clinical.session_notes', 'clinical.treatment_plan', 'clinical.consent', 'clinical.assessments', 'clinical.reports', 'clinical.followup', 'clinical.audit', 'clinical.cases', 'clinical.attachments', 'clinical.diagrams'],
+            'feature_defaults' => [
+                'gift_cards' => false,
+                'inventario' => false,
+                'proveedores' => false,
+            ],
         ],
         'staffing' => [
             'status' => 'creatable',
