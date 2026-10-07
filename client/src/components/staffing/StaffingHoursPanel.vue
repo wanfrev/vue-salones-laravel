@@ -71,11 +71,20 @@
         <div class="flex flex-wrap items-center justify-between gap-3 bg-bg-secondary/40 p-3 rounded-xl border border-border">
           <div class="flex items-center gap-2">
             <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Empleados ({{ rosterEmployees.length }})</span>
-            <span v-if="employeeSearch.trim() && filteredEmployees.length !== rosterEmployees.length" class="text-xs text-text-muted">
+            <span v-if="(employeeSearch.trim() || statusFilter !== 'all') && filteredEmployees.length !== rosterEmployees.length" class="text-xs text-text-muted">
               — {{ filteredEmployees.length }} coincidentes
             </span>
           </div>
           <div class="flex flex-wrap items-center gap-2">
+            <div class="flex gap-1" role="group" aria-label="Filtrar por estado">
+              <button v-for="f in STATUS_FILTERS" :key="f.value" type="button"
+                class="relative px-2.5 py-1.5 text-xs font-semibold transition-theme"
+                :class="statusFilter === f.value ? 'text-primary' : 'text-text-muted hover:text-text'"
+                @click="statusFilter = f.value">
+                {{ f.label }}
+                <span v-if="statusFilter === f.value" class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
+              </button>
+            </div>
             <button v-if="!isReadOnly" type="button"
               class="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
               title="Copia horas, deducciones y fees de la semana anterior (no guarda hasta que presiones Guardar y calcular)"
@@ -467,16 +476,32 @@ watch(selectedCompanyId, () => {
   employeeSearch.value = ''
 })
 
+type StatusFilter = 'all' | 'active' | 'inactive'
+const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'active', label: 'Activos' },
+  { value: 'inactive', label: 'Inactivos' },
+]
+// Display-only: narrows what's shown and printed. Saving always sends the whole roster, so
+// filtering never drops anyone's hours from the week. Defaults to "Todos" = unchanged behaviour.
+const statusFilter = ref<StatusFilter>('all')
+watch(selectedCompanyId, () => { statusFilter.value = 'all' })
+
 const filteredEmployees = computed(() => {
-  const list = rosterEmployees.value
   const query = employeeSearch.value.trim().toLowerCase()
-  if (!query) return list
-  return list.filter(e => {
-    const nameMatch = e.full_name?.toLowerCase().includes(query)
-    const roleMatch = e.staffing_role?.toLowerCase().includes(query)
-    return nameMatch || roleMatch
+  const status = statusFilter.value
+  if (!query && status === 'all') return rosterEmployees.value
+  return rosterEmployees.value.filter(e => {
+    if (status === 'active' && isInactive(e)) return false
+    if (status === 'inactive' && !isInactive(e)) return false
+    if (!query) return true
+    return e.full_name?.toLowerCase().includes(query) || e.staffing_role?.toLowerCase().includes(query)
   })
 })
+
+const filterLabel = computed(() =>
+  statusFilter.value === 'all' ? '' : STATUS_FILTERS.find(f => f.value === statusFilter.value)!.label.toLowerCase(),
+)
 
 /**
  * Defaults to the most recent Sunday, matching the FROM/TO convention on the source sheets.
@@ -1018,7 +1043,7 @@ const handlePrintPayroll = () => {
     projectName: (projects.value ?? []).find(p => p.id === selectedProjectId.value)?.name ?? null,
     weekStart: weekStartInput.value,
     weekEnd: weekEnd.value,
-    statusLabel: statusLabel.value,
+    statusLabel: filterLabel.value ? `${statusLabel.value} · Solo ${filterLabel.value}` : statusLabel.value,
     rows: printRows,
   })
 }
