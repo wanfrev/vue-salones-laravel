@@ -536,6 +536,10 @@ export interface StaffingTimesheet {
   created_at: string
   updated_at: string
   entries: StaffingTimesheetEntry[]
+  /** Opt-in approval stamp (feature `staffing_approval_stamp`) — null/absent unless the business uses it. */
+  approved_at?: string | null
+  approval_code?: string | null
+  approver_name?: string | null
 }
 
 /** The document Delta sends a client company — generated from one approved timesheet week. */

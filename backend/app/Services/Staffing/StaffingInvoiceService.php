@@ -213,6 +213,12 @@ class StaffingInvoiceService
 
             if ($timesheet && $timesheet->status !== StaffingTimesheet::STATUS_DRAFT) {
                 $timesheet->update(['status' => StaffingTimesheet::STATUS_DRAFT, 'updated_at' => now()]);
+
+                // A reopened week is no longer what was approved — drop its stamp so a fresh one is
+                // issued on the next approval (and the old code stops verifying as a live approval).
+                if (StaffingTimesheet::stampColumnsExist()) {
+                    $timesheet->update(['approved_by' => null, 'approved_at' => null, 'approval_code' => null]);
+                }
             }
 
             return $timesheet?->id;

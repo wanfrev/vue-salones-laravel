@@ -42,8 +42,10 @@ export function printStaffingPayroll(params: {
   weekEnd: string
   statusLabel: string
   rows: PayrollPrintRow[]
+  /** Opt-in approval stamp line ("Aprobada por … · Código …"); omitted = nothing extra is printed. */
+  approvalStamp?: string | null
 }): void {
-  const { agencyName, companyName, projectName, weekStart, weekEnd, statusLabel, rows } = params
+  const { agencyName, companyName, projectName, weekStart, weekEnd, statusLabel, rows, approvalStamp } = params
 
   const bodyRows = rows.map(r => `
     <tr>
@@ -108,6 +110,7 @@ export function printStaffingPayroll(params: {
       ${projectName ? `<p><strong>Proyecto:</strong> ${esc(projectName)}</p>` : ''}
       <p><strong>Semana:</strong> ${fmtDate(weekStart)} – ${fmtDate(weekEnd)}</p>
       <span class="status">${esc(statusLabel)}</span>
+      ${approvalStamp ? `<p class="muted" style="margin-top:6px"><strong>${esc(approvalStamp)}</strong></p>` : ''}
     </div>
   </div>
 

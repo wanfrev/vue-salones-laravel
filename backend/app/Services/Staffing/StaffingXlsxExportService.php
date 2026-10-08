@@ -30,6 +30,16 @@ class StaffingXlsxExportService
         $sheet->setCellValue('A1', $company?->name ?? 'Empresa');
         $sheet->setCellValue('A2', 'Semana: ' . $timesheet->week_start->format('Y-m-d') . ' a ' . $timesheet->week_end->format('Y-m-d'));
         $sheet->setCellValue('A3', 'Estado: ' . $timesheet->status);
+        // Only present when the business uses the opt-in approval stamp and this week was approved
+        // with it; otherwise row 4 stays empty exactly as before.
+        if ($timesheet->approval_code) {
+            $sheet->setCellValue('A4', trim(sprintf(
+                'Aprobada por %s · %s · Código %s',
+                $timesheet->approver_name ?: '—',
+                $timesheet->approved_at?->format('d/m/Y H:i') ?? '',
+                $timesheet->approval_code,
+            )));
+        }
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
 
         $headers = [

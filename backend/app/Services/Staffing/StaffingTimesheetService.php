@@ -29,7 +29,7 @@ class StaffingTimesheetService
 
     public function list(string $businessId, ?string $companyId = null, ?string $projectId = null): Collection
     {
-        $query = StaffingTimesheet::with(['entries.employee', 'project'])
+        $query = StaffingTimesheet::with(['entries.employee', 'project', ...$this->stampRelations()])
             ->where('business_id', $businessId)
             ->orderByDesc('week_start');
 
@@ -279,7 +279,7 @@ class StaffingTimesheetService
      * Freezes the company's current rules onto the timesheet so a later change to its tax
      * brackets or overtime terms can never rewrite payroll that was already approved.
      */
-    public function approve(string $id, string $businessId): StaffingTimesheet
+    public function approve(string $id, string $businessId, ?string $approverId = null, bool $stamp = false): StaffingTimesheet
     {
         $timesheet = $this->findForBusiness($id, $businessId);
 
@@ -306,7 +306,84 @@ class StaffingTimesheetService
             'updated_at' => now(),
         ]);
 
-        return $timesheet->fresh(['entries.employee']);
+        // Opt-in (`staffing_approval_stamp`): who/when + a code that proves the numbers haven't
+        // changed since. Skipped entirely — no column touched — unless the business turned it on
+        // and the migration exists, so approving works exactly as before for everyone else.
+        if ($stamp && $approverId && StaffingTimesheet::stampColumnsExist()) {
+            $timesheet->approved_by = $approverId;
+            $timesheet->approved_at = now()->startOfSecond();
+            $timesheet->approval_code = ApprovalStamp::code(...$this->stampInputs($timesheet));
+            $timesheet->save();
+        }
+
+        return $timesheet->fresh(['entries.employee', ...$this->stampRelations()]);
+    }
+
+    /**
+     * Checks a code printed on a payroll sheet: which week it belongs to, who approved it and when,
+     * and — by recomputing it from the numbers as they are now — whether anything was edited
+     * after approval.
+     *
+     * @return array<string, mixed>
+     */
+    public function verifyApproval(string $businessId, string $rawCode): array
+    {
+        $code = ApprovalStamp::normalize($rawCode);
+
+        if (!StaffingTimesheet::stampColumnsExist()) {
+            return ['found' => false, 'code' => $code];
+        }
+
+        $timesheet = StaffingTimesheet::with(['entries', 'company', 'project', ...$this->stampRelations()])
+            ->where('business_id', $businessId)
+            ->where('approval_code', $code)
+            ->first();
+
+        if (!$timesheet) {
+            return ['found' => false, 'code' => $code];
+        }
+
+        return [
+            'found' => true,
+            'code' => $code,
+            // The sheet matches what was approved only if the same code comes out of today's numbers.
+            'intact' => hash_equals($code, ApprovalStamp::code(...$this->stampInputs($timesheet))),
+            'company' => $timesheet->company?->name,
+            'project' => $timesheet->project?->name,
+            'week_start' => $timesheet->week_start->toDateString(),
+            'week_end' => $timesheet->week_end->toDateString(),
+            'status' => $timesheet->status,
+            'approved_by_name' => $timesheet->approver_name,
+            'approved_at' => $timesheet->approved_at?->toIso8601String(),
+        ];
+    }
+
+    /** @return list<string> */
+    private function stampRelations(): array
+    {
+        return StaffingTimesheet::stampColumnsExist() ? ['approver.profile'] : [];
+    }
+
+    /** @return array{0: string, 1: array<string, mixed>, 2: list<array<string, mixed>>} secret, facts, lines */
+    private function stampInputs(StaffingTimesheet $timesheet): array
+    {
+        $lines = $timesheet->entries->map(fn ($e) => [
+            'employee_id' => $e->employee_id, 'role' => $e->role, 'shift' => $e->shift,
+            'total_hours' => $e->total_hours, 'gross' => $e->gross, 'payout' => $e->payout,
+        ])->all();
+
+        return [
+            (string) config('app.key'),
+            [
+                'timesheet_id' => $timesheet->id,
+                'company_id' => $timesheet->company_id,
+                'project_id' => $timesheet->project_id,
+                'week_start' => $timesheet->week_start->toDateString(),
+                'approved_by' => (string) $timesheet->approved_by,
+                'approved_at' => $timesheet->approved_at->format('Y-m-d\TH:i:s'),
+            ],
+            $lines,
+        ];
     }
 
     /** Marks an approved week's payroll as actually paid out to the employees. */
@@ -339,7 +416,7 @@ class StaffingTimesheetService
 
     public function findForBusiness(string $id, string $businessId): StaffingTimesheet
     {
-        $timesheet = StaffingTimesheet::with(['entries.employee'])->find($id);
+        $timesheet = StaffingTimesheet::with(['entries.employee', ...$this->stampRelations()])->find($id);
         if (!$timesheet || $timesheet->business_id !== $businessId) {
             throw new NotFoundHttpException('Semana no encontrada.');
         }
