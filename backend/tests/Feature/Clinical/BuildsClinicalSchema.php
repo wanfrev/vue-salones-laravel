@@ -24,6 +24,8 @@ trait BuildsClinicalSchema
             $t->uuid('branch_id')->nullable();
             $t->string('full_name')->nullable();
             $t->string('phone')->nullable();
+            $t->string('client_code')->nullable();
+            $t->string('document_id')->nullable();
         });
         Schema::create('profiles', function ($t) {
             $t->uuid('id')->primary();

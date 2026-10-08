@@ -6,6 +6,7 @@
       :placeholder="placeholder"
       autocomplete="off"
       @focus="open = true"
+      @blur="closeSoon"
     />
     <ul
       v-if="open && query.trim().length >= MIN_CHARS"
@@ -14,7 +15,7 @@
       <li v-if="searching" class="px-3 py-2 text-sm text-text-muted">Buscando...</li>
       <li v-else-if="results.length === 0" class="px-3 py-2 text-sm text-text-muted">Ningún paciente coincide.</li>
       <li v-for="c in results" :key="c.id">
-        <button type="button" @click="pick(c)" class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition-theme hover:bg-primary/5">
+        <button type="button" @mousedown.prevent @click="pick(c)" class="flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition-theme hover:bg-primary/5">
           <span class="truncate font-medium text-text">{{ c.full_name }}</span>
           <span class="shrink-0 text-xs text-text-muted">{{ c.phone }}</span>
         </button>
@@ -26,8 +27,7 @@
 <script setup lang="ts">
 import { onUnmounted, ref, watch } from 'vue'
 import { FormInput } from '../forms'
-import { searchClients } from '../../services/clientesService'
-import { useAuthStore } from '../../store/auth'
+import { searchCasePatients } from '../../services/clinical/caseService'
 
 export interface PickedPatient {
   id: string
@@ -47,7 +47,8 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{ select: [patient: PickedPatient] }>()
 
-const authStore = useAuthStore()
+const titleCase = (s: string) => s.toLowerCase().replace(/(^|\s)\S/g, ch => ch.toUpperCase())
+
 const query = ref('')
 const results = ref<PickedPatient[]>([])
 const searching = ref(false)
@@ -69,8 +70,8 @@ watch(query, value => {
   const mine = ++seq
   timer = setTimeout(async () => {
     try {
-      const found = await searchClients(authStore.businessId ?? '', q)
-      if (mine === seq) results.value = found.filter(c => !props.exclude.includes(c.id))
+      const found = await searchCasePatients(q)
+      if (mine === seq) results.value = found.filter(c => !props.exclude.includes(c.id)).map(c => ({ ...c, full_name: titleCase(c.full_name) }))
     } catch {
       if (mine === seq) results.value = []
     } finally {
@@ -78,6 +79,9 @@ watch(query, value => {
     }
   }, DEBOUNCE_MS)
 })
+
+// El clic en un resultado no quita el foco del campo (mousedown.prevent), así que cerrar al salir del campo es seguro.
+const closeSoon = () => { open.value = false }
 
 function pick(c: PickedPatient) {
   emit('select', { id: c.id, full_name: c.full_name, phone: c.phone ?? null })

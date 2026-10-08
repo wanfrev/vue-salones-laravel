@@ -50,7 +50,7 @@
 
       <div v-if="isActive" class="mt-4 grid grid-cols-1 items-end gap-3 border-t border-border-subtle pt-4 sm:grid-cols-[1fr_12rem]">
         <PatientPicker label="Agregar integrante" :exclude="clinicalCase.members.filter(m => !m.left_on).map(m => m.client_id)" @select="addMember" />
-        <FormSelect v-model="newRole" label="Rol" :options="roleOptions" />
+        <CaseRoleSelect v-model="newRole" label="Rol" />
       </div>
       <p v-if="isActive && clinicalCase.type === 'couple' && activeCount >= 2" class="mt-2 text-xs text-text-muted">Un caso de pareja tiene exactamente 2 integrantes.</p>
     </section>
@@ -68,9 +68,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { FormInput, FormSelect } from '../components/forms'
+import { FormInput } from '../components/forms'
 import PatientPicker, { type PickedPatient } from '../components/clinical/PatientPicker.vue'
-import { MIN_MEMBERS, ROLE_SUGGESTIONS, activeMembers } from '../components/clinical/cases'
+import CaseRoleSelect from '../components/clinical/CaseRoleSelect.vue'
+import { MIN_MEMBERS, activeMembers } from '../components/clinical/cases'
 import { useCase } from '../composables/clinical/useCases'
 import { formatDateHuman } from '../lib/formatters'
 import type { ClinicalCaseStatus } from '../types/database'
@@ -97,11 +98,6 @@ function setStatus(status: ClinicalCaseStatus) {
 
 // ── Integrantes ──
 const newRole = ref('')
-const roleOptions = computed(() => [
-  { value: '', label: 'Sin rol' },
-  ...ROLE_SUGGESTIONS[clinicalCase.value?.type ?? 'group'].map(r => ({ value: r, label: r })),
-])
-
 function addMember(p: PickedPatient) {
   addMemberMutation.mutate({ client_id: p.id, role: newRole.value || null }, { onSuccess: () => { newRole.value = '' } })
 }

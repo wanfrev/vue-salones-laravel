@@ -36,6 +36,32 @@ class CaseService
         return $cases->map(fn (ClinicalCase $c) => $this->present($c, $members->get($c->id, collect())))->all();
     }
 
+    /**
+     * Pacientes para armar un caso. A diferencia de /clients/search (solo "empieza por", compartido
+     * con el POS y la agenda de todos los nichos), aquí cada palabra del texto puede estar en
+     * cualquier parte del nombre, teléfono, código o documento: «soto» encuentra a «Luis Soto» y
+     * «ana per» a «Ana María Pérez». Acotado a 20 y al negocio.
+     */
+    public function searchPatients(string $businessId, string $query): Collection
+    {
+        $words = array_slice(array_filter(preg_split('/\s+/', mb_strtolower(trim($query))) ?: []), 0, 5);
+        if ($words === []) {
+            return collect();
+        }
+
+        $q = \App\Models\Client::query()->where('business_id', $businessId);
+        foreach ($words as $word) {
+            $like = '%' . addcslashes($word, '\\%_') . '%';
+            $q->where(function ($q) use ($like) {
+                foreach (['full_name', 'phone', 'client_code', 'document_id'] as $column) {
+                    $q->orWhereRaw("LOWER(COALESCE({$column}, '')) LIKE ? ESCAPE '\\'", [$like]);
+                }
+            });
+        }
+
+        return $q->orderBy('full_name')->limit(20)->get(['id', 'full_name', 'phone', 'client_code']);
+    }
+
     public function find(string $id, string $businessId): ?ClinicalCase
     {
         return ClinicalCase::where('id', $id)->where('business_id', $businessId)->first();
