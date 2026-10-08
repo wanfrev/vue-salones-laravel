@@ -343,6 +343,38 @@ class ClinicalCasesTest extends TestCase
         $this->assertCount(1, $this->body($c->index($this->req('admin'))));
     }
 
+    // ── Buscador de pacientes para integrantes ──────────────────────────────────
+
+    public function test_patient_search_matches_any_word_anywhere_not_only_the_start(): void
+    {
+        $c = app(CaseController::class);
+        $names = fn (string $q) => array_column($this->body($c->searchPatients($this->req('admin', 'GET', [], 'u1', ['q' => $q]))), 'full_name');
+
+        $this->assertSame(['Carla Soto'], $names('soto'));          // apellido: /clients/search no lo encontraba
+        $this->assertSame(['Carla Soto'], $names('CARLA so'));      // varias palabras, sin importar mayúsculas
+        $this->assertSame(['Ana Pérez'], $names('0414-ana'));       // teléfono
+        $this->assertSame([], $names('zzz'));
+    }
+
+    public function test_patient_search_is_scoped_to_the_business_and_treats_wildcards_literally(): void
+    {
+        $c = app(CaseController::class);
+        $names = fn (string $q) => array_column($this->body($c->searchPatients($this->req('admin', 'GET', [], 'u1', ['q' => $q]))), 'full_name');
+
+        $this->assertSame([], $names('Otro negocio'));              // paciente de biz-2
+        $this->assertSame([], $names('%'));                          // un % no es "todos"
+        $this->assertSame([], $names('_'));
+    }
+
+    public function test_patient_search_requires_clinical_access_and_a_query(): void
+    {
+        $c = app(CaseController::class);
+
+        $this->assertSame(403, $c->searchPatients($this->req('cajero', 'GET', [], 'u1', ['q' => 'ana']))->getStatusCode());
+        $this->expectException(ValidationException::class);
+        $c->searchPatients($this->req('admin'));
+    }
+
     public function test_creating_through_the_controller_validates_and_audits(): void
     {
         $c = app(CaseController::class);

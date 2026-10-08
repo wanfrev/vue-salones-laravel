@@ -23,7 +23,7 @@
     <ul v-if="members.length > 0" class="space-y-2">
       <li v-for="m in members" :key="m.client_id" class="grid grid-cols-1 items-center gap-2 rounded-lg border border-border-subtle bg-bg-secondary/40 p-2 sm:grid-cols-[1fr_11rem_auto_auto]">
         <span class="truncate text-sm font-medium text-text">{{ m.name }}</span>
-        <FormSelect v-model="m.role" :options="roleOptions" />
+        <CaseRoleSelect v-model="m.role" />
         <label class="flex items-center gap-1.5 text-xs font-semibold text-text-secondary">
           <input type="radio" name="titular" :checked="primaryId === m.client_id" @change="primaryId = m.client_id" />
           Titular
@@ -54,9 +54,10 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
-import { FormInput, FormSelect } from '../forms'
+import { FormInput } from '../forms'
 import PatientPicker, { type PickedPatient } from './PatientPicker.vue'
-import { CASE_TYPES, CASE_TYPE_HINTS, CASE_TYPE_LABELS, ROLE_SUGGESTIONS, caseMembersError, suggestCaseName } from './cases'
+import CaseRoleSelect from './CaseRoleSelect.vue'
+import { CASE_TYPES, CASE_TYPE_HINTS, CASE_TYPE_LABELS, caseMembersError, suggestCaseName } from './cases'
 import type { CreateCasePayload } from '../../services/clinical/caseService'
 import type { ClinicalCaseType } from '../../types/database'
 
@@ -69,16 +70,9 @@ const primaryId = ref('')
 const name = ref('')
 const nameEdited = ref(false)
 
-const roleOptions = computed(() => [{ value: '', label: 'Sin rol' }, ...ROLE_SUGGESTIONS[type.value].map(r => ({ value: r, label: r }))])
-
 // Mientras nadie haya escrito el nombre, se sugiere a partir de los integrantes.
 watch([type, () => members.map(m => m.name)], () => {
   if (!nameEdited.value) name.value = suggestCaseName(type.value, members.map(m => m.name))
-})
-
-// Cambiar de tipo con un rol que ya no existe en ese tipo lo limpia en vez de dejar un valor inválido en el select.
-watch(type, t => {
-  for (const m of members) if (m.role && !ROLE_SUGGESTIONS[t].includes(m.role)) m.role = ''
 })
 
 function addMember(p: PickedPatient) {

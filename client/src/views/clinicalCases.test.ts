@@ -30,7 +30,11 @@ const s = await vi.hoisted(async () => {
 vi.mock('vue-router', () => ({ useRoute: () => s.route, useRouter: () => ({ push: s.push, replace: vi.fn() }) }))
 vi.mock('../store/auth', () => ({ useAuthStore: () => ({ role: s.auth.role, businessId: 'biz-1', user: { id: 'u1' }, profile: { id: 'u1' } }) }))
 vi.mock('../store/business', () => ({ useBusinessStore: () => ({ hasCapability: () => true }) }))
-vi.mock('../services/clientesService', () => ({ searchClients: (...a: unknown[]) => s.search(...a), getClienteById: vi.fn() }))
+vi.mock('../services/clientesService', () => ({ getClienteById: vi.fn() }))
+vi.mock('../services/clinical/caseService', async importOriginal => ({
+  ...(await importOriginal<typeof import('../services/clinical/caseService')>()),
+  searchCasePatients: (...a: unknown[]) => s.search(...a),
+}))
 vi.mock('../composables/clinical/useCases', () => ({
   useCases: () => ({ cases: s.cases, isLoading: s.casesLoading, hasAccess: s.casesAccess, createMutation: { isPending: s.createPending, mutateAsync: s.createCase } }),
   useCase: () => ({ clinicalCase: { value: null }, isLoading: s.falsy }),
@@ -102,7 +106,7 @@ describe('PatientPicker', () => {
     await input.setValue('an'); await input.setValue('ana'); await input.setValue('ana p')
     await vi.advanceTimersByTimeAsync(400)
     expect(s.search).toHaveBeenCalledTimes(1)
-    expect(s.search.mock.calls[0][1]).toBe('ana p')
+    expect(s.search.mock.calls[0][0]).toBe('ana p')
   })
 
   it('never offers already-chosen patients and emits the pick, clearing the box', async () => {
@@ -118,6 +122,21 @@ describe('PatientPicker', () => {
     await w.findAll('li button').find(b => b.text().includes('Beto Ruiz'))!.trigger('click')
     expect(w.emitted('select')![0][0]).toEqual({ id: '2', full_name: 'Beto Ruiz', phone: '0414-1' })
     expect((w.find('input').element as HTMLInputElement).value).toBe('')
+  })
+
+  it('shows names in title case and closes the list when the field loses focus', async () => {
+    vi.useFakeTimers()
+    s.search.mockResolvedValue([patient('1', 'ANA PÉREZ')])
+    const w = mountPicker()
+    await w.find('input').setValue('perez')
+    await vi.advanceTimersByTimeAsync(400)
+    await flushPromises()
+    expect(w.text()).toContain('Ana Pérez')
+
+    await w.find('input').trigger('blur')
+    expect(w.find('ul').exists()).toBe(false)
+    await w.find('input').setValue('perez2') // al seguir escribiendo vuelve a abrirse
+    expect(w.find('ul').exists()).toBe(true)
   })
 
   it('ignores a slow response that arrives after a newer search (no stale results)', async () => {

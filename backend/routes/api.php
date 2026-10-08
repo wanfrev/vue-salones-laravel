@@ -318,6 +318,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         // Casos: pareja, familia o grupo en tratamiento conjunto. Las notas y planes conjuntos
         // cuelgan del caso; en la ficha de cada integrante se leen (solo lectura) por /joint-*.
         Route::middleware(['capability:clinical.cases'])->group(function () {
+            Route::get('/clinical/patients/search', [ClinicalCaseController::class, 'searchPatients']);
             Route::get('/clinical-cases', [ClinicalCaseController::class, 'index']);
             Route::post('/clinical-cases', [ClinicalCaseController::class, 'store']);
             Route::get('/clinical-cases/{caseId}', [ClinicalCaseController::class, 'show']);

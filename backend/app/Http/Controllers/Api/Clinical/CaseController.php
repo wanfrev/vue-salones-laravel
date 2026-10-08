@@ -35,6 +35,33 @@ class CaseController
         return response()->json($this->service->list($businessId, $data['status'] ?? null));
     }
 
+    /** Buscador de pacientes para integrantes de un caso (ver CaseService::searchPatients). */
+    public function searchPatients(Request $request): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) return response()->json(['message' => 'No autorizado.'], 403);
+        if ($denied = $this->denyUnlessClinicalAccess($request)) return $denied;
+
+        $data = $request->validate(['q' => ['required', 'string', 'min:1', 'max:80']]);
+        $results = $this->service->searchPatients($businessId, $data['q']);
+
+        // Mismo criterio que /clients/search: si el negocio oculta el teléfono a los empleados, no sale.
+        if ($this->hidesPhoneFromEmployee($request, $businessId)) {
+            $results->each(fn ($c) => $c->phone = '');
+        }
+
+        return response()->json($results->values());
+    }
+
+    private function hidesPhoneFromEmployee(Request $request, string $businessId): bool
+    {
+        if ($request->user()?->profile?->role !== 'empleado') return false;
+        $features = \App\Models\Business::find($businessId)?->features;
+        $features = is_array($features) ? $features : (json_decode($features ?? '[]', true) ?: []);
+
+        return (bool) ($features['hide_client_phone_from_employees'] ?? false);
+    }
+
     public function show(Request $request, string $caseId): JsonResponse
     {
         [, $case, $error] = $this->resolveCaseContext($request, $caseId);

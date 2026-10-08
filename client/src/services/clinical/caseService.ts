@@ -21,6 +21,10 @@ export interface UpdateCasePayload {
   primary_client_id?: string
 }
 
+/** Pacientes para armar un caso: cada palabra puede estar en cualquier parte del nombre/teléfono/código. */
+export const searchCasePatients = async (q: string) =>
+  apiRequest<Array<{ id: string; full_name: string; phone: string | null }>>('GET', `/clinical/patients/search?q=${encodeURIComponent(q)}`)
+
 // ── Casos ──
 export const listCases = async (status?: ClinicalCaseStatus) =>
   apiRequest<ClinicalCase[]>('GET', `/clinical-cases${status ? `?status=${status}` : ''}`)

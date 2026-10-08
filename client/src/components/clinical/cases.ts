@@ -30,13 +30,47 @@ export function caseMembersError(type: ClinicalCaseType, count: number): string 
   return null
 }
 
-export const ROLE_SUGGESTIONS: Record<ClinicalCaseType, string[]> = {
-  couple: ['Pareja', 'Esposo(a)', 'Novio(a)'],
-  family: ['Madre', 'Padre', 'Hijo(a)', 'Hermano(a)', 'Abuelo(a)', 'Paciente identificado'],
-  group: ['Participante'],
+/** Roles de fábrica del selector de integrantes (sin rol = cadena vacía). El resto los crea el usuario. */
+export const BASE_ROLES = ['Pareja', 'Padre', 'Madre']
+
+export const MAX_ROLE_LENGTH = 60 // igual que el servidor
+
+/** Quita espacios sobrantes; '' si no queda nada. */
+export const normalizeRole = (raw: string): string => raw.replace(/\s+/g, ' ').trim().slice(0, MAX_ROLE_LENGTH)
+
+/**
+ * Opciones del selector de rol: «Sin rol», los de fábrica, los que el usuario creó antes y, si el
+ * valor actual no está en ninguna lista (p. ej. un rol viejo guardado en el caso), ese valor para
+ * que el selector no lo muestre vacío. Sin duplicados (ignora mayúsculas).
+ */
+export function roleChoices(custom: string[], current = ''): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const r of [...BASE_ROLES, ...custom, current]) {
+    const role = normalizeRole(r)
+    const key = role.toLowerCase()
+    if (role && !seen.has(key)) { seen.add(key); out.push(role) }
+  }
+  return out
 }
 
-export const activeMembers = (c: Pick<ClinicalCase, 'members'>): ClinicalCaseMember[] => c.members.filter(m => !m.left_on)
+export const APPOINTMENT_STATUS_LABELS: Record<string, string> = {
+  pending: 'Pendiente',
+  confirmed: 'Confirmada',
+  in_progress: 'En curso',
+  completed: 'Completada',
+}
+
+/**
+ * Citas vinculadas al caso que aún no tienen nota conjunta: son las sesiones por documentar. Las
+ * canceladas o con inasistencia no cuentan (no hubo sesión). Más recientes primero, como llegan del servidor.
+ */
+export function appointmentsWithoutNote<A extends { id: string; status: string }>(appointments: A[], notes: Array<{ appointment_id: string | null }>): A[] {
+  const documented = new Set(notes.map(n => n.appointment_id).filter(Boolean))
+  return appointments.filter(a => !documented.has(a.id) && a.status !== 'cancelled' && a.status !== 'no_show')
+}
+
+export const activeMembers =(c: Pick<ClinicalCase, 'members'>): ClinicalCaseMember[] => c.members.filter(m => !m.left_on)
 
 export const titularOf = (c: Pick<ClinicalCase, 'members'>): ClinicalCaseMember | undefined => activeMembers(c).find(m => m.is_primary)
 
