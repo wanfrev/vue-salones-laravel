@@ -45,6 +45,9 @@
         :class="currentWeek.status === 'draft' ? 'bg-warning/10 text-warning' : currentWeek.status === 'approved' ? 'bg-info/10 text-info' : 'bg-success/10 text-success'">
         {{ currentWeek.status === 'draft' ? 'Borrador' : currentWeek.status === 'approved' ? 'Aprobada' : 'Pagada' }}
       </span>
+      <span v-if="approvalStampText" class="text-xs text-text-muted" title="Sello de aprobación — se puede verificar en 'Verificar código de aprobación'">
+        {{ approvalStampText }}
+      </span>
     </div>
 
     <p v-if="!selectedCompanyId" class="py-10 text-center text-sm text-text-muted">
@@ -384,6 +387,7 @@ import { printStaffingPayroll } from '../../lib/staffingPayrollPrint'
 import { formatDateUS, toISODate } from '../../lib/formatters'
 import { previousWeekStart, copyableFieldsFrom } from '../../lib/staffingCopyWeek'
 import { buildPayStub, printStaffingPayStubs } from '../../lib/staffingPayStub'
+import { formatApprovalStamp } from '../../lib/staffingApprovalStamp'
 import type { StaffingTimesheetEntry, Profile } from '../../types/database'
 import { MagnifierIcon, PenIcon } from '@solar-icons/vue/linear'
 import GenerateInvoiceModal from './GenerateInvoiceModal.vue'
@@ -528,6 +532,9 @@ const weekEnd = computed(() => {
 const currentWeek = computed(() => timesheets.findWeek(weekStartInput.value))
 
 const isReadOnly = computed(() => !!currentWeek.value && currentWeek.value.status !== 'draft')
+
+// null unless the business uses the opt-in approval stamp and this week was approved with it.
+const approvalStampText = computed(() => formatApprovalStamp(currentWeek.value))
 
 type GridRow = {
   totalHours: number
@@ -1045,6 +1052,7 @@ const handlePrintPayroll = () => {
     weekEnd: weekEnd.value,
     statusLabel: filterLabel.value ? `${statusLabel.value} · Solo ${filterLabel.value}` : statusLabel.value,
     rows: printRows,
+    approvalStamp: approvalStampText.value,
   })
 }
 
@@ -1091,6 +1099,7 @@ const handlePrintPayStubs = (employees: RosterEmployee[]) => {
     weekStart: weekStartInput.value,
     weekEnd: weekEnd.value,
     stubs,
+    approvalStamp: approvalStampText.value,
   })
   if (printable.length < employees.length) {
     showError(`${employees.length - printable.length} empleado(s) sin guardar se omitieron del talón.`)

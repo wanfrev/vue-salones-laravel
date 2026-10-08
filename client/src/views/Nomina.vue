@@ -12,6 +12,10 @@
       <StaffingHoursPanel :business-id="businessId" :initial-company-id="initialCompanyId" :initial-week-start="initialWeekStart" :initial-project-id="initialProjectId" />
     </section>
 
+    <section v-if="businessStore.features.staffing_approval_stamp" class="mt-4 rounded-2xl border border-border bg-surface p-4 lg:p-6">
+      <ApprovalCodeVerifier />
+    </section>
+
     <section class="mt-4 rounded-2xl border border-border bg-surface p-4 lg:p-6">
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -97,6 +101,7 @@ import { useCurrency } from '../composables/common/useCurrency'
 import { useBusinessStore } from '../store/business'
 import { FeatureGate } from '../components/common'
 import StaffingHoursPanel from '../components/staffing/StaffingHoursPanel.vue'
+import ApprovalCodeVerifier from '../components/staffing/ApprovalCodeVerifier.vue'
 import { getStaffingDepositList, listStaffingCompanies, staffingCompanyKeys } from '../services/staffing/staffingService'
 import type { StaffingDepositListRow } from '../services/staffing/staffingService'
 import { printStaffingDepositList } from '../lib/staffingDepositListPrint'

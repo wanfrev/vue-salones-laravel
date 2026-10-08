@@ -54,6 +54,7 @@ export const DEFAULT_FEATURES = {
   staffing_commissions: false,
   staffing_profitability: false,
   staffing_assignment_history: false,
+  staffing_approval_stamp: false,
   // Real product variants (structured attributes like Talla/Color) instead of the old
   // free-text-only product_variants.name. Default true — additive, no existing behaviour
   // depends on this being off.

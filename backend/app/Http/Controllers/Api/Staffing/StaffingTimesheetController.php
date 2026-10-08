@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Staffing;
 
 use App\Events\EntityChanged;
+use App\Services\BusinessContext;
 use App\Services\Staffing\StaffingTimesheetService;
 use App\Services\Staffing\StaffingXlsxExportService;
 use Illuminate\Http\JsonResponse;
@@ -136,8 +137,11 @@ class StaffingTimesheetController
     {
         $p = $request->user()?->load('profile')?->profile;
 
+        // Opt-in per business (`staffing_approval_stamp`) — off, this call is exactly what it was.
+        $stamp = app()->bound(BusinessContext::class) && app(BusinessContext::class)->hasFeature('staffing_approval_stamp');
+
         try {
-            $timesheet = $this->timesheets->approve($id, $p?->business_id ?? '');
+            $timesheet = $this->timesheets->approve($id, $p?->business_id ?? '', $request->user()?->id, $stamp);
         } catch (RuntimeException $e) {
             return response()->json(['error' => ['message' => $e->getMessage()]], 422);
         }
@@ -145,6 +149,19 @@ class StaffingTimesheetController
         EntityChanged::safe($p?->business_id, 'staffing_timesheet', 'approved', $id);
 
         return response()->json($timesheet);
+    }
+
+    /** Checks a "NOM-XXXX-XXXX" code printed on an approved payroll — see StaffingTimesheetService::verifyApproval. */
+    public function verifyApproval(Request $request): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json(['error' => ['message' => 'Sin negocio asignado.']], 403);
+        }
+
+        $data = $request->validate(['code' => 'required|string|max:40']);
+
+        return response()->json($this->timesheets->verifyApproval($p->business_id, $data['code']));
     }
 
     public function markPaid(Request $request, string $id): JsonResponse
