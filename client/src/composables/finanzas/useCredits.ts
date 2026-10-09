@@ -49,13 +49,14 @@ export function useCredits(periodDates?: import('vue').Ref<{ start: string; end:
   const pendingTotal = computed(() => pendingCredits.value.reduce((sum, c) => sum + Number(c.remaining ?? c.amount ?? 0), 0))
 
   const payMutation = useMutation({
-    mutationFn: async (payload: { id: string; amount: number; method: string; currency?: 'USD' | 'VES'; exchangeRate?: number }) => {
+    mutationFn: async (payload: { id: string; amount: number; method: string; currency?: 'USD' | 'VES'; exchangeRate?: number; bankId?: string | null }) => {
       getBusinessId()
       return await apiRequest<{ credit: Credit; payment: CreditPayment }>('POST', `/credits/${payload.id}/pay`, {
         amount: payload.amount,
         method: payload.method,
         currency: payload.currency,
         exchange_rate: payload.exchangeRate,
+        bank_id: payload.bankId || undefined,
       })
     },
     onSuccess: (result) => {
@@ -64,6 +65,10 @@ export function useCredits(periodDates?: import('vue').Ref<{ start: string; end:
         queryClient.invalidateQueries({ queryKey: ['credit-payments', result.credit.id], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['financial-summary'], exact: false }),
         queryClient.invalidateQueries({ queryKey: ['transactions'], exact: false }),
+        // Finanzas lee de estas dos claves -- sin esto el abono (y su banco) no aparecía en el
+        // Desglose de Ingresos hasta que expiraba el staleTime.
+        queryClient.invalidateQueries({ queryKey: ['finanzas-transactions'], exact: false }),
+        queryClient.invalidateQueries({ queryKey: ['finanzas-summary'], exact: false }),
       ])
       success(result.credit.status === 'paid' ? 'Crédito pagado por completo' : 'Abono registrado')
     },

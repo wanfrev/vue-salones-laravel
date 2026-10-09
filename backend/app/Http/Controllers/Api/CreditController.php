@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
+use App\Models\Bank;
 use App\Models\Credit;
 use App\Models\CreditPayment;
 use App\Models\Transaction;
@@ -10,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class CreditController
 {
@@ -101,12 +103,24 @@ class CreditController
             'method' => ['required', 'string', 'max:50', 'not_in:credito'],
             'currency' => ['nullable', 'string', 'in:USD,VES'],
             'exchange_rate' => ['nullable', 'numeric', 'min:0'],
+            'bank_id' => ['nullable', 'uuid', Rule::exists('banks', 'id')->where('business_id', $businessId)],
         ]);
 
         $payment = DB::transaction(function () use ($credit, $data, $businessId, $request) {
             $currency = $data['currency'] ?? 'USD';
             $rate = (float) ($data['exchange_rate'] ?? 1);
             $amount = (float) $data['amount'];
+
+            // Mismo criterio que el POS (PaymentBreakdownItem.bank_id/bank_name): el banco vive
+            // dentro de payments_breakdown, solo para los métodos que lo tienen, y el nombre se
+            // resuelve acá desde la tabla -- no se confía en el que mande el cliente.
+            $bankFields = [];
+            if (!empty($data['bank_id']) && in_array($data['method'], ['pago_movil', 'transfer', 'punto_venta'], true)) {
+                $bank = Bank::where('business_id', $businessId)->find($data['bank_id']);
+                if ($bank) {
+                    $bankFields = ['bank_id' => $bank->id, 'bank_name' => $bank->name];
+                }
+            }
 
             // Hereda la cita de la venta original a crédito (si la hubo) para que este abono se
             // vea en Finanzas como "Cobro cita" con el cliente/servicio reales, no como una
@@ -137,6 +151,7 @@ class CreditController
                     'currency' => $currency,
                     'inputAmount' => $currency === 'VES' ? round($amount * $rate, 2) : $amount,
                     'amount' => $amount,
+                    ...$bankFields,
                 ]],
                 'created_by' => $request->user()?->id,
                 'notes' => "Abono a crédito de {$credit->client_name}",
