@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\Clinical\CaseController as ClinicalCaseController;
 use App\Http\Controllers\Api\Clinical\CaseRecordsController;
 use App\Http\Controllers\Api\Clinical\AttachmentController as ClinicalAttachmentController;
 use App\Http\Controllers\Api\Clinical\DiagramController as ClinicalDiagramController;
+use App\Http\Controllers\Api\Clinical\ProgramController as ClinicalProgramController;
 use App\Http\Controllers\Api\EmployeeCommissionController;
 use App\Http\Controllers\Api\EmployeeDocumentController;
 use App\Http\Controllers\Api\EmployeePaymentController;
@@ -356,6 +357,20 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
             Route::put('/clients/{clientId}/diagrams/{type}', [ClinicalDiagramController::class, 'saveForClient']);
             Route::get('/clinical-cases/{caseId}/diagrams/{type}', [ClinicalDiagramController::class, 'showForCase']);
             Route::put('/clinical-cases/{caseId}/diagrams/{type}', [ClinicalDiagramController::class, 'saveForCase']);
+        });
+
+        // Programas de sesiones (paquetes que se cobran juntos) e inscripciones. Sin permiso de expediente:
+        // lo opera recepción; lo que altera lo vendido lo restringe el controller a administración.
+        Route::middleware(['capability:clinical.programs'])->group(function () {
+            Route::get('/clinical/programs', [ClinicalProgramController::class, 'index']);
+            Route::post('/clinical/programs', [ClinicalProgramController::class, 'store']);
+            Route::put('/clinical/programs/{id}', [ClinicalProgramController::class, 'update']);
+            Route::get('/clients/{clientId}/clinical-enrollments', [ClinicalProgramController::class, 'forClient']);
+            Route::post('/clients/{clientId}/clinical-enrollments', [ClinicalProgramController::class, 'enroll']);
+            Route::put('/clinical/enrollments/{id}', [ClinicalProgramController::class, 'updateEnrollment']);
+            Route::delete('/clinical/enrollments/{id}', [ClinicalProgramController::class, 'cancelEnrollment']);
+            Route::put('/clinical/enrollments/{id}/sessions/{appointmentId}', [ClinicalProgramController::class, 'setSessionConsumes']);
+            Route::get('/clinical/appointments/{appointmentId}/program', [ClinicalProgramController::class, 'forAppointment']);
         });
 
         // Seguimiento: notas pendientes, riesgo sin seguimiento y posibles abandonos.

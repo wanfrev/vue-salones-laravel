@@ -200,7 +200,7 @@ export const NICHES: Record<string, NicheDefinition> = {
         { key: 'guardian_share_info', label: '¿Se puede entregar información al tutor?', type: 'select', options: YES_NO_OPTIONS, collapsibleGroup: 'guardian' },
       ],
     },
-    capabilities: ['clinical.intake', 'clinical.session_notes', 'clinical.treatment_plan', 'clinical.consent', 'clinical.assessments', 'clinical.reports', 'clinical.followup', 'clinical.audit', 'clinical.cases', 'clinical.attachments', 'clinical.diagrams'],
+    capabilities: ['clinical.intake', 'clinical.session_notes', 'clinical.treatment_plan', 'clinical.consent', 'clinical.assessments', 'clinical.reports', 'clinical.followup', 'clinical.audit', 'clinical.cases', 'clinical.attachments', 'clinical.diagrams', 'clinical.programs'],
     // Mirror of config/niches.php. Sin inventario/proveedores/gift cards por defecto; `productos`
     // se deja prendido porque el POS lee el catálogo. El valor guardado por superadmin gana.
     featureDefaults: {

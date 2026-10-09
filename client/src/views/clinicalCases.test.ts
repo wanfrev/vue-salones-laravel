@@ -328,7 +328,10 @@ describe('AppointmentCaseLink (detalle de la cita en el calendario)', () => {
 })
 
 describe('ClinicalAttachmentsView', () => {
-  const att = (over = {}) => ({ id: 'a1', category: 'test_result', title: 'MMPI-2', original_name: 'mmpi.pdf', mime: 'application/pdf', size: 2048, created_at: '2026-10-01T10:00:00-04:00', ...over })
+  const att = (over = {}) => ({
+    id: 'a1', category: 'test_result', title: 'MMPI-2', original_name: 'mmpi.pdf', mime: 'application/pdf', size: 2048, created_at: '2026-10-01T10:00:00-04:00',
+    document_date: null, uploaded_by_name: null, can_delete: false, ...over,
+  })
   const mountView = () => { s.route.params = { id: 'c1' }; return mount(ClinicalAttachmentsView) }
   const pick = async (w: ReturnType<typeof mount>, name: string, size: number) => {
     const input = w.find('input[type="file"]')
@@ -384,12 +387,11 @@ describe('ClinicalAttachmentsView', () => {
     expect((w.find('input[placeholder^="Ej: MMPI"]').element as HTMLInputElement).value).toBe('')
   })
 
-  it('only the admin sees "Eliminar", and deleting asks for confirmation', async () => {
-    s.attachments.value = [att()]
-    s.auth.role = 'empleado'
+  it('«Eliminar» appears only on the files the server says this user can delete, and asks for confirmation', async () => {
+    s.attachments.value = [att({ can_delete: false })]
     expect(mountView().findAll('button').some(b => b.text() === 'Eliminar')).toBe(false)
 
-    s.auth.role = 'admin'
+    s.attachments.value = [att({ can_delete: true })]
     const w = mountView()
     // happy-dom no trae window.confirm: se define uno controlable.
     const confirm = vi.fn().mockReturnValueOnce(false).mockReturnValueOnce(true)
@@ -401,6 +403,95 @@ describe('ClinicalAttachmentsView', () => {
 
     await btn(w, 'Eliminar').trigger('click')
     expect(s.del).toHaveBeenCalledWith('a1') // dijo que sí
+  })
+
+  it('groups the files by category in a fixed order, newest first, with a count per group', () => {
+    s.attachments.value = [
+      att({ id: 'o', category: 'other', title: 'Varios', document_date: '2026-09-01' }),
+      att({ id: 'r1', category: 'test_result', title: 'WISC viejo', document_date: '2026-03-01' }),
+      att({ id: 'r2', category: 'test_result', title: 'MMPI nuevo', document_date: '2026-09-10' }),
+      att({ id: 'e', category: 'medical_exam', title: 'Hemograma', document_date: '2026-08-01' }),
+    ]
+    const w = mountView()
+    const text = w.text()
+
+    // Orden de las categorías (pruebas, exámenes, otro) y, dentro de cada una, lo más reciente primero.
+    expect(text.indexOf('Resultado de prueba')).toBeLessThan(text.indexOf('Examen médico'))
+    expect(text.indexOf('Examen médico')).toBeLessThan(text.indexOf('Otro'))
+    expect(text.indexOf('MMPI nuevo')).toBeLessThan(text.indexOf('WISC viejo'))
+    expect(w.findAll('h3')).toHaveLength(3)
+    expect(w.findAll('h3')[0].text()).toContain('2')
+  })
+
+  it('filters by category chip and shows the counts', async () => {
+    s.attachments.value = [
+      att({ id: 'a', category: 'test_result', title: 'MMPI' }),
+      att({ id: 'b', category: 'test_result', title: 'WISC' }),
+      att({ id: 'c', category: 'school', title: 'Boletín' }),
+    ]
+    const w = mountView()
+    const chip = (label: string) => w.findAll('button[aria-pressed]').find(b => b.text().startsWith(label))!
+
+    expect(chip('Todos').text()).toContain('(3)')
+    expect(chip('Resultado de prueba').text()).toContain('(2)')
+    expect(chip('Documento escolar').text()).toContain('(1)')
+    expect(w.findAll('button[aria-pressed]').some(b => b.text().startsWith('Consentimiento'))).toBe(false) // sin archivos, sin chip
+
+    await chip('Documento escolar').trigger('click')
+    expect(w.text()).toContain('Boletín')
+    expect(w.text()).not.toContain('MMPI')
+
+    await chip('Todos').trigger('click')
+    expect(w.text()).toContain('MMPI')
+  })
+
+  it('searches without caring about accents or case, across title, file name and uploader', async () => {
+    s.attachments.value = [
+      att({ id: 'a', title: 'Evaluación neuropsicológica', original_name: 'scan01.pdf', uploaded_by_name: 'Dra. Soto' }),
+      att({ id: 'b', title: 'Boletín', original_name: 'boletin.pdf', uploaded_by_name: 'Luis' }),
+    ]
+    const w = mountView()
+    const search = w.find('input[aria-label="Buscar archivos"]')
+
+    await search.setValue('EVALUACION')
+    expect(w.text()).toContain('Evaluación neuropsicológica')
+    expect(w.text()).not.toContain('Boletín')
+
+    await search.setValue('luis')
+    expect(w.text()).toContain('Boletín')
+    expect(w.text()).not.toContain('Evaluación neuropsicológica')
+
+    await search.setValue('nada de esto')
+    expect(w.text()).toContain('Ningún archivo coincide')
+  })
+
+  it('shows the document date (or the upload day when none) and who uploaded it', () => {
+    s.attachments.value = [
+      att({ id: 'a', title: 'Con fecha', document_date: '2026-09-15', uploaded_by_name: 'Dra. Soto' }),
+      att({ id: 'b', title: 'Sin fecha', document_date: null, created_at: '2026-10-01T14:00:00Z' }),
+    ]
+    const t = mountView().text()
+    expect(t).toContain('por Dra. Soto')
+    expect(t).toContain('(subido)') // el que no tiene fecha de documento lo avisa
+  })
+
+  it('sends the document date only when one was chosen', async () => {
+    const w = mountView()
+    const file = await pick(w, 'informe.pdf', 500)
+
+    s.upload.mockResolvedValue({})
+    await btn(w, 'Subir archivo').trigger('click'); await flushPromises()
+    expect(s.upload).toHaveBeenLastCalledWith({ category: 'test_result', title: 'Informe', file })
+
+    await pick(w, 'otro.pdf', 500)
+    await w.find('input[type="date"]').setValue('2026-09-15')
+    await btn(w, 'Subir archivo').trigger('click'); await flushPromises()
+    expect(s.upload).toHaveBeenLastCalledWith(expect.objectContaining({ title: 'Otro', document_date: '2026-09-15' }))
+  })
+
+  it('offers every category when uploading', () => {
+    const labels = mountView().find('select').findAll('option').map(o => o.text())
+    expect(labels).toEqual(['Resultado de prueba', 'Informe externo', 'Examen médico', 'Documento escolar', 'Consentimiento', 'Material del paciente', 'Otro'])
   })
 
   it('download goes through the authenticated helper', async () => {

@@ -219,6 +219,8 @@ class AppointmentService
 
     public function destroy(string $id, string $businessId): void
     {
+        \App\Services\Clinical\EnrollmentService::assertAppointmentDeletable($id);
+
         DB::transaction(function () use ($id, $businessId) {
             $appointment = $this->findForBusiness($id, $businessId);
             \App\Models\Transaction::where('appointment_id', $id)->delete();

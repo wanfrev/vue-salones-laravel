@@ -1,4 +1,4 @@
-import type { AttachmentCategory } from '../../types/database'
+import type { AttachmentCategory, ClinicalAttachment } from '../../types/database'
 
 /** Mismos límites que el servidor (AttachmentService): se validan antes de subir para no gastar la subida. */
 export const ATTACHMENT_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic', 'heif', 'doc', 'docx'] as const
@@ -8,17 +8,76 @@ export const ATTACHMENT_ACCEPT = ATTACHMENT_EXTENSIONS.map(e => `.${e}`).join(',
 export const CATEGORY_LABELS: Record<AttachmentCategory, string> = {
   test_result: 'Resultado de prueba',
   external_report: 'Informe externo',
+  medical_exam: 'Examen médico',
+  school: 'Documento escolar',
+  consent: 'Consentimiento',
   patient_material: 'Material del paciente',
   other: 'Otro',
 }
 
-export const CATEGORY_OPTIONS = (Object.keys(CATEGORY_LABELS) as AttachmentCategory[]).map(value => ({ value, label: CATEGORY_LABELS[value] }))
+/** Orden en que se muestran las categorías (y se ofrecen al subir): lo clínico primero, «Otro» al final. */
+export const CATEGORY_ORDER: AttachmentCategory[] = ['test_result', 'external_report', 'medical_exam', 'school', 'consent', 'patient_material', 'other']
+
+export const CATEGORY_OPTIONS = CATEGORY_ORDER.map(value => ({ value, label: CATEGORY_LABELS[value] }))
 
 export const CATEGORY_TONE: Record<AttachmentCategory, string> = {
   test_result: 'bg-primary/10 text-primary',
   external_report: 'bg-warning/10 text-warning',
+  medical_exam: 'bg-danger/10 text-danger',
+  school: 'bg-success/10 text-success',
+  consent: 'bg-primary/10 text-primary',
   patient_material: 'bg-success/10 text-success',
   other: 'bg-bg-secondary text-text-secondary',
+}
+
+// ── Organización de la lista: fecha, búsqueda, filtro y grupos por categoría ──
+
+type Organizable = Pick<ClinicalAttachment, 'category' | 'title' | 'original_name' | 'document_date' | 'created_at' | 'uploaded_by_name'>
+
+const pad = (n: number) => String(n).padStart(2, '0')
+
+/** Fecha con la que se ordena y se muestra: la del documento; si no se indicó, el día (local) en que se subió. */
+export function attachmentDate(a: Pick<ClinicalAttachment, 'document_date' | 'created_at'>): string {
+  if (a.document_date) return a.document_date
+  const d = new Date(a.created_at)
+  return Number.isNaN(d.getTime()) ? '' : `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+
+/** Más reciente primero (por fecha del documento; a igual fecha, el subido más tarde). */
+export function sortAttachments<T extends Organizable>(list: T[]): T[] {
+  return [...list].sort((a, b) => attachmentDate(b).localeCompare(attachmentDate(a)) || b.created_at.localeCompare(a.created_at))
+}
+
+/** Cada palabra del texto debe aparecer en el título, el nombre del archivo, la categoría o quién lo subió (sin acentos ni mayúsculas). */
+export function searchAttachments<T extends Organizable>(list: T[], query: string): T[] {
+  const words = fold(query).split(/\s+/).filter(Boolean)
+  if (words.length === 0) return list
+  return list.filter(a => {
+    const haystack = fold(`${a.title} ${a.original_name} ${CATEGORY_LABELS[a.category] ?? ''} ${a.uploaded_by_name ?? ''}`)
+    return words.every(w => haystack.includes(w))
+  })
+}
+
+export function categoryCounts(list: Array<Pick<ClinicalAttachment, 'category'>>): Record<AttachmentCategory, number> {
+  const counts = Object.fromEntries(CATEGORY_ORDER.map(c => [c, 0])) as Record<AttachmentCategory, number>
+  for (const a of list) if (a.category in counts) counts[a.category]++
+  return counts
+}
+
+export interface AttachmentGroup<T> {
+  category: AttachmentCategory
+  label: string
+  items: T[]
+}
+
+/** Búsqueda + filtro de categoría + orden, y agrupado en el orden de CATEGORY_ORDER (solo grupos con archivos). */
+export function organizeAttachments<T extends Organizable>(list: T[], opts: { category: AttachmentCategory | 'all'; query: string }): AttachmentGroup<T>[] {
+  const found = sortAttachments(searchAttachments(list, opts.query).filter(a => opts.category === 'all' || a.category === opts.category))
+  return CATEGORY_ORDER
+    .map(category => ({ category, label: CATEGORY_LABELS[category], items: found.filter(a => a.category === category) }))
+    .filter(g => g.items.length > 0)
 }
 
 /** 512 → "512 B", 2048 → "2 KB", 1.5 MB → "1,5 MB". */

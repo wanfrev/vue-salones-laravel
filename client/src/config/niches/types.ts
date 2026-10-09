@@ -57,6 +57,7 @@ export type Capability =
   | 'clinical.cases'
   | 'clinical.attachments'
   | 'clinical.diagrams'
+  | 'clinical.programs'
 
 export interface NicheCopy {
   serviceNamePlaceholder?: string

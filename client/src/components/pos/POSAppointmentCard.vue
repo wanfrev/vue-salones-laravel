@@ -115,6 +115,9 @@ const displayProductsList = computed(() => {
         <div class="min-w-0 flex-1">
           <p class="text-sm font-medium text-text truncate">{{ toTitleCase(appt.client?.full_name || appt.clients?.full_name) || 'Cliente' }}</p>
           <p class="text-xs text-text-muted truncate">{{ (appt.service?.name ?? appt.services?.name) || 'Servicio' }}<span v-if="appt.employeeName"> · {{ toTitleCase(appt.employeeName) }}</span></p>
+          <p v-if="appt.program" class="mt-0.5 text-xs font-semibold text-primary">
+            Programa · {{ appt.program.used }} de {{ appt.program.total }} sesiones realizadas
+          </p>
           <div v-if="displayProductsList.length > 0" class="mt-1 flex flex-wrap items-center gap-1">
             <div v-for="(prodItem, idx) in displayProductsList" :key="idx" class="flex items-center gap-1 text-[10px] text-amber-600 bg-amber-50 dark:bg-amber-500/10 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">
               <svg class="h-3 w-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>

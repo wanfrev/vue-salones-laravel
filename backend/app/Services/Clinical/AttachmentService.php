@@ -38,7 +38,7 @@ class AttachmentService
             ->first();
     }
 
-    public function store(string $clientId, string $businessId, ?string $branchId, UploadedFile $file, string $category, string $title, ?string $userId): Attachment
+    public function store(string $clientId, string $businessId, ?string $branchId, UploadedFile $file, string $category, string $title, ?string $userId, ?string $documentDate = null): Attachment
     {
         $id = Str::uuid()->toString();
         // Nombre en disco sin relación con el original (y sin extensión útil): no revela nada.
@@ -56,6 +56,7 @@ class AttachmentService
                 'uploaded_by' => $userId,
                 'category' => $category,
                 'title' => $title,
+                'document_date' => $documentDate,
                 'original_name' => $this->safeName($file->getClientOriginalName()),
                 // El tipo real se detecta por contenido, no por lo que declare el navegador.
                 'mime' => $file->getMimeType() ?: 'application/octet-stream',

@@ -117,14 +117,15 @@ class ClinicalAttachmentsTest extends TestCase
         $this->assertSame(3, AccessLog::where('action', 'downloaded')->count()); // las descargas NO se deduplican
     }
 
-    public function test_only_the_admin_can_delete_and_the_deletion_removes_the_file_and_is_logged(): void
+    public function test_the_admin_deletes_anything_others_cannot_delete_what_they_did_not_upload_and_the_deletion_removes_the_file_and_is_logged(): void
     {
-        $id = json_decode($this->upload()->getContent(), true)['id'];
+        $id = json_decode($this->upload()->getContent(), true)['id']; // lo sube u1
         $path = Attachment::find($id)->path;
         $c = app(AttachmentController::class);
 
-        $this->assertSame(403, $c->destroy($this->req('empleado', 'DELETE'), self::CLIENT, $id)->getStatusCode());
-        $this->assertSame(403, $c->destroy($this->req('encargado', 'DELETE'), self::CLIENT, $id)->getStatusCode());
+        // Otro empleado (u2) o un encargado (u3) no pueden borrar lo que subió u1.
+        $this->assertSame(403, $c->destroy($this->req('empleado', 'DELETE', [], null, 'u2'), self::CLIENT, $id)->getStatusCode());
+        $this->assertSame(403, $c->destroy($this->req('encargado', 'DELETE', [], null, 'u3'), self::CLIENT, $id)->getStatusCode());
         $this->assertTrue(Storage::disk('local')->exists($path));
 
         $this->assertSame(200, $c->destroy($this->req('admin', 'DELETE'), self::CLIENT, $id)->getStatusCode());
@@ -134,6 +135,74 @@ class ClinicalAttachmentsTest extends TestCase
         $log = AccessLog::where('action', 'deleted')->first();
         $this->assertSame('test_result', $log->detail);   // la categoría, nunca el título
         $this->assertSame('attachment', $log->resource);
+    }
+
+    public function test_whoever_uploaded_a_file_can_remove_it_during_the_first_24_hours_only(): void
+    {
+        $c = app(AttachmentController::class);
+        $id = json_decode($this->upload('empleado')->getContent(), true)['id']; // sube u1
+        $path = Attachment::find($id)->path;
+
+        // Pasadas 24 h ya no: queda solo para el administrador.
+        DB::table('clinical_attachments')->where('id', $id)->update(['created_at' => now()->subHours(25)]);
+        $this->assertSame(403, $c->destroy($this->req('empleado', 'DELETE'), self::CLIENT, $id)->getStatusCode());
+        $this->assertTrue(Storage::disk('local')->exists($path));
+
+        // Dentro de las 24 h, quien lo subió lo borra y queda en la auditoría.
+        DB::table('clinical_attachments')->where('id', $id)->update(['created_at' => now()->subHours(23)]);
+        $this->assertSame(200, $c->destroy($this->req('empleado', 'DELETE'), self::CLIENT, $id)->getStatusCode());
+        $this->assertFalse(Storage::disk('local')->exists($path));
+        $this->assertSame('u1', AccessLog::where('action', 'deleted')->first()->user_id);
+    }
+
+    public function test_someone_else_cannot_remove_it_even_inside_the_24_hours(): void
+    {
+        $id = json_decode($this->upload('empleado')->getContent(), true)['id']; // sube u1
+
+        $this->assertSame(403, app(AttachmentController::class)->destroy($this->req('empleado', 'DELETE', [], null, 'u2'), self::CLIENT, $id)->getStatusCode());
+        $this->assertTrue(Attachment::where('id', $id)->exists());
+    }
+
+    public function test_the_list_tells_each_user_what_they_can_delete_and_who_uploaded_each_file(): void
+    {
+        DB::table('profiles')->insert(['id' => 'u1', 'full_name' => 'Dra. Soto']);
+        $id = json_decode($this->upload('empleado')->getContent(), true)['id']; // sube u1
+        $list = fn (string $role, string $user) => json_decode(app(AttachmentController::class)->index($this->req($role, 'GET', [], null, $user), self::CLIENT)->getContent(), true);
+
+        $this->assertTrue($list('empleado', 'u1')[0]['can_delete']);   // quien lo subió, recién subido
+        $this->assertFalse($list('empleado', 'u2')[0]['can_delete']);  // otro empleado
+        $this->assertTrue($list('admin', 'u9')[0]['can_delete']);      // administrador
+        $this->assertSame('Dra. Soto', $list('empleado', 'u2')[0]['uploaded_by_name']);
+
+        DB::table('clinical_attachments')->where('id', $id)->update(['created_at' => now()->subDays(2)]);
+        $this->assertFalse($list('empleado', 'u1')[0]['can_delete']);  // ya pasaron las 24 h
+    }
+
+    public function test_the_document_date_and_the_new_categories_are_stored_and_returned(): void
+    {
+        foreach (['consent', 'medical_exam', 'school'] as $category) {
+            $r = $this->upload('empleado', ['category' => $category, 'document_date' => '2026-09-15']);
+            $this->assertSame(201, $r->getStatusCode(), $category);
+            $body = json_decode($r->getContent(), true);
+            $this->assertSame($category, $body['category']);
+            $this->assertSame('2026-09-15', $body['document_date']);
+        }
+
+        // Es opcional.
+        $this->assertNull(json_decode($this->upload('empleado')->getContent(), true)['document_date']);
+    }
+
+    public function test_a_bad_document_date_is_rejected(): void
+    {
+        foreach (['15/09/2026', 'ayer', '2099-01-01'] as $bad) {
+            try {
+                $this->upload('empleado', ['document_date' => $bad]);
+                $this->fail("Debió rechazar la fecha: {$bad}");
+            } catch (\Illuminate\Validation\ValidationException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+        $this->assertSame(0, Attachment::count());
     }
 
     public function test_access_is_clinical_only_and_scoped_to_the_patient_and_business(): void

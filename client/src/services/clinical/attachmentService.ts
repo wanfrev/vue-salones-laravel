@@ -4,10 +4,11 @@ import type { AttachmentCategory, ClinicalAttachment } from '../../types/databas
 export const listAttachments = async (clientId: string) =>
   apiRequest<ClinicalAttachment[]>('GET', `/clients/${clientId}/attachments`)
 
-export const uploadAttachment = async (clientId: string, data: { category: AttachmentCategory; title: string; file: File }) => {
+export const uploadAttachment = async (clientId: string, data: { category: AttachmentCategory; title: string; file: File; document_date?: string | null }) => {
   const form = new FormData()
   form.append('category', data.category)
   form.append('title', data.title)
+  if (data.document_date) form.append('document_date', data.document_date)
   form.append('file', data.file)
   return apiUpload<ClinicalAttachment>('POST', `/clients/${clientId}/attachments`, form)
 }

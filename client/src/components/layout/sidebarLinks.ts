@@ -65,6 +65,8 @@ export const sidebarSections: SidebarSection[] = [
       { to: '/dashboard/gabinete', label: 'Tablero de Gabinete', icon: ClockCircleIcon, employeeOnly: true, gate: { capability: 'dental.clinical_history', profileFlag: 'can_access_dental_clinical' } },
       { to: '/admin/casos', label: 'Casos', icon: UsersGroupRoundedIcon, adminOnly: true, gate: { capability: 'clinical.cases' } },
       { to: '/dashboard/casos', label: 'Casos', icon: UsersGroupRoundedIcon, employeeOnly: true, gate: { capability: 'clinical.cases', profileFlag: 'can_access_dental_clinical' } },
+      { to: '/admin/programas', label: 'Programas', icon: BoxIcon, adminOnly: true, gate: { capability: 'clinical.programs' } },
+      { to: '/dashboard/programas', label: 'Programas', icon: BoxIcon, employeeOnly: true, gate: { capability: 'clinical.programs' } },
       { to: '/admin/seguimiento', label: 'Seguimiento', icon: ClipboardCheckIcon, adminOnly: true, gate: { capability: 'clinical.followup' } },
       { to: '/dashboard/seguimiento', label: 'Seguimiento', icon: ClipboardCheckIcon, employeeOnly: true, gate: { capability: 'clinical.followup', profileFlag: 'can_access_dental_clinical' } },
       { to: '/admin/equipo', label: 'Equipo', labelKey: 'employeePlural', icon: BagIcon, adminOnly: true },

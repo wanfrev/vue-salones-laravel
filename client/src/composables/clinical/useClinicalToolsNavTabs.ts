@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import {
   ClipboardTextIcon, CalendarIcon, DocumentMedicineIcon, HeartPulseIcon, ClipboardCheckIcon, DocumentTextIcon,
-  PaperclipIcon, ChartSquareIcon, GraphUpIcon,
+  PaperclipIcon, ChartSquareIcon, GraphUpIcon, BoxIcon,
 } from '@solar-icons/vue/linear'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
@@ -76,6 +76,10 @@ export function useClinicalToolsNavTabs(clientId: () => string | null, enabled: 
         { key: 'genograma', label: 'Genograma', icon: ChartSquareIcon, shortcut: 8, isLoading: false, hasData: false },
         { key: 'linea-de-vida', label: 'Línea de vida', shortLabel: 'Vida', icon: GraphUpIcon, shortcut: 9, isLoading: false, hasData: false },
       )
+    }
+    // Programas de sesiones: sin punto de datos (no se consulta solo por abrir la ficha) y su atajo es la tecla 0 (las nueve anteriores ya usan 1-9).
+    if (businessStore.hasCapability('clinical.programs')) {
+      tabs.push({ key: 'programas', label: 'Programas', icon: BoxIcon, shortcut: 0, isLoading: false, hasData: false })
     }
     return tabs
   })

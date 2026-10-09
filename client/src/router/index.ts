@@ -45,6 +45,7 @@ const clinicalExpedienteChildren = (scope: 'admin' | 'employee'): RouteRecordRaw
     tab('adjuntos', 'adjuntos', () => import('../views/ClinicalAttachmentsView.vue'), 'clinical.attachments'),
     tab('genograma', 'genograma', () => import('../views/ClinicalGenogramView.vue'), 'clinical.diagrams'),
     tab('linea-de-vida', 'linea-de-vida', () => import('../views/ClinicalLifeLineView.vue'), 'clinical.diagrams'),
+    tab('programas', 'programas', () => import('../views/ClinicalEnrollmentsView.vue'), 'clinical.programs'),
   ]
 }
 
@@ -207,6 +208,13 @@ const router = createRouter({
       children: caseChildren('employee'),
     },
     {
+      // Programas de sesiones (nicho psicologia): sin permiso de expediente, es trabajo de recepción.
+      path: '/dashboard/programas',
+      name: 'employee-programas',
+      component: () => import('../views/employee/EmployeeClinicalPrograms.vue'),
+      meta: { requiresAuth: true, gate: { capability: 'clinical.programs' } },
+    },
+    {
       // Seguimiento clínico (nicho psicologia): notas pendientes, riesgo sin seguimiento, abandonos.
       path: '/dashboard/seguimiento',
       name: 'employee-seguimiento',
@@ -360,6 +368,12 @@ const router = createRouter({
           component: () => import('../components/clinical/CaseShell.vue'),
           meta: { gate: { capability: 'clinical.cases' } },
           children: caseChildren('admin'),
+        },
+        {
+          path: 'programas',
+          name: 'admin-programas',
+          component: () => import('../views/ClinicalProgramsView.vue'),
+          meta: { gate: { capability: 'clinical.programs' } },
         },
         {
           path: 'seguimiento',

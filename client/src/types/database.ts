@@ -1139,6 +1139,78 @@ export interface SessionAppointmentOption {
   service_name: string | null
 }
 
+// ── Programas de sesiones (clinical.programs): paquetes que se cobran juntos ──
+
+export interface ClinicalProgramService {
+  id: string
+  name: string
+  duration_minutes: number | null
+}
+
+/** n sesiones que pueden ser de cualquiera de estos servicios (el programa mixto: 12 a elegir entre varios + 1 asesoría). */
+export interface ClinicalProgramComponent {
+  service_ids: string[]
+  quantity: number
+  services: ClinicalProgramService[]
+}
+
+export interface ClinicalProgram {
+  id: string
+  name: string
+  price: number
+  validity_days: number
+  active: boolean
+  sessions_total: number
+  components: ClinicalProgramComponent[]
+}
+
+/** Activo, completado (todas gastadas), vencido (pasó la fecha con sesiones sin usar) o cancelado. */
+export type ClinicalEnrollmentStatus = 'active' | 'completed' | 'expired' | 'cancelled'
+
+export interface ClinicalEnrollmentSession {
+  appointment_id: string
+  number: number
+  start_time: string | null
+  status: string
+  payment_status: string | null
+  service_id: string | null
+  service_name: string | null
+  employee_id: string | null
+  employee_name: string | null
+  /** Decisión manual de administración; null = se deduce del estado de la cita. */
+  consumes: boolean | null
+  /** ¿Gasta una sesión del programa? */
+  counted: boolean
+}
+
+export interface ClinicalEnrollment {
+  id: string
+  client_id: string
+  program_id: string | null
+  program_name: string
+  price: number
+  sessions_total: number
+  starts_on: string
+  expires_on: string
+  status: ClinicalEnrollmentStatus
+  used: number
+  remaining: number
+  is_paid: boolean
+  sessions: ClinicalEnrollmentSession[]
+}
+
+/** A qué programa pertenece una cita y qué número de sesión es (detalle de la cita en el calendario). */
+export interface AppointmentProgram {
+  enrollment_id: string
+  program_name: string
+  status: ClinicalEnrollmentStatus
+  used: number
+  sessions_total: number
+  expires_on: string
+  position: number | null
+  is_paid: boolean
+}
+
 export type TreatmentPlanStatus = 'active' | 'paused' | 'completed'
 export type TreatmentGoalStatus = 'pending' | 'in_progress' | 'achieved'
 
@@ -1343,7 +1415,7 @@ export interface CaseOfAppointment {
 export type JointSessionNote = SessionNote & { case_id: string; case_name: string | null }
 export type JointTreatmentPlan = TreatmentPlan & { case_id: string; case_name: string | null }
 
-export type AttachmentCategory = 'test_result' | 'external_report' | 'patient_material' | 'other'
+export type AttachmentCategory = 'test_result' | 'external_report' | 'patient_material' | 'other' | 'consent' | 'medical_exam' | 'school'
 
 export interface ClinicalAttachment {
   id: string
@@ -1352,6 +1424,12 @@ export interface ClinicalAttachment {
   uploaded_by: string | null
   category: AttachmentCategory
   title: string
+  /** Cuándo se hizo/emitió el documento (YYYY-MM-DD); null si no se indicó. Ordena el expediente. */
+  document_date: string | null
+  /** Nombre de quien lo subió. */
+  uploaded_by_name: string | null
+  /** ¿Puede ESTE usuario borrarlo? (administrador, o quien lo subió en las últimas 24 h). */
+  can_delete: boolean
   original_name: string
   mime: string
   /** Bytes del archivo original. */

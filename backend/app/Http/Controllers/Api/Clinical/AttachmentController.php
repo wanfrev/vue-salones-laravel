@@ -12,9 +12,10 @@ use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Adjuntos del expediente (resultados de pruebas, informes externos, material del paciente).
- * Cifrados en reposo; cada descarga y cada borrado queda en la auditoría. Solo el administrador
- * puede eliminar (un archivo clínico no desaparece por un descuido del equipo).
+ * Adjuntos del expediente (resultados de pruebas, informes, consentimientos, exámenes, material...).
+ * Cifrados en reposo; cada descarga y cada borrado queda en la auditoría. Eliminar es del administrador
+ * (un archivo clínico no desaparece por un descuido del equipo); quien subió un archivo puede
+ * quitarlo durante las primeras 24 horas, por si se equivocó de archivo o de paciente.
  */
 class AttachmentController
 {
@@ -31,7 +32,39 @@ class AttachmentController
 
         $this->audit($request, $businessId, $clientId, 'viewed', 'attachment');
 
-        return response()->json($this->service->listForClient($clientId, $businessId));
+        return response()->json($this->present($request, $this->service->listForClient($clientId, $businessId)->all()));
+    }
+
+    /**
+     * Cada archivo sale con quién lo subió (para organizar el expediente) y si ESTE usuario puede borrarlo,
+     * para que la pantalla muestre el botón solo cuando el servidor lo va a aceptar.
+     *
+     * @param  Attachment[]  $attachments
+     */
+    private function present(Request $request, array $attachments): array
+    {
+        $names = \App\Models\Profile::whereIn('id', array_filter(array_unique(array_map(fn ($a) => $a->uploaded_by, $attachments))))
+            ->pluck('full_name', 'id');
+
+        return array_map(fn (Attachment $a) => $a->toArray() + [
+            'uploaded_by_name' => $names[$a->uploaded_by] ?? null,
+            'can_delete' => $this->canDelete($request, $a),
+        ], $attachments);
+    }
+
+    /** Administrador siempre; cualquier otro, solo lo que él mismo subió durante las primeras 24 horas. */
+    private function canDelete(Request $request, Attachment $attachment): bool
+    {
+        if (in_array($request->user()?->profile?->role, ['admin', 'superadmin'], true)) {
+            return true;
+        }
+
+        $userId = $request->user()?->id;
+
+        return $userId !== null
+            && $attachment->uploaded_by === $userId
+            && $attachment->created_at !== null
+            && $attachment->created_at->gt(now()->subHours(Attachment::SELF_DELETE_HOURS));
     }
 
     public function store(Request $request, string $clientId): JsonResponse
@@ -42,17 +75,18 @@ class AttachmentController
         $data = $request->validate([
             'category' => ['required', Rule::in(Attachment::CATEGORIES)],
             'title' => ['required', 'string', 'max:150'],
+            'document_date' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:tomorrow'], // «mañana»: tolera el desfase de zona horaria
             'file' => ['required', 'file', 'mimes:' . implode(',', AttachmentService::EXTENSIONS), 'max:' . AttachmentService::MAX_KB],
         ]);
 
         $attachment = $this->service->store(
-            $clientId, $businessId, $client->branch_id, $request->file('file'), $data['category'], $data['title'], $request->user()?->id,
+            $clientId, $businessId, $client->branch_id, $request->file('file'), $data['category'], $data['title'], $request->user()?->id, $data['document_date'] ?? null,
         );
 
         EntityChanged::safe($businessId, 'clinical_attachment', 'created', $attachment->id);
         $this->audit($request, $businessId, $clientId, 'created', 'attachment', $attachment->id);
 
-        return response()->json($attachment, 201);
+        return response()->json($this->present($request, [$attachment])[0], 201);
     }
 
     public function download(Request $request, string $clientId, string $id): StreamedResponse|JsonResponse
@@ -84,12 +118,12 @@ class AttachmentController
         [$businessId, , $error] = $this->resolveClinicalContext($request, $clientId);
         if ($error) return $error;
 
-        if (!in_array($request->user()?->profile?->role, ['admin', 'superadmin'], true)) {
-            return response()->json(['message' => 'Solo el administrador puede eliminar archivos del expediente.'], 403);
-        }
-
         $attachment = $this->service->findForClient($id, $clientId, $businessId);
         if (!$attachment) return response()->json(['message' => 'Archivo no encontrado.'], 404);
+
+        if (!$this->canDelete($request, $attachment)) {
+            return response()->json(['message' => 'Solo el administrador puede eliminar archivos del expediente (quien lo subió puede hacerlo durante las primeras ' . Attachment::SELF_DELETE_HOURS . ' horas).'], 403);
+        }
 
         // Se anota qué categoría se borró (no el título, que es contenido del expediente).
         $this->audit($request, $businessId, $clientId, 'deleted', 'attachment', $attachment->id, $attachment->category);
