@@ -376,6 +376,7 @@
               :class="statusTextClass(detailPopup.appt.status)">{{ getStatusLabel(detailPopup.appt.status) }}</span>
           </div>
         </div>
+        <AppointmentProgramBadge v-if="canShowProgram" :key="`p-${detailPopup.appt.id}`" :appointment-id="detailPopup.appt.id" />
         <AppointmentCaseLink v-if="canLinkCases" :key="detailPopup.appt.id" :appointment-id="detailPopup.appt.id" :client-id="detailPopup.appt.raw?.client_id ?? null" @linked="popupCase = $event" />
         <div v-if="canWriteSessionNote" class="mb-2">
           <button @click="handleSessionNoteClick"
@@ -406,6 +407,7 @@ import { isAdminPanelRole } from '../../constants/roles'
 import { isDentalNiche, isClinicalNiche } from '../../config/niches'
 import { useClinicalAccess } from '../../composables/clinical/useClinicalToolsNavTabs'
 import AppointmentCaseLink from '../clinical/AppointmentCaseLink.vue'
+import AppointmentProgramBadge from '../clinical/AppointmentProgramBadge.vue'
 import type { CaseOfAppointment } from '../../types/database'
 import { normalizeAppointmentStatus, getStatusLabel, dateToHHmm, dateToHHmm12, toISODate, getInitials, parseLocalDate } from '../../lib/formatters'
 import { mapAppointmentToCita } from '../../mappers/agendaMapper'
@@ -427,6 +429,8 @@ const hasClinicalAccess = useClinicalAccess()
 const canWriteSessionNote = computed(() =>
   isClinicalNiche(businessStore.nicheType) && hasClinicalAccess.value && !!detailPopup.value?.appt.raw?.client_id,
 )
+// El conteo de un programa no es contenido clínico: lo ve también recepción.
+const canShowProgram = computed(() => isClinicalNiche(businessStore.nicheType) && businessStore.hasCapability('clinical.programs'))
 const canLinkCases = computed(() => canWriteSessionNote.value && businessStore.hasCapability('clinical.cases'))
 // Caso al que está vinculada la cita abierta (lo informa AppointmentCaseLink); decide a dónde va «Nota de sesión».
 const popupCase = ref<CaseOfAppointment | null>(null)

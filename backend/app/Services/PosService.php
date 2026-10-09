@@ -50,7 +50,16 @@ class PosService
             });
         }
 
-        return $query->get();
+        $pending = $query->get();
+
+        // Consultorio con programas de sesiones: las citas de cada programa salen juntas como un solo cobro.
+        // El resto de los nichos no tiene la capability y sigue exactamente igual.
+        $nicheType = \App\Models\Business::find($businessId)?->niche_type;
+        if (NicheRegistry::hasCapability($nicheType, 'clinical.programs')) {
+            $pending = app(\App\Services\Clinical\EnrollmentService::class)->groupPendingForPos($pending, $businessId, $branchId);
+        }
+
+        return $pending;
     }
 
     /**

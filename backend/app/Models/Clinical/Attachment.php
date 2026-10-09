@@ -21,11 +21,15 @@ class Attachment extends Model
     protected $keyType = 'string';
     protected $table = 'clinical_attachments';
 
-    public const CATEGORIES = ['test_result', 'external_report', 'patient_material', 'other'];
+    // La columna `category` admite hasta 20 caracteres. Las cuatro primeras son las originales.
+    public const CATEGORIES = ['test_result', 'external_report', 'patient_material', 'other', 'consent', 'medical_exam', 'school'];
+
+    /** Un empleado puede borrar lo que él mismo subió durante este tiempo (por un error de subida); después, solo el administrador. */
+    public const SELF_DELETE_HOURS = 24;
 
     protected $fillable = [
         'id', 'business_id', 'branch_id', 'client_id', 'uploaded_by',
-        'category', 'title', 'original_name', 'mime', 'size', 'path',
+        'category', 'title', 'document_date', 'original_name', 'mime', 'size', 'path',
     ];
 
     // La ruta interna del almacenamiento no sale en la API.
@@ -37,6 +41,7 @@ class Attachment extends Model
             'title' => 'encrypted',
             'original_name' => 'encrypted',
             'size' => 'integer',
+            'document_date' => 'date:Y-m-d',
         ];
     }
 

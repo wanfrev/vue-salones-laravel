@@ -69,6 +69,20 @@
                   <span class="text-sm font-medium tabular-nums text-text">${{ client.totalSpent }}</span>
                 </td>
                 <td class="px-4 py-3 text-center">
+                  <!-- Nicho psicología: acceso directo al expediente y a los archivos del paciente (con el permiso de expediente). -->
+                  <div v-if="clinicalActions" class="mb-1 flex items-center justify-center gap-1.5">
+                    <button
+                      @click.stop="openClinical(client, 'historia')"
+                      class="whitespace-nowrap rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary transition-theme hover:bg-primary/15"
+                      title="Abrir el expediente y la historia clínica"
+                    >Expediente</button>
+                    <button
+                      v-if="businessStore.hasCapability('clinical.attachments')"
+                      @click.stop="openClinical(client, 'adjuntos')"
+                      class="whitespace-nowrap rounded-lg border border-primary/30 px-2.5 py-1.5 text-xs font-semibold text-primary transition-theme hover:bg-primary/5"
+                      title="Ver y subir archivos del paciente"
+                    >Archivos</button>
+                  </div>
                   <button
                     v-if="!hidePhoneFromEmployee"
                     @click.stop="handleWhatsApp(client)"
@@ -155,6 +169,8 @@ import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { clientesKeys, listClientes, saveCliente } from '../../services/clientesService'
 import { getInitials, sanitizePhone, formatDateHuman } from '../../lib/formatters'
+import { isClinicalNiche } from '../../config/niches'
+import { useClinicalAccess } from '../../composables/clinical/useClinicalToolsNavTabs'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import ClienteFormModal from '../../components/modals/ClienteFormModal.vue'
 import type { Cliente } from '../../types/cliente'
@@ -210,6 +226,13 @@ const lastVisitLabel = (client: Cliente) =>
 
 const handleViewClient = (cliente: Cliente) => {
   router.push(`/dashboard/clientes/${cliente.id}`)
+}
+
+// Expediente clínico (nicho psicología): solo para quien tiene el permiso, igual que en el servidor.
+const hasClinicalAccess = useClinicalAccess()
+const clinicalActions = computed(() => isClinicalNiche(businessStore.nicheType) && hasClinicalAccess.value)
+const openClinical = (cliente: Cliente, tab: 'historia' | 'adjuntos') => {
+  router.push(`/dashboard/clientes/${cliente.id}/expediente-clinico/${tab}`)
 }
 
 const handleWhatsApp = (cliente: Cliente) => {

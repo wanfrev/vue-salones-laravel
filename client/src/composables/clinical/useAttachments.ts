@@ -19,7 +19,7 @@ export function useAttachments(clientId: () => string | null) {
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['clinical-attachments', clientId()], exact: false })
 
   const uploadMutation = useMutation({
-    mutationFn: async (data: { category: AttachmentCategory; title: string; file: File }) => {
+    mutationFn: async (data: { category: AttachmentCategory; title: string; file: File; document_date?: string | null }) => {
       const id = clientId()
       if (!id) throw new Error('No client selected')
       return await uploadAttachment(id, data)

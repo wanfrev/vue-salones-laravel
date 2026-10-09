@@ -38,7 +38,7 @@ export function useRealtime() {
       employee_payment: ['employee-payments', 'employee-earnings', 'finanzas-transactions', 'financial-summary'],
       branch: ['branches'],
       business: ['businesses'],
-      appointment: ['appointments', 'finanzas-transactions', 'financial-summary', 'employee-earnings', 'pos-pending', 'invitaciones-pendientes', 'clinical-follow-up'],
+      appointment: ['appointments', 'finanzas-transactions', 'financial-summary', 'employee-earnings', 'pos-pending', 'invitaciones-pendientes', 'clinical-follow-up', 'clinical-enrollments', 'clinical-appointment-program'],
       transaction: ['finanzas-transactions', 'financial-summary', 'employee-earnings', 'pos-pending'],
       client: ['clientes', 'clients', 'appointments'],
       service: ['servicios', 'services', 'appointments', 'financial-summary'],
@@ -66,6 +66,8 @@ export function useRealtime() {
       clinical_case: ['clinical-cases', 'clinical-case', 'clinical-client-cases', 'clinical-follow-up'],
       clinical_attachment: ['clinical-attachments'],
       clinical_diagram: ['clinical-diagram'],
+      clinical_program: ['clinical-programs'],
+      clinical_enrollment: ['clinical-enrollments', 'clinical-appointment-program', 'appointments', 'pos-pending'],
     }
 
     const prefixes = queryKeyMap[payload.entity] || [payload.entity]

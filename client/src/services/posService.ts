@@ -112,7 +112,8 @@ export const groupPendingAppointments = (appointments: any[]) => {
     )
 
     const primary = members[0]
-    const names = members.map((m: any) => m.service?.name ?? m.services?.name ?? 'Servicio').join(' + ')
+    // Las citas de un programa de sesiones (consultorio) llegan juntas con `program`: el cobro es del programa, no "A + A + A...".
+    const names = primary.program?.name ?? members.map((m: any) => m.service?.name ?? m.services?.name ?? 'Servicio').join(' + ')
     const totalPrice = members.reduce((sum, m) =>
       sum + (m.price_override != null ? Number(m.price_override) : Number(m.service?.price ?? m.services?.price ?? 0)), 0
     )

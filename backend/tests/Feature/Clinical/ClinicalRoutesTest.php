@@ -61,6 +61,16 @@ class ClinicalRoutesTest extends TestCase
         ['PUT', 'api/clients/{clientId}/diagrams/{type}', 'clinical.diagrams'],
         ['GET', 'api/clinical-cases/{caseId}/diagrams/{type}', 'clinical.diagrams'],
         ['PUT', 'api/clinical-cases/{caseId}/diagrams/{type}', 'clinical.diagrams'],
+        // Programas de sesiones
+        ['GET', 'api/clinical/programs', 'clinical.programs'],
+        ['POST', 'api/clinical/programs', 'clinical.programs'],
+        ['PUT', 'api/clinical/programs/{id}', 'clinical.programs'],
+        ['GET', 'api/clients/{clientId}/clinical-enrollments', 'clinical.programs'],
+        ['POST', 'api/clients/{clientId}/clinical-enrollments', 'clinical.programs'],
+        ['PUT', 'api/clinical/enrollments/{id}', 'clinical.programs'],
+        ['DELETE', 'api/clinical/enrollments/{id}', 'clinical.programs'],
+        ['PUT', 'api/clinical/enrollments/{id}/sessions/{appointmentId}', 'clinical.programs'],
+        ['GET', 'api/clinical/appointments/{appointmentId}/program', 'clinical.programs'],
     ];
 
     public function test_every_clinical_route_resolves_to_a_real_controller_method_behind_its_capability(): void
