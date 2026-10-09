@@ -165,6 +165,14 @@
               </select>
             </div>
           </div>
+          <div v-if="BANK_METHODS.includes(form.method) && banks.length > 0">
+            <label class="mb-1 block text-sm font-medium text-text" for="cr-bank">Banco (opcional)</label>
+            <select id="cr-bank" v-model="form.bankId"
+              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30">
+              <option :value="null">-- Selecciona un banco --</option>
+              <option v-for="b in banks" :key="b.id" :value="b.id">{{ b.name }}</option>
+            </select>
+          </div>
           <div v-if="form.currency === 'VES'">
             <label class="mb-1 block text-sm font-medium text-text" for="cr-rate">Tasa de cambio</label>
             <input id="cr-rate" v-model.number="form.exchangeRate" type="number" min="0.01" step="0.01"
@@ -193,6 +201,7 @@ import { ref, computed } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { formatMethod, formatDate } from '../../lib/formatters'
 import { useCredits } from '../../composables/finanzas/useCredits'
+import { useBanks } from '../../composables/finanzas/useBanks'
 import { useBusinessStore } from '../../store/business'
 import type { Credit } from '../../types/database'
 
@@ -213,11 +222,14 @@ const visibleCredits = computed(() => activeTab.value === 'pending' ? pendingCre
 
 const showModal = ref(false)
 const selectedCredit = ref<Credit | null>(null)
-const form = ref<{ amount: number; method: string; currency: 'USD' | 'VES'; exchangeRate: number }>({
+const { banks } = useBanks()
+const BANK_METHODS = ['pago_movil', 'transfer', 'punto_venta']
+const form = ref<{ amount: number; method: string; currency: 'USD' | 'VES'; exchangeRate: number; bankId: string | null }>({
   amount: 0,
   method: 'cash',
   currency: 'USD',
   exchangeRate: exchangeRate.value || 1,
+  bankId: null,
 })
 
 const selectedCreditId = ref<string | null>(null)
@@ -227,7 +239,7 @@ const paymentHistory = computed(() => paymentHistoryData.value ?? [])
 const openPay = (credit: Credit) => {
   selectedCredit.value = credit
   selectedCreditId.value = credit.id
-  form.value = { amount: credit.remaining, method: 'cash', currency: 'USD', exchangeRate: exchangeRate.value || 1 }
+  form.value = { amount: credit.remaining, method: 'cash', currency: 'USD', exchangeRate: exchangeRate.value || 1, bankId: null }
   showModal.value = true
 }
 
@@ -260,6 +272,7 @@ const handleConfirm = async () => {
       method: form.value.method,
       currency: form.value.currency,
       exchangeRate: form.value.currency === 'VES' ? form.value.exchangeRate : undefined,
+      bankId: BANK_METHODS.includes(form.value.method) ? form.value.bankId : null,
     })
     closeModal()
   } catch { /* handled by composable */ }

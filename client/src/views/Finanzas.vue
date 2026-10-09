@@ -415,13 +415,18 @@ const incomeBreakdown = computed(() => {
   }
 
   const toItems = (byMethod: Record<string, number>, bankByMethod: Record<string, Record<string, number>>) =>
-    Object.entries(byMethod).map(([method, amount]) => ({
-      label: formatMethod(method),
-      amount,
-      subItems: bankByMethod[method]
-        ? Object.entries(bankByMethod[method]).map(([bank, amt]) => ({ label: bank, amount: amt })).sort((a, b) => b.amount - a.amount)
-        : undefined,
-    })).sort((a, b) => b.amount - a.amount)
+    Object.entries(byMethod).map(([method, amount]) => {
+      let subItems: { label: string; amount: number }[] | undefined
+      if (bankByMethod[method]) {
+        subItems = Object.entries(bankByMethod[method]).map(([bank, amt]) => ({ label: bank, amount: amt })).sort((a, b) => b.amount - a.amount)
+        // Lo cobrado sin banco guardado (ventas viejas, abonos de antes de poder elegirlo) no
+        // debe desaparecer: sin esta línea los bancos no suman el total del método y parece
+        // que falta plata.
+        const withoutBank = amount - subItems.reduce((s, i) => s + i.amount, 0)
+        if (withoutBank > 0.01) subItems.push({ label: 'Sin banco especificado', amount: withoutBank })
+      }
+      return { label: formatMethod(method), amount, subItems }
+    }).sort((a, b) => b.amount - a.amount)
 
   return {
     title: 'Desglose de Ingresos', usdTotal: totalUSD, vesTotal: totalVES,
