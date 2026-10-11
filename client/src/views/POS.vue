@@ -1151,6 +1151,7 @@ const handleRetailPayment = async () => {
   if (ok) {
     clearCart()
     resetPayment()
+    clearCustomTotal()
     retailClientSearch.value = ''
     retailClientPhone.value = ''
     retailClientId.value = null
@@ -1274,6 +1275,39 @@ const handleStandaloneTip = async () => {
   }
 }
 
+/**
+ * Receipt product lines. When the cashier overrode the total manually (retail only), the lines are
+ * rescaled proportionally so they add up to the price actually charged — otherwise the ticket shows
+ * the catalog price on the line and a different amount on the total. The last line absorbs the
+ * rounding remainder. Without an override this is exactly the previous behaviour.
+ */
+const receiptProductLines = () => {
+  const lines = cart.value
+  const overridden = !businessStore.features.agenda
+    && activeSaleType.value === 'retail_only'
+    && customTotalAmount.value != null && customTotalAmount.value > 0
+  const base = effectiveProductsTotal.value
+  if (!overridden || base <= 0 || lines.length === 0) {
+    return lines.map(c => ({ name: c.productName, qty: c.quantity, price: c.unitPrice }))
+  }
+  let remaining = grandTotal.value
+  return lines.map((c, i) => {
+    const lineTotal = i === lines.length - 1
+      ? remaining
+      : Number(((c.unitPrice * c.quantity / base) * grandTotal.value).toFixed(2))
+    remaining = Number((remaining - lineTotal).toFixed(2))
+    return { name: c.productName, qty: c.quantity, price: lineTotal }
+  })
+}
+
+const clearCustomTotal = () => {
+  customTotalAmount.value = null
+  customTotalCurrency.value = 'USD'
+}
+
+// A manual price only makes sense for the items it was typed for: an emptied cart starts clean.
+watch(() => cart.value.length, (len) => { if (len === 0) clearCustomTotal() })
+
 const performPrintReceipt = async (transactions?: Array<{ id: string, receipt_code?: string }>) => {
   if (!shouldPrintReceipt.value) return
   
@@ -1308,7 +1342,7 @@ const performPrintReceipt = async (transactions?: Array<{ id: string, receipt_co
     clientName: confirmClientName.value || undefined,
     employeeName: confirmEmployeeName.value || undefined,
     services: servicesList,
-    products: cart.value.map(c => ({ name: c.productName, qty: c.quantity, price: c.unitPrice })),
+    products: receiptProductLines(),
     subtotal: grandTotal.value - tipAmount.value,
     tip: tipAmount.value > 0 ? tipAmount.value : undefined,
     total: grandTotal.value,
@@ -1337,6 +1371,7 @@ const confirmPayment = async (shouldPrint?: boolean) => {
       performPrintReceipt(result.transactions)
       clearCart()
       resetPayment()
+      clearCustomTotal()
       retailClientSearch.value = ''
       retailClientPhone.value = ''
       retailClientId.value = null
