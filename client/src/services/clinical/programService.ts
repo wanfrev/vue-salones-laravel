@@ -6,18 +6,30 @@ export interface ProgramPayload {
   price: number
   validity_days: number
   active?: boolean
-  components: Array<{ service_ids: string[]; quantity: number }>
+  components: Array<{ service_ids: string[]; quantity: number; employee_id?: string | null }>
+}
+
+export interface EnrollSession {
+  service_id: string
+  /** `start_time` en ISO (UTC): el servidor calcula la hora de fin con la duración del servicio. */
+  start_time: string
+  /** Especialista de esta sesión; sin él, el de su especialidad en el programa. */
+  employee_id?: string | null
 }
 
 export interface EnrollPayload {
   program_id: string
-  employee_id: string
+  /** Profesional por defecto, para las sesiones sin especialista propio ni de su especialidad. */
+  employee_id?: string | null
   branch_id?: string | null
   /** Fecha local (YYYY-MM-DD) de la primera sesión. */
   starts_on?: string
-  /** `start_time` en ISO (UTC): el servidor calcula la hora de fin con la duración del servicio. */
-  sessions: Array<{ service_id: string; start_time: string }>
+  sessions: EnrollSession[]
 }
+
+/** Sesiones que chocan con la agenda de su especialista: `index` es la posición en la lista enviada. */
+export const checkEnrollmentConflicts = async (sessions: Array<{ service_id: string; employee_id: string; start_time: string }>) =>
+  apiRequest<Array<{ index: number; message: string }>>('POST', '/clinical/enrollments/check', { sessions })
 
 // ── Catálogo ──
 export const listPrograms = async (activeOnly = false) =>

@@ -379,6 +379,30 @@
           </select>
         </div>
 
+        <div v-if="canBackdate" class="space-y-1.5 mt-4">
+          <label class="block text-xs sm:text-sm font-medium text-text" for="pos-paid-date">Fecha del cobro</label>
+          <div class="flex items-center gap-2">
+            <input
+              id="pos-paid-date"
+              type="date"
+              :value="paidDate ?? ''"
+              :max="new Date().toLocaleDateString('en-CA')"
+              @change="$emit('update:paid-date', ($event.target as HTMLInputElement).value)"
+              class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-xs sm:text-sm font-medium text-text outline-none focus:border-primary"
+            />
+            <button
+              v-if="paidDate"
+              type="button"
+              class="shrink-0 rounded-lg border border-border px-2.5 py-2 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary"
+              @click="$emit('update:paid-date', '')"
+            >Hoy</button>
+          </div>
+          <p v-if="paidDate" class="text-[11px] text-warning">
+            Este cobro se registrará con la fecha {{ paidDate }}: contará en los reportes de ese día, no en el de hoy.
+          </p>
+          <p v-else class="text-[11px] text-text-muted">Déjalo vacío para cobrar con la fecha de hoy.</p>
+        </div>
+
         <div v-if="paymentMethod === 'other'" class="space-y-2 mt-4">
           <label class="block text-xs sm:text-sm font-medium text-text">Moneda</label>
           <div class="flex rounded-lg border border-border bg-bg-secondary/50 p-0.5">
@@ -585,6 +609,8 @@ const props = defineProps<{
   selectedBankId?: string | null
   banks?: { id: string; name: string }[]
   isBankMethod?: (method: PaymentMethod) => boolean
+  canBackdate?: boolean
+  paidDate?: string
   customTotalAmount?: number | null
   customTotalCurrency?: 'USD' | 'VES'
   isDirectService?: boolean
@@ -624,6 +650,7 @@ const emit = defineEmits<{
   'update:are-products-included': [value: boolean]
   'update:selected-gift-card-id': [value: string | null]
   'update:selected-bank-id': [value: string | null]
+  'update:paid-date': [value: string]
   'add-suggested-product': [product: any]
   'hold-sale': []
 }>()

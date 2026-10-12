@@ -1151,6 +1151,9 @@ export interface ClinicalProgramService {
 export interface ClinicalProgramComponent {
   service_ids: string[]
   quantity: number
+  /** Especialista de esta especialidad (quien atiende sus sesiones por defecto); null = se elige al inscribir. */
+  employee_id: string | null
+  employee_name: string | null
   services: ClinicalProgramService[]
 }
 

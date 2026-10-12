@@ -32,6 +32,16 @@ export function usePOSPayment() {
   const BANK_METHODS: PaymentMethod[] = ['pago_movil', 'transfer', 'punto_venta']
   const isBankMethod = (method: PaymentMethod): boolean => BANK_METHODS.includes(method)
 
+  /** "Cobrar con otra fecha" (YYYY-MM-DD). Vacío = hoy. Solo existe si el negocio lo activó y
+   *  quien cobra es admin/encargado -- el servidor vuelve a exigir ambas cosas
+   *  (PosController::backdateDenied), esto solo evita mostrar el campo a quien no puede usarlo. */
+  const paidDate = ref('')
+  const canBackdate = computed(() =>
+    !!businessStore.features.pos_backdate_enabled &&
+    ['admin', 'superadmin', 'encargado'].includes(authStore.role ?? ''),
+  )
+  const effectivePaidDate = (): string | null => (canBackdate.value && paidDate.value ? paidDate.value : null)
+
   /** The mixed-payment panel only ever lets the cashier type `inputAmount` (the split's own
    *  currency) — nothing derived `amount` (its USD equivalent) from that, so every mixed split
    *  was saved with `amount: 0` regardless of what was actually typed. Most readers of
@@ -119,6 +129,7 @@ export function usePOSPayment() {
     paymentsBreakdown.value = []
     selectedGiftCardId.value = null
     selectedBankId.value = null
+    paidDate.value = ''
   }
 
   /** Bulk-restore the payment draft — used when resuming a held sale. */
@@ -195,6 +206,7 @@ export function usePOSPayment() {
           tipCurrency: p.tipCurrency,
           businessId: businessId.value!,
           branchId: branchId.value,
+          paidDate: effectivePaidDate(),
         })
         results.push(res)
       }
@@ -254,6 +266,7 @@ export function usePOSPayment() {
       clientPhoneInput: params.clientPhoneInput || null,
       businessId: businessId.value!,
       branchId: branchId.value || null,
+      paidDate: effectivePaidDate(),
     }),
     onSuccess: () => {
       success('Venta directa registrada correctamente')
@@ -302,6 +315,7 @@ export function usePOSPayment() {
       branchId: branchId.value,
       tipAmount: params.tipAmount,
       tipCurrency: params.tipCurrency,
+      paidDate: effectivePaidDate(),
     }),
     onSuccess: () => {
       success('Cobro de servicio directo registrado correctamente')
@@ -330,6 +344,7 @@ export function usePOSPayment() {
       exchangeRate: params.exchangeRate,
       paymentsBreakdown: params.paymentsBreakdown,
       branchId: branchId.value || null,
+      paidDate: effectivePaidDate(),
     }),
     onSuccess: () => {
       success('Propina registrada correctamente')
@@ -641,5 +656,7 @@ export function usePOSPayment() {
     selectedBankId,
     isBankMethod,
     banks,
+    paidDate,
+    canBackdate,
   }
 }

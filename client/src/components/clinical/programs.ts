@@ -43,22 +43,70 @@ export const programTotal = (components: Array<Pick<ClinicalProgramComponent, 'q
 /** "3 de 8" */
 export const progressLabel = (used: number, total: number): string => `${used} de ${total}`
 
-/**
- * Servicio de partida de cada sesión, en el orden del programa: el primero permitido de cada componente
- * (la persona cambia el de cada fila si el componente admite varios). Largo = total de sesiones.
- */
-export function defaultSlotServices(program: Pick<ClinicalProgram, 'components'>): string[] {
-  return program.components.flatMap(c => Array.from({ length: c.quantity }, () => c.service_ids[0]))
+type ProgramShape = { components: Array<Pick<ClinicalProgramComponent, 'service_ids' | 'quantity' | 'employee_id' | 'services'>> }
+
+export interface SessionSlot {
+  serviceId: string
+  /** Especialista de la especialidad (null si el programa no le asignó uno). */
+  employeeId: string | null
 }
 
-/** Servicios permitidos para la sesión i: los del componente al que le toca por posición. */
-export function allowedServicesForSlot(program: Pick<ClinicalProgram, 'components'>, slot: number): string[] {
-  let from = 0
-  for (const c of program.components) {
-    if (slot < from + c.quantity) return c.service_ids
-    from += c.quantity
+/**
+ * Qué toca en cada sesión, ALTERNANDO las especialidades (A, B, A, B...) mientras a cada una le queden
+ * sesiones: un niño que va dos veces por semana a un programa de dos especialidades suele ir a una y
+ * luego a la otra. Cada sesión parte con el primer servicio de su especialidad y su especialista; la
+ * persona puede cambiar el servicio o el especialista de cada fila. Largo = total de sesiones.
+ */
+export function defaultSlots(program: ProgramShape): SessionSlot[] {
+  const left = program.components.map(c => Math.max(0, c.quantity))
+  const slots: SessionSlot[] = []
+  while (left.some(n => n > 0)) {
+    program.components.forEach((c, i) => {
+      if (left[i] > 0) {
+        left[i]--
+        slots.push({ serviceId: c.service_ids[0], employeeId: c.employee_id ?? null })
+      }
+    })
   }
-  return []
+  return slots
+}
+
+/** Todos los servicios del programa (cualquier especialidad), sin repetir y en orden: lo que puede elegir cada sesión. */
+export function programServices(program: ProgramShape): Array<{ id: string; name: string }> {
+  const seen = new Map<string, string>()
+  for (const c of program.components) {
+    for (const id of c.service_ids) {
+      if (!seen.has(id)) seen.set(id, c.services.find(s => s.id === id)?.name ?? 'Servicio')
+    }
+  }
+  return [...seen].map(([id, name]) => ({ id, name }))
+}
+
+/** Índice de la especialidad (componente) a la que pertenece un servicio; -1 si no es del programa. */
+export const componentIndexOf = (program: ProgramShape, serviceId: string): number =>
+  program.components.findIndex(c => c.service_ids.includes(serviceId))
+
+/** Especialista que el programa asignó a la especialidad de ese servicio (null si no hay). */
+export const specialistForService = (program: ProgramShape, serviceId: string): string | null =>
+  program.components[componentIndexOf(program, serviceId)]?.employee_id ?? null
+
+/** Nombre de una especialidad: sus servicios («Lenguaje / ABA»). */
+export const componentLabel = (c: Pick<ClinicalProgramComponent, 'services'>): string => c.services.map(s => s.name).join(' / ') || 'Especialidad'
+
+export interface ComponentCount {
+  label: string
+  used: number
+  quantity: number
+}
+
+/** Cuántas sesiones hay de cada especialidad frente a las que incluye el programa («Lenguaje 3 de 4»). */
+export function componentCounts(program: ProgramShape, rows: Array<{ serviceId: string }>): ComponentCount[] {
+  const used = program.components.map(() => 0)
+  for (const r of rows) {
+    const i = componentIndexOf(program, r.serviceId)
+    if (i >= 0) used[i]++
+  }
+  return program.components.map((c, i) => ({ label: componentLabel(c), used: used[i], quantity: c.quantity }))
 }
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -74,20 +122,23 @@ function parseLocalDate(date: string): Date | null {
 }
 
 /**
- * Propone las fechas de las sesiones: desde `startDate` (inclusive), solo los días de la semana elegidos,
- * a la misma hora. Devuelve `YYYY-MM-DDTHH:mm` (hora local, como un input datetime-local).
- * Sin días elegidos, fecha o hora inválidas → [].
+ * Propone las fechas de las sesiones: desde `startDate` (inclusive), solo los días de la semana elegidos.
+ * Cada día puede tener su propia hora (`times`: el niño viene el lunes a las 4 y el jueves a las 5); un día
+ * sin hora propia usa `time`. Devuelve `YYYY-MM-DDTHH:mm` (hora local, como un input datetime-local).
+ * Sin días elegidos, fecha inválida o alguna hora inválida → [].
  */
-export function proposeSchedule(opts: { count: number; startDate: string; time: string; weekdays: number[] }): string[] {
+export function proposeSchedule(opts: { count: number; startDate: string; time: string; weekdays: number[]; times?: Record<number, string> }): string[] {
   const start = parseLocalDate(opts.startDate)
-  if (!start || opts.weekdays.length === 0 || !/^\d{2}:\d{2}$/.test(opts.time) || opts.count < 1) return []
+  const timeFor = (weekday: number) => opts.times?.[weekday] || opts.time
+  if (!start || opts.weekdays.length === 0 || opts.count < 1) return []
+  if (opts.weekdays.some(d => !/^\d{2}:\d{2}$/.test(timeFor(d)))) return []
 
   const days = new Set(opts.weekdays)
   const out: string[] = []
   const cursor = new Date(start)
   // Tope de 2 años de búsqueda: con al menos un día elegido, 60 sesiones caben de sobra.
   for (let guard = 0; out.length < opts.count && guard < 731; guard++) {
-    if (days.has(cursor.getDay())) out.push(`${localDate(cursor)}T${opts.time}`)
+    if (days.has(cursor.getDay())) out.push(`${localDate(cursor)}T${timeFor(cursor.getDay())}`)
     cursor.setDate(cursor.getDate() + 1)
   }
   return out
@@ -119,18 +170,21 @@ export const dateOnly = (local: string): string => local.slice(0, 10)
 export interface ScheduleRow {
   start: string // YYYY-MM-DDTHH:mm local
   serviceId: string
+  /** Especialista de esta sesión. */
+  employeeId: string
 }
 
 /** Primer problema de la propuesta que impide crear las citas, o null si está lista. */
 export function scheduleProblem(rows: ScheduleRow[], expected: number, validityDays: number): string | null {
   if (rows.length !== expected) return `El programa necesita ${expected} sesiones.`
   if (rows.some(r => !r.start || Number.isNaN(new Date(r.start).getTime()))) return 'Falta la fecha u hora de alguna sesión.'
-  if (rows.some(r => !r.serviceId)) return 'Falta el servicio de alguna sesión.'
+  if (rows.some(r => !r.serviceId)) return 'Falta la especialidad de alguna sesión.'
+  if (rows.some(r => !r.employeeId)) return 'Falta el especialista de alguna sesión.'
   if (!fitsValidity(rows.map(r => r.start), validityDays)) return `Las sesiones deben quedar dentro de los ${validityDays} días de vigencia.`
   return null
 }
 
-/** Una sesión o más que cae en el mismo instante: el profesional no puede estar en dos a la vez. */
+/** Dos sesiones en el mismo instante: el paciente no puede estar en dos a la vez (aunque sean con especialistas distintos). */
 export function hasDuplicateStarts(rows: ScheduleRow[]): boolean {
   const seen = new Set<string>()
   for (const r of rows) {

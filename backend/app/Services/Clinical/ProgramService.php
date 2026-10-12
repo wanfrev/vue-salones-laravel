@@ -3,6 +3,7 @@
 namespace App\Services\Clinical;
 
 use App\Models\Clinical\Program;
+use App\Models\Profile;
 use App\Models\Service;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -30,8 +31,9 @@ class ProgramService
             ->get();
 
         $services = $this->servicesById($businessId, $programs->flatMap(fn (Program $p) => $this->serviceIds($p->components))->unique()->all());
+        $specialists = $this->specialistNames($businessId, $programs->flatMap(fn (Program $p) => $this->specialistIds($p->components))->unique()->all());
 
-        return $programs->map(fn (Program $p) => $this->present($p, $services))->all();
+        return $programs->map(fn (Program $p) => $this->present($p, $services, $specialists))->all();
     }
 
     public function find(string $id, string $businessId): ?Program
@@ -41,7 +43,11 @@ class ProgramService
 
     public function show(Program $program): array
     {
-        return $this->present($program, $this->servicesById($program->business_id, $this->serviceIds($program->components)));
+        return $this->present(
+            $program,
+            $this->servicesById($program->business_id, $this->serviceIds($program->components)),
+            $this->specialistNames($program->business_id, $this->specialistIds($program->components)),
+        );
     }
 
     /** @param array{name:string, price:numeric, validity_days?:int, components:array, active?:bool} $data */
@@ -77,7 +83,10 @@ class ProgramService
     /**
      * Deja los componentes en forma canónica y comprueba que los servicios sean del negocio.
      *
-     * @return array<int, array{service_ids: string[], quantity: int}>
+     * Cada componente es una especialidad: sus servicios, cuántas sesiones y, opcionalmente, su especialista
+     * (el profesional que las atiende por defecto; al inscribir se puede cambiar sesión por sesión).
+     *
+     * @return array<int, array{service_ids: string[], quantity: int, employee_id: ?string}>
      */
     public function normalizeComponents(string $businessId, array $components): array
     {
@@ -97,7 +106,8 @@ class ProgramService
                 throw new InvalidArgumentException('Cada tipo de sesión necesita al menos 1 sesión.');
             }
             $total += $qty;
-            $clean[] = ['service_ids' => $ids, 'quantity' => $qty];
+            $employeeId = isset($c['employee_id']) && is_string($c['employee_id']) && $c['employee_id'] !== '' ? $c['employee_id'] : null;
+            $clean[] = ['service_ids' => $ids, 'quantity' => $qty, 'employee_id' => $employeeId];
         }
 
         if ($total > self::MAX_SESSIONS) {
@@ -109,7 +119,28 @@ class ProgramService
             throw new InvalidArgumentException('Alguno de los servicios no existe en este negocio.');
         }
 
+        $specialists = $this->specialistIds($clean);
+        if ($specialists !== [] && Profile::where('business_id', $businessId)->whereIn('id', $specialists)->count() !== count($specialists)) {
+            throw new InvalidArgumentException('Alguno de los especialistas no pertenece a este negocio.');
+        }
+
         return $clean;
+    }
+
+    /** @return string[] ids de los especialistas asignados a las especialidades del programa */
+    private function specialistIds(?array $components): array
+    {
+        return array_values(array_unique(array_filter(array_map(fn ($c) => $c['employee_id'] ?? null, $components ?? []))));
+    }
+
+    /** @return \Illuminate\Support\Collection<string, string> id => nombre */
+    private function specialistNames(string $businessId, array $ids)
+    {
+        if ($ids === []) {
+            return collect();
+        }
+
+        return Profile::where('business_id', $businessId)->whereIn('id', $ids)->pluck('full_name', 'id');
     }
 
     /** @return string[] */
@@ -128,7 +159,7 @@ class ProgramService
         return Service::where('business_id', $businessId)->whereIn('id', $ids)->get(['id', 'name', 'duration_minutes', 'price'])->keyBy('id');
     }
 
-    private function present(Program $p, $services): array
+    private function present(Program $p, $services, $specialists): array
     {
         return [
             'id' => $p->id,
@@ -140,6 +171,8 @@ class ProgramService
             'components' => array_map(fn ($c) => [
                 'service_ids' => $c['service_ids'],
                 'quantity' => $c['quantity'],
+                'employee_id' => $c['employee_id'] ?? null,
+                'employee_name' => isset($c['employee_id']) ? ($specialists[$c['employee_id']] ?? null) : null,
                 'services' => array_values(array_filter(array_map(function ($id) use ($services) {
                     $s = $services->get($id);
 

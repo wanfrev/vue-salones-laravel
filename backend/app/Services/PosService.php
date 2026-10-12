@@ -155,7 +155,10 @@ class PosService
         string $createdBy,
         float $productsAmount = 0,
         ?string $tipCurrency = null,
+        ?string $paidDate = null,
     ): string {
+        $paidAt = $this->resolvePaidAt($businessId, $paidDate);
+
         $appointment = Appointment::with(['service', 'employeeProfile'])
             ->findOrFail($appointmentId);
 
@@ -188,7 +191,7 @@ class PosService
             $appointment, $appointmentId, $serviceAmount, $method, $products,
             $notes, $rate, $paymentsBreakdown, $tip, $businessId, $createdBy,
             $employeePct, $localPct, $assistantPct, $effectivePrice, $productsAmount, $service,
-            $tipCurrency
+            $tipCurrency, $paidAt, $paidDate
         ) {
             $totalAmount = $serviceAmount + $productsAmount;
 
@@ -274,7 +277,7 @@ class PosService
                 'notes' => $notes,
                 'tip_amount' => $tip,
                 'tip_currency' => $tip > 0 ? $tipCurrency : null,
-                'paid_at' => now(),
+                'paid_at' => $paidAt ?? now(),
             ]);
 
             if (is_array($paymentsBreakdown)) {
@@ -342,6 +345,7 @@ class PosService
                         branchId: $appointment->branch_id,
                         exchangeRateUsed: $rate,
                         clientId: $appointment->client_id,
+                        createdAt: $paidAt,
                     );
                 }
             }
@@ -388,6 +392,7 @@ class PosService
                         branchId: $appointment->branch_id,
                         exchangeRateUsed: $rate,
                         clientId: $appointment->client_id,
+                        createdAt: $paidAt,
                     );
                 }
             } else if ($service->linked_product_id) {
@@ -424,6 +429,7 @@ class PosService
                     branchId: $appointment->branch_id,
                     exchangeRateUsed: $rate,
                     clientId: $appointment->client_id,
+                    createdAt: $paidAt,
                 );
             }
 
@@ -445,11 +451,12 @@ class PosService
                 $businessId, $appointment->branch_id, $method,
                 $paymentsBreakdown, $totalAmount, $rate,
                 $clientName, $tx->id,
+                $paidAt ? $paidDate : null,
             );
             $this->createCreditRecord(
                 $businessId, $appointment->branch_id, $method, $totalAmount,
                 $appointment->client_id, $clientName, $appointment->client?->phone,
-                $tx->id, $createdBy,
+                $tx->id, $createdBy, $paidAt,
             );
 
             return $tx->id;
@@ -473,10 +480,15 @@ class PosService
         string $businessId,
         ?string $branchId,
         string $createdBy,
+        ?string $paidDate = null,
     ): string {
         if (empty($products)) {
             throw new RuntimeException('La venta directa requiere al menos un producto.');
         }
+
+        // Antes de crear el cliente nuevo de abajo: si la fecha es inválida/futura no debe
+        // quedar un cliente huérfano.
+        $paidAt = $this->resolvePaidAt($businessId, $paidDate);
 
         $rate = $exchangeRate ?: 1;
 
@@ -502,7 +514,8 @@ class PosService
 
         return DB::transaction(function () use (
             $totalAmount, $method, $products, $notes, $rate,
-            $paymentsBreakdown, $clientId, $businessId, $branchId, $createdBy, $clientInfoStr, $clientName
+            $paymentsBreakdown, $clientId, $businessId, $branchId, $createdBy, $clientInfoStr, $clientName,
+            $paidAt, $paidDate
         ) {
             $receiptCode = null;
             $business = \App\Models\Business::find($businessId);
@@ -541,7 +554,7 @@ class PosService
                 'created_by' => $createdBy,
                 'notes' => $notes ?? ($clientInfoStr ? "Venta directa — {$clientInfoStr}" : 'Venta directa'),
                 'tip_amount' => 0,
-                'paid_at' => now(),
+                'paid_at' => $paidAt ?? now(),
             ]);
 
             if (is_array($paymentsBreakdown)) {
@@ -610,6 +623,7 @@ class PosService
                     branchId: $branchId,
                     exchangeRateUsed: $rate,
                     clientId: $clientId,
+                    createdAt: $paidAt,
                 );
             }
 
@@ -619,11 +633,12 @@ class PosService
                 $paymentsBreakdown, $totalAmount, $rate,
                 $resolvedClientName,
                 $tx->id,
+                $paidAt ? $paidDate : null,
             );
             $this->createCreditRecord(
                 $businessId, $branchId, $method, $totalAmount,
                 $clientId, $resolvedClientName, null,
-                $tx->id, $createdBy,
+                $tx->id, $createdBy, $paidAt,
             );
 
             return $tx->id;
@@ -650,12 +665,14 @@ class PosService
         ?float $exchangeRate,
         ?string $notes,
         string $createdBy,
+        ?string $paidDate = null,
     ): string {
         $rate = $exchangeRate ?: 1;
+        $paidAt = $this->resolvePaidAt($businessId, $paidDate);
 
         return DB::transaction(function () use (
             $businessId, $branchId, $employeeId, $tipAmount, $tipCurrency,
-            $method, $paymentsBreakdown, $rate, $notes, $createdBy
+            $method, $paymentsBreakdown, $rate, $notes, $createdBy, $paidAt
         ) {
             $tx = Transaction::create([
                 'id' => Str::uuid()->toString(),
@@ -677,7 +694,7 @@ class PosService
                 'notes' => $notes ?? 'Propina directa',
                 'tip_amount' => $tipAmount,
                 'tip_currency' => $tipCurrency,
-                'paid_at' => now(),
+                'paid_at' => $paidAt ?? now(),
             ]);
 
             return $tx->id;
@@ -706,7 +723,13 @@ class PosService
         float $productsAmount = 0,
         array $services = [],
         ?string $tipCurrency = null,
+        ?string $paidDate = null,
     ): string {
+        // Se resuelve acá (y no solo dentro de processSale) porque la cita que se crea abajo
+        // también tiene que quedar en esa fecha: las comisiones del empleado se filtran por la
+        // fecha de la cita (appointments.start_time), no por la del cobro.
+        $paidAt = $this->resolvePaidAt($businessId, $paidDate);
+
         if (empty($services) && $serviceId && $employeeId) {
             $services = [[
                 'service_id' => $serviceId,
@@ -750,7 +773,7 @@ class PosService
         return DB::transaction(function () use (
             $services, $clientId, $serviceAmount, $method, $products, $notes,
             $exchangeRate, $paymentsBreakdown, $tipAmount, $businessId, $branchId,
-            $createdBy, $productsAmount, $source, $tipCurrency
+            $createdBy, $productsAmount, $source, $tipCurrency, $paidAt, $paidDate
         ) {
             $groupId = count($services) > 1 ? Str::uuid()->toString() : null;
             $createdAppointments = [];
@@ -761,7 +784,7 @@ class PosService
                 $duration = (int) ($svc?->duration_minutes ?? 30);
                 if ($duration < 1) $duration = 30;
 
-                $startTime = now();
+                $startTime = $paidAt ? $paidAt->copy() : now();
                 $endTime = (clone $startTime)->addMinutes($duration);
                 $svcPrice = isset($svcItem['price']) ? (float) $svcItem['price'] : (float) ($svc?->price ?? 0);
                 $totalServicesAmount += $svcPrice;
@@ -807,6 +830,7 @@ class PosService
                     businessId: $businessId,
                     createdBy: $createdBy,
                     productsAmount: $productsAmount,
+                    paidDate: $paidDate,
                 );
             }
 
@@ -845,6 +869,7 @@ class PosService
                     businessId: $businessId,
                     createdBy: $createdBy,
                     productsAmount: $isFirst ? $productsAmount : 0,
+                    paidDate: $paidDate,
                 );
             }
 
@@ -896,6 +921,7 @@ class PosService
         float $exchangeRate,
         string $clientName,
         string $transactionId,
+        ?string $reportDate = null,
     ): void {
         $creditAmount = 0;
         $creditCurrency = 'USD';
@@ -913,7 +939,8 @@ class PosService
 
         if ($creditAmount <= 0) return;
 
-        $today = Carbon::now()->toDateString();
+        // Cobro con otra fecha: el crédito va al reporte del día elegido, no al de hoy.
+        $today = $reportDate ?? Carbon::now()->toDateString();
 
         $report = DailyReport::firstOrNew([
             'business_id' => $businessId,
@@ -969,12 +996,13 @@ class PosService
         ?string $clientPhone,
         string $transactionId,
         string $createdBy,
+        ?Carbon $createdAt = null,
     ): void {
         if ($method !== 'credito' || $totalAmount <= 0) {
             return;
         }
 
-        Credit::create([
+        $credit = new Credit([
             'id' => Str::uuid()->toString(),
             'business_id' => $businessId,
             'branch_id' => $branchId,
@@ -987,5 +1015,38 @@ class PosService
             'status' => 'pending',
             'created_by' => $createdBy,
         ]);
+        // La pestaña Créditos filtra por created_at: con cobro de otra fecha, el crédito tiene
+        // que quedar en ese día (created_at no es fillable, por eso se asigna aparte).
+        if ($createdAt) {
+            $credit->created_at = $createdAt;
+        }
+        $credit->save();
+    }
+
+    /**
+     * Fecha de cobro elegida por el cajero ("YYYY-MM-DD", en la zona horaria del negocio) ->
+     * momento UTC con que se guarda la venta. Devuelve null cuando no hay fecha o es hoy: ahí
+     * todo sigue como siempre (now()). Conserva la hora actual del día para que el cobro se vea
+     * natural en las listas; los reportes agrupan por día, no por hora. `created_at` de la
+     * transacción NO se toca: sigue marcando cuándo se registró de verdad.
+     */
+    private function resolvePaidAt(string $businessId, ?string $paidDate): ?Carbon
+    {
+        if (!$paidDate) {
+            return null;
+        }
+
+        $tz = \App\Models\Business::find($businessId)?->timezone ?: 'UTC';
+        $nowLocal = Carbon::now($tz);
+        $date = Carbon::createFromFormat('Y-m-d', $paidDate, $tz)->startOfDay();
+
+        if ($date->isSameDay($nowLocal)) {
+            return null;
+        }
+        if ($date->gt($nowLocal)) {
+            throw new RuntimeException('La fecha del cobro no puede ser futura.');
+        }
+
+        return $date->setTimeFrom($nowLocal)->setTimezone(config('app.timezone'));
     }
 }

@@ -166,6 +166,8 @@ export const recordSale = async (params: {
   branchId?: string | null
   tipAmount?: number
   tipCurrency?: 'USD' | 'VES'
+  /** YYYY-MM-DD: cobrar con una fecha anterior (solo si el negocio lo activó; el servidor lo valida). */
+  paidDate?: string | null
 }): Promise<{ id: string, receipt_code?: string }> => {
   const serviceAmount = params.serviceAmount ?? params.amount ?? 0
   const products = params.products ?? []
@@ -189,6 +191,7 @@ export const recordSale = async (params: {
     payments_breakdown: params.paymentsBreakdown,
     tip_amount: params.tipAmount ?? 0,
     tip_currency: params.tipCurrency ?? null,
+    paid_date: params.paidDate || undefined,
   })
 
   return response
@@ -229,6 +232,7 @@ export const recordDirectSale = async (params: {
   clientId?: string | null
   clientNameInput?: string | null
   clientPhoneInput?: string | null
+  paidDate?: string | null
 }): Promise<{ id: string, receipt_code?: string }> => {
   const productsPayload = params.products.map(p => ({
     product_id: p.productId,
@@ -250,6 +254,7 @@ export const recordDirectSale = async (params: {
     client_name: params.clientNameInput || null,
     client_phone: params.clientPhoneInput || null,
     branch_id: params.branchId || null,
+    paid_date: params.paidDate || undefined,
   })
 
   return response
@@ -264,6 +269,7 @@ export const recordStandaloneTip = async (params: {
   exchangeRate: number
   paymentsBreakdown: PaymentBreakdownItem[]
   branchId?: string | null
+  paidDate?: string | null
 }): Promise<{ id: string }> => {
   return await apiRequest<{ id: string }>('POST', '/pos/standalone-tip', {
     employee_id: params.employeeId,
@@ -274,6 +280,7 @@ export const recordStandaloneTip = async (params: {
     exchange_rate_used: params.exchangeRate,
     payments_breakdown: params.paymentsBreakdown,
     branch_id: params.branchId || null,
+    paid_date: params.paidDate || undefined,
   })
 }
 
@@ -299,6 +306,7 @@ export const recordDirectServiceSale = async (params: {
   branchId?: string | null
   tipAmount?: number
   tipCurrency?: 'USD' | 'VES'
+  paidDate?: string | null
 }): Promise<{ id: string, receipt_code?: string }> => {
   const products = params.products ?? []
   const productsPayload = products.map(p => ({
@@ -333,6 +341,7 @@ export const recordDirectServiceSale = async (params: {
     tip_amount: params.tipAmount ?? 0,
     tip_currency: params.tipCurrency ?? null,
     branch_id: params.branchId || null,
+    paid_date: params.paidDate || undefined,
   })
 
   return response

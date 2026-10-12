@@ -26,6 +26,7 @@
       :employees="employees"
       :branch-id="branchId"
       :saving="enrolling"
+      :error="enrollError"
       @submit="handleEnroll"
       @cancel="mode = 'list'"
     />
@@ -36,6 +37,7 @@
       class="mb-6"
       :initial="editing"
       :services="serviceOptions"
+      :employees="employees"
       :saving="saving"
       @submit="handleSave"
       @cancel="closeForm"
@@ -64,6 +66,7 @@
         <ul class="mt-2 space-y-1">
           <li v-for="(c, i) in p.components" :key="i" class="text-xs text-text-muted">
             <strong class="text-text-secondary">{{ c.quantity }}×</strong> {{ c.services.map(s => s.name).join(' / ') }}
+            <span> — {{ c.employee_name ?? 'especialista por elegir' }}</span>
           </li>
         </ul>
       </li>
@@ -124,15 +127,19 @@ async function handleSave(payload: ProgramPayload) {
 
 // Inscribir desde aquí (con selector de paciente): no pasa por una ficha, así que la mutación va directa.
 const enrolling = ref(false)
+const enrollError = ref<string | null>(null)
 async function handleEnroll(v: { clientId: string; payload: EnrollPayload }) {
   enrolling.value = true
+  enrollError.value = null
   try {
     await enrollClient(v.clientId, v.payload)
     for (const key of ['clinical-enrollments', 'appointments', 'pos-pending']) queryClient.invalidateQueries({ queryKey: [key], exact: false })
     success('Paciente inscrito: las citas ya están en el calendario y el programa en el punto de venta')
     mode.value = 'list'
   } catch (err) {
-    showError(translateError(err, 'No se pudo inscribir al paciente'))
+    // El motivo (choques de horario, vigencia...) queda dentro del formulario, que sigue abierto para corregirlo.
+    enrollError.value = translateError(err, 'No se pudo inscribir al paciente')
+    showError(enrollError.value)
   } finally {
     enrolling.value = false
   }

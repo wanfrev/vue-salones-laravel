@@ -35,6 +35,7 @@ class ProcessSaleRequest extends FormRequest
             'tip_amount' => 'nullable|numeric|min:0',
             'tip_currency' => 'nullable|in:USD,VES',
             'products_amount' => 'nullable|numeric|min:0',
+            'paid_date' => 'nullable|date_format:Y-m-d',
         ];
     }
 }

@@ -29,6 +29,9 @@ export const DEFAULT_FEATURES = {
   // monto no cuenta como ingreso del negocio (igual que 'credito', pero sin nada pendiente por
   // cobrar). Ver PaymentMethod en types/database.ts.
   courtesy_charge_enabled: false,
+  // Muestra en el POS un campo "Fecha del cobro" (solo admin/encargado) para registrar una venta
+  // en un día anterior -- ver PosController::backdateDenied y PosService::resolvePaidAt.
+  pos_backdate_enabled: false,
   manual_reports: false,
   daily_report_autofill_from_pos: false,
   pos_direct_service_sale: false,

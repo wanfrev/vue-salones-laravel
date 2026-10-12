@@ -14,6 +14,7 @@ class StandaloneTipRequest extends FormRequest
             'tip_currency' => 'nullable|in:USD,VES',
             'method' => 'required|string|max:50',
             'notes' => 'nullable|string|max:500',
+            'paid_date' => 'nullable|date_format:Y-m-d',
             'exchange_rate_used' => 'nullable|numeric|min:0',
             'payments_breakdown' => 'nullable|array',
             'payments_breakdown.*.method' => 'required|string',
