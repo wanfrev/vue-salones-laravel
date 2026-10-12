@@ -38,11 +38,14 @@ class EnrollmentService
     // ── Inscribir ───────────────────────────────────────────────────────────────
 
     /**
-     * @param array<int, array{service_id: string, start_time: string}> $sessions
+     * Cada sesión trae su servicio, su fecha y, opcionalmente, su especialista; sin él, el de su especialidad en el
+     * programa; y sin ese, `$employeeId` (el profesional por defecto). Cada especialista debe estar libre a su hora.
+     *
+     * @param array<int, array{service_id: string, start_time: string, employee_id?: ?string}> $sessions
      *
      * @throws InvalidArgumentException con un mensaje listo para mostrar
      */
-    public function enroll(string $businessId, Client $client, Program $program, string $employeeId, array $sessions, ?string $branchId, ?string $userId, ?string $startsOn = null): Enrollment
+    public function enroll(string $businessId, Client $client, Program $program, ?string $employeeId, array $sessions, ?string $branchId, ?string $userId, ?string $startsOn = null): Enrollment
     {
         if (!$program->active) {
             throw new InvalidArgumentException('Ese programa está desactivado.');
@@ -51,12 +54,13 @@ class EnrollmentService
         if (count($sessions) !== $total) {
             throw new InvalidArgumentException("El programa tiene {$total} sesiones; se enviaron " . count($sessions) . '.');
         }
-        if (!Profile::where('business_id', $businessId)->where('id', $employeeId)->exists()) {
-            throw new InvalidArgumentException('El profesional no pertenece a este negocio.');
-        }
 
         $services = Service::where('business_id', $businessId)->whereIn('id', array_column($sessions, 'service_id'))->get()->keyBy('id');
-        $this->assertSessionsFitComponents($program, $sessions);
+        $assignment = $this->assertSessionsFitComponents($program, $sessions);
+        foreach ($sessions as $i => &$s) {
+            $s['_component'] = $assignment[$i];
+        }
+        unset($s);
 
         // Cronológico: la sesión 1 es la primera en el tiempo, no la primera en llegar.
         usort($sessions, fn ($a, $b) => Carbon::parse($a['start_time'])->getTimestamp() <=> Carbon::parse($b['start_time'])->getTimestamp());
@@ -68,12 +72,37 @@ class EnrollmentService
             throw new InvalidArgumentException("Las {$total} sesiones deben quedar dentro de los {$validity} días de vigencia del programa (la última cae el {$last->format('d/m/Y')}).");
         }
 
+        // Especialista de cada sesión (ya en orden cronológico, para que «Sesión N» sea la que ve la persona).
+        foreach ($sessions as $i => &$s) {
+            $s['employee_id'] = !empty($s['employee_id']) ? $s['employee_id'] : ($program->components[$s['_component']]['employee_id'] ?? $employeeId);
+            if (empty($s['employee_id'])) {
+                throw new InvalidArgumentException('Falta el especialista de la sesión ' . ($i + 1) . '.');
+            }
+        }
+        unset($s);
+        $employeeIds = array_values(array_unique(array_column($sessions, 'employee_id')));
+        if (Profile::where('business_id', $businessId)->whereIn('id', $employeeIds)->count() !== count($employeeIds)) {
+            throw new InvalidArgumentException('Alguno de los especialistas no pertenece a este negocio.');
+        }
+
+        // Todos los choques de una vez (no solo el primero): así se corrigen las horas de una sola vez.
+        $conflicts = $this->sessionConflicts($businessId, $sessions);
+        if ($conflicts !== []) {
+            $lines = [];
+            foreach (array_slice($conflicts, 0, 6, true) as $i => $message) {
+                $lines[] = 'Sesión ' . ($i + 1) . ' (' . Carbon::parse($sessions[$i]['start_time'])->utc()->format('d/m') . '): ' . $message;
+            }
+            $more = count($conflicts) - count($lines);
+
+            throw new InvalidArgumentException(implode(' ', $lines) . ($more > 0 ? " Y {$more} más." : ''));
+        }
+
         $slices = $this->priceSlices($program->price, $total);
 
         // Fecha local de la primera sesión (la que ve el usuario); sin ella, la fecha UTC de la primera cita.
         $startDate = Carbon::parse($startsOn ?? $first->toDateString());
 
-        return DB::transaction(function () use ($businessId, $client, $program, $employeeId, $sessions, $services, $branchId, $userId, $slices, $total, $startDate, $validity) {
+        return DB::transaction(function () use ($businessId, $client, $program, $sessions, $services, $branchId, $userId, $slices, $total, $startDate, $validity) {
             $enrollment = Enrollment::create([
                 'id' => Str::uuid()->toString(),
                 'business_id' => $businessId,
@@ -97,7 +126,7 @@ class EnrollmentService
                 try {
                     $appointment = $this->appointments->store([
                         'client_id' => $client->id,
-                        'employee_id' => $employeeId,
+                        'employee_id' => $s['employee_id'],
                         'service_id' => $s['service_id'],
                         'start_time' => $start->toDateTimeString(),
                         'end_time' => $end->toDateTimeString(),
@@ -106,7 +135,7 @@ class EnrollmentService
                         'branch_id' => $branchId,
                         'source' => 'internal',
                         'internal_notes' => "Programa: {$program->name} (sesión " . ($i + 1) . " de {$total})",
-                    ], $businessId, $userId ?? $employeeId);
+                    ], $businessId, $userId ?? $s['employee_id']);
                 } catch (ValidationException $e) {
                     $msg = collect($e->errors())->flatten()->first() ?? 'horario no disponible';
                     throw new InvalidArgumentException('Sesión ' . ($i + 1) . " ({$start->format('d/m H:i')}): {$msg}");
@@ -139,8 +168,12 @@ class EnrollmentService
      * Las sesiones elegidas deben calzar con los componentes del programa: cada una de un servicio permitido
      * y la cantidad exacta por componente. Asigna primero a los componentes más restrictivos.
      */
-    private function assertSessionsFitComponents(Program $program, array $sessions): void
+    /**
+     * @return array<int, int> índice de cada sesión (en el orden recibido) → índice del componente (especialidad) que ocupa
+     */
+    private function assertSessionsFitComponents(Program $program, array $sessions): array
     {
+        $assignment = [];
         $remaining = [];
         foreach ($program->components as $i => $c) {
             $remaining[$i] = (int) $c['quantity'];
@@ -148,11 +181,12 @@ class EnrollmentService
         $order = array_keys($remaining);
         usort($order, fn ($a, $b) => count($program->components[$a]['service_ids']) <=> count($program->components[$b]['service_ids']));
 
-        foreach ($sessions as $s) {
+        foreach ($sessions as $n => $s) {
             $placed = false;
             foreach ($order as $i) {
                 if ($remaining[$i] > 0 && in_array($s['service_id'], $program->components[$i]['service_ids'], true)) {
                     $remaining[$i]--;
+                    $assignment[$n] = $i;
                     $placed = true;
                     break;
                 }
@@ -161,6 +195,63 @@ class EnrollmentService
                 throw new InvalidArgumentException('Los servicios elegidos no corresponden a lo que incluye el programa.');
             }
         }
+
+        return $assignment;
+    }
+
+    /**
+     * ¿Alguna sesión choca con una cita que ya tiene su especialista, o con otra sesión del mismo especialista
+     * en esta misma lista? Una sola consulta para todas. Es el mismo criterio que AppointmentService::checkOverlap
+     * (citas canceladas o con inasistencia no ocupan la hora; el especialista cuenta también como asistente).
+     *
+     * @param array<int, array{employee_id: string, service_id: string, start_time: string}> $sessions
+     *
+     * @return array<int, string> índice de la sesión → motivo; vacío si todo está libre
+     */
+    public function sessionConflicts(string $businessId, array $sessions): array
+    {
+        if ($sessions === []) {
+            return [];
+        }
+
+        $durations = Service::where('business_id', $businessId)->whereIn('id', array_values(array_unique(array_column($sessions, 'service_id'))))
+            ->pluck('duration_minutes', 'id');
+
+        $slots = [];
+        foreach ($sessions as $i => $s) {
+            $start = Carbon::parse($s['start_time'])->utc();
+            $slots[$i] = ['employee' => $s['employee_id'], 'start' => $start, 'end' => $start->copy()->addMinutes(max(5, (int) ($durations[$s['service_id']] ?? 50)))];
+        }
+
+        $employeeIds = array_values(array_unique(array_column($slots, 'employee')));
+        $from = collect($slots)->min(fn ($s) => $s['start']->getTimestamp());
+        $to = collect($slots)->max(fn ($s) => $s['end']->getTimestamp());
+
+        $existing = Appointment::where('business_id', $businessId)
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->whereNull('clinical_history')
+            ->where('start_time', '<', Carbon::createFromTimestampUTC($to))
+            ->where('end_time', '>', Carbon::createFromTimestampUTC($from))
+            ->where(fn ($q) => $q->whereIn('employee_id', $employeeIds)->orWhereIn('assistant_employee_id', $employeeIds))
+            ->get(['employee_id', 'assistant_employee_id', 'start_time', 'end_time']);
+
+        $conflicts = [];
+        foreach ($slots as $i => $slot) {
+            $busy = $existing->first(fn ($a) => $a->start_time->lt($slot['end']) && $a->end_time->gt($slot['start'])
+                && ($a->employee_id === $slot['employee'] || $a->assistant_employee_id === $slot['employee']));
+            if ($busy) {
+                $conflicts[$i] = 'el especialista ya tiene una cita en ese horario.';
+                continue;
+            }
+            foreach ($slots as $j => $other) {
+                if ($j < $i && $other['employee'] === $slot['employee'] && $other['start']->lt($slot['end']) && $other['end']->gt($slot['start'])) {
+                    $conflicts[$i] = 'se cruza con la sesión ' . ($j + 1) . ' del mismo especialista.';
+                    break;
+                }
+            }
+        }
+
+        return $conflicts;
     }
 
     // ── Lectura ─────────────────────────────────────────────────────────────────

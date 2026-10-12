@@ -15,6 +15,7 @@
       :employees="employees"
       :branch-id="branchId"
       :saving="enrollMutation.isPending.value"
+      :error="enrollError"
       @submit="handleEnroll"
       @cancel="showForm = false"
     />
@@ -46,6 +47,7 @@ import { AddCircleIcon } from '@solar-icons/vue/linear'
 import EnrollmentForm from '../components/clinical/EnrollmentForm.vue'
 import EnrollmentCard from '../components/clinical/EnrollmentCard.vue'
 import { useClientEnrollments, useEnrollmentOptions } from '../composables/clinical/usePrograms'
+import { translateError } from '../lib/errors'
 import type { EnrollPayload } from '../services/clinical/programService'
 
 const route = useRoute()
@@ -55,12 +57,16 @@ const showForm = ref(false)
 const { programs, employees, branchId } = useEnrollmentOptions()
 const { enrollments, isLoading, isAdmin, enrollMutation, extendMutation, cancelMutation, consumesMutation } = useClientEnrollments(() => clientId.value)
 
+const enrollError = ref<string | null>(null)
+
 async function handleEnroll(v: { clientId: string; payload: EnrollPayload }) {
+  enrollError.value = null
   try {
     await enrollMutation.mutateAsync(v.payload)
     showForm.value = false
-  } catch {
-    // El toast de error ya lo muestra onError (choque de horario, vigencia...); el formulario queda abierto.
+  } catch (err) {
+    // El toast ya lo muestra onError; además el motivo queda dentro del formulario, que sigue abierto para corregirlo.
+    enrollError.value = translateError(err, 'No se pudo inscribir al paciente')
   }
 }
 </script>

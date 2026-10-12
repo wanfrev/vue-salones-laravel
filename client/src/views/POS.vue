@@ -368,6 +368,7 @@
         :retail-client-name="activeSaleType === 'retail_only' ? retailClientSearch : directServiceClientSearch"
         :selected-gift-card-id="selectedGiftCardId"
         :selected-bank-id="selectedBankId" :banks="banks" :is-bank-method="isBankMethod"
+        :can-backdate="canBackdate" :paid-date="paidDate"
         :custom-total-amount="customTotalAmount"
         :custom-total-currency="customTotalCurrency"
         :is-direct-service="activeSaleType === 'direct_service'"
@@ -379,6 +380,7 @@
         @update:custom-total-currency="customTotalCurrency = $event"
         @update:selected-gift-card-id="selectedGiftCardId = $event"
         @update:selected-bank-id="selectedBankId = $event"
+        @update:paid-date="paidDate = $event"
         @update:are-products-included="areProductsIncluded = $event"
         @select-method="selectMethod"
         @update:other-currency="otherCurrency = $event"
@@ -443,6 +445,7 @@
             :retail-client-name="activeSaleType === 'retail_only' ? retailClientSearch : directServiceClientSearch"
             :selected-gift-card-id="selectedGiftCardId"
             :selected-bank-id="selectedBankId" :banks="banks" :is-bank-method="isBankMethod"
+            :can-backdate="canBackdate" :paid-date="paidDate"
             :custom-total-amount="customTotalAmount"
             :custom-total-currency="customTotalCurrency"
             :is-direct-service="activeSaleType === 'direct_service'"
@@ -454,6 +457,7 @@
             @update:custom-total-currency="customTotalCurrency = $event"
             @update:selected-gift-card-id="selectedGiftCardId = $event"
             @update:selected-bank-id="selectedBankId = $event"
+            @update:paid-date="paidDate = $event"
             @update:are-products-included="areProductsIncluded = $event"
             @select-method="selectMethod"
             @update:other-currency="otherCurrency = $event"
@@ -593,6 +597,8 @@ const {
   selectedBankId,
   isBankMethod,
   banks,
+  paidDate,
+  canBackdate,
   isProcessing: posIsProcessing,
   paymentMethods,
   mixedMethods,

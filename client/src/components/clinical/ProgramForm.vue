@@ -9,15 +9,19 @@
     </div>
 
     <div class="space-y-3">
-      <p class="text-sm font-medium text-text-secondary">Qué incluye</p>
+      <p class="text-sm font-medium text-text-secondary">Especialidades del programa</p>
+      <p class="-mt-2 text-xs text-text-muted">Cada especialidad tiene sus sesiones, sus servicios y su especialista. Un programa de dos especialidades (ej. lenguaje y psicopedagogía) son dos bloques.</p>
       <div v-for="(c, i) in form.components" :key="i" class="rounded-lg border border-border-subtle bg-bg-secondary/40 p-3">
         <div class="flex flex-wrap items-end gap-3">
           <div class="w-28">
             <FormInput v-model="c.quantity" type="number" label="Sesiones" placeholder="8" />
           </div>
-          <p class="pb-2.5 text-xs text-text-muted">de cualquiera de estos servicios:</p>
+          <div class="min-w-[12rem] flex-1">
+            <FormSelect v-model="c.employee_id" label="Especialista" :options="specialistOptions" />
+          </div>
           <button v-if="form.components.length > 1" type="button" @click="removeComponent(i)" class="ml-auto rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-danger transition-theme hover:bg-danger/5">Quitar</button>
         </div>
+        <p class="mt-2 text-xs text-text-muted">Servicios de esta especialidad (marca uno o varios):</p>
         <div class="mt-2 flex flex-wrap gap-2">
           <button
             v-for="s in services"
@@ -32,10 +36,10 @@
         </div>
       </div>
       <button type="button" @click="addComponent" :disabled="form.components.length >= MAX_COMPONENTS" class="rounded-lg border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/10 disabled:opacity-50">
-        + Agregar otro tipo de sesión (ej. asesoría para padres)
+        + Agregar otra especialidad (ej. asesoría para padres)
       </button>
       <p class="text-xs text-text-muted">
-        Total: <strong class="text-text">{{ total }} sesiones</strong>. Al inscribir a un paciente, cada cita elige su servicio entre los de su tipo.
+        Total: <strong class="text-text">{{ total }} sesiones</strong>. Al inscribir a un paciente, cada sesión sale con el especialista de su especialidad y se puede cambiar.
       </p>
     </div>
 
@@ -57,7 +61,7 @@
 
 <script setup lang="ts">
 import { computed, reactive } from 'vue'
-import { FormInput } from '../forms'
+import { FormInput, FormSelect } from '../forms'
 import { MAX_PROGRAM_SESSIONS, programTotal } from './programs'
 import type { ProgramPayload } from '../../services/clinical/programService'
 import type { ClinicalProgram } from '../../types/database'
@@ -68,13 +72,20 @@ const props = defineProps<{
   /** Programa que se edita; sin él es uno nuevo. */
   initial?: ClinicalProgram | null
   services: Array<{ id: string; name: string }>
+  /** Profesionales a quienes se puede asignar una especialidad. */
+  employees?: Array<{ id: string; name: string }>
   saving: boolean
 }>()
 const emit = defineEmits<{ submit: [payload: ProgramPayload]; cancel: [] }>()
 
-interface ComponentDraft { quantity: number | string; service_ids: string[] }
+interface ComponentDraft { quantity: number | string; service_ids: string[]; employee_id: string }
 
 const isEditing = computed(() => !!props.initial)
+
+const specialistOptions = computed(() => [
+  { value: '', label: 'Sin asignar (se elige al inscribir)' },
+  ...(props.employees ?? []).map(e => ({ value: e.id, label: e.name })),
+])
 
 // Estado local: el formulario nunca muta el programa del padre.
 const form = reactive({
@@ -82,8 +93,8 @@ const form = reactive({
   price: (props.initial?.price ?? '') as number | string,
   validity_days: (props.initial?.validity_days ?? 30) as number | string,
   active: props.initial?.active ?? true,
-  components: (props.initial?.components.map(c => ({ quantity: c.quantity as number | string, service_ids: [...c.service_ids] }))
-    ?? [{ quantity: 8 as number | string, service_ids: [] as string[] }]) as ComponentDraft[],
+  components: (props.initial?.components.map(c => ({ quantity: c.quantity as number | string, service_ids: [...c.service_ids], employee_id: c.employee_id ?? '' }))
+    ?? [{ quantity: 8 as number | string, service_ids: [] as string[], employee_id: '' }]) as ComponentDraft[],
 })
 
 const total = computed(() => programTotal(form.components.map(c => ({ quantity: Number(c.quantity) }))))
@@ -103,7 +114,7 @@ const problem = computed<string | null>(() => {
   return null
 })
 
-const addComponent = () => form.components.push({ quantity: 1, service_ids: [] })
+const addComponent = () => form.components.push({ quantity: 1, service_ids: [], employee_id: '' })
 const removeComponent = (i: number) => form.components.splice(i, 1)
 
 function toggleService(c: ComponentDraft, id: string) {
@@ -119,7 +130,7 @@ function handleSubmit() {
     price: Number(form.price),
     validity_days: Number(form.validity_days),
     ...(isEditing.value ? { active: form.active } : {}),
-    components: form.components.map(c => ({ service_ids: [...c.service_ids], quantity: Number(c.quantity) })),
+    components: form.components.map(c => ({ service_ids: [...c.service_ids], quantity: Number(c.quantity), employee_id: c.employee_id || null })),
   })
 }
 </script>

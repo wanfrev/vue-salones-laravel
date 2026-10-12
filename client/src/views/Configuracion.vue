@@ -349,6 +349,15 @@
               />
               <FormToggle
                 v-if="businessStore.features.pos"
+                :model-value="!!businessStore.features.pos_backdate_enabled"
+                @update:model-value="handleToggleFeature('pos_backdate_enabled')"
+                label="Permitir cobrar con otra fecha"
+                hint="Agrega un campo 'Fecha del cobro' en el POS (solo para administradores y encargados) para registrar una venta en un día anterior -- útil para corregir un cobro mal hecho: se elimina y se vuelve a cobrar con la fecha original, y cuenta en los reportes de ese día."
+                :disabled="updatingFeatures"
+                class="py-3.5 border-b border-border-subtle"
+              />
+              <FormToggle
+                v-if="businessStore.features.pos"
                 :model-value="!!businessStore.features.courtesy_charge_enabled"
                 @update:model-value="handleToggleFeature('courtesy_charge_enabled')"
                 label="Permitir cobro por cortesía"
@@ -1031,6 +1040,7 @@ const featureLabels: Record<string, string> = {
   encargados_edit_clients: 'Permitir editar clientes',
   encargados_view_financial_summary: 'Ver resumen financiero',
   courtesy_charge_enabled: 'Permitir cobro por cortesía',
+  pos_backdate_enabled: 'Permitir cobrar con otra fecha',
   payroll_currency_breakdown_enabled: 'Desglose de comisión por moneda de cobro',
   employees_recibo_only: 'Empleados solo ven su recibo',
   enable_public_booking: 'Reservas públicas',

@@ -31,6 +31,34 @@ class PosController
         return $raw ?: null;
     }
 
+    /**
+     * "Cobrar con otra fecha" mueve dinero entre días en los reportes, así que se exige en el
+     * servidor (no solo ocultando el campo): el negocio tiene que haberlo activado en
+     * Configuración y quien cobra debe ser admin o encargado. Devuelve la respuesta de rechazo,
+     * o null si se puede continuar (incluido el caso normal de no mandar fecha).
+     */
+    private function backdateDenied(Request $request, ?string $businessId, ?string $paidDate): ?JsonResponse
+    {
+        if (!$paidDate) {
+            return null;
+        }
+
+        $role = $request->user()?->profile?->role;
+        if (!in_array($role, ['admin', 'superadmin', 'encargado'], true)) {
+            return response()->json(['message' => 'Solo un administrador o encargado puede cambiar la fecha de un cobro.'], 403);
+        }
+
+        $business = $businessId ? \App\Models\Business::find($businessId) : null;
+        $features = $business
+            ? (is_array($business->features) ? $business->features : json_decode($business->features ?? '[]', true))
+            : [];
+        if (!($features['pos_backdate_enabled'] ?? false)) {
+            return response()->json(['message' => 'Cobrar con otra fecha no está activado en la configuración del negocio.'], 403);
+        }
+
+        return null;
+    }
+
     public function pendingAppointments(Request $request): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
@@ -67,6 +95,10 @@ class PosController
 
         $data = $request->validated();
 
+        if ($denied = $this->backdateDenied($request, $businessId, $data['paid_date'] ?? null)) {
+            return $denied;
+        }
+
         try {
             $txId = $this->posService->processSale(
                 appointmentId: $data['appointment_id'],
@@ -81,6 +113,7 @@ class PosController
                 businessId: $businessId,
                 createdBy: $request->user()->id,
                 productsAmount: (float) ($data['products_amount'] ?? 0),
+                paidDate: $data['paid_date'] ?? null,
             );
 
             EntityChanged::safe($businessId, 'transaction', 'created', $txId);
@@ -98,6 +131,10 @@ class PosController
 
         $data = $request->validated();
 
+        if ($denied = $this->backdateDenied($request, $businessId, $data['paid_date'] ?? null)) {
+            return $denied;
+        }
+
         try {
             $txId = $this->posService->processDirectSale(
                 totalAmount: (float) $data['total_amount'],
@@ -112,6 +149,7 @@ class PosController
                 businessId: $businessId,
                 branchId: $data['branch_id'] ?? null,
                 createdBy: $request->user()->id,
+                paidDate: $data['paid_date'] ?? null,
             );
 
             EntityChanged::safe($businessId, 'transaction', 'created', $txId);
@@ -129,6 +167,10 @@ class PosController
         $businessId = $this->resolveBusinessId($request);
 
         $data = $request->validated();
+
+        if ($denied = $this->backdateDenied($request, $businessId, $data['paid_date'] ?? null)) {
+            return $denied;
+        }
 
         try {
             $txId = $this->posService->processDirectServiceSale(
@@ -149,6 +191,7 @@ class PosController
                 createdBy: $request->user()->id,
                 productsAmount: (float) ($data['products_amount'] ?? 0),
                 services: $data['services'] ?? [],
+                paidDate: $data['paid_date'] ?? null,
             );
 
             EntityChanged::safe($businessId, 'transaction', 'created', $txId);
@@ -174,6 +217,10 @@ class PosController
             return response()->json(['message' => 'Empleado no encontrado.'], 404);
         }
 
+        if ($denied = $this->backdateDenied($request, $businessId, $data['paid_date'] ?? null)) {
+            return $denied;
+        }
+
         try {
             $txId = $this->posService->recordStandaloneTip(
                 businessId: $businessId,
@@ -186,6 +233,7 @@ class PosController
                 exchangeRate: $data['exchange_rate_used'] ?? null,
                 notes: $data['notes'] ?? null,
                 createdBy: $request->user()->id,
+                paidDate: $data['paid_date'] ?? null,
             );
 
             EntityChanged::safe($businessId, 'transaction', 'created', $txId);

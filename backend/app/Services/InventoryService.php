@@ -356,6 +356,7 @@ class InventoryService
         ?string $branchId = null,
         float $exchangeRateUsed = 1,
         ?string $clientId = null,
+        ?\DateTimeInterface $createdAt = null,
     ): InventoryMovement {
         return InventoryMovement::create([
             'id' => Str::uuid()->toString(),
@@ -373,7 +374,9 @@ class InventoryService
             'notes' => $notes,
             'created_by' => $createdBy,
             'client_id' => $clientId,
-            'created_at' => now(),
+            // Venta cobrada con otra fecha (PosService): el movimiento va a ese día para que
+            // Ventas de productos y el costo de lo vendido caigan donde cae el ingreso.
+            'created_at' => $createdAt ?? now(),
         ]);
     }
 

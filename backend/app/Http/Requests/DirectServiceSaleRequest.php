@@ -28,6 +28,7 @@ class DirectServiceSaleRequest extends FormRequest
             'products.*.name' => 'nullable|string',
             'products.*.location_id' => 'nullable|uuid',
             'notes' => 'nullable|string|max:500',
+            'paid_date' => 'nullable|date_format:Y-m-d',
             'exchange_rate_used' => 'nullable|numeric|min:0',
             'payments_breakdown' => 'nullable|array',
             'payments_breakdown.*.method' => 'required|string',

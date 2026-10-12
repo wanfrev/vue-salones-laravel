@@ -86,6 +86,7 @@ class ProgramController
             'components.*.service_ids' => ['required', 'array', 'min:1', 'max:' . ProgramService::MAX_SERVICES_PER_COMPONENT],
             'components.*.service_ids.*' => ['uuid'],
             'components.*.quantity' => ['required', 'integer', 'min:1', 'max:' . ProgramService::MAX_SESSIONS],
+            'components.*.employee_id' => ['nullable', 'uuid'], // especialista de esta especialidad
         ];
     }
 
@@ -110,12 +111,13 @@ class ProgramController
 
         $data = $request->validate([
             'program_id' => ['required', 'uuid'],
-            'employee_id' => ['required', 'uuid'],
+            'employee_id' => ['nullable', 'uuid'], // por defecto, para las sesiones sin especialista propio ni de su especialidad
             'branch_id' => ['nullable', 'uuid'],
             'starts_on' => ['nullable', 'date_format:Y-m-d'],
             'sessions' => ['required', 'array', 'min:1', 'max:' . ProgramService::MAX_SESSIONS],
             'sessions.*.service_id' => ['required', 'uuid'],
             'sessions.*.start_time' => ['required', 'date'],
+            'sessions.*.employee_id' => ['nullable', 'uuid'],
         ]);
 
         $program = $this->programs->find($data['program_id'], $businessId);
@@ -123,7 +125,7 @@ class ProgramController
 
         try {
             $enrollment = $this->enrollments->enroll(
-                $businessId, $client, $program, $data['employee_id'], $data['sessions'],
+                $businessId, $client, $program, $data['employee_id'] ?? null, $data['sessions'],
                 $data['branch_id'] ?? null, $request->user()?->id, $data['starts_on'] ?? null,
             );
         } catch (InvalidArgumentException $e) {
@@ -134,6 +136,27 @@ class ProgramController
         EntityChanged::safe($businessId, 'appointment', 'created', $enrollment->id);
 
         return response()->json($this->enrollments->show($enrollment), 201);
+    }
+
+    /**
+     * Antes de inscribir: qué sesiones chocan con la agenda de su especialista (índice → motivo). Solo lee;
+     * la pantalla lo usa para marcar en rojo la fila a corregir mientras se arman las fechas.
+     */
+    public function checkConflicts(Request $request): JsonResponse
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId || !$request->user()?->profile) return response()->json(['message' => 'No autorizado.'], 403);
+
+        $data = $request->validate([
+            'sessions' => ['required', 'array', 'min:1', 'max:' . ProgramService::MAX_SESSIONS],
+            'sessions.*.service_id' => ['required', 'uuid'],
+            'sessions.*.employee_id' => ['required', 'uuid'],
+            'sessions.*.start_time' => ['required', 'date'],
+        ]);
+
+        $conflicts = $this->enrollments->sessionConflicts($businessId, array_values($data['sessions']));
+
+        return response()->json(array_map(fn ($i, $message) => ['index' => $i, 'message' => $message], array_keys($conflicts), $conflicts));
     }
 
     public function updateEnrollment(Request $request, string $id): JsonResponse

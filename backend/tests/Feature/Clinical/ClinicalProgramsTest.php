@@ -511,6 +511,205 @@ class ClinicalProgramsTest extends TestCase
         $this->assertSame([$ordinary], $out->pluck('id')->all());
     }
 
+    // ── Especialistas por especialidad y horas distintas por día ────────────────
+
+    private string $doc2 = '20000000-0000-4000-8000-000000000002';
+
+    /** Programa mixto de dos especialidades, cada una con su especialista: 2 de lenguaje (doc) + 2 de psicopedagogía (doc2). */
+    private function twoSpecialtyProgram(): Program
+    {
+        DB::table('profiles')->insert(['id' => $this->doc2, 'business_id' => self::BIZ, 'full_name' => 'Lic. Rojas', 'role' => 'empleado']);
+
+        return $this->programs()->create(self::BIZ, null, [
+            'name' => 'Programa mixto', 'price' => 160, 'validity_days' => 30,
+            'components' => [
+                ['service_ids' => [$this->lenguaje], 'quantity' => 2, 'employee_id' => $this->doc],
+                ['service_ids' => [$this->psico], 'quantity' => 2, 'employee_id' => $this->doc2],
+            ],
+        ]);
+    }
+
+    private function busy(string $employee, string $start, string $end, string $status = 'confirmed'): void
+    {
+        DB::table('appointments')->insert([
+            'id' => (string) \Illuminate\Support\Str::uuid(), 'business_id' => self::BIZ, 'client_id' => $this->ajena, 'employee_id' => $employee,
+            'service_id' => $this->lenguaje, 'status' => $status, 'start_time' => $start, 'end_time' => $end,
+        ]);
+    }
+
+    public function test_each_specialty_shows_its_specialist_in_the_catalog(): void
+    {
+        $program = $this->twoSpecialtyProgram();
+        $shown = $this->programs()->show($program);
+
+        $this->assertSame([$this->doc, $this->doc2], array_column($shown['components'], 'employee_id'));
+        $this->assertSame(['Dra. Soto', 'Lic. Rojas'], array_column($shown['components'], 'employee_name'));
+    }
+
+    public function test_a_specialty_without_specialist_still_works_and_a_specialist_of_another_business_is_refused(): void
+    {
+        $open = $this->programs()->create(self::BIZ, null, ['name' => 'Sin asignar', 'price' => 10, 'components' => [['service_ids' => [$this->lenguaje], 'quantity' => 1]]]);
+        $this->assertNull($this->programs()->show($open)['components'][0]['employee_id']);
+
+        DB::table('profiles')->insert(['id' => '20000000-0000-4000-8000-0000000000ff', 'business_id' => 'biz-2', 'full_name' => 'De otro negocio', 'role' => 'empleado']);
+        $this->expectException(InvalidArgumentException::class);
+        $this->programs()->create(self::BIZ, null, ['name' => 'X', 'price' => 10, 'components' => [['service_ids' => [$this->lenguaje], 'quantity' => 1, 'employee_id' => '20000000-0000-4000-8000-0000000000ff']]]);
+    }
+
+    public function test_each_session_goes_to_the_specialist_of_its_specialty_without_choosing_a_professional(): void
+    {
+        $program = $this->twoSpecialtyProgram();
+        // Alternadas: lenguaje, psicopedagogía, lenguaje, psicopedagogía.
+        $sessions = [
+            ['service_id' => $this->lenguaje, 'start_time' => '2026-10-12T15:00:00Z'],
+            ['service_id' => $this->psico, 'start_time' => '2026-10-15T15:00:00Z'],
+            ['service_id' => $this->lenguaje, 'start_time' => '2026-10-19T15:00:00Z'],
+            ['service_id' => $this->psico, 'start_time' => '2026-10-22T15:00:00Z'],
+        ];
+
+        $e = $this->enrollments()->enroll(self::BIZ, Client::find($this->ana), $program, null, $sessions, null, 'u1');
+
+        $byService = DB::table('appointments')->whereIn('id', $this->appointmentIds($e))->get()->groupBy('service_id');
+        $this->assertSame([$this->doc], $byService[$this->lenguaje]->pluck('employee_id')->unique()->all());
+        $this->assertSame([$this->doc2], $byService[$this->psico]->pluck('employee_id')->unique()->all());
+    }
+
+    public function test_a_session_can_name_its_own_specialist_and_the_default_covers_specialties_without_one(): void
+    {
+        $program = $this->twoSpecialtyProgram();
+        $sessions = [
+            ['service_id' => $this->lenguaje, 'start_time' => '2026-10-12T15:00:00Z', 'employee_id' => $this->doc2], // reemplaza al de la especialidad
+            ['service_id' => $this->lenguaje, 'start_time' => '2026-10-15T15:00:00Z'],
+            ['service_id' => $this->psico, 'start_time' => '2026-10-19T15:00:00Z'],
+            ['service_id' => $this->psico, 'start_time' => '2026-10-22T15:00:00Z'],
+        ];
+        $e = $this->enrollments()->enroll(self::BIZ, Client::find($this->ana), $program, null, $sessions, null, 'u1');
+
+        $first = DB::table('appointments')->whereIn('id', $this->appointmentIds($e))->orderBy('start_time')->first();
+        $this->assertSame($this->doc2, $first->employee_id);
+
+        // Una especialidad sin especialista usa el profesional por defecto; sin ninguno, pide elegir.
+        $open = $this->programs()->create(self::BIZ, null, ['name' => 'Abierto', 'price' => 20, 'components' => [['service_ids' => [$this->aba], 'quantity' => 1]]]);
+        $one = [['service_id' => $this->aba, 'start_time' => '2026-11-02T15:00:00Z']];
+        $d = $this->enrollments()->enroll(self::BIZ, Client::find($this->ana), $open, $this->doc, $one, null, 'u1');
+        $this->assertSame($this->doc, DB::table('appointments')->whereIn('id', $this->appointmentIds($d))->value('employee_id'));
+
+        $this->expectExceptionMessage('Falta el especialista de la sesión 1');
+        $this->enrollments()->enroll(self::BIZ, Client::find($this->ana), $open, null, [['service_id' => $this->aba, 'start_time' => '2026-11-05T15:00:00Z']], null, 'u1');
+    }
+
+    public function test_a_specialist_busy_at_one_hour_does_not_block_the_session_at_another_hour(): void
+    {
+        $program = $this->simpleProgram(2, 30.0);
+        $this->busy($this->doc, '2026-10-12 15:00:00', '2026-10-12 15:50:00'); // ocupada a las 15:00 el lunes
+
+        // El mismo día, pero a las 17:00 (el niño ese día viene más tarde): sin choque.
+        $e = $this->enrollAna($program, [
+            ['service_id' => $this->lenguaje, 'start_time' => '2026-10-12T17:00:00Z'],
+            ['service_id' => $this->lenguaje, 'start_time' => '2026-10-15T15:00:00Z'],
+        ]);
+        $this->assertSame(2, $e->sessions_total);
+    }
+
+    public function test_the_same_hour_with_two_different_specialists_is_not_a_clash(): void
+    {
+        $program = $this->twoSpecialtyProgram();
+        $this->busy($this->doc, '2026-10-12 15:00:00', '2026-10-12 15:50:00');
+
+        // A esa misma hora la psicopedagoga (doc2) sí está libre.
+        $e = $this->enrollments()->enroll(self::BIZ, Client::find($this->ana), $program, null, [
+            ['service_id' => $this->lenguaje, 'start_time' => '2026-10-13T15:00:00Z'],
+            ['service_id' => $this->lenguaje, 'start_time' => '2026-10-14T15:00:00Z'],
+            ['service_id' => $this->psico, 'start_time' => '2026-10-12T15:00:00Z'],
+            ['service_id' => $this->psico, 'start_time' => '2026-10-15T15:00:00Z'],
+        ], null, 'u1');
+        $this->assertSame(4, $e->sessions_total);
+    }
+
+    public function test_every_clash_is_reported_at_once_and_nothing_is_created(): void
+    {
+        $program = $this->simpleProgram(4, 60.0);
+        $this->busy($this->doc, '2026-10-13 15:00:00', '2026-10-13 15:50:00');
+        $this->busy($this->doc, '2026-10-15 15:30:00', '2026-10-15 16:20:00');
+
+        try {
+            $this->enrollAna($program, $this->schedule(4)); // 12, 13, 14, 15 de octubre a las 15:00
+            $this->fail('Debió rechazar los choques');
+        } catch (InvalidArgumentException $e) {
+            $this->assertStringContainsString('Sesión 2', $e->getMessage());
+            $this->assertStringContainsString('Sesión 4', $e->getMessage()); // las dos, no solo la primera
+            $this->assertStringNotContainsString('Sesión 1', $e->getMessage());
+        }
+
+        $this->assertSame(2, Appointment::count()); // solo las dos ocupadas de antes
+        $this->assertSame(0, Enrollment::count());
+    }
+
+    public function test_conflict_check_rules(): void
+    {
+        $svc = $this->enrollments();
+        $row = fn (string $employee, string $start) => ['employee_id' => $employee, 'service_id' => $this->lenguaje, 'start_time' => $start];
+        $this->busy($this->doc, '2026-10-12 15:00:00', '2026-10-12 15:50:00');
+        $this->busy($this->doc, '2026-10-13 15:00:00', '2026-10-13 15:50:00', 'cancelled');
+        $this->busy($this->doc, '2026-10-14 15:00:00', '2026-10-14 15:50:00', 'no_show');
+        $this->busy($this->doc, '2026-10-16 15:00:00', '2026-10-16 15:50:00');
+
+        $result = $svc->sessionConflicts(self::BIZ, [
+            0 => $row($this->doc, '2026-10-12T15:30:00Z'),   // se solapa con la cita existente → choque
+            1 => $row($this->doc, '2026-10-13T15:00:00Z'),   // la existente está cancelada → libre
+            2 => $row($this->doc, '2026-10-14T15:00:00Z'),   // la existente fue inasistencia → libre
+            3 => $row($this->doc2, '2026-10-12T15:00:00Z'),  // otro especialista → libre
+            4 => $row($this->doc, '2026-10-16T15:50:00Z'),   // empieza justo cuando termina la otra → libre
+            5 => $row($this->doc, '2026-10-20T15:00:00Z'),
+            6 => $row($this->doc, '2026-10-20T15:30:00Z'),   // se cruza con la sesión 6 de esta misma lista
+        ]);
+
+        $this->assertSame([0, 6], array_keys($result));
+        $this->assertStringContainsString('ya tiene una cita', $result[0]);
+        $this->assertStringContainsString('sesión 6', $result[6]);
+    }
+
+    public function test_the_assistant_counts_as_busy_too(): void
+    {
+        DB::table('appointments')->insert([
+            'id' => '70000000-0000-4000-8000-000000000001', 'business_id' => self::BIZ, 'client_id' => $this->ajena, 'employee_id' => $this->doc2,
+            'assistant_employee_id' => $this->doc, 'service_id' => $this->lenguaje, 'status' => 'confirmed', 'start_time' => '2026-10-12 15:00:00', 'end_time' => '2026-10-12 15:50:00',
+        ]);
+
+        $result = $this->enrollments()->sessionConflicts(self::BIZ, [['employee_id' => $this->doc, 'service_id' => $this->lenguaje, 'start_time' => '2026-10-12T15:10:00Z']]);
+        $this->assertSame([0], array_keys($result));
+    }
+
+    public function test_the_check_endpoint_returns_the_rows_to_fix_and_is_read_only(): void
+    {
+        $this->busy($this->doc, '2026-10-12 15:00:00', '2026-10-12 15:50:00');
+        $c = app(ProgramController::class);
+        $body = ['sessions' => [
+            ['service_id' => $this->lenguaje, 'employee_id' => $this->doc, 'start_time' => '2026-10-12T15:10:00Z'],
+            ['service_id' => $this->lenguaje, 'employee_id' => $this->doc, 'start_time' => '2026-10-14T15:00:00Z'],
+        ]];
+
+        $r = $this->asArray($c->checkConflicts($this->req('cajero', 'POST', $body)));
+        $this->assertSame([0], array_column($r, 'index'));
+        $this->assertNotEmpty($r[0]['message']);
+        $this->assertSame(1, Appointment::count()); // no creó nada
+    }
+
+    public function test_the_controller_enrolls_with_per_session_specialists_and_no_default_professional(): void
+    {
+        $program = $this->twoSpecialtyProgram();
+        $body = ['program_id' => $program->id, 'sessions' => [
+            ['service_id' => $this->lenguaje, 'start_time' => '2026-10-12T15:00:00Z'],
+            ['service_id' => $this->psico, 'start_time' => '2026-10-15T15:00:00Z', 'employee_id' => $this->doc2],
+            ['service_id' => $this->lenguaje, 'start_time' => '2026-10-19T16:30:00Z'], // otro día, otra hora
+            ['service_id' => $this->psico, 'start_time' => '2026-10-22T18:00:00Z'],
+        ]];
+
+        $r = app(ProgramController::class)->enroll($this->req('cajero', 'POST', $body), $this->ana);
+        $this->assertSame(201, $r->getStatusCode());
+        $this->assertSame(4, count($this->asArray($r)['sessions']));
+    }
+
     // ── Controller ──────────────────────────────────────────────────────────────
 
     public function test_only_administration_changes_the_catalog_but_reception_can_read_and_enroll(): void
