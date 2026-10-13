@@ -1,5 +1,3 @@
-import { isSignatureDataUrl } from './staffingApprovalStamp'
-
 const esc = (value: string | number | null | undefined): string =>
   String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
 
@@ -51,7 +49,7 @@ export const buildPayStub = (s: PayStubSource): PayStub => {
 const line = (label: string, value: string, cls = '') =>
   `<tr class="${cls}"><td>${label}</td><td class="num">${value}</td></tr>`
 
-const stubHtml = (stub: PayStub, ctx: { agencyName: string; companyName: string; projectName?: string | null; weekStart: string; weekEnd: string; approvalStamp?: string | null; signature?: string | null }) => `
+const stubHtml = (stub: PayStub, ctx: { agencyName: string; companyName: string; projectName?: string | null; weekStart: string; weekEnd: string; approvalStamp?: string | null }) => `
   <section class="stub">
     <div class="header">
       <div><h1>${esc(ctx.agencyName)}</h1><p class="muted">Talón de pago</p></div>
@@ -77,9 +75,7 @@ const stubHtml = (stub: PayStub, ctx: { agencyName: string; companyName: string;
       ${stub.rounding ? line('Redondeo', `${stub.rounding < 0 ? '− ' : ''}${money(Math.abs(stub.rounding))}`) : ''}
       ${line('Pago neto', money(stub.payout), 'total')}
     </table>
-    ${ctx.approvalStamp ? `<p class="muted" style="margin-top:10px">${esc(ctx.approvalStamp)}</p>` : ''}
-    ${isSignatureDataUrl(ctx.signature) ? `<img src="${ctx.signature}" alt="Firma" style="height:44px;margin-top:6px">` : ''}
-  </section>`
+    ${ctx.approvalStamp ? `<p class="muted" style="margin-top:10px">${esc(ctx.approvalStamp)}</p>` : ''}  </section>`
 
 /** Opens a printable window with one stub per page. Pure presentation — call only with saved entries. */
 export function printStaffingPayStubs(params: {
@@ -90,7 +86,6 @@ export function printStaffingPayStubs(params: {
   weekEnd: string
   stubs: PayStub[]
   approvalStamp?: string | null
-  signature?: string | null
 }): void {
   const { stubs, ...ctx } = params
   if (stubs.length === 0) return

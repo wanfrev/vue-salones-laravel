@@ -14,7 +14,7 @@ class StaffingApprover extends Model
     protected $keyType = 'string';
     protected $table = 'staffing_approvers';
 
-    protected $fillable = ['id', 'business_id', 'name', 'pin_hash', 'image', 'active'];
+    protected $fillable = ['id', 'business_id', 'name', 'pin_hash', 'active'];
 
     /** The hash never leaves the server. */
     protected $hidden = ['pin_hash'];

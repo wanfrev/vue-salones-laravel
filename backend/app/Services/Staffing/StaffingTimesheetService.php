@@ -280,7 +280,7 @@ class StaffingTimesheetService
      * brackets or overtime terms can never rewrite payroll that was already approved.
      */
     /**
-     * @param array{name: string, image: ?string}|null $signer the boss who signed with their PIN
+     * @param array{name: string}|null $signer the boss who signed with their PIN
      *        (see StaffingApproverService). Null when the business hasn't registered any approvers,
      *        in which case the stamp falls back to the login that approved.
      */
@@ -317,15 +317,11 @@ class StaffingTimesheetService
         if ($stamp && $approverId && StaffingTimesheet::stampColumnsExist()) {
             $timesheet->approved_by = $approverId;
             $timesheet->approved_at = now()->startOfSecond();
-            // The signing boss's name and drawn signature are copied onto the week, so renaming or
-            // removing an approver later never alters an already-approved sheet. The login
-            // (`approved_by`) is kept too, but it is the shared admin account — the name is what
-            // actually says who did it.
+            // The signing boss's name is copied onto the week, so renaming or removing an approver
+            // later never alters an already-approved sheet. The login (`approved_by`) is kept too,
+            // but it is the shared admin account — the name is what actually says who did it.
             if ($signer && StaffingTimesheet::approverNameColumnExists()) {
                 $timesheet->approved_by_name = $signer['name'];
-            }
-            if ($signer && StaffingTimesheet::signatureColumnExists()) {
-                $timesheet->approval_signature = $signer['image'] ?? null;
             }
             $timesheet->approval_code = ApprovalStamp::code(...$this->stampInputs($timesheet));
             $timesheet->save();
@@ -370,21 +366,7 @@ class StaffingTimesheetService
             'status' => $timesheet->status,
             'approved_by_name' => $timesheet->approver_name,
             'approved_at' => $timesheet->approved_at?->toIso8601String(),
-            'has_signature' => $timesheet->has_approval_signature,
         ];
-    }
-
-    /** The drawn signature frozen on an approved week, for printing — null when there is none. */
-    public function approvalSignature(string $id, string $businessId): ?string
-    {
-        $timesheet = StaffingTimesheet::where('business_id', $businessId)->find($id);
-        if (!$timesheet) {
-            throw new NotFoundHttpException('Semana no encontrada.');
-        }
-
-        return StaffingTimesheet::signatureColumnExists()
-            ? ($timesheet->getAttributes()['approval_signature'] ?? null)
-            : null;
     }
 
     /** @return list<string> */
@@ -410,7 +392,6 @@ class StaffingTimesheetService
                 'week_start' => $timesheet->week_start->toDateString(),
                 'approved_by' => (string) $timesheet->approved_by,
                 'approved_at' => $timesheet->approved_at->format('Y-m-d\TH:i:s'),
-                'signature_hash' => ($sig = $timesheet->getAttributes()['approval_signature'] ?? null) ? hash('sha256', $sig) : '',
                 'approver_name' => (string) ($timesheet->getAttributes()['approved_by_name'] ?? ''),
             ],
             $lines,

@@ -9,14 +9,14 @@ use Illuminate\Support\Facades\Schema;
  *
  * Why not "the logged-in user": the agency's few bosses all share ONE admin login, so the account
  * that approves a week says nothing about which boss did it. Instead each boss is registered here
- * with a PIN and a drawn signature, and approving a week asks "who are you?" + their PIN.
+ * with a name and a PIN, and approving a week asks "who are you?" + their PIN.
  *
- * - `staffing_approvers`: name, hashed PIN, drawn signature (PNG data URL).
+ * - `staffing_approvers`: name + hashed PIN.
  * - `staffing_timesheets.approved_by_name`: the approver's name frozen at approval, so renaming or
- *   deleting an approver later never rewrites history (the signature image is already frozen in
- *   `approval_signature`, added by 2026_10_13_100000).
- * Replaces the per-user `staffing_signatures` table of 2026_10_13_100000, which only made sense with
- * one login per person — dropped here if present.
+ *   deleting an approver later never rewrites history.
+ * Also removes what an earlier iteration of this feature added in 2026_10_13_100000 and nothing
+ * uses any more: the per-user `staffing_signatures` table and the drawn-signature column
+ * `staffing_timesheets.approval_signature` (identification is name + PIN only, no drawn signature).
  */
 return new class extends Migration
 {
@@ -28,7 +28,6 @@ return new class extends Migration
                 $table->uuid('business_id');
                 $table->string('name', 80);
                 $table->string('pin_hash');
-                $table->text('image')->nullable();
                 $table->boolean('active')->default(true);
                 $table->timestamps();
 
@@ -44,6 +43,12 @@ return new class extends Migration
         }
 
         Schema::dropIfExists('staffing_signatures');
+
+        if (Schema::hasColumn('staffing_timesheets', 'approval_signature')) {
+            Schema::table('staffing_timesheets', function (Blueprint $table) {
+                $table->dropColumn('approval_signature');
+            });
+        }
     }
 
     public function down(): void

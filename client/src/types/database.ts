@@ -539,9 +539,8 @@ export interface StaffingTimesheet {
   /** Opt-in approval stamp (feature `staffing_approval_stamp`) — null/absent unless the business uses it. */
   approved_at?: string | null
   approval_code?: string | null
+  /** The boss who signed with their PIN (the login itself is shared). */
   approver_name?: string | null
-  /** True when the approver's drawn signature was frozen on the week; the image itself is fetched on demand. */
-  has_approval_signature?: boolean
 }
 
 /** The document Delta sends a client company — generated from one approved timesheet week. */

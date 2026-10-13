@@ -3,38 +3,36 @@
     <p class="text-sm font-semibold text-text">Firmantes de nómina</p>
     <p class="text-xs text-text-muted">
       Registra a cada jefe que aprueba nóminas. Al aprobar una semana se elige quién es y pone su PIN, así
-      queda su nombre y su firma en la nómina aunque todos usen la misma cuenta.
+      queda su nombre en la nómina aunque todos usen la misma cuenta.
     </p>
 
     <p v-if="isLoading" class="mt-3 text-xs text-text-muted">Cargando...</p>
 
     <ul v-else class="mt-3 space-y-2">
       <li v-for="a in approvers" :key="a.id" class="rounded-xl border border-border px-3 py-2.5">
-        <div class="flex flex-wrap items-center gap-3">
+        <div class="flex items-center gap-3">
           <span class="text-sm font-medium text-text">{{ a.name }}</span>
-          <img v-if="a.image" :src="a.image" :alt="`Firma de ${a.name}`" class="h-10 rounded border border-border bg-white" />
-          <span v-else class="text-xs text-text-muted">Sin firma dibujada</span>
           <button type="button" class="ml-auto text-xs font-semibold text-primary hover:underline" @click="openManage(a.id)">
             {{ managing === a.id ? 'Cerrar' : 'Administrar' }}
           </button>
         </div>
 
         <div v-if="managing === a.id" class="mt-3 space-y-3 border-t border-border pt-3">
-          <div class="max-w-[10rem]">
-            <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" :for="`pin-${a.id}`">PIN actual</label>
-            <input :id="`pin-${a.id}`" v-model="managePin" type="password" inputmode="numeric" maxlength="8" autocomplete="off" :class="inputClass" />
-          </div>
-
-          <div v-if="redrawing">
-            <SignaturePad v-model="redrawn" />
+          <div class="grid max-w-sm grid-cols-2 gap-2">
+            <div>
+              <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" :for="`pin-${a.id}`">PIN actual</label>
+              <input :id="`pin-${a.id}`" v-model="managePin" type="password" inputmode="numeric" maxlength="8" autocomplete="off" :class="inputClass" />
+            </div>
+            <div>
+              <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" :for="`newpin-${a.id}`">PIN nuevo (opcional)</label>
+              <input :id="`newpin-${a.id}`" v-model="newPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" :class="inputClass" />
+            </div>
           </div>
 
           <div class="flex flex-wrap gap-2">
-            <button v-if="!redrawing" type="button" class="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
-              @click="redrawing = true">Cambiar firma</button>
-            <button v-else type="button" :disabled="!redrawn || !isValidPin(managePin) || busy"
-              class="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
-              @click="saveSignature(a.id)">Guardar firma</button>
+            <button type="button" :disabled="!isValidPin(managePin) || !isValidPin(newPin) || busy"
+              class="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
+              @click="changePin(a.id)">Cambiar PIN</button>
             <button type="button" :disabled="!isValidPin(managePin) || busy"
               class="rounded-lg border border-danger/30 px-3 py-1.5 text-xs font-semibold text-danger transition-theme hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
               @click="remove(a)">Eliminar firmante</button>
@@ -65,13 +63,9 @@
             <input id="new-approver-pin2" v-model="form.pin2" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password" :class="inputClass" />
           </div>
         </div>
-        <div>
-          <p class="mb-1 text-[10px] uppercase tracking-wider text-text-muted">Firma</p>
-          <SignaturePad v-model="form.image" />
-        </div>
         <p v-if="formProblem" class="text-xs text-danger">{{ formProblem }}</p>
         <div class="flex gap-2">
-          <button type="submit" :disabled="!!formProblem || !form.name.trim() || busy"
+          <button type="submit" :disabled="!!formProblem || form.name.trim().length < 2 || busy"
             class="rounded-lg bg-primary px-4 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">
             {{ busy ? 'Guardando...' : 'Guardar firmante' }}
           </button>
@@ -85,7 +79,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import SignaturePad from '../dental/SignaturePad.vue'
 import { useNotification } from '../../composables/common/useNotification'
 import { translateError } from '../../lib/errors'
 import { approverKeys, createApprover, deleteApprover, isValidPin, listApprovers, updateApprover } from '../../services/staffing/approverService'
@@ -112,8 +105,8 @@ const busy = ref(false)
 
 // ── add ────────────────────────────────────────────────────────────────────
 const adding = ref(false)
-const form = ref<{ name: string; pin: string; pin2: string; image: string | null }>({ name: '', pin: '', pin2: '', image: null })
-const resetForm = () => { adding.value = false; form.value = { name: '', pin: '', pin2: '', image: null } }
+const form = ref({ name: '', pin: '', pin2: '' })
+const resetForm = () => { adding.value = false; form.value = { name: '', pin: '', pin2: '' } }
 
 const formProblem = computed(() => {
   if (form.value.pin && !isValidPin(form.value.pin)) return 'El PIN debe tener de 4 a 8 números.'
@@ -125,7 +118,7 @@ const formProblem = computed(() => {
 const add = async () => {
   busy.value = true
   try {
-    await createApprover({ name: form.value.name.trim(), pin: form.value.pin, image: form.value.image })
+    await createApprover({ name: form.value.name.trim(), pin: form.value.pin })
     await refresh()
     success('Firmante agregado')
     resetForm()
@@ -139,35 +132,32 @@ const add = async () => {
 // ── manage one (always needs that boss's current PIN) ──────────────────────
 const managing = ref<string | null>(null)
 const managePin = ref('')
+const newPin = ref('')
 const manageError = ref('')
-const redrawing = ref(false)
-const redrawn = ref<string | null>(null)
 
 const openManage = (id: string) => {
   managing.value = managing.value === id ? null : id
   managePin.value = ''
+  newPin.value = ''
   manageError.value = ''
-  redrawing.value = false
-  redrawn.value = null
 }
 
-const saveSignature = async (id: string) => {
+const changePin = async (id: string) => {
   busy.value = true
   manageError.value = ''
   try {
-    await updateApprover(id, { pin: managePin.value, image: redrawn.value })
-    await refresh()
-    success('Firma actualizada')
+    await updateApprover(id, { pin: managePin.value, new_pin: newPin.value })
+    success('PIN actualizado')
     openManage(id)
   } catch (err) {
-    manageError.value = translateError(err, 'No se pudo actualizar la firma.')
+    manageError.value = translateError(err, 'No se pudo cambiar el PIN.')
   } finally {
     busy.value = false
   }
 }
 
 const remove = async (a: StaffingApprover) => {
-  if (!window.confirm(`¿Eliminar a ${a.name} como firmante? Las nóminas que ya aprobó conservan su nombre y firma.`)) return
+  if (!window.confirm(`¿Eliminar a ${a.name} como firmante? Las nóminas que ya aprobó conservan su nombre.`)) return
   busy.value = true
   manageError.value = ''
   try {

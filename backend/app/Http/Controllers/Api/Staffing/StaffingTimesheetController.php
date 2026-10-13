@@ -151,7 +151,7 @@ class StaffingTimesheetController
             if ($stamp && $this->approvers->hasAny($businessId)) {
                 $data = $request->validate(['approver_id' => 'required|uuid', 'pin' => 'required|string|max:20']);
                 $approver = $this->approvers->authenticate($businessId, $data['approver_id'], $data['pin']);
-                $signer = ['name' => $approver->name, 'image' => $approver->image];
+                $signer = ['name' => $approver->name];
             }
 
             $timesheet = $this->timesheets->approve($id, $businessId, $request->user()?->id, $stamp, $signer);
@@ -162,17 +162,6 @@ class StaffingTimesheetController
         EntityChanged::safe($p?->business_id, 'staffing_timesheet', 'approved', $id);
 
         return response()->json($timesheet);
-    }
-
-    /** The drawn signature frozen on an approved week — fetched only when printing, never in list payloads. */
-    public function approvalSignature(Request $request, string $id): JsonResponse
-    {
-        $p = $request->user()?->load('profile')?->profile;
-        if (!$p || !$p->business_id) {
-            return response()->json(['image' => null]);
-        }
-
-        return response()->json(['image' => $this->timesheets->approvalSignature($id, $p->business_id)]);
     }
 
     /** Checks a "NOM-XXXX-XXXX" code printed on an approved payroll — see StaffingTimesheetService::verifyApproval. */

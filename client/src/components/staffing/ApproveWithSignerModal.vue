@@ -17,7 +17,6 @@
               :class="selectedId === a.id ? 'border-primary bg-primary/5' : 'border-border hover:bg-bg-secondary/50'">
               <input v-model="selectedId" type="radio" :value="a.id" name="approver" class="h-4 w-4" />
               <span class="flex-1 text-sm font-medium text-text">{{ a.name }}</span>
-              <img v-if="a.image" :src="a.image" :alt="`Firma de ${a.name}`" class="h-8 rounded border border-border bg-white" />
             </label>
           </div>
 

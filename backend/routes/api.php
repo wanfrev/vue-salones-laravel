@@ -525,8 +525,6 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::post('/staffing-timesheets/{id}/approve', [StaffingTimesheetController::class, 'approve']);
         Route::post('/staffing-timesheets/verify-approval', [StaffingTimesheetController::class, 'verifyApproval'])
             ->middleware('feature:staffing_approval_stamp');
-        Route::get('/staffing-timesheets/{id}/approval-signature', [StaffingTimesheetController::class, 'approvalSignature'])
-            ->middleware('feature:staffing_approval_stamp');
         // Approvers (firmantes): the bosses who share the admin login and sign with a PIN.
         Route::middleware('feature:staffing_approval_stamp')->group(function () {
             Route::get('/staffing-approvers', [StaffingApproverController::class, 'index']);
