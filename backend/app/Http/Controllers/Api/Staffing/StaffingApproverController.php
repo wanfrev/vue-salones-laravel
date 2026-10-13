@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api\Staffing;
 use App\Services\Staffing\StaffingApproverService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use InvalidArgumentException;
 use RuntimeException;
 
 /**
@@ -26,7 +25,7 @@ class StaffingApproverController
         }
 
         return response()->json(
-            $this->approvers->list($p->business_id)->map(fn ($a) => ['id' => $a->id, 'name' => $a->name, 'image' => $a->image])->values()
+            $this->approvers->list($p->business_id)->map(fn ($a) => ['id' => $a->id, 'name' => $a->name])->values()
         );
     }
 
@@ -40,16 +39,15 @@ class StaffingApproverController
         $data = $request->validate([
             'name' => 'required|string|min:2|max:80',
             'pin' => self::PIN_RULE,
-            'image' => 'nullable|string',
         ]);
 
         try {
-            $approver = $this->approvers->create($p->business_id, $data['name'], $data['pin'], $data['image'] ?? null);
-        } catch (RuntimeException|InvalidArgumentException $e) {
+            $approver = $this->approvers->create($p->business_id, $data['name'], $data['pin']);
+        } catch (RuntimeException $e) {
             return response()->json(['error' => ['message' => $e->getMessage()]], 422);
         }
 
-        return response()->json(['id' => $approver->id, 'name' => $approver->name, 'image' => $approver->image], 201);
+        return response()->json(['id' => $approver->id, 'name' => $approver->name], 201);
     }
 
     public function update(Request $request, string $id): JsonResponse
@@ -62,17 +60,16 @@ class StaffingApproverController
         $data = $request->validate([
             'pin' => self::PIN_RULE,
             'name' => 'sometimes|string|min:2|max:80',
-            'image' => 'sometimes|nullable|string',
             'new_pin' => ['sometimes', 'string', 'regex:/^\d{4,8}$/'],
         ]);
 
         try {
             $approver = $this->approvers->update($id, $p->business_id, $data['pin'], collect($data)->except('pin')->all());
-        } catch (RuntimeException|InvalidArgumentException $e) {
+        } catch (RuntimeException $e) {
             return response()->json(['error' => ['message' => $e->getMessage()]], 422);
         }
 
-        return response()->json(['id' => $approver->id, 'name' => $approver->name, 'image' => $approver->image]);
+        return response()->json(['id' => $approver->id, 'name' => $approver->name]);
     }
 
     public function destroy(Request $request, string $id): JsonResponse

@@ -53,16 +53,6 @@ class ApprovalStampTest extends TestCase
         $this->assertNotSame($original, ApprovalStamp::code(self::SECRET, $this->facts(['approved_at' => '2026-10-08T14:33:00']), $this->lines()));
     }
 
-    public function test_swapping_the_signature_changes_the_code(): void
-    {
-        $none = ApprovalStamp::code(self::SECRET, $this->facts(), $this->lines());
-        $a = ApprovalStamp::code(self::SECRET, $this->facts(['signature_hash' => hash('sha256', 'sig-a')]), $this->lines());
-        $b = ApprovalStamp::code(self::SECRET, $this->facts(['signature_hash' => hash('sha256', 'sig-b')]), $this->lines());
-
-        $this->assertNotSame($none, $a);
-        $this->assertNotSame($a, $b);
-    }
-
     public function test_the_signing_boss_is_part_of_the_code(): void
     {
         // Same shared login (approved_by), different boss → different code.

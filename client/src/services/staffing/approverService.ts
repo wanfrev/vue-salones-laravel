@@ -4,8 +4,6 @@ import { apiRequest } from '../../lib/api'
 export interface StaffingApprover {
   id: string
   name: string
-  /** Drawn signature as a PNG data URL, or null if they haven't drawn one. */
-  image: string | null
 }
 
 export const approverKeys = {
@@ -15,11 +13,11 @@ export const approverKeys = {
 export const listApprovers = (): Promise<StaffingApprover[]> =>
   apiRequest<StaffingApprover[]>('GET', '/staffing-approvers')
 
-export const createApprover = (input: { name: string; pin: string; image: string | null }): Promise<StaffingApprover> =>
+export const createApprover = (input: { name: string; pin: string }): Promise<StaffingApprover> =>
   apiRequest<StaffingApprover>('POST', '/staffing-approvers', input)
 
 /** Changing anything needs the approver's CURRENT PIN (everyone shares one login). */
-export const updateApprover = (id: string, input: { pin: string; name?: string; image?: string | null; new_pin?: string }): Promise<StaffingApprover> =>
+export const updateApprover = (id: string, input: { pin: string; name?: string; new_pin?: string }): Promise<StaffingApprover> =>
   apiRequest<StaffingApprover>('PUT', `/staffing-approvers/${id}`, input)
 
 export const deleteApprover = (id: string, pin: string): Promise<void> =>

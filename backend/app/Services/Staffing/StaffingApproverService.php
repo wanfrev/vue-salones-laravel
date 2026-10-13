@@ -36,7 +36,7 @@ class StaffingApproverService
         return $this->list($businessId)->isNotEmpty();
     }
 
-    public function create(string $businessId, string $name, string $pin, ?string $image): StaffingApprover
+    public function create(string $businessId, string $name, string $pin): StaffingApprover
     {
         $this->assertTable();
 
@@ -49,16 +49,15 @@ class StaffingApproverService
             'business_id' => $businessId,
             'name' => trim($name),
             'pin_hash' => Hash::make($pin),
-            'image' => $image ? SignatureImage::validate($image) : null,
             'active' => true,
         ]);
     }
 
     /**
-     * Changing a name, signature or PIN needs the CURRENT PIN: since everyone is on the same login,
-     * without it any of them could overwrite another boss's signature.
+     * Changing a name or PIN needs the CURRENT PIN: since everyone is on the same login, without it
+     * any of them could take over another boss's identity by resetting their PIN.
      *
-     * @param array{name?: string, image?: ?string, new_pin?: string} $changes
+     * @param array{name?: string, new_pin?: string} $changes
      */
     public function update(string $id, string $businessId, string $currentPin, array $changes): StaffingApprover
     {
@@ -67,9 +66,6 @@ class StaffingApproverService
         $values = [];
         if (isset($changes['name'])) {
             $values['name'] = trim($changes['name']);
-        }
-        if (array_key_exists('image', $changes)) {
-            $values['image'] = $changes['image'] ? SignatureImage::validate($changes['image']) : null;
         }
         if (!empty($changes['new_pin'])) {
             $values['pin_hash'] = Hash::make($changes['new_pin']);
@@ -82,7 +78,7 @@ class StaffingApproverService
 
     public function delete(string $id, string $businessId, string $pin): void
     {
-        // Soft: past approvals keep their frozen name and signature, so this only stops new use.
+        // Soft: past approvals keep their frozen name, so this only stops new use.
         $this->authenticate($businessId, $id, $pin)->update(['active' => false]);
     }
 

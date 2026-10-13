@@ -4,13 +4,6 @@ interface StampSource {
   approver_name?: string | null
 }
 
-/**
- * The only image shape the backend stores and the print templates embed (see SignatureImage.php):
- * a PNG data URL. Anything else (SVG, a URL, markup) is never placed in a document.
- */
-export const isSignatureDataUrl = (value: unknown): value is string =>
-  typeof value === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(value)
-
 const pad = (n: number) => String(n).padStart(2, '0')
 
 /** "Aprobada por Ana Pérez · 08/10/2026 14:32 · Código NOM-7F3K-92QA", or null when the week has no stamp. */

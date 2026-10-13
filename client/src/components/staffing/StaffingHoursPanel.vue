@@ -386,7 +386,6 @@ import { translateError } from '../../lib/errors'
 import { useBusinessStore } from '../../store/business'
 import { useTimesheets } from '../../composables/staffing/useTimesheets'
 import { useBilling } from '../../composables/staffing/useBilling'
-import { getApprovalSignature } from '../../services/staffing/signatureService'
 import {
   getStaffingInvoice, listStaffingCompanies, listStaffingRates, getStaffingProjects, staffingCompanyKeys, staffingRateKeys,
   SHIFT_OPTIONS, downloadStaffingPayrollXlsx, downloadStaffingInvoiceXlsx, setStaffingAssignmentActive,
@@ -548,16 +547,6 @@ const isReadOnly = computed(() => !!currentWeek.value && currentWeek.value.statu
 
 // null unless the business uses the opt-in approval stamp and this week was approved with it.
 const approvalStampText = computed(() => formatApprovalStamp(currentWeek.value))
-
-// The approver's drawn signature, if any. Prefetched (not fetched on click) so the print window can
-// still open synchronously inside the click — an await before window.open gets popup-blocked. The
-// approval code is in the key: reopening and re-approving a week issues a new code, a new signature.
-const { data: approvalSignature } = useQuery({
-  queryKey: computed(() => ['staffing-approval-signature', currentWeek.value?.id, currentWeek.value?.approval_code]),
-  queryFn: () => getApprovalSignature(currentWeek.value!.id),
-  enabled: computed(() => !!currentWeek.value?.has_approval_signature),
-  staleTime: 5 * 60 * 1000,
-})
 
 type GridRow = {
   totalHours: number
@@ -1108,7 +1097,6 @@ const handlePrintPayroll = () => {
     statusLabel: filterLabel.value ? `${statusLabel.value} · Solo ${filterLabel.value}` : statusLabel.value,
     rows: printRows,
     approvalStamp: approvalStampText.value,
-    signature: approvalSignature.value ?? null,
   })
 }
 
@@ -1156,7 +1144,6 @@ const handlePrintPayStubs = (employees: RosterEmployee[]) => {
     weekEnd: weekEnd.value,
     stubs,
     approvalStamp: approvalStampText.value,
-    signature: approvalSignature.value ?? null,
   })
   if (printable.length < employees.length) {
     showError(`${employees.length - printable.length} empleado(s) sin guardar se omitieron del talón.`)
