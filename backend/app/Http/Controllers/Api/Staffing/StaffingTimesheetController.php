@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Staffing;
 
 use App\Events\EntityChanged;
 use App\Services\BusinessContext;
+use App\Services\Staffing\StaffingApproverService;
 use App\Services\Staffing\StaffingTimesheetService;
 use App\Services\Staffing\StaffingXlsxExportService;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +18,7 @@ class StaffingTimesheetController
     public function __construct(
         private StaffingTimesheetService $timesheets,
         private StaffingXlsxExportService $xlsxExport,
+        private StaffingApproverService $approvers,
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -141,7 +143,18 @@ class StaffingTimesheetController
         $stamp = app()->bound(BusinessContext::class) && app(BusinessContext::class)->hasFeature('staffing_approval_stamp');
 
         try {
-            $timesheet = $this->timesheets->approve($id, $p?->business_id ?? '', $request->user()?->id, $stamp);
+            // Several bosses share this one login, so with the stamp on (and approvers registered) the
+            // approval must say who is signing: their id + PIN. No approvers registered = the old
+            // behaviour (stamped with the login), so turning the flag on never blocks approving.
+            $signer = null;
+            $businessId = $p?->business_id ?? '';
+            if ($stamp && $this->approvers->hasAny($businessId)) {
+                $data = $request->validate(['approver_id' => 'required|uuid', 'pin' => 'required|string|max:20']);
+                $approver = $this->approvers->authenticate($businessId, $data['approver_id'], $data['pin']);
+                $signer = ['name' => $approver->name, 'image' => $approver->image];
+            }
+
+            $timesheet = $this->timesheets->approve($id, $businessId, $request->user()?->id, $stamp, $signer);
         } catch (RuntimeException $e) {
             return response()->json(['error' => ['message' => $e->getMessage()]], 422);
         }

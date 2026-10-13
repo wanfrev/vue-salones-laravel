@@ -466,8 +466,14 @@ export const saveTimesheetWeek = async (
   return apiRequest<StaffingTimesheet>('POST', '/staffing-timesheets', payload)
 }
 
-export const approveTimesheet = (id: string): Promise<StaffingTimesheet> =>
-  apiRequest<StaffingTimesheet>('POST', `/staffing-timesheets/${id}/approve`)
+/** Who is signing the approval — only sent when the business uses the opt-in approvers (see StaffingApproverService). */
+export interface ApprovalSigner {
+  approverId: string
+  pin: string
+}
+
+export const approveTimesheet = (id: string, signer?: ApprovalSigner): Promise<StaffingTimesheet> =>
+  apiRequest<StaffingTimesheet>('POST', `/staffing-timesheets/${id}/approve`, signer ? { approver_id: signer.approverId, pin: signer.pin } : undefined)
 
 export const markTimesheetPaid = (id: string): Promise<StaffingTimesheet> =>
   apiRequest<StaffingTimesheet>('POST', `/staffing-timesheets/${id}/mark-paid`)

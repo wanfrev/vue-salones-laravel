@@ -68,7 +68,7 @@ use App\Http\Controllers\Api\Staffing\StaffingSpreadsheetController;
 use App\Http\Controllers\Api\Staffing\StaffingTaxEntityController;
 use App\Http\Controllers\Api\Staffing\StaffingTaxEntryController;
 use App\Http\Controllers\Api\Staffing\StaffingTimesheetController;
-use App\Http\Controllers\Api\Staffing\StaffingSignatureController;
+use App\Http\Controllers\Api\Staffing\StaffingApproverController;
 use App\Http\Controllers\Api\Staffing\StaffingWeeklyExpenseController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierPaymentController;
@@ -527,11 +527,12 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
             ->middleware('feature:staffing_approval_stamp');
         Route::get('/staffing-timesheets/{id}/approval-signature', [StaffingTimesheetController::class, 'approvalSignature'])
             ->middleware('feature:staffing_approval_stamp');
-        // The caller's own drawn signature — see StaffingSignatureController.
+        // Approvers (firmantes): the bosses who share the admin login and sign with a PIN.
         Route::middleware('feature:staffing_approval_stamp')->group(function () {
-            Route::get('/staffing-signature', [StaffingSignatureController::class, 'show']);
-            Route::put('/staffing-signature', [StaffingSignatureController::class, 'update']);
-            Route::delete('/staffing-signature', [StaffingSignatureController::class, 'destroy']);
+            Route::get('/staffing-approvers', [StaffingApproverController::class, 'index']);
+            Route::post('/staffing-approvers', [StaffingApproverController::class, 'store']);
+            Route::put('/staffing-approvers/{id}', [StaffingApproverController::class, 'update']);
+            Route::delete('/staffing-approvers/{id}', [StaffingApproverController::class, 'destroy']);
         });
         Route::post('/staffing-timesheets/{id}/mark-paid', [StaffingTimesheetController::class, 'markPaid']);
         Route::delete('/staffing-timesheets/{id}', [StaffingTimesheetController::class, 'destroy']);

@@ -438,7 +438,7 @@ const allFlags = [
   { key: 'staffing_doc_expiry', label: 'Vencimiento de documentos', description: 'Fecha de vencimiento opcional en documentos de empleados y alertas' },
   { key: 'staffing_commissions', label: 'Comisiones de vendedoras', description: 'Cálculo de comisión por cliente cerrado o por horas facturadas' },
   { key: 'staffing_profitability', label: 'Rentabilidad comparativa', description: 'Vista de margen por empresa, rol y vendedora' },
-  { key: 'staffing_approval_stamp', label: 'Sello de aprobación de nómina', description: 'Registra quién aprobó cada semana, cuándo, y un código verificable que sale en la nómina impresa y el XLSX. Requiere aplicar la migración primero' },
+  { key: 'staffing_approval_stamp', label: 'Sello de aprobación de nómina', description: 'Registra firmantes (cada jefe con PIN y firma dibujada) para saber quién aprobó cada semana aunque compartan la cuenta, con un código verificable en la nómina impresa y el XLSX. Requiere aplicar las migraciones primero' },
   { key: 'staffing_assignment_history', label: 'Historial de asignaciones', description: 'Fecha de inicio y fin de cada asignación empleado-empresa' },
 ]
 

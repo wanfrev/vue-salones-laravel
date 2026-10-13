@@ -20,7 +20,10 @@ final class ApprovalStamp
      * `signature_hash` (sha256 of the drawn signature frozen on the week, '' when there is none) is
      * covered too, so swapping the signature image after approval also breaks the code.
      *
-     * @param array{timesheet_id: string, company_id: string, project_id: ?string, week_start: string, approved_by: string, approved_at: string, signature_hash?: string} $facts
+     * `approver_name` is the boss who signed with their PIN (the login is shared, so `approved_by`
+     * alone doesn't identify them); it is covered so renaming it after the fact breaks the code.
+     *
+     * @param array{timesheet_id: string, company_id: string, project_id: ?string, week_start: string, approved_by: string, approved_at: string, signature_hash?: string, approver_name?: string} $facts
      * @param list<array{employee_id: string, role: ?string, shift: ?string, total_hours: float|int|string, gross: float|int|string, payout: float|int|string}> $lines
      */
     public static function code(string $secret, array $facts, array $lines): string
@@ -29,7 +32,7 @@ final class ApprovalStamp
 
         $payload = implode("\n", [
             $facts['timesheet_id'], $facts['company_id'], $facts['project_id'] ?? '',
-            $facts['week_start'], $facts['approved_by'], $facts['approved_at'], $facts['signature_hash'] ?? '',
+            $facts['week_start'], $facts['approved_by'], $facts['approved_at'], $facts['signature_hash'] ?? '', $facts['approver_name'] ?? '',
             ...array_map(fn ($l) => self::lineKey($l) . '|' . self::money($l['total_hours']) . '|' . self::money($l['gross']) . '|' . self::money($l['payout']), $lines),
         ]);
 

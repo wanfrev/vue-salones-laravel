@@ -23,7 +23,7 @@ class StaffingTimesheet extends Model
     protected $fillable = [
         'id', 'business_id', 'company_id', 'project_id',
         'week_start', 'week_end', 'status', 'terms_snapshot', 'notes', 'created_by',
-        'approved_by', 'approved_at', 'approval_code', 'approval_signature',
+        'approved_by', 'approved_at', 'approval_code', 'approval_signature', 'approved_by_name',
     ];
 
     /** Always serialized; null unless the `approver.profile` relation was eager loaded. */
@@ -64,6 +64,14 @@ class StaffingTimesheet extends Model
         return $exists ??= Schema::hasColumn('staffing_timesheets', 'approval_signature');
     }
 
+    /** The approver-name snapshot column (2026_10_14) — also guards deploying before the migration. */
+    public static function approverNameColumnExists(): bool
+    {
+        static $exists = null;
+
+        return $exists ??= Schema::hasColumn('staffing_timesheets', 'approved_by_name');
+    }
+
     public function getHasApprovalSignatureAttribute(): bool
     {
         return !empty($this->attributes['approval_signature'] ?? null);
@@ -76,7 +84,10 @@ class StaffingTimesheet extends Model
 
     public function getApproverNameAttribute(): ?string
     {
-        return $this->relationLoaded('approver') ? $this->approver?->profile?->full_name : null;
+        // The boss who signed (frozen at approval) wins: the login that approved is a shared admin
+        // account, so its own name would say nothing about who actually did it.
+        return ($this->attributes['approved_by_name'] ?? null)
+            ?: ($this->relationLoaded('approver') ? $this->approver?->profile?->full_name : null);
     }
 
     public function company(): BelongsTo
