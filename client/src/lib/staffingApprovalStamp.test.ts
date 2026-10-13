@@ -1,5 +1,24 @@
 import { describe, expect, it } from 'vitest'
-import { formatApprovalStamp } from './staffingApprovalStamp'
+import { formatApprovalStamp, isSignatureDataUrl } from './staffingApprovalStamp'
+
+describe('isSignatureDataUrl', () => {
+  it('accepts only a PNG data URL', () => {
+    expect(isSignatureDataUrl('data:image/png;base64,iVBORw0KGgo=')).toBe(true)
+  })
+
+  it.each([
+    'data:image/svg+xml;base64,PHN2Zy8+',
+    'https://evil.example/x.png',
+    'javascript:alert(1)',
+    'data:image/png;base64,AAAA" onerror="alert(1)',
+    '',
+    null,
+    undefined,
+    42,
+  ])('rejects %s', (value) => {
+    expect(isSignatureDataUrl(value)).toBe(false)
+  })
+})
 
 describe('formatApprovalStamp', () => {
   it('returns null when the week has no stamp (feature off or never stamped)', () => {

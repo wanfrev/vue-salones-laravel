@@ -218,6 +218,9 @@ class StaffingInvoiceService
                 // issued on the next approval (and the old code stops verifying as a live approval).
                 if (StaffingTimesheet::stampColumnsExist()) {
                     $timesheet->update(['approved_by' => null, 'approved_at' => null, 'approval_code' => null]);
+                    if (StaffingTimesheet::signatureColumnExists()) {
+                        $timesheet->update(['approval_signature' => null]);
+                    }
                 }
             }
 

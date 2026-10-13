@@ -151,6 +151,17 @@ class StaffingTimesheetController
         return response()->json($timesheet);
     }
 
+    /** The drawn signature frozen on an approved week — fetched only when printing, never in list payloads. */
+    public function approvalSignature(Request $request, string $id): JsonResponse
+    {
+        $p = $request->user()?->load('profile')?->profile;
+        if (!$p || !$p->business_id) {
+            return response()->json(['image' => null]);
+        }
+
+        return response()->json(['image' => $this->timesheets->approvalSignature($id, $p->business_id)]);
+    }
+
     /** Checks a "NOM-XXXX-XXXX" code printed on an approved payroll — see StaffingTimesheetService::verifyApproval. */
     public function verifyApproval(Request $request): JsonResponse
     {

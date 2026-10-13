@@ -7,6 +7,8 @@ use App\Models\StaffingTimesheet;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\MemoryDrawing;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
  * Builds the same two documents StaffingHoursPanel.vue/BillingPanel.vue already print
@@ -81,11 +83,47 @@ class StaffingXlsxExportService
             $row++;
         }
 
+        $this->stampSignature($sheet, $timesheet, $row + 1);
+
         for ($col = 1; $col <= count($headers); $col++) {
             $sheet->getColumnDimensionByColumn($col)->setAutoSize(true);
         }
 
         return $spreadsheet;
+    }
+
+    /**
+     * Places the approver's drawn signature (opt-in, frozen on the week at approval) under the
+     * table. Best effort by design: a missing GD extension or a bad image must never break the
+     * payroll download, so it just leaves the signature out.
+     */
+    private function stampSignature(Worksheet $sheet, StaffingTimesheet $timesheet, int $row): void
+    {
+        $signature = $timesheet->getAttributes()['approval_signature'] ?? null;
+        if (!$signature || !extension_loaded('gd')) {
+            return;
+        }
+
+        try {
+            $image = imagecreatefromstring(SignatureImage::bytes(SignatureImage::validate($signature)));
+            if ($image === false) {
+                return;
+            }
+
+            $sheet->setCellValue("A{$row}", 'Firma:');
+            $sheet->getStyle("A{$row}")->getFont()->setBold(true);
+
+            $drawing = new MemoryDrawing();
+            $drawing->setName('Firma');
+            $drawing->setImageResource($image);
+            $drawing->setRenderingFunction(MemoryDrawing::RENDERING_PNG);
+            $drawing->setMimeType(MemoryDrawing::MIMETYPE_DEFAULT);
+            $drawing->setHeight(60);
+            $drawing->setCoordinates('A' . ($row + 1));
+            $drawing->setWorksheet($sheet);
+        } catch (\Throwable) {
+            // leave the signature out
+        }
     }
 
     /**
@@ -119,7 +157,14 @@ class StaffingXlsxExportService
 
         $row = $headerRow + 1;
         $moneyCols = [4, 5, 7, 8, 9, 10];
-        foreach ($timesheet?->entries ?? [] as $entry) {
+        // Only people actually billed: the payroll stores a row for every assigned employee,
+        // including 0-hour ones, which would pad the client's invoice with the whole roster. Travel
+        // is billed without hours, so any billed amount keeps the row. Mirror of billedEntries()
+        // in client/src/lib/staffingInvoicePrint.ts; the total below comes from the invoice itself.
+        $billed = ($timesheet?->entries ?? collect())
+            ->filter(fn ($e) => (float) $e->total_hours > 0 || (float) $e->invoice_total > 0);
+
+        foreach ($billed as $entry) {
             $regularAmount = $entry->invoice_regular_amount ?? ($entry->regular_hours * $entry->bill_rate);
             $travelTotal = $entry->travel_total ?? 0.0;
             // Travel is billed to the client (unlike perdiem) and already folded into

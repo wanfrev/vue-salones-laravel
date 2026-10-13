@@ -68,6 +68,7 @@ use App\Http\Controllers\Api\Staffing\StaffingSpreadsheetController;
 use App\Http\Controllers\Api\Staffing\StaffingTaxEntityController;
 use App\Http\Controllers\Api\Staffing\StaffingTaxEntryController;
 use App\Http\Controllers\Api\Staffing\StaffingTimesheetController;
+use App\Http\Controllers\Api\Staffing\StaffingSignatureController;
 use App\Http\Controllers\Api\Staffing\StaffingWeeklyExpenseController;
 use App\Http\Controllers\Api\SupplierController;
 use App\Http\Controllers\Api\SupplierPaymentController;
@@ -524,6 +525,14 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::post('/staffing-timesheets/{id}/approve', [StaffingTimesheetController::class, 'approve']);
         Route::post('/staffing-timesheets/verify-approval', [StaffingTimesheetController::class, 'verifyApproval'])
             ->middleware('feature:staffing_approval_stamp');
+        Route::get('/staffing-timesheets/{id}/approval-signature', [StaffingTimesheetController::class, 'approvalSignature'])
+            ->middleware('feature:staffing_approval_stamp');
+        // The caller's own drawn signature — see StaffingSignatureController.
+        Route::middleware('feature:staffing_approval_stamp')->group(function () {
+            Route::get('/staffing-signature', [StaffingSignatureController::class, 'show']);
+            Route::put('/staffing-signature', [StaffingSignatureController::class, 'update']);
+            Route::delete('/staffing-signature', [StaffingSignatureController::class, 'destroy']);
+        });
         Route::post('/staffing-timesheets/{id}/mark-paid', [StaffingTimesheetController::class, 'markPaid']);
         Route::delete('/staffing-timesheets/{id}', [StaffingTimesheetController::class, 'destroy']);
         Route::get('/staffing-timesheets/{id}/download-xlsx', [StaffingTimesheetController::class, 'downloadXlsx']);
