@@ -348,6 +348,16 @@
       </div>
     </template>
 
+    <ApproveWithSignerModal
+      :show="showApproveModal"
+      :approvers="approverList ?? []"
+      :is-approving="timesheets.approveMutation.isPending.value"
+      :error-msg="timesheets.saveError.value"
+      :context="approveContext"
+      @close="closeApproveModal"
+      @confirm="onConfirmApprove"
+    />
+
     <GenerateInvoiceModal
       :show="showGenerateInvoiceModal"
       :company-name="activeCompany?.name"
@@ -381,7 +391,7 @@ import {
   getStaffingInvoice, listStaffingCompanies, listStaffingRates, getStaffingProjects, staffingCompanyKeys, staffingRateKeys,
   SHIFT_OPTIONS, downloadStaffingPayrollXlsx, downloadStaffingInvoiceXlsx, setStaffingAssignmentActive,
 } from '../../services/staffing/staffingService'
-import type { StaffingCompanyRow, StaffingRateRow, TimesheetEntryInput } from '../../services/staffing/staffingService'
+import type { ApprovalSigner, StaffingCompanyRow, StaffingRateRow, TimesheetEntryInput } from '../../services/staffing/staffingService'
 import { FormSearchSelect } from '../../components/forms'
 import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
 import { printStaffingPayroll } from '../../lib/staffingPayrollPrint'
@@ -392,6 +402,8 @@ import { formatApprovalStamp } from '../../lib/staffingApprovalStamp'
 import type { StaffingTimesheetEntry, Profile } from '../../types/database'
 import { MagnifierIcon, PenIcon } from '@solar-icons/vue/linear'
 import GenerateInvoiceModal from './GenerateInvoiceModal.vue'
+import ApproveWithSignerModal from './ApproveWithSignerModal.vue'
+import { approverKeys, listApprovers } from '../../services/staffing/approverService'
 import EditInvoiceNumberModal from './EditInvoiceNumberModal.vue'
 
 const inputClass =
@@ -945,9 +957,41 @@ const copyPreviousWeek = () => {
   success(`Se copiaron ${copied} fila${copied === 1 ? '' : 's'} de la semana anterior${skippedInactive ? ` (${skippedInactive} inactivo${skippedInactive === 1 ? '' : 's'} omitido${skippedInactive === 1 ? '' : 's'})` : ''}. Revisa y guarda.`)
 }
 
+// Opt-in approvers (`staffing_approval_stamp`): several bosses share this login, so when the business
+// has registered approvers, approving asks who is signing + their PIN. No approvers (or the flag off)
+// = approve directly, exactly as before.
+const approvalStampEnabled = computed(() => !!businessStore.features.staffing_approval_stamp)
+const { data: approverList } = useQuery({
+  queryKey: computed(() => approverKeys.all(props.businessId)),
+  queryFn: listApprovers,
+  enabled: computed(() => !!props.businessId && approvalStampEnabled.value),
+  staleTime: 0,
+})
+const showApproveModal = ref(false)
+
 const handleApprove = async () => {
-  if (currentWeek.value) await timesheets.approve(currentWeek.value.id)
+  if (!currentWeek.value) return
+  if (approvalStampEnabled.value && (approverList.value?.length ?? 0) > 0) {
+    timesheets.saveError.value = ''
+    showApproveModal.value = true
+    return
+  }
+  await timesheets.approve(currentWeek.value.id)
 }
+
+const closeApproveModal = () => {
+  showApproveModal.value = false
+  timesheets.saveError.value = ''
+}
+
+const onConfirmApprove = async (signer: ApprovalSigner) => {
+  if (!currentWeek.value) return
+  if (await timesheets.approve(currentWeek.value.id, signer)) showApproveModal.value = false
+}
+
+const approveContext = computed(() =>
+  [activeCompany.value?.name, weekStartInput.value ? formatDateUS(weekStartInput.value) : ''].filter(Boolean).join(' · '),
+)
 
 /**
  * Pauses/reactivates this ONE assignment (this company/project/role) — not the employee's

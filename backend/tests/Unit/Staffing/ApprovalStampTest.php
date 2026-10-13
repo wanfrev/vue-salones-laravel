@@ -63,6 +63,16 @@ class ApprovalStampTest extends TestCase
         $this->assertNotSame($a, $b);
     }
 
+    public function test_the_signing_boss_is_part_of_the_code(): void
+    {
+        // Same shared login (approved_by), different boss → different code.
+        $ana = ApprovalStamp::code(self::SECRET, $this->facts(['approver_name' => 'Ana']), $this->lines());
+        $luis = ApprovalStamp::code(self::SECRET, $this->facts(['approver_name' => 'Luis']), $this->lines());
+
+        $this->assertNotSame($ana, $luis);
+        $this->assertNotSame($ana, ApprovalStamp::code(self::SECRET, $this->facts(), $this->lines()));
+    }
+
     public function test_a_different_secret_cannot_reproduce_the_code(): void
     {
         $this->assertNotSame(

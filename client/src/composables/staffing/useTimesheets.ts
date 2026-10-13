@@ -10,6 +10,7 @@ import {
   markTimesheetPaid,
   saveTimesheetWeek,
   staffingTimesheetKeys,
+  type ApprovalSigner,
   type TimesheetEntryInput,
 } from '../../services/staffing/staffingService'
 
@@ -73,7 +74,7 @@ export function useTimesheets(businessId: Ref<string | null>, companyId: Ref<str
   })
 
   const approveMutation = useMutation({
-    mutationFn: (id: string) => approveTimesheet(id),
+    mutationFn: (input: { id: string; signer?: ApprovalSigner }) => approveTimesheet(input.id, input.signer),
     onSuccess: async () => {
       await invalidate()
       success('Semana aprobada')
@@ -116,10 +117,10 @@ export function useTimesheets(businessId: Ref<string | null>, companyId: Ref<str
     }
   }
 
-  const approve = async (id: string) => {
+  const approve = async (id: string, signer?: ApprovalSigner) => {
     saveError.value = ''
     try {
-      await approveMutation.mutateAsync(id)
+      await approveMutation.mutateAsync({ id, signer })
       return true
     } catch {
       return false

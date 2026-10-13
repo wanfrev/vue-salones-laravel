@@ -221,6 +221,9 @@ class StaffingInvoiceService
                     if (StaffingTimesheet::signatureColumnExists()) {
                         $timesheet->update(['approval_signature' => null]);
                     }
+                    if (StaffingTimesheet::approverNameColumnExists()) {
+                        $timesheet->update(['approved_by_name' => null]);
+                    }
                 }
             }
 

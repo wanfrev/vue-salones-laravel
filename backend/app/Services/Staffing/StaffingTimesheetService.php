@@ -3,7 +3,6 @@
 namespace App\Services\Staffing;
 
 use App\Models\Profile;
-use App\Models\StaffingSignature;
 use App\Models\StaffingTimesheet;
 use App\Models\StaffingTimesheetEntry;
 use Illuminate\Support\Collection;
@@ -280,7 +279,12 @@ class StaffingTimesheetService
      * Freezes the company's current rules onto the timesheet so a later change to its tax
      * brackets or overtime terms can never rewrite payroll that was already approved.
      */
-    public function approve(string $id, string $businessId, ?string $approverId = null, bool $stamp = false): StaffingTimesheet
+    /**
+     * @param array{name: string, image: ?string}|null $signer the boss who signed with their PIN
+     *        (see StaffingApproverService). Null when the business hasn't registered any approvers,
+     *        in which case the stamp falls back to the login that approved.
+     */
+    public function approve(string $id, string $businessId, ?string $approverId = null, bool $stamp = false, ?array $signer = null): StaffingTimesheet
     {
         $timesheet = $this->findForBusiness($id, $businessId);
 
@@ -313,12 +317,15 @@ class StaffingTimesheetService
         if ($stamp && $approverId && StaffingTimesheet::stampColumnsExist()) {
             $timesheet->approved_by = $approverId;
             $timesheet->approved_at = now()->startOfSecond();
-            // The approver's drawn signature (if they saved one) is copied onto the week, so a later
-            // change to their signature never alters an approved sheet. Optional: none = no image.
-            if (StaffingTimesheet::signatureColumnExists() && StaffingSignature::tableExists()) {
-                $timesheet->approval_signature = StaffingSignature::where('business_id', $businessId)
-                    ->where('profile_id', $approverId)
-                    ->value('image');
+            // The signing boss's name and drawn signature are copied onto the week, so renaming or
+            // removing an approver later never alters an already-approved sheet. The login
+            // (`approved_by`) is kept too, but it is the shared admin account — the name is what
+            // actually says who did it.
+            if ($signer && StaffingTimesheet::approverNameColumnExists()) {
+                $timesheet->approved_by_name = $signer['name'];
+            }
+            if ($signer && StaffingTimesheet::signatureColumnExists()) {
+                $timesheet->approval_signature = $signer['image'] ?? null;
             }
             $timesheet->approval_code = ApprovalStamp::code(...$this->stampInputs($timesheet));
             $timesheet->save();
@@ -404,6 +411,7 @@ class StaffingTimesheetService
                 'approved_by' => (string) $timesheet->approved_by,
                 'approved_at' => $timesheet->approved_at->format('Y-m-d\TH:i:s'),
                 'signature_hash' => ($sig = $timesheet->getAttributes()['approval_signature'] ?? null) ? hash('sha256', $sig) : '',
+                'approver_name' => (string) ($timesheet->getAttributes()['approved_by_name'] ?? ''),
             ],
             $lines,
         ];
