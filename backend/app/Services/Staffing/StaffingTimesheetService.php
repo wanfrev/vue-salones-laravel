@@ -3,6 +3,7 @@
 namespace App\Services\Staffing;
 
 use App\Models\Profile;
+use App\Models\StaffingSignature;
 use App\Models\StaffingTimesheet;
 use App\Models\StaffingTimesheetEntry;
 use Illuminate\Support\Collection;
@@ -312,6 +313,13 @@ class StaffingTimesheetService
         if ($stamp && $approverId && StaffingTimesheet::stampColumnsExist()) {
             $timesheet->approved_by = $approverId;
             $timesheet->approved_at = now()->startOfSecond();
+            // The approver's drawn signature (if they saved one) is copied onto the week, so a later
+            // change to their signature never alters an approved sheet. Optional: none = no image.
+            if (StaffingTimesheet::signatureColumnExists() && StaffingSignature::tableExists()) {
+                $timesheet->approval_signature = StaffingSignature::where('business_id', $businessId)
+                    ->where('profile_id', $approverId)
+                    ->value('image');
+            }
             $timesheet->approval_code = ApprovalStamp::code(...$this->stampInputs($timesheet));
             $timesheet->save();
         }
@@ -355,7 +363,21 @@ class StaffingTimesheetService
             'status' => $timesheet->status,
             'approved_by_name' => $timesheet->approver_name,
             'approved_at' => $timesheet->approved_at?->toIso8601String(),
+            'has_signature' => $timesheet->has_approval_signature,
         ];
+    }
+
+    /** The drawn signature frozen on an approved week, for printing — null when there is none. */
+    public function approvalSignature(string $id, string $businessId): ?string
+    {
+        $timesheet = StaffingTimesheet::where('business_id', $businessId)->find($id);
+        if (!$timesheet) {
+            throw new NotFoundHttpException('Semana no encontrada.');
+        }
+
+        return StaffingTimesheet::signatureColumnExists()
+            ? ($timesheet->getAttributes()['approval_signature'] ?? null)
+            : null;
     }
 
     /** @return list<string> */
@@ -381,6 +403,7 @@ class StaffingTimesheetService
                 'week_start' => $timesheet->week_start->toDateString(),
                 'approved_by' => (string) $timesheet->approved_by,
                 'approved_at' => $timesheet->approved_at->format('Y-m-d\TH:i:s'),
+                'signature_hash' => ($sig = $timesheet->getAttributes()['approval_signature'] ?? null) ? hash('sha256', $sig) : '',
             ],
             $lines,
         ];

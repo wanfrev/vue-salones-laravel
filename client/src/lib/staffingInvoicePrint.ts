@@ -16,8 +16,18 @@ const fmtDate = (iso: string) => new Date(iso.slice(0, 10) + 'T00:00:00').toLoca
  * fighting the app shell's own CSS under @media print is more fragile than just writing a
  * clean standalone document.
  */
+/**
+ * Only the people actually billed that week. The payroll saves one row per assigned employee —
+ * including the ones with 0 hours — and listing them all made the client's invoice as long as the
+ * company's whole roster. A row with hours or any billed amount (travel is billed even without
+ * hours) stays; the invoice total is unaffected since the dropped rows are worth $0.
+ * Mirror of StaffingXlsxExportService::invoiceWorkbook().
+ */
+export const billedEntries = <T extends { total_hours: number; invoice_total: number }>(entries: T[]): T[] =>
+  entries.filter(e => e.total_hours > 0 || e.invoice_total > 0)
+
 export function printStaffingInvoice(invoice: StaffingInvoice, agencyName: string): void {
-  const entries = invoice.timesheet?.entries ?? []
+  const entries = billedEntries(invoice.timesheet?.entries ?? [])
 
   // Prefer the persisted, cent-rounded split (invoice_regular_amount/invoice_overtime_amount —
   // see StaffingPayrollCalculator::invoice()). Older rows saved before that split existed fall

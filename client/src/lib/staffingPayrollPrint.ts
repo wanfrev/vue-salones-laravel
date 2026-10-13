@@ -1,3 +1,5 @@
+import { isSignatureDataUrl } from './staffingApprovalStamp'
+
 const esc = (value: string | number | null | undefined): string =>
   String(value ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string))
 
@@ -44,8 +46,10 @@ export function printStaffingPayroll(params: {
   rows: PayrollPrintRow[]
   /** Opt-in approval stamp line ("Aprobada por … · Código …"); omitted = nothing extra is printed. */
   approvalStamp?: string | null
+  /** The approver's drawn signature (PNG data URL) — only embedded if it passes isSignatureDataUrl. */
+  signature?: string | null
 }): void {
-  const { agencyName, companyName, projectName, weekStart, weekEnd, statusLabel, rows, approvalStamp } = params
+  const { agencyName, companyName, projectName, weekStart, weekEnd, statusLabel, rows, approvalStamp, signature } = params
 
   const bodyRows = rows.map(r => `
     <tr>
@@ -154,6 +158,8 @@ export function printStaffingPayroll(params: {
       </tr>
     </tfoot>
   </table>
+
+  ${isSignatureDataUrl(signature) ? `<div style="margin-top:28px"><p class="muted">Firma</p><img src="${signature}" alt="Firma" style="height:60px;border-bottom:1px solid #999;padding:0 12px"></div>` : ''}
 
   <script>window.onload = () => window.print()</script>
 </body></html>`

@@ -23,14 +23,17 @@ class StaffingTimesheet extends Model
     protected $fillable = [
         'id', 'business_id', 'company_id', 'project_id',
         'week_start', 'week_end', 'status', 'terms_snapshot', 'notes', 'created_by',
-        'approved_by', 'approved_at', 'approval_code',
+        'approved_by', 'approved_at', 'approval_code', 'approval_signature',
     ];
 
     /** Always serialized; null unless the `approver.profile` relation was eager loaded. */
-    protected $appends = ['approver_name'];
+    protected $appends = ['approver_name', 'has_approval_signature'];
 
-    /** Only the name is exposed — never the whole User/Profile the relation would drag along. */
-    protected $hidden = ['approver'];
+    /**
+     * Only the name is exposed — never the whole User/Profile the relation would drag along — and
+     * the signature image itself stays out of list payloads (fetched on demand when printing).
+     */
+    protected $hidden = ['approver', 'approval_signature'];
 
     protected function casts(): array
     {
@@ -51,6 +54,19 @@ class StaffingTimesheet extends Model
         static $exists = null;
 
         return $exists ??= Schema::hasColumn('staffing_timesheets', 'approval_code');
+    }
+
+    /** The drawn-signature column comes from a second opt-in migration; same guard as above. */
+    public static function signatureColumnExists(): bool
+    {
+        static $exists = null;
+
+        return $exists ??= Schema::hasColumn('staffing_timesheets', 'approval_signature');
+    }
+
+    public function getHasApprovalSignatureAttribute(): bool
+    {
+        return !empty($this->attributes['approval_signature'] ?? null);
     }
 
     public function approver(): BelongsTo

@@ -13,7 +13,10 @@
     </section>
 
     <section v-if="businessStore.features.staffing_approval_stamp" class="mt-4 rounded-2xl border border-border bg-surface p-4 lg:p-6">
-      <ApprovalCodeVerifier />
+      <div class="grid gap-6 lg:grid-cols-2">
+        <ApprovalCodeVerifier />
+        <MySignaturePanel :business-id="businessId" />
+      </div>
     </section>
 
     <section class="mt-4 rounded-2xl border border-border bg-surface p-4 lg:p-6">
@@ -102,6 +105,7 @@ import { useBusinessStore } from '../store/business'
 import { FeatureGate } from '../components/common'
 import StaffingHoursPanel from '../components/staffing/StaffingHoursPanel.vue'
 import ApprovalCodeVerifier from '../components/staffing/ApprovalCodeVerifier.vue'
+import MySignaturePanel from '../components/staffing/MySignaturePanel.vue'
 import { getStaffingDepositList, listStaffingCompanies, staffingCompanyKeys } from '../services/staffing/staffingService'
 import type { StaffingDepositListRow } from '../services/staffing/staffingService'
 import { printStaffingDepositList } from '../lib/staffingDepositListPrint'
