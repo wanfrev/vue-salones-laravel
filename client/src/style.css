@@ -222,26 +222,23 @@ body {
   transition-duration: 200ms;
 }
 
-/* Píldora activa de la sidebar: tinte verde con un glow suave del color primario. */
+/* Píldora activa de la sidebar: tinte verde con un halo discreto del color primario. */
 .sidebar-pill {
-  box-shadow: 0 0 16px -4px color-mix(in srgb, var(--color-primary) 45%, transparent);
+  box-shadow: 0 0 14px -6px color-mix(in srgb, var(--color-primary) 30%, transparent);
 }
 
-/* "Pop" del icono al aterrizar en el módulo activo. */
+/* Respiración sutil del icono al aterrizar en el módulo activo. */
 @keyframes sidebar-icon-pop {
-  0% {
-    transform: scale(1) rotate(0deg);
+  from {
+    transform: scale(1);
   }
-  45% {
-    transform: scale(1.35) rotate(-8deg);
-  }
-  100% {
-    transform: scale(1.15) rotate(0deg);
+  to {
+    transform: scale(1.1);
   }
 }
 
 .sidebar-icon-pop {
-  animation: sidebar-icon-pop 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: sidebar-icon-pop 350ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
