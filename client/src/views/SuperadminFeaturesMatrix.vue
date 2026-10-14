@@ -1,21 +1,37 @@
 <template>
   <SuperadminLayout>
     <div class="space-y-4">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 class="text-lg font-bold text-text">Features por nicho</h1>
-          <p class="text-xs text-text-muted">Qué tiene activado cada negocio, agrupado por nicho — para detectar configuraciones que se desviaron.</p>
+      <div>
+        <h1 class="text-lg font-bold text-text">Funciones por nicho</h1>
+        <p class="mt-0.5 max-w-3xl text-xs text-text-muted">
+          Compara qué tiene activado cada negocio dentro de su nicho. Las funciones que unos negocios tienen
+          encendidas y otros no aparecen marcadas en amarillo (ej. 2/5): son las que se desviaron y conviene revisar.
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="relative min-w-[200px]">
+          <MagnifierIcon class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+          <input v-model="search" type="search" placeholder="Buscar negocio..." aria-label="Buscar negocio"
+            class="w-full rounded-xl border border-border bg-surface py-2 pl-8 pr-3 text-xs text-text outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10" />
         </div>
         <label class="flex items-center gap-2 text-xs font-medium text-text-secondary">
+          Nicho
+          <select v-model="nicheFilter" class="rounded-xl border border-border bg-surface px-3 py-2 text-xs text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10">
+            <option value="">Todos</option>
+            <option v-for="g in allGroups" :key="g.niche" :value="g.niche">{{ nicheLabel(g.niche) }}</option>
+          </select>
+        </label>
+        <label class="flex items-center gap-2 text-xs font-medium text-text-secondary">
           <input v-model="onlyInconsistent" type="checkbox" class="h-4 w-4 rounded border-border accent-primary" />
-          Solo mostrar inconsistencias
+          Solo mostrar diferencias entre negocios del mismo nicho
         </label>
       </div>
 
       <div v-if="isLoading" class="py-12 text-center text-sm text-text-muted">Cargando...</div>
 
       <div v-else-if="visibleGroups.length === 0" class="rounded-2xl border border-border bg-surface py-12 text-center text-sm text-text-muted">
-        {{ onlyInconsistent ? 'Ningún nicho tiene features inconsistentes entre sus negocios.' : 'Sin negocios registrados.' }}
+        {{ emptyMessage }}
       </div>
 
       <div v-for="group in visibleGroups" :key="group.niche" class="rounded-2xl border border-border bg-surface p-5">
@@ -41,7 +57,7 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-border">
-              <tr v-for="business in group.businesses" :key="business.id">
+              <tr v-for="business in group.rows" :key="business.id">
                 <td class="sticky left-0 z-10 whitespace-nowrap bg-surface py-2 pr-3 font-medium text-text">
                   <router-link :to="`/superadmin/business/${business.id}`" class="hover:text-primary transition-colors">
                     {{ business.name }}
@@ -65,9 +81,10 @@
 import { computed, ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import SuperadminLayout from '../components/layout/SuperadminLayout.vue'
-import { getNiche } from '../config/niches'
+import { creatableNiches } from '../config/niches'
+import { ALL_FLAGS } from '../components/superadmin/featureCatalog'
 import { getFeaturesMatrix, type FeatureMatrixNiche } from '../services/superadminService'
-import { CheckCircleIcon, CloseCircleIcon } from '@solar-icons/vue/linear'
+import { CheckCircleIcon, CloseCircleIcon, MagnifierIcon } from '@solar-icons/vue/linear'
 
 const { data, isLoading } = useQuery({
   queryKey: ['superadmin', 'features-matrix'] as const,
@@ -75,6 +92,8 @@ const { data, isLoading } = useQuery({
 })
 
 const onlyInconsistent = ref(true)
+const search = ref('')
+const nicheFilter = ref('')
 
 function onCount(group: FeatureMatrixNiche, feature: string): number {
   return group.businesses.filter(b => b.features[feature]).length
@@ -85,21 +104,40 @@ function isInconsistent(group: FeatureMatrixNiche, feature: string): boolean {
   return count > 0 && count < group.businesses.length
 }
 
-/** Each group with its columns narrowed to inconsistent-only when the toggle is on. */
+// The optional Staffing extras only mean something in the staffing niche, so their columns are not
+// listed under any other niche.
+const relevantFeatures = (group: FeatureMatrixNiche): string[] =>
+  group.niche === 'staffing' ? group.features : group.features.filter(f => !f.startsWith('staffing_'))
+
+const allGroups = computed(() => (data.value ?? []).filter(g => g.businesses.length > 0))
+
+/**
+ * Each group with its columns narrowed to inconsistent-only when the toggle is on. The differences are
+ * always measured against ALL the niche's businesses; the search only narrows which rows are listed.
+ */
 const visibleGroups = computed(() => {
-  const groups = data.value ?? []
-  return groups
-    .filter(g => g.businesses.length > 0)
-    .map(g => ({
-      ...g,
-      columns: onlyInconsistent.value ? g.features.filter(f => isInconsistent(g, f)) : g.features,
-    }))
-    .filter(g => g.columns.length > 0)
+  const term = search.value.trim().toLowerCase()
+  return allGroups.value
+    .filter(g => !nicheFilter.value || g.niche === nicheFilter.value)
+    .map(g => {
+      const columns = onlyInconsistent.value ? relevantFeatures(g).filter(f => isInconsistent(g, f)) : relevantFeatures(g)
+      const businesses = term ? g.businesses.filter(b => b.name.toLowerCase().includes(term)) : g.businesses
+      return { ...g, columns, rows: businesses }
+    })
+    .filter(g => g.columns.length > 0 && g.rows.length > 0)
 })
 
+const emptyMessage = computed(() => {
+  if (search.value.trim()) return 'Ningún negocio coincide con tu búsqueda.'
+  return onlyInconsistent.value
+    ? 'Ningún nicho tiene diferencias entre sus negocios: todos los negocios de cada nicho tienen lo mismo activado.'
+    : 'Sin negocios registrados.'
+})
+
+const knownNiches = creatableNiches()
 function nicheLabel(niche: string): string {
   if (niche === 'sin_nicho') return 'Sin nicho asignado'
-  return getNiche(niche).label ?? niche
+  return knownNiches.find(n => n.id === niche)?.label ?? niche.replace(/_/g, ' ')
 }
 
 const FEATURE_LABELS: Record<string, string> = {
@@ -128,7 +166,8 @@ const FEATURE_LABELS: Record<string, string> = {
   reminder_24h_enabled: 'Recordatorios internos',
 }
 
+// Short column names first; otherwise the catalog's own name; otherwise the raw key.
 function featureLabel(key: string): string {
-  return FEATURE_LABELS[key] ?? key
+  return FEATURE_LABELS[key] ?? ALL_FLAGS.find(f => f.key === key)?.label ?? key
 }
 </script>

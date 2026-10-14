@@ -2,292 +2,227 @@
   <SuperadminLayout>
     <div v-if="business" class="space-y-6">
       <!-- Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <router-link to="/superadmin" class="flex items-center gap-1 text-xs font-medium text-text-muted hover:text-text transition-colors">
-            <ArrowLeftIcon class="h-3.5 w-3.5" />
-            Negocios
-          </router-link>
-          <span class="text-text-muted/40">/</span>
-          <h1 class="text-lg font-bold text-text">{{ business.name }}</h1>
-          <span v-if="business.deleted_at" class="rounded-full bg-danger/10 px-2 py-0.5 text-[10px] font-bold uppercase text-danger">
-            Eliminado
-          </span>
-          <span v-else class="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase"
-            :class="business.active ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'">
-            {{ business.active ? 'Activo' : 'Inactivo' }}
-          </span>
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div class="min-w-0">
+          <nav class="mb-1 flex items-center gap-1 text-xs text-text-muted" aria-label="Ruta">
+            <router-link to="/superadmin" class="flex items-center gap-1 font-medium transition-colors hover:text-text">
+              <ArrowLeftIcon class="h-3.5 w-3.5" />
+              Negocios
+            </router-link>
+            <span class="text-text-muted/40">/</span>
+            <span class="truncate">{{ business.name }}</span>
+          </nav>
+          <div class="flex flex-wrap items-center gap-2">
+            <h1 class="text-xl font-bold text-text">{{ business.name }}</h1>
+            <span v-if="business.deleted_at" class="rounded-full bg-danger/10 px-2 py-0.5 text-[10px] font-bold uppercase text-danger">Eliminado</span>
+            <span v-else class="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase" :class="business.active ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'">
+              {{ business.active ? 'Activo' : 'Suspendido' }}
+            </span>
+            <span class="rounded-full bg-bg-secondary px-2 py-0.5 text-[10px] font-bold uppercase text-text-secondary">{{ nicheLabel }}</span>
+          </div>
         </div>
-        <div class="flex items-center gap-2">
+
+        <div class="flex shrink-0 items-center gap-2">
           <template v-if="business.deleted_at">
             <button @click="confirmRestore" :disabled="isRestoring"
-              class="rounded-xl bg-success/10 px-3 py-2 text-xs font-semibold text-success hover:bg-success/20 transition-colors disabled:opacity-50">
-              {{ isRestoring ? '...' : 'Restaurar' }}
+              class="rounded-xl bg-success/10 px-3 py-2 text-xs font-semibold text-success transition-colors hover:bg-success/20 disabled:opacity-50">
+              {{ isRestoring ? 'Restaurando...' : 'Restaurar negocio' }}
             </button>
             <button @click="openPurge"
-              class="rounded-xl border border-danger/20 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors">
+              class="rounded-xl border border-danger/20 px-3 py-2 text-xs font-semibold text-danger transition-colors hover:bg-danger/10">
               Purgar permanentemente
             </button>
           </template>
+          <button v-else @click="openEdit" class="rounded-xl border border-border px-3 py-2 text-xs font-semibold text-text-secondary transition-colors hover:bg-bg-secondary">
+            Editar datos
+          </button>
+        </div>
+      </div>
+
+      <div v-if="business.deleted_at" class="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-xs leading-relaxed text-text-secondary">
+        <b class="text-danger">Este negocio está eliminado.</b> Sus usuarios están desactivados y no aparece en la lista normal, pero sus datos siguen guardados:
+        puedes restaurarlo o purgarlo (borrado definitivo).
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex gap-1 overflow-x-auto border-b border-border" role="tablist">
+        <button v-for="t in TABS" :key="t.id" type="button" role="tab" :aria-selected="tab === t.id"
+          class="relative shrink-0 whitespace-nowrap px-3 py-2 text-sm font-semibold transition-colors"
+          :class="tab === t.id ? 'text-primary' : 'text-text-muted hover:text-text'"
+          @click="selectTab(t.id)">
+          {{ t.label }}
+          <span v-if="t.badge" class="ml-1.5 rounded-full bg-bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-text-muted">{{ t.badge }}</span>
+          <span v-if="tab === t.id" class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
+        </button>
+      </div>
+
+      <!-- RESUMEN -->
+      <div v-if="tab === 'resumen'" class="space-y-6">
+        <section>
+          <h2 class="mb-2 text-sm font-bold text-text">Datos del negocio</h2>
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <div v-for="item in infoItems" :key="item.label" class="rounded-xl border border-border bg-surface p-3">
+              <p class="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-muted">{{ item.label }}</p>
+              <p class="truncate text-sm font-semibold text-text" :title="item.value">{{ item.value }}</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Nomenclatura -->
+        <section class="rounded-2xl border border-border bg-surface p-5">
+          <div class="mb-3 flex items-center justify-between">
+            <div>
+              <h2 class="text-base font-bold text-text">Nomenclatura</h2>
+              <p class="text-[11px] text-text-muted">Cómo se llaman las cosas en este negocio (cliente, empleado, cita…).</p>
+            </div>
+            <span v-if="hasTerminologyOverride" class="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-bold uppercase text-warning">Personalizada</span>
+          </div>
+          <p v-if="!hasTerminologyOverride" class="py-2 text-sm text-text-muted">
+            Usa los términos por defecto del nicho «{{ nicheLabel }}» (ej. Paciente/Odontólogo para odontología). Sin personalización guardada.
+          </p>
           <template v-else>
-            <button @click="openEdit" class="rounded-xl border border-border px-3 py-2 text-xs font-semibold text-text-secondary hover:bg-bg-secondary transition-colors">
-              Editar datos
-            </button>
-            <button v-if="business.active" @click="confirmSuspend" :disabled="isSuspending"
-              class="rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-600 hover:bg-amber-500/20 transition-colors disabled:opacity-50">
-              {{ isSuspending ? '...' : 'Suspender' }}
-            </button>
-            <button v-else @click="confirmResume" :disabled="isResuming"
-              class="rounded-xl bg-success/10 px-3 py-2 text-xs font-semibold text-success hover:bg-success/20 transition-colors disabled:opacity-50">
-              {{ isResuming ? '...' : 'Reactivar' }}
-            </button>
-            <button @click="confirmDelete" :disabled="isDeleting"
-              class="rounded-xl border border-danger/20 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors">
-              Eliminar
+            <p class="mb-3 text-[11px] text-text-muted">
+              Este negocio tiene términos guardados que <strong>reemplazan</strong> los del nicho — esto puede ser la causa de que veas "Cliente/Empleado" en vez de la nomenclatura del nicho en producción.
+            </p>
+            <div class="mb-3 flex flex-wrap gap-1.5">
+              <span v-for="(value, key) in storedTerminology" :key="key" class="rounded-lg border border-border-subtle bg-bg-secondary/50 px-2 py-1 text-[11px] text-text-secondary">
+                <span class="font-semibold text-text">{{ key }}</span>: {{ value }}
+              </span>
+            </div>
+            <button type="button" :disabled="isResettingTerminology" @click="confirmResetTerminology"
+              class="w-full rounded-xl border border-danger/20 px-3 py-2 text-xs font-semibold text-danger transition-colors hover:bg-danger/10 disabled:opacity-50">
+              {{ isResettingTerminology ? 'Restableciendo...' : 'Restablecer al nicho (borrar personalización)' }}
             </button>
           </template>
-        </div>
+        </section>
+
+        <!-- Zona de riesgo -->
+        <section v-if="!business.deleted_at" class="rounded-2xl border border-danger/20 bg-surface p-5">
+          <h2 class="text-base font-bold text-text">Zona de riesgo</h2>
+          <p class="mb-4 text-[11px] text-text-muted">Acciones que afectan el acceso de todo el negocio. Piden confirmación antes de ejecutarse.</p>
+          <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
+            <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+              <div class="min-w-0 max-w-xl">
+                <p class="text-sm font-medium text-text">{{ business.active ? 'Suspender el servicio' : 'Reactivar el servicio' }}</p>
+                <p class="text-[11px] leading-relaxed text-text-muted">
+                  {{ business.active
+                    ? 'El negocio y sus usuarios pierden el acceso hasta que lo reactives. No se borra ningún dato.'
+                    : 'El negocio está suspendido. Al reactivarlo, sus usuarios vuelven a entrar normalmente.' }}
+                </p>
+              </div>
+              <button v-if="business.active" @click="confirmSuspend" :disabled="isSuspending"
+                class="rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-600 transition-colors hover:bg-amber-500/20 disabled:opacity-50">
+                {{ isSuspending ? 'Suspendiendo...' : 'Suspender' }}
+              </button>
+              <button v-else @click="confirmResume" :disabled="isResuming"
+                class="rounded-xl bg-success/10 px-3 py-2 text-xs font-semibold text-success transition-colors hover:bg-success/20 disabled:opacity-50">
+                {{ isResuming ? 'Reactivando...' : 'Reactivar' }}
+              </button>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+              <div class="min-w-0 max-w-xl">
+                <p class="text-sm font-medium text-text">Eliminar el negocio</p>
+                <p class="text-[11px] leading-relaxed text-text-muted">
+                  Se oculta de la lista y sus usuarios se desactivan, pero los datos no se borran todavía: podrás restaurarlo o purgarlo permanentemente después.
+                </p>
+              </div>
+              <button @click="confirmDelete" :disabled="isDeleting"
+                class="rounded-xl border border-danger/20 px-3 py-2 text-xs font-semibold text-danger transition-colors hover:bg-danger/10 disabled:opacity-50">
+                {{ isDeleting ? 'Eliminando...' : 'Eliminar' }}
+              </button>
+            </div>
+          </div>
+        </section>
       </div>
 
-      <!-- Info Grid -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div class="rounded-xl border border-border bg-surface p-3">
-          <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">Slug</p>
-          <p class="text-sm font-semibold text-text truncate">{{ business.slug }}</p>
-        </div>
-        <div class="rounded-xl border border-border bg-surface p-3">
-          <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">Nicho</p>
-          <p class="text-sm font-semibold text-text capitalize">{{ (business.niche_type || '—').replace(/_/g, ' ') }}</p>
-        </div>
-        <div class="rounded-xl border border-border bg-surface p-3">
-          <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">Creado</p>
-          <p class="text-sm font-semibold text-text">{{ formatDate(business.created_at) }}</p>
-        </div>
-        <div class="rounded-xl border border-border bg-surface p-3">
-          <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">Zona horaria</p>
-          <p class="text-sm font-semibold text-text truncate">{{ business.timezone }}</p>
-        </div>
-        <div class="rounded-xl border border-border bg-surface p-3">
-          <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">Moneda</p>
-          <p class="text-sm font-semibold text-text">{{ business.currency }}</p>
-        </div>
-        <div class="rounded-xl border border-border bg-surface p-3">
-          <p class="text-[10px] font-semibold text-text-muted uppercase tracking-wider mb-0.5">Teléfono</p>
-          <p class="text-sm font-semibold text-text truncate">{{ business.phone || '—' }}</p>
-        </div>
-      </div>
+      <!-- FUNCIONES -->
+      <FeaturesPanel v-else-if="tab === 'funciones'"
+        :groups="flagGroups" :features="features" :niche-defaults="nicheDefaults" :locked-keys="lockedFeatureKeys"
+        :busy="isTogglingFeature" :niche-label="nicheLabel" @toggle="toggleFeature" />
 
-      <!-- Two-column layout -->
-      <div class="grid gap-6 lg:grid-cols-[1fr_1fr]">
-        <!-- LEFT: Funcionalidades -->
-        <div class="rounded-2xl border border-border bg-surface p-5">
-          <h2 class="text-base font-bold text-text mb-4">Funcionalidades</h2>
-
-          <!-- Agenda y catálogo -->
-          <div class="mb-4">
-            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Agenda y catálogo</p>
-            <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
-              <label v-for="ft in scheduleFlags" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-bg-secondary/30 transition-colors" :class="isLocked(ft.key) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'">
-                <div>
-                  <p class="text-sm font-medium text-text">{{ ft.label }}</p>
-                  <p class="text-[11px] text-text-muted">{{ ft.description }}</p>
-                  <p v-if="isLocked(ft.key)" class="text-[10px] font-semibold text-warning mt-0.5">No disponible para el nicho "{{ business.niche_type }}"</p>
-                </div>
-                <button type="button" :disabled="isTogglingFeature || isLocked(ft.key)" :title="isLocked(ft.key) ? `No disponible para el nicho ${business.niche_type}` : undefined" @click="toggleFeature(ft.key)"
-                  :class="['relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors', isLocked(ft.key) ? 'cursor-not-allowed' : '', features[ft.key] ? 'bg-primary' : 'bg-border']">
-                  <span :class="['inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform', features[ft.key] ? 'translate-x-4.5' : 'translate-x-0.5']" />
-                </button>
-              </label>
+      <!-- EQUIPO Y SUCURSALES -->
+      <div v-else class="grid gap-6 lg:grid-cols-2">
+        <section class="rounded-2xl border border-border bg-surface p-5">
+          <div class="mb-3 flex items-center justify-between">
+            <div>
+              <h2 class="text-base font-bold text-text">Administradores</h2>
+              <p class="text-[11px] text-text-muted">Quienes manejan este negocio. Desde «Ver todos» puedes restablecer contraseñas o entrar como ellos.</p>
             </div>
+            <span class="rounded-full bg-bg-secondary px-2 py-0.5 text-[11px] font-semibold text-text-muted">{{ admins.length }}</span>
           </div>
-
-          <!-- Módulos principales -->
-          <div class="mb-4">
-            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Módulos</p>
-            <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
-              <label v-for="ft in coreModules" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-bg-secondary/30 transition-colors" :class="isLocked(ft.key) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'">
-                <div>
-                  <p class="text-sm font-medium text-text">{{ ft.label }}</p>
-                  <p class="text-[11px] text-text-muted">{{ ft.description }}</p>
-                  <p v-if="isLocked(ft.key)" class="text-[10px] font-semibold text-warning mt-0.5">No disponible para el nicho "{{ business.niche_type }}"</p>
-                </div>
-                <button type="button" :disabled="isTogglingFeature || isLocked(ft.key)" :title="isLocked(ft.key) ? `No disponible para el nicho ${business.niche_type}` : undefined" @click="toggleFeature(ft.key)"
-                  :class="['relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors', isLocked(ft.key) ? 'cursor-not-allowed' : '', features[ft.key] ? 'bg-primary' : 'bg-border']">
-                  <span :class="['inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform', features[ft.key] ? 'translate-x-4.5' : 'translate-x-0.5']" />
-                </button>
-              </label>
-            </div>
-          </div>
-
-          <!-- Gestión y equipos -->
-          <div class="mb-4">
-            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Gestión y equipos</p>
-            <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
-              <label v-for="ft in managementFlags" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-bg-secondary/30 transition-colors" :class="isLocked(ft.key) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'">
-                <div>
-                  <p class="text-sm font-medium text-text">{{ ft.label }}</p>
-                  <p class="text-[11px] text-text-muted">{{ ft.description }}</p>
-                  <p v-if="isLocked(ft.key)" class="text-[10px] font-semibold text-warning mt-0.5">No disponible para el nicho "{{ business.niche_type }}"</p>
-                </div>
-                <button type="button" :disabled="isTogglingFeature || isLocked(ft.key)" :title="isLocked(ft.key) ? `No disponible para el nicho ${business.niche_type}` : undefined" @click="toggleFeature(ft.key)"
-                  :class="['relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors', isLocked(ft.key) ? 'cursor-not-allowed' : '', features[ft.key] ? 'bg-primary' : 'bg-border']">
-                  <span :class="['inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform', features[ft.key] ? 'translate-x-4.5' : 'translate-x-0.5']" />
-                </button>
-              </label>
-            </div>
-          </div>
-
-          <!-- Extras opcionales de Staffing -->
-          <div v-if="business.niche_type === 'staffing'" class="mb-4">
-            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest px-1">Staffing — extras opcionales</p>
-            <p class="mb-2 px-1 text-[11px] leading-relaxed text-text-muted">Funciones adicionales que se activan negocio por negocio. Todas vienen apagadas: mientras estén apagadas, el negocio trabaja exactamente igual que antes.</p>
-            <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
-              <label v-for="ft in staffingExtraFlags" :key="ft.key" class="flex cursor-pointer items-center justify-between gap-3 px-4 py-3 hover:bg-bg-secondary/30 transition-colors">
-                <div>
-                  <p class="text-sm font-medium text-text">{{ ft.label }}</p>
-                  <p class="text-[11px] text-text-muted">{{ ft.description }}</p>
-                </div>
-                <button type="button" :disabled="isTogglingFeature" @click="toggleFeature(ft.key)"
-                  :class="['relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors', features[ft.key] ? 'bg-primary' : 'bg-border']">
-                  <span :class="['inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform', features[ft.key] ? 'translate-x-4.5' : 'translate-x-0.5']" />
-                </button>
-              </label>
-            </div>
-          </div>
-
-          <!-- Comunicación y reservas -->
-          <div>
-            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Comunicación y reservas</p>
-            <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
-              <label v-for="ft in commFlags" :key="ft.key" class="flex items-center justify-between gap-3 px-4 py-3 hover:bg-bg-secondary/30 transition-colors" :class="isLocked(ft.key) ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'">
-                <div>
-                  <p class="text-sm font-medium text-text">{{ ft.label }}</p>
-                  <p class="text-[11px] text-text-muted">{{ ft.description }}</p>
-                  <p v-if="isLocked(ft.key)" class="text-[10px] font-semibold text-warning mt-0.5">No disponible para el nicho "{{ business.niche_type }}"</p>
-                </div>
-                <button type="button" :disabled="isTogglingFeature || isLocked(ft.key)" :title="isLocked(ft.key) ? `No disponible para el nicho ${business.niche_type}` : undefined" @click="toggleFeature(ft.key)"
-                  :class="['relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors', isLocked(ft.key) ? 'cursor-not-allowed' : '', features[ft.key] ? 'bg-primary' : 'bg-border']">
-                  <span :class="['inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform', features[ft.key] ? 'translate-x-4.5' : 'translate-x-0.5']" />
-                </button>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <!-- RIGHT: Sucursales + Admins -->
-        <div class="space-y-6">
-          <!-- Sucursales -->
-          <div class="rounded-2xl border border-border bg-surface p-5">
-            <div class="flex items-center justify-between mb-3">
-              <h2 class="text-base font-bold text-text">Sucursales</h2>
-              <span class="rounded-full bg-bg-secondary px-2 py-0.5 text-[11px] font-semibold text-text-muted">{{ branches.length }}</span>
-            </div>
-            <div v-if="branches.length === 0" class="py-6 text-center text-sm text-text-muted">
-              Sin sucursales
-            </div>
-            <div v-else class="space-y-2">
-              <div v-for="branch in branches" :key="branch.id"
-                class="rounded-xl border border-border-subtle bg-bg-secondary/30 px-4 py-3">
-                <div class="flex items-center gap-2">
-                  <p class="text-sm font-semibold text-text">{{ branch.name }}</p>
-                  <span v-if="branch.is_default" class="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">Principal</span>
-                  <span :class="['rounded-full px-1.5 py-0.5 text-[9px] font-bold', branch.active ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger']">
-                    {{ branch.active ? 'Activa' : 'Inactiva' }}
-                  </span>
-                </div>
-                <div v-if="branch.address || branch.phone" class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-text-muted">
-                  <span v-if="branch.address" class="truncate max-w-[200px]">{{ branch.address }}</span>
-                  <span v-if="branch.phone">{{ branch.phone }}</span>
-                </div>
+          <div v-if="admins.length === 0" class="py-6 text-center text-sm text-text-muted">Sin administradores</div>
+          <div v-else class="max-h-72 space-y-2 overflow-y-auto">
+            <div v-for="admin in admins" :key="admin.id" class="flex items-center gap-3 rounded-xl border border-border-subtle bg-bg-secondary/30 px-4 py-2.5">
+              <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">{{ getInitials(admin.full_name) }}</div>
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-semibold text-text">{{ admin.full_name }}</p>
+                <p class="truncate text-[11px] text-text-muted">{{ admin.email }}</p>
               </div>
             </div>
           </div>
+          <router-link :to="`/superadmin/business/${business.id}/admins`"
+            class="mt-3 inline-block text-xs font-semibold text-primary hover:text-primary-hover">
+            Administrar administradores →
+          </router-link>
+        </section>
 
-          <!-- Nomenclatura -->
-          <div class="rounded-2xl border border-border bg-surface p-5">
-            <div class="flex items-center justify-between mb-3">
-              <h2 class="text-base font-bold text-text">Nomenclatura</h2>
-              <span v-if="hasTerminologyOverride" class="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-bold uppercase text-warning">Personalizada</span>
+        <section class="rounded-2xl border border-border bg-surface p-5">
+          <div class="mb-3 flex items-center justify-between">
+            <div>
+              <h2 class="text-base font-bold text-text">Sucursales</h2>
+              <p class="text-[11px] text-text-muted">Las ubicaciones físicas del negocio.</p>
             </div>
-            <p v-if="!hasTerminologyOverride" class="py-2 text-sm text-text-muted">
-              Usa los términos por defecto del nicho "{{ business.niche_type }}" (ej. Paciente/Odontólogo para odontología). Sin personalización guardada.
-            </p>
-            <template v-else>
-              <p class="mb-3 text-[11px] text-text-muted">
-                Este negocio tiene términos guardados que <strong>reemplazan</strong> los del nicho — esto puede ser la causa de que veas "Cliente/Empleado" en vez de la nomenclatura del nicho en producción.
-              </p>
-              <div class="mb-3 flex flex-wrap gap-1.5">
-                <span v-for="(value, key) in storedTerminology" :key="key" class="rounded-lg border border-border-subtle bg-bg-secondary/50 px-2 py-1 text-[11px] text-text-secondary">
-                  <span class="font-semibold text-text">{{ key }}</span>: {{ value }}
+            <span class="rounded-full bg-bg-secondary px-2 py-0.5 text-[11px] font-semibold text-text-muted">{{ branches.length }}</span>
+          </div>
+          <div v-if="branches.length === 0" class="py-6 text-center text-sm text-text-muted">Sin sucursales</div>
+          <div v-else class="space-y-2">
+            <div v-for="branch in branches" :key="branch.id" class="rounded-xl border border-border-subtle bg-bg-secondary/30 px-4 py-3">
+              <div class="flex items-center gap-2">
+                <p class="text-sm font-semibold text-text">{{ branch.name }}</p>
+                <span v-if="branch.is_default" class="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary">Principal</span>
+                <span :class="['rounded-full px-1.5 py-0.5 text-[9px] font-bold', branch.active ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger']">
+                  {{ branch.active ? 'Activa' : 'Inactiva' }}
                 </span>
               </div>
-              <button type="button" :disabled="isResettingTerminology" @click="confirmResetTerminology"
-                class="w-full rounded-xl border border-danger/20 px-3 py-2 text-xs font-semibold text-danger hover:bg-danger/10 transition-colors disabled:opacity-50">
-                {{ isResettingTerminology ? 'Restableciendo...' : 'Restablecer al nicho (borrar personalización)' }}
-              </button>
-            </template>
-          </div>
-
-          <!-- Administradores -->
-          <div class="rounded-2xl border border-border bg-surface p-5">
-            <div class="flex items-center justify-between mb-3">
-              <h2 class="text-base font-bold text-text">Administradores</h2>
-              <span class="rounded-full bg-bg-secondary px-2 py-0.5 text-[11px] font-semibold text-text-muted">{{ admins.length }}</span>
-            </div>
-            <div v-if="admins.length === 0" class="py-6 text-center text-sm text-text-muted">
-              Sin administradores
-            </div>
-            <div v-else class="space-y-2 max-h-64 overflow-y-auto">
-              <div v-for="admin in admins" :key="admin.id"
-                class="flex items-center gap-3 rounded-xl border border-border-subtle bg-bg-secondary/30 px-4 py-2.5">
-                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary shrink-0">
-                  {{ getInitials(admin.full_name) }}
-                </div>
-                <div class="min-w-0 flex-1">
-                  <p class="text-sm font-semibold text-text truncate">{{ admin.full_name }}</p>
-                  <p class="text-[11px] text-text-muted truncate">{{ admin.email }}</p>
-                </div>
-                <router-link
-                  :to="`/superadmin/business/${business.id}/admins`"
-                  class="text-[11px] font-medium text-primary hover:text-primary-hover shrink-0">
-                  Ver todos
-                </router-link>
+              <div v-if="branch.address || branch.phone" class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-text-muted">
+                <span v-if="branch.address" class="max-w-[220px] truncate">{{ branch.address }}</span>
+                <span v-if="branch.phone">{{ branch.phone }}</span>
               </div>
             </div>
           </div>
-        </div>
+        </section>
       </div>
     </div>
 
     <div v-else class="flex items-center justify-center py-20">
-      <div class="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+      <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
     </div>
 
     <!-- Edit Modal -->
     <Teleport to="body">
       <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4" @click.self="closeEdit">
+        <div v-if="showEditModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm" @click.self="closeEdit">
           <div class="w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-2xl" @click.stop>
-            <h2 class="text-base font-bold text-text mb-4">Editar {{ business?.name }}</h2>
+            <h2 class="mb-4 text-base font-bold text-text">Editar {{ business?.name }}</h2>
             <form class="space-y-3" @submit.prevent="handleEditSubmit">
               <div>
-                <label class="block text-xs font-semibold text-text mb-1">Nombre</label>
-                <input v-model="editForm.name" type="text" class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
+                <label class="mb-1 block text-xs font-semibold text-text">Nombre</label>
+                <input v-model="editForm.name" type="text" class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10" />
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-xs font-semibold text-text mb-1">Teléfono</label>
-                  <input v-model="editForm.phone" type="text" class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
+                  <label class="mb-1 block text-xs font-semibold text-text">Teléfono</label>
+                  <input v-model="editForm.phone" type="text" class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10" />
                 </div>
                 <div>
-                  <label class="block text-xs font-semibold text-text mb-1">Zona horaria</label>
-                  <input v-model="editForm.timezone" type="text" class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
+                  <label class="mb-1 block text-xs font-semibold text-text">Zona horaria</label>
+                  <input v-model="editForm.timezone" type="text" class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10" />
                 </div>
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-xs font-semibold text-text mb-1">Moneda</label>
-                  <select v-model="editForm.currency" class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
+                  <label class="mb-1 block text-xs font-semibold text-text">Moneda</label>
+                  <select v-model="editForm.currency" class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10">
                     <option value="USD">USD</option>
                     <option value="DOP">DOP</option>
                     <option value="EUR">EUR</option>
@@ -295,21 +230,21 @@
                   </select>
                 </div>
                 <div>
-                  <label class="block text-xs font-semibold text-text mb-1">Nicho</label>
-                  <select v-model="editForm.niche_type" class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all">
+                  <label class="mb-1 block text-xs font-semibold text-text">Nicho</label>
+                  <select v-model="editForm.niche_type" class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10">
                     <option v-for="n in registeredNiches" :key="n.id" :value="n.id">{{ n.label }}</option>
                     <option v-if="isUnregisteredNiche" :value="business?.niche_type" disabled>{{ business?.niche_type }} — sin configurar</option>
                   </select>
                 </div>
               </div>
               <div>
-                <label class="block text-xs font-semibold text-text mb-1">Dirección</label>
-                <input v-model="editForm.address" type="text" class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all" />
+                <label class="mb-1 block text-xs font-semibold text-text">Dirección</label>
+                <input v-model="editForm.address" type="text" class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10" />
               </div>
               <p v-if="editFormError" class="text-xs text-danger">{{ editFormError }}</p>
               <div class="flex justify-end gap-2 pt-2">
-                <button type="button" @click="closeEdit" class="rounded-xl border border-border px-4 py-2.5 text-xs font-semibold text-text-secondary hover:bg-bg-secondary transition-colors">Cancelar</button>
-                <button type="submit" :disabled="isUpdating" class="rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white hover:bg-primary-hover transition-colors disabled:opacity-50">
+                <button type="button" @click="closeEdit" class="rounded-xl border border-border px-4 py-2.5 text-xs font-semibold text-text-secondary transition-colors hover:bg-bg-secondary">Cancelar</button>
+                <button type="submit" :disabled="isUpdating" class="rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-primary-hover disabled:opacity-50">
                   {{ isUpdating ? 'Guardando...' : 'Guardar cambios' }}
                 </button>
               </div>
@@ -322,23 +257,23 @@
     <!-- Purge Modal -->
     <Teleport to="body">
       <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0" enter-to-class="opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
-        <div v-if="showPurgeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4" @click.self="closePurge">
+        <div v-if="showPurgeModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 backdrop-blur-sm" @click.self="closePurge">
           <div class="w-full max-w-md rounded-2xl border border-danger/30 bg-surface p-6 shadow-2xl" @click.stop>
-            <h2 class="text-base font-bold text-danger mb-1">Purgar "{{ business?.name }}" permanentemente</h2>
-            <p class="text-xs text-text-muted mb-4 leading-relaxed">
+            <h2 class="mb-1 text-base font-bold text-danger">Purgar "{{ business?.name }}" permanentemente</h2>
+            <p class="mb-4 text-xs leading-relaxed text-text-muted">
               Esto borra el negocio y absolutamente todos sus datos — clientes, citas, transacciones,
               empleados, inventario, facturas, todo. <b class="text-text">No se puede deshacer.</b>
             </p>
-            <label class="block text-xs font-semibold text-text mb-1">
+            <label class="mb-1 block text-xs font-semibold text-text">
               Escribe <span class="font-mono text-danger">{{ business?.name }}</span> para confirmar
             </label>
             <input v-model="purgeConfirmInput" type="text" autocomplete="off"
-              class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none focus:border-danger focus:ring-2 focus:ring-danger/10 transition-all" />
+              class="w-full rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-text outline-none transition-all focus:border-danger focus:ring-2 focus:ring-danger/10" />
             <p v-if="purgeError" class="mt-2 text-xs text-danger">{{ purgeError }}</p>
             <div class="flex justify-end gap-2 pt-4">
-              <button type="button" @click="closePurge" class="rounded-xl border border-border px-4 py-2.5 text-xs font-semibold text-text-secondary hover:bg-bg-secondary transition-colors">Cancelar</button>
+              <button type="button" @click="closePurge" class="rounded-xl border border-border px-4 py-2.5 text-xs font-semibold text-text-secondary transition-colors hover:bg-bg-secondary">Cancelar</button>
               <button type="button" :disabled="isPurging || purgeConfirmInput !== business?.name" @click="handlePurge"
-                class="rounded-xl bg-danger px-4 py-2.5 text-xs font-bold text-white hover:bg-danger/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                class="rounded-xl bg-danger px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-danger/90 disabled:cursor-not-allowed disabled:opacity-40">
                 {{ isPurging ? 'Purgando...' : 'Purgar permanentemente' }}
               </button>
             </div>
@@ -362,6 +297,8 @@ import {
 import { listBranches, branchesKeys } from '../services/branchesService'
 import { translateError } from '../lib/errors'
 import SuperadminLayout from '../components/layout/SuperadminLayout.vue'
+import FeaturesPanel from '../components/superadmin/FeaturesPanel.vue'
+import { groupsForNiche, flagStats } from '../components/superadmin/featureCatalog'
 import type { AuthProfile } from '../types/auth'
 import type { Business } from '../types/database'
 import { creatableNiches, resolveFeatures, getNiche } from '../config/niches'
@@ -402,6 +339,11 @@ const registeredNiches = creatableNiches()
 const isUnregisteredNiche = computed(() =>
   !!business.value?.niche_type && !registeredNiches.some(n => n.id === business.value!.niche_type)
 )
+const nicheLabel = computed(() => {
+  const id = business.value?.niche_type
+  if (!id) return 'Sin nicho'
+  return registeredNiches.find(n => n.id === id)?.label ?? id.replace(/_/g, ' ')
+})
 
 const { data: adminsData } = useQuery({
   queryKey: computed(() => superadminKeys.businessAdmins(businessId.value)),
@@ -416,38 +358,32 @@ const { data: branchesData } = useQuery({
 })
 const branches = computed(() => branchesData.value ?? [])
 
-const allFlags = [
-  { key: 'agenda', label: 'Agenda', description: 'Vista de agenda de citas del día' },
-  { key: 'calendario', label: 'Calendario', description: 'Vista de calendario de citas' },
-  { key: 'servicios', label: 'Servicios', description: 'Catálogo de servicios agendables' },
-  { key: 'pos', label: 'Punto de Venta', description: 'Cobro de citas con productos y método de pago' },
-  { key: 'inventario', label: 'Inventario', description: 'Control de stock, entradas y salidas' },
-  { key: 'productos', label: 'Productos', description: 'Catálogo de productos vendibles' },
-  { key: 'proveedores', label: 'Proveedores', description: 'Gestión de proveedores, deudas y pagos' },
-  { key: 'retail_module_enabled', label: 'Módulo tienda (otro nicho)', description: 'Trato completo de tienda (ventas en espera, recibo numerado, doble precio) para un negocio que no es de nicho tienda — requiere Punto de Venta y Productos activos también' },
-  { key: 'employees_create_clients', label: 'Empleados crean clientes', description: 'Los empleados pueden agregar clientes desde la agenda' },
-  { key: 'employees_see_clients', label: 'Empleados ven clientes', description: 'Acceso al módulo de Clientes en el menú lateral' },
-  { key: 'gift_cards', label: 'Gift Cards', description: 'Sistema de tarjetas de regalo' },
-  { key: 'manual_reports', label: 'Reporte Diario', description: 'Generación y control de reportes diarios' },
-  { key: 'multi_branch', label: 'Múltiples sucursales', description: 'Gestionar varias ubicaciones físicas' },
-  { key: 'enable_public_booking', label: 'Reservas públicas', description: 'Links de reserva e invitaciones para clientes' },
-  { key: 'whatsapp_available', label: 'WhatsApp', description: 'Configurar WhatsApp via Evolution API con QR' },
-  { key: 'hide_client_phone_from_employees', label: 'Ocultar datos a empleados', description: 'Empleados no ven teléfono ni email de clientes' },
-  { key: 'staffing_receivables', label: 'Cuentas por cobrar con antigüedad', description: 'Agrega en Reportes la pestaña «Cuentas por cobrar» (deuda de cada empresa agrupada por días de vencimiento: al día, 1–30, 31–60, 61–90 y más de 90) y marca como «Vencida» las facturas atrasadas. Apagado: Nómina y facturas funcionan igual que hoy.' },
-  { key: 'staffing_invoice_email', label: 'Enviar factura por correo (aún no disponible)', description: 'Reservado para una próxima versión: enviar la factura al cliente por correo con recordatorios de cobro. Por ahora activarlo no cambia nada.' },
-  { key: 'staffing_pay_stubs', label: 'Talón de pago por empleado', description: 'Agrega en Nómina los botones «Talón de pago» e «Imprimir talones»: un comprobante imprimible con horas, bruto, retención, ajustes y pago neto. No muestra tarifas de factura ni margen.' },
-  { key: 'staffing_doc_expiry', label: 'Vencimiento de documentos (aún no disponible)', description: 'Reservado para una próxima versión: fecha de vencimiento en los documentos de los empleados (permiso de trabajo, I-9, licencias) con alertas. Por ahora activarlo no cambia nada.' },
-  { key: 'staffing_commissions', label: 'Comisiones de vendedoras (aún no disponible)', description: 'Reservado para una próxima versión: comisión por cliente cerrado o por horas facturadas. Por ahora activarlo no cambia nada.' },
-  { key: 'staffing_profitability', label: 'Rentabilidad por empresa y rol', description: 'Agrega en Reportes la pestaña «Rentabilidad»: facturado, costo y margen de cada empresa y de cada rol en el período elegido (solo semanas aprobadas o pagadas).' },
-  { key: 'staffing_approval_stamp', label: 'Firmantes y sello de aprobación de nómina', description: 'Registra a los jefes que aprueban (nombre y PIN) para saber quién aprobó cada semana aunque compartan la cuenta. Al aprobar se elige quién es y la nómina queda con su nombre, la fecha y un código verificable (en pantalla, nómina impresa, talones y XLSX). Requiere aplicar las migraciones primero.' },
-  { key: 'staffing_assignment_history', label: 'Historial de asignaciones (aún no disponible)', description: 'Reservado para una próxima versión: fecha de inicio y fin de cada asignación empleado-empresa. Por ahora activarlo no cambia nada.' },
-]
+// ── Presentation only: tabs, summary cards and the switch groups ────────────
+const flagGroups = computed(() => groupsForNiche(business.value?.niche_type))
+// What a business of this niche gets with nothing stored — used only to mark the switches that were changed.
+const nicheDefaults = computed(() => resolveFeatures(business.value?.niche_type, {}))
+const flagSummary = computed(() => flagStats(flagGroups.value, features.value, nicheDefaults.value))
 
-const scheduleFlags = computed(() => allFlags.filter(f => ['agenda', 'calendario', 'servicios'].includes(f.key)))
-const coreModules = computed(() => allFlags.filter(f => ['pos', 'inventario', 'productos', 'proveedores', 'retail_module_enabled'].includes(f.key)))
-const managementFlags = computed(() => allFlags.filter(f => ['employees_create_clients', 'employees_see_clients', 'gift_cards', 'manual_reports', 'multi_branch'].includes(f.key)))
-const staffingExtraFlags = computed(() => allFlags.filter(f => f.key.startsWith('staffing_')))
-const commFlags = computed(() => allFlags.filter(f => ['enable_public_booking', 'whatsapp_available', 'hide_client_phone_from_employees'].includes(f.key)))
+type TabId = 'resumen' | 'funciones' | 'equipo'
+const tab = ref<TabId>((['resumen', 'funciones', 'equipo'] as const).find(t => t === route.query.tab) ?? 'resumen')
+const selectTab = (id: TabId) => {
+  tab.value = id
+  router.replace({ query: { ...route.query, tab: id === 'resumen' ? undefined : id } })
+}
+const TABS = computed(() => [
+  { id: 'resumen' as const, label: 'Resumen', badge: '' },
+  { id: 'funciones' as const, label: 'Funciones', badge: `${flagSummary.value.on}/${flagSummary.value.total}` },
+  { id: 'equipo' as const, label: 'Equipo y sucursales', badge: '' },
+])
+
+const infoItems = computed(() => [
+  { label: 'Identificador', value: business.value?.slug ?? '—' },
+  { label: 'Nicho', value: nicheLabel.value },
+  { label: 'Creado', value: business.value ? formatDate(business.value.created_at) : '—' },
+  { label: 'Zona horaria', value: business.value?.timezone || '—' },
+  { label: 'Moneda', value: business.value?.currency || '—' },
+  { label: 'Teléfono', value: business.value?.phone || '—' },
+])
 
 const isTogglingFeature = ref(false)
 const toggleFeature = async (key: string) => {
