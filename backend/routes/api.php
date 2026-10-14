@@ -366,6 +366,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
             Route::get('/clinical/programs', [ClinicalProgramController::class, 'index']);
             Route::post('/clinical/programs', [ClinicalProgramController::class, 'store']);
             Route::put('/clinical/programs/{id}', [ClinicalProgramController::class, 'update']);
+            Route::delete('/clinical/programs/{id}', [ClinicalProgramController::class, 'destroy']);
             Route::get('/clients/{clientId}/clinical-enrollments', [ClinicalProgramController::class, 'forClient']);
             Route::post('/clients/{clientId}/clinical-enrollments', [ClinicalProgramController::class, 'enroll']);
             Route::post('/clinical/enrollments/check', [ClinicalProgramController::class, 'checkConflicts']);

@@ -81,6 +81,15 @@ class ProgramService
     }
 
     /**
+     * Quita el programa del catálogo. Lo ya vendido NO se toca: cada inscripción guarda su propio nombre, precio
+     * y sesiones, y `program_id` no tiene FK. Para dejar de ofrecerlo sin borrarlo basta con desactivarlo.
+     */
+    public function delete(Program $program): void
+    {
+        $program->delete();
+    }
+
+    /**
      * Deja los componentes en forma canónica y comprueba que los servicios sean del negocio.
      *
      * Cada componente es una especialidad: sus servicios, cuántas sesiones y, opcionalmente, su especialista

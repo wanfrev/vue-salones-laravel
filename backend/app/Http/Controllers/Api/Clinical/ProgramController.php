@@ -73,6 +73,21 @@ class ProgramController
         return response()->json($this->programs->show($program));
     }
 
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        [$businessId, $error] = $this->adminContext($request);
+        if ($error) return $error;
+
+        $program = $this->programs->find($id, $businessId);
+        if (!$program) return response()->json(['message' => 'Programa no encontrado.'], 404);
+
+        $this->programs->delete($program);
+
+        EntityChanged::safe($businessId, 'clinical_program', 'deleted', $id);
+
+        return response()->json(['ok' => true]);
+    }
+
     private function programRules(bool $partial = false): array
     {
         $req = $partial ? 'sometimes' : 'required';

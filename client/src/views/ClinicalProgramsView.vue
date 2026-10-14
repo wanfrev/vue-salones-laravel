@@ -61,6 +61,7 @@
           <div class="flex items-center gap-2">
             <span v-if="!p.active" class="rounded bg-bg-secondary px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-text-muted">Desactivado</span>
             <button v-if="isAdmin" @click="openEdit(p)" class="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:border-primary/40 hover:text-primary">Editar</button>
+            <button v-if="isAdmin" @click="handleDelete(p)" :disabled="deleteMutation.isPending.value" class="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-danger transition-theme hover:bg-danger/5 disabled:opacity-50">Eliminar</button>
           </div>
         </div>
         <ul class="mt-2 space-y-1">
@@ -98,7 +99,7 @@ const { success, error: showError } = useNotification()
 const mode = ref<'list' | 'enroll' | 'edit'>('list')
 const editing = ref<ClinicalProgram | null>(null)
 
-const { programs, isLoading, isAdmin, createMutation, updateMutation } = usePrograms()
+const { programs, isLoading, isAdmin, createMutation, updateMutation, deleteMutation } = usePrograms()
 const { programs: activePrograms, employees, branchId } = useEnrollmentOptions()
 const saving = computed(() => createMutation.isPending.value || updateMutation.isPending.value)
 
@@ -114,6 +115,17 @@ const serviceOptions = computed(() => (servicesData.value ?? []).map(s => ({ id:
 const openNew = () => { editing.value = null; mode.value = 'edit' }
 const openEdit = (p: ClinicalProgram) => { editing.value = p; mode.value = 'edit' }
 const closeForm = () => { editing.value = null; mode.value = 'list' }
+
+function handleDelete(p: ClinicalProgram) {
+  const ok = window.confirm(
+    `¿Eliminar el programa «${p.name}»?\n\nLos pacientes ya inscritos conservan su programa, sus citas y su cobro. `
+    + 'Si solo quieres dejar de ofrecerlo, desactívalo en «Editar» en vez de eliminarlo.',
+  )
+  if (!ok) return
+  // Si justo se estaba editando ese programa, se cierra el formulario para no guardar sobre uno que ya no existe.
+  if (editing.value?.id === p.id) closeForm()
+  deleteMutation.mutate(p.id)
+}
 
 async function handleSave(payload: ProgramPayload) {
   try {
