@@ -139,7 +139,8 @@
 
           <!-- Extras opcionales de Staffing -->
           <div v-if="business.niche_type === 'staffing'" class="mb-4">
-            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest mb-2 px-1">Staffing — extras opcionales</p>
+            <p class="text-[10px] font-bold text-text-muted uppercase tracking-widest px-1">Staffing — extras opcionales</p>
+            <p class="mb-2 px-1 text-[11px] leading-relaxed text-text-muted">Funciones adicionales que se activan negocio por negocio. Todas vienen apagadas: mientras estén apagadas, el negocio trabaja exactamente igual que antes.</p>
             <div class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
               <label v-for="ft in staffingExtraFlags" :key="ft.key" class="flex cursor-pointer items-center justify-between gap-3 px-4 py-3 hover:bg-bg-secondary/30 transition-colors">
                 <div>
@@ -432,14 +433,14 @@ const allFlags = [
   { key: 'enable_public_booking', label: 'Reservas públicas', description: 'Links de reserva e invitaciones para clientes' },
   { key: 'whatsapp_available', label: 'WhatsApp', description: 'Configurar WhatsApp via Evolution API con QR' },
   { key: 'hide_client_phone_from_employees', label: 'Ocultar datos a empleados', description: 'Empleados no ven teléfono ni email de clientes' },
-  { key: 'staffing_receivables', label: 'Cuentas por cobrar con antigüedad', description: 'Vencimiento por empresa (net 15/30) y reporte 30/60/90 días. Apagado = Nómina y facturas funcionan igual que hoy' },
-  { key: 'staffing_invoice_email', label: 'Enviar factura por correo', description: 'Botón para enviar la factura al cliente por correo y recordatorios de cobro' },
-  { key: 'staffing_pay_stubs', label: 'Talón de pago', description: 'Comprobante imprimible de bruto, retención, deducciones y neto por empleado' },
-  { key: 'staffing_doc_expiry', label: 'Vencimiento de documentos', description: 'Fecha de vencimiento opcional en documentos de empleados y alertas' },
-  { key: 'staffing_commissions', label: 'Comisiones de vendedoras', description: 'Cálculo de comisión por cliente cerrado o por horas facturadas' },
-  { key: 'staffing_profitability', label: 'Rentabilidad comparativa', description: 'Vista de margen por empresa, rol y vendedora' },
-  { key: 'staffing_approval_stamp', label: 'Sello de aprobación de nómina', description: 'Registra firmantes (cada jefe con su PIN) para saber quién aprobó cada semana aunque compartan la cuenta, con un código verificable en la nómina impresa y el XLSX. Requiere aplicar las migraciones primero' },
-  { key: 'staffing_assignment_history', label: 'Historial de asignaciones', description: 'Fecha de inicio y fin de cada asignación empleado-empresa' },
+  { key: 'staffing_receivables', label: 'Cuentas por cobrar con antigüedad', description: 'Agrega en Reportes la pestaña «Cuentas por cobrar» (deuda de cada empresa agrupada por días de vencimiento: al día, 1–30, 31–60, 61–90 y más de 90) y marca como «Vencida» las facturas atrasadas. Apagado: Nómina y facturas funcionan igual que hoy.' },
+  { key: 'staffing_invoice_email', label: 'Enviar factura por correo (aún no disponible)', description: 'Reservado para una próxima versión: enviar la factura al cliente por correo con recordatorios de cobro. Por ahora activarlo no cambia nada.' },
+  { key: 'staffing_pay_stubs', label: 'Talón de pago por empleado', description: 'Agrega en Nómina los botones «Talón de pago» e «Imprimir talones»: un comprobante imprimible con horas, bruto, retención, ajustes y pago neto. No muestra tarifas de factura ni margen.' },
+  { key: 'staffing_doc_expiry', label: 'Vencimiento de documentos (aún no disponible)', description: 'Reservado para una próxima versión: fecha de vencimiento en los documentos de los empleados (permiso de trabajo, I-9, licencias) con alertas. Por ahora activarlo no cambia nada.' },
+  { key: 'staffing_commissions', label: 'Comisiones de vendedoras (aún no disponible)', description: 'Reservado para una próxima versión: comisión por cliente cerrado o por horas facturadas. Por ahora activarlo no cambia nada.' },
+  { key: 'staffing_profitability', label: 'Rentabilidad por empresa y rol', description: 'Agrega en Reportes la pestaña «Rentabilidad»: facturado, costo y margen de cada empresa y de cada rol en el período elegido (solo semanas aprobadas o pagadas).' },
+  { key: 'staffing_approval_stamp', label: 'Firmantes y sello de aprobación de nómina', description: 'Registra a los jefes que aprueban (nombre y PIN) para saber quién aprobó cada semana aunque compartan la cuenta. Al aprobar se elige quién es y la nómina queda con su nombre, la fecha y un código verificable (en pantalla, nómina impresa, talones y XLSX). Requiere aplicar las migraciones primero.' },
+  { key: 'staffing_assignment_history', label: 'Historial de asignaciones (aún no disponible)', description: 'Reservado para una próxima versión: fecha de inicio y fin de cada asignación empleado-empresa. Por ahora activarlo no cambia nada.' },
 ]
 
 const scheduleFlags = computed(() => allFlags.filter(f => ['agenda', 'calendario', 'servicios'].includes(f.key)))

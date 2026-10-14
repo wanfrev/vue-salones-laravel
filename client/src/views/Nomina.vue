@@ -5,7 +5,11 @@
         <WalletMoneyIcon class="h-3.5 w-3.5" />
         <span>Nómina</span>
       </div>
-      <p class="mt-1 text-sm text-text-muted">Carga las horas de la semana por empresa y calcula el pago y la factura.</p>
+      <p class="mt-1 max-w-3xl text-sm text-text-muted">
+        Elige una empresa y una semana, carga las horas de cada empleado y presiona «Guardar y calcular» para ver
+        el pago y la factura. Cuando todo esté correcto, aprueba la semana; después puedes generar la factura y
+        marcar la nómina como pagada.
+      </p>
     </header>
 
     <section class="rounded-2xl border border-border bg-surface p-4 lg:p-6">
@@ -13,6 +17,13 @@
     </section>
 
     <section v-if="businessStore.features.staffing_approval_stamp" class="mt-4 rounded-2xl border border-border bg-surface p-4 lg:p-6">
+      <div class="mb-5">
+        <h2 class="text-sm font-semibold text-text">Quién aprueba las nóminas</h2>
+        <p class="mt-0.5 max-w-3xl text-xs leading-relaxed text-text-muted">
+          Cada nómina aprobada queda con el nombre de quien la aprobó, la fecha y un código. Con el código puedes
+          comprobar después quién la aprobó y si los números cambiaron desde entonces.
+        </p>
+      </div>
       <div class="grid gap-6 lg:grid-cols-2">
         <ApprovalCodeVerifier />
         <ApproversPanel :business-id="businessId" />
@@ -22,10 +33,10 @@
     <section class="mt-4 rounded-2xl border border-border bg-surface p-4 lg:p-6">
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p class="text-sm font-semibold text-text">Lista de depósitos</p>
-          <p class="text-xs text-text-muted">
-            Junta en una sola lista todo lo que hay que depositar esa semana, una vez que la nómina de cada empresa
-            esté aprobada — solo empleados que cobran por depósito directo.
+          <p class="text-sm font-semibold text-text">Lista de depósitos de la semana</p>
+          <p class="max-w-2xl text-xs text-text-muted">
+            Reúne en una sola lista todo lo que hay que depositar esa semana, con el titular, el banco y el
+            monto de cada empleado. Solo aparecen empleados que cobran por depósito directo y cuya nómina ya está aprobada.
           </p>
         </div>
         <div class="flex flex-wrap items-end gap-3">

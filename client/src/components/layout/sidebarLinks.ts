@@ -97,9 +97,9 @@ export const sidebarSections: SidebarSection[] = [
         label: 'Configuración',
         icon: SettingsIcon,
         children: [
-          { to: '/admin/configuracion/general', label: 'General', icon: SettingsIcon },
+          { to: '/admin/configuracion/general', label: 'Cuenta y apariencia', icon: SettingsIcon },
           { to: '/admin/configuracion/whatsapp', label: 'WhatsApp', icon: ChatRoundLineIcon, strictAdminOnly: true, gate: { features: ['whatsapp_available', 'agenda'] } },
-          { to: '/admin/configuracion/permisos', label: 'Permisos y Funcionalidades', icon: ShieldKeyholeIcon, strictAdminOnly: true },
+          { to: '/admin/configuracion/permisos', label: 'Permisos del equipo', icon: ShieldKeyholeIcon, strictAdminOnly: true },
           { to: '/admin/configuracion/notificaciones', label: 'Notificaciones', icon: BellIcon, strictAdminOnly: true, gate: { feature: 'agenda' } },
           { to: '/admin/configuracion/sucursales', label: 'Sucursales', icon: PointOnMapIcon, strictAdminOnly: true, gate: { feature: 'multi_branch' } },
         ],

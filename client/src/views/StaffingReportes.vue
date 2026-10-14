@@ -7,7 +7,7 @@
       </div>
     </header>
 
-    <div class="mb-4 flex gap-1 border-b border-border">
+    <div class="flex flex-wrap gap-1 border-b border-border">
       <button v-for="tab in TABS" :key="tab.value" type="button"
         class="relative px-3 py-2 text-sm font-semibold transition-theme"
         :class="activeTab === tab.value ? 'text-primary' : 'text-text-muted hover:text-text'"
@@ -16,6 +16,7 @@
         <span v-if="activeTab === tab.value" class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
       </button>
     </div>
+    <p class="mb-4 mt-2 max-w-3xl text-xs text-text-muted">{{ activeDescription }}</p>
 
     <MonthlyPayrollReport v-if="activeTab === 'monthly'" :business-id="businessId" />
     <WeeklyCompanyReport v-else-if="activeTab === 'weekly'" :business-id="businessId" />
@@ -45,13 +46,14 @@ const businessId = computed(() => authStore.businessId)
 
 // "Por cobrar" is opt-in per business (superadmin flag) — without it the tab list is exactly
 // what it was before.
-const TABS = computed<{ value: ReportTab; label: string }[]>(() => [
-  { value: 'monthly', label: 'Mensual' },
-  { value: 'weekly', label: 'Semanal' },
-  { value: 'hours', label: 'Horas reportadas' },
-  ...(businessStore.features.staffing_receivables ? [{ value: 'receivables' as const, label: 'Por cobrar' }] : []),
-  ...(businessStore.features.staffing_profitability ? [{ value: 'profitability' as const, label: 'Rentabilidad' }] : []),
+const TABS = computed<{ value: ReportTab; label: string; description: string }[]>(() => [
+  { value: 'monthly', label: 'Nómina mensual', description: 'Cuánto se pagó de nómina en cada semana del mes, una fila por empresa.' },
+  { value: 'weekly', label: 'Resultados semanales', description: 'Por semana y empresa: nómina, invoice, ganancia bruta, gastos y número de empleados.' },
+  { value: 'hours', label: 'Horas trabajadas', description: 'Las horas de cada empleado semana a semana, o las de cada empresa en una semana, un mes o un año.' },
+  ...(businessStore.features.staffing_receivables ? [{ value: 'receivables' as const, label: 'Cuentas por cobrar', description: 'Lo que cada empresa te debe, agrupado por los días que lleva vencida la factura.' }] : []),
+  ...(businessStore.features.staffing_profitability ? [{ value: 'profitability' as const, label: 'Rentabilidad', description: 'Cuánto margen deja cada empresa y cada rol en el período que elijas.' }] : []),
 ])
 
 const activeTab = ref<ReportTab>('monthly')
+const activeDescription = computed(() => TABS.value.find(t => t.value === activeTab.value)?.description ?? '')
 </script>
