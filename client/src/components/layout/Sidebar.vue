@@ -8,7 +8,7 @@
     <nav ref="navEl" class="relative flex-1 overflow-y-auto px-3 pt-4 pb-2 touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
       <div
         aria-hidden="true"
-        class="pointer-events-none absolute left-2 right-2 rounded-lg border-l-[3px] border-primary bg-bg-secondary transition-[top,height,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[top,height] motion-reduce:transition-none"
+        class="sidebar-pill pointer-events-none absolute left-2 right-2 rounded-lg border-l-[3px] border-primary bg-primary-light transition-[top,height,opacity] duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] will-change-[top,height] motion-reduce:transition-none"
         :style="{ top: `${pill.top}px`, height: `${pill.height}px`, opacity: pill.visible ? 1 : 0 }"
       />
       <template v-for="section in visibleSections" :key="section.title ?? 'main'">
@@ -26,13 +26,13 @@
               :class="[
                 'group relative mb-0.5 flex w-full items-center gap-3 rounded-lg border-l-[3px] py-2.5 pr-3 pl-2 text-left text-sm font-medium transition-theme',
                 isGroupActive(link)
-                  ? 'border-transparent text-text'
+                  ? 'border-transparent text-primary'
                   : 'border-transparent text-text-secondary hover:bg-bg-secondary hover:text-text'
               ]"
             >
               <span :class="[
                 'flex h-7 w-7 items-center justify-center rounded-md transition-theme',
-                isGroupActive(link) ? 'text-primary' : 'bg-bg-secondary group-hover:bg-border'
+                isGroupActive(link) ? 'text-primary sidebar-icon-pop' : 'bg-bg-secondary group-hover:bg-border'
               ]">
                 <component :is="link.icon" class="h-4 w-4" />
               </span>
@@ -70,13 +70,13 @@
             :class="[
               'group relative mb-0.5 flex items-center gap-3 rounded-lg border-l-[3px] py-2.5 pr-3 pl-2 text-sm font-medium transition-theme',
               isActive(link.to)
-                ? 'border-transparent text-text'
+                ? 'border-transparent text-primary'
                 : 'border-transparent text-text-secondary hover:bg-bg-secondary hover:text-text'
             ]"
           >
             <span :class="[
               'flex h-7 w-7 items-center justify-center rounded-md transition-theme',
-              isActive(link.to) ? 'text-primary' : 'bg-bg-secondary group-hover:bg-border'
+              isActive(link.to) ? 'text-primary sidebar-icon-pop' : 'bg-bg-secondary group-hover:bg-border'
             ]">
               <component :is="link.icon" class="h-4 w-4" />
             </span>
