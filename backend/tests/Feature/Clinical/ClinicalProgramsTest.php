@@ -729,6 +729,43 @@ class ClinicalProgramsTest extends TestCase
         $this->assertSame(201, $c->enroll($this->req('cajero', 'POST', $enroll), $this->ana)->getStatusCode());
     }
 
+    public function test_a_program_can_be_deleted_by_administration_only_and_what_was_sold_keeps_working(): void
+    {
+        $c = app(ProgramController::class);
+        $program = $this->simpleProgram(2, 30.0);
+        $e = $this->enrollAna($program);
+
+        $this->assertSame(403, $c->destroy($this->req('cajero', 'DELETE'), $program->id)->getStatusCode());
+        $this->assertSame(403, $c->destroy($this->req('empleado', 'DELETE'), $program->id)->getStatusCode());
+        $this->assertNotNull(Program::find($program->id));
+
+        $this->assertSame(200, $c->destroy($this->req('admin', 'DELETE'), $program->id)->getStatusCode());
+        $this->assertNull(Program::find($program->id));
+        $this->assertSame([], $this->programs()->list(self::BIZ));
+
+        // La inscripción ya hecha conserva su nombre, su precio y sus citas.
+        $shown = $this->enrollments()->show($e->fresh());
+        $this->assertSame('Terapias de lenguaje', $shown['program_name']);
+        $this->assertEquals(30, $shown['price']);
+        $this->assertCount(2, $shown['sessions']);
+    }
+
+    public function test_a_deleted_program_cannot_be_enrolled_and_deleting_twice_or_another_business_is_a_404(): void
+    {
+        $c = app(ProgramController::class);
+        $program = $this->simpleProgram(2, 30.0);
+        $foreign = Program::create(['id' => '80000000-0000-4000-8000-000000000001', 'business_id' => 'biz-2', 'name' => 'Ajeno', 'price' => 1, 'validity_days' => 30, 'components' => [], 'active' => true]);
+
+        $this->assertSame(404, $c->destroy($this->req('admin', 'DELETE'), $foreign->id)->getStatusCode());
+        $this->assertNotNull(Program::find($foreign->id));
+
+        $this->assertSame(200, $c->destroy($this->req('admin', 'DELETE'), $program->id)->getStatusCode());
+        $this->assertSame(404, $c->destroy($this->req('admin', 'DELETE'), $program->id)->getStatusCode());
+
+        $body = ['program_id' => $program->id, 'employee_id' => $this->doc, 'sessions' => $this->schedule(2)];
+        $this->assertSame(404, $c->enroll($this->req('admin', 'POST', $body), $this->ana)->getStatusCode());
+    }
+
     public function test_extending_cancelling_and_overriding_are_administration_only(): void
     {
         $c = app(ProgramController::class);

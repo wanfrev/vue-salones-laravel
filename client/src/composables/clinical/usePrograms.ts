@@ -1,7 +1,7 @@
 import { computed } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import {
-  cancelEnrollment, createProgram, enrollClient, extendEnrollment, getProgramOfAppointment, listClientEnrollments,
+  cancelEnrollment, createProgram, deleteProgram, enrollClient, extendEnrollment, getProgramOfAppointment, listClientEnrollments,
   listPrograms, setSessionConsumes, updateProgram, type EnrollPayload, type ProgramPayload,
 } from '../../services/clinical/programService'
 import { listEquipo } from '../../services/equipoService'
@@ -52,12 +52,19 @@ export function usePrograms(activeOnly: () => boolean = () => false) {
     onError: err => showError(translateError(err, 'No se pudo actualizar el programa')),
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteProgram(id),
+    onSuccess: () => { invalidate(); success('Programa eliminado') },
+    onError: err => showError(translateError(err, 'No se pudo eliminar el programa')),
+  })
+
   return {
     programs: computed(() => programsQuery.data.value ?? []),
     isLoading: programsQuery.isLoading,
     isAdmin,
     createMutation,
     updateMutation,
+    deleteMutation,
   }
 }
 

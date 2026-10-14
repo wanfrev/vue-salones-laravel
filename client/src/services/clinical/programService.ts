@@ -36,6 +36,8 @@ export const listPrograms = async (activeOnly = false) =>
   apiRequest<ClinicalProgram[]>('GET', `/clinical/programs${activeOnly ? '?active=1' : ''}`)
 
 export const createProgram = async (data: ProgramPayload) => apiRequest<ClinicalProgram>('POST', '/clinical/programs', data)
+/** Quita el programa del catálogo; las inscripciones ya hechas conservan sus datos. */
+export const deleteProgram = async (id: string) => apiRequest<{ ok: boolean }>('DELETE', `/clinical/programs/${id}`)
 export const updateProgram = async (id: string, data: Partial<ProgramPayload>) => apiRequest<ClinicalProgram>('PUT', `/clinical/programs/${id}`, data)
 
 // ── Inscripciones ──

@@ -65,6 +65,7 @@ class ClinicalRoutesTest extends TestCase
         ['GET', 'api/clinical/programs', 'clinical.programs'],
         ['POST', 'api/clinical/programs', 'clinical.programs'],
         ['PUT', 'api/clinical/programs/{id}', 'clinical.programs'],
+        ['DELETE', 'api/clinical/programs/{id}', 'clinical.programs'],
         ['GET', 'api/clients/{clientId}/clinical-enrollments', 'clinical.programs'],
         ['POST', 'api/clients/{clientId}/clinical-enrollments', 'clinical.programs'],
         ['POST', 'api/clinical/enrollments/check', 'clinical.programs'],
