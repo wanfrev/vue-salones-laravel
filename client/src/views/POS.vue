@@ -1,7 +1,10 @@
 <template>
   <FeatureGate feature="pos">
-  <div class="lg:flex lg:flex-col lg:h-[calc(100dvh-var(--header-total)-3rem)] lg:overflow-hidden">
-  <header v-if="!isTiendaNiche(businessStore.nicheType)" class="mb-4 lg:mb-6 lg:shrink-0">
+  <!-- En escritorio todo el POS es UNA sola tarjeta (encabezado + lista + resumen de cobro); lo que
+       antes eran tarjetas sueltas ahora son secciones separadas por líneas finas. En móvil se
+       mantiene plano, sin marco. -->
+  <div class="lg:flex lg:flex-col lg:h-[calc(100dvh-var(--header-total)-3rem)] lg:overflow-hidden lg:rounded-2xl lg:border lg:border-border lg:bg-surface lg:shadow-sm">
+  <header v-if="!isTiendaNiche(businessStore.nicheType)" class="mb-4 lg:mb-0 lg:shrink-0 lg:border-b lg:border-border lg:px-4 lg:py-3">
     <div class="grid grid-cols-1 items-center gap-3 lg:grid-cols-[1fr_auto_1fr]">
       <div class="flex items-center gap-2 text-xs text-primary">
         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
@@ -68,16 +71,16 @@
 
   <PrinterSettingsModal v-if="showPrinterSettings" @close="showPrinterSettings = false" />
 
-  <div v-if="queryError" class="mb-4 rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm text-danger">Error al cargar citas: {{ queryError }}</div>
+  <div v-if="queryError" class="mb-4 rounded-xl border border-danger/30 bg-danger/5 p-3 text-sm text-danger lg:mx-4 lg:mt-3">Error al cargar citas: {{ queryError }}</div>
 
   <div
-    class="grid grid-cols-1 gap-4 lg:flex-1 lg:min-h-0"
+    class="grid grid-cols-1 gap-4 lg:gap-0 lg:flex-1 lg:min-h-0"
     :class="activeSaleType === 'retail_only' ? 'lg:grid-cols-[minmax(0,2fr)_minmax(360px,1fr)]' : 'lg:grid-cols-2'"
   >
     <!-- LEFT PANEL -->
-    <div class="min-w-0 space-y-4 lg:h-full lg:overflow-y-auto lg:pr-1">
+    <div class="min-w-0 space-y-4 lg:h-full lg:overflow-y-auto lg:p-4">
       <!-- DIRECT SERVICE PANEL -->
-      <div v-if="activeSaleType === 'direct_service'" class="rounded-2xl border border-primary/30 bg-surface p-3 shadow-sm space-y-4 mb-4 sm:p-4">
+      <div v-if="activeSaleType === 'direct_service'" class="space-y-4 mb-4 border-b border-border pb-4">
         <div class="flex items-center justify-between gap-2 border-b border-border pb-3">
           <div class="flex items-center gap-2.5 min-w-0">
             <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -96,7 +99,7 @@
         </div>
 
         <!-- Formulario para agregar un servicio -->
-        <div class="rounded-xl bg-bg-secondary/60 p-3 border border-border/50 sm:p-4">
+        <div class="rounded-xl bg-bg-secondary/50 p-3 sm:p-4">
           <div class="grid gap-3" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr))">
             <div>
               <label class="mb-1 flex items-center gap-1 text-[11px] font-semibold text-text-secondary">
@@ -180,7 +183,7 @@
             <div
               v-for="(item, idx) in directServicesList"
               :key="item.id"
-              class="flex items-center justify-between gap-2 rounded-xl border border-border bg-surface p-2.5 shadow-2xs sm:gap-3"
+              class="flex items-center justify-between gap-2 border-b border-border-subtle py-2.5 last:border-b-0 sm:gap-3"
             >
               <div class="flex-1 min-w-0">
                 <p class="text-xs font-semibold text-text truncate sm:text-sm">{{ item.serviceName }}</p>
@@ -244,7 +247,7 @@
       </div>
 
       <!-- STANDALONE TIP PANEL -->
-      <div v-if="activeSaleType === 'tip'" class="rounded-2xl border border-primary/30 bg-surface p-3 shadow-sm space-y-4 mb-4 sm:p-4">
+      <div v-if="activeSaleType === 'tip'" class="space-y-4 mb-4">
         <div class="flex items-center gap-2.5 border-b border-border pb-3">
           <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <svg class="h-4.5 w-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -352,7 +355,7 @@
     </div>
 
     <!-- RIGHT PANEL (desktop & tablet landscape) -->
-    <div class="hidden lg:flex lg:flex-col lg:h-full lg:overflow-hidden">
+    <div class="hidden lg:flex lg:flex-col lg:h-full lg:overflow-hidden lg:border-l lg:border-border">
       <POSPaymentPanel
         :selected-appointment="selectedAppointment"
         :cart="cart" :service-price="servicePrice"

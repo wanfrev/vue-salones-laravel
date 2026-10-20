@@ -11,7 +11,7 @@
 
     <template v-if="selectedAppointment || isRetailOnly || isDirectService || isTipMode">
       <div class="flex-1 overflow-y-auto min-h-0 space-y-3 pr-1">
-        <div class="rounded-lg border border-border-subtle bg-bg-secondary p-3">
+        <div class="border-b border-border-subtle pb-3">
           <template v-if="isTipMode">
             <div class="flex items-center justify-between text-sm">
                <span class="text-text-muted">{{ businessStore.terminology.employee }}</span>
