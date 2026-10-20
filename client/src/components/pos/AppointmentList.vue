@@ -8,13 +8,13 @@
       </div>
     </div>
 
-    <div v-if="overdue.length > 0" class="rounded-xl border border-border bg-surface p-3 mb-3 sm:p-4">
+    <div v-if="overdue.length > 0" class="mb-3">
       <div class="flex items-center gap-2 mb-2 sm:mb-3">
         <svg class="h-4 w-4 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         <h3 class="text-sm font-semibold text-text">Citas realizadas</h3>
         <span class="ml-auto rounded-full bg-warning/10 px-2 py-0.5 text-xs font-semibold text-warning">{{ overdue.length }}</span>
       </div>
-      <div class="space-y-1.5">
+      <div>
         <POSAppointmentCard
           v-for="appt in overdue" :key="appt.id"
           :appt="appt" :is-selected="selectedId === appt.id"
@@ -26,13 +26,13 @@
       </div>
     </div>
 
-    <div v-if="upcoming.length > 0" class="rounded-xl border border-border bg-surface p-3 sm:p-4">
+    <div v-if="upcoming.length > 0" :class="overdue.length > 0 ? 'border-t border-border pt-4' : ''">
       <div class="flex items-center gap-2 mb-2 sm:mb-3">
         <svg class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
         <h3 class="text-sm font-semibold text-text">Citas pendientes</h3>
         <span class="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary">{{ upcoming.length }}</span>
       </div>
-      <div class="space-y-1.5">
+      <div>
         <POSAppointmentCard
           v-for="appt in upcoming" :key="appt.id"
           :appt="appt" :is-selected="selectedId === appt.id"
@@ -44,7 +44,7 @@
       </div>
     </div>
 
-    <div v-if="totalCount === 0" class="py-6 text-center text-sm text-text-muted rounded-xl border border-border bg-surface p-4">
+    <div v-if="totalCount === 0" class="py-8 text-center text-sm text-text-muted">
       {{ search ? 'Sin resultados' : 'No hay citas pendientes de pago' }}
     </div>
   </div>

@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, keepPreviousData } from '@tanstack/vue-query'
 import { toISODate, parseLocalDate } from '../../lib/formatters'
 import { listCitas, agendaKeys, searchCitasGlobal } from '../../services/agendaService'
 import { listServicios, serviciosKeys } from '../../services/serviciosService'
@@ -89,6 +89,9 @@ export function useAdminAgenda(businessId: () => string | null) {
     ]),
     queryFn: () => listCitas(businessId()!, dateRange.value, undefined, currentBranchId.value),
     enabled: computed(() => !!businessId() && (dateFilterMode.value !== 'range' || !!(rangeStart.value && rangeEnd.value))),
+    // Al moverse de día/semana con las flechas se queda la lista anterior en pantalla (con la
+    // barra de carga arriba) en vez de parpadear a vacío/skeleton en cada paso.
+    placeholderData: keepPreviousData,
     staleTime: 15000,
   })
 

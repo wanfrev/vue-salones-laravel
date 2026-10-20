@@ -9,7 +9,7 @@
       <div
         aria-hidden="true"
         class="sidebar-pill pointer-events-none absolute left-2 right-2 rounded-lg border-l-[3px] border-primary bg-primary-light transition-[top,height,opacity] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[top,height] motion-reduce:transition-none"
-        :style="{ top: `${pill.top}px`, height: `${pill.height}px`, opacity: pill.visible ? 1 : 0 }"
+        :style="{ top: `${pill.top}px`, height: `${pill.height}px`, opacity: pill.visible ? 1 : 0, transitionDuration: pill.animate ? undefined : '0ms' }"
       />
       <template v-for="section in visibleSections" :key="section.title ?? 'main'">
         <p v-if="section.title" class="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-text-muted/70">
@@ -21,7 +21,7 @@
           <div v-if="link.children && link.children.length">
             <button
               type="button"
-              :ref="setRowRef(`g:${link.to}`)"
+              :data-nav-key="`g:${link.to}`"
               @click="toggleExpanded(link.to)"
               :class="[
                 'group relative mb-0.5 flex w-full items-center gap-3 rounded-lg border-l-[3px] py-2.5 pr-3 pl-2 text-left text-sm font-medium transition-theme',
@@ -36,7 +36,7 @@
               ]">
                 <component :is="link.icon" class="h-4 w-4" />
               </span>
-              <span class="flex-1">{{ resolveLabel(link) }}</span>
+              <span :class="['flex-1', isGroupActive(link) && 'font-semibold']">{{ resolveLabel(link) }}</span>
               <svg
                 class="h-3.5 w-3.5 shrink-0 transition-transform duration-200"
                 :class="{ 'rotate-180': isExpanded(link.to) }"
@@ -50,11 +50,16 @@
                 v-for="child in link.children"
                 :key="child.to"
                 :to="child.to"
+                :aria-current="isActive(child.to) ? 'page' : undefined"
+                @click="onNavClick($event, child.to)"
+                @pointerenter="prefetch(child.to)"
+                @focus="prefetch(child.to)"
+                @touchstart.passive="prefetch(child.to)"
                 :class="[
                   'relative flex items-center gap-2.5 rounded-lg py-2 pr-3 pl-2 text-[13px] font-medium transition-theme',
                   isActive(child.to)
-                    ? 'bg-bg-secondary text-text font-semibold'
-                    : 'text-text-secondary hover:bg-bg-secondary hover:text-text'
+                    ? 'bg-bg-secondary text-primary font-semibold'
+                    : 'text-text-secondary hover:bg-bg-secondary hover:text-text active:bg-bg-secondary'
                 ]"
               >
                 <component :is="child.icon" class="h-3.5 w-3.5 shrink-0" />
@@ -66,12 +71,17 @@
           <router-link
             v-else
             :to="link.to"
-            :ref="setRowRef(`l:${link.to}`)"
+            :data-nav-key="`l:${link.to}`"
+            :aria-current="isActive(link.to) ? 'page' : undefined"
+            @click="onNavClick($event, link.to)"
+            @pointerenter="prefetch(link.to)"
+            @focus="prefetch(link.to)"
+            @touchstart.passive="prefetch(link.to)"
             :class="[
               'group relative mb-0.5 flex items-center gap-3 rounded-lg border-l-[3px] py-2.5 pr-3 pl-2 text-sm font-medium transition-theme',
               isActive(link.to)
                 ? 'border-transparent text-text'
-                : 'border-transparent text-text-secondary hover:bg-bg-secondary hover:text-text'
+                : 'border-transparent text-text-secondary hover:bg-bg-secondary hover:text-text active:bg-bg-secondary'
             ]"
           >
             <span :class="[
@@ -80,7 +90,7 @@
             ]">
               <component :is="link.icon" class="h-4 w-4" />
             </span>
-            <span class="flex-1">{{ resolveLabel(link) }}</span>
+            <span :class="['flex-1', isActive(link.to) && 'font-semibold']">{{ resolveLabel(link) }}</span>
             <span
               v-if="link.badge && !isActive(link.to)"
               class="rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-bold text-primary"
@@ -95,13 +105,14 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { loadRouteLocation, useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../../composables/common/useAuth'
 import { useBusinessStore } from '../../store/business'
 import { isAdminPanelRole, isEncargado } from '../../constants/roles'
 import { evaluateGate } from '../../router/gate'
 import { sidebarSections } from './sidebarLinks'
+import { matchNavPath } from './sidebarActive'
 import type { SidebarLink } from './sidebarLinks'
 
 interface Props {
@@ -115,6 +126,7 @@ const emit = defineEmits<{
 }>()
 
 const route = useRoute()
+const router = useRouter()
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
 
@@ -174,7 +186,52 @@ const visibleSections = computed(() =>
     .filter(section => section.links.length > 0)
 )
 
-const isActive = (path: string): boolean => route.path === path
+// Todas las rutas navegables del menú visible (de un grupo cuentan sus hijos, no su cabecera).
+const navPaths = computed(() =>
+  visibleSections.value.flatMap(s => s.links.flatMap(l => (l.children?.length ? l.children.map(c => c.to) : [l.to]))),
+)
+
+// Resaltado optimista: al tocar una opción se marca de inmediato, sin esperar a que cargue la
+// pantalla (rutas lazy + guards pueden tardar y el menú se sentía "pegado"). Se limpia cuando
+// termina cualquier navegación -- si un guard redirige a otro lado, manda la ruta real.
+const pendingTo = ref<string | null>(null)
+let pendingTimer: ReturnType<typeof setTimeout> | null = null
+const clearPending = () => {
+  pendingTo.value = null
+  if (pendingTimer) { clearTimeout(pendingTimer); pendingTimer = null }
+}
+const stopAfterEach = router.afterEach(clearPending)
+onBeforeUnmount(() => { stopAfterEach(); clearPending() })
+
+const onNavClick = (e: MouseEvent, to: string) => {
+  // Ctrl/Cmd/Shift-clic abre en otra pestaña o ventana: acá no hay navegación que esperar.
+  if (e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+    pendingTo.value = to
+    if (pendingTimer) clearTimeout(pendingTimer)
+    pendingTimer = setTimeout(clearPending, 4000)
+  }
+  // En móvil el menú es un cajón: al elegir una opción tiene que cerrarse (el evento estaba
+  // declarado pero nunca se emitía, así que quedaba abierto tapando la pantalla).
+  emit('close')
+}
+
+// Precarga el código de la pantalla al pasar el mouse / enfocar / tocar, para que al hacer clic
+// ya esté descargado. Solo resuelve los componentes lazy de la ruta; no corre guards ni navega.
+const prefetched = new Set<string>()
+const prefetch = (to: string) => {
+  if (prefetched.has(to) || to === route.path) return
+  prefetched.add(to)
+  try {
+    loadRouteLocation(router.resolve(to)).catch(() => prefetched.delete(to))
+  } catch {
+    prefetched.delete(to)
+  }
+}
+
+// Activa también en sus pantallas internas (/admin/clientes/123...), no solo en la ruta exacta:
+// antes, entrar a un detalle dejaba el menú sin ninguna opción marcada. Ver sidebarActive.ts.
+const activeTo = computed(() => pendingTo.value ?? matchNavPath(route.path, navPaths.value))
+const isActive = (path: string): boolean => activeTo.value === path
 const isGroupActive = (link: SidebarLink): boolean =>
   !!link.children?.some(child => isActive(child.to))
 
@@ -194,13 +251,7 @@ const toggleExpanded = (to: string) => {
 // user navigates between modules (or a group auto-opens/closes). Positioned with
 // top/height measured from the DOM so no layout math lives in the templates.
 const navEl = ref<HTMLElement | null>(null)
-const rowEls = new Map<string, HTMLElement>()
-const pill = ref({ top: 0, height: 0, visible: false })
-
-const setRowRef = (key: string) => (el: unknown) => {
-  if (el instanceof HTMLElement) rowEls.set(key, el)
-  else rowEls.delete(key)
-}
+const pill = ref({ top: 0, height: 0, visible: false, animate: false })
 
 const activeRowKey = computed<string | null>(() => {
   for (const section of visibleSections.value) {
@@ -215,24 +266,48 @@ const activeRowKey = computed<string | null>(() => {
   return null
 })
 
-const measurePill = () => {
+// La fila se busca por atributo en el DOM, no con un `ref`: en las opciones normales el ref de un
+// <router-link> es la instancia del componente (no un HTMLElement), así que el indicador nunca
+// encontraba la fila activa y quedaba invisible. `data-nav-key` cae sobre el <a> raíz.
+const measurePill = (animate: boolean) => {
   const key = activeRowKey.value
-  const el = key ? rowEls.get(key) : undefined
+  const el = key && navEl.value
+    ? navEl.value.querySelector<HTMLElement>(`[data-nav-key="${key.replace(/"/g, '\\"')}"]`)
+    : null
   if (el && navEl.value) {
-    pill.value = { top: el.offsetTop, height: el.offsetHeight, visible: true }
+    pill.value = { top: el.offsetTop, height: el.offsetHeight, visible: true, animate }
   } else {
-    pill.value = { top: pill.value.top, height: pill.value.height, visible: false }
+    pill.value = { top: pill.value.top, height: pill.value.height, visible: false, animate }
   }
 }
 
+// El indicador solo se desliza cuando cambia la opción activa. Si lo que cambió fue otra cosa
+// (abrir/cerrar un grupo, el cajón móvil, la lista visible), las filas se reacomodan al instante
+// y un deslizamiento de 400 ms dejaba el indicador desfasado detrás de ellas. Tampoco se anima
+// la primera medición (no tiene de dónde "venir").
 watch(
   [activeRowKey, visibleSections, expandedOverrides, () => props.isOpen],
-  async () => {
+  async ([key], old) => {
+    const animate = !!old && key !== old[0]
     await nextTick()
-    measurePill()
+    measurePill(animate)
   },
   { immediate: true },
 )
+
+// La medición "immediate" de arriba corre en el setup, antes de que existan las filas, así que
+// la posición inicial se mide al montar. También al cargar las fuentes y si cambia el ancho del
+// menú (el texto puede reacomodarse y mover las filas).
+let navResizeObserver: ResizeObserver | null = null
+onMounted(() => {
+  measurePill(false)
+  document.fonts?.ready.then(() => measurePill(false))
+  if (navEl.value && typeof ResizeObserver !== 'undefined') {
+    navResizeObserver = new ResizeObserver(() => measurePill(false))
+    navResizeObserver.observe(navEl.value)
+  }
+})
+onBeforeUnmount(() => navResizeObserver?.disconnect())
 
 const resolveLabel = (link: SidebarLink): string => {
   if (link.labelKey) {

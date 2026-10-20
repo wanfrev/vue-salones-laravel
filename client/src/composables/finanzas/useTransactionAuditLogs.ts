@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, keepPreviousData } from '@tanstack/vue-query'
 import { listTransactionAuditLogs, transactionAuditLogKeys } from '../../services/transactionAuditLogService'
 
 /**
@@ -28,6 +28,7 @@ export function useTransactionAuditLogs(
       branchId.value,
     ),
     enabled: computed(() => !!businessId.value && enabled.value),
+    placeholderData: keepPreviousData,
     staleTime: 15_000,
   })
 

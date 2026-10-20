@@ -1,5 +1,5 @@
 <template>
-  <div class="card-hairline flex flex-col h-full rounded-xl p-3.5 sm:p-4 lg:min-h-0 min-w-0">
+  <div class="flex flex-col h-full p-3.5 sm:p-4 lg:min-h-0 min-w-0">
     <div class="flex items-center gap-2.5 mb-3 sm:mb-4 shrink-0 pb-3 border-b border-border-subtle">
       <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -10,8 +10,8 @@
     </div>
 
     <template v-if="selectedAppointment || isRetailOnly || isDirectService || isTipMode">
-      <div class="flex-1 overflow-y-auto min-h-0 space-y-3 pr-1">
-        <div class="rounded-lg border border-border-subtle bg-bg-secondary p-3">
+      <div class="scroll-thin flex-1 overflow-y-auto min-h-0 space-y-3 pr-1">
+        <div class="border-b border-border-subtle pb-3">
           <template v-if="isTipMode">
             <div class="flex items-center justify-between text-sm">
                <span class="text-text-muted">{{ businessStore.terminology.employee }}</span>
@@ -115,7 +115,7 @@
             <div
               v-for="(item, idx) in cart"
               :key="`${item.productId}:${item.variantId ?? ''}`"
-              class="rounded-lg bg-bg-secondary px-2.5 py-2"
+              class="border-b border-border-subtle py-2 last:border-b-0"
             >
               <!-- Two lines per product: name gets its own full-width line so it's never
                    squeezed to nothing by the fixed-width controls below it (was happening in
@@ -277,7 +277,7 @@
               Propina registrada en bolívares — equivale a {{ formatUSD(tipAmount) }} a la tasa de hoy ({{ exchangeRate.toLocaleString('es-VE') }} Bs/$).
             </p>
 
-            <div v-if="showTipAdjust && tipParticipants.length > 0" class="rounded-lg border border-border bg-bg-secondary/40 p-2.5 space-y-2">
+            <div v-if="showTipAdjust && tipParticipants.length > 0" class="rounded-lg bg-bg-secondary/50 p-2.5 space-y-2">
               <div class="flex items-center justify-between text-xs">
                 <span class="font-medium text-text"><span class="hidden sm:inline">Distribución de propina</span><span class="sm:hidden">Distribución</span></span>
                 <button

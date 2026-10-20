@@ -103,12 +103,14 @@ const displayProductsList = computed(() => {
 </script>
 
 <template>
-  <div>
+  <!-- Fila plana (separada por línea fina), no una tarjeta con borde propio: la lista completa vive
+       dentro de la tarjeta única del POS. La seleccionada se marca con fondo + barra a la izquierda. -->
+  <div class="border-b border-border-subtle last:border-b-0">
     <button
       @click="$emit('select', appt)"
       :class="[
-        'w-full text-left rounded-lg border p-2 sm:p-2.5 transition-theme',
-        isSelected ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-border hover:border-border-strong hover:bg-bg-secondary'
+        'w-full text-left rounded-lg border-l-[3px] px-2.5 py-2.5 transition-theme',
+        isSelected ? 'border-primary bg-primary/10' : 'border-transparent hover:bg-bg-secondary'
       ]"
     >
       <div class="flex items-center justify-between gap-2">

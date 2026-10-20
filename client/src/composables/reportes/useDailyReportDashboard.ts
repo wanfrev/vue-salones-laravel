@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, keepPreviousData } from '@tanstack/vue-query'
 import { useBusinessStore } from '../../store/business'
 import { useAuthStore } from '../../store/auth'
 import { usePeriodSelection } from '../finanzas/usePeriodSelection'
@@ -49,6 +49,7 @@ export function useDailyReportDashboard() {
       selectedBranchId.value,
     ),
     enabled: computed(() => !!activeBusinessId.value),
+    placeholderData: keepPreviousData,
     staleTime: 30_000,
   })
 

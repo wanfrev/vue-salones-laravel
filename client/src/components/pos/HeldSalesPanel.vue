@@ -13,7 +13,7 @@
     </button>
 
     <Transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
-      <div v-if="isOpen" class="absolute left-0 top-full z-40 mt-1.5 w-80 max-w-[90vw] rounded-xl border border-border bg-surface p-2 shadow-xl max-h-96 overflow-y-auto">
+      <div v-if="isOpen" class="absolute left-0 lg:left-auto lg:right-0 top-full z-40 mt-1.5 w-80 max-w-[90vw] rounded-xl border border-border bg-surface p-2 shadow-xl max-h-96 overflow-y-auto">
         <div v-if="isLoading" class="py-6 text-center text-sm text-text-muted">Cargando...</div>
         <div v-else-if="heldSales.length === 0" class="py-6 text-center text-sm text-text-muted">
           No hay ventas en espera.
