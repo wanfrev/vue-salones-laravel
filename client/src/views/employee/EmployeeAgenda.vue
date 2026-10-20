@@ -87,7 +87,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { AddCircleIcon, LinkIcon, BoltIcon } from '@solar-icons/vue/linear'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, keepPreviousData } from '@tanstack/vue-query'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { isPatientNiche as checkPatientNiche } from '../../config/niches'
@@ -135,6 +135,7 @@ const { data: citasData, isLoading, error: citasError } = useQuery({
   queryKey: computed(() => [...agendaKeys.appointments(businessId.value, currentBranchId.value), 'employee', authStore.profile?.id, toISODate(selectedDate.value)]),
   queryFn: () => listCitas(businessId.value!, dateRange.value, authStore.profile?.id, currentBranchId.value),
   enabled: computed(() => !!businessId.value && !!authStore.profile?.id),
+  placeholderData: keepPreviousData,
   staleTime: 15000,
 })
 

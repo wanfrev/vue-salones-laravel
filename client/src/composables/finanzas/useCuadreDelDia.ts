@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, keepPreviousData } from '@tanstack/vue-query'
 import { getDailyReportDashboardSummary, dailyReportsKeys, type DailyReportDashboardSummary } from '../../services/dailyReportService'
 
 /**
@@ -29,6 +29,7 @@ export function useCuadreDelDia(
       branchId.value,
     ),
     enabled: computed(() => !!businessId.value),
+    placeholderData: keepPreviousData,
     staleTime: 15_000,
   })
 

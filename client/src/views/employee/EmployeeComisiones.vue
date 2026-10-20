@@ -149,7 +149,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, keepPreviousData } from '@tanstack/vue-query'
 import { formatMethod, formatDate, formatNumber } from '../../lib/formatters'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
@@ -203,6 +203,7 @@ const { data: earningsData, isLoading: loadingEarnings } = useQuery({
   queryKey: computed(() => dashboardKeys.earnings(businessId.value, employeeId.value, branchId.value, dateRange.value.start, dateRange.value.end)),
   queryFn: () => listEmployeeTransactions(businessId.value!, employeeId.value!, branchId.value, dateRange.value.start, dateRange.value.end),
   enabled: computed(() => !!businessId.value && !!employeeId.value),
+  placeholderData: keepPreviousData,
   staleTime: 15000,
 })
 const earnings = computed(() => earningsData.value ?? [])

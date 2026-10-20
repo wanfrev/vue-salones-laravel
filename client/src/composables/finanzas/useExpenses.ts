@@ -1,5 +1,5 @@
 import { computed, ref } from 'vue'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/vue-query'
 import { useNotification } from '../common/useNotification'
 import { useCurrency } from '../common/useCurrency'
 import { useBusinessStore } from '../../store/business'
@@ -37,6 +37,7 @@ export function useExpenses(
     queryKey,
     queryFn: () => listExpenses(businessId.value!, periodDates.value.start, periodDates.value.end, branchId.value),
     enabled: computed(() => !!businessId.value && !!selectedPeriod?.value),
+    placeholderData: keepPreviousData,
     staleTime: 15000,
   })
 

@@ -56,7 +56,17 @@
     <main class="ml-0 min-h-screen pt-[var(--header-total)] lg:ml-64">
       <GlobalLoading />
       <div class="p-4 lg:p-6">
-        <router-view />
+        <!-- Fundido corto entre módulos. El wrapper con key es necesario porque varias vistas tienen
+             varios nodos raíz (fragmentos) y <Transition> no puede animarlas; la key es el patrón
+             de la ruta de este nivel (no el path completo) para que moverse entre /clientes/A y
+             /clientes/B, o entre pestañas dentro de un expediente, no remonte nada. -->
+        <router-view v-slot="{ Component, route }">
+          <Transition name="page-fade" mode="out-in">
+            <div :key="route.matched[1]?.path ?? route.path">
+              <component :is="Component" />
+            </div>
+          </Transition>
+        </router-view>
       </div>
     </main>
 

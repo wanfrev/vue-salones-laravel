@@ -247,6 +247,28 @@ body {
   }
 }
 
+/* Fundido entre módulos del panel (AdminLayout). Solo opacity, a propósito: un transform en el
+   contenedor haría que los elementos `fixed` de las vistas (botón flotante del POS, etc.) se
+   posicionen contra él durante la transición y "salten" al terminar. Salida más corta que la
+   entrada porque mode="out-in" suma la salida a lo que espera el usuario. */
+.page-fade-enter-active {
+  transition: opacity 140ms ease-out;
+}
+.page-fade-leave-active {
+  transition: opacity 70ms ease-in;
+}
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-fade-enter-active,
+  .page-fade-leave-active {
+    transition: none;
+  }
+}
+
 /* ============================================================
    UTILIDADES DE SOMBRA SEMANTICAS
    ============================================================ */
