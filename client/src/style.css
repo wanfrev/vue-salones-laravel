@@ -206,6 +206,36 @@ body {
   background: var(--color-text-muted);
 }
 
+/* Scroll fino y discreto para paneles que viven dentro de una tarjeta (lista de citas y resumen
+   de cobro del POS): sin riel de fondo, delgado, y el pulgar solo se ve al pasar el mouse o al
+   hacer scroll -- la barra gruesa con riel de color rompía la limpieza del panel. */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.scroll-thin:hover,
+.scroll-thin:focus-within {
+  scrollbar-color: var(--color-border-strong) transparent;
+}
+.scroll-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+.scroll-thin:hover::-webkit-scrollbar-thumb,
+.scroll-thin:focus-within::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+}
+.scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
+
 /* ============================================================
    UTILIDADES DE TRANSICION Y ANIMACION
    ============================================================ */

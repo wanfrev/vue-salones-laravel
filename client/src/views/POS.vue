@@ -4,7 +4,7 @@
        antes eran tarjetas sueltas ahora son secciones separadas por líneas finas. En móvil se
        mantiene plano, sin marco. -->
   <div class="lg:flex lg:flex-col lg:h-[calc(100dvh-var(--header-total)-3rem)] lg:overflow-hidden lg:rounded-2xl lg:border lg:border-border lg:bg-surface lg:shadow-sm">
-  <header v-if="!isTiendaNiche(businessStore.nicheType)" class="mb-4 lg:mb-0 lg:shrink-0 lg:border-b lg:border-border lg:px-4 lg:py-3">
+  <header v-if="!isTiendaNiche(businessStore.nicheType)" class="mb-4 lg:mb-0 lg:shrink-0 lg:border-b lg:border-border-strong/60 lg:bg-bg-secondary/50 lg:px-4 lg:py-3">
     <div class="grid grid-cols-1 items-center gap-3 lg:grid-cols-[1fr_auto_1fr]">
       <div class="flex items-center gap-2 text-xs text-primary">
         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
@@ -78,7 +78,7 @@
     :class="activeSaleType === 'retail_only' ? 'lg:grid-cols-[minmax(0,2fr)_minmax(360px,1fr)]' : 'lg:grid-cols-2'"
   >
     <!-- LEFT PANEL -->
-    <div class="min-w-0 space-y-4 lg:h-full lg:overflow-y-auto lg:p-4">
+    <div class="scroll-thin min-w-0 space-y-4 lg:h-full lg:overflow-y-auto lg:p-4">
       <!-- DIRECT SERVICE PANEL -->
       <div v-if="activeSaleType === 'direct_service'" class="space-y-4 mb-4 border-b border-border pb-4">
         <div class="flex items-center justify-between gap-2 border-b border-border pb-3">
@@ -280,7 +280,7 @@
       </div>
 
       <div v-if="activeSaleType === 'retail_only'" class="flex flex-col h-full space-y-3">
-        <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface/70 p-2.5 shadow-sm">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
           <div class="hidden min-w-0 items-center gap-2 sm:flex">
             <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -355,7 +355,7 @@
     </div>
 
     <!-- RIGHT PANEL (desktop & tablet landscape) -->
-    <div class="hidden lg:flex lg:flex-col lg:h-full lg:overflow-hidden lg:border-l lg:border-border">
+    <div class="hidden lg:flex lg:flex-col lg:h-full lg:overflow-hidden lg:border-l lg:border-border lg:bg-bg-secondary/30">
       <POSPaymentPanel
         :selected-appointment="selectedAppointment"
         :cart="cart" :service-price="servicePrice"
