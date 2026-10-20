@@ -4,14 +4,14 @@
        antes eran tarjetas sueltas ahora son secciones separadas por líneas finas. En móvil se
        mantiene plano, sin marco. -->
   <div class="lg:flex lg:flex-col lg:h-[calc(100dvh-var(--header-total)-3rem)] lg:overflow-hidden lg:rounded-2xl lg:border lg:border-border lg:bg-surface lg:shadow-sm">
-  <header v-if="!isTiendaNiche(businessStore.nicheType)" class="mb-4 lg:mb-0 lg:shrink-0 lg:border-b lg:border-border-strong/60 lg:bg-bg-secondary/50 lg:px-4 lg:py-3">
+  <header class="mb-4 lg:mb-0 lg:shrink-0 lg:border-b lg:border-border-strong/60 lg:bg-bg-secondary/50 lg:px-4 lg:py-3">
     <div class="grid grid-cols-1 items-center gap-3 lg:grid-cols-[1fr_auto_1fr]">
       <div class="flex items-center gap-2 text-xs text-primary">
         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" /></svg>
         <span class="font-medium uppercase tracking-wider">Punto de Venta</span>
       </div>
 
-      <div class="flex justify-center">
+      <div v-if="!isTiendaNiche(businessStore.nicheType)" class="flex justify-center">
         <div class="flex rounded-xl border border-border bg-surface p-0.5 shadow-sm w-fit">
           <button
             v-if="businessStore.features.agenda"
@@ -51,7 +51,19 @@
         </div>
       </div>
 
-      <div v-if="activeSaleType !== 'retail_only'" class="flex items-center justify-start gap-2 lg:justify-end">
+      <!-- Sin pestañas (nicho tienda) el centro queda vacío para que los controles sigan a la derecha. -->
+      <div v-else class="hidden lg:block" />
+
+      <!-- Impresora, tasa del día y ventas en espera viven SIEMPRE aquí, en todos los modos: antes
+           "Venta directa" los mostraba en una barra aparte dentro del panel izquierdo. -->
+      <div class="flex flex-wrap items-center justify-start gap-2 lg:justify-end">
+        <HeldSalesPanel
+          v-if="activeSaleType === 'retail_only' && hasRetail"
+          :held-sales="heldSales"
+          :is-loading="heldSalesLoading"
+          @resume="resumeHeldSaleAction"
+          @cancel="cancelHeldSaleAction"
+        />
         <button type="button" title="Configurar impresora térmica"
           class="rounded-lg border border-border bg-surface p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
           @click="showPrinterSettings = true">
@@ -280,46 +292,6 @@
       </div>
 
       <div v-if="activeSaleType === 'retail_only'" class="flex flex-col h-full space-y-3">
-        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
-          <div class="hidden min-w-0 items-center gap-2 sm:flex">
-            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 100 4 2 2 0 000-4z" />
-              </svg>
-            </div>
-            <div class="min-w-0">
-              <p class="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Caja</p>
-              <p class="truncate text-xs font-medium text-text">Venta de mostrador</p>
-            </div>
-          </div>
-
-          <div class="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
-            <HeldSalesPanel
-              v-if="hasRetail"
-              :held-sales="heldSales"
-              :is-loading="heldSalesLoading"
-              @resume="resumeHeldSaleAction"
-              @cancel="cancelHeldSaleAction"
-            />
-            <button
-              type="button"
-              title="Configurar impresora térmica y recibos"
-              aria-label="Configurar impresora térmica y recibos"
-              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
-              @click="showPrinterSettings = true"
-            >
-              <PrinterIcon class="h-4 w-4" />
-            </button>
-            <ExchangeRateCard
-              :is-editable="isRateEditable"
-              :edit-rate-value="editRateValue"
-              :updating-rate="updatingRate"
-              :display-rate="displayRate"
-              @update:edit-rate-value="editRateValue = $event"
-              @update-rate="handleRateUpdate"
-            />
-          </div>
-        </div>
         <RetailClientSearch
           ref="retailClientSearchRef"
           :client-suggestions="retailClientSuggestions"
