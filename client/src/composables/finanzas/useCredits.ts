@@ -49,7 +49,7 @@ export function useCredits(periodDates?: import('vue').Ref<{ start: string; end:
   const pendingTotal = computed(() => pendingCredits.value.reduce((sum, c) => sum + Number(c.remaining ?? c.amount ?? 0), 0))
 
   const payMutation = useMutation({
-    mutationFn: async (payload: { id: string; amount: number; method: string; currency?: 'USD' | 'VES'; exchangeRate?: number; bankId?: string | null }) => {
+    mutationFn: async (payload: { id: string; amount: number; method: string; currency?: 'USD' | 'VES'; exchangeRate?: number; bankId?: string | null; paidDate?: string | null }) => {
       getBusinessId()
       return await apiRequest<{ credit: Credit; payment: CreditPayment }>('POST', `/credits/${payload.id}/pay`, {
         amount: payload.amount,
@@ -57,6 +57,7 @@ export function useCredits(periodDates?: import('vue').Ref<{ start: string; end:
         currency: payload.currency,
         exchange_rate: payload.exchangeRate,
         bank_id: payload.bankId || undefined,
+        paid_date: payload.paidDate || undefined,
       })
     },
     onSuccess: (result) => {

@@ -1023,30 +1023,9 @@ class PosService
         $credit->save();
     }
 
-    /**
-     * Fecha de cobro elegida por el cajero ("YYYY-MM-DD", en la zona horaria del negocio) ->
-     * momento UTC con que se guarda la venta. Devuelve null cuando no hay fecha o es hoy: ahí
-     * todo sigue como siempre (now()). Conserva la hora actual del día para que el cobro se vea
-     * natural en las listas; los reportes agrupan por día, no por hora. `created_at` de la
-     * transacción NO se toca: sigue marcando cuándo se registró de verdad.
-     */
+    /** Fecha de cobro elegida por el cajero -> momento UTC (null = hoy). Ver PaymentDate::resolve. */
     private function resolvePaidAt(string $businessId, ?string $paidDate): ?Carbon
     {
-        if (!$paidDate) {
-            return null;
-        }
-
-        $tz = \App\Models\Business::find($businessId)?->timezone ?: 'UTC';
-        $nowLocal = Carbon::now($tz);
-        $date = Carbon::createFromFormat('Y-m-d', $paidDate, $tz)->startOfDay();
-
-        if ($date->isSameDay($nowLocal)) {
-            return null;
-        }
-        if ($date->gt($nowLocal)) {
-            throw new RuntimeException('La fecha del cobro no puede ser futura.');
-        }
-
-        return $date->setTimeFrom($nowLocal)->setTimezone(config('app.timezone'));
+        return \App\Support\PaymentDate::resolve($businessId, $paidDate);
     }
 }
