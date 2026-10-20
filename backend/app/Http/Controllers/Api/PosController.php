@@ -39,24 +39,9 @@ class PosController
      */
     private function backdateDenied(Request $request, ?string $businessId, ?string $paidDate): ?JsonResponse
     {
-        if (!$paidDate) {
-            return null;
-        }
+        $message = \App\Support\PaymentDate::denial($request->user()?->profile?->role, $businessId, $paidDate);
 
-        $role = $request->user()?->profile?->role;
-        if (!in_array($role, ['admin', 'superadmin', 'encargado'], true)) {
-            return response()->json(['message' => 'Solo un administrador o encargado puede cambiar la fecha de un cobro.'], 403);
-        }
-
-        $business = $businessId ? \App\Models\Business::find($businessId) : null;
-        $features = $business
-            ? (is_array($business->features) ? $business->features : json_decode($business->features ?? '[]', true))
-            : [];
-        if (!($features['pos_backdate_enabled'] ?? false)) {
-            return response()->json(['message' => 'Cobrar con otra fecha no está activado en la configuración del negocio.'], 403);
-        }
-
-        return null;
+        return $message ? response()->json(['message' => $message], 403) : null;
     }
 
     public function pendingAppointments(Request $request): JsonResponse

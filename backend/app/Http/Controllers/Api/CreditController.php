@@ -7,6 +7,7 @@ use App\Models\Bank;
 use App\Models\Credit;
 use App\Models\CreditPayment;
 use App\Models\Transaction;
+use App\Support\PaymentDate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -104,9 +105,21 @@ class CreditController
             'currency' => ['nullable', 'string', 'in:USD,VES'],
             'exchange_rate' => ['nullable', 'numeric', 'min:0'],
             'bank_id' => ['nullable', 'uuid', Rule::exists('banks', 'id')->where('business_id', $businessId)],
+            'paid_date' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
-        $payment = DB::transaction(function () use ($credit, $data, $businessId, $request) {
+        $denied = PaymentDate::denial($request->user()?->profile?->role, $businessId, $data['paid_date'] ?? null);
+        if ($denied) {
+            return response()->json(['message' => $denied], 403);
+        }
+
+        try {
+            $paidAt = PaymentDate::resolve($businessId, $data['paid_date'] ?? null);
+        } catch (\RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $payment = DB::transaction(function () use ($credit, $data, $businessId, $request, $paidAt) {
             $currency = $data['currency'] ?? 'USD';
             $rate = (float) ($data['exchange_rate'] ?? 1);
             $amount = (float) $data['amount'];
@@ -155,10 +168,13 @@ class CreditController
                 ]],
                 'created_by' => $request->user()?->id,
                 'notes' => "Abono a crédito de {$credit->client_name}",
-                'paid_at' => now(),
+                'paid_at' => $paidAt ?? now(),
             ]);
 
-            $creditPayment = CreditPayment::create([
+            // created_at es lo que muestra el historial de abonos del crédito: con otra fecha
+            // tiene que verse la fecha real del pago. La Transaction conserva su created_at
+            // real (cuándo se registró) como rastro.
+            $creditPayment = new CreditPayment([
                 'id' => Str::uuid()->toString(),
                 'business_id' => $businessId,
                 'credit_id' => $credit->id,
@@ -169,6 +185,10 @@ class CreditController
                 'exchange_rate' => $currency === 'VES' ? $rate : null,
                 'created_by' => $request->user()?->id,
             ]);
+            if ($paidAt) {
+                $creditPayment->created_at = $paidAt;
+            }
+            $creditPayment->save();
 
             $newPaidAmount = round((float) $credit->paid_amount + $amount, 2);
             $isFullySettled = $newPaidAmount >= (float) $credit->amount - 0.005;
@@ -176,7 +196,7 @@ class CreditController
             $credit->update([
                 'paid_amount' => $newPaidAmount,
                 'status' => $isFullySettled ? 'paid' : 'partial',
-                'paid_at' => $isFullySettled ? now() : $credit->paid_at,
+                'paid_at' => $isFullySettled ? ($paidAt ?? now()) : $credit->paid_at,
                 'paid_method' => $isFullySettled ? $data['method'] : $credit->paid_method,
             ]);
 

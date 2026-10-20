@@ -173,13 +173,25 @@
               <option v-for="b in banks" :key="b.id" :value="b.id">{{ b.name }}</option>
             </select>
           </div>
+          <div v-if="canBackdate">
+            <label class="mb-1 block text-sm font-medium text-text" for="cr-date">Fecha del abono</label>
+            <div class="flex items-center gap-2">
+              <input id="cr-date" v-model="form.paidDate" type="date" :max="todayIso"
+                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+              <button v-if="form.paidDate" type="button"
+                class="shrink-0 rounded-lg border border-border px-3 py-2 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary"
+                @click="form.paidDate = ''">Hoy</button>
+            </div>
+          </div>
           <div v-if="form.currency === 'VES'">
             <label class="mb-1 block text-sm font-medium text-text" for="cr-rate">Tasa de cambio</label>
             <input id="cr-rate" v-model.number="form.exchangeRate" type="number" min="0.01" step="0.01"
               class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
           </div>
           <p class="text-xs text-text-muted">
-            Este monto se reconocerá como ingreso en Finanzas el día de hoy.
+            {{ form.paidDate && canBackdate
+              ? `Este monto se reconocerá como ingreso en Finanzas el ${form.paidDate}, no hoy.`
+              : 'Este monto se reconocerá como ingreso en Finanzas el día de hoy.' }}
           </p>
           <div class="flex items-center justify-end gap-3">
             <button type="button"
@@ -203,6 +215,7 @@ import { formatMethod, formatDate } from '../../lib/formatters'
 import { useCredits } from '../../composables/finanzas/useCredits'
 import { useBanks } from '../../composables/finanzas/useBanks'
 import { useBusinessStore } from '../../store/business'
+import { useAuthStore } from '../../store/auth'
 import type { Credit } from '../../types/database'
 
 const props = defineProps<{
@@ -223,13 +236,22 @@ const visibleCredits = computed(() => activeTab.value === 'pending' ? pendingCre
 const showModal = ref(false)
 const selectedCredit = ref<Credit | null>(null)
 const { banks } = useBanks()
+const authStore = useAuthStore()
 const BANK_METHODS = ['pago_movil', 'transfer', 'punto_venta']
-const form = ref<{ amount: number; method: string; currency: 'USD' | 'VES'; exchangeRate: number; bankId: string | null }>({
+// Misma regla que "Fecha del cobro" en el POS (toggle "Permitir cobrar con otra fecha" +
+// admin/encargado); el servidor la vuelve a exigir en CreditController::pay.
+const canBackdate = computed(() =>
+  !!businessStore.features.pos_backdate_enabled &&
+  ['admin', 'superadmin', 'encargado'].includes(authStore.role ?? ''),
+)
+const todayIso = computed(() => new Date().toLocaleDateString('en-CA'))
+const form = ref<{ amount: number; method: string; currency: 'USD' | 'VES'; exchangeRate: number; bankId: string | null; paidDate: string }>({
   amount: 0,
   method: 'cash',
   currency: 'USD',
   exchangeRate: exchangeRate.value || 1,
   bankId: null,
+  paidDate: '',
 })
 
 const selectedCreditId = ref<string | null>(null)
@@ -239,7 +261,7 @@ const paymentHistory = computed(() => paymentHistoryData.value ?? [])
 const openPay = (credit: Credit) => {
   selectedCredit.value = credit
   selectedCreditId.value = credit.id
-  form.value = { amount: credit.remaining, method: 'cash', currency: 'USD', exchangeRate: exchangeRate.value || 1, bankId: null }
+  form.value = { amount: credit.remaining, method: 'cash', currency: 'USD', exchangeRate: exchangeRate.value || 1, bankId: null, paidDate: '' }
   showModal.value = true
 }
 
@@ -273,6 +295,7 @@ const handleConfirm = async () => {
       currency: form.value.currency,
       exchangeRate: form.value.currency === 'VES' ? form.value.exchangeRate : undefined,
       bankId: BANK_METHODS.includes(form.value.method) ? form.value.bankId : null,
+      paidDate: canBackdate.value ? form.value.paidDate : null,
     })
     closeModal()
   } catch { /* handled by composable */ }

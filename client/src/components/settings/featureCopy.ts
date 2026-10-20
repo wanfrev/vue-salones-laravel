@@ -170,9 +170,9 @@ export const toggleCopy = (t: Terms): Record<SettingKey, ToggleCopy> => ({
   },
   pos_backdate_enabled: {
     label: 'Permitir cobrar con otra fecha',
-    hint: 'Agrega el campo «Fecha del cobro» al POS (solo administradores y encargados) para registrar una venta en un día anterior. Sirve para corregir un cobro mal hecho: se elimina y se vuelve a cobrar con la fecha original, y cuenta en los reportes de ese día.',
-    on: 'El POS ya permite elegir la fecha del cobro',
-    off: 'El POS ya no permite cobrar con otra fecha',
+    hint: 'Agrega un campo de fecha al POS y al registro de abonos de Créditos (solo administradores y encargados) para registrar un pago en un día anterior. Sirve para corregir un cobro mal hecho o cargar pagos viejos: cuenta en los reportes de esa fecha, no en la de hoy.',
+    on: 'El POS y los abonos ya permiten elegir la fecha del pago',
+    off: 'El POS y los abonos ya no permiten registrar pagos con otra fecha',
   },
   courtesy_charge_enabled: {
     label: 'Permitir cobro por cortesía',

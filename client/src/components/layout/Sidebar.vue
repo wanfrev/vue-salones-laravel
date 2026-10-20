@@ -5,7 +5,12 @@
       isOpen ? 'z-40 translate-x-0' : 'z-40 -translate-x-full lg:z-40'
     ]"
   >
-    <nav class="flex-1 overflow-y-auto px-3 pt-4 pb-2 touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
+    <nav ref="navEl" class="relative flex-1 overflow-y-auto px-3 pt-4 pb-2 touch-pan-y overscroll-contain" style="-webkit-overflow-scrolling: touch;">
+      <div
+        aria-hidden="true"
+        class="sidebar-pill pointer-events-none absolute left-2 right-2 rounded-lg border-l-[3px] border-primary bg-primary-light transition-[top,height,opacity] duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[top,height] motion-reduce:transition-none"
+        :style="{ top: `${pill.top}px`, height: `${pill.height}px`, opacity: pill.visible ? 1 : 0 }"
+      />
       <template v-for="section in visibleSections" :key="section.title ?? 'main'">
         <p v-if="section.title" class="mb-2 px-3 text-[10px] font-bold uppercase tracking-wider text-text-muted/70">
           {{ section.title }}
@@ -16,17 +21,18 @@
           <div v-if="link.children && link.children.length">
             <button
               type="button"
+              :ref="setRowRef(`g:${link.to}`)"
               @click="toggleExpanded(link.to)"
               :class="[
-                'group mb-0.5 flex w-full items-center gap-3 rounded-lg border-l-[3px] py-2.5 pr-3 pl-2 text-left text-sm font-medium transition-theme',
+                'group relative mb-0.5 flex w-full items-center gap-3 rounded-lg border-l-[3px] py-2.5 pr-3 pl-2 text-left text-sm font-medium transition-theme',
                 isGroupActive(link)
-                  ? 'border-primary bg-bg-secondary text-text'
+                  ? 'border-transparent text-text'
                   : 'border-transparent text-text-secondary hover:bg-bg-secondary hover:text-text'
               ]"
             >
               <span :class="[
                 'flex h-7 w-7 items-center justify-center rounded-md transition-theme',
-                isGroupActive(link) ? 'text-primary' : 'bg-bg-secondary group-hover:bg-border'
+                isGroupActive(link) ? 'text-primary sidebar-icon-pop' : 'bg-bg-secondary group-hover:bg-border'
               ]">
                 <component :is="link.icon" class="h-4 w-4" />
               </span>
@@ -39,13 +45,13 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            <div v-if="isExpanded(link.to)" class="mb-1 ml-4 space-y-0.5 border-l border-border pl-3">
+                <div v-if="isExpanded(link.to)" class="mb-1 ml-4 space-y-0.5 border-l border-border pl-3">
               <router-link
                 v-for="child in link.children"
                 :key="child.to"
                 :to="child.to"
                 :class="[
-                  'flex items-center gap-2.5 rounded-lg py-2 pr-3 pl-2 text-[13px] font-medium transition-theme',
+                  'relative flex items-center gap-2.5 rounded-lg py-2 pr-3 pl-2 text-[13px] font-medium transition-theme',
                   isActive(child.to)
                     ? 'bg-bg-secondary text-text font-semibold'
                     : 'text-text-secondary hover:bg-bg-secondary hover:text-text'
@@ -60,16 +66,17 @@
           <router-link
             v-else
             :to="link.to"
+            :ref="setRowRef(`l:${link.to}`)"
             :class="[
-              'group mb-0.5 flex items-center gap-3 rounded-lg border-l-[3px] py-2.5 pr-3 pl-2 text-sm font-medium transition-theme',
+              'group relative mb-0.5 flex items-center gap-3 rounded-lg border-l-[3px] py-2.5 pr-3 pl-2 text-sm font-medium transition-theme',
               isActive(link.to)
-                ? 'border-primary bg-bg-secondary text-text'
+                ? 'border-transparent text-text'
                 : 'border-transparent text-text-secondary hover:bg-bg-secondary hover:text-text'
             ]"
           >
             <span :class="[
               'flex h-7 w-7 items-center justify-center rounded-md transition-theme',
-              isActive(link.to) ? 'text-primary' : 'bg-bg-secondary group-hover:bg-border'
+              isActive(link.to) ? 'text-primary sidebar-icon-pop' : 'bg-bg-secondary group-hover:bg-border'
             ]">
               <component :is="link.icon" class="h-4 w-4" />
             </span>
@@ -88,7 +95,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuth } from '../../composables/common/useAuth'
 import { useBusinessStore } from '../../store/business'
@@ -101,7 +108,7 @@ interface Props {
   isOpen: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   close: []
@@ -182,6 +189,50 @@ const isExpanded = (to: string): boolean => {
 const toggleExpanded = (to: string) => {
   expandedOverrides.value = { ...expandedOverrides.value, [to]: !isExpanded(to) }
 }
+
+// Sliding active pill: a single indicator that glides to the active row when the
+// user navigates between modules (or a group auto-opens/closes). Positioned with
+// top/height measured from the DOM so no layout math lives in the templates.
+const navEl = ref<HTMLElement | null>(null)
+const rowEls = new Map<string, HTMLElement>()
+const pill = ref({ top: 0, height: 0, visible: false })
+
+const setRowRef = (key: string) => (el: unknown) => {
+  if (el instanceof HTMLElement) rowEls.set(key, el)
+  else rowEls.delete(key)
+}
+
+const activeRowKey = computed<string | null>(() => {
+  for (const section of visibleSections.value) {
+    for (const link of section.links) {
+      if (link.children?.length) {
+        if (isGroupActive(link)) return `g:${link.to}`
+      } else if (isActive(link.to)) {
+        return `l:${link.to}`
+      }
+    }
+  }
+  return null
+})
+
+const measurePill = () => {
+  const key = activeRowKey.value
+  const el = key ? rowEls.get(key) : undefined
+  if (el && navEl.value) {
+    pill.value = { top: el.offsetTop, height: el.offsetHeight, visible: true }
+  } else {
+    pill.value = { top: pill.value.top, height: pill.value.height, visible: false }
+  }
+}
+
+watch(
+  [activeRowKey, visibleSections, expandedOverrides, () => props.isOpen],
+  async () => {
+    await nextTick()
+    measurePill()
+  },
+  { immediate: true },
+)
 
 const resolveLabel = (link: SidebarLink): string => {
   if (link.labelKey) {

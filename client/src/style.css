@@ -222,6 +222,31 @@ body {
   transition-duration: 200ms;
 }
 
+/* Píldora activa de la sidebar: tinte verde con un halo discreto del color primario. */
+.sidebar-pill {
+  box-shadow: 0 0 14px -6px color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+/* Respiración sutil del icono al aterrizar en el módulo activo. */
+@keyframes sidebar-icon-pop {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.1);
+  }
+}
+
+.sidebar-icon-pop {
+  animation: sidebar-icon-pop 350ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-icon-pop {
+    animation: none;
+  }
+}
+
 /* ============================================================
    UTILIDADES DE SOMBRA SEMANTICAS
    ============================================================ */
