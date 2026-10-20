@@ -21,7 +21,7 @@
           <div v-if="link.children && link.children.length">
             <button
               type="button"
-              :ref="setRowRef(`g:${link.to}`)"
+              :data-nav-key="`g:${link.to}`"
               @click="toggleExpanded(link.to)"
               :class="[
                 'group relative mb-0.5 flex w-full items-center gap-3 rounded-lg border-l-[3px] py-2.5 pr-3 pl-2 text-left text-sm font-medium transition-theme',
@@ -71,7 +71,7 @@
           <router-link
             v-else
             :to="link.to"
-            :ref="setRowRef(`l:${link.to}`)"
+            :data-nav-key="`l:${link.to}`"
             :aria-current="isActive(link.to) ? 'page' : undefined"
             @click="onNavClick($event, link.to)"
             @pointerenter="prefetch(link.to)"
@@ -105,7 +105,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { loadRouteLocation, useRoute, useRouter } from 'vue-router'
 import { useAuth } from '../../composables/common/useAuth'
 import { useBusinessStore } from '../../store/business'
@@ -251,13 +251,7 @@ const toggleExpanded = (to: string) => {
 // user navigates between modules (or a group auto-opens/closes). Positioned with
 // top/height measured from the DOM so no layout math lives in the templates.
 const navEl = ref<HTMLElement | null>(null)
-const rowEls = new Map<string, HTMLElement>()
 const pill = ref({ top: 0, height: 0, visible: false, animate: false })
-
-const setRowRef = (key: string) => (el: unknown) => {
-  if (el instanceof HTMLElement) rowEls.set(key, el)
-  else rowEls.delete(key)
-}
 
 const activeRowKey = computed<string | null>(() => {
   for (const section of visibleSections.value) {
@@ -272,9 +266,14 @@ const activeRowKey = computed<string | null>(() => {
   return null
 })
 
+// La fila se busca por atributo en el DOM, no con un `ref`: en las opciones normales el ref de un
+// <router-link> es la instancia del componente (no un HTMLElement), así que el indicador nunca
+// encontraba la fila activa y quedaba invisible. `data-nav-key` cae sobre el <a> raíz.
 const measurePill = (animate: boolean) => {
   const key = activeRowKey.value
-  const el = key ? rowEls.get(key) : undefined
+  const el = key && navEl.value
+    ? navEl.value.querySelector<HTMLElement>(`[data-nav-key="${key.replace(/"/g, '\\"')}"]`)
+    : null
   if (el && navEl.value) {
     pill.value = { top: el.offsetTop, height: el.offsetHeight, visible: true, animate }
   } else {
@@ -295,6 +294,20 @@ watch(
   },
   { immediate: true },
 )
+
+// La medición "immediate" de arriba corre en el setup, antes de que existan las filas, así que
+// la posición inicial se mide al montar. También al cargar las fuentes y si cambia el ancho del
+// menú (el texto puede reacomodarse y mover las filas).
+let navResizeObserver: ResizeObserver | null = null
+onMounted(() => {
+  measurePill(false)
+  document.fonts?.ready.then(() => measurePill(false))
+  if (navEl.value && typeof ResizeObserver !== 'undefined') {
+    navResizeObserver = new ResizeObserver(() => measurePill(false))
+    navResizeObserver.observe(navEl.value)
+  }
+})
+onBeforeUnmount(() => navResizeObserver?.disconnect())
 
 const resolveLabel = (link: SidebarLink): string => {
   if (link.labelKey) {
