@@ -403,6 +403,9 @@
           <p v-else class="text-[11px] text-text-muted">Déjalo vacío para cobrar con la fecha de hoy.</p>
         </div>
 
+        <!-- Cashea: monto cobrado, comisión del día e inicial; la venta queda por cobrar a Cashea -->
+        <CasheaFields v-if="paymentMethod === 'cashea' && !isTipMode" :base="casheaBase ?? (servicePrice + (areProductsIncluded ? 0 : productsTotal))" />
+
         <div v-if="paymentMethod === 'other'" class="space-y-2 mt-4">
           <label class="block text-xs sm:text-sm font-medium text-text">Moneda</label>
           <div class="flex rounded-lg border border-border bg-bg-secondary/50 p-0.5">
@@ -565,6 +568,7 @@
 import { computed, nextTick, ref, watch } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { DualAmount } from '../common'
+import CasheaFields from './CasheaFields.vue'
 import { formatDate, toTitleCase } from '../../lib/formatters'
 import { useAuth } from '../../composables/common/useAuth'
 import { useGiftCards } from '../../composables/giftCards/useGiftCards'
@@ -613,6 +617,8 @@ const props = defineProps<{
   paidDate?: string
   customTotalAmount?: number | null
   customTotalCurrency?: 'USD' | 'VES'
+  /** Lo que cuesta la venta antes de Cashea (servicio + productos, sin propina). */
+  casheaBase?: number
   isDirectService?: boolean
   isTipMode?: boolean
   tipEmployeeName?: string | null

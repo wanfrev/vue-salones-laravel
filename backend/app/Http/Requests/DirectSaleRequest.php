@@ -8,7 +8,8 @@ class DirectSaleRequest extends FormRequest
 {
     public function rules(): array
     {
-        return [
+        // Bloque opcional de las ventas con Cashea (ver CasheaService).
+        return array_merge(\App\Services\CasheaService::rules(), [
             'total_amount' => 'required|numeric|min:0',
             'method' => 'required|string|max:50',
             'products' => 'required|array|min:1',
@@ -36,6 +37,6 @@ class DirectSaleRequest extends FormRequest
             'client_name' => 'nullable|string|max:255',
             'client_phone' => 'nullable|string|max:50',
             'branch_id' => 'nullable|uuid',
-        ];
+        ]);
     }
 }

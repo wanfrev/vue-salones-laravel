@@ -8,7 +8,8 @@ class DirectServiceSaleRequest extends FormRequest
 {
     public function rules(): array
     {
-        return [
+        // Bloque opcional de las ventas con Cashea (ver CasheaService).
+        return array_merge(\App\Services\CasheaService::rules(), [
             'services' => 'nullable|array|min:1',
             'services.*.service_id' => 'required_with:services|uuid',
             'services.*.employee_id' => 'required_with:services|uuid',
@@ -45,6 +46,6 @@ class DirectServiceSaleRequest extends FormRequest
             'tip_currency' => 'nullable|in:USD,VES',
             'products_amount' => 'nullable|numeric|min:0',
             'branch_id' => 'nullable|uuid',
-        ];
+        ]);
     }
 }

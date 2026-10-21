@@ -152,6 +152,12 @@ export const getFrequentlyBoughtTogether = async (businessId: string, productId:
   return await apiRequest<any[]>('GET', `/pos/products/${productId}/suggestions${qs ? `?${qs}` : ''}`)
 }
 
+/** Bloque de una venta con Cashea (ver App\Services\CasheaService en el backend). */
+export interface CasheaPayload {
+  fee_percentage: number
+  down_payment_percentage: number
+}
+
 export const recordSale = async (params: {
   appointmentId: string
   serviceAmount?: number
@@ -168,6 +174,7 @@ export const recordSale = async (params: {
   tipCurrency?: 'USD' | 'VES'
   /** YYYY-MM-DD: cobrar con una fecha anterior (solo si el negocio lo activó; el servidor lo valida). */
   paidDate?: string | null
+  cashea?: CasheaPayload
 }): Promise<{ id: string, receipt_code?: string }> => {
   const serviceAmount = params.serviceAmount ?? params.amount ?? 0
   const products = params.products ?? []
@@ -192,6 +199,7 @@ export const recordSale = async (params: {
     tip_amount: params.tipAmount ?? 0,
     tip_currency: params.tipCurrency ?? null,
     paid_date: params.paidDate || undefined,
+    ...(params.cashea ? { cashea: params.cashea } : {}),
   })
 
   return response
@@ -233,6 +241,7 @@ export const recordDirectSale = async (params: {
   clientNameInput?: string | null
   clientPhoneInput?: string | null
   paidDate?: string | null
+  cashea?: CasheaPayload
 }): Promise<{ id: string, receipt_code?: string }> => {
   const productsPayload = params.products.map(p => ({
     product_id: p.productId,
@@ -255,6 +264,7 @@ export const recordDirectSale = async (params: {
     client_phone: params.clientPhoneInput || null,
     branch_id: params.branchId || null,
     paid_date: params.paidDate || undefined,
+    ...(params.cashea ? { cashea: params.cashea } : {}),
   })
 
   return response
@@ -307,6 +317,7 @@ export const recordDirectServiceSale = async (params: {
   tipAmount?: number
   tipCurrency?: 'USD' | 'VES'
   paidDate?: string | null
+  cashea?: CasheaPayload
 }): Promise<{ id: string, receipt_code?: string }> => {
   const products = params.products ?? []
   const productsPayload = products.map(p => ({
@@ -342,6 +353,7 @@ export const recordDirectServiceSale = async (params: {
     tip_currency: params.tipCurrency ?? null,
     branch_id: params.branchId || null,
     paid_date: params.paidDate || undefined,
+    ...(params.cashea ? { cashea: params.cashea } : {}),
   })
 
   return response

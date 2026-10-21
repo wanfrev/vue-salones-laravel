@@ -156,8 +156,20 @@ class PosService
         float $productsAmount = 0,
         ?string $tipCurrency = null,
         ?string $paidDate = null,
+        ?array $cashea = null,
     ): string {
         $paidAt = $this->resolvePaidAt($businessId, $paidDate);
+
+        // Venta con Cashea: se registra por el NETO (monto − % de Cashea), que es lo que le queda al
+        // negocio; la comisión del especialista sale sobre él sin cálculo aparte (ver CasheaService).
+        $isCashea = CasheaService::applies($method, $cashea);
+        if ($isCashea) {
+            $gross = $serviceAmount + $productsAmount;
+            $paymentsBreakdown = CasheaService::breakdown($gross, $cashea);
+            $notes = CasheaService::note($gross, $cashea, $notes);
+            $productsAmount = CasheaService::net($productsAmount, $cashea);
+            $serviceAmount = round(CasheaService::net($gross, $cashea) - $productsAmount, 2);
+        }
 
         $appointment = Appointment::with(['service', 'employeeProfile'])
             ->findOrFail($appointmentId);
@@ -191,7 +203,7 @@ class PosService
             $appointment, $appointmentId, $serviceAmount, $method, $products,
             $notes, $rate, $paymentsBreakdown, $tip, $businessId, $createdBy,
             $employeePct, $localPct, $assistantPct, $effectivePrice, $productsAmount, $service,
-            $tipCurrency, $paidAt, $paidDate
+            $tipCurrency, $paidAt, $paidDate, $isCashea
         ) {
             $totalAmount = $serviceAmount + $productsAmount;
 
@@ -436,7 +448,9 @@ class PosService
             $paidSoFar = Transaction::where('appointment_id', $appointmentId)
                 ->sum('total_amount');
 
+            // Con Cashea la venta queda pagada por completo aunque el neto sea menor que el precio de lista.
             $paymentStatus = match (true) {
+                $isCashea => 'paid',
                 $paidSoFar >= $effectivePrice => 'paid',
                 $paidSoFar > 0 => 'partial',
                 default => 'unpaid',
@@ -481,9 +495,17 @@ class PosService
         ?string $branchId,
         string $createdBy,
         ?string $paidDate = null,
+        ?array $cashea = null,
     ): string {
         if (empty($products)) {
             throw new RuntimeException('La venta directa requiere al menos un producto.');
+        }
+
+        // Venta con Cashea: entra por el neto (monto − % de Cashea). Ver CasheaService.
+        if (CasheaService::applies($method, $cashea)) {
+            $paymentsBreakdown = CasheaService::breakdown($totalAmount, $cashea);
+            $notes = CasheaService::note($totalAmount, $cashea, $notes);
+            $totalAmount = CasheaService::net($totalAmount, $cashea);
         }
 
         // Antes de crear el cliente nuevo de abajo: si la fecha es inválida/futura no debe
@@ -724,6 +746,7 @@ class PosService
         array $services = [],
         ?string $tipCurrency = null,
         ?string $paidDate = null,
+        ?array $cashea = null,
     ): string {
         // Se resuelve acá (y no solo dentro de processSale) porque la cita que se crea abajo
         // también tiene que quedar en esa fecha: las comisiones del empleado se filtran por la
@@ -773,7 +796,7 @@ class PosService
         return DB::transaction(function () use (
             $services, $clientId, $serviceAmount, $method, $products, $notes,
             $exchangeRate, $paymentsBreakdown, $tipAmount, $businessId, $branchId,
-            $createdBy, $productsAmount, $source, $tipCurrency, $paidAt, $paidDate
+            $createdBy, $productsAmount, $source, $tipCurrency, $paidAt, $paidDate, $cashea
         ) {
             $groupId = count($services) > 1 ? Str::uuid()->toString() : null;
             $createdAppointments = [];
@@ -831,6 +854,7 @@ class PosService
                     createdBy: $createdBy,
                     productsAmount: $productsAmount,
                     paidDate: $paidDate,
+                    cashea: $cashea,
                 );
             }
 
@@ -870,6 +894,7 @@ class PosService
                     createdBy: $createdBy,
                     productsAmount: $isFirst ? $productsAmount : 0,
                     paidDate: $paidDate,
+                    cashea: $cashea,
                 );
             }
 
