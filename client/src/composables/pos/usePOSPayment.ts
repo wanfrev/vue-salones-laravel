@@ -4,7 +4,9 @@ import { useAuth } from '../common/useAuth'
 import { useNotification } from '../common/useNotification'
 import { useBusinessStore } from '../../store/business'
 import { useBanks } from '../finanzas/useBanks'
-import { recordSale, recordDirectSale, recordDirectServiceSale, recordStandaloneTip, posKeys } from '../../services/posService'
+import { recordSale, recordDirectSale, recordDirectServiceSale, recordStandaloneTip, posKeys, type CasheaPayload } from '../../services/posService'
+import { useCasheaDraft } from './useCasheaDraft'
+import { spreadOver } from '../../components/pos/cashea'
 import type { PaymentMethod } from '../../types/database'
 import type { POSProductItem, PaymentBreakdownItem } from '../../types/pos'
 
@@ -16,6 +18,11 @@ export function usePOSPayment() {
   const businessId = computed(() => authStore.businessId)
   const branchId = computed(() => businessStore.currentBranchId)
   const { banks } = useBanks()
+  const cashea = useCasheaDraft()
+  /** Bloque `cashea` para este cobro, o undefined si no se cobra con Cashea. */
+  const casheaFor = (method: PaymentMethod): CasheaPayload | undefined => (method === 'cashea' ? cashea.payload() : undefined)
+  /** Monto cobrado por Cashea (sin escribirlo, el precio). Nunca menos que el precio: el POS ya no deja cobrar así. */
+  const casheaTotal = (base: number): number => Math.max(base, cashea.draft.total ?? base)
   const bankName = (id: string | null | undefined): string | null => banks.value.find(b => b.id === id)?.name ?? null
 
   const paymentMethod = ref<PaymentMethod>('cash')
@@ -94,7 +101,9 @@ export function usePOSPayment() {
 
   // Cortesía es "todo o nada" para un cobro -- no tiene sentido como una de varias líneas de un
   // pago mixto (regalar solo una parte del servicio ya es simplemente un descuento manual).
-  const mixedMethods = computed(() => paymentMethods.value.filter(m => m.value !== 'mixed' && m.value !== 'cortesia'))
+  // Cashea tampoco: una venta con Cashea queda completa por cobrar a Cashea (no entra dinero hoy), así que
+  // no puede ser solo una parte de un pago mixto.
+  const mixedMethods = computed(() => paymentMethods.value.filter(m => m.value !== 'mixed' && m.value !== 'cortesia' && m.value !== 'cashea'))
 
   const methodCurrency = (method: PaymentMethod): 'USD' | 'VES' | null => {
     return paymentMethods.value.find(m => m.value === method)?.currency ?? null
@@ -130,6 +139,7 @@ export function usePOSPayment() {
     selectedGiftCardId.value = null
     selectedBankId.value = null
     paidDate.value = ''
+    cashea.reset()
   }
 
   /** Bulk-restore the payment draft — used when resuming a held sale. */
@@ -190,6 +200,7 @@ export function usePOSPayment() {
       paymentsBreakdown: PaymentBreakdownItem[]
       tipAmount?: number
       tipCurrency?: 'USD' | 'VES'
+      cashea?: CasheaPayload
     }>) => {
       const results = []
       for (const p of payloads) {
@@ -207,6 +218,7 @@ export function usePOSPayment() {
           businessId: businessId.value!,
           branchId: branchId.value,
           paidDate: effectivePaidDate(),
+          cashea: p.cashea,
         })
         results.push(res)
       }
@@ -254,6 +266,7 @@ export function usePOSPayment() {
       clientId?: string | null
       clientNameInput?: string | null
       clientPhoneInput?: string | null
+      cashea?: CasheaPayload
     }) => recordDirectSale({
       totalAmount: params.totalAmount,
       method: params.method,
@@ -267,6 +280,7 @@ export function usePOSPayment() {
       businessId: businessId.value!,
       branchId: branchId.value || null,
       paidDate: effectivePaidDate(),
+      cashea: params.cashea,
     }),
     onSuccess: () => {
       success('Venta directa registrada correctamente')
@@ -298,6 +312,7 @@ export function usePOSPayment() {
       paymentsBreakdown: PaymentBreakdownItem[]
       tipAmount?: number
       tipCurrency?: 'USD' | 'VES'
+      cashea?: CasheaPayload
     }) => recordDirectServiceSale({
       services: params.services,
       serviceId: params.serviceId,
@@ -316,6 +331,7 @@ export function usePOSPayment() {
       tipAmount: params.tipAmount,
       tipCurrency: params.tipCurrency,
       paidDate: effectivePaidDate(),
+      cashea: params.cashea,
     }),
     onSuccess: () => {
       success('Cobro de servicio directo registrado correctamente')
@@ -390,8 +406,15 @@ export function usePOSPayment() {
     groupPrice?: number
     tipAllocations?: Record<string, number>
   }): Promise<{ success: boolean; transactions?: Array<{ id: string, receipt_code?: string }> }> => {
-    const { isGroup, groupIds, members, groupPrice, tipAllocations } = params
     const method = paymentMethod.value
+    // Cashea: lo cobrado por Cashea (122, 124...) puede ser más que el precio; la diferencia se suma al
+    // servicio (en un grupo o un programa se reparte proporcional entre sus citas, como cualquier monto).
+    const casheaBlock = casheaFor(method)
+    if (casheaBlock) {
+      const base = params.serviceAmount + params.productsAmount
+      params = { ...params, serviceAmount: params.serviceAmount + (casheaTotal(base) - base) }
+    }
+    const { isGroup, groupIds, members, groupPrice, tipAllocations } = params
     const notes = paymentNotes.value
     const exchangeRt = params.exchangeRate
     const breakdownSource = paymentsBreakdown.value.map(item => withUsdAmount(item, exchangeRt))
@@ -409,6 +432,7 @@ export function usePOSPayment() {
       paymentsBreakdown: PaymentBreakdownItem[]
       tipAmount?: number
       tipCurrency?: 'USD' | 'VES'
+      cashea?: CasheaPayload
     }> = []
 
     if (isGroup && groupIds && groupIds.length > 1 && members && groupPrice) {
@@ -504,6 +528,9 @@ export function usePOSPayment() {
       })
     }
 
+    // Cada cobro de la venta (en un programa, cada cita) lleva el bloque: el servidor guarda cada uno por su neto.
+    if (casheaBlock) payloads = payloads.map(p => ({ ...p, cashea: casheaBlock }))
+
     try {
       const results = await recordSaleMutation.mutateAsync(payloads)
       reset()
@@ -557,6 +584,8 @@ export function usePOSPayment() {
         method: method as PaymentMethod,
         notes,
         paymentsBreakdown: breakdown,
+        // Con Cashea, `totalAmount` ya es el monto de Cashea (el total del POS lo usa al elegir Cashea).
+        cashea: casheaFor(method),
       })
       reset()
       return { success: true, transactions: [result] }
@@ -587,6 +616,14 @@ export function usePOSPayment() {
     const notes = paymentNotes.value
     const pMethodObj = paymentMethods.value.find(m => m.value === method)
     const paymentCurrency = pMethodObj?.currency ?? otherCurrency.value
+    // Cashea: el monto de Cashea se reparte entre los precios de los servicios, proporcional a cada uno.
+    const casheaBlock = casheaFor(method)
+    if (casheaBlock) {
+      const base = params.serviceAmount + (params.productsAmount ?? 0)
+      const serviceAmount = params.serviceAmount + (casheaTotal(base) - base)
+      const prices = spreadOver((params.services ?? []).map(s => s.price), serviceAmount)
+      params = { ...params, serviceAmount, services: params.services?.map((s, i) => ({ ...s, price: prices[i] })) }
+    }
     const totalAmount = params.serviceAmount + (params.productsAmount ?? 0)
 
     let breakdown: PaymentBreakdownItem[]
@@ -625,6 +662,7 @@ export function usePOSPayment() {
         paymentsBreakdown: breakdown,
         tipAmount: params.tipAmount,
         tipCurrency: tipCurrency.value,
+        cashea: casheaBlock,
       })
       reset()
       return { success: true, transactions: [result] }

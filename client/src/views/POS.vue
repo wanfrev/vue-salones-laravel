@@ -345,6 +345,7 @@
         :selected-bank-id="selectedBankId" :banks="banks" :is-bank-method="isBankMethod"
         :can-backdate="canBackdate" :paid-date="paidDate"
         :custom-total-amount="customTotalAmount"
+        :cashea-base="saleBase"
         :custom-total-currency="customTotalCurrency"
         :is-direct-service="activeSaleType === 'direct_service'"
         :direct-services-list="directServicesList"
@@ -422,6 +423,7 @@
             :selected-bank-id="selectedBankId" :banks="banks" :is-bank-method="isBankMethod"
             :can-backdate="canBackdate" :paid-date="paidDate"
             :custom-total-amount="customTotalAmount"
+            :cashea-base="saleBase"
             :custom-total-currency="customTotalCurrency"
             :is-direct-service="activeSaleType === 'direct_service'"
             :direct-services-list="directServicesList"
@@ -508,6 +510,8 @@ import { listServicios } from '../services/serviciosService'
 import { listEquipo } from '../services/equipoService'
 import { usePOSCart } from '../composables/pos/usePOSCart'
 import { usePOSPayment } from '../composables/pos/usePOSPayment'
+import { useCasheaDraft } from '../composables/pos/useCasheaDraft'
+import { casheaProblem } from '../components/pos/cashea'
 import { FeatureGate } from '../components/common'
 import { CitaFormModal } from '../components/modals'
 import POSPaymentPanel from '../components/pos/POSPaymentPanel.vue'
@@ -958,7 +962,8 @@ const effectiveProductsTotal = computed(() => areProductsIncluded.value ? 0 : pr
 const customTotalAmount = ref<number | null>(null)
 const customTotalCurrency = ref<'USD' | 'VES'>('USD')
 
-const grandTotal = computed(() => {
+/** Lo que cuesta la venta, sin propina (servicio + productos, o el total escrito a mano en tienda). */
+const saleBase = computed(() => {
   if (!businessStore.features.agenda && activeSaleType.value === 'retail_only') {
     if (customTotalAmount.value != null && customTotalAmount.value > 0) {
       return customTotalCurrency.value === 'VES'
@@ -967,7 +972,20 @@ const grandTotal = computed(() => {
     }
     return effectiveProductsTotal.value
   }
-  return servicePrice.value + effectiveProductsTotal.value + tipAmount.value
+  return servicePrice.value + effectiveProductsTotal.value
+})
+const tipInTotal = computed(() => (!businessStore.features.agenda && activeSaleType.value === 'retail_only' ? 0 : tipAmount.value))
+
+// Con Cashea se cobra el monto de Cashea (suele ser mayor que el precio: 122, 124...), no el precio de lista.
+const { draft: casheaDraft } = useCasheaDraft()
+const isCasheaSale = computed(() => paymentMethod.value === 'cashea' && activeSaleType.value !== 'tip')
+const casheaIssue = computed(() => (isCasheaSale.value
+  ? casheaProblem(casheaDraft.total ?? saleBase.value, saleBase.value, casheaDraft.feePercentage, casheaDraft.downPaymentPercentage)
+  : null))
+
+const grandTotal = computed(() => {
+  const base = isCasheaSale.value ? (casheaDraft.total ?? saleBase.value) : saleBase.value
+  return base + tipInTotal.value
 })
 
 const tipParticipants = computed<TipParticipant[]>(() => {
@@ -1015,6 +1033,7 @@ const splitRemaining = computed(() =>
 const isProcessing = computed(() => posIsProcessing.value)
 const canPay = computed(() => {
   if (grandTotal.value <= 0) return false
+  if (casheaIssue.value) return false
   if (activeSaleType.value === 'direct_service') {
     if (directServicesList.value.length === 0) return false
   }

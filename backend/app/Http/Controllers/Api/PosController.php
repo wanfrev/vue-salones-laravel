@@ -99,6 +99,7 @@ class PosController
                 createdBy: $request->user()->id,
                 productsAmount: (float) ($data['products_amount'] ?? 0),
                 paidDate: $data['paid_date'] ?? null,
+                cashea: $data['cashea'] ?? null,
             );
 
             EntityChanged::safe($businessId, 'transaction', 'created', $txId);
@@ -135,6 +136,7 @@ class PosController
                 branchId: $data['branch_id'] ?? null,
                 createdBy: $request->user()->id,
                 paidDate: $data['paid_date'] ?? null,
+                cashea: $data['cashea'] ?? null,
             );
 
             EntityChanged::safe($businessId, 'transaction', 'created', $txId);
@@ -177,6 +179,7 @@ class PosController
                 productsAmount: (float) ($data['products_amount'] ?? 0),
                 services: $data['services'] ?? [],
                 paidDate: $data['paid_date'] ?? null,
+                cashea: $data['cashea'] ?? null,
             );
 
             EntityChanged::safe($businessId, 'transaction', 'created', $txId);
