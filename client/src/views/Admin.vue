@@ -29,7 +29,6 @@
                 Historial
               </button>
             </div>
-            <InvitationsButton />
             <ShareLinkButton :employees="shareLinkEmployees" />
             <button
               @click="handleNewCita"
@@ -270,7 +269,6 @@ import { CitaFormModal } from '../components/modals'
 import { db } from '../lib/api'
 import AgendaListView from '../components/agenda/AgendaListView.vue'
 import ShareLinkButton from '../components/agenda/ShareLinkButton.vue'
-import InvitationsButton from '../components/agenda/InvitationsButton.vue'
 import type { Cita, PaymentEditContext } from '../types/cita'
 import type { PaymentMethod } from '../types/database'
 import { CalendarIcon, AddCircleIcon, ClipboardIcon, ClockCircleIcon, CheckCircleIcon, DollarIcon, ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
