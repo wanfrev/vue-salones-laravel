@@ -77,7 +77,7 @@
     <div class="rounded-2xl border border-border bg-surface p-5 shadow-sm no-print">
       <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">{{ isPatientNiche ? 'Resumen del paciente' : 'Resumen del cliente' }}</p>
       <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div><p class="text-xs text-text-muted">{{ businessStore.terminology.appointmentPlural || 'Consultas' }}</p><p class="mt-1 text-xl font-bold text-text">{{ historial.length }}</p></div>
+        <div><p class="text-xs text-text-muted">{{ businessStore.terminology.appointmentPlural || 'Consultas' }}</p><p class="mt-1 text-xl font-bold text-text">{{ summary?.total_visits ?? 0 }}</p></div>
         <div><p class="text-xs text-text-muted">Última atención</p><p class="mt-1 truncate text-sm font-semibold text-text">{{ ultimaVisita || 'Sin registros' }}</p></div>
         <div><p class="text-xs text-text-muted">Seguro / HCM</p><p class="mt-1 truncate text-sm font-semibold text-text">{{ cliente?.medicalInsurance || 'No registrado' }}</p></div>
         <div><p class="text-xs text-text-muted">Contacto de emergencia</p><p class="mt-1 truncate text-sm font-semibold text-text">{{ cliente?.emergencyPhone || 'No registrado' }}</p></div>
@@ -90,70 +90,13 @@
   </section>
 
   <section class="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-    <div class="rounded-xl border border-border bg-surface p-4 shadow-sm lg:col-span-2">
-       <div class="mb-4 flex items-center justify-between gap-3">
-         <div>
-           <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">{{ isPatientNiche ? 'Actividad del expediente' : 'Actividad del cliente' }}</p>
-           <h3 class="mt-1 text-base font-semibold text-text">{{ businessStore.terminology.servicePlural || 'Servicios' }} y {{ (businessStore.terminology.appointmentPlural || 'citas').toLowerCase() }}</h3>
-         </div>
-         <span class="rounded-lg bg-bg-secondary px-2.5 py-1.5 text-xs font-semibold text-text-muted">{{ historial.length }} registros</span>
-       </div>
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead>
-            <tr class="border-b border-border-subtle">
-              <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">Fecha</th>
-               <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">{{ businessStore.terminology.service || 'Servicio' }}</th>
-               <th class="pb-3 text-left text-xs font-semibold uppercase text-text-muted">{{ businessStore.terminology.employee || 'Empleado' }}</th>
-              <th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Monto</th>
-              <th class="pb-3 text-right text-xs font-semibold uppercase text-text-muted">Estado</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border-subtle">
-            <tr v-for="item in historial" :key="item.id" class="text-sm">
-              <td class="py-3 text-text-secondary">{{ item.date }}</td>
-              <td class="py-3 font-medium text-text">{{ item.service }}</td>
-              <td class="py-3 text-text-secondary">{{ item.employee }}</td>
-              <td class="py-3 text-right text-text">${{ item.amount.toLocaleString() }}</td>
-              <td class="py-3 text-right">
-                <span class="inline-flex items-center gap-2 rounded-full bg-bg-secondary px-2.5 py-1 text-xs font-medium text-text">
-                  <span class="h-2 w-2 rounded-full" :style="{ background: item.statusColor }"></span>
-                  {{ item.statusLabel }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="rounded-xl border border-border bg-surface p-4 shadow-sm">
-      <h3 class="mb-4 text-base font-semibold text-text">{{ isPatientNiche ? 'Estado de cuenta' : 'Resumen' }}</h3>
-      <div class="space-y-3">
-        <div class="rounded-lg bg-bg-secondary p-3">
-           <p class="text-xs text-text-muted">Total {{ (businessStore.terminology.appointmentPlural || 'Citas').toLowerCase() }}</p>
-          <p class="text-lg font-bold text-text">{{ historial.length }}</p>
-        </div>
-        <div class="rounded-lg bg-bg-secondary p-3">
-           <p class="text-xs text-text-muted">Total facturado</p>
-          <p class="text-lg font-bold text-text">${{ totalGasto }}</p>
-        </div>
-        <template v-if="isPatientNiche">
-          <div class="rounded-lg bg-success/10 p-3">
-             <p class="text-xs text-text-muted">Total pagado</p>
-            <p class="text-lg font-bold text-success">${{ totalPagado }}</p>
-          </div>
-          <div class="rounded-lg p-3" :class="saldoPendiente > 0 ? 'bg-danger/10' : 'bg-bg-secondary'">
-             <p class="text-xs text-text-muted">Saldo pendiente</p>
-            <p class="text-lg font-bold" :class="saldoPendiente > 0 ? 'text-danger' : 'text-text'">${{ saldoPendiente.toLocaleString() }}</p>
-          </div>
-        </template>
-        <div class="rounded-lg bg-bg-secondary p-3">
-           <p class="text-xs text-text-muted">Última {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}</p>
-           <p class="text-lg font-bold text-text">{{ ultimaVisita || `Sin ${(businessStore.terminology.appointmentPlural || 'citas').toLowerCase()}` }}</p>
-        </div>
-      </div>
-    </div>
+    <ClientVisitList
+      class="lg:col-span-2"
+      :visits="visits" :is-loading="isLoading" :is-error="isError" :has-more="hasMore" :is-loading-more="isLoadingMore"
+      :from="from" :to="to" :range-invalid="rangeInvalid"
+      @load-more="loadMore" @retry="retry" @update:range="setRange"
+    />
+    <ClientVisitSummary :summary="summary" :loading="isLoading" :is-patient-niche="isPatientNiche" />
   </section>
 </template>
 
@@ -161,26 +104,25 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
-import { sanitizePhone, getInitials } from '../lib/formatters'
-import { useAuth } from '../composables/common/useAuth'
+import { sanitizePhone, getInitials, formatDate } from '../lib/formatters'
 import { useBusinessStore } from '../store/business'
-import { listCitas } from '../services/agendaService'
 import { getClienteById } from '../services/clientesService'
 import { isPetNiche as checkPetNiche } from '../config/nicheFields'
 import { isDentalNiche as checkDentalNiche, isClinicalNiche as checkClinicalNiche, isPatientNiche as checkPatientNiche } from '../config/niches'
 import { useDentalToolsNavTabs } from '../composables/dental/useDentalToolsNavTabs'
+import { useClientVisits } from '../composables/clients/useClientVisits'
+import ClientVisitList from '../components/clients/ClientVisitList.vue'
+import ClientVisitSummary from '../components/clients/ClientVisitSummary.vue'
 import DentalToolsNav from '../components/dental/DentalToolsNav.vue'
 import ClinicalToolsSection from '../components/clinical/ClinicalToolsSection.vue'
 import { ArrowLeftIcon, ChatRoundLineIcon, PrinterIcon } from '@solar-icons/vue/linear'
 import type { Cliente } from '../types/cliente'
 
-const { authStore } = useAuth()
 const businessStore = useBusinessStore()
 const route = useRoute()
 const router = useRouter()
 
 const clienteId = computed(() => route.params.id as string)
-const businessId = computed(() => authStore.businessId)
 const isPetNiche = computed(() => checkPetNiche(businessStore.nicheType))
 const isDentalNiche = computed(() => checkDentalNiche(businessStore.nicheType))
 const isClinicalNiche = computed(() => checkClinicalNiche(businessStore.nicheType))
@@ -193,35 +135,12 @@ const { data: clienteData } = useQuery({
   enabled: computed(() => !!clienteId.value),
 })
 
-const { data: citasData } = useQuery({
-  queryKey: computed(() => ['cliente-historial', businessId.value, clienteId.value]),
-  queryFn: () => listCitas(businessId.value!, undefined, 'all'),
-  enabled: computed(() => !!businessId.value),
-})
-
 const cliente = computed<Cliente | null>(() => clienteData.value ?? null)
 
-const historial = computed(() => (citasData.value || [])
-  .filter(c => c.clientId === clienteId.value)
-  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  .map(c => ({
-    id: c.id,
-    date: c.date,
-    service: c.service,
-    employee: c.employee,
-    amount: c.price,
-    paymentStatus: c.paymentStatus,
-    statusLabel: c.statusLabel || c.status,
-    statusColor: c.statusColor || 'var(--color-primary)',
-  }))
-)
-
-const totalGasto = computed(() => historial.value.reduce((sum, item) => sum + item.amount, 0).toLocaleString())
-// "paid" is the only status guaranteed to have actually collected the full amount — "partial"
-// still has an unresolved balance, same as "unpaid", so it counts toward saldoPendiente instead.
-const totalPagado = computed(() => historial.value.filter(i => i.paymentStatus === 'paid').reduce((sum, i) => sum + i.amount, 0).toLocaleString())
-const saldoPendiente = computed(() => historial.value.filter(i => i.paymentStatus !== 'paid').reduce((sum, i) => sum + i.amount, 0))
-const ultimaVisita = computed(() => historial.value[0]?.date || '')
+const {
+  visits, summary, from, to, rangeInvalid, setRange, isLoading, isError, hasMore, isLoadingMore, loadMore, retry,
+} = useClientVisits(clienteId)
+const ultimaVisita = computed(() => (summary.value?.last_visit ? formatDate(summary.value.last_visit) : ''))
 
 const windowPrint = () => window.print()
 

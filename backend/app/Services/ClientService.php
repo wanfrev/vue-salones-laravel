@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Client;
 use App\Models\Pet;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -120,19 +121,31 @@ class ClientService
     }
 
     /**
-     * Aggregated per-client stats (visit count, total spent at current service
-     * prices, last visit date) computed in SQL instead of shipping every
-     * appointment row to the frontend for a client-side reduce.
+     * Aggregated per-client stats computed in SQL instead of shipping every appointment row to the
+     * frontend for a client-side reduce. Mismo criterio que ClientVisitService:
+     *  - las citas canceladas / no asistió no cuentan ni suman al gasto;
+     *  - el gasto usa el precio de cada cita (price_override) y, si no hay, el del servicio;
+     *  - "última visita" es la última cita atendida (completada o pagada) que ya pasó, o la última
+     *    venta directa del POS; una cita futura o cancelada ya no figura como visita;
+     *  - las ventas directas del POS a nombre del cliente suman al gasto.
+     * last_visit sale como fecha (Y-m-d) en la zona horaria del negocio.
      */
     public function stats(string $businessId, ?string $branchId = null): Collection
     {
+        $now = Carbon::now('UTC')->format('Y-m-d H:i:s');
+
         $query = DB::table('appointments')
             ->leftJoin('services', function ($join) {
                 $join->on('services.id', '=', 'appointments.service_id')
                     ->on('services.business_id', '=', 'appointments.business_id');
             })
             ->where('appointments.business_id', $businessId)
-            ->selectRaw('appointments.client_id as client_id, COUNT(*) as total_appointments, COALESCE(SUM(services.price), 0) as total_spent, MAX(appointments.start_time) as last_visit')
+            ->selectRaw("appointments.client_id as client_id,
+                SUM(CASE WHEN appointments.status IN ('cancelled', 'no_show') THEN 0 ELSE 1 END) as total_appointments,
+                COALESCE(SUM(CASE WHEN appointments.status IN ('cancelled', 'no_show') THEN 0
+                                  ELSE COALESCE(appointments.price_override, services.price, 0) END), 0) as total_spent,
+                MAX(CASE WHEN (appointments.status = 'completed' OR appointments.payment_status = 'paid')
+                              AND appointments.start_time <= ? THEN appointments.start_time END) as last_visit", [$now])
             ->groupBy('appointments.client_id');
 
         if ($branchId) {
@@ -141,7 +154,45 @@ class ClientService
             });
         }
 
-        return $query->get();
+        $byClient = $query->get()->keyBy('client_id');
+
+        $branchSql = $branchId ? 'AND (m.branch_id IS NULL OR m.branch_id = ?)' : '';
+        $bindings = $branchId ? [$businessId, $branchId] : [$businessId];
+        $sales = DB::select("
+            SELECT x.client_id AS client_id, COALESCE(SUM(x.amount), 0) AS total, MAX(x.visited_at) AS last_sale
+            FROM (
+              SELECT m.client_id AS client_id,
+                     MAX(COALESCE(t.total_amount, 0)) AS amount,
+                     MIN(COALESCE(t.paid_at, m.created_at)) AS visited_at
+              FROM inventory_movements m
+              LEFT JOIN transactions t ON CAST(t.id AS TEXT) = CAST(m.reference_id AS TEXT) AND t.business_id = m.business_id
+              WHERE m.business_id = ? AND m.client_id IS NOT NULL
+                AND m.reference_type = 'direct' AND m.movement_type = 'sale' {$branchSql}
+              GROUP BY m.client_id, m.reference_id
+            ) x
+            GROUP BY x.client_id
+        ", $bindings);
+
+        foreach ($sales as $sale) {
+            $row = $byClient->get($sale->client_id) ?? (object) [
+                'client_id' => $sale->client_id, 'total_appointments' => 0, 'total_spent' => 0, 'last_visit' => null,
+            ];
+            $row->total_spent = (float) $row->total_spent + (float) $sale->total;
+            if ($sale->last_sale && (!$row->last_visit || Carbon::parse($sale->last_sale, 'UTC')->gt(Carbon::parse($row->last_visit, 'UTC')))) {
+                $row->last_visit = $sale->last_sale;
+            }
+            $byClient->put($sale->client_id, $row);
+        }
+
+        $tz = \App\Models\Business::find($businessId)?->timezone ?: 'UTC';
+
+        return $byClient->values()->map(function ($row) use ($tz) {
+            $row->last_visit = $row->last_visit
+                ? Carbon::parse($row->last_visit, 'UTC')->setTimezone($tz)->format('Y-m-d')
+                : null;
+
+            return $row;
+        });
     }
 
     public function search(string $businessId, string $query, ?string $branchId = null): Collection

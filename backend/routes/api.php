@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\BusinessBillingController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\ClientController;
+use App\Http\Controllers\Api\ClientVisitController;
 use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\Dental\ClinicalHistoryController;
 use App\Http\Controllers\Api\Dental\DentalChartController;
@@ -205,6 +206,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     Route::post('/clients/find-or-create-by-phone', [ClientController::class, 'findOrCreateByPhone']);
     Route::get('/clients/{id}', [ClientController::class, 'show']);
         Route::get('/clients/{id}/history', [ClientController::class, 'history']);
+        Route::get('/clients/{clientId}/visits', [ClientVisitController::class, 'index']);
         Route::get('/clients/{clientId}/pets', [ClientController::class, 'pets']);
         Route::get('/clients/{clientId}/pets/{petId}/history', [AppointmentController::class, 'petHistory']);
 
