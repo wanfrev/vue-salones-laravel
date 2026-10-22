@@ -1,68 +1,83 @@
 <template>
-  <header class="mb-4 lg:mb-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
-        <DollarIcon class="h-3.5 w-3.5" />
-        <span>Finanzas</span>
-      </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <div class="flex rounded-xl border border-border bg-surface p-0.5 sm:p-1 shadow-sm w-full sm:w-auto">
-          <button v-for="period in periods" :key="period.value" @click="selectedPeriod = period.value" :class="['rounded-lg px-3 py-1.5 text-xs font-medium transition-theme flex-1 sm:flex-none text-center', selectedPeriod === period.value ? 'bg-primary text-text-inverse shadow-sm shadow-primary/20' : 'text-text-secondary hover:text-text hover:bg-bg-secondary']">{{ period.label }}</button>
-        </div>
-        <div class="flex items-center gap-1 rounded-xl border border-border bg-surface px-1.5 py-1 shadow-sm w-full sm:w-auto justify-center sm:justify-start">
-          <button v-if="selectedPeriod !== 'custom'" @click="goPrev" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-text" title="Anterior">
-            <ArrowLeftIcon class="h-3.5 w-3.5" />
-          </button>
-          <input
-            v-if="selectedPeriod === 'day'"
-            type="date"
-            :value="selectedMonth"
-            @change="onDayChange"
-            class="w-[130px] rounded-md border border-border bg-surface px-2 py-1 text-xs text-text text-center outline-none transition-theme focus:border-primary"
-          />
-          <input
-            v-else-if="selectedPeriod === 'month'"
-            v-model="selectedMonth"
-            type="month"
-            class="w-[130px] rounded-md border border-border bg-surface px-2 py-1 text-xs text-text text-center outline-none transition-theme focus:border-primary"
-          />
-          <template v-else-if="selectedPeriod === 'custom'">
-            <input
-              type="date"
-              :value="customFrom"
-              @change="onCustomFromChange"
-              class="w-[120px] rounded-md border border-border bg-surface px-2 py-1 text-xs text-text text-center outline-none transition-theme focus:border-primary"
-            />
-            <span class="text-xs text-text-muted">—</span>
-            <input
-              type="date"
-              :value="customTo"
-              @change="onCustomToChange"
-              class="w-[120px] rounded-md border border-border bg-surface px-2 py-1 text-xs text-text text-center outline-none transition-theme focus:border-primary"
-            />
-          </template>
-          <span v-else class="min-w-[130px] text-center text-xs font-medium text-text px-2">{{ displayLabel }}</span>
-          <button v-if="selectedPeriod !== 'custom'" @click="goNext" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-text" title="Siguiente">
-            <ArrowRightIcon class="h-3.5 w-3.5" />
-          </button>
-          <button type="button" class="rounded-md border border-border px-2 py-1 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text whitespace-nowrap ml-0.5" @click="resetToCurrent">{{ selectedPeriod === 'custom' ? 'Hoy' : 'Ahora' }}</button>
-        </div>
-        <ExchangeRateCard
-          v-if="!businessStore.isSingleCurrency"
-          :is-editable="rateCtx.isEditable.value"
-          :edit-rate-value="rateCtx.editRateValue.value"
-          :updating-rate="rateCtx.updatingRate.value"
-          :display-rate="rateCtx.displayRate.value"
-          @update:edit-rate-value="rateCtx.editRateValue.value = $event"
-          @update-rate="rateCtx.handleUpdate"
-        />
-      </div>
+  <header class="mb-4 flex flex-wrap items-center justify-between gap-3">
+    <div class="flex items-center gap-2">
+      <DollarIcon class="h-4 w-4 shrink-0 text-primary" />
+      <h1 class="text-xl font-bold tracking-tight text-text sm:text-2xl">Finanzas</h1>
     </div>
-    <!-- Main tabs -->
-    <div class="flex rounded-xl border border-border bg-surface p-0.5 mt-4 shadow-sm w-fit">
-      <button v-for="tab in mainTabs" :key="tab.key" @click="activeTab = tab.key" :class="['rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200', activeTab === tab.key ? 'bg-primary text-text-inverse shadow-sm' : 'text-text-secondary hover:text-text hover:bg-bg-secondary']">{{ tab.label }}</button>
-    </div>
+    <ExchangeRateCard
+      v-if="!businessStore.isSingleCurrency"
+      :is-editable="rateCtx.isEditable.value"
+      :edit-rate-value="rateCtx.editRateValue.value"
+      :updating-rate="rateCtx.updatingRate.value"
+      :display-rate="rateCtx.displayRate.value"
+      @update:edit-rate-value="rateCtx.editRateValue.value = $event"
+      @update-rate="rateCtx.handleUpdate"
+    />
   </header>
+
+  <!-- Pestañas principales y período, en una sola tarjeta -->
+  <section class="mb-4 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+    <div class="scroll-thin flex gap-1 overflow-x-auto overflow-y-hidden border-b border-border-subtle px-2 sm:px-3" role="tablist" aria-label="Secciones de finanzas">
+      <button
+        v-for="tab in mainTabs"
+        :key="tab.key"
+        type="button"
+        role="tab"
+        :aria-selected="activeTab === tab.key"
+        class="relative shrink-0 whitespace-nowrap px-3 py-3 text-sm font-medium transition-colors sm:px-4"
+        :class="activeTab === tab.key ? 'text-primary' : 'text-text-secondary hover:text-text'"
+        @click="activeTab = tab.key"
+      >
+        {{ tab.label }}
+        <span v-if="activeTab === tab.key" class="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary" />
+      </button>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 sm:px-4">
+      <div class="inline-flex w-full divide-x divide-border overflow-hidden rounded-xl border border-border text-xs font-medium sm:w-auto">
+        <button v-for="period in periods" :key="period.value" @click="selectedPeriod = period.value" :class="['flex-1 px-3 py-2 text-center transition-colors sm:flex-none', selectedPeriod === period.value ? 'bg-primary/10 font-semibold text-primary' : 'text-text-secondary hover:bg-bg-secondary hover:text-text']">{{ period.label }}</button>
+      </div>
+
+      <div class="flex w-full items-center justify-center gap-1 sm:w-auto sm:justify-start">
+        <button v-if="selectedPeriod !== 'custom'" @click="goPrev" class="rounded-lg p-2 text-text-muted transition-colors hover:bg-bg-secondary hover:text-text" title="Anterior" aria-label="Anterior">
+          <ArrowLeftIcon class="h-4 w-4" />
+        </button>
+        <input
+          v-if="selectedPeriod === 'day'"
+          type="date"
+          :value="selectedMonth"
+          @change="onDayChange"
+          class="w-[140px] rounded-xl border border-border bg-surface px-2 py-2 text-center text-xs text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15"
+        />
+        <input
+          v-else-if="selectedPeriod === 'month'"
+          v-model="selectedMonth"
+          type="month"
+          class="w-[140px] rounded-xl border border-border bg-surface px-2 py-2 text-center text-xs text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15"
+        />
+        <template v-else-if="selectedPeriod === 'custom'">
+          <input
+            type="date"
+            :value="customFrom"
+            @change="onCustomFromChange"
+            class="w-[130px] rounded-xl border border-border bg-surface px-2 py-2 text-center text-xs text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15"
+          />
+          <span class="text-xs text-text-muted">—</span>
+          <input
+            type="date"
+            :value="customTo"
+            @change="onCustomToChange"
+            class="w-[130px] rounded-xl border border-border bg-surface px-2 py-2 text-center text-xs text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15"
+          />
+        </template>
+        <span v-else class="min-w-[130px] px-2 text-center text-xs font-medium text-text">{{ displayLabel }}</span>
+        <button v-if="selectedPeriod !== 'custom'" @click="goNext" class="rounded-lg p-2 text-text-muted transition-colors hover:bg-bg-secondary hover:text-text" title="Siguiente" aria-label="Siguiente">
+          <ArrowRightIcon class="h-4 w-4" />
+        </button>
+        <button type="button" class="ml-1 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/10" @click="resetToCurrent">{{ selectedPeriod === 'custom' ? 'Hoy' : 'Ahora' }}</button>
+      </div>
+    </div>
+  </section>
 
   <!-- TAB 1: Resumen -->
   <template v-if="activeTab === 'resumen'">

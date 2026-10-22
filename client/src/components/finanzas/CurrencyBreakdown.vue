@@ -40,18 +40,16 @@ const { formatVESEs, isSingleCurrency } = useCurrency()
 </script>
 
 <template>
-  <div class="rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
-    <div class="flex items-center justify-between border-b border-border bg-bg-secondary px-4 py-3">
+  <div class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+    <div class="flex items-center justify-between border-b border-border-subtle px-4 py-3">
       <div class="flex items-center gap-2">
-        <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        </div>
+        <svg class="h-4 w-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
         <h3 class="text-sm font-semibold text-text">{{ data.title }}</h3>
       </div>
-      <button v-if="!hideClose" @click="$emit('close')"
+      <button v-if="!hideClose" @click="$emit('close')" aria-label="Cerrar"
         class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text">
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -59,31 +57,30 @@ const { formatVESEs, isSingleCurrency } = useCurrency()
       </button>
     </div>
 
-    <div :class="isSingleCurrency ? 'grid grid-cols-1' : 'grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border'">
+    <div :class="isSingleCurrency ? 'grid grid-cols-1' : 'grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border-subtle'">
       <!-- USD Column -->
-      <div class="p-4">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2">
-            <span class="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">USD</span>
-            <span class="text-xs text-text-muted">Dólares</span>
-          </div>
-          <span class="text-lg font-bold text-text tabular-nums">${{ data.usdTotal.toFixed(2) }}</span>
+      <div class="px-4 py-4">
+        <div class="mb-3 flex items-baseline justify-between gap-2">
+          <p class="text-xs font-semibold uppercase tracking-wider text-primary">USD <span class="font-normal normal-case tracking-normal text-text-muted">· Dólares</span></p>
+          <span class="text-lg font-bold tabular-nums text-text">${{ data.usdTotal.toFixed(2) }}</span>
         </div>
 
-        <div v-if="data.usdItems.length > 0" class="space-y-1.5">
-          <p class="text-[10px] font-semibold uppercase tracking-wider text-text-muted mb-2">{{ data.usdLabel }}</p>
-          <div v-for="item in data.usdItems" :key="item.label" class="rounded-md bg-bg-secondary/60 px-3 py-2 text-sm">
-            <div class="flex items-center justify-between">
-              <span class="text-text-secondary">{{ item.label }}</span>
-              <span class="font-medium text-text tabular-nums">${{ item.amount.toFixed(2) }}</span>
-            </div>
-            <div v-if="item.subItems?.length" class="mt-1.5 space-y-1 border-t border-border-subtle pt-1.5">
-              <div v-for="sub in item.subItems" :key="sub.label" class="flex items-center justify-between pl-2 text-xs">
-                <span class="text-text-muted">{{ sub.label }}</span>
-                <span class="text-text-secondary tabular-nums">${{ sub.amount.toFixed(2) }}</span>
+        <div v-if="data.usdItems.length > 0">
+          <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">{{ data.usdLabel }}</p>
+          <ul class="divide-y divide-border-subtle">
+            <li v-for="item in data.usdItems" :key="item.label" class="py-2 text-sm">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-text-secondary">{{ item.label }}</span>
+                <span class="font-medium tabular-nums text-text">${{ item.amount.toFixed(2) }}</span>
               </div>
-            </div>
-          </div>
+              <div v-if="item.subItems?.length" class="mt-1.5 space-y-1 border-l-2 border-border-subtle pl-3">
+                <div v-for="sub in item.subItems" :key="sub.label" class="flex items-center justify-between gap-3 text-xs">
+                  <span class="text-text-muted">{{ sub.label }}</span>
+                  <span class="tabular-nums text-text-secondary">${{ sub.amount.toFixed(2) }}</span>
+                </div>
+              </div>
+            </li>
+          </ul>
         </div>
         <div v-else class="py-4 text-center text-sm text-text-muted">
           Sin detalle
@@ -92,29 +89,28 @@ const { formatVESEs, isSingleCurrency } = useCurrency()
 
       <!-- VES Column — never shown for a single-currency (e.g. staffing) business, which has no
            exchange rate to convert against and no VES-denominated records to begin with. -->
-      <div v-if="!isSingleCurrency" class="p-4">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2">
-            <span class="rounded-full bg-warning/10 px-2.5 py-0.5 text-xs font-semibold text-warning">VES</span>
-            <span class="text-xs text-text-muted">Bolívares</span>
-          </div>
-          <span class="text-lg font-bold text-text tabular-nums">{{ formatVESEs(data.vesTotal) }}</span>
+      <div v-if="!isSingleCurrency" class="px-4 py-4">
+        <div class="mb-3 flex items-baseline justify-between gap-2">
+          <p class="text-xs font-semibold uppercase tracking-wider text-warning">VES <span class="font-normal normal-case tracking-normal text-text-muted">· Bolívares</span></p>
+          <span class="text-lg font-bold tabular-nums text-text">{{ formatVESEs(data.vesTotal) }}</span>
         </div>
 
-        <div v-if="data.vesItems.length > 0" class="space-y-1.5">
-          <p class="text-[10px] font-semibold uppercase tracking-wider text-text-muted mb-2">{{ data.vesLabel }}</p>
-          <div v-for="item in data.vesItems" :key="item.label" class="rounded-md bg-bg-secondary/60 px-3 py-2 text-sm">
-            <div class="flex items-center justify-between">
-              <span class="text-text-secondary">{{ item.label }}</span>
-              <span class="font-medium text-text tabular-nums">{{ formatVESEs(item.amount) }}</span>
-            </div>
-            <div v-if="item.subItems?.length" class="mt-1.5 space-y-1 border-t border-border-subtle pt-1.5">
-              <div v-for="sub in item.subItems" :key="sub.label" class="flex items-center justify-between pl-2 text-xs">
-                <span class="text-text-muted">{{ sub.label }}</span>
-                <span class="text-text-secondary tabular-nums">{{ formatVESEs(sub.amount) }}</span>
+        <div v-if="data.vesItems.length > 0">
+          <p class="mb-1 text-[10px] font-semibold uppercase tracking-wider text-text-muted">{{ data.vesLabel }}</p>
+          <ul class="divide-y divide-border-subtle">
+            <li v-for="item in data.vesItems" :key="item.label" class="py-2 text-sm">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-text-secondary">{{ item.label }}</span>
+                <span class="font-medium tabular-nums text-text">{{ formatVESEs(item.amount) }}</span>
               </div>
-            </div>
-          </div>
+              <div v-if="item.subItems?.length" class="mt-1.5 space-y-1 border-l-2 border-border-subtle pl-3">
+                <div v-for="sub in item.subItems" :key="sub.label" class="flex items-center justify-between gap-3 text-xs">
+                  <span class="text-text-muted">{{ sub.label }}</span>
+                  <span class="tabular-nums text-text-secondary">{{ formatVESEs(sub.amount) }}</span>
+                </div>
+              </div>
+            </li>
+          </ul>
         </div>
         <div v-else class="py-4 text-center text-sm text-text-muted">
           Sin detalle
@@ -123,9 +119,9 @@ const { formatVESEs, isSingleCurrency } = useCurrency()
     </div>
 
     <div v-if="(data.pendingCredit ?? 0) > 0"
-      class="flex items-center justify-between border-t border-border bg-warning/5 px-4 py-2.5 text-xs">
+      class="flex items-center justify-between gap-3 border-t border-border-subtle bg-warning/5 px-4 py-2.5 text-xs">
       <span class="text-text-secondary">Pendiente por cobrar de créditos de este período (no está sumado arriba)</span>
-      <span class="font-semibold text-warning tabular-nums">${{ (data.pendingCredit ?? 0).toFixed(2) }}</span>
+      <span class="shrink-0 font-semibold tabular-nums text-warning">${{ (data.pendingCredit ?? 0).toFixed(2) }}</span>
     </div>
   </div>
 </template>
