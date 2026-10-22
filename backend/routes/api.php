@@ -3,9 +3,12 @@
 use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BankController;
+use App\Http\Controllers\Api\BillingNoticeController;
+use App\Http\Controllers\Api\BusinessBillingController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\BusinessController;
 use App\Http\Controllers\Api\ClientController;
+use App\Http\Controllers\Api\ClientVisitController;
 use App\Http\Controllers\Api\CreditController;
 use App\Http\Controllers\Api\Dental\ClinicalHistoryController;
 use App\Http\Controllers\Api\Dental\DentalChartController;
@@ -203,6 +206,7 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     Route::post('/clients/find-or-create-by-phone', [ClientController::class, 'findOrCreateByPhone']);
     Route::get('/clients/{id}', [ClientController::class, 'show']);
         Route::get('/clients/{id}/history', [ClientController::class, 'history']);
+        Route::get('/clients/{clientId}/visits', [ClientVisitController::class, 'index']);
         Route::get('/clients/{clientId}/pets', [ClientController::class, 'pets']);
         Route::get('/clients/{clientId}/pets/{petId}/history', [AppointmentController::class, 'petHistory']);
 
@@ -719,6 +723,9 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
     Route::delete('/notifications/{id}', [NotificationController::class, 'dismiss']);
 
+    // Aviso de cobro del servicio (solo el admin del negocio lo recibe; el resto 204)
+    Route::get('/billing/notice', [BillingNoticeController::class, 'show']);
+
     // Reminders (admin-only manual trigger for testing)
     Route::post('/reminders/trigger', [ReminderController::class, 'trigger']);
 
@@ -761,5 +768,10 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::post('/superadmins/{id}/revoke', [SuperadminController::class, 'revokeSuperadmin']);
         Route::post('/superadmins/{id}/restore', [SuperadminController::class, 'restoreSuperadmin']);
         Route::get('/features-matrix', [SuperadminController::class, 'featuresMatrix']);
+        // Cobro del servicio de Luma por negocio (plan, avisos e historial de pagos)
+        Route::get('/businesses/{id}/billing', [BusinessBillingController::class, 'show']);
+        Route::put('/businesses/{id}/billing', [BusinessBillingController::class, 'update']);
+        Route::post('/businesses/{id}/billing/payments', [BusinessBillingController::class, 'storePayment']);
+        Route::delete('/businesses/{id}/billing/payments/{paymentId}', [BusinessBillingController::class, 'destroyPayment']);
     });
 });

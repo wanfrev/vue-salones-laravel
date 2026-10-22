@@ -1,157 +1,54 @@
 <template>
   <AppLayout>
-    <div class="space-y-4">
-      <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
-          <UsersGroupRoundedIcon class="h-3.5 w-3.5" />
-          {{ t.clientPlural || 'Clientes' }}
-        </div>
+    <div>
+      <ClientDirectoryHeader :total="totalClientes">
         <button
           v-if="canCreateClients"
+          class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
           @click="openNewClientModal"
-          class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover"
         >
-          <AddCircleIcon class="h-3.5 w-3.5" />
-          Nuevo {{ t.client || 'Cliente' }}
+          <AddCircleIcon class="h-4 w-4" />
+          <span>Nuevo<span class="hidden sm:inline"> {{ singular }}</span></span>
         </button>
-      </header>
+      </ClientDirectoryHeader>
 
-      <div class="relative flex-1 max-w-md">
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Buscar por nombre, teléfono o email..."
-          class="w-full rounded-lg border border-border bg-surface pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
+      <section class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+        <ClientDirectoryToolbar
+          v-model:search="search"
+          v-model:segment="segment"
+          v-model:window-days="windowDays"
+          v-model:sort="sort"
+          :counts="counts"
+          :result-count="filteredClients.length"
+          :total-count="totalClientes"
+          :filtered="filtered"
+          :placeholder="`Buscar ${singular}…`"
+          @clear="clearFilters"
         />
-        <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-          <MagnifierIcon class="h-4 w-4" />
-        </div>
-      </div>
-
-      <div class="overflow-hidden rounded-lg border border-border bg-surface sm:rounded-xl">
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead>
-              <tr class="border-b border-border">
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">{{ t.client || 'Cliente' }}</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Contacto</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Última visita</th>
-        <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">{{ t.appointmentPlural || 'Citas' }}</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Gasto</th>
-                <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-text-muted">WhatsApp</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="client in paginatedData" :key="client.id" class="cursor-pointer border-b border-border-subtle last:border-b-0 transition-theme hover:bg-bg-secondary" @click="handleViewClient(client)">
-                <td class="px-4 py-3">
-                  <div class="flex items-center gap-3">
-                    <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-                      {{ getInitials(client.name) }}
-                    </div>
-                    <div class="min-w-0">
-                      <p class="text-sm font-medium text-text truncate">{{ client.name }}</p>
-                      <p class="text-xs text-text-muted">Desde {{ client.joinDate ? formatDateHuman(client.joinDate) : '—' }}</p>
-                    </div>
-                  </div>
-                </td>
-                <td class="px-4 py-3">
-                  <div v-if="!hidePhoneFromEmployee" class="text-xs text-text-secondary">{{ client.phone }}</div>
-                  <div v-if="!hidePhoneFromEmployee && client.email" class="text-xs text-text-muted truncate max-w-40">{{ client.email }}</div>
-                  <span v-if="hidePhoneFromEmployee" class="text-xs text-text-muted italic">Oculto</span>
-                </td>
-                <td class="px-4 py-3">
-                  <span class="text-xs text-text-secondary">{{ lastVisitLabel(client) }}</span>
-                </td>
-                <td class="px-4 py-3">
-                  <span class="text-sm font-medium tabular-nums text-text">{{ client.totalAppointments }}</span>
-                </td>
-                <td class="px-4 py-3">
-                  <span class="text-sm font-medium tabular-nums text-text">${{ client.totalSpent }}</span>
-                </td>
-                <td class="px-4 py-3 text-center">
-                  <!-- Nicho psicología: acceso directo al expediente y a los archivos del paciente (con el permiso de expediente). -->
-                  <div v-if="clinicalActions" class="mb-1 flex items-center justify-center gap-1.5">
-                    <button
-                      @click.stop="openClinical(client, 'historia')"
-                      class="whitespace-nowrap rounded-lg bg-primary/10 px-2.5 py-1.5 text-xs font-semibold text-primary transition-theme hover:bg-primary/15"
-                      title="Abrir el expediente y la historia clínica"
-                    >Expediente</button>
-                    <button
-                      v-if="businessStore.hasCapability('clinical.attachments')"
-                      @click.stop="openClinical(client, 'adjuntos')"
-                      class="whitespace-nowrap rounded-lg border border-primary/30 px-2.5 py-1.5 text-xs font-semibold text-primary transition-theme hover:bg-primary/5"
-                      title="Ver y subir archivos del paciente"
-                    >Archivos</button>
-                  </div>
-                  <button
-                    v-if="!hidePhoneFromEmployee"
-                    @click.stop="handleWhatsApp(client)"
-                    class="rounded-md p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-success"
-                    title="Escribir por WhatsApp"
-                  >
-                    <CheckCircleIcon class="h-4 w-4" />
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="flex items-center justify-between border-t border-border px-3 sm:px-4 py-2.5">
-          <div class="text-xs sm:text-sm text-text-muted">
-            {{ paginationStart }}-{{ paginationEnd }} de {{ filteredClients.length }}
-          </div>
-          <!-- Desktop: full pagination -->
-          <div class="hidden sm:flex gap-1">
-            <button
-              @click="previousPage"
-              :disabled="!hasPreviousPage"
-              class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-theme"
-              :class="hasPreviousPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
-            >
-              Anterior
-            </button>
-            <button
-              v-for="page in pageNumbers"
-              :key="page"
-              @click="page === '...' ? null : goToPage(page as number)"
-              :disabled="page === '...'"
-              class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-theme"
-              :class="page === currentPage ? 'bg-primary text-text-inverse' : 'text-text-secondary hover:bg-bg-secondary disabled:cursor-default'"
-            >
-              {{ page }}
-            </button>
-            <button
-              @click="nextPage"
-              :disabled="!hasNextPage"
-              class="rounded-md px-2.5 py-1.5 text-sm font-medium transition-theme"
-              :class="hasNextPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
-            >
-              Siguiente
-            </button>
-          </div>
-          <!-- Mobile: compact arrows + page indicator -->
-          <div class="flex sm:hidden items-center gap-1">
-            <button
-              @click="previousPage"
-              :disabled="!hasPreviousPage"
-              class="rounded-md p-1.5 transition-theme"
-              :class="hasPreviousPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
-            >
-              <ArrowLeftIcon class="h-4 w-4" />
-            </button>
-            <span class="text-xs font-medium text-text px-1">{{ currentPage }} / {{ totalPages }}</span>
-            <button
-              @click="nextPage"
-              :disabled="!hasNextPage"
-              class="rounded-md p-1.5 transition-theme"
-              :class="hasNextPage ? 'text-text-secondary hover:bg-bg-secondary' : 'text-text-muted cursor-not-allowed opacity-40'"
-            >
-              <ArrowRightIcon class="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </div>
+        <ClientDirectoryList
+          :clients="paginatedData"
+          :hide-phone="hidePhoneFromEmployee"
+          :clinical-actions="clinicalActions"
+          :has-attachments="businessStore.hasCapability('clinical.attachments')"
+          :empty-text="emptyText"
+          @open="handleViewClient"
+          @whatsapp="handleWhatsApp"
+          @clinical="openClinical"
+        />
+        <ClientPagination
+          :current-page="currentPage"
+          :total-pages="totalPages"
+          :page-numbers="pageNumbers"
+          :has-next="hasNextPage"
+          :has-previous="hasPreviousPage"
+          :start="paginationStart"
+          :end="paginationEnd"
+          :total="filteredClients.length"
+          @goto="goToPage"
+          @next="nextPage"
+          @previous="previousPage"
+        />
+      </section>
     </div>
     <ClienteFormModal
       ref="newClientModalRef"
@@ -168,14 +65,18 @@ import { useClientFilters } from '../../composables/common/useClientFilters'
 import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { clientesKeys, listClientes, saveCliente } from '../../services/clientesService'
-import { getInitials, sanitizePhone, formatDateHuman } from '../../lib/formatters'
+import { sanitizePhone } from '../../lib/formatters'
 import { isClinicalNiche } from '../../config/niches'
 import { useClinicalAccess } from '../../composables/clinical/useClinicalToolsNavTabs'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import ClienteFormModal from '../../components/modals/ClienteFormModal.vue'
+import ClientDirectoryHeader from '../../components/clients/ClientDirectoryHeader.vue'
+import ClientDirectoryToolbar from '../../components/clients/ClientDirectoryToolbar.vue'
+import ClientDirectoryList from '../../components/clients/ClientDirectoryList.vue'
+import ClientPagination from '../../components/clients/ClientPagination.vue'
 import type { Cliente } from '../../types/cliente'
 import type { ClienteFormData } from '../../types/cliente'
-import { UsersGroupRoundedIcon, AddCircleIcon, MagnifierIcon, CheckCircleIcon, ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
+import { AddCircleIcon } from '@solar-icons/vue/linear'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -185,6 +86,8 @@ const queryClient = useQueryClient()
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 const t = computed(() => businessStore.terminology)
+const singular = computed(() => (t.value.client || 'cliente').toLowerCase())
+const plural = computed(() => (t.value.clientPlural || 'clientes').toLowerCase())
 const isEmployee = computed(() => authStore.role === 'empleado')
 const canCreateClients = computed(() => {
   if (!isEmployee.value) return true
@@ -204,8 +107,15 @@ const { data: clientesData } = useQuery({
 const clients = computed<Cliente[]>(() => clientesData.value ?? [])
 
 const {
-  searchQuery,
+  search,
+  segment,
+  windowDays,
+  sort,
+  filtered,
   filteredClients,
+  counts,
+  totalClientes,
+  clearFilters,
   currentPage,
   paginatedData,
   pageNumbers,
@@ -219,10 +129,11 @@ const {
   totalPages,
 } = useClientFilters(clients)
 
-const lastVisitLabel = (client: Cliente) =>
-  client.lastVisit && client.lastVisit !== 'Sin visitas'
-    ? formatDateHuman(client.lastVisit)
-    : `Sin ${(businessStore.terminology.appointmentPlural || 'citas').toLowerCase()}`
+const emptyText = computed(() =>
+  filtered.value
+    ? `No hay ${plural.value} que coincidan con la búsqueda o el filtro.`
+    : `Todavía no hay ${plural.value} registrados.`
+)
 
 const handleViewClient = (cliente: Cliente) => {
   router.push(`/dashboard/clientes/${cliente.id}`)

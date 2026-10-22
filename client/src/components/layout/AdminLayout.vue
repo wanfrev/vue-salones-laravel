@@ -55,6 +55,7 @@
 
     <main class="ml-0 min-h-screen pt-[var(--header-total)] lg:ml-64">
       <GlobalLoading />
+      <BillingNoticeBanner />
       <div class="p-4 lg:p-6">
         <!-- Fundido corto entre módulos. El wrapper con key es necesario porque varias vistas tienen
              varios nodos raíz (fragmentos) y <Transition> no puede animarlas; la key es el patrón
@@ -88,6 +89,7 @@ import InvitationsButton from '../agenda/InvitationsButton.vue'
 import { BranchSwitcher, BusinessSwitcher } from '../common'
 import GlobalLoading from '../common/GlobalLoading.vue'
 import DailyExchangeRateModal from '../common/DailyExchangeRateModal.vue'
+import BillingNoticeBanner from './BillingNoticeBanner.vue'
 import { useBusinessStore } from '../../store/business'
 import { getInitials } from '../../lib/formatters'
 

@@ -140,6 +140,9 @@
         :groups="flagGroups" :features="features" :niche-defaults="nicheDefaults" :locked-keys="lockedFeatureKeys"
         :busy="isTogglingFeature" :niche-label="nicheLabel" @toggle="toggleFeature" />
 
+      <!-- COBRO DEL SERVICIO -->
+      <BillingPanel v-else-if="tab === 'cobro'" :business-id="business.id" />
+
       <!-- EQUIPO Y SUCURSALES -->
       <div v-else class="grid gap-6 lg:grid-cols-2">
         <section class="rounded-2xl border border-border bg-surface p-5">
@@ -298,6 +301,7 @@ import { listBranches, branchesKeys } from '../services/branchesService'
 import { translateError } from '../lib/errors'
 import SuperadminLayout from '../components/layout/SuperadminLayout.vue'
 import FeaturesPanel from '../components/superadmin/FeaturesPanel.vue'
+import BillingPanel from '../components/superadmin/BillingPanel.vue'
 import { groupsForNiche, flagStats } from '../components/superadmin/featureCatalog'
 import type { AuthProfile } from '../types/auth'
 import type { Business } from '../types/database'
@@ -364,8 +368,8 @@ const flagGroups = computed(() => groupsForNiche(business.value?.niche_type))
 const nicheDefaults = computed(() => resolveFeatures(business.value?.niche_type, {}))
 const flagSummary = computed(() => flagStats(flagGroups.value, features.value, nicheDefaults.value))
 
-type TabId = 'resumen' | 'funciones' | 'equipo'
-const tab = ref<TabId>((['resumen', 'funciones', 'equipo'] as const).find(t => t === route.query.tab) ?? 'resumen')
+type TabId = 'resumen' | 'funciones' | 'cobro' | 'equipo'
+const tab = ref<TabId>((['resumen', 'funciones', 'cobro', 'equipo'] as const).find(t => t === route.query.tab) ?? 'resumen')
 const selectTab = (id: TabId) => {
   tab.value = id
   router.replace({ query: { ...route.query, tab: id === 'resumen' ? undefined : id } })
@@ -373,6 +377,7 @@ const selectTab = (id: TabId) => {
 const TABS = computed(() => [
   { id: 'resumen' as const, label: 'Resumen', badge: '' },
   { id: 'funciones' as const, label: 'Funciones', badge: `${flagSummary.value.on}/${flagSummary.value.total}` },
+  { id: 'cobro' as const, label: 'Cobro', badge: '' },
   { id: 'equipo' as const, label: 'Equipo y sucursales', badge: '' },
 ])
 

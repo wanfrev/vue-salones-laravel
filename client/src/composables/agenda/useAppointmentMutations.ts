@@ -43,6 +43,7 @@ export function useAppointmentMutations(options: {
       clientesKeys.all(bid, brId),
       ['cliente', bid] as const,
       ['cliente-historial', bid] as const,
+      ['client-visits', bid] as const,
       ['finanzas-transactions', bid] as const,
       ['financial-summary', bid] as const,
       ['finanzas-employee-payments', bid] as const,

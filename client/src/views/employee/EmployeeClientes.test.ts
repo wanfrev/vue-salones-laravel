@@ -66,7 +66,7 @@ describe('EmployeeClientes — acceso directo al expediente (psicología)', () =
 
   it('clicking the row still opens the ficha', async () => {
     const w = mountList()
-    await w.find('tbody tr').trigger('click')
+    await w.find('[data-testid="client-row"]').trigger('click')
     expect(s.push).toHaveBeenCalledWith('/dashboard/clientes/c1')
   })
 

@@ -219,6 +219,9 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   restore_superadmin: 'Superadmin restaurado',
   link_business_owner: 'Negocio vinculado a otro dueño',
   unlink_business_owner: 'Negocio desvinculado',
+  billing_plan_updated: 'Plan de cobro actualizado',
+  billing_payment_recorded: 'Pago del servicio registrado',
+  billing_payment_undone: 'Pago del servicio deshecho',
 }
 
 export function describeAuditAction(log: SuperadminAuditLogEntry): string {
