@@ -1,99 +1,66 @@
 <template>
   <FeatureGate feature="inventario">
-  <header class="mb-4 lg:mb-6">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div class="flex items-center gap-2 text-xs text-primary">
-        <BoxIcon class="h-3.5 w-3.5" />
-        <span class="font-medium uppercase tracking-wider">Inventario</span>
-      </div>
-      <div class="flex gap-2">
-        <button
-          v-if="!disableInventoryEdit && isTienda"
-          @click="safeOpenSettingsModal()"
-          class="flex items-center justify-center rounded-xl border border-border bg-surface p-2.5 text-text transition-theme hover:bg-bg-secondary"
-          title="Configuración de Inventario"
-        >
-          <SettingsIcon class="h-5 w-5" />
-        </button>
-        <button
-          v-if="canAddPurchaseInvoice"
-          @click="historyModalRef?.open()"
-          class="flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-text shadow-sm transition-theme hover:bg-bg-secondary"
-        >
-          <ClipboardIcon class="h-4 w-4" />
-          <span>Historial de facturas</span>
-        </button>
-        <button
-          v-if="canAddPurchaseInvoice"
-          @click="purchaseInvoiceModalRef?.open()"
-          class="flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-text shadow-sm transition-theme hover:bg-bg-secondary"
-        >
-          <BillListIcon class="h-4 w-4" />
-          <span>Agregar factura</span>
-        </button>
-        <button
-          v-if="!disableInventoryEdit"
-          @click="safeOpenProductModal()"
-          class="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover"
-        >
-          <AddCircleIcon class="h-4 w-4" />
-          <span>Nuevo producto</span>
-        </button>
-      </div>
+  <header class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex min-w-0 items-center gap-2">
+      <BoxIcon class="h-4 w-4 shrink-0 text-primary" />
+      <h1 class="truncate text-xl font-bold tracking-tight text-text sm:text-2xl">Inventario</h1>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button
+        v-if="!disableInventoryEdit && isTienda"
+        @click="safeOpenSettingsModal()"
+        class="flex items-center justify-center rounded-xl border border-border bg-surface p-2.5 text-text transition-theme hover:bg-bg-secondary"
+        title="Configuración de Inventario"
+        aria-label="Configuración de Inventario"
+      >
+        <SettingsIcon class="h-5 w-5" />
+      </button>
+      <button
+        v-if="canAddPurchaseInvoice"
+        @click="historyModalRef?.open()"
+        class="flex flex-1 items-center justify-center gap-2 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-semibold text-text shadow-sm transition-theme hover:bg-bg-secondary sm:flex-none sm:px-4"
+      >
+        <ClipboardIcon class="h-4 w-4" />
+        <span>Historial de facturas</span>
+      </button>
+      <button
+        v-if="canAddPurchaseInvoice"
+        @click="purchaseInvoiceModalRef?.open()"
+        class="flex items-center gap-2 flex-1 justify-center rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-semibold text-text shadow-sm transition-theme hover:bg-bg-secondary sm:flex-none sm:px-4"
+      >
+        <BillListIcon class="h-4 w-4" />
+        <span>Agregar factura</span>
+      </button>
+      <button
+        v-if="!disableInventoryEdit"
+        @click="safeOpenProductModal()"
+        class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 sm:flex-none text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover"
+      >
+        <AddCircleIcon class="h-4 w-4" />
+        <span>Nuevo producto</span>
+      </button>
     </div>
   </header>
 
-  <ProductStats
-    :total-productos="totalProductos"
-    :total-categorias="totalCategorias"
-    :stock-bajo="stockBajo"
-    :valor-u-s-d="valorUSD"
-    :valor-v-e-s="valorVES"
-  />
+  <section class="mb-5 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+    <ProductStats
+      :total-productos="totalProductos"
+      :total-categorias="totalCategorias"
+      :stock-bajo="stockBajo"
+      :valor-u-s-d="valorUSD"
+      :valor-v-e-s="valorVES"
+    />
 
-  <div class="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-    <div v-if="activeTab !== 'movimientos'" class="relative flex-1 max-w-md">
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="Buscar producto por nombre o SKU..."
-        class="w-full rounded-lg border border-border bg-surface-elevated pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
-      />
-      <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-        <MagnifierIcon class="h-4 w-4" />
-      </div>
-    </div>
-    <div v-else class="relative flex-1 max-w-md">
-      <input
-        v-model="movementSearch"
-        type="text"
-        placeholder="Buscar en movimientos..."
-        class="w-full rounded-lg border border-border bg-surface-elevated pl-9 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
-      />
-      <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-        <MagnifierIcon class="h-4 w-4" />
-      </div>
-    </div>
-    <div class="flex rounded-xl border border-border bg-surface p-1 shadow-sm">
-      <button
-        v-for="tab in tabs"
-        :key="tab.value"
-        @click="activeTab = tab.value"
-        :class="[
-          'rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-200',
-          activeTab === tab.value
-            ? 'bg-primary text-text-inverse shadow-sm'
-            : 'text-text-secondary hover:bg-bg-secondary'
-        ]"
-      >
-        {{ tab.label }}
-      </button>
-    </div>
-  </div>
+    <InventoryToolbar
+      v-model:active-tab="activeTab"
+      :tabs="tabs"
+      :search="activeTab !== 'movimientos' ? searchQuery : movementSearch"
+      :placeholder="activeTab !== 'movimientos' ? 'Buscar producto por nombre o SKU...' : 'Buscar en movimientos...'"
+      @update:search="onSearch"
+    />
 
-  <!-- Product tabs -->
-  <template v-if="activeTab !== 'movimientos'">
-    <ProductGrid
+    <ProductList
+      v-if="activeTab !== 'movimientos'"
       :products="filteredProductos"
       :readonly="disableInventoryEdit"
       :show-transfer="canTransferStock"
@@ -104,93 +71,8 @@
       @variants="safeOpenVariantsModal"
       @transfer="safeOpenTransferModal"
     />
-  </template>
-
-  <!-- Movimientos tab -->
-  <div v-else class="space-y-4">
-    <div class="lg:hidden space-y-3 mb-4">
-      <div v-for="mov in filteredMovements" :key="mov.id" class="group rounded-xl border border-border bg-surface p-4 shadow-sm transition-all duration-200 hover:shadow-md">
-        <div class="flex items-start justify-between mb-2">
-          <div>
-            <p class="text-xs text-text-muted">{{ formatDateTime(mov.createdAt) }}</p>
-            <p class="font-medium text-text">{{ mov.productName }} <span v-if="mov.variantName" class="text-xs text-text-muted">({{ mov.variantName }})</span></p>
-          </div>
-          <span :class="[
-            'shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-            mov.movementType === 'purchase' ? 'bg-success/10 text-success' :
-            mov.movementType === 'sale' ? 'bg-primary/10 text-primary' :
-            mov.movementType === 'adjustment' ? 'bg-warning/10 text-warning' :
-            'bg-info/10 text-info'
-          ]">
-            <span :class="['h-1.5 w-1.5 rounded-full', mov.movementType === 'purchase' ? 'bg-success' : mov.movementType === 'sale' ? 'bg-primary' : mov.movementType === 'adjustment' ? 'bg-warning' : 'bg-info']" />
-            {{ formatMovementType(mov.movementType) }}
-          </span>
-        </div>
-        <div class="flex items-center justify-between text-sm">
-          <div class="flex items-center gap-4">
-            <span class="font-medium tabular-nums" :class="mov.quantity < 0 ? 'text-danger' : 'text-success'">{{ mov.quantity > 0 ? '+' : '' }}{{ mov.quantity }}</span>
-            <span class="text-text-muted">Costo: <span class="text-text tabular-nums">${{ mov.unitCost.toFixed(2) }}</span></span>
-          </div>
-          <span class="text-xs text-text-muted truncate max-w-28 text-right">{{ mov.notes || '—' }}</span>
-        </div>
-      </div>
-      <div v-if="filteredMovements.length === 0" class="py-16 text-center">
-        <div class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-bg-secondary">
-          <BoxIcon class="h-8 w-8 text-text-muted" />
-        </div>
-        <h3 class="mt-4 text-lg font-medium text-text">Sin movimientos</h3>
-        <p class="mt-1 text-sm text-text-muted">No hay movimientos registrados.</p>
-      </div>
-    </div>
-
-    <div class="hidden lg:block rounded-xl border border-border bg-surface shadow-sm overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead>
-            <tr class="border-b border-border bg-bg-secondary/50">
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Fecha</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Producto</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Tipo</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-text-muted">Cantidad</th>
-              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-text-muted">Costo</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">Notas</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border-subtle">
-            <tr v-for="mov in filteredMovements" :key="mov.id" class="text-sm transition-all duration-200 hover:bg-bg-secondary/50">
-              <td class="px-4 py-3 text-text-muted whitespace-nowrap">{{ formatDateTime(mov.createdAt) }}</td>
-              <td class="px-4 py-3">
-                <span class="font-medium text-text">{{ mov.productName }}</span>
-                <span v-if="mov.variantName" class="text-xs text-text-muted ml-1">({{ mov.variantName }})</span>
-              </td>
-              <td class="px-4 py-3">
-                <span :class="[
-                  'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
-                  mov.movementType === 'purchase' ? 'bg-success/10 text-success' :
-                  mov.movementType === 'sale' ? 'bg-primary/10 text-primary' :
-                  mov.movementType === 'adjustment' ? 'bg-warning/10 text-warning' :
-                  'bg-info/10 text-info'
-                ]">
-                  <span :class="['h-1.5 w-1.5 rounded-full', mov.movementType === 'purchase' ? 'bg-success' : mov.movementType === 'sale' ? 'bg-primary' : mov.movementType === 'adjustment' ? 'bg-warning' : 'bg-info']" />
-                  {{ formatMovementType(mov.movementType) }}
-                </span>
-              </td>
-              <td class="px-4 py-3 text-right font-medium tabular-nums" :class="mov.quantity < 0 ? 'text-danger' : 'text-success'">{{ mov.quantity > 0 ? '+' : '' }}{{ mov.quantity }}</td>
-              <td class="px-4 py-3 text-right tabular-nums text-text">${{ mov.unitCost.toFixed(2) }}</td>
-              <td class="px-4 py-3 text-text-muted max-w-40 truncate">{{ mov.notes || '—' }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div v-if="filteredMovements.length === 0" class="py-16 text-center">
-        <div class="inline-flex h-16 w-16 items-center justify-center rounded-full bg-bg-secondary">
-          <BoxIcon class="h-8 w-8 text-text-muted" />
-        </div>
-        <h3 class="mt-4 text-lg font-medium text-text">Sin movimientos</h3>
-        <p class="mt-1 text-sm text-text-muted">No hay movimientos registrados.</p>
-      </div>
-    </div>
-  </div>
+    <MovementList v-else :movements="filteredMovements" />
+  </section>
 
   <ProductoFormModal
     ref="productoModalRef"
@@ -276,7 +158,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { formatDateTime, formatMovementType } from '../lib/formatters'
 import { useAuth } from '../composables/common/useAuth'
 import { useBusinessStore } from '../store/business'
 import { useProductCRUD } from '../composables/inventory/useProductCRUD'
@@ -286,14 +167,16 @@ import { inventarioKeys, listInventoryMovements } from '../services/inventarioSe
 import ProductStats from '../components/productos/ProductStats.vue'
 import ProductoFormModal from '../components/modals/ProductoFormModal.vue'
 import ProductStockAdjustModal from '../components/productos/ProductStockAdjustModal.vue'
-import ProductGrid from '../components/productos/ProductGrid.vue'
+import ProductList from '../components/productos/ProductList.vue'
+import MovementList from '../components/productos/MovementList.vue'
+import InventoryToolbar from '../components/productos/InventoryToolbar.vue'
 import InventorySettingsModal from '../components/productos/InventorySettingsModal.vue'
 import PurchaseInvoiceModal from '../components/productos/PurchaseInvoiceModal.vue'
 import PurchaseInvoiceHistoryModal from '../components/productos/PurchaseInvoiceHistoryModal.vue'
 import VariantesManagerModal from '../components/modals/VariantesManagerModal.vue'
 import TransferStockModal from '../components/inventory/TransferStockModal.vue'
 import { ModalBase, FeatureGate } from '../components/common'
-import { BoxIcon, AddCircleIcon, MagnifierIcon, SettingsIcon, BillListIcon, ClipboardIcon } from '@solar-icons/vue/linear'
+import { BoxIcon, AddCircleIcon, SettingsIcon, BillListIcon, ClipboardIcon } from '@solar-icons/vue/linear'
 import { hasRetailModule } from '../config/niches'
 
 const { authStore } = useAuth()
@@ -396,6 +279,12 @@ const {
 } = useInventoryTransfer()
 
 const movementSearch = ref('')
+
+// Cada vista conserva su propia búsqueda (productos / movimientos), como siempre.
+const onSearch = (value: string) => {
+  if (activeTab.value !== 'movimientos') searchQuery.value = value
+  else movementSearch.value = value
+}
 
 const { data: movementsData } = useQuery({
   queryKey: computed(() => inventarioKeys.movements(businessId.value, branchId.value)),
