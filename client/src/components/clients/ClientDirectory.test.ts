@@ -4,7 +4,7 @@ import { createPinia } from 'pinia'
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import ClientDirectoryList from './ClientDirectoryList.vue'
 import ClientDirectoryToolbar from './ClientDirectoryToolbar.vue'
-import ClientPagination from './ClientPagination.vue'
+import ListPagination from '../common/ListPagination.vue'
 import type { Cliente } from '../../types/cliente'
 
 // El store del negocio usa TanStack Query: el montaje necesita su plugin además de Pinia.
@@ -167,11 +167,11 @@ describe('ClientDirectoryToolbar', () => {
 })
 
 const pagination = (over: Record<string, unknown> = {}) =>
-  mount(ClientPagination, {
+  mount(ListPagination, {
     props: { currentPage: 2, totalPages: 5, pageNumbers: [1, 2, 3, 4, 5], hasNext: true, hasPrevious: true, start: 21, end: 40, total: 100, ...over } as any,
   })
 
-describe('ClientPagination', () => {
+describe('ListPagination', () => {
   it('no se muestra sin resultados', () => {
     expect(pagination({ total: 0 }).html()).toBe('<!--v-if-->')
   })

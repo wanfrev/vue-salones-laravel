@@ -6,12 +6,12 @@
         <span
           class="shrink-0 rounded-full bg-primary/10 px-2.5 py-0.5 text-sm font-bold tabular-nums text-primary"
           :title="summary"
-          data-testid="client-total"
+          data-testid="directory-total"
         >{{ total }}</span>
       </div>
-      <p class="mt-0.5 truncate text-xs text-text-muted" data-testid="client-total-label">{{ summary }}</p>
+      <p class="mt-0.5 truncate text-xs text-text-muted" data-testid="directory-total-label">{{ summary }}</p>
     </div>
-    <slot />
+    <div v-if="$slots.default" class="flex shrink-0 items-center gap-2"><slot /></div>
   </header>
 </template>
 
@@ -20,16 +20,18 @@ import { computed } from 'vue'
 import { useBusinessStore } from '../../store/business'
 
 const props = defineProps<{
-  /** Total de clientes del alcance actual (negocio o sucursal), antes de aplicar búsqueda o filtros. */
+  title: string
+  /** Total del alcance actual (negocio o sucursal), antes de aplicar búsqueda o filtros. */
   total: number
+  /** Sustantivo en singular y plural, ya en minúscula: «cliente» / «clientes». */
+  singular: string
+  plural: string
 }>()
 
 const businessStore = useBusinessStore()
-const terminology = computed(() => businessStore.terminology)
-const title = computed(() => terminology.value.clientPlural || 'Clientes')
 
 /**
- * Con varias sucursales la lista es la de la sucursal activa (más los clientes sin sucursal asignada);
+ * Con varias sucursales la lista es la de la sucursal activa (más lo que no tiene sucursal asignada);
  * con una sola, es la del negocio. Mientras la sucursal no ha cargado no se afirma ninguna.
  */
 const scope = computed(() => {
@@ -39,9 +41,7 @@ const scope = computed(() => {
 })
 
 const summary = computed(() => {
-  const noun = props.total === 1
-    ? (terminology.value.client || 'cliente').toLowerCase()
-    : (terminology.value.clientPlural || 'clientes').toLowerCase()
+  const noun = props.total === 1 ? props.singular : props.plural
   const registered = props.total === 1 ? 'registrado' : 'registrados'
   return [`${props.total} ${noun} ${registered}`, scope.value].filter(Boolean).join(' ')
 })

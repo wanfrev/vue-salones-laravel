@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
     <div>
-      <ClientDirectoryHeader :total="totalClientes">
+      <DirectoryHeader :title="t.clientPlural || 'Clientes'" :total="totalClientes" :singular="singular" :plural="plural">
         <button
           v-if="canCreateClients"
           class="inline-flex shrink-0 items-center gap-2 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
@@ -10,7 +10,7 @@
           <AddCircleIcon class="h-4 w-4" />
           <span>Nuevo<span class="hidden sm:inline"> {{ singular }}</span></span>
         </button>
-      </ClientDirectoryHeader>
+      </DirectoryHeader>
 
       <section class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
         <ClientDirectoryToolbar
@@ -35,7 +35,7 @@
           @whatsapp="handleWhatsApp"
           @clinical="openClinical"
         />
-        <ClientPagination
+        <ListPagination
           :current-page="currentPage"
           :total-pages="totalPages"
           :page-numbers="pageNumbers"
@@ -70,10 +70,10 @@ import { isClinicalNiche } from '../../config/niches'
 import { useClinicalAccess } from '../../composables/clinical/useClinicalToolsNavTabs'
 import AppLayout from '../../components/layout/AppLayout.vue'
 import ClienteFormModal from '../../components/modals/ClienteFormModal.vue'
-import ClientDirectoryHeader from '../../components/clients/ClientDirectoryHeader.vue'
+import DirectoryHeader from '../../components/common/DirectoryHeader.vue'
 import ClientDirectoryToolbar from '../../components/clients/ClientDirectoryToolbar.vue'
 import ClientDirectoryList from '../../components/clients/ClientDirectoryList.vue'
-import ClientPagination from '../../components/clients/ClientPagination.vue'
+import ListPagination from '../../components/common/ListPagination.vue'
 import type { Cliente } from '../../types/cliente'
 import type { ClienteFormData } from '../../types/cliente'
 import { AddCircleIcon } from '@solar-icons/vue/linear'

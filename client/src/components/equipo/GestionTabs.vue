@@ -1,126 +1,133 @@
+<template>
+  <section class="mb-5 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm lg:mb-6">
+    <!-- Título y pestañas -->
+    <div class="border-b border-border-subtle px-4 pt-4 sm:px-5">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="min-w-0">
+          <h2 class="flex items-center gap-2 text-base font-bold text-text">
+            <UsersGroupRoundedIcon :size="18" class="text-text-muted" />
+            Gestión de Pagos y Horarios
+          </h2>
+          <p class="mt-0.5 text-xs text-text-muted">Comisiones, nómina, deuda y horarios del equipo</p>
+        </div>
+      </div>
+
+      <div class="scroll-thin -mb-px mt-3 flex gap-1 overflow-x-auto" role="tablist" aria-label="Secciones de gestión">
+        <button
+          v-for="tab in tabs"
+          :key="tab.key"
+          type="button"
+          role="tab"
+          :aria-selected="activeTab === tab.key"
+          class="relative flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-2.5 text-sm font-semibold transition-colors"
+          :class="activeTab === tab.key ? 'text-primary' : 'text-text-muted hover:text-text'"
+          @click="activeTab = tab.key"
+        >
+          <component :is="tab.icon" :size="15" />
+          <span class="hidden sm:inline">{{ tab.label }}</span><span class="sm:hidden">{{ tab.shortLabel }}</span>
+          <span class="rounded-full bg-bg-secondary px-1.5 text-[10px] font-bold tabular-nums text-text-muted">{{ tab.count }}</span>
+          <span v-if="activeTab === tab.key" class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
+        </button>
+      </div>
+    </div>
+
+    <!-- Periodo + resumen (y, en Nómina, sus acciones): una sola franja en lugar de banners -->
+    <div class="border-b border-border-subtle bg-bg-secondary/30 px-4 py-2.5 sm:px-5">
+      <div class="flex flex-wrap items-center gap-x-4 gap-y-2" :class="activeTab === 'nomina' ? '' : 'justify-between'">
+        <PeriodNavigator
+          v-if="activeTab === 'pagos'"
+          :modes="MONTH_ONLY" mode="month" :label="selectedMonth" :month-value="selectedMonth"
+          :is-current="false" today-label="Ahora"
+          @update:month="onMonthPicked" @today="emit('resetCurrentMonth')"
+        />
+        <PeriodNavigator
+          v-else-if="activeTab === 'nomina'"
+          :modes="NOMINA_MODES" :mode="nominaMode" :label="nominaLabel" :month-value="selectedMonth" :is-current="nominaMode === 'month' || nominaIsCurrent"
+          @update:mode="onNominaMode" @update:month="onMonthPicked" @prev="nominaStep(-1)" @next="nominaStep(1)" @today="onNominaToday"
+        />
+        <PeriodNavigator
+          v-else-if="activeTab === 'deuda'"
+          :modes="DEBT_MODES" :mode="debtMode" :label="debtLabel" :month-value="monthKey(debtDate)" :is-current="debtMode === 'month' ? false : debtIsCurrent"
+          @update:mode="onDebtMode" @update:month="onDebtMonth" @prev="debtStep(-1)" @next="debtStep(1)" @today="debtDate = new Date()"
+        />
+
+        <!-- Acciones de Nómina: viven dentro de la pestaña, no arriba de todas -->
+        <div v-if="activeTab === 'nomina'" class="ml-auto flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
+            @click="emit('openPayment')"
+          >
+            <AddCircleIcon :size="14" /> Registrar pago
+          </button>
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 rounded-xl border border-danger/25 bg-danger/10 px-3 py-2 text-xs font-semibold text-danger transition-theme hover:bg-danger/20"
+            @click="emit('openConsumption')"
+          >
+            <MinusCircleIcon :size="14" /> Debitar consumo
+          </button>
+        </div>
+
+        <p class="text-xs text-text-muted" :class="activeTab === 'nomina' ? 'basis-full' : ''" data-testid="summary">
+          <template v-for="(part, i) in summary" :key="i"><span :class="part.strong ? `font-bold tabular-nums ${part.tone ?? 'text-text'}` : undefined">{{ part.text }}</span></template>
+        </p>
+      </div>
+
+      <PeriodRangeEditor
+        v-if="activeTab === 'deuda' && debtMode === 'custom'"
+        class="mt-3"
+        :start="debtCustomStart" :end="debtCustomEnd" from-label="Servicios desde" to-label="Servicios hasta"
+        @update:start="debtCustomStart = $event" @update:end="debtCustomEnd = $event" @preset="onPreset"
+      />
+
+      <!-- Deuda: siempre dice qué periodo se está evaluando (con rango, solo cuando ya hay las dos fechas) -->
+      <p v-if="activeTab === 'deuda' && (debtMode !== 'custom' || (debtCustomStart && debtCustomEnd))" class="mt-2 text-xs text-text-muted" data-testid="debt-period">
+        {{ debtMode === 'custom' ? 'Mostrando deuda del' : 'Período evaluado:' }} <span class="font-semibold text-text">{{ debtLabel }}</span>
+      </p>
+    </div>
+
+    <Transition name="page-fade" mode="out-in">
+      <ServiciosPanel v-if="activeTab === 'pagos'" key="pagos" :items="servicios" />
+      <NominaPanel
+        v-else-if="activeTab === 'nomina'" key="nomina" :items="filteredNomina"
+        @edit="emit('openEditPayment', $event)" @delete="emit('deletePayment', $event)"
+      />
+      <DeudaPanel v-else-if="activeTab === 'deuda'" key="deuda" :items="deudaConSaldo" @open-recibo="emit('openRecibo', $event)" />
+      <HorariosPanel v-else key="horarios" :items="teamSchedule" />
+    </Transition>
+  </section>
+</template>
+
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { DollarIcon, CardIcon, ClipboardIcon, ClockCircleIcon, ArrowLeftIcon, ArrowRightIcon, AddCircleIcon, MinusCircleIcon, UsersGroupRoundedIcon, PenIcon, TrashBin2Icon, PrinterIcon } from '@solar-icons/vue/linear'
+import { computed, ref, watch } from 'vue'
+import { AddCircleIcon, ClipboardIcon, ClockCircleIcon, DollarIcon, CardIcon, MinusCircleIcon, UsersGroupRoundedIcon } from '@solar-icons/vue/linear'
 import { useCurrency } from '../../composables/common/useCurrency'
-import { formatDate, parseLocalDate, formatDateHuman } from '../../lib/formatters'
 import { toYmd } from '../../lib/periodUtils'
-import KpiBanner from '../finanzas/KpiBanner.vue'
-import RecordSection from '../finanzas/RecordSection.vue'
-import SegmentedTabs from '../common/SegmentedTabs.vue'
-
-const { formatEmployeeSecondary } = useCurrency()
-
-const fmtDate = (d: string) => formatDate(d)
-
-const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
-
-function dayStart(d: Date): Date { const c = new Date(d); c.setHours(0,0,0,0); return c }
-function dayEnd(d: Date): Date { const c = new Date(d); c.setHours(23,59,59,999); return c }
-function weekStart(d: Date): Date { const c = dayStart(d); const day = (c.getDay() + 6) % 7; c.setDate(c.getDate() - day); return c }
-function monthStart(y: number, m: number): Date { return new Date(y, m, 1) }
-function monthEnd(y: number, m: number): Date { return new Date(y, m + 1, 0, 23, 59, 59, 999) }
-
-// ── Nómina period state ──
-type Periodo = 'day' | 'week' | 'month'
-const nominaPeriod = ref<Periodo>('month')
-const nominaDate = ref(new Date())
-
-const nominaPeriodTabs = [
-  { key: 'day', label: 'Día' },
-  { key: 'week', label: 'Semana' },
-  { key: 'month', label: 'Mes' },
-]
-
-function onNominaPeriodChange(v: string) {
-  nominaPeriod.value = v as Periodo
-  if (v !== 'month') nominaDate.value = new Date()
-}
-
-function parseSelectedMonth(fallback: Date): { y: number; m: number } {
-  const parts = (props.selectedMonth || '').split('-')
-  if (parts.length === 2) {
-    const y = Number(parts[0])
-    const m = Number(parts[1]) - 1 // HTML month input is 1-indexed, JS months are 0-indexed
-    return { y, m }
-  }
-  return { y: fallback.getFullYear(), m: fallback.getMonth() }
-}
-
-const nominaPeriodLabel = computed(() => {
-  const d = nominaDate.value
-  if (nominaPeriod.value === 'day') return `${d.getDate()} ${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`
-  if (nominaPeriod.value === 'week') {
-    const ws = weekStart(d)
-    const we = new Date(ws); we.setDate(we.getDate() + 6)
-    if (ws.getMonth() === we.getMonth()) return `${ws.getDate()}-${we.getDate()} ${MONTHS_ES[ws.getMonth()]} ${ws.getFullYear()}`
-    return `${ws.getDate()} ${MONTHS_ES[ws.getMonth()]} - ${we.getDate()} ${MONTHS_ES[we.getMonth()]} ${we.getFullYear()}`
-  }
-  const { y, m } = parseSelectedMonth(d)
-  return `${MONTHS_ES[m]} ${y}`
-})
-
-const isCurrentNominaPeriod = computed(() => {
-  const now = new Date()
-  if (nominaPeriod.value === 'day') return dayStart(nominaDate.value).getTime() >= dayStart(now).getTime()
-  if (nominaPeriod.value === 'week') return weekStart(nominaDate.value).getTime() >= weekStart(now).getTime()
-  return true
-})
-
-function nominaPrev() {
-  const d = new Date(nominaDate.value)
-  if (nominaPeriod.value === 'day') d.setDate(d.getDate() - 1)
-  else d.setDate(d.getDate() - 7)
-  nominaDate.value = d
-}
-function nominaNext() {
-  if (isCurrentNominaPeriod.value) return
-  const d = new Date(nominaDate.value)
-  if (nominaPeriod.value === 'day') d.setDate(d.getDate() + 1)
-  else d.setDate(d.getDate() + 7)
-  nominaDate.value = d
-}
-function nominaGoToday() { nominaDate.value = new Date() }
-
-const nominaStart = computed<Date>(() => {
-  const d = nominaDate.value
-  if (nominaPeriod.value === 'day') return dayStart(d)
-  if (nominaPeriod.value === 'week') return weekStart(d)
-  const { y, m } = parseSelectedMonth(d)
-  return monthStart(y, m)
-})
-const nominaEnd = computed<Date>(() => {
-  const d = nominaDate.value
-  if (nominaPeriod.value === 'day') return dayEnd(d)
-  if (nominaPeriod.value === 'week') { const e = new Date(weekStart(d)); e.setDate(e.getDate() + 6); return dayEnd(e) }
-  const { y, m } = parseSelectedMonth(d)
-  const now = new Date()
-  const isCurrent = y === now.getFullYear() && m === now.getMonth()
-  return isCurrent ? dayEnd(now) : monthEnd(y, m)
-})
-
-const filteredNomina = computed(() => {
-  const all = props.paymentsCtx.allPayments.value ?? []
-  return all.filter((p: any) => {
-    const d = parseLocalDate(p.paymentDate)
-    return d >= nominaStart.value && d <= nominaEnd.value
-  })
-})
+import PeriodNavigator from './PeriodNavigator.vue'
+import PeriodRangeEditor from './PeriodRangeEditor.vue'
+import ServiciosPanel, { type ServicePaymentRow } from './ServiciosPanel.vue'
+import NominaPanel, { type PayrollPaymentRow } from './NominaPanel.vue'
+import DeudaPanel, { type DebtRow } from './DeudaPanel.vue'
+import HorariosPanel, { type ScheduleRow } from './HorariosPanel.vue'
+import {
+  inRange, isCurrentPeriod, monthKey, parseMonthInput, periodLabel, periodRange, periodYmd, presetRange, shiftAnchor,
+  type PeriodMode, type RangePreset,
+} from './payrollPeriods'
 
 const props = defineProps<{
+  /** useFinancialSummary: `employeePayments` = comisión por servicio del mes elegido. */
   summaryCtx: any
+  /** useEmployeePayments: `allPayments` = pagos de nómina y consumos. */
   paymentsCtx: any
-  businessStore: any
-  teamSchedule: any[]
+  teamSchedule: ScheduleRow[]
   totalComisiones: number
+  /** Nómina del mes elegido (lo calcula Equipo.vue, igual que siempre): pagos y consumos por separado. */
   totalNominaPagada: number
   totalConsumido: number
   totalDeudaPendiente: number
-  deudaConSaldo: any[]
-  formatUSD: (n: number) => string
-  formatSecondary: (n: number, r?: number) => string
-  formatVESEs: (n: number) => string
-  formatMethod: (m: string) => string
-  formatTime24to12: (t: string) => string
+  deudaConSaldo: DebtRow[]
+  /** Mes elegido, 'YYYY-MM' (compartido entre Servicios y Nómina). */
   selectedMonth: string
   selectedPeriod: string
 }>()
@@ -128,700 +135,129 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:selectedPeriod': [v: string]
   'update:selectedMonth': [v: string]
+  'update:debtDates': [dates: { start: string; end: string }]
   resetCurrentMonth: []
   openPayment: []
   openConsumption: []
-  openEditPayment: [payment: any]
+  openEditPayment: [payment: PayrollPaymentRow]
   deletePayment: [id: string]
-  openRecibo: [employee: any]
-  'update:debtDates': [dates: { start: string; end: string }]
+  openRecibo: [row: DebtRow]
 }>()
 
-// ── Deuda period state ──
-const debtPeriod = ref<'all' | 'day' | 'week' | 'month' | 'custom'>('month')
+const { formatUSD } = useCurrency()
+
+// ── Datos de cada pestaña ───────────────────────────────────────────────────────────────────────
+const servicios = computed<ServicePaymentRow[]>(() => props.summaryCtx.employeePayments.value ?? [])
+
+// ── Nómina: día / semana / mes ──────────────────────────────────────────────────────────────────
+const MONTH_ONLY = [{ key: 'month' as PeriodMode, label: 'Mes' }]
+const NOMINA_MODES: { key: PeriodMode; label: string }[] = [
+  { key: 'day', label: 'Día' }, { key: 'week', label: 'Semana' }, { key: 'month', label: 'Mes' },
+]
+const nominaMode = ref<PeriodMode>('month')
+const nominaDate = ref(new Date())
+// En modo mes el periodo es el mes compartido con la pestaña Servicios.
+const nominaAnchor = computed(() => (nominaMode.value === 'month' ? parseMonthInput(props.selectedMonth) ?? new Date() : nominaDate.value))
+const nominaLabel = computed(() => periodLabel(nominaMode.value, nominaAnchor.value))
+const nominaIsCurrent = computed(() =>
+  nominaMode.value === 'month' ? monthKey(nominaAnchor.value) === monthKey(new Date()) : isCurrentPeriod(nominaMode.value, nominaAnchor.value))
+
+function onNominaMode(mode: PeriodMode) {
+  nominaMode.value = mode
+  if (mode !== 'month') nominaDate.value = new Date()
+}
+function nominaStep(direction: -1 | 1) {
+  if (direction === 1 && nominaIsCurrent.value) return
+  nominaDate.value = shiftAnchor(nominaMode.value, nominaDate.value, direction)
+}
+function onNominaToday() {
+  if (nominaMode.value === 'month') emit('resetCurrentMonth')
+  else nominaDate.value = new Date()
+}
+function onMonthPicked(value: string) {
+  emit('update:selectedMonth', value)
+  emit('update:selectedPeriod', 'month')
+}
+
+const filteredNomina = computed<PayrollPaymentRow[]>(() => {
+  const range = periodRange(nominaMode.value, nominaAnchor.value)
+  return ((props.paymentsCtx.allPayments.value ?? []) as PayrollPaymentRow[]).filter(p => inRange(p.paymentDate, range))
+})
+
+// ── Deuda: todo / día / semana / mes / rango ────────────────────────────────────────────────────
+const DEBT_MODES: { key: PeriodMode; label: string }[] = [
+  { key: 'all', label: 'Todo' }, { key: 'day', label: 'Día' }, { key: 'week', label: 'Semana' },
+  { key: 'month', label: 'Mes' }, { key: 'custom', label: 'Rango' },
+]
+const debtMode = ref<PeriodMode>('month')
 const debtDate = ref(new Date())
-const debtNow = new Date()
-const debtCustomStart = ref(toYmd(new Date(debtNow.getFullYear(), debtNow.getMonth(), debtNow.getDate() - 7)))
-const debtCustomEnd = ref(toYmd(debtNow))
+// Rango personalizado: arranca desde 7 días antes de hoy, como siempre.
+const today = new Date()
+const debtCustomStart = ref(toYmd(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 7)))
+const debtCustomEnd = ref(toYmd(today))
+const customRange = computed(() => ({ start: debtCustomStart.value, end: debtCustomEnd.value }))
 
-const debtPeriodTabs = [
-  { key: 'all', label: 'Todo' },
-  { key: 'day', label: 'Día' },
-  { key: 'week', label: 'Semana' },
-  { key: 'month', label: 'Mes' },
-  { key: 'custom', label: 'Rango' },
-]
+const debtLabel = computed(() => periodLabel(debtMode.value, debtDate.value, customRange.value))
+const debtIsCurrent = computed(() =>
+  debtMode.value === 'month' ? monthKey(debtDate.value) === monthKey(new Date()) : isCurrentPeriod(debtMode.value, debtDate.value))
 
-function setDebtPresetRange(preset: 'last7' | 'currentBiweekly' | 'lastBiweekly' | 'currentMonth' | 'last30') {
-  const today = new Date()
-  const y = today.getFullYear()
-  const m = today.getMonth()
-  const d = today.getDate()
-
-  if (preset === 'last7') {
-    const from = new Date(today)
-    from.setDate(from.getDate() - 6)
-    debtCustomStart.value = toYmd(from)
-    debtCustomEnd.value = toYmd(today)
-  } else if (preset === 'currentBiweekly') {
-    if (d <= 15) {
-      debtCustomStart.value = toYmd(new Date(y, m, 1))
-      debtCustomEnd.value = toYmd(new Date(y, m, 15))
-    } else {
-      const lastDay = new Date(y, m + 1, 0).getDate()
-      debtCustomStart.value = toYmd(new Date(y, m, 16))
-      debtCustomEnd.value = toYmd(new Date(y, m, lastDay))
-    }
-  } else if (preset === 'lastBiweekly') {
-    if (d <= 15) {
-      const prevMonthLastDay = new Date(y, m, 0).getDate()
-      debtCustomStart.value = toYmd(new Date(y, m - 1, 16))
-      debtCustomEnd.value = toYmd(new Date(y, m - 1, prevMonthLastDay))
-    } else {
-      debtCustomStart.value = toYmd(new Date(y, m, 1))
-      debtCustomEnd.value = toYmd(new Date(y, m, 15))
-    }
-  } else if (preset === 'currentMonth') {
-    const lastDay = new Date(y, m + 1, 0).getDate()
-    debtCustomStart.value = toYmd(new Date(y, m, 1))
-    debtCustomEnd.value = toYmd(new Date(y, m, lastDay))
-  } else if (preset === 'last30') {
-    const from = new Date(today)
-    from.setDate(from.getDate() - 29)
-    debtCustomStart.value = toYmd(from)
-    debtCustomEnd.value = toYmd(today)
-  }
+function onDebtMode(mode: PeriodMode) {
+  debtMode.value = mode
+  if (mode === 'day' || mode === 'week' || mode === 'month') debtDate.value = new Date()
+  else if (mode === 'custom' && (!debtCustomStart.value || !debtCustomEnd.value)) onPreset('currentBiweekly')
+}
+function debtStep(direction: -1 | 1) {
+  if (direction === 1 && debtIsCurrent.value) return
+  debtDate.value = shiftAnchor(debtMode.value, debtDate.value, direction)
+}
+function onDebtMonth(value: string) {
+  const d = parseMonthInput(value)
+  if (d) debtDate.value = d
+}
+function onPreset(preset: RangePreset) {
+  const r = presetRange(preset)
+  debtCustomStart.value = r.start
+  debtCustomEnd.value = r.end
 }
 
-const debtPeriodStart = computed<Date>(() => {
-  if (debtPeriod.value === 'all') return new Date(2000, 0, 1)
-  if (debtPeriod.value === 'custom') {
-    return debtCustomStart.value ? dayStart(parseLocalDate(debtCustomStart.value)) : new Date(2000, 0, 1)
-  }
-  if (debtPeriod.value === 'day') return dayStart(debtDate.value)
-  if (debtPeriod.value === 'week') return weekStart(debtDate.value)
-  return new Date(debtDate.value.getFullYear(), debtDate.value.getMonth(), 1)
-})
+// El servidor calcula la deuda sobre estas fechas.
+watch(
+  () => periodYmd(debtMode.value, debtDate.value, new Date(), customRange.value),
+  (dates) => emit('update:debtDates', dates),
+  { immediate: true },
+)
 
-const debtPeriodEnd = computed<Date>(() => {
-  if (debtPeriod.value === 'all') return new Date(2099, 11, 31, 23, 59, 59, 999)
-  if (debtPeriod.value === 'custom') {
-    return debtCustomEnd.value ? dayEnd(parseLocalDate(debtCustomEnd.value)) : new Date(2099, 11, 31, 23, 59, 59, 999)
-  }
-  if (debtPeriod.value === 'day') return dayEnd(debtDate.value)
-  if (debtPeriod.value === 'week') {
-    const end = weekStart(debtDate.value)
-    end.setDate(end.getDate() + 6)
-    return dayEnd(end)
-  }
-  const lastDay = new Date(debtDate.value.getFullYear(), debtDate.value.getMonth() + 1, 0)
-  const today = new Date()
-  const isCurrentMonth = debtDate.value.getFullYear() === today.getFullYear() && debtDate.value.getMonth() === today.getMonth()
-  return isCurrentMonth ? dayEnd(today) : dayEnd(lastDay)
-})
+// ── Pestañas y resumen ──────────────────────────────────────────────────────────────────────────
+type TabKey = 'pagos' | 'nomina' | 'deuda' | 'horarios'
+const activeTab = ref<TabKey>('pagos')
 
-const resolvedDebtDates = computed<{ start: string; end: string }>(() => {
-  if (debtPeriod.value === 'all') {
-    return { start: '2000-01-01', end: '2099-12-31' }
-  }
-  if (debtPeriod.value === 'custom') {
-    return {
-      start: debtCustomStart.value || toYmd(debtPeriodStart.value),
-      end: debtCustomEnd.value || toYmd(debtPeriodEnd.value),
-    }
-  }
-  return {
-    start: toYmd(debtPeriodStart.value),
-    end: toYmd(debtPeriodEnd.value),
+const tabs = computed(() => [
+  { key: 'pagos' as const, label: 'Servicios Realizados', shortLabel: 'Servicios', icon: DollarIcon, count: servicios.value.length },
+  { key: 'nomina' as const, label: 'Pago de Nómina', shortLabel: 'Nómina', icon: CardIcon, count: filteredNomina.value.length },
+  { key: 'deuda' as const, label: 'Deuda por Empleado', shortLabel: 'Deuda', icon: ClipboardIcon, count: props.deudaConSaldo.length },
+  { key: 'horarios' as const, label: 'Horarios del Equipo', shortLabel: 'Horarios', icon: ClockCircleIcon, count: props.teamSchedule.length },
+])
+
+interface SummaryPart { text: string; strong?: boolean; tone?: string }
+const plain = (text: string): SummaryPart => ({ text })
+const bold = (text: string, tone?: string): SummaryPart => ({ text, strong: true, tone })
+const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+
+/** La línea de resumen de cada pestaña: lo que antes ocupaba un banner entero. */
+const summary = computed<SummaryPart[]>(() => {
+  switch (activeTab.value) {
+    case 'pagos':
+      return [plain('Comisiones '), bold(formatUSD(props.totalComisiones), 'text-success'), plain(` · ${count(servicios.value.length, 'servicio', 'servicios')}`)]
+    case 'nomina':
+      // El total es el del banner de siempre (nómina del mes); los registros, los del periodo que se ve en la lista.
+      return [
+        plain('Total pagado + consumido '), bold(formatUSD(props.totalNominaPagada + props.totalConsumido), 'text-danger'),
+        plain(` · ${count(filteredNomina.value.length, 'registro', 'registros')}`),
+      ]
+    case 'deuda':
+      return [plain('Pendiente '), bold(formatUSD(props.totalDeudaPendiente), 'text-primary'), plain(` · ${props.deudaConSaldo.length} con saldo`)]
+    default:
+      return [bold(String(props.teamSchedule.length), 'text-primary'), plain(' empleado(s) con horario registrado')]
   }
 })
-
-const debtPeriodLabel = computed(() => {
-  if (debtPeriod.value === 'all') return 'Todo el historial'
-  if (debtPeriod.value === 'custom') {
-    if (debtCustomStart.value && debtCustomEnd.value) {
-      if (debtCustomStart.value === debtCustomEnd.value) {
-        return formatDateHuman(debtCustomStart.value)
-      }
-      return `${formatDateHuman(debtCustomStart.value)} al ${formatDateHuman(debtCustomEnd.value)}`
-    }
-    return 'Rango personalizado'
-  }
-  const d = debtDate.value
-  if (debtPeriod.value === 'day') {
-    return `${d.getDate()} ${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`
-  }
-  if (debtPeriod.value === 'week') {
-    const ws = weekStart(d)
-    const we = new Date(ws)
-    we.setDate(we.getDate() + 6)
-    const sameMonth = ws.getMonth() === we.getMonth()
-    if (sameMonth) {
-      return `${ws.getDate()}-${we.getDate()} ${MONTHS_ES[ws.getMonth()]} ${ws.getFullYear()}`
-    }
-    return `${ws.getDate()} ${MONTHS_ES[ws.getMonth()]} - ${we.getDate()} ${MONTHS_ES[we.getMonth()]} ${we.getFullYear()}`
-  }
-  return `${MONTHS_ES[d.getMonth()]} ${d.getFullYear()}`
-})
-
-const debtMonthInput = computed(() => {
-  const d = debtDate.value
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-})
-
-function onDebtMonthInputChange(val: string) {
-  if (!val) return
-  const [y, m] = val.split('-').map(Number)
-  if (y && m) {
-    debtDate.value = new Date(y, m - 1, 1)
-  }
-}
-
-const isCurrentDebtPeriod = computed(() => {
-  if (debtPeriod.value === 'all' || debtPeriod.value === 'custom') return true
-  const now = new Date()
-  if (debtPeriod.value === 'day') return dayStart(debtDate.value).getTime() >= dayStart(now).getTime()
-  if (debtPeriod.value === 'week') return weekStart(debtDate.value).getTime() >= weekStart(now).getTime()
-  return (
-    debtDate.value.getFullYear() > now.getFullYear() ||
-    (debtDate.value.getFullYear() === now.getFullYear() && debtDate.value.getMonth() >= now.getMonth())
-  )
-})
-
-function debtPrev() {
-  const d = new Date(debtDate.value)
-  if (debtPeriod.value === 'day') d.setDate(d.getDate() - 1)
-  else if (debtPeriod.value === 'week') d.setDate(d.getDate() - 7)
-  else d.setMonth(d.getMonth() - 1)
-  debtDate.value = d
-}
-
-function debtNext() {
-  if (isCurrentDebtPeriod.value) return
-  const d = new Date(debtDate.value)
-  if (debtPeriod.value === 'day') d.setDate(d.getDate() + 1)
-  else if (debtPeriod.value === 'week') d.setDate(d.getDate() + 7)
-  else d.setMonth(d.getMonth() + 1)
-  debtDate.value = d
-}
-
-function debtGoToday() {
-  debtDate.value = new Date()
-}
-
-function onDebtPeriodChange(v: string) {
-  debtPeriod.value = v as 'all' | 'day' | 'week' | 'month' | 'custom'
-  if (v !== 'all' && v !== 'custom') {
-    debtDate.value = new Date()
-  } else if (v === 'custom' && (!debtCustomStart.value || !debtCustomEnd.value)) {
-    setDebtPresetRange('currentBiweekly')
-  }
-}
-
-watch(resolvedDebtDates, (val) => {
-  emit('update:debtDates', val)
-}, { immediate: true })
-
-const tabs = [
-  { key: 'pagos' as const, label: 'Servicios Realizados', shortLabel: 'Servicios' },
-  { key: 'nomina' as const, label: 'Pago de Nómina', shortLabel: 'Nómina' },
-  { key: 'deuda' as const, label: 'Deuda por Empleado', shortLabel: 'Deuda' },
-  { key: 'horarios' as const, label: 'Horarios del Equipo', shortLabel: 'Horarios' },
-]
-const activeTab = ref<'pagos' | 'nomina' | 'deuda' | 'horarios'>('pagos')
-
-// Pagination
-const pageSize = 10
-const tabPage = ref(1)
-watch(activeTab, () => { tabPage.value = 1 })
-const paginate = <T>(data: T[]): T[] => data.slice((tabPage.value - 1) * pageSize, tabPage.value * pageSize)
-const pageProps = <T>(data: T[]) => {
-  const t = data.length; const tp = Math.ceil(t / pageSize)
-  return { total: t, start: t ? (tabPage.value - 1) * pageSize + 1 : 0, end: Math.min(tabPage.value * pageSize, t), hasPrev: tabPage.value > 1, hasNext: tabPage.value < tp }
-}
-
-const paginatedServicios = computed(() => paginate(props.summaryCtx.employeePayments.value))
-const paginatedNomina = computed(() => paginate(filteredNomina.value))
-const paginatedDeuda = computed(() => paginate(props.deudaConSaldo))
-const paginatedHorarios = computed(() => paginate(props.teamSchedule))
-const serviciosP = computed(() => pageProps(props.summaryCtx.employeePayments.value))
-const nominaP = computed(() => pageProps(filteredNomina.value))
-const deudaP = computed(() => pageProps(props.deudaConSaldo))
-const horariosP = computed(() => pageProps(props.teamSchedule))
 </script>
-
-<template>
-  <div class="mb-5 lg:mb-6 rounded-xl border border-border bg-surface shadow-sm">
-    <!-- Header -->
-    <div class="flex flex-col gap-3 border-b border-border-subtle px-3 sm:px-5 py-3 sm:py-4">
-      <div>
-        <h3 class="text-sm sm:text-base font-semibold text-text flex items-center gap-2">
-          <UsersGroupRoundedIcon :size="18" class="text-text-muted" />
-          Gestión de Pagos y Horarios
-        </h3>
-        <p class="text-xs text-text-muted mt-0.5">Comisiones, nómina, deuda y horarios del equipo</p>
-      </div>
-
-      <!-- Month Selector (Pagos / Comisiones) -->
-      <div
-        class="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-border bg-surface px-2.5 py-1.5 shadow-sm self-start sm:self-auto"
-        v-show="activeTab === 'pagos'">
-        <label for="equipo-month-picker" class="text-xs font-medium text-text-muted hidden sm:inline">Mes</label>
-        <input id="equipo-month-picker" :value="selectedMonth" type="month"
-          class="rounded-md border border-border bg-surface px-2 py-1 text-xs text-text outline-none transition-theme focus:border-primary w-full sm:w-auto"
-          @change="$emit('update:selectedMonth', ($event.target as HTMLInputElement).value); $emit('update:selectedPeriod', 'month')" />
-        <button type="button"
-          class="rounded-md border border-border px-2 py-1 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text whitespace-nowrap"
-          @click="$emit('resetCurrentMonth')">Ahora</button>
-      </div>
-
-      <!-- Segmented Control -->
-      <div
-        class="bg-bg-secondary p-1 rounded-xl border border-border-subtle flex items-center gap-0.5 self-start sm:self-auto overflow-x-auto w-full sm:w-auto">
-        <button v-for="tab in tabs" :key="tab.key" @click="activeTab = tab.key"
-          :class="['px-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap shrink-0', activeTab === tab.key ? 'bg-surface text-text shadow-sm shadow-black/5 border border-border font-semibold' : 'text-text-secondary hover:text-text hover:bg-surface/40']">
-          <DollarIcon v-if="tab.key === 'pagos'" :size="14" :class="activeTab === 'pagos' ? 'text-success' : ''" />
-          <CardIcon v-else-if="tab.key === 'nomina'" :size="14" :class="activeTab === 'nomina' ? 'text-danger' : ''" />
-          <ClipboardIcon v-else-if="tab.key === 'deuda'" :size="14" :class="activeTab === 'deuda' ? 'text-warning' : ''" />
-          <ClockCircleIcon v-else :size="14" :class="activeTab === 'horarios' ? 'text-primary' : ''" />
-          <span class="hidden sm:inline">{{ tab.label }}</span><span class="sm:hidden">{{ tab.shortLabel }}</span>
-        </button>
-      </div>
-
-      <!-- Nómina period selector -->
-      <div v-if="activeTab === 'nomina'" class="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-        <SegmentedTabs :tabs="nominaPeriodTabs" :model-value="nominaPeriod" @update:model-value="onNominaPeriodChange" />
-        <div class="flex items-center gap-1.5">
-          <template v-if="nominaPeriod === 'month'">
-            <input id="equipo-month-picker" :value="selectedMonth" type="month"
-              class="rounded-md border border-border bg-surface px-2 py-1 text-xs text-text outline-none transition-theme focus:border-primary"
-              @change="$emit('update:selectedMonth', ($event.target as HTMLInputElement).value); $emit('update:selectedPeriod', 'month')" />
-          </template>
-          <template v-else>
-            <button @click="nominaPrev" class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors">
-              <ArrowLeftIcon :size="16" />
-            </button>
-            <span class="text-xs font-semibold text-text min-w-[130px] text-center">{{ nominaPeriodLabel }}</span>
-            <button @click="nominaNext" :disabled="isCurrentNominaPeriod" class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-              <ArrowRightIcon :size="16" />
-            </button>
-            <button v-if="!isCurrentNominaPeriod" @click="nominaGoToday" class="rounded-md border border-border px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors">Hoy</button>
-          </template>
-        </div>
-      </div>
-
-      <!-- Deuda period selector -->
-      <div v-if="activeTab === 'deuda'" class="flex flex-col gap-2 pt-1">
-        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
-          <SegmentedTabs
-            :tabs="debtPeriodTabs"
-            :model-value="debtPeriod"
-            @update:model-value="onDebtPeriodChange"
-          />
-
-          <!-- Day / Week / Month nav -->
-          <div v-if="debtPeriod !== 'all' && debtPeriod !== 'custom'" class="flex items-center gap-1.5 self-start sm:self-auto">
-            <template v-if="debtPeriod === 'month'">
-              <input
-                :value="debtMonthInput"
-                type="month"
-                class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs text-text outline-none transition-theme focus:border-primary"
-                @change="onDebtMonthInputChange(($event.target as HTMLInputElement).value)"
-              />
-              <button
-                type="button"
-                @click="debtGoToday"
-                class="rounded-md border border-border px-2 py-1 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text"
-              >
-                Este mes
-              </button>
-            </template>
-            <template v-else>
-              <button
-                type="button"
-                @click="debtPrev"
-                class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors"
-                title="Anterior"
-              >
-                <ArrowLeftIcon :size="16" />
-              </button>
-              <span class="text-xs font-semibold text-text min-w-[130px] text-center">{{ debtPeriodLabel }}</span>
-              <button
-                type="button"
-                @click="debtNext"
-                :disabled="isCurrentDebtPeriod"
-                class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                title="Siguiente"
-              >
-                <ArrowRightIcon :size="16" />
-              </button>
-              <button
-                v-if="!isCurrentDebtPeriod"
-                type="button"
-                @click="debtGoToday"
-                class="rounded-md border border-border px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
-              >
-                Hoy
-              </button>
-            </template>
-          </div>
-        </div>
-
-        <!-- Custom date range (como en pago de nómina) -->
-        <div v-if="debtPeriod === 'custom'" class="mt-2 p-3 sm:p-4 rounded-xl border border-border bg-bg-secondary/40 space-y-3">
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label class="mb-1 block text-xs font-semibold text-text-muted">Servicios desde</label>
-              <input
-                v-model="debtCustomStart"
-                type="date"
-                :max="debtCustomEnd || undefined"
-                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary"
-              />
-            </div>
-            <div>
-              <label class="mb-1 block text-xs font-semibold text-text-muted">Servicios hasta</label>
-              <input
-                v-model="debtCustomEnd"
-                type="date"
-                :min="debtCustomStart || undefined"
-                class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary"
-              />
-            </div>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-1.5 pt-1">
-            <span class="text-[11px] font-semibold text-text-muted mr-1">Atajos:</span>
-            <button
-              type="button"
-              @click="setDebtPresetRange('currentBiweekly')"
-              class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-text hover:border-primary hover:text-primary transition-colors cursor-pointer"
-            >
-              Esta quincena
-            </button>
-            <button
-              type="button"
-              @click="setDebtPresetRange('lastBiweekly')"
-              class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-text hover:border-primary hover:text-primary transition-colors cursor-pointer"
-            >
-              Quincena anterior
-            </button>
-            <button
-              type="button"
-              @click="setDebtPresetRange('currentMonth')"
-              class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-text hover:border-primary hover:text-primary transition-colors cursor-pointer"
-            >
-              Este mes
-            </button>
-            <button
-              type="button"
-              @click="setDebtPresetRange('last7')"
-              class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-text hover:border-primary hover:text-primary transition-colors cursor-pointer"
-            >
-              Últimos 7 días
-            </button>
-            <button
-              type="button"
-              @click="setDebtPresetRange('last30')"
-              class="rounded-md border border-border bg-surface px-2.5 py-1 text-xs font-medium text-text hover:border-primary hover:text-primary transition-colors cursor-pointer"
-            >
-              Últimos 30 días
-            </button>
-          </div>
-
-          <div v-if="debtCustomStart && debtCustomEnd" class="text-xs text-text-muted text-center pt-0.5 font-medium">
-            Mostrando deuda del <span class="font-semibold text-text">{{ debtPeriodLabel }}</span>
-          </div>
-        </div>
-
-        <div v-else class="text-xs text-text-muted pt-0.5">
-          Período evaluado: <span class="font-semibold text-text">{{ debtPeriodLabel }}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- KPI Banners -->
-    <KpiBanner v-if="activeTab === 'pagos'" variant="success"
-      :icon="DollarIcon"
-      label="Total Comisiones" :value="formatUSD(totalComisiones)"
-      :sublabel="`${summaryCtx.employeePayments.value.length} servicio(s)`"     />
-    <KpiBanner v-if="activeTab === 'nomina'" variant="danger"
-      :icon="CreditCardIcon"
-      label="Total Pagado + Consumido" :value="formatUSD(totalNominaPagada + totalConsumido)"
-      :sublabel="`${filteredNomina.length} registro(s)`">
-      <template #actions>
-        <button @click="$emit('openPayment')"
-          class="ml-auto flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover shrink-0"><AddCircleIcon :size="14" /><span class="hidden sm:inline">Registrar pago</span><span class="sm:hidden">+ Pago</span></button>
-        <button @click="$emit('openConsumption')"
-          class="flex items-center gap-1.5 rounded-lg bg-danger/10 px-3 py-2 text-xs font-semibold text-danger transition-theme hover:bg-danger/20 shrink-0 border border-danger/20"><MinusCircleIcon :size="14" /><span class="hidden sm:inline">Debitar consumo</span><span class="sm:hidden">Debitar</span></button>
-      </template>
-    </KpiBanner>
-    <KpiBanner v-if="activeTab === 'deuda'" variant="warning"
-      :icon="ClipboardIcon"
-      label="Deuda Pendiente Total" :value="formatUSD(totalDeudaPendiente)"
-      :sublabel="`${deudaConSaldo.length} empleado(s) con saldo`" />
-    <KpiBanner v-if="activeTab === 'horarios'" variant="primary" :icon="ClockIcon"
-      label="Horarios del Equipo" :value="teamSchedule.length" :sublabel="`empleado(s) con horario registrado`" />
-
-    <!-- Tab Content -->
-    <div class="p-3 sm:p-5">
-      <!-- Pagos -->
-      <div v-if="activeTab === 'pagos'">
-        <RecordSection title="" :items="paginatedServicios" :total-count="summaryCtx.employeePayments.value.length"
-          empty-message="No hay comisiones registradas" :pages="serviciosP" :page-size="pageSize" @prev="tabPage--"
-          @next="tabPage++">
-          <template #desktop-thead>
-            <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">{{
-              businessStore.terminology.employee || 'Empleado' }}</th>
-            <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-               {{ businessStore.terminology.client || 'Cliente' }}</th>
-            <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">{{
-              businessStore.terminology.service || 'Servicio' }}</th>
-            <th
-              class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
-              Costo</th>
-            <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">%
-              {{ businessStore.terminology.employee || 'Empleado' }}</th>
-            <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-              Comisión</th>
-            <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-              Propina</th>
-          </template>
-          <template #desktop-tbody="{ items }">
-            <tr v-for="payment in items" :key="payment.id" class="text-xs transition-theme hover:bg-bg-secondary/40">
-              <td class="px-3 py-3 font-medium text-text">{{ payment.employee }}</td>
-              <td class="px-3 py-3 text-text-secondary">{{ payment.client || '—' }}</td>
-              <td class="px-3 py-3 text-text-secondary">{{ payment.service }}</td>
-              <td class="px-3 py-3 text-right hidden sm:table-cell">
-                <div class="text-text">{{ formatUSD(payment.amount) }}</div>
-                <div class="text-[10px] text-text-muted">{{ formatSecondary(payment.amount) }}</div>
-              </td>
-              <td class="px-3 py-3 text-right text-text-secondary">{{ payment.percentage }}%</td>
-              <td class="px-3 py-3 text-right">
-                <div class="font-semibold text-success">{{ formatUSD(payment.earnings) }}</div>
-                <div class="text-[10px] text-text-muted">{{ formatSecondary(payment.earnings) }}</div>
-              </td>
-              <td class="px-3 py-3 text-right">
-                <span v-if="(payment.tipAmount ?? 0) > 0" class="font-semibold text-primary">{{ formatUSD(payment.tipAmount) }}</span>
-                <span v-else class="text-text-muted">—</span>
-              </td>
-            </tr>
-          </template>
-          <template #mobile-cards="{ items }">
-            <div v-for="payment in items" :key="payment.id"
-              class="rounded-lg border border-border-subtle bg-bg-secondary/30 p-3 space-y-2 text-sm">
-              <div class="flex items-center justify-between"><span class="font-medium text-text">{{ payment.employee
-                  }}</span><span class="text-xs font-semibold text-text-secondary">{{ payment.percentage }}%
-                  Empleado</span></div>
-              <div v-if="payment.client" class="text-xs text-text-secondary">{{ payment.client }}</div>
-              <div class="text-xs text-text-secondary">{{ payment.service }}</div>
-              <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                <span class="text-text-muted">Costo</span><span class="text-right"><span class="text-text">{{
-                  formatUSD(payment.amount) }}</span><span class="text-text-muted ml-1">{{
-                      formatSecondary(payment.amount) }}</span></span>
-                <span class="text-text-muted">Comisión</span><span class="text-right"><span
-                    class="font-semibold text-success">{{ formatUSD(payment.earnings) }}</span><span
-                    class="text-text-muted ml-1">{{ formatSecondary(payment.earnings) }}</span></span>
-                <span class="text-text-muted">Propina</span><span class="text-right">
-                  <span v-if="(payment.tipAmount ?? 0) > 0" class="font-semibold text-primary">{{ formatUSD(payment.tipAmount) }}</span>
-                  <span v-else class="text-text-muted">—</span>
-                </span>
-              </div>
-            </div>
-          </template>
-        </RecordSection>
-      </div>
-
-      <!-- Nómina -->
-      <div v-if="activeTab === 'nomina'">
-        <RecordSection title="" :items="paginatedNomina" :total-count="filteredNomina.length"
-          empty-message="No hay pagos de nómina registrados" :pages="nominaP" :page-size="pageSize" @prev="tabPage--"
-          @next="tabPage++">
-          <template #desktop-thead>
-            <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-              Fecha</th>
-            <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">{{
-              businessStore.terminology.employee || 'Empleado' }}</th>
-            <th
-              class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
-              Método</th>
-            <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-              Monto</th>
-            <th class="px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-              Acción</th>
-          </template>
-          <template #desktop-tbody="{ items }">
-            <tr v-for="ep in items" :key="ep.id" class="text-xs transition-theme hover:bg-bg-secondary/40">
-              <td class="px-3 py-3 whitespace-nowrap text-text-secondary">{{ fmtDate(ep.paymentDate) }}</td>
-              <td class="px-3 py-3 font-medium text-text">{{ ep.employeeName }}</td>
-              <td class="px-3 py-3 text-text-secondary hidden sm:table-cell">
-                <span v-if="ep.type === 'consumption'"
-                  class="inline-flex items-center gap-1 rounded-full bg-danger/10 px-2 py-0.5 text-[11px] font-medium text-danger">{{
-                    ep.concept || 'Consumo' }}</span>
-                <span v-else>{{ formatMethod(ep.paymentMethod) }}</span>
-              </td>
-              <td class="px-3 py-3 text-right">
-                <div :class="['font-medium', ep.type === 'consumption' ? 'text-danger' : 'text-danger']">{{ ep.currency
-                  === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</div>
-                <div class="text-[10px] text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) :
-                  formatEmployeeSecondary(ep.amount, ep.employeeVesRate) }}</div>
-              </td>
-              <td class="px-3 py-3 text-center">
-                <div class="flex items-center justify-center gap-1">
-                  <button @click="$emit('openEditPayment', ep)"
-                    class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-primary/10 hover:text-primary"
-                    title="Editar pago"><PenIcon :size="14" /></button>
-                  <button @click="$emit('deletePayment', ep.id)"
-                    class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
-                    title="Eliminar pago"><TrashBin2Icon :size="14" /></button>
-                </div>
-              </td>
-            </tr>
-          </template>
-          <template #mobile-cards="{ items }">
-            <div v-for="ep in items" :key="ep.id"
-              class="rounded-lg border border-border-subtle bg-bg-secondary/30 p-3 space-y-2 text-sm">
-              <div class="flex items-center justify-between"><span class="font-medium text-text">{{ ep.employeeName
-                  }}</span><span class="text-xs text-text-muted">{{ fmtDate(ep.paymentDate) }}</span></div>
-              <div class="flex items-center justify-between text-xs"><span class="text-text-muted">{{ ep.type ===
-                'consumption' ? (ep.concept || 'Consumo') : formatMethod(ep.paymentMethod) }}</span><span
-                  class="text-right"><span class="font-semibold text-danger">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) : formatUSD(ep.amount) }}</span><span class="text-text-muted ml-1">{{ ep.currency === 'VES' ? formatUSD(ep.amount) : formatEmployeeSecondary(ep.amount, ep.employeeVesRate) }}</span></span></div>
-              <div class="flex items-center justify-end gap-1 pt-1 border-t border-border-subtle"><button
-                  @click="$emit('openEditPayment', ep)"
-                  class="rounded-md bg-primary/10 px-2 py-1 text-xs text-primary">Editar</button><button
-                  @click="$emit('deletePayment', ep.id)"
-                  class="rounded-md bg-danger/10 px-2 py-1 text-xs text-danger">Eliminar</button></div>
-            </div>
-          </template>
-        </RecordSection>
-      </div>
-
-      <!-- Deuda -->
-      <div v-if="activeTab === 'deuda'">
-        <RecordSection title="" :items="paginatedDeuda" :total-count="deudaConSaldo.length"
-          empty-message="No hay deuda pendiente" :pages="deudaP" :page-size="pageSize" @prev="tabPage--"
-          @next="tabPage++">
-          <template #desktop-thead>
-            <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">{{
-              businessStore.terminology.employee || 'Empleado' }}</th>
-            <th
-              class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
-              Tipo</th>
-            <th
-              class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
-              Comisión</th>
-            <th
-              class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
-              Sueldo base</th>
-            <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-              Total</th>
-            <th
-              class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
-              Pagado</th>
-            <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-              Pendiente</th>
-            <th class="px-3 py-2.5 text-right text-[11px] font-semibold uppercase tracking-wider text-text-secondary w-[90px]">
-              Recibo</th>
-          </template>
-          <template #desktop-tbody="{ items }">
-            <tr v-for="row in items" :key="row.employeeId" class="text-xs transition-theme hover:bg-bg-secondary/40">
-              <td class="px-3 py-3 font-medium text-text">{{ row.employeeName }}</td>
-              <td class="px-3 py-3 text-text-secondary text-xs hidden sm:table-cell"><span
-                  v-if="row.payType === 'salary'">Sueldo base</span><span v-else-if="row.payType === 'mixed'">Sueldo +
-                  {{ row.payPercentage }}%</span><span v-else-if="row.payType === 'percentage'">{{ row.payPercentage
-                  }}%</span><span v-else>—</span></td>
-              <td class="px-3 py-3 text-right text-text hidden sm:table-cell">{{ formatUSD(row.commissionTotal) }}</td>
-              <td class="px-3 py-3 text-right text-text hidden sm:table-cell">{{ formatUSD(row.baseSalary) }}</td>
-              <td class="px-3 py-3 text-right font-semibold text-text">{{ formatUSD(row.totalEarned) }}</td>
-              <td class="px-3 py-3 text-right hidden sm:table-cell">
-                <div class="font-medium text-danger">{{ formatUSD(row.totalPaid) }}</div>
-                <div class="text-[10px] text-text-muted">{{ formatEmployeeSecondary(row.totalPaid) }}</div>
-              </td>
-              <td class="px-3 py-3 text-right"><span class="font-bold"
-                  :class="row.pendingBalance > 0 ? 'text-primary' : 'text-text-muted'">{{ formatUSD(row.pendingBalance)
-                  }}</span></td>
-              <td class="px-3 py-3 text-right">
-                <button @click="$emit('openRecibo', row)" class="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors" title="Imprimir Recibo de Pago">
-                  <PrinterIcon :size="14" />
-                  Recibo
-                </button>
-              </td>
-            </tr>
-          </template>
-          <template #mobile-cards="{ items }">
-            <div v-for="row in items" :key="row.employeeId"
-              class="rounded-lg border border-border-subtle bg-bg-secondary/30 p-3 space-y-2 text-sm">
-              <div class="flex items-center justify-between"><span class="font-medium text-text">{{ row.employeeName
-                  }}</span><span class="text-xs text-text-muted" v-if="row.payType === 'salary'">Sueldo base</span><span
-                  class="text-xs text-text-muted" v-else-if="row.payType === 'mixed'">Sueldo + {{ row.payPercentage
-                  }}%</span><span class="text-xs text-text-muted" v-else-if="row.payType === 'percentage'">{{
-                    row.payPercentage }}% Empleado</span></div>
-              <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                <span class="text-text-muted">Total Ganado</span><span class="text-right"><span class="text-text">{{
-                  formatUSD(row.totalEarned) }}</span><span class="text-text-muted ml-1">{{
-                      formatEmployeeSecondary(row.totalEarned) }}</span></span>
-                <span class="text-text-muted">Pagado</span><span class="text-right"><span class="text-danger">{{
-                  formatUSD(row.totalPaid) }}</span><span class="text-text-muted ml-1">{{
-                      formatEmployeeSecondary(row.totalPaid) }}</span></span>
-                <span class="text-text-muted">Pendiente</span><span class="text-right font-bold"
-                  :class="row.pendingBalance > 0 ? 'text-primary' : 'text-text-muted'">{{ formatUSD(row.pendingBalance)
-                  }}</span>
-              </div>
-              <div class="pt-2 border-t border-border-subtle flex justify-end">
-                <button @click="$emit('openRecibo', row)" class="inline-flex items-center gap-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-semibold text-primary">
-                  Ver Recibo
-                </button>
-              </div>
-            </div>
-          </template>
-        </RecordSection>
-      </div>
-
-      <!-- Horarios -->
-      <div v-if="activeTab === 'horarios'">
-        <RecordSection title="" :items="paginatedHorarios" :total-count="teamSchedule.length"
-          empty-message="No hay horarios registrados" :pages="horariosP" :page-size="pageSize" @prev="tabPage--"
-          @next="tabPage++">
-          <template #desktop-thead>
-            <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">{{
-              businessStore.terminology.employee || 'Empleado' }}</th>
-            <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-              Entrada</th>
-            <th class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-              Salida</th>
-            <th
-              class="px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wider text-text-secondary hidden sm:table-cell">
-              Descanso</th>
-            <th class="px-3 py-2.5 text-center text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
-              Estado</th>
-          </template>
-          <template #desktop-tbody="{ items }">
-            <tr v-for="schedule in items" :key="schedule.id" class="text-xs transition-theme hover:bg-bg-secondary/40">
-              <td class="px-3 py-3 font-medium text-text">{{ schedule.name }}</td>
-              <td class="px-3 py-3 tabular-nums text-text-secondary">{{ formatTime24to12(schedule.start) }}</td>
-              <td class="px-3 py-3 tabular-nums text-text-secondary">{{ formatTime24to12(schedule.end) }}</td>
-              <td class="px-3 py-3 text-text-secondary hidden sm:table-cell">{{ schedule.break }}</td>
-              <td class="px-3 py-3 text-center"><span
-                  :class="['inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold', schedule.available ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger']"><span
-                    :class="['h-1.5 w-1.5 rounded-full', schedule.available ? 'bg-success' : 'bg-danger']"></span>{{
-                      schedule.available ? 'Disponible' : 'No disponible' }}</span></td>
-            </tr>
-          </template>
-          <template #mobile-cards="{ items }">
-            <div v-for="schedule in items" :key="schedule.id"
-              class="rounded-lg border border-border-subtle bg-bg-secondary/30 p-3 space-y-2 text-sm">
-              <div class="flex items-center justify-between"><span class="font-medium text-text">{{ schedule.name
-                  }}</span><span
-                  :class="['inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold', schedule.available ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger']"><span
-                    :class="['h-1.5 w-1.5 rounded-full', schedule.available ? 'bg-success' : 'bg-danger']"></span>{{
-                      schedule.available ? 'Disponible' : 'No disponible' }}</span></div>
-              <div class="flex items-center justify-between text-xs"><span class="text-text-muted">{{
-                formatTime24to12(schedule.start) }} - {{ formatTime24to12(schedule.end) }}</span><span
-                  class="text-text-secondary">{{ schedule.break }}</span></div>
-            </div>
-          </template>
-        </RecordSection>
-      </div>
-    </div>
-  </div>
-</template>
