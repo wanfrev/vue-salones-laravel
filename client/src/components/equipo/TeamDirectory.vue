@@ -2,7 +2,7 @@
   <section class="mb-5 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm lg:mb-6">
     <!-- Negocios de personal: activos / inactivos y búsqueda (como siempre, solo ahí) -->
     <div v-if="isStaffing" class="flex flex-col gap-3 border-b border-border-subtle px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
-      <div class="scroll-thin -mx-1 flex min-w-0 max-w-full items-center gap-1.5 overflow-x-auto px-1 pb-0.5" role="tablist" aria-label="Estado del equipo">
+      <div class="scroll-thin -mx-1 flex min-w-0 max-w-full items-center gap-1.5 overflow-x-auto overflow-y-hidden px-1 pb-0.5" role="tablist" aria-label="Estado del equipo">
         <button v-for="s in STATUS_CHIPS" :key="s.value" type="button" role="tab" :aria-selected="status === s.value" :class="chipClass(status === s.value)" @click="emit('update:status', s.value)">
           {{ s.label }}
         </button>

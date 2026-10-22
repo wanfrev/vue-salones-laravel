@@ -12,7 +12,9 @@
         </div>
       </div>
 
-      <div class="scroll-thin -mb-px mt-3 flex gap-1 overflow-x-auto" role="tablist" aria-label="Secciones de gestión">
+      <!-- overflow-y-hidden: con solo overflow-x el navegador vuelve auto el eje vertical y aparecía un scroll de 1px.
+           La barra de desplazamiento se oculta (en móvil las pestañas se deslizan). -->
+      <div class="mt-3 flex gap-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" role="tablist" aria-label="Secciones de gestión">
         <button
           v-for="tab in tabs"
           :key="tab.key"
@@ -26,7 +28,7 @@
           <component :is="tab.icon" :size="15" />
           <span class="hidden sm:inline">{{ tab.label }}</span><span class="sm:hidden">{{ tab.shortLabel }}</span>
           <span class="rounded-full bg-bg-secondary px-1.5 text-[10px] font-bold tabular-nums text-text-muted">{{ tab.count }}</span>
-          <span v-if="activeTab === tab.key" class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
+          <span v-if="activeTab === tab.key" class="absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-primary" />
         </button>
       </div>
     </div>

@@ -35,7 +35,7 @@
     </div>
 
     <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
-      <div class="scroll-thin -mx-1 flex min-w-0 max-w-full items-center gap-1.5 overflow-x-auto px-1 pb-0.5" role="tablist" aria-label="Segmento de clientes">
+      <div class="scroll-thin -mx-1 flex min-w-0 max-w-full items-center gap-1.5 overflow-x-auto overflow-y-hidden px-1 pb-0.5" role="tablist" aria-label="Segmento de clientes">
         <button
           v-for="chip in chips"
           :key="chip.value"
