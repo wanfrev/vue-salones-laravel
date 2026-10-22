@@ -1,104 +1,57 @@
 import { ref, computed, watch, type Ref } from 'vue'
-import { usePagination } from '../common/usePagination'
+import { usePagination } from './usePagination'
+import {
+  DEFAULT_FILTERS, filterAndSortClients, isFiltered, segmentCounts,
+  type ClientFilterState, type ClientSegment, type ClientSort,
+} from '../../components/clients/clientFilters'
 import type { Cliente } from '../../types/cliente'
-import type { FilterState } from '../components/filters'
 
-export function useClientFilters(clients: Ref<Cliente[]>) {
-  const searchQuery = ref('')
-  const activeFilters = ref<Partial<FilterState>>({})
-  const daysSinceVisitFilter = ref(0)
+/**
+ * Estado del directorio de clientes: búsqueda, segmento (activos / inactivos / sin visitas / nuevos),
+ * ventana de días, orden y paginación. La lógica vive en clientFilters.ts (TypeScript puro).
+ * Cualquier cambio de filtro vuelve a la primera página.
+ */
+export function useClientFilters(clients: Ref<Cliente[]>, options: { pageSize?: number } = {}) {
+  const search = ref(DEFAULT_FILTERS.search)
+  const segment = ref<ClientSegment>(DEFAULT_FILTERS.segment)
+  const windowDays = ref(DEFAULT_FILTERS.windowDays)
+  const sort = ref<ClientSort>(DEFAULT_FILTERS.sort)
 
-  watch(() => activeFilters.value.daysSinceVisit, (val) => {
-    daysSinceVisitFilter.value = val !== undefined && val !== '' ? Number(val) || 0 : 0
-  }, { immediate: true })
+  const state = computed<ClientFilterState>(() => ({
+    search: search.value,
+    segment: segment.value,
+    windowDays: windowDays.value,
+    sort: sort.value,
+  }))
 
-  const filteredClients = computed(() => {
-    let result = clients.value
+  const filteredClients = computed(() => filterAndSortClients(clients.value, state.value))
+  const counts = computed(() => segmentCounts(clients.value, windowDays.value))
+  const filtered = computed(() => isFiltered(state.value))
 
-    if (searchQuery.value) {
-      const q = searchQuery.value.toLowerCase()
-      result = result.filter(c =>
-        c.name.toLowerCase().includes(q) ||
-        c.phone?.toLowerCase().includes(q) ||
-        c.email?.toLowerCase().includes(q) ||
-        c.code?.toLowerCase().includes(q)
-      )
-    }
+  const pagination = usePagination({ data: filteredClients, pageSize: options.pageSize ?? 20 })
 
-    if (daysSinceVisitFilter.value > 0) {
-      const threshold = new Date()
-      threshold.setDate(threshold.getDate() - daysSinceVisitFilter.value)
-      result = result.filter(c => {
-        if (!c.lastVisit || c.lastVisit === 'Sin visitas') return true
-        return new Date(c.lastVisit) < threshold
-      })
-    }
-
-    const sortBy = activeFilters.value.sortBy
-    if (sortBy === 'name') {
-      result = [...result].sort((a, b) => a.name.localeCompare(b.name))
-    } else if (sortBy === 'oldest') {
-      result = [...result].sort((a, b) => new Date(a.joinDate!).getTime() - new Date(b.joinDate!).getTime())
-    } else {
-      result = [...result].sort((a, b) => new Date(b.joinDate!).getTime() - new Date(a.joinDate!).getTime())
-    }
-
-    return result
+  // firstPage (y no goToPage(1)): con 0 resultados goToPage ignora el cambio y la página se quedaría atrás.
+  watch([search, segment, windowDays, sort], () => pagination.firstPage())
+  // Si al refrescar la lista quedan menos páginas que la actual, vuelve a la última que exista.
+  watch(() => pagination.totalPages.value, (total) => {
+    if (total > 0 && pagination.currentPage.value > total) pagination.goToPage(total)
   })
 
-  const totalClientes = computed(() => clients.value.length)
-  const clientesRecientes = computed(() => {
-    if (daysSinceVisitFilter.value <= 0) return 0
-    const threshold = new Date()
-    threshold.setDate(threshold.getDate() - daysSinceVisitFilter.value)
-    return clients.value.filter(c =>
-      c.lastVisit && c.lastVisit !== 'Sin visitas' && new Date(c.lastVisit) >= threshold
-    ).length
-  })
-  const clientesSinVisitar = computed(() => {
-    if (daysSinceVisitFilter.value <= 0) return 0
-    const threshold = new Date()
-    threshold.setDate(threshold.getDate() - daysSinceVisitFilter.value)
-    return clients.value.filter(c =>
-      !c.lastVisit || c.lastVisit === 'Sin visitas' || new Date(c.lastVisit) < threshold
-    ).length
-  })
-  const clientesConHistorial = computed(() =>
-    clients.value.filter(c => c.lastVisit && c.lastVisit !== 'Sin visitas').length
-  )
-
-  const pagination = usePagination({
-    data: filteredClients,
-    pageSize: 15,
-  })
-
-  const handleApplyFilters = (filters: FilterState) => {
-    activeFilters.value = filters
-    pagination.goToPage(1)
+  const clearFilters = () => {
+    search.value = DEFAULT_FILTERS.search
+    segment.value = DEFAULT_FILTERS.segment
   }
-
-  const handleClearFilters = () => {
-    activeFilters.value = {}
-    daysSinceVisitFilter.value = 0
-    pagination.goToPage(1)
-  }
-
-  const getFilterDrawerDefaults = () => ({
-    daysSinceVisit: String(daysSinceVisitFilter.value),
-  })
 
   return {
-    searchQuery,
-    activeFilters,
-    daysSinceVisitFilter,
+    search,
+    segment,
+    windowDays,
+    sort,
+    filtered,
     filteredClients,
-    totalClientes,
-    clientesRecientes,
-    clientesSinVisitar,
-    clientesConHistorial,
-    handleApplyFilters,
-    handleClearFilters,
-    getFilterDrawerDefaults,
+    counts,
+    totalClientes: computed(() => clients.value.length),
+    clearFilters,
     ...pagination,
   }
 }
