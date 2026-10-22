@@ -32,8 +32,8 @@
       </div>
     </template>
 
-    <div class="space-y-4">
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <section class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+      <div class="flex flex-col gap-2 border-b border-border-subtle px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <header>
           <h2 class="text-base font-bold text-text sm:text-lg">Mis {{ t.appointment || 'cita' }}s</h2>
           <p v-if="citas.length > 0" class="text-xs text-text-muted sm:text-sm">{{ citas.length }} {{ t.appointment?.toLowerCase() || 'cita' }}{{ citas.length !== 1 ? 's' : '' }}</p>
@@ -43,12 +43,12 @@
             type="date"
             :value="toISODate(selectedDate)"
             @change="selectedDate = new Date(($event.target as HTMLInputElement).value + 'T12:00:00')"
-            class="rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15"
+            class="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15"
           />
           <button
             v-if="!isToday"
             @click="goToToday"
-            class="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:border-border-strong"
+            class="rounded-xl border border-border bg-surface px-3 py-2 text-xs font-medium text-text-secondary transition-theme hover:bg-bg-secondary hover:border-border-strong"
           >
             Hoy
           </button>
@@ -65,7 +65,7 @@
         @edit="handleEditCita"
         @delete="handleDeleteCita"
       />
-    </div>
+    </section>
   </AppLayout>
 
   <CitaFormModal

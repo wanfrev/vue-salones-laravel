@@ -1,240 +1,84 @@
-﻿<template>
+<template>
   <div>
 
       <!-- Header -->
-      <header class="mb-4">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary mb-1">
-              <CalendarIcon class="h-3.5 w-3.5" />
-              Agenda
-            </div>
-            <p class="text-sm font-semibold text-text sm:text-base">{{ todayLabel }}</p>
+      <header class="mb-4 flex items-center justify-between gap-3">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <CalendarIcon class="h-4 w-4 shrink-0 text-primary" />
+            <h1 class="truncate text-xl font-bold tracking-tight text-text sm:text-2xl">Agenda</h1>
           </div>
+          <p class="mt-0.5 truncate text-sm text-text-muted">{{ todayLabel }}</p>
+        </div>
 
-          <div class="flex flex-wrap items-center gap-2">
-            <div class="inline-flex rounded-lg border border-border bg-bg-secondary/50 p-0.5">
-              <button
-                @click="viewMode = 'active'"
-                class="rounded-md px-3 py-1.5 text-xs font-semibold transition-theme sm:px-4 sm:py-2 sm:text-sm"
-                :class="viewMode === 'active' ? 'bg-surface text-primary shadow-sm' : 'text-text-secondary hover:text-text hover:bg-bg-secondary'"
-              >
-                Activas
-              </button>
-              <button
-                @click="viewMode = 'historial'"
-                class="rounded-md px-3 py-1.5 text-xs font-semibold transition-theme sm:px-4 sm:py-2 sm:text-sm"
-                :class="viewMode === 'historial' ? 'bg-surface text-primary shadow-sm' : 'text-text-secondary hover:text-text hover:bg-bg-secondary'"
-              >
-                Historial
-              </button>
-            </div>
-            <ShareLinkButton :employees="shareLinkEmployees" />
-            <button
-              @click="handleNewCita"
-              class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover sm:gap-2 sm:px-4"
-              :aria-label="`Nueva ${(businessStore.terminology.appointment || 'cita').toLowerCase()}`"
-            >
-              <AddCircleIcon class="h-4 w-4" />
-              <span class="hidden sm:inline">Nueva {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}</span>
-            </button>
-          </div>
+        <div class="flex shrink-0 items-center gap-2">
+          <ShareLinkButton :employees="shareLinkEmployees" />
+          <button
+            @click="handleNewCita"
+            class="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover sm:gap-2 sm:px-4"
+            :aria-label="`Nueva ${(businessStore.terminology.appointment || 'cita').toLowerCase()}`"
+          >
+            <AddCircleIcon class="h-4 w-4" />
+            <span class="hidden sm:inline">Nueva {{ (businessStore.terminology.appointment || 'cita').toLowerCase() }}</span>
+          </button>
         </div>
       </header>
 
-      <!-- Stats Cards -->
-      <section class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4 lg:gap-3">
-        <button type="button" @click="toggleStatusFilter('all')"
-          class="rounded-lg border bg-surface p-2.5 text-left transition-theme hover:border-border-strong sm:rounded-xl sm:p-4"
-          :class="statusFilter === 'all' ? 'border-primary/40 ring-1 ring-primary/20' : 'border-border'">
-          <div class="flex items-center gap-2">
-            <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary sm:h-9 sm:w-9">
-              <ClipboardIcon class="h-3.5 w-3.5 sm:h-5 sm:w-5" />
-            </div>
-            <div class="min-w-0">
-              <p class="text-lg font-bold tabular-nums text-text sm:text-2xl">{{ stats.citasHoy }}</p>
-               <p class="text-[10px] text-text-muted sm:text-xs truncate">{{ businessStore.terminology.appointmentPlural || 'Citas' }} {{ periodLabel }}</p>
-            </div>
-          </div>
-        </button>
+      <section class="mb-4 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+        <AgendaSummaryStrip
+          :stats="stats"
+          :status-filter="statusFilter"
+          :period-label="periodLabel"
+          :plural="businessStore.terminology.appointmentPlural || 'Citas'"
+          @toggle="toggleStatusFilter"
+        />
 
-        <button type="button" @click="toggleStatusFilter('pending')"
-          class="rounded-lg border bg-surface p-2.5 text-left transition-theme hover:border-border-strong sm:rounded-xl sm:p-4"
-          :class="statusFilter === 'pending' ? 'border-warning/50 ring-1 ring-warning/25' : 'border-border'">
-          <div class="flex items-center gap-2">
-            <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-warning/10 text-warning sm:h-9 sm:w-9">
-              <ClockCircleIcon class="h-3.5 w-3.5 sm:h-5 sm:w-5" />
-            </div>
-            <div class="min-w-0">
-              <p class="text-lg font-bold tabular-nums text-text sm:text-2xl">{{ stats.pendientes }}</p>
-              <p class="text-[10px] text-text-muted sm:text-xs">Pendientes</p>
-            </div>
-          </div>
-        </button>
-
-        <button type="button" @click="toggleStatusFilter('confirmed')"
-          class="rounded-lg border bg-surface p-2.5 text-left transition-theme hover:border-border-strong sm:rounded-xl sm:p-4"
-          :class="statusFilter === 'confirmed' ? 'border-success/50 ring-1 ring-success/25' : 'border-border'">
-          <div class="flex items-center gap-2">
-            <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-success/10 text-success sm:h-9 sm:w-9">
-              <CheckCircleIcon class="h-3.5 w-3.5 sm:h-5 sm:w-5" />
-            </div>
-            <div class="min-w-0">
-              <p class="text-lg font-bold tabular-nums text-text sm:text-2xl">{{ stats.confirmadas }}</p>
-              <p class="text-[10px] text-text-muted sm:text-xs">Confirmadas</p>
-            </div>
-          </div>
-        </button>
-
-        <div class="rounded-lg border border-border bg-surface p-2.5 transition-theme hover:border-border-strong sm:rounded-xl sm:p-4">
-          <div class="flex items-center gap-2">
-            <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-info/10 text-info sm:h-9 sm:w-9">
-              <DollarIcon class="h-3.5 w-3.5 sm:h-5 sm:w-5" />
-            </div>
-            <div class="min-w-0">
-              <p class="text-lg font-bold tabular-nums text-text sm:text-2xl">${{ stats.estimadoHoy }}</p>
-              <p class="text-[10px] text-text-muted sm:text-xs">Estimado</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Agenda List -->
-      <section class="mb-4">
-        <div class="mb-3">
-           <h2 class="text-base font-bold text-text lg:text-lg">{{ viewMode === 'historial' ? 'Historial' : (businessStore.terminology.appointmentPlural || 'Citas') }}</h2>
-           <p v-if="filteredCitas.length > 0" class="text-xs text-text-muted">{{ filteredCitas.length }} {{ filteredCitas.length === 1 ? (businessStore.terminology.appointment || 'cita').toLowerCase() : (businessStore.terminology.appointmentPlural || 'Citas').toLowerCase() }}</p>
-        </div>
-
-        <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          <div class="relative w-full sm:w-56">
-            <input
-              :value="searchQuery"
-              @input="setSearchQuery(($event.target as HTMLInputElement).value)"
-              type="text"
-              placeholder="Buscar..."
-               :title="`Buscar por ${businessStore.terminology.client?.toLowerCase() || 'cliente'}, ${businessStore.terminology.service?.toLowerCase() || 'servicio'} o ${businessStore.terminology.employee?.toLowerCase() || 'empleado'}`"
-              class="w-full rounded-lg border border-border bg-surface pl-8 pr-3 py-1.5 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15"
-            />
-            <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-          </div>
-          <select v-model="employeeFilter"
-            class="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto sm:max-w-[180px]">
-             <option value="all">Todos los {{ (businessStore.terminology.employeePlural || 'Empleados').toLowerCase() }}</option>
-            <option v-for="e in empleadosList" :key="e.id" :value="e.id">{{ e.name }}</option>
-          </select>
-          <select v-model="serviceFilter"
-            class="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto sm:max-w-[180px]">
-             <option value="all">Todos los {{ (businessStore.terminology.servicePlural || 'Servicios').toLowerCase() }}</option>
-            <option v-for="s in serviciosList" :key="s.id" :value="s.id">{{ s.name }}</option>
-          </select>
-
-          <template v-if="viewMode === 'active'">
-            <p v-if="isSearching" class="text-xs text-text-muted italic">Buscando en todas las fechas</p>
-            <template v-else>
-              <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <div v-if="dateFilterMode === 'day' || dateFilterMode === 'week'" class="flex w-full items-center gap-1.5 sm:w-auto">
-                  <button
-                    type="button"
-                    @click="dateFilterMode === 'week' ? stepWeek(-1) : stepDay(-1)"
-                    :title="dateFilterMode === 'week' ? 'Semana anterior' : 'Día anterior'"
-                    :aria-label="dateFilterMode === 'week' ? 'Semana anterior' : 'Día anterior'"
-                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-text-secondary transition-theme hover:border-border-strong hover:bg-bg-secondary hover:text-text"
-                  >
-                    <ArrowLeftIcon class="h-4 w-4" />
-                  </button>
-                  <input
-                    v-if="dateFilterMode === 'day'"
-                    type="date"
-                    :value="filterDate ?? ''"
-                    @change="setFilterDate(($event.target as HTMLInputElement).value || null)"
-                    class="w-full flex-1 rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto sm:flex-none"
-                  />
-                  <span v-else class="flex-1 whitespace-nowrap rounded-lg border border-border bg-surface px-3 py-1.5 text-center text-sm text-text sm:flex-none sm:w-auto">{{ todayLabel }}</span>
-                  <button
-                    type="button"
-                    @click="dateFilterMode === 'week' ? stepWeek(1) : stepDay(1)"
-                    :title="dateFilterMode === 'week' ? 'Semana siguiente' : 'Día siguiente'"
-                    :aria-label="dateFilterMode === 'week' ? 'Semana siguiente' : 'Día siguiente'"
-                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-surface text-text-secondary transition-theme hover:border-border-strong hover:bg-bg-secondary hover:text-text"
-                  >
-                    <ArrowRightIcon class="h-4 w-4" />
-                  </button>
-                </div>
-                <input
-                  v-else-if="dateFilterMode === 'all'"
-                  type="date"
-                  :value="filterDate ?? ''"
-                  @change="setFilterDate(($event.target as HTMLInputElement).value || null)"
-                  class="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto"
-                />
-                <div v-else-if="dateFilterMode === 'range'" class="flex items-center gap-1.5">
-                  <input
-                    type="date"
-                    :value="rangeStart ?? ''"
-                    :max="rangeEnd ?? undefined"
-                    @change="setCustomRange(($event.target as HTMLInputElement).value, rangeEnd)"
-                    class="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto"
-                  />
-                  <span class="text-xs text-text-muted shrink-0">–</span>
-                  <input
-                    type="date"
-                    :value="rangeEnd ?? ''"
-                    :min="rangeStart ?? undefined"
-                    @change="setCustomRange(rangeStart, ($event.target as HTMLInputElement).value)"
-                    class="w-full rounded-lg border border-border bg-surface px-3 py-1.5 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto"
-                  />
-                </div>
-                <div class="inline-flex w-full rounded-lg border border-border bg-bg-secondary/50 p-0.5 sm:w-auto">
-                  <button
-                    @click="goToToday"
-                    class="flex-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-theme sm:flex-none sm:px-3 sm:text-xs"
-                    :class="isToday ? 'bg-surface text-primary shadow-sm' : 'text-text-secondary hover:text-text hover:bg-bg-secondary'"
-                  >
-                    Hoy
-                  </button>
-                  <button
-                    @click="setWeekMode"
-                    class="flex-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-theme sm:flex-none sm:px-3 sm:text-xs"
-                    :class="isThisWeek ? 'bg-surface text-primary shadow-sm' : 'text-text-secondary hover:text-text hover:bg-bg-secondary'"
-                  >
-                    Semana
-                  </button>
-                  <button
-                    @click="openRangeMode"
-                    class="flex-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-theme sm:flex-none sm:px-3 sm:text-xs"
-                    :class="dateFilterMode === 'range' ? 'bg-surface text-primary shadow-sm' : 'text-text-secondary hover:text-text hover:bg-bg-secondary'"
-                  >
-                    Rango
-                  </button>
-                  <button
-                    @click="showAll"
-                    class="flex-1 rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-theme sm:flex-none sm:px-3 sm:text-xs"
-                    :class="dateFilterMode === 'all' ? 'bg-surface text-primary shadow-sm' : 'text-text-secondary hover:text-text hover:bg-bg-secondary'"
-                  >
-                    Todas
-                  </button>
-                </div>
-              </div>
-            </template>
-          </template>
-
+        <div class="flex gap-1 border-b border-border-subtle px-2 sm:px-3" role="tablist" aria-label="Vista de la agenda">
           <button
-            v-if="hasActiveFilters"
+            v-for="m in VIEW_MODES"
+            :key="m.value"
             type="button"
-            @click="resetFilters"
-            class="inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-danger/30 bg-danger/10 px-3 py-1.5 text-[11px] font-semibold text-danger transition-theme hover:border-danger/50 hover:bg-danger/15 sm:w-auto sm:justify-start sm:text-xs"
+            role="tab"
+            :aria-selected="viewMode === m.value"
+            class="relative px-3 py-2.5 text-sm font-medium transition-colors"
+            :class="viewMode === m.value ? 'text-primary' : 'text-text-secondary hover:text-text'"
+            @click="viewMode = m.value"
           >
-            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            Limpiar filtros
+            {{ m.label }}
+            <span v-if="viewMode === m.value" class="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary" />
           </button>
         </div>
+
+        <AgendaFilters
+          v-model:employee="employeeFilter"
+          v-model:service="serviceFilter"
+          :search-query="searchQuery"
+          :search-hint="`Buscar por ${businessStore.terminology.client?.toLowerCase() || 'cliente'}, ${businessStore.terminology.service?.toLowerCase() || 'servicio'} o ${businessStore.terminology.employee?.toLowerCase() || 'empleado'}`"
+          :employee-options="employeeOptions"
+          :service-options="serviceOptions"
+          :employee-label="businessStore.terminology.employee || 'Empleado'"
+          :service-label="businessStore.terminology.service || 'Servicio'"
+          :show-date-controls="viewMode === 'active'"
+          :is-searching="isSearching"
+          :date-filter-mode="dateFilterMode"
+          :filter-date="filterDate"
+          :range-start="rangeStart"
+          :range-end="rangeEnd"
+          :today-label="todayLabel"
+          :is-today="isToday"
+          :is-this-week="isThisWeek"
+          :has-active-filters="hasActiveFilters"
+          @search="setSearchQuery"
+          @step-day="stepDay"
+          @step-week="stepWeek"
+          @set-filter-date="setFilterDate"
+          @set-custom-range="setCustomRange"
+          @today="goToToday"
+          @week="setWeekMode"
+          @range="openRangeMode"
+          @all="showAll"
+          @reset="resetFilters"
+        />
 
         <AgendaListView
            :citas="filteredCitas"
@@ -244,7 +88,12 @@
            :labels="businessStore.terminology"
           @edit="handleEditCita"
           @delete="handleDeleteCita"
-        />
+        >
+          <template #summary>
+            <span class="font-semibold text-text">{{ viewMode === 'historial' ? 'Historial' : (businessStore.terminology.appointmentPlural || 'Citas') }}</span>
+            <template v-if="filteredCitas.length > 0"> · {{ filteredCitas.length }} {{ filteredCitas.length === 1 ? (businessStore.terminology.appointment || 'cita').toLowerCase() : (businessStore.terminology.appointmentPlural || 'Citas').toLowerCase() }}</template>
+          </template>
+        </AgendaListView>
       </section>
 
     <!-- Modals -->
@@ -269,9 +118,11 @@ import { CitaFormModal } from '../components/modals'
 import { db } from '../lib/api'
 import AgendaListView from '../components/agenda/AgendaListView.vue'
 import ShareLinkButton from '../components/agenda/ShareLinkButton.vue'
+import AgendaSummaryStrip from '../components/agenda/AgendaSummaryStrip.vue'
+import AgendaFilters from '../components/agenda/AgendaFilters.vue'
 import type { Cita, PaymentEditContext } from '../types/cita'
 import type { PaymentMethod } from '../types/database'
-import { CalendarIcon, AddCircleIcon, ClipboardIcon, ClockCircleIcon, CheckCircleIcon, DollarIcon, ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/linear'
+import { CalendarIcon, AddCircleIcon } from '@solar-icons/vue/linear'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
@@ -284,6 +135,11 @@ const viewMode = ref<'active' | 'historial'>('active')
 const displayedCitas = computed(() =>
   viewMode.value === 'historial' ? historialCitas.value : activeCitas.value
 )
+
+const VIEW_MODES = [
+  { value: 'active' as const, label: 'Activas' },
+  { value: 'historial' as const, label: 'Historial' },
+]
 
 const employeeFilter = ref('all')
 const serviceFilter = ref('all')
@@ -332,6 +188,15 @@ const {
   setSearchQuery,
   isSearching,
 } = useAdminAgenda(() => authStore.businessId)
+
+const employeeOptions = computed(() => [
+  { value: 'all', label: `Todos los ${(businessStore.terminology.employeePlural || 'Empleados').toLowerCase()}` },
+  ...empleadosList.value.map((e: any) => ({ value: e.id, label: e.name })),
+])
+const serviceOptions = computed(() => [
+  { value: 'all', label: `Todos los ${(businessStore.terminology.servicePlural || 'Servicios').toLowerCase()}` },
+  ...serviciosList.value.map((s: any) => ({ value: s.id, label: s.name })),
+])
 
 const hasActiveFilters = computed(() =>
   !!searchQuery.value.trim() ||
