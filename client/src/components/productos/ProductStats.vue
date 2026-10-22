@@ -1,25 +1,25 @@
 <template>
-  <div class="mb-4 flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-end sm:justify-between sm:gap-x-8 lg:mb-6">
-    <div>
-      <p class="text-xs font-semibold uppercase tracking-wider text-text-muted">Valor en stock</p>
-      <p class="mt-1 text-4xl font-extrabold leading-none tabular-nums text-text sm:text-5xl">{{ valorUSD }}</p>
-      <p class="mt-1 text-xs text-text-muted">{{ valorVES }} Bs</p>
+  <dl class="grid grid-cols-3 gap-x-4 gap-y-3 border-b border-border-subtle px-4 py-3 sm:flex sm:flex-wrap sm:items-end sm:gap-x-10" data-testid="inventory-summary">
+    <div class="col-span-3 sm:col-span-1">
+      <dt class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Valor en stock</dt>
+      <dd class="mt-0.5 text-2xl font-extrabold leading-tight tabular-nums text-text">
+        {{ valorUSD }}
+        <span class="text-xs font-normal text-text-muted">{{ valorVES }} Bs</span>
+      </dd>
     </div>
-    <div class="grid grid-cols-3 gap-x-4 gap-y-3 sm:flex sm:gap-x-8">
-      <div>
-        <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Productos activos</p>
-        <p class="mt-1 text-xl font-bold tabular-nums text-text">{{ totalProductos }}</p>
-      </div>
-      <div>
-        <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Categorías</p>
-        <p class="mt-1 text-xl font-bold tabular-nums text-text">{{ totalCategorias }}</p>
-      </div>
-      <div>
-        <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Stock bajo</p>
-        <p class="mt-1 text-xl font-bold tabular-nums" :class="stockBajo > 0 ? 'text-warning' : 'text-text'">{{ stockBajo }}</p>
-      </div>
+    <div class="flex flex-col justify-between">
+      <dt class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Productos activos</dt>
+      <dd class="mt-0.5 text-lg font-bold tabular-nums text-text">{{ totalProductos }}</dd>
     </div>
-  </div>
+    <div class="flex flex-col justify-between">
+      <dt class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Categorías</dt>
+      <dd class="mt-0.5 text-lg font-bold tabular-nums text-text">{{ totalCategorias }}</dd>
+    </div>
+    <div class="flex flex-col justify-between">
+      <dt class="text-[11px] font-semibold uppercase tracking-wider text-text-muted">Stock bajo</dt>
+      <dd class="mt-0.5 text-lg font-bold tabular-nums" :class="stockBajo > 0 ? 'text-warning' : 'text-text'">{{ stockBajo }}</dd>
+    </div>
+  </dl>
 </template>
 
 <script setup lang="ts">

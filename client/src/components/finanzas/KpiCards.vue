@@ -1,12 +1,10 @@
 <template>
-  <div class="card-hairline rounded-2xl p-4 sm:p-6">
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+    <!-- Celdas separadas por líneas finas: una tarjeta, no una por indicador -->
+    <div class="-mb-px -mr-px grid grid-cols-1 sm:grid-cols-2 lg:grid-flow-col lg:auto-cols-fr lg:grid-cols-none">
 
       <!-- Ingresos -->
-      <button type="button" :class="[
-        'group flex items-start gap-2.5 rounded-lg border-y-0 border-r-0 border-l-[3px] bg-transparent p-0 pl-3.5 text-left transition-theme',
-        activeCard === 'income' ? 'border-success' : 'border-success/30 hover:border-success'
-      ]" @click="$emit('click-income')">
+      <button type="button" :class="[cellClass, activeCard === 'income' ? 'bg-success/5 shadow-[inset_0_-2px_0] shadow-success' : '']" @click="$emit('click-income')">
         <div class="min-w-0">
           <p class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-success">
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-success"></span>
@@ -24,14 +22,11 @@
             {{ tipsTotal && tipsTotal > 0 ? `+${formatUSD(tipsTotal)} propinas` : 'Ver propinas' }}
           </span>
         </div>
-        <svg :class="['mt-1 h-4 w-4 shrink-0 text-text-muted/50 transition-transform duration-300 group-hover:text-success', activeCard === 'income' && 'rotate-180 text-success']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+        <svg :class="[chevron, 'group-hover:text-success', activeCard === 'income' && 'rotate-180 text-success']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
 
       <!-- Gastos -->
-      <button type="button" :class="[
-        'group flex items-start gap-2.5 rounded-lg border-y-0 border-r-0 border-l-[3px] bg-transparent p-0 pl-3.5 text-left transition-theme',
-        activeCard === 'expense' ? 'border-warning' : 'border-warning/30 hover:border-warning'
-      ]" @click="$emit('click-expense')">
+      <button type="button" :class="[cellClass, activeCard === 'expense' ? 'bg-warning/5 shadow-[inset_0_-2px_0] shadow-warning' : '']" @click="$emit('click-expense')">
         <div class="min-w-0">
           <p class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-warning">
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-warning"></span>
@@ -40,14 +35,11 @@
           <p v-if="isLoading" class="mt-1.5 h-6 w-28 rounded bg-bg-secondary animate-pulse sm:h-7" />
           <p v-else class="mt-1.5 text-2xl font-extrabold leading-none tabular-nums text-text xl:text-3xl">{{ formatUSD(expenseTotal) }}</p>
         </div>
-        <svg :class="['mt-1 h-4 w-4 shrink-0 text-text-muted/50 transition-transform duration-300 group-hover:text-warning', activeCard === 'expense' && 'rotate-180 text-warning']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+        <svg :class="[chevron, 'group-hover:text-warning', activeCard === 'expense' && 'rotate-180 text-warning']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
 
       <!-- Ganancia bruta — Tienda y Staffing (para staffing, es la única "ganancia": el margen de la nómina) -->
-      <button v-if="isTienda || isStaffing" type="button" :class="[
-        'group flex items-start gap-2.5 rounded-lg border-y-0 border-r-0 border-l-[3px] bg-transparent p-0 pl-3.5 text-left transition-theme',
-        activeCard === 'profit' ? 'border-indigo-500' : 'border-indigo-500/30 hover:border-indigo-500'
-      ]" @click="$emit('click-profit')">
+      <button v-if="isTienda || isStaffing" type="button" :class="[cellClass, activeCard === 'profit' ? 'bg-indigo-500/5 shadow-[inset_0_-2px_0] shadow-indigo-500' : '']" @click="$emit('click-profit')">
         <div class="min-w-0">
           <p class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-indigo-500">
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500"></span>
@@ -56,14 +48,11 @@
           <p v-if="isLoading" class="mt-1.5 h-6 w-28 rounded bg-bg-secondary animate-pulse sm:h-7" />
           <p v-else class="mt-1.5 text-2xl font-extrabold leading-none tabular-nums text-text xl:text-3xl">{{ formatUSD(profitTotal ?? 0) }}</p>
         </div>
-        <svg :class="['mt-1 h-4 w-4 shrink-0 text-text-muted/50 transition-transform duration-300 group-hover:text-indigo-500', activeCard === 'profit' && 'rotate-180 text-indigo-500']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+        <svg :class="[chevron, 'group-hover:text-indigo-500', activeCard === 'profit' && 'rotate-180 text-indigo-500']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
 
       <!-- "Ganancia Neta" no existe para Staffing — la ganancia bruta de la nómina ya es la cifra que importa. -->
-      <button v-if="!isStaffing" type="button" :class="[
-        'group flex items-start gap-2.5 rounded-lg border-y-0 border-r-0 border-l-[3px] bg-transparent p-0 pl-3.5 text-left transition-theme',
-        activeCard === 'net' ? 'border-info' : 'border-info/30 hover:border-info'
-      ]" @click="$emit('click-net')">
+      <button v-if="!isStaffing" type="button" :class="[cellClass, activeCard === 'net' ? 'bg-info/5 shadow-[inset_0_-2px_0] shadow-info' : '']" @click="$emit('click-net')">
         <div class="min-w-0">
           <p class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-info">
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-info"></span>
@@ -72,11 +61,11 @@
           <p v-if="isLoading" class="mt-1.5 h-6 w-28 rounded bg-bg-secondary animate-pulse sm:h-7" />
           <p v-else class="mt-1.5 text-2xl font-extrabold leading-none tabular-nums text-text xl:text-3xl">{{ formatUSD(netTotal) }}</p>
         </div>
-        <svg :class="['mt-1 h-4 w-4 shrink-0 text-text-muted/50 transition-transform duration-300 group-hover:text-info', activeCard === 'net' && 'rotate-180 text-info']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+        <svg :class="[chevron, 'group-hover:text-info', activeCard === 'net' && 'rotate-180 text-info']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
       </button>
 
       <!-- Margen — sin clic, mismo peso visual -->
-      <div class="flex items-start gap-2.5 border-y-0 border-r-0 border-l-[3px] border-primary/30 pl-3.5">
+      <div class="flex items-start gap-2.5 border-b border-r border-border-subtle p-4 sm:p-5">
         <div class="min-w-0">
           <p class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"></span>
@@ -119,4 +108,8 @@ defineEmits<{
 const { formatUSD, formatVESEs } = useCurrency()
 
 const formatPercentage = (value: number) => `${value.toFixed(1)}%`
+
+// Cada indicador clicable es una celda con líneas finas; el activo lleva fondo suave y una línea de color abajo.
+const cellClass = 'group flex items-start justify-between gap-2.5 border-b border-r border-border-subtle p-4 text-left transition-colors hover:bg-bg-secondary/50 sm:p-5'
+const chevron = 'mt-1 h-4 w-4 shrink-0 text-text-muted/50 transition-transform duration-300'
 </script>

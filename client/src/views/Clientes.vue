@@ -1,5 +1,5 @@
 <template>
-  <ClientDirectoryHeader :total="totalClientes">
+  <DirectoryHeader :title="businessStore.terminology.clientPlural || 'Clientes'" :total="totalClientes" :singular="singular" :plural="plural">
     <button
       class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
       @click="clienteModalRef?.open()"
@@ -7,7 +7,7 @@
       <AddCircleIcon class="h-4 w-4" />
       <span>Nuevo<span class="hidden sm:inline"> {{ singular }}</span></span>
     </button>
-  </ClientDirectoryHeader>
+  </DirectoryHeader>
 
   <!-- Una sola tarjeta: filtros arriba, lista en medio, paginación abajo. -->
   <section class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
@@ -32,7 +32,7 @@
       @edit="clienteModalRef?.open($event)"
       @whatsapp="handleWhatsApp"
     />
-    <ClientPagination
+    <ListPagination
       :current-page="currentPage"
       :total-pages="totalPages"
       :page-numbers="pageNumbers"
@@ -65,10 +65,10 @@ import { useBusinessStore } from '../store/business'
 import { isPatientNiche as checkPatientNiche } from '../config/niches'
 import { clientesKeys, deleteCliente, listClientes, saveCliente } from '../services/clientesService'
 import { sanitizePhone } from '../lib/formatters'
-import ClientDirectoryHeader from '../components/clients/ClientDirectoryHeader.vue'
+import DirectoryHeader from '../components/common/DirectoryHeader.vue'
 import ClientDirectoryToolbar from '../components/clients/ClientDirectoryToolbar.vue'
 import ClientDirectoryList from '../components/clients/ClientDirectoryList.vue'
-import ClientPagination from '../components/clients/ClientPagination.vue'
+import ListPagination from '../components/common/ListPagination.vue'
 import { ClienteFormModal } from '../components/modals'
 import { AddCircleIcon } from '@solar-icons/vue/linear'
 

@@ -1,13 +1,80 @@
 <template>
   <div class="flex h-full flex-col gap-2 sm:gap-3">
-    <!-- Panel de Filtros -->
-    <div
-      class="flex flex-col gap-2 rounded-lg border border-border bg-surface p-2 sm:rounded-xl sm:p-2.5 lg:flex-row lg:items-center lg:justify-between">
-      <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-1.5">
-        <div v-if="isAdmin" class="flex items-center gap-2">
+    <!-- Barra superior: navegación de fecha, vista y filtros en una sola tarjeta -->
+    <div class="rounded-xl border border-border bg-surface">
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 sm:px-4">
+        <div class="flex items-center gap-1">
+          <button @click="navigate(-1)" aria-label="Anterior"
+            class="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <button @click="navigate(1)" aria-label="Siguiente"
+            class="flex h-9 w-9 items-center justify-center rounded-lg text-text-secondary transition-theme hover:bg-bg-secondary hover:text-text">
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+        <h2 class="min-w-0 flex-1 truncate text-base font-bold tracking-tight text-text sm:text-lg">{{ titleText }}</h2>
+        <button @click="goToday"
+          class="rounded-lg px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/10">Hoy</button>
+
+        <div class="flex w-full items-center justify-between gap-2 sm:ml-auto sm:w-auto sm:justify-end">
+          <div class="inline-flex divide-x divide-border overflow-hidden rounded-xl border border-border text-xs font-medium">
+            <button v-for="v in viewOptions" :key="v.value" @click="viewMode = v.value"
+              class="px-3 py-2 transition-colors"
+              :class="viewMode === v.value ? 'bg-primary/10 font-semibold text-primary' : 'text-text-secondary hover:bg-bg-secondary hover:text-text'">{{
+                v.shortLabel }}</button>
+          </div>
+          <div class="relative">
+            <button @click="occupancyOpen = !occupancyOpen"
+              class="flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary hover:border-border-strong"
+              :class="{ 'border-primary/40 text-primary bg-primary-light/40': occupancyOpen }">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
+              </svg>
+              <span class="hidden sm:inline">Disponibilidad</span>
+            </button>
+            <Transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
+              <div v-if="occupancyOpen"
+                class="absolute right-0 top-full z-50 mt-1.5 w-[min(20rem,92vw)] max-h-96 overflow-y-auto rounded-xl border border-border bg-surface p-2 shadow-xl" @click.stop>
+                <p class="px-2 py-1.5 text-[11px] font-bold text-text-muted uppercase tracking-wide">{{ selectedDayLabel }}</p>
+                 <div v-if="!occupancyRows.length" class="px-2 py-3 text-xs text-text-muted">Sin {{ businessStore.terminology.employeePlural?.toLowerCase() || 'empleados' }} para mostrar.</div>
+                <div v-for="row in occupancyRows" :key="row.id" class="px-2 py-2 border-b border-border-subtle last:border-b-0" :class="{ 'opacity-60': row.dayOff }">
+                  <div class="flex items-center justify-between gap-2" :class="row.dayOff ? '' : 'mb-1'">
+                    <span class="text-sm font-semibold text-text truncate">{{ row.name }}</span>
+                    <span v-if="row.dayOff" class="shrink-0 text-xs font-medium text-text-muted italic">No trabaja hoy</span>
+                    <span v-else class="shrink-0 text-xs font-bold"
+                      :class="row.pctBooked >= 80 ? 'text-danger' : row.pctBooked >= 50 ? 'text-warning' : 'text-success'">{{ row.pctBooked }}% ocupado</span>
+                  </div>
+                  <template v-if="!row.dayOff">
+                    <div class="h-1.5 rounded-full bg-bg-secondary overflow-hidden mb-1.5">
+                      <div class="h-full rounded-full transition-all"
+                        :class="row.pctBooked >= 80 ? 'bg-danger' : row.pctBooked >= 50 ? 'bg-warning' : 'bg-success'"
+                        :style="{ width: `${Math.min(100, row.pctBooked)}%` }" />
+                    </div>
+                    <div v-if="row.gaps.length" class="flex flex-wrap gap-1">
+                      <span v-for="(g, i) in row.gaps" :key="i"
+                        class="rounded-full bg-bg-secondary px-2 py-0.5 text-[10px] font-medium text-text-secondary">{{ g.label }}</span>
+                    </div>
+                    <p v-else class="text-[10px] text-text-muted italic">Sin huecos libres</p>
+                  </template>
+                </div>
+              </div>
+            </Transition>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2 border-t border-border-subtle px-3 py-2.5 sm:px-4 lg:flex-row lg:items-center lg:justify-between">
+      <div class="flex min-w-0 items-center gap-1.5">
+        <div v-if="isAdmin" class="flex max-w-[46%] items-center gap-2 sm:max-w-none">
           <div class="relative flex-1 min-w-0 sm:flex-none">
             <button @click="empDropdownOpen = !empDropdownOpen"
-              class="flex items-center gap-2 w-full rounded-lg border border-border bg-surface pl-2.5 pr-3 py-1.5 text-sm font-medium text-text outline-none transition-all hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto"
+              class="flex items-center gap-2 w-full rounded-xl border border-border bg-surface pl-2.5 pr-3 py-1.5 text-sm font-medium text-text outline-none transition-all hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-auto"
               :disabled="loadingEmployees">
               <div class="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary flex-shrink-0">
                 {{ selectedEmployeeName ? getInitials(selectedEmployeeName) : '✦' }}
@@ -60,10 +127,10 @@
           <span class="text-sm font-medium text-text">{{ authStore.profile?.full_name }}</span>
         </div>
         <div class="hidden h-5 w-px bg-border sm:block"></div>
-        <div class="relative w-full sm:w-48 lg:w-56">
+        <div class="relative min-w-0 flex-1 sm:w-48 sm:flex-none lg:w-56">
            <input v-model="searchQuery" type="text" :placeholder="`Buscar ${businessStore.terminology.client?.toLowerCase() || 'cliente'}...`"
             @focus="searchDropdownOpen = true" @blur="searchDropdownOpen = false"
-            class="w-full rounded-lg border border-border bg-surface pl-8 pr-3 py-1.5 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:ring-2 focus:ring-primary/15" />
+            class="w-full rounded-xl border border-border bg-bg-secondary/40 pl-8 pr-3 py-2 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/15" />
           <div class="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -95,6 +162,7 @@
           <span class="text-[10px] font-medium text-text-muted sm:text-[11px]">{{ l.label }}</span>
         </span>
       </div>
+      </div>
     </div>
 
     <!-- Mobile: switch to list when too many columns in day/week -->
@@ -117,78 +185,6 @@
         <div>
           <p class="text-sm font-semibold text-danger">Error al cargar citas del calendario</p>
           <p class="text-xs text-danger/70 mt-0.5">{{ typeof appointmentsError === 'object' && appointmentsError !== null ? ((appointmentsError as any).message || String(appointmentsError)) : String(appointmentsError) }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Date Navigator -->
-    <div
-      class="flex flex-col gap-2 rounded-lg border border-border bg-surface p-2 sm:rounded-xl sm:p-2.5 lg:flex-row lg:items-center lg:justify-between lg:gap-0">
-      <!-- Nav: arrows + title -->
-      <div class="flex items-center justify-between">
-        <button @click="navigate(-1)"
-          class="flex h-8 w-8 items-center justify-center rounded-full border border-border text-text-secondary transition-theme hover:bg-bg-secondary hover:border-border-strong hover:text-text sm:h-9 sm:w-9">
-          <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <h2 class="text-center text-sm font-semibold text-text truncate px-2 sm:text-base lg:text-lg">{{ titleText }}
-        </h2>
-        <button @click="navigate(1)"
-          class="flex h-8 w-8 items-center justify-center rounded-full border border-border text-text-secondary transition-theme hover:bg-bg-secondary hover:border-border-strong hover:text-text sm:h-9 sm:w-9">
-          <svg class="h-4 w-4 sm:h-5 sm:w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      </div>
-
-      <!-- Actions: Hoy + View Switcher -->
-      <div class="flex items-center justify-center gap-2">
-        <button @click="goToday"
-          class="rounded-lg border border-border px-3 py-1 text-xs font-semibold text-primary transition-theme hover:bg-primary-light hover:border-primary/20">Hoy</button>
-        <div class="inline-flex rounded-lg border border-border bg-bg-secondary/50 p-0.5">
-          <button v-for="v in viewOptions" :key="v.value" @click="viewMode = v.value"
-            class="px-2 py-1 text-xs font-medium rounded-md transition-theme sm:px-3"
-            :class="viewMode === v.value ? 'bg-surface text-primary shadow-sm' : 'text-text-muted hover:text-text'">{{
-              v.shortLabel }}</button>
-        </div>
-        <div class="relative">
-          <button @click="occupancyOpen = !occupancyOpen"
-            class="flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary hover:border-border-strong"
-            :class="{ 'border-primary/40 text-primary bg-primary-light/40': occupancyOpen }">
-            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" />
-              <path stroke-linecap="round" stroke-linejoin="round" d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" />
-            </svg>
-            <span class="hidden sm:inline">Disponibilidad</span>
-          </button>
-          <Transition enter-active-class="transition ease-out duration-150" enter-from-class="opacity-0 scale-95 -translate-y-1" enter-to-class="opacity-100 scale-100 translate-y-0" leave-active-class="transition ease-in duration-100" leave-from-class="opacity-100 scale-100 translate-y-0" leave-to-class="opacity-0 scale-95 -translate-y-1">
-            <div v-if="occupancyOpen"
-              class="absolute right-0 top-full z-50 mt-1.5 w-[min(20rem,92vw)] max-h-96 overflow-y-auto rounded-xl border border-border bg-surface p-2 shadow-xl" @click.stop>
-              <p class="px-2 py-1.5 text-[11px] font-bold text-text-muted uppercase tracking-wide">{{ selectedDayLabel }}</p>
-               <div v-if="!occupancyRows.length" class="px-2 py-3 text-xs text-text-muted">Sin {{ businessStore.terminology.employeePlural?.toLowerCase() || 'empleados' }} para mostrar.</div>
-              <div v-for="row in occupancyRows" :key="row.id" class="px-2 py-2 border-b border-border-subtle last:border-b-0" :class="{ 'opacity-60': row.dayOff }">
-                <div class="flex items-center justify-between gap-2" :class="row.dayOff ? '' : 'mb-1'">
-                  <span class="text-sm font-semibold text-text truncate">{{ row.name }}</span>
-                  <span v-if="row.dayOff" class="shrink-0 text-xs font-medium text-text-muted italic">No trabaja hoy</span>
-                  <span v-else class="shrink-0 text-xs font-bold"
-                    :class="row.pctBooked >= 80 ? 'text-danger' : row.pctBooked >= 50 ? 'text-warning' : 'text-success'">{{ row.pctBooked }}% ocupado</span>
-                </div>
-                <template v-if="!row.dayOff">
-                  <div class="h-1.5 rounded-full bg-bg-secondary overflow-hidden mb-1.5">
-                    <div class="h-full rounded-full transition-all"
-                      :class="row.pctBooked >= 80 ? 'bg-danger' : row.pctBooked >= 50 ? 'bg-warning' : 'bg-success'"
-                      :style="{ width: `${Math.min(100, row.pctBooked)}%` }" />
-                  </div>
-                  <div v-if="row.gaps.length" class="flex flex-wrap gap-1">
-                    <span v-for="(g, i) in row.gaps" :key="i"
-                      class="rounded-full bg-bg-secondary px-2 py-0.5 text-[10px] font-medium text-text-secondary">{{ g.label }}</span>
-                  </div>
-                  <p v-else class="text-[10px] text-text-muted italic">Sin huecos libres</p>
-                </template>
-              </div>
-            </div>
-          </Transition>
         </div>
       </div>
     </div>
