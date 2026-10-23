@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-xl border border-border bg-surface p-3">
+  <div class="p-3 sm:p-4">
     <div class="mb-3 flex items-center justify-between gap-3">
       <p class="text-sm font-semibold text-text">Empleados asignados por semana</p>
       <div class="flex items-center gap-1">

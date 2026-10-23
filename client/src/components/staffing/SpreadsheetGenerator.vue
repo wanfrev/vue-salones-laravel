@@ -1,8 +1,8 @@
 <template>
-  <div class="space-y-4">
-    <div class="flex flex-wrap items-end justify-between gap-3">
+  <div class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+    <div class="flex flex-wrap items-end justify-between gap-3 border-b border-border-subtle px-3 py-3 sm:px-4">
       <div class="min-w-[220px] max-w-sm flex-1">
-        <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted" for="spreadsheet-company">
+        <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-text-muted" for="spreadsheet-company">
           Empresa
         </label>
         <FormSearchSelect
@@ -14,7 +14,7 @@
         />
       </div>
       <button v-if="isAdmin && selectedCompanyId" type="button"
-        class="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
+        class="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-semibold text-text transition-theme hover:bg-bg-secondary"
         @click="openNewEmployee">
         + Agregar empleado
       </button>
@@ -32,12 +32,12 @@
       Esta empresa no tiene empleados asignados todavía.
     </p>
 
-    <div v-else class="space-y-3">
-      <div class="overflow-hidden rounded-xl border border-border bg-surface">
-        <div class="overflow-x-auto">
+    <div v-else>
+      <div>
+        <div class="scroll-thin overflow-x-auto overflow-y-hidden">
           <table class="w-full text-sm">
             <thead>
-              <tr class="border-b border-border bg-bg-secondary text-left text-[10px] uppercase tracking-wider text-text-muted">
+              <tr class="border-b border-border-subtle bg-bg-secondary/30 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 <th class="px-3 py-2.5 w-10"></th>
                 <th class="px-3 py-2.5">Empleado</th>
                 <th class="px-3 py-2.5">Rol / Turno</th>
@@ -45,7 +45,7 @@
                 <th class="px-3 py-2.5 text-right">Pay rate OT</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-border">
+            <tbody class="divide-y divide-border-subtle">
               <tr v-for="row in rates" :key="row.employeeId">
                 <td class="px-3 py-2.5">
                   <label class="inline-flex h-5 w-5 cursor-pointer items-center justify-center">
@@ -74,10 +74,10 @@
         </div>
       </div>
 
-      <div class="flex justify-end">
+      <div class="flex justify-end border-t border-border-subtle px-3 py-3 sm:px-4">
         <button
           type="button"
-          class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+          class="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="selectedEmployeeIds.length === 0"
           @click="handleGeneratePdf"
         >

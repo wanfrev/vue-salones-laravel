@@ -5,22 +5,24 @@
       <h1 class="text-xl font-bold tracking-tight text-text sm:text-2xl">Reportes</h1>
     </header>
 
-    <div class="flex flex-wrap gap-1 border-b border-border">
-      <button v-for="tab in TABS" :key="tab.value" type="button"
-        class="relative px-3 py-2 text-sm font-semibold transition-theme"
-        :class="activeTab === tab.value ? 'text-primary' : 'text-text-muted hover:text-text'"
-        @click="activeTab = tab.value">
-        {{ tab.label }}
-        <span v-if="activeTab === tab.value" class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
-      </button>
-    </div>
-    <p class="mb-4 mt-2 max-w-3xl text-xs text-text-muted">{{ activeDescription }}</p>
+    <div class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+      <div class="scroll-thin flex gap-1 overflow-x-auto overflow-y-hidden border-b border-border-subtle px-2 sm:px-3" role="tablist" aria-label="Reportes de staffing">
+        <button v-for="tab in TABS" :key="tab.value" type="button" role="tab" :aria-selected="activeTab === tab.value"
+          class="relative shrink-0 whitespace-nowrap px-3 py-2.5 text-sm font-medium transition-colors"
+          :class="activeTab === tab.value ? 'text-primary' : 'text-text-secondary hover:text-text'"
+          @click="activeTab = tab.value">
+          {{ tab.label }}
+          <span v-if="activeTab === tab.value" class="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary" />
+        </button>
+      </div>
+      <p class="border-b border-border-subtle px-3 py-2.5 text-xs text-text-muted sm:px-4">{{ activeDescription }}</p>
 
-    <MonthlyPayrollReport v-if="activeTab === 'monthly'" :business-id="businessId" />
-    <WeeklyCompanyReport v-else-if="activeTab === 'weekly'" :business-id="businessId" />
-    <ReceivablesAgingReport v-else-if="activeTab === 'receivables'" :business-id="businessId" />
-    <ProfitabilityReport v-else-if="activeTab === 'profitability'" :business-id="businessId" />
-    <EmployeeHoursMatrix v-else :business-id="businessId" />
+      <MonthlyPayrollReport v-if="activeTab === 'monthly'" :business-id="businessId" />
+      <WeeklyCompanyReport v-else-if="activeTab === 'weekly'" :business-id="businessId" />
+      <ReceivablesAgingReport v-else-if="activeTab === 'receivables'" :business-id="businessId" />
+      <ProfitabilityReport v-else-if="activeTab === 'profitability'" :business-id="businessId" />
+      <EmployeeHoursMatrix v-else :business-id="businessId" />
+    </div>
   </FeatureGate>
 </template>
 

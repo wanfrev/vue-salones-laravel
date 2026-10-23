@@ -1,5 +1,5 @@
 <template>
-  <div class="rounded-xl border border-border bg-surface p-4 space-y-3">
+  <div class="space-y-3 rounded-2xl border border-border bg-surface p-4 shadow-sm">
     <div>
       <p class="text-sm font-semibold text-text">Acceso al módulo</p>
       <p class="text-xs text-text-muted">Marca qué vendedores pueden entrar a Spreadsheet, además de ti.</p>
@@ -11,7 +11,7 @@
       No hay vendedores registrados todavía. Créalos desde CRM.
     </p>
 
-    <div v-else class="divide-y divide-border">
+    <div v-else class="divide-y divide-border-subtle">
       <label v-for="v in vendedoras" :key="v.id"
         class="flex cursor-pointer items-center justify-between gap-3 py-2.5 text-sm">
         <span class="text-text">{{ v.name }}</span>

@@ -1,45 +1,51 @@
 <template>
   <FeatureGate :gate="{ capability: 'staffing.incidents' }">
-    <header class="mb-5 lg:mb-8 flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
-          <DocumentIcon class="h-3.5 w-3.5" />
-          <span>Incidentes</span>
+    <header class="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="min-w-0">
+        <div class="flex items-center gap-2">
+          <DocumentIcon class="h-4 w-4 shrink-0 text-primary" />
+          <h1 class="truncate text-xl font-bold tracking-tight text-text sm:text-2xl">Incidentes</h1>
         </div>
-        <p class="mt-1 text-sm text-text-muted">Registro de incidentes de trabajo por empleado.</p>
+        <p class="mt-0.5 text-xs text-text-muted">Registro de incidentes de trabajo por empleado.</p>
       </div>
       <button type="button"
-        class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover"
+        class="shrink-0 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
         @click="openNew">
         + Nuevo incidente
       </button>
     </header>
 
-    <div class="mb-4 flex flex-wrap items-end gap-3">
-      <div class="min-w-[200px]">
-        <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted" for="inc-filter-company">Empresa</label>
-        <select id="inc-filter-company" v-model="filterCompanyId" class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none">
-          <option value="">Todas las empresas</option>
-          <option v-for="c in companyOptions" :key="c.value" :value="c.value">{{ c.label }}</option>
-        </select>
+    <div class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+      <div class="grid grid-cols-1 gap-3 border-b border-border-subtle px-3 py-3 sm:grid-cols-[14rem_14rem] sm:px-4">
+        <div>
+          <span class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-text-muted">Empresa</span>
+          <FilterSelect v-model="filterCompanyId" :options="companyFilterOptions" aria-label="Empresa" default-value="" />
+        </div>
+        <div>
+          <span class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-text-muted">Estado</span>
+          <FilterSelect v-model="filterStatus" :options="statusFilterOptions" aria-label="Estado" default-value="" />
+        </div>
       </div>
-      <div class="min-w-[180px]">
-        <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted" for="inc-filter-status">Estado</label>
-        <select id="inc-filter-status" v-model="filterStatus" class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none">
-          <option value="">Todos los estados</option>
-          <option v-for="s in INCIDENT_STATUS_OPTIONS" :key="s.value" :value="s.value">{{ s.label }}</option>
-        </select>
+
+      <div v-if="isLoading" class="divide-y divide-border-subtle" aria-busy="true">
+        <p class="sr-only">Cargando incidentes...</p>
+        <div v-for="n in 4" :key="n" class="flex items-center gap-4 px-3 py-3.5 sm:px-4">
+          <span class="h-3 w-32 animate-pulse rounded bg-bg-secondary" />
+          <span class="h-3 flex-1 animate-pulse rounded bg-bg-secondary" />
+          <span class="h-3 w-20 animate-pulse rounded bg-bg-secondary" />
+        </div>
       </div>
-    </div>
+      <div v-else-if="incidents.length === 0" class="flex flex-col items-center justify-center px-4 py-14 text-center">
+        <div class="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-bg-secondary">
+          <DocumentIcon class="h-7 w-7 text-text-muted" />
+        </div>
+        <p class="text-base font-medium text-text">No hay incidentes registrados todavía.</p>
+      </div>
 
-    <div v-if="isLoading" class="py-10 text-center text-sm text-text-muted">Cargando incidentes...</div>
-    <p v-else-if="incidents.length === 0" class="py-10 text-center text-sm text-text-muted">No hay incidentes registrados todavía.</p>
-
-    <div v-else class="overflow-hidden rounded-xl border border-border bg-surface">
-      <div class="overflow-x-auto">
+      <div v-else class="scroll-thin overflow-x-auto overflow-y-hidden">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-border bg-bg-secondary text-left text-[10px] uppercase tracking-wider text-text-muted">
+            <tr class="border-b border-border-subtle bg-bg-secondary/30 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">
               <th class="px-3 py-2.5">Nombre</th>
               <th class="px-3 py-2.5">Comments</th>
               <th class="px-3 py-2.5">Fecha</th>
@@ -56,7 +62,7 @@
               <th class="px-3 py-2.5 w-10"></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-border">
+          <tbody class="divide-y divide-border-subtle">
             <tr v-for="incident in incidents" :key="incident.id">
               <td class="px-3 py-2.5 font-medium text-text whitespace-nowrap">{{ incident.employeeName }}</td>
               <td class="px-3 py-2.5 max-w-52 truncate text-text-secondary" :title="incident.comments ?? ''">{{ incident.comments || '—' }}</td>
@@ -67,13 +73,14 @@
                   @upload="(file) => handleUploadSingle(incident.id, 'reporte', file)" @remove="handleRemoveSingleFile(incident.id, 'reporte')" />
               </td>
               <td class="px-3 py-2.5 text-center">
-                <span v-if="incident.wantsUrgentCare === true" class="rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">Sí</span>
-                <span v-else-if="incident.wantsUrgentCare === false" class="rounded-full bg-danger/10 px-3 py-1 text-xs font-semibold text-danger">No</span>
+                <span v-if="incident.wantsUrgentCare === true" class="text-xs font-semibold text-success">Sí</span>
+                <span v-else-if="incident.wantsUrgentCare === false" class="text-xs font-semibold text-danger">No</span>
                 <span v-else class="text-text-muted">—</span>
               </td>
               <td class="px-3 py-2.5 whitespace-nowrap text-text-secondary">{{ incident.companyName || '—' }}</td>
               <td class="px-3 py-2.5">
-                <span :class="['rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap', statusClass(incident.status)]">
+                <span :class="['inline-flex items-center gap-1.5 text-xs font-semibold whitespace-nowrap', statusClass(incident.status)]">
+                  <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
                   {{ statusLabel(incident.status) }}
                 </span>
               </td>
@@ -106,10 +113,10 @@
               </td>
               <td class="px-3 py-2.5">
                 <div class="flex items-center gap-1">
-                  <button type="button" class="rounded p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary" title="Editar" @click="openEdit(incident)">
+                  <button type="button" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary" title="Editar" aria-label="Editar" @click="openEdit(incident)">
                     <PenIcon class="h-4 w-4" />
                   </button>
-                  <button type="button" class="rounded p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger" title="Eliminar" @click="handleDelete(incident.id)">
+                  <button type="button" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-danger/10 hover:text-danger" title="Eliminar" aria-label="Eliminar" @click="handleDelete(incident.id)">
                     <TrashBin2Icon class="h-4 w-4" />
                   </button>
                 </div>
@@ -137,6 +144,7 @@ import { computed, ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { useAuth } from '../composables/common/useAuth'
 import { FeatureGate } from '../components/common'
+import FilterSelect from '../components/common/FilterSelect.vue'
 import { formatDateUS } from '../lib/formatters'
 import { listStaffingCompanies, staffingCompanyKeys } from '../services/staffing/staffingService'
 import {
@@ -161,6 +169,8 @@ const { data: companies } = useQuery({
   enabled: computed(() => !!businessId.value),
 })
 const companyOptions = computed(() => (companies.value ?? []).map(c => ({ value: c.id, label: c.name })))
+const companyFilterOptions = computed(() => [{ value: '', label: 'Todas las empresas' }, ...companyOptions.value])
+const statusFilterOptions = [{ value: '', label: 'Todos los estados' }, ...INCIDENT_STATUS_OPTIONS.map(s => ({ value: s.value as string, label: s.label }))]
 
 const {
   incidents, isLoading, saveError,
@@ -179,13 +189,13 @@ const STATUS_LABELS: Record<StaffingIncidentStatus, string> = {
   activo: 'Activo', light_duty: 'Light Duty', suspendido: 'Suspendido', despedido: 'Despedido',
 }
 const STATUS_CLASSES: Record<StaffingIncidentStatus, string> = {
-  activo: 'bg-success/10 text-success',
-  light_duty: 'bg-warning/10 text-warning',
-  suspendido: 'bg-danger/10 text-danger',
-  despedido: 'bg-bg-secondary text-text-muted',
+  activo: 'text-success',
+  light_duty: 'text-warning',
+  suspendido: 'text-danger',
+  despedido: 'text-text-muted',
 }
 const statusLabel = (status: StaffingIncidentStatus) => STATUS_LABELS[status] ?? status
-const statusClass = (status: StaffingIncidentStatus) => STATUS_CLASSES[status] ?? 'bg-bg-secondary text-text-muted'
+const statusClass = (status: StaffingIncidentStatus) => STATUS_CLASSES[status] ?? 'text-text-muted'
 
 const showModal = ref(false)
 const editingIncident = ref<StaffingIncidentRow | null>(null)

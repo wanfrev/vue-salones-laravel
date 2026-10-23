@@ -1,151 +1,139 @@
 <template>
   <FeatureGate :gate="{ capability: 'staffing.timesheets' }">
-    <header class="mb-5 lg:mb-8">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
-          <BuildingsIcon class="h-3.5 w-3.5" />
-          <span>Empresas</span>
-        </div>
-        <button
-          class="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover"
-          @click="ctx.openNew()">
-          <AddCircleIcon class="h-4 w-4" />
-          <span>Nueva empresa</span>
-        </button>
+    <header class="mb-4 flex items-center justify-between gap-3">
+      <div class="flex min-w-0 items-center gap-2">
+        <BuildingsIcon class="h-4 w-4 shrink-0 text-primary" />
+        <h1 class="truncate text-xl font-bold tracking-tight text-text sm:text-2xl">Empresas</h1>
       </div>
+      <button
+        class="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
+        @click="ctx.openNew()">
+        <AddCircleIcon class="h-4 w-4" />
+        <span>Nueva empresa</span>
+      </button>
     </header>
 
-    <div class="mb-4 flex items-center justify-between gap-3 border-b border-border">
-      <div class="flex gap-1">
-        <button v-for="tab in STATUS_TABS" :key="tab.value" type="button"
-          class="relative px-3 py-2 text-sm font-semibold transition-theme"
-          :class="activeStatusTab === tab.value ? 'text-primary' : 'text-text-muted hover:text-text'"
-          @click="activeStatusTab = tab.value">
-          {{ tab.label }}
-          <span class="ml-1.5 rounded-full bg-bg-secondary px-1.5 py-0.5 text-[10px] font-bold text-text-muted">
-            {{ ctx.companiesByStatus.value[tab.value].length }}
-          </span>
-          <span v-if="activeStatusTab === tab.value" class="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-primary" />
+    <div class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+      <div class="flex items-center justify-between gap-2 border-b border-border-subtle pr-2 sm:pr-3">
+        <div class="scroll-thin flex min-w-0 gap-1 overflow-x-auto overflow-y-hidden px-2 sm:px-3" role="tablist" aria-label="Estado de las empresas">
+          <button v-for="tab in STATUS_TABS" :key="tab.value" type="button" role="tab" :aria-selected="activeStatusTab === tab.value"
+            class="relative shrink-0 whitespace-nowrap px-3 py-2.5 text-sm font-medium transition-colors"
+            :class="activeStatusTab === tab.value ? 'text-primary' : 'text-text-secondary hover:text-text'"
+            @click="activeStatusTab = tab.value">
+            {{ tab.label }}
+            <span class="ml-1 text-xs font-semibold tabular-nums text-text-muted">
+              {{ ctx.companiesByStatus.value[tab.value].length }}
+            </span>
+            <span v-if="activeStatusTab === tab.value" class="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary" />
+          </button>
+        </div>
+        <button type="button"
+          class="shrink-0 rounded-lg px-3 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+          @click="showMatrix = !showMatrix">
+          {{ showMatrix ? 'Ver lista' : 'Ver matriz' }}
         </button>
       </div>
-      <button type="button"
-        class="mb-2 shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
-        @click="showMatrix = !showMatrix">
-        {{ showMatrix ? 'Ver lista' : 'Ver matriz' }}
-      </button>
-    </div>
 
-    <HeadcountMatrix v-if="showMatrix" class="mb-4" :business-id="businessId" :status="activeStatusTab" />
+      <HeadcountMatrix v-if="showMatrix" :business-id="businessId" :status="activeStatusTab" />
 
-    <template v-else>
-      <div class="mb-4">
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Buscar empresa por nombre o sitio..."
-          class="w-full max-w-md rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30"
-        />
-      </div>
-
-      <div v-if="ctx.isLoading.value" class="flex items-center justify-center py-16">
-        <svg class="h-7 w-7 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
-          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-          <path class="opacity-75" fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
-      </div>
-
-      <div v-else-if="filteredCompanies.length === 0"
-        class="flex flex-col items-center justify-center py-16 text-center">
-        <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-secondary">
-          <BuildingsIcon class="h-7 w-7 text-text-muted" />
+      <template v-else>
+        <div class="border-b border-border-subtle px-3 py-3 sm:px-4">
+          <div class="relative max-w-md">
+            <MagnifierIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Buscar empresa por nombre o sitio..."
+              aria-label="Buscar empresa por nombre o sitio"
+              class="w-full rounded-xl border border-border bg-bg-secondary/40 py-2.5 pl-9 pr-3 text-sm text-text outline-none transition-colors placeholder:text-text-muted focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/15"
+            />
+          </div>
         </div>
-        <p class="text-lg font-semibold text-text">
-          {{ searchQuery ? 'Sin resultados' : 'No hay empresas ' + STATUS_TAB_LABELS[activeStatusTab].toLowerCase() }}
-        </p>
-        <p class="mt-1 text-sm text-text-muted">
-          {{ searchQuery ? 'Prueba con otro término de búsqueda.' : 'Registra la primera empresa para poder cargar horas y facturar.' }}
-        </p>
-      </div>
 
-      <div v-else class="space-y-3">
-      <div v-for="company in filteredCompanies" :key="company.id"
-        class="overflow-hidden rounded-xl border border-border bg-surface">
-        <div class="flex flex-wrap items-center gap-3 px-4 py-3.5">
-          <button type="button" class="flex flex-1 items-center gap-3 text-left"
-            @click="toggle(company.id)">
-            <span class="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-              {{ getInitials(company.name) }}
+        <ul v-if="ctx.isLoading.value" class="divide-y divide-border-subtle" aria-busy="true">
+          <li v-for="n in 4" :key="n" class="flex items-center gap-3 px-3 py-3.5 sm:px-4">
+            <span class="h-9 w-9 shrink-0 animate-pulse rounded-full bg-bg-secondary" />
+            <span class="flex-1 space-y-2">
+              <span class="block h-3 w-1/3 animate-pulse rounded bg-bg-secondary" />
+              <span class="block h-2.5 w-1/2 animate-pulse rounded bg-bg-secondary" />
             </span>
-            <span class="min-w-0">
-              <span class="flex items-center gap-2">
-                <span class="block truncate text-sm font-semibold text-text">{{ company.name }}</span>
-                <span class="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="STATUS_BADGE_CLASS[company.status]">
-                  {{ STATUS_TAB_LABELS[company.status] }}
+          </li>
+        </ul>
+
+        <div v-else-if="filteredCompanies.length === 0"
+          class="flex flex-col items-center justify-center px-4 py-16 text-center">
+          <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-bg-secondary">
+            <BuildingsIcon class="h-7 w-7 text-text-muted" />
+          </div>
+          <p class="text-base font-medium text-text">
+            {{ searchQuery ? 'Sin resultados' : 'No hay empresas ' + STATUS_TAB_LABELS[activeStatusTab].toLowerCase() }}
+          </p>
+          <p class="mt-1 text-sm text-text-muted">
+            {{ searchQuery ? 'Prueba con otro término de búsqueda.' : 'Registra la primera empresa para poder cargar horas y facturar.' }}
+          </p>
+        </div>
+
+        <ul v-else class="divide-y divide-border-subtle">
+          <li v-for="company in filteredCompanies" :key="company.id" data-testid="company-row">
+            <div class="flex items-center gap-3 px-3 py-3 sm:px-4">
+              <button type="button" class="flex min-w-0 flex-1 items-center gap-3 text-left"
+                :aria-expanded="expandedId === company.id"
+                @click="toggle(company.id)">
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                  {{ getInitials(company.name) }}
                 </span>
-              </span>
-              <span class="block truncate text-xs text-text-muted">
-                {{ company.workSite || 'Sin sitio de trabajo' }} · {{ company.paymentTermsDays }} días de plazo
-              </span>
-            </span>
-          </button>
+                <span class="min-w-0">
+                  <span class="flex items-center gap-2">
+                    <span class="block truncate text-sm font-semibold text-text">{{ company.name }}</span>
+                    <span class="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold" :class="STATUS_TEXT_CLASS[company.status]">
+                      <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+                      {{ STATUS_TAB_LABELS[company.status] }}
+                    </span>
+                  </span>
+                  <span class="block truncate text-xs text-text-muted">
+                    {{ company.workSite || 'Sin sitio de trabajo' }} · {{ company.paymentTermsDays }} días de plazo
+                  </span>
+                </span>
+              </button>
 
+              <div class="hidden w-44 shrink-0 text-right md:block">
+                <span class="block text-[11px] font-bold uppercase tracking-wider text-text-muted">Pago</span>
+                <span class="block text-xs font-semibold leading-tight text-text">{{ roundingLabel(company.payoutRounding) }}</span>
+              </div>
 
+              <div class="flex w-14 shrink-0 items-center justify-end">
+                <button title="Editar" aria-label="Editar"
+                  class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary"
+                  @click="ctx.openEdit(company)">
+                  <PenIcon class="h-4 w-4" />
+                </button>
+                <button title="Eliminar" aria-label="Eliminar"
+                  class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-danger/10 hover:text-danger"
+                  @click="confirmDelete(company)">
+                  <TrashBin2Icon class="h-4 w-4" />
+                </button>
+              </div>
+            </div>
 
-          <div class="hidden text-right md:block">
-            <span class="block text-[10px] uppercase tracking-wider text-text-muted">Pago</span>
-            <span class="text-xs font-semibold text-text">{{ roundingLabel(company.payoutRounding) }}</span>
-          </div>
-
-          <div class="flex items-center gap-1">
-            <button title="Editar"
-              class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
-              @click="ctx.openEdit(company)">
-              <PenIcon class="h-4 w-4" />
-            </button>
-            <button title="Eliminar"
-              class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
-              @click="confirmDelete(company)">
-              <TrashBin2Icon class="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        <template v-if="expandedId === company.id">
-          <div class="flex gap-1 border-t border-border bg-bg-secondary/40 px-4 pt-3">
-            <button type="button"
-              class="rounded-t-lg px-3 py-1.5 text-xs font-semibold transition-theme"
-              :class="expandedTab === 'rates' ? 'bg-surface text-primary' : 'text-text-muted hover:text-text'"
-              @click="expandedTab = 'rates'">
-              Tarifas
-            </button>
-            <button type="button"
-              class="rounded-t-lg px-3 py-1.5 text-xs font-semibold transition-theme"
-              :class="expandedTab === 'personal' ? 'bg-surface text-primary' : 'text-text-muted hover:text-text'"
-              @click="expandedTab = 'personal'">
-              Personal
-            </button>
-            <button type="button"
-              class="rounded-t-lg px-3 py-1.5 text-xs font-semibold transition-theme"
-              :class="expandedTab === 'billing' ? 'bg-surface text-primary' : 'text-text-muted hover:text-text'"
-              @click="expandedTab = 'billing'">
-              Facturación
-            </button>
-            <button type="button"
-              class="rounded-t-lg px-3 py-1.5 text-xs font-semibold transition-theme"
-              :class="expandedTab === 'projects' ? 'bg-surface text-primary' : 'text-text-muted hover:text-text'"
-              @click="expandedTab = 'projects'">
-              Proyectos
-            </button>
-          </div>
-          <RateCardEditor v-if="expandedTab === 'rates'" :business-id="businessId" :company-id="company.id" />
-          <StaffingWorkersPanel v-else-if="expandedTab === 'personal'" :business-id="businessId" :company-id="company.id" />
-          <BillingPanel v-else-if="expandedTab === 'billing'" :business-id="businessId" :company-id="company.id" />
-          <StaffingProjectsPanel v-else :company-id="company.id" />
-        </template>
-      </div>
-      </div>
-    </template>
+            <template v-if="expandedId === company.id">
+              <div class="scroll-thin flex gap-1 overflow-x-auto overflow-y-hidden border-t border-border-subtle bg-bg-secondary/30 px-2 sm:px-3" role="tablist" aria-label="Detalle de la empresa">
+                <button v-for="tab in EXPANDED_TABS" :key="tab.value" type="button" role="tab" :aria-selected="expandedTab === tab.value"
+                  class="relative shrink-0 whitespace-nowrap px-3 py-2.5 text-sm font-medium transition-colors"
+                  :class="expandedTab === tab.value ? 'text-primary' : 'text-text-secondary hover:text-text'"
+                  @click="expandedTab = tab.value">
+                  {{ tab.label }}
+                  <span v-if="expandedTab === tab.value" class="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary" />
+                </button>
+              </div>
+              <RateCardEditor v-if="expandedTab === 'rates'" :business-id="businessId" :company-id="company.id" />
+              <StaffingWorkersPanel v-else-if="expandedTab === 'personal'" :business-id="businessId" :company-id="company.id" />
+              <BillingPanel v-else-if="expandedTab === 'billing'" :business-id="businessId" :company-id="company.id" />
+              <StaffingProjectsPanel v-else :company-id="company.id" />
+            </template>
+          </li>
+        </ul>
+      </template>
+    </div>
 
     <Teleport to="body">
       <div v-if="ctx.showModal.value" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6"
@@ -410,7 +398,7 @@ import BillingPanel from '../components/staffing/BillingPanel.vue'
 import StaffingWorkersPanel from '../components/staffing/StaffingWorkersPanel.vue'
 import HeadcountMatrix from '../components/staffing/HeadcountMatrix.vue'
 import { SHIFT_OPTIONS, type StaffingCompanyRow, type StaffingCompanyStatus } from '../services/staffing/staffingService'
-import { BuildingsIcon, AddCircleIcon, PenIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
+import { BuildingsIcon, AddCircleIcon, PenIcon, TrashBin2Icon, MagnifierIcon } from '@solar-icons/vue/linear'
 
 const inputClass =
   'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30'
@@ -433,10 +421,10 @@ const STATUS_FORM_OPTIONS = [
   { value: 'on_hold', label: 'En descanso (pausa temporal)' },
 ]
 
-const STATUS_BADGE_CLASS: Record<StaffingCompanyStatus, string> = {
-  active: 'bg-success/10 text-success',
-  inactive: 'bg-danger/10 text-danger',
-  on_hold: 'bg-warning/10 text-warning',
+const STATUS_TEXT_CLASS: Record<StaffingCompanyStatus, string> = {
+  active: 'text-success',
+  inactive: 'text-danger',
+  on_hold: 'text-warning',
 }
 
 const activeStatusTab = ref<StaffingCompanyStatus>('active')
@@ -525,7 +513,13 @@ const filteredCompanies = computed(() => {
 const showMatrix = ref(false)
 
 const expandedId = ref<string | null>(null)
-const expandedTab = ref<'rates' | 'personal' | 'billing'>('rates')
+const expandedTab = ref<'rates' | 'personal' | 'billing' | 'projects'>('rates')
+const EXPANDED_TABS = [
+  { value: 'rates', label: 'Tarifas' },
+  { value: 'personal', label: 'Personal' },
+  { value: 'billing', label: 'Facturación' },
+  { value: 'projects', label: 'Proyectos' },
+] as const
 const toggle = (id: string) => {
   expandedId.value = expandedId.value === id ? null : id
   expandedTab.value = 'rates'

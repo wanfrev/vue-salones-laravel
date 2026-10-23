@@ -1,80 +1,90 @@
 <template>
   <FeatureGate :gate="{ capability: 'staffing.reports' }">
-    <header class="mb-5 lg:mb-8">
-      <div class="flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
-          <DocumentIcon class="h-3.5 w-3.5" />
-          <span>Taxes</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <button type="button"
-            class="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover"
-            @click="openAddInfo">
-            + Agregar información
+    <header class="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex min-w-0 items-center gap-2">
+        <DocumentIcon class="h-4 w-4 shrink-0 text-primary" />
+        <h1 class="truncate text-xl font-bold tracking-tight text-text sm:text-2xl">Taxes</h1>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <button type="button"
+          class="rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
+          @click="openAddInfo">
+          + Agregar información
+        </button>
+        <button type="button"
+          class="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-semibold text-text transition-theme hover:bg-bg-secondary"
+          @click="showEntities = !showEntities">
+          {{ showEntities ? 'Ocultar entidades' : 'Gestionar entidades' }}
+        </button>
+        <div class="flex items-center gap-1">
+          <button type="button" title="Año anterior" aria-label="Año anterior"
+            class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary"
+            @click="year -= 1">
+            <ArrowLeftIcon class="h-4 w-4" />
           </button>
-          <button type="button"
-            class="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
-            @click="showEntities = !showEntities">
-            {{ showEntities ? 'Ocultar entidades' : 'Gestionar entidades' }}
+          <span class="min-w-[3.5rem] text-center text-sm font-semibold tabular-nums text-text">{{ year }}</span>
+          <button type="button" title="Año siguiente" aria-label="Año siguiente"
+            class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary"
+            @click="year += 1">
+            <ArrowRightIcon class="h-4 w-4" />
           </button>
-          <div class="flex items-center gap-1">
-            <button type="button" title="Año anterior"
-              class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
-              @click="year -= 1">
-              <ArrowLeftIcon class="h-4 w-4" />
-            </button>
-            <span class="min-w-[3.5rem] text-center text-sm font-semibold tabular-nums text-text">{{ year }}</span>
-            <button type="button" title="Año siguiente"
-              class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
-              @click="year += 1">
-              <ArrowRightIcon class="h-4 w-4" />
-            </button>
-          </div>
         </div>
       </div>
     </header>
 
-    <div v-if="showEntities" class="mb-5 rounded-xl border border-border bg-surface p-4">
-      <p class="mb-1 text-sm font-semibold text-text">Entidades de tax</p>
-      <p class="mb-3 text-xs text-text-muted">
-        Las columnas $ de la tabla — agrega o quita según lo que el negocio necesite reportar.
-      </p>
+    <div class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+      <div v-if="showEntities" class="border-b border-border-subtle px-3 py-3 sm:px-4">
+        <p class="mb-1 text-sm font-semibold text-text">Entidades de tax</p>
+        <p class="mb-3 text-xs text-text-muted">
+          Las columnas $ de la tabla — agrega o quita según lo que el negocio necesite reportar.
+        </p>
 
-      <div v-if="entitiesCtx.entities.value.length" class="mb-3 flex flex-wrap gap-2">
-        <span v-for="entity in entitiesCtx.entities.value" :key="entity.id"
-          class="flex items-center gap-1.5 rounded-full border border-border bg-bg-secondary px-3 py-1 text-xs font-medium text-text">
-          {{ entity.name }}
-          <button type="button" title="Eliminar" class="text-text-muted hover:text-danger" @click="removeEntity(entity.id)">
-            <CloseCircleIcon class="h-3.5 w-3.5" />
-          </button>
-        </span>
-      </div>
-      <p v-else class="mb-3 text-xs text-text-muted">Sin entidades todavía.</p>
-
-      <form class="flex flex-wrap items-end gap-2" @submit.prevent="submitNewEntity">
-        <div class="min-w-[200px] flex-1">
-          <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" for="new-entity-name">Nombre</label>
-          <input id="new-entity-name" v-model="newEntityName" type="text" required placeholder="Ej: COSMOS"
-            class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+        <div v-if="entitiesCtx.entities.value.length" class="mb-3 flex flex-wrap gap-2">
+          <span v-for="entity in entitiesCtx.entities.value" :key="entity.id"
+            class="flex items-center gap-1.5 rounded-full border border-border bg-bg-secondary px-3 py-1 text-xs font-medium text-text">
+            {{ entity.name }}
+            <button type="button" title="Eliminar" aria-label="Eliminar" class="text-text-muted hover:text-danger" @click="removeEntity(entity.id)">
+              <CloseCircleIcon class="h-3.5 w-3.5" />
+            </button>
+          </span>
         </div>
-        <button type="submit" :disabled="entitiesCtx.isSaving.value"
-          class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">
-          Agregar
-        </button>
-      </form>
-    </div>
+        <p v-else class="mb-3 text-xs text-text-muted">Sin entidades todavía.</p>
 
-    <div v-if="report.isLoading.value" class="py-16 text-center text-sm text-text-muted">Cargando...</div>
+        <form class="flex flex-wrap items-end gap-2" @submit.prevent="submitNewEntity">
+          <div class="min-w-[200px] flex-1">
+            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-text-muted" for="new-entity-name">Nombre</label>
+            <input id="new-entity-name" v-model="newEntityName" type="text" required placeholder="Ej: COSMOS"
+              class="w-full rounded-xl border border-border bg-bg-secondary/40 px-3 py-2.5 text-sm text-text outline-none transition-colors placeholder:text-text-muted focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/15" />
+          </div>
+          <button type="submit" :disabled="entitiesCtx.isSaving.value"
+            class="rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">
+            Agregar
+          </button>
+        </form>
+      </div>
 
-    <p v-else-if="report.employees.value.length === 0" class="py-16 text-center text-sm text-text-muted">
-      Aún no hay información de impuestos para {{ year }}. Usa "+ Agregar información" para empezar.
-    </p>
+      <div v-if="report.isLoading.value" class="divide-y divide-border-subtle" aria-busy="true">
+        <p class="sr-only">Cargando...</p>
+        <div v-for="n in 4" :key="n" class="flex items-center gap-4 px-3 py-3.5 sm:px-4">
+          <span class="h-3 w-32 animate-pulse rounded bg-bg-secondary" />
+          <span class="h-3 flex-1 animate-pulse rounded bg-bg-secondary" />
+          <span class="h-3 w-20 animate-pulse rounded bg-bg-secondary" />
+        </div>
+      </div>
 
-    <div v-else class="overflow-hidden rounded-xl border border-border bg-surface">
-      <div class="overflow-x-auto">
+      <div v-else-if="report.employees.value.length === 0" class="flex flex-col items-center justify-center px-4 py-14 text-center">
+        <div class="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-bg-secondary">
+          <DocumentIcon class="h-7 w-7 text-text-muted" />
+        </div>
+        <p class="max-w-md text-sm text-text-muted">
+          Aún no hay información de impuestos para {{ year }}. Usa "+ Agregar información" para empezar.
+        </p>
+      </div>
+
+      <div v-else class="scroll-thin overflow-x-auto overflow-y-hidden">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-border bg-bg-secondary text-left text-[10px] uppercase tracking-wider text-text-muted">
+            <tr class="border-b border-border-subtle bg-bg-secondary/30 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">
               <th class="sticky left-0 z-10 bg-bg-secondary px-3 py-2.5">Nombre</th>
               <th class="px-3 py-2.5">Estado</th>
               <th class="px-3 py-2.5">Compañía</th>
@@ -88,7 +98,7 @@
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-border">
+          <tbody class="divide-y divide-border-subtle">
             <tr v-for="employee in report.employees.value" :key="employee.employeeId" class="hover:bg-bg-secondary/30 transition-theme group">
               <td class="sticky left-0 z-10 whitespace-nowrap bg-surface group-hover:bg-bg-secondary/30 transition-theme px-3 py-2.5 font-medium text-text">
                 {{ employee.name }}
@@ -105,7 +115,7 @@
                 </select>
               </td>
               <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary cursor-pointer hover:bg-bg-secondary transition-theme" title="Editar" @click="openEditProfile(employee)">
-                <span v-if="employee.companyName" class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                <span v-if="employee.companyName" class="text-xs font-semibold text-primary">
                   {{ employee.companyName }}
                 </span>
                 <span v-else>—</span>
@@ -437,9 +447,9 @@ const { data: allEmployees } = useQuery({
 
 const statusColors: Record<StaffingAnnualTaxStatus, string> = {
   BLANK: 'bg-bg-secondary text-text-muted',
-  SENT_TO_EMPLOYEE: 'bg-success text-white',
-  SENT_TO_ACCOUNTANT: 'bg-warning text-white',
-  PENDING_TO_SEND: 'bg-danger text-white'
+  SENT_TO_EMPLOYEE: 'bg-success/10 text-success',
+  SENT_TO_ACCOUNTANT: 'bg-warning/10 text-warning',
+  PENDING_TO_SEND: 'bg-danger/10 text-danger'
 }
 
 const updateStatus = async (employee: StaffingAnnualTaxEmployeeRow, event: Event) => {

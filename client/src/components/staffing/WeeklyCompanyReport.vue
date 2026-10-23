@@ -1,21 +1,24 @@
 <template>
-  <div class="rounded-xl border border-border bg-surface p-3">
+  <div class="p-3 sm:p-4">
     <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
       <p class="text-sm font-semibold text-text">Resultados semanales</p>
       <div class="flex flex-wrap items-center gap-2">
         <div class="relative">
-          <MagnifierIcon class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
+          <MagnifierIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
           <input v-model="search" type="text" placeholder="Buscar empresa o proyecto..."
-            class="w-44 rounded-lg border border-border bg-surface py-1.5 pl-8 pr-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-56" />
+            class="w-44 rounded-xl border border-border bg-bg-secondary/40 py-2 pl-9 pr-3 text-sm text-text outline-none transition-colors placeholder:text-text-muted focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/15 sm:w-56" />
         </div>
-        <label class="text-xs font-semibold uppercase tracking-wider text-text-muted" for="weekly-report-week">Semana desde</label>
+        <label class="text-[11px] font-bold uppercase tracking-wider text-text-muted" for="weekly-report-week">Semana desde</label>
         <input id="weekly-report-week" v-model="weekStart" type="date"
-          class="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-text" />
+          class="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
         <span class="text-xs text-text-muted">{{ weekStart ? formatDateUS(weekStart) : '—' }}</span>
       </div>
     </div>
 
-    <div v-if="report.isLoading.value" class="py-8 text-center text-sm text-text-muted">Cargando...</div>
+    <div v-if="report.isLoading.value" class="divide-y divide-border-subtle" aria-busy="true">
+      <p class="sr-only">Cargando...</p>
+      <div v-for="n in 4" :key="n" class="flex items-center gap-4 px-3 py-3"><span class="h-3 w-32 animate-pulse rounded bg-bg-secondary" /><span class="h-3 flex-1 animate-pulse rounded bg-bg-secondary" /><span class="h-3 w-20 animate-pulse rounded bg-bg-secondary" /></div>
+    </div>
 
     <p v-else-if="report.rows.value.length === 0" class="py-8 text-center text-sm text-text-muted">
       Sin empresas registradas.
@@ -28,7 +31,7 @@
     <div v-else class="overflow-x-auto">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-border text-left text-[10px] uppercase tracking-wider text-text-muted">
+          <tr class="border-b border-border-subtle bg-bg-secondary/30 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">
             <th class="px-3 py-2">Estado</th>
             <th class="px-3 py-2">Empresa</th>
             <th class="px-3 py-2">Proyecto</th>
@@ -41,7 +44,7 @@
             <th class="px-3 py-2 text-right"># Empleados</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-border">
+        <tbody class="divide-y divide-border-subtle">
           <tr v-for="row in filteredRows" :key="row.companyId">
             <td class="px-3 py-2">
               <select

@@ -1,22 +1,25 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-4 p-3 sm:p-4">
     <div class="flex flex-wrap items-end gap-3">
       <div>
-        <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" for="prof-start">Desde</label>
-        <input id="prof-start" v-model="periodStart" type="date" class="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-text" />
+        <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-text-muted" for="prof-start">Desde</label>
+        <input id="prof-start" v-model="periodStart" type="date" class="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
       </div>
       <div>
-        <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" for="prof-end">Hasta</label>
-        <input id="prof-end" v-model="periodEnd" type="date" class="rounded-lg border border-border bg-surface px-2 py-1.5 text-sm text-text" />
+        <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-text-muted" for="prof-end">Hasta</label>
+        <input id="prof-end" v-model="periodEnd" type="date" class="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/15" />
       </div>
-      <div class="flex gap-1">
+      <div class="inline-flex divide-x divide-border overflow-hidden rounded-xl border border-border text-xs font-medium">
         <button v-for="p in PRESETS" :key="p.label" type="button"
-          class="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
+          class="px-3 py-2 text-text-secondary transition-colors hover:bg-bg-secondary hover:text-text"
           @click="applyPreset(p.days)">{{ p.label }}</button>
       </div>
     </div>
 
-    <div v-if="isLoading" class="py-8 text-center text-sm text-text-muted">Cargando...</div>
+    <div v-if="isLoading" class="divide-y divide-border-subtle" aria-busy="true">
+      <p class="sr-only">Cargando...</p>
+      <div v-for="n in 4" :key="n" class="flex items-center gap-4 px-3 py-3"><span class="h-3 w-32 animate-pulse rounded bg-bg-secondary" /><span class="h-3 flex-1 animate-pulse rounded bg-bg-secondary" /><span class="h-3 w-20 animate-pulse rounded bg-bg-secondary" /></div>
+    </div>
     <p v-else-if="isError" class="py-8 text-center text-sm text-danger">No se pudo cargar el reporte (el rango máximo es de un año).</p>
 
     <template v-else-if="report">
@@ -25,31 +28,31 @@
       </p>
 
       <template v-else>
-        <div v-if="report.totals" class="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          <div class="rounded-lg border border-border bg-surface px-3 py-2.5">
-            <p class="text-[10px] uppercase tracking-wider text-text-muted">Facturado</p>
-            <p class="text-sm font-bold tabular-nums text-text">{{ formatUSD(report.totals.revenue) }}</p>
+        <div v-if="report.totals" class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border-subtle bg-border-subtle sm:grid-cols-4">
+          <div class="bg-surface px-3 py-2.5">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Facturado</p>
+            <p class="text-base font-bold tabular-nums text-text">{{ formatUSD(report.totals.revenue) }}</p>
           </div>
-          <div class="rounded-lg border border-border bg-surface px-3 py-2.5">
-            <p class="text-[10px] uppercase tracking-wider text-text-muted">Costo</p>
-            <p class="text-sm font-bold tabular-nums text-text">{{ formatUSD(report.totals.cost) }}</p>
+          <div class="bg-surface px-3 py-2.5">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Costo</p>
+            <p class="text-base font-bold tabular-nums text-text">{{ formatUSD(report.totals.cost) }}</p>
           </div>
-          <div class="rounded-lg border border-border bg-surface px-3 py-2.5">
-            <p class="text-[10px] uppercase tracking-wider text-text-muted">Margen</p>
-            <p class="text-sm font-bold tabular-nums text-success">{{ formatUSD(report.totals.margin) }}</p>
+          <div class="bg-surface px-3 py-2.5">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Margen</p>
+            <p class="text-base font-bold tabular-nums text-success">{{ formatUSD(report.totals.margin) }}</p>
           </div>
-          <div class="rounded-lg border border-border bg-surface px-3 py-2.5">
-            <p class="text-[10px] uppercase tracking-wider text-text-muted">Margen %</p>
-            <p class="text-sm font-bold tabular-nums text-text">{{ pct(report.totals.marginPct) }}</p>
+          <div class="bg-surface px-3 py-2.5">
+            <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Margen %</p>
+            <p class="text-base font-bold tabular-nums text-text">{{ pct(report.totals.marginPct) }}</p>
           </div>
         </div>
 
         <section v-for="block in blocks" :key="block.title">
           <h3 class="mb-2 text-sm font-semibold text-text">{{ block.title }}</h3>
-          <div class="overflow-x-auto rounded-xl border border-border bg-surface">
+          <div class="scroll-thin overflow-x-auto overflow-y-hidden rounded-xl border border-border-subtle">
             <table class="w-full text-sm">
               <thead>
-                <tr class="border-b border-border bg-bg-secondary text-left text-[10px] uppercase tracking-wider text-text-muted">
+                <tr class="border-b border-border-subtle bg-bg-secondary/30 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">
                   <th class="px-3 py-2.5">{{ block.header }}</th>
                   <th class="px-3 py-2.5 text-right">Horas</th>
                   <th class="px-3 py-2.5 text-right">Facturado</th>
@@ -59,7 +62,7 @@
                   <th class="px-3 py-2.5 text-right">Margen / hora</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-border">
+              <tbody class="divide-y divide-border-subtle">
                 <tr v-for="row in block.rows" :key="row.label">
                   <td class="px-3 py-2 font-medium text-text">{{ row.label }}</td>
                   <td class="px-3 py-2 text-right tabular-nums text-text-secondary">{{ row.hours.toFixed(2) }}</td>
