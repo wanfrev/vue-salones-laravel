@@ -27,6 +27,7 @@
       :clients="paginatedData"
       :third-column="isPatientNiche ? 'identity' : 'spend'"
       :can-edit="canEditClients"
+      :open-label="isPatientNiche ? 'Abrir expediente' : 'Ver historial'"
       :empty-text="emptyText"
       @open="openClient"
       @edit="clienteModalRef?.open($event)"
@@ -61,6 +62,7 @@ import { useRouter } from 'vue-router'
 import { useCrud } from '../composables/empleados/useCrud'
 import { useClientFilters } from '../composables/common/useClientFilters'
 import { useAuth } from '../composables/common/useAuth'
+import { useNotification } from '../composables/common/useNotification'
 import { useBusinessStore } from '../store/business'
 import { isPatientNiche as checkPatientNiche } from '../config/niches'
 import { clientesKeys, deleteCliente, listClientes, saveCliente } from '../services/clientesService'
@@ -75,6 +77,7 @@ import { AddCircleIcon } from '@solar-icons/vue/linear'
 import type { Cliente, ClienteFormData } from '../types/cliente'
 
 const router = useRouter()
+const { info } = useNotification()
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
 
@@ -138,6 +141,7 @@ const emptyText = computed(() =>
 
 const openClient = (cliente: Cliente) => {
   router.push(`/admin/clientes/${cliente.id}`)
+  info(`Mostrando historial de ${cliente.name}`)
 }
 
 const handleWhatsApp = (cliente: Cliente) => {

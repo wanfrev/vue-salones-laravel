@@ -1,7 +1,7 @@
 <template>
   <div v-if="clients.length === 0" class="px-4 py-16 text-center text-sm text-text-muted">{{ emptyText }}</div>
 
-  <div v-else :style="{ '--actions-w': clinicalActions ? '17.5rem' : '8.5rem' }">
+  <div v-else :style="{ '--actions-w': actionsWidth }">
     <!-- Encabezado de columnas (solo escritorio). La rejilla es la misma que la de las filas. -->
     <div :class="[gridClass, 'hidden border-b border-border-subtle bg-bg-secondary/30 px-4 py-2 lg:grid']">
       <span :class="headClass">{{ terminology.client || 'Cliente' }}</span>
@@ -15,7 +15,7 @@
       <li
         v-for="client in clients"
         :key="client.id"
-        v-memo="[client.id, client.name, client.phone, client.email, client.lastVisit, client.totalAppointments, client.totalSpent, canEdit, hidePhone, clinicalActions, hasAttachments]"
+        v-memo="[client.id, client.name, client.phone, client.email, client.lastVisit, client.totalAppointments, client.totalSpent, canEdit, hidePhone, clinicalActions, hasAttachments, openLabel]"
         data-testid="client-row"
         tabindex="0"
         :class="[gridClass, 'group relative cursor-pointer px-4 py-3 outline-none transition-colors hover:bg-primary/5 focus-visible:bg-primary/5']"
@@ -23,7 +23,7 @@
         @keydown.enter.self="emit('open', client)"
       >
         <!-- Cliente. En móvil, deja sitio a la derecha para los iconos de acción (si no hay botones de texto). -->
-        <div :class="['flex min-w-0 items-center gap-3 lg:pr-0', clinicalActions ? '' : 'pr-[4.75rem]']">
+        <div :class="['flex min-w-0 items-center gap-3 lg:pr-0', textButtons ? '' : 'pr-[4.75rem]']">
           <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
             {{ getInitials(client.name) }}
           </span>
@@ -67,10 +67,17 @@
              bajo los datos); en escritorio, última columna. -->
         <div
           :class="[
-            'flex flex-wrap items-center gap-1.5 lg:static lg:mt-0 lg:justify-end lg:pl-0',
-            clinicalActions ? 'mt-2 pl-12' : 'absolute right-2 top-2',
+            'flex flex-wrap items-center gap-1.5 lg:static lg:mt-0 lg:flex-nowrap lg:pl-0',
+            openLabel ? 'lg:justify-start' : 'lg:justify-end',
+            textButtons ? 'mt-2 pl-12' : 'absolute right-2 top-2',
           ]"
         >
+          <button
+            v-if="openLabel"
+            type="button"
+            class="whitespace-nowrap rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/15"
+            @click.stop="emit('open', client)"
+          >{{ openLabel }}</button>
           <template v-if="clinicalActions">
             <button
               type="button"
@@ -106,7 +113,7 @@
           >
             <PenIcon class="h-4 w-4" />
           </button>
-          <ArrowRightIcon class="ml-1 hidden h-4 w-4 text-text-muted transition-colors group-hover:text-primary lg:block" aria-hidden="true" />
+          <ArrowRightIcon v-if="!openLabel" class="ml-1 hidden h-4 w-4 text-text-muted transition-colors group-hover:text-primary lg:block" aria-hidden="true" />
         </div>
       </li>
     </ul>
@@ -130,8 +137,10 @@ const props = withDefaults(defineProps<{
   /** Botones «Expediente» y «Archivos» (psicología, con permiso de expediente). */
   clinicalActions?: boolean
   hasAttachments?: boolean
+  /** Botón de texto que abre al cliente («Ver historial» / «Abrir expediente»); sin él solo abre el clic en la fila. */
+  openLabel?: string
   emptyText: string
-}>(), { thirdColumn: 'spend', canEdit: false, hidePhone: false, clinicalActions: false, hasAttachments: false })
+}>(), { thirdColumn: 'spend', canEdit: false, hidePhone: false, clinicalActions: false, hasAttachments: false, openLabel: '' })
 
 const emit = defineEmits<{
   open: [client: Cliente]
@@ -143,6 +152,9 @@ const emit = defineEmits<{
 const businessStore = useBusinessStore()
 const terminology = computed(() => businessStore.terminology)
 const singular = computed(() => (terminology.value.client || 'cliente').toLowerCase())
+// Con botones de texto (Ver historial / Expediente / Archivos) las acciones van en su propia línea en móvil.
+const textButtons = computed(() => props.clinicalActions || !!props.openLabel)
+const actionsWidth = computed(() => (props.clinicalActions ? '17.5rem' : props.openLabel ? '13.5rem' : '8.5rem'))
 const visitsPlural = computed(() => (terminology.value.appointmentPlural || 'citas').toLowerCase())
 
 // Columnas: cliente · contacto · última visita · gasto/identificación · acciones.

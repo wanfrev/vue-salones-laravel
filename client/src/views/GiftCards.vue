@@ -1,105 +1,107 @@
 <template>
   <FeatureGate feature="gift_cards">
-  <header class="mb-5 lg:mb-8">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
-        <TicketIcon class="h-3.5 w-3.5" />
-        <span>Gift Cards</span>
-      </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <div class="flex rounded-lg border border-border bg-bg-secondary p-1">
-          <button @click="activeTab = 'active'" :class="['rounded-md px-3 py-1.5 text-sm font-medium transition-colors', activeTab === 'active' ? 'bg-surface text-primary shadow-sm' : 'text-text-muted hover:text-text']">
-            Activas ({{ ctx.activeGiftCards.value.length }})
-          </button>
-          <button @click="activeTab = 'used'" :class="['rounded-md px-3 py-1.5 text-sm font-medium transition-colors', activeTab === 'used' ? 'bg-surface text-primary shadow-sm' : 'text-text-muted hover:text-text']">
-            Historial ({{ ctx.usedGiftCards.value.length }})
-          </button>
-        </div>
-
-        <button
-          @click="ctx.openNew()"
-          class="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover"
-        >
-          <AddCircleIcon class="h-4 w-4" />
-          <span>Nueva Gift Card</span>
-        </button>
-      </div>
+  <header class="mb-4 flex items-center justify-between gap-3">
+    <div class="flex min-w-0 items-center gap-2">
+      <TicketIcon class="h-4 w-4 shrink-0 text-primary" />
+      <h1 class="truncate text-xl font-bold tracking-tight text-text sm:text-2xl">Gift Cards</h1>
     </div>
+    <button
+      @click="ctx.openNew()"
+      class="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover"
+    >
+      <AddCircleIcon class="h-4 w-4" />
+      <span>Nueva Gift Card</span>
+    </button>
   </header>
 
-  <div v-if="ctx.isLoading.value" class="flex items-center justify-center py-16">
-    <svg class="h-7 w-7 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
-      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-    </svg>
-  </div>
-
-  <div v-else-if="currentGiftCards.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
-    <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-secondary mb-4">
-      <TicketIcon class="h-7 w-7 text-text-muted" />
+  <section class="mb-5 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+    <div class="scroll-thin flex gap-1 overflow-x-auto overflow-y-hidden border-b border-border-subtle px-2 sm:px-3" role="tablist" aria-label="Gift cards">
+      <button
+        v-for="t in tabs"
+        :key="t.value"
+        type="button"
+        role="tab"
+        :aria-selected="activeTab === t.value"
+        class="relative shrink-0 whitespace-nowrap px-3 py-2.5 text-sm font-medium transition-colors"
+        :class="activeTab === t.value ? 'text-primary' : 'text-text-secondary hover:text-text'"
+        @click="activeTab = t.value"
+      >
+        {{ t.label }} ({{ t.count }})
+        <span v-if="activeTab === t.value" class="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary" />
+      </button>
     </div>
-    <p class="text-lg font-semibold text-text">No hay gift cards {{ activeTab === 'active' ? 'activas' : 'en el historial' }}</p>
-    <p class="mt-1 text-sm text-text-muted">{{ activeTab === 'active' ? 'Registra tu primera gift card para empezar.' : 'Las gift cards consumidas o expiradas aparecerán aquí.' }}</p>
-  </div>
 
-  <div v-else class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    <div
-      v-for="gc in currentGiftCards"
-      :key="gc.id"
-      class="relative flex flex-col justify-between rounded-2xl border border-border bg-surface p-5 shadow-sm transition-all hover:border-primary/40 hover:shadow-md"
-    >
-      <div>
-        <div class="flex items-center justify-between gap-2 border-b border-border pb-3 mb-3">
-          <div class="flex items-center gap-2">
-            <span class="rounded-lg bg-primary/10 px-2.5 py-1 font-mono text-xs font-bold text-primary tracking-wider">
-              {{ gc.code || 'SIN CÓDIGO' }}
+    <div v-if="ctx.isLoading.value" class="overflow-hidden" aria-busy="true">
+      <div class="-mb-px -mr-px grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <div v-for="i in 3" :key="i" class="space-y-3 border-b border-r border-border-subtle p-4">
+          <div class="h-3 w-24 animate-pulse rounded bg-bg-secondary" />
+          <div class="h-3 w-40 animate-pulse rounded bg-bg-secondary" />
+          <div class="h-3 w-32 animate-pulse rounded bg-bg-secondary" />
+          <div class="h-5 w-20 animate-pulse rounded bg-bg-secondary" />
+        </div>
+      </div>
+    </div>
+
+    <div v-else-if="currentGiftCards.length === 0" class="flex flex-col items-center justify-center px-4 py-14 text-center">
+      <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-secondary">
+        <TicketIcon class="h-7 w-7 text-text-muted" />
+      </div>
+      <p class="mt-3 text-base font-semibold text-text">No hay gift cards {{ activeTab === 'active' ? 'activas' : 'en el historial' }}</p>
+      <p class="mt-1 text-sm text-text-muted">{{ activeTab === 'active' ? 'Registra tu primera gift card para empezar.' : 'Las gift cards consumidas o expiradas aparecerán aquí.' }}</p>
+    </div>
+
+    <!-- Cuadrícula de celdas separadas por líneas finas -->
+    <div v-else class="overflow-hidden">
+      <div class="-mb-px -mr-px grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+        <article
+          v-for="gc in currentGiftCards"
+          :key="gc.id"
+          data-testid="giftcard-cell"
+          class="flex flex-col gap-3 border-b border-r border-border-subtle p-4 transition-colors hover:bg-bg-secondary/40"
+        >
+          <div class="flex items-center justify-between gap-2">
+            <span class="truncate font-mono text-sm font-bold tracking-wider text-primary">{{ gc.code || 'SIN CÓDIGO' }}</span>
+            <span class="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold" :class="statusText(gc.status)">
+              <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
+              {{ gc.status === 'active' ? 'Activa' : gc.status === 'redeemed' ? 'Canjeada / Consumida' : 'Expirada' }}
             </span>
           </div>
-          <span :class="[
-            'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold',
-            gc.status === 'active' ? 'bg-success/10 text-success' : gc.status === 'redeemed' ? 'bg-primary/10 text-primary' : 'bg-warning/10 text-warning'
-          ]">
-            {{ gc.status === 'active' ? 'Activa' : gc.status === 'redeemed' ? 'Canjeada / Consumida' : 'Expirada' }}
-          </span>
-        </div>
 
-        <div class="space-y-2 mb-4">
-          <div class="rounded-xl bg-bg-secondary p-2.5">
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted mb-0.5">Comprador</p>
-            <p class="text-sm font-semibold text-text truncate">{{ gc.buyerName || '—' }}</p>
-            <p class="text-xs text-text-muted">{{ gc.buyerPhone || 'Sin teléfono' }}</p>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="min-w-0">
+              <p class="mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Comprador</p>
+              <p class="truncate text-sm font-semibold text-text">{{ gc.buyerName || '—' }}</p>
+              <p class="truncate text-xs text-text-muted">{{ gc.buyerPhone || 'Sin teléfono' }}</p>
+            </div>
+            <div class="min-w-0">
+              <p class="mb-0.5 text-[11px] font-semibold uppercase tracking-wider text-text-muted">Beneficiario (Recibe)</p>
+              <p class="truncate text-sm font-semibold text-text">{{ gc.recipientName }}</p>
+              <p class="truncate text-xs text-text-muted">{{ gc.recipientPhone || 'Sin teléfono' }}</p>
+            </div>
           </div>
 
-          <div class="rounded-xl bg-bg-secondary p-2.5">
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-text-muted mb-0.5">Beneficiario (Recibe)</p>
-            <p class="text-sm font-semibold text-text truncate">{{ gc.recipientName }}</p>
-            <p class="text-xs text-text-muted">{{ gc.recipientPhone || 'Sin teléfono' }}</p>
+          <p v-if="gc.notes" class="line-clamp-2 text-xs italic text-text-muted">"{{ gc.notes }}"</p>
+
+          <div class="mt-auto flex items-center justify-between gap-2 border-t border-border-subtle pt-3">
+            <div>
+              <p class="text-[11px] font-medium uppercase text-text-muted">Saldo Restante</p>
+              <div class="text-lg font-bold tabular-nums text-success">{{ formatUSD(gc.amount) }}</div>
+              <div class="text-xs tabular-nums text-text-muted">{{ formatVESInline(gc.amount) }} Bs</div>
+            </div>
+
+            <div class="flex items-center">
+              <button @click="ctx.openEdit(gc)" class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary" title="Editar" aria-label="Editar">
+                <PenIcon class="h-4 w-4" />
+              </button>
+              <button @click="ctx.handleDelete(gc.id)" class="rounded-lg p-2 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger" title="Eliminar" aria-label="Eliminar">
+                <TrashBin2Icon class="h-4 w-4" />
+              </button>
+            </div>
           </div>
-        </div>
-
-        <div v-if="gc.notes" class="text-xs text-text-muted mb-3 italic">
-          "{{ gc.notes }}"
-        </div>
-      </div>
-
-      <div class="pt-3 border-t border-border flex items-center justify-between">
-        <div>
-          <p class="text-[11px] font-medium text-text-muted uppercase">Saldo Restante</p>
-          <div class="text-lg font-bold text-success">{{ formatUSD(gc.amount) }}</div>
-          <div class="text-xs text-text-muted">{{ formatVESInline(gc.amount) }} Bs</div>
-        </div>
-
-        <div class="flex items-center gap-1">
-          <button @click="ctx.openEdit(gc)" class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary" title="Editar">
-            <PenIcon class="h-4 w-4" />
-          </button>
-          <button @click="ctx.handleDelete(gc.id)" class="rounded-lg p-2 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger" title="Eliminar">
-            <TrashBin2Icon class="h-4 w-4" />
-          </button>
-        </div>
+        </article>
       </div>
     </div>
-  </div>
+  </section>
 
   <Teleport to="body">
     <div v-if="ctx.showModal.value"
@@ -292,6 +294,14 @@ const ctx = useGiftCards(businessId)
 const { formatUSD, formatVESInline } = useCurrency()
 
 const activeTab = ref<'active' | 'used'>('active')
+
+const tabs = computed(() => [
+  { value: 'active' as const, label: 'Activas', count: ctx.activeGiftCards.value.length },
+  { value: 'used' as const, label: 'Historial', count: ctx.usedGiftCards.value.length },
+])
+
+// Mismo color de siempre por estado.
+const statusText = (status: string) => (status === 'active' ? 'text-success' : status === 'redeemed' ? 'text-primary' : 'text-warning')
 const currentGiftCards = computed(() => activeTab.value === 'active' ? ctx.activeGiftCards.value : ctx.usedGiftCards.value)
 
 const buyerSuggestions = ref<any[]>([])

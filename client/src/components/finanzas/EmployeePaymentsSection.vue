@@ -1,274 +1,170 @@
 <template>
-  <div class="rounded-xl border border-border bg-surface h-full flex flex-col">
-    <div class="mb-3 flex items-center justify-between gap-2 px-4 pt-4 sm:px-5 sm:pt-5 shrink-0">
-      <div class="flex items-center gap-2.5">
-        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10 text-success">
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-        </div>
-        <div>
-          <h3 class="text-sm font-semibold text-text">Pagos a Empleados</h3>
-          <p class="text-xs text-text-secondary">Servicios realizados y comisión aplicada</p>
-        </div>
+  <div class="@container flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+    <div class="flex shrink-0 items-center justify-between gap-2 border-b border-border-subtle px-4 py-3">
+      <div class="min-w-0">
+        <h3 class="text-sm font-semibold text-text">Pagos a Empleados</h3>
+        <p class="text-xs text-text-secondary">Servicios realizados y comisión aplicada</p>
       </div>
       <div class="flex items-center gap-2">
-        <button @click="openPaymentModal"
-          class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover">
+        <button @click="openPaymentModal" title="Registrar pago" aria-label="Registrar pago"
+          class="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-2 text-xs font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover">
           <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
           </svg>
-          <span class="hidden sm:inline">Registrar pago</span>
+          <span class="hidden @lg:inline">Registrar pago</span>
         </button>
-        <button @click="paymentsCtx.openConsumptionModal()"
-          class="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-warning transition-theme hover:bg-warning/10 hover:border-warning/30">
+        <button @click="paymentsCtx.openConsumptionModal()" title="Debitar consumo" aria-label="Debitar consumo"
+          class="flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-warning ring-1 ring-warning/30 transition-theme hover:bg-warning/10">
           <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M20 12H4" />
           </svg>
-          <span class="hidden sm:inline">Debitar consumo</span>
+          <span class="hidden @lg:inline">Debitar consumo</span>
         </button>
       </div>
     </div>
-    <div class="lg:hidden space-y-2 mb-3 px-4 sm:px-5">
-      <div v-for="payment in visibleEmployeePayments" :key="payment.id"
-        class="rounded-lg border border-border-subtle bg-bg-secondary p-3">
-        <div class="font-medium text-text text-sm mb-1">{{ payment.employee }}</div>
-        <div class="flex items-center justify-between mb-1">
-          <span class="text-xs text-text-muted">{{ payment.service }}</span>
-          <span class="text-xs text-text-secondary">{{ payment.percentage }}%</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <div>
-            <div class="font-medium text-text text-sm">{{ formatUSD(payment.earnings) }}</div>
-            <div class="text-xs text-text-muted">{{ formatEmployeeSecondary(payment.earnings) }}</div>
-            <span v-if="payment.tipAmount > 0"
-              class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">+${{
-                payment.tipAmount.toFixed(2) }} propina</span>
-          </div>
-          <div class="text-right">
-            <div class="text-text text-sm">{{ formatUSD(payment.amount) }}</div>
-            <div class="text-xs text-text-muted">{{ formatEmployeeSecondary(payment.amount) }}</div>
-          </div>
-        </div>
+
+    <!-- Servicios realizados y comisión -->
+    <div>
+      <div :class="[gServices, 'hidden border-b border-border-subtle bg-bg-secondary/30 px-4 py-2 @2xl:grid']">
+        <span :class="headClass">{{ terminology.employee || 'Empleado' }}</span>
+        <span :class="headClass">{{ terminology.service || 'Servicio' }}</span>
+        <span :class="[headClass, 'text-right']">Costo</span>
+        <span :class="[headClass, 'text-right']">% {{ terminology.employee || 'Empleado' }}</span>
+        <span :class="[headClass, 'text-right']">Comisión</span>
       </div>
+      <ul class="divide-y divide-border-subtle">
+        <li v-for="payment in visibleEmployeePayments" :key="payment.id" data-testid="earning-row"
+          :class="[gServices, 'px-4 py-3 text-sm transition-colors hover:bg-bg-secondary/40']">
+          <p class="font-medium text-text">{{ payment.employee }}</p>
+          <p class="flex items-center justify-between gap-2 text-text-secondary">
+            <span class="min-w-0 truncate text-xs @2xl:text-sm">{{ payment.service }}</span>
+            <span class="shrink-0 text-xs @2xl:hidden">{{ payment.percentage }}%</span>
+          </p>
+          <div class="mt-1 grid grid-cols-2 gap-3 @2xl:contents">
+            <div class="@2xl:text-right">
+              <p class="text-[10px] uppercase tracking-wider text-text-muted @2xl:hidden">Costo</p>
+              <div class="tabular-nums text-text">{{ formatUSD(payment.amount) }}</div>
+              <div class="text-xs tabular-nums text-text-muted">{{ formatEmployeeSecondary(payment.amount) }}</div>
+            </div>
+            <p class="hidden text-right text-text-secondary @2xl:block">{{ payment.percentage }}%</p>
+            <div class="text-right">
+              <p class="text-[10px] uppercase tracking-wider text-text-muted @2xl:hidden">Comisión</p>
+              <div class="font-semibold tabular-nums text-success">{{ formatUSD(payment.earnings) }}</div>
+              <div class="text-xs tabular-nums text-text-muted">{{ formatEmployeeSecondary(payment.earnings) }}</div>
+              <span v-if="payment.tipAmount > 0" class="mt-0.5 inline-block text-[10px] font-semibold text-primary">+${{
+                payment.tipAmount.toFixed(2) }} propina</span>
+            </div>
+          </div>
+        </li>
+      </ul>
     </div>
-    <div class="overflow-x-auto hidden lg:block px-4 sm:px-5 flex-1">
-      <table class="w-full">
-        <thead>
-          <tr class="border-b border-border-subtle">
-            <th class="pb-3 text-left text-xs font-semibold uppercase text-text-secondary">{{ terminology.employee ||
-              'Empleado' }}</th>
-            <th class="pb-3 text-left text-xs font-semibold uppercase text-text-secondary">{{ terminology.service ||
-              'Servicio' }}</th>
-            <th class="pb-3 text-right text-xs font-semibold uppercase text-text-secondary">Costo</th>
-            <th class="pb-3 text-right text-xs font-semibold uppercase text-text-secondary">% {{ terminology.employee ||
-              'Empleado' }}</th>
-            <th class="pb-3 text-right text-xs font-semibold uppercase text-text-secondary">Comisión</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-border-subtle">
-          <tr v-for="payment in visibleEmployeePayments" :key="payment.id"
-            class="text-sm transition-theme hover:bg-bg-secondary/50">
-            <td class="py-3 font-medium text-text">{{ payment.employee }}</td>
-            <td class="py-3 text-text-secondary">{{ payment.service }}</td>
-            <td class="py-3 text-right">
-              <div class="text-text">{{ formatUSD(payment.amount) }}</div>
-              <div class="text-xs text-text-muted">{{ formatEmployeeSecondary(payment.amount) }}</div>
-            </td>
-            <td class="py-3 text-right text-text-secondary">{{ payment.percentage }}%</td>
-            <td class="py-3 text-right">
-              <div class="font-semibold text-success">{{ formatUSD(payment.earnings) }}</div>
-              <div class="text-xs text-text-muted">{{ formatEmployeeSecondary(payment.earnings) }}</div>
-              <span v-if="payment.tipAmount > 0"
-                class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary mt-1">+${{
-                  payment.tipAmount.toFixed(2) }} propina</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div v-if="paymentsMade.length > 0" class="mt-4 border-t border-border-subtle px-4 sm:px-5 pt-4 shrink-0">
-      <div class="mb-3 flex items-center justify-between">
+
+    <!-- Pago de nómina -->
+    <div v-if="paymentsMade.length > 0" class="mt-2 shrink-0 border-t border-border-subtle">
+      <div class="flex items-center justify-between px-4 pb-1 pt-3">
         <h4 class="text-sm font-semibold text-text">Pago de nómina</h4>
         <span class="text-xs text-text-muted">{{ paymentsMade.length }} pago(s)</span>
       </div>
-      <div class="lg:hidden space-y-2 mb-3">
-        <div v-for="ep in visiblePaymentsMade" :key="ep.id"
-          class="rounded-lg border border-border-subtle bg-bg-secondary p-3">
-          <div class="flex items-start justify-between mb-1">
-            <div>
-              <div class="text-xs text-text-muted">{{ fmtDate(ep.paymentDate) }}</div>
-              <div class="font-medium text-text text-sm">{{ ep.employeeName }}</div>
-            </div>
-            <div class="flex items-center gap-1 shrink-0">
-              <span v-if="(ep as any).type === 'consumption'"
-                class="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-warning/10 text-warning">Consumo</span>
-              <span v-else class="text-xs text-text-muted">{{ formatMethod(ep.paymentMethod) }}</span>
-              <button @click="openEditPaymentModal(ep)"
-                class="rounded-md p-1 text-text-muted transition-theme hover:bg-primary/10 hover:text-primary"
-                title="Editar pago">
-                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-              </button>
-              <button @click="handleDeletePayment(ep.id)"
-                class="rounded-md p-1 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
-                title="Eliminar pago">
-                <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </div>
+      <div :class="[gPayroll, 'hidden border-y border-border-subtle bg-bg-secondary/30 px-4 py-2 @2xl:grid']">
+        <span :class="headClass">Fecha</span>
+        <span :class="headClass">{{ terminology.employee || 'Empleado' }}</span>
+        <span :class="headClass">Detalle</span>
+        <span :class="[headClass, 'text-right']">Monto</span>
+        <span :class="[headClass, 'text-center']">Acciones</span>
+      </div>
+      <ul class="divide-y divide-border-subtle">
+        <li v-for="ep in visiblePaymentsMade" :key="ep.id" data-testid="payroll-row"
+          :class="[gPayroll, 'relative px-4 py-3 text-sm transition-colors hover:bg-bg-secondary/40']">
+          <p class="whitespace-nowrap text-xs text-text-muted @2xl:text-sm @2xl:text-text-secondary">{{ fmtDate(ep.paymentDate) }}</p>
+          <p class="pr-16 font-medium text-text @2xl:pr-0">{{ ep.employeeName }}</p>
+          <div class="text-text-secondary">
+            <span v-if="(ep as any).type === 'consumption'" class="text-[11px] font-semibold text-warning">Consumo</span>
+            <span v-else class="text-xs">{{ formatMethod(ep.paymentMethod) }}</span>
+            <p v-if="(ep as any).concept" class="mt-0.5 max-w-[140px] truncate text-[10px] text-text-muted">{{ (ep as any).concept }}</p>
           </div>
-          <div class="flex items-center justify-between">
-            <span class="text-xs text-text-muted">Monto</span>
+          <div class="mt-1 flex items-start justify-between gap-3 @2xl:mt-0 @2xl:block @2xl:text-right">
+            <span class="text-xs text-text-muted @2xl:hidden">Monto</span>
             <div class="text-right">
-              <div class="font-medium text-danger text-sm">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) :
+              <div class="font-medium tabular-nums text-danger">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) :
                 formatUSD(ep.amount) }}</div>
-              <div class="text-xs text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) :
+              <div class="text-xs tabular-nums text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) :
                 formatEmployeeSecondary(ep.amount, ep.employeeVesRate ?? undefined) }}</div>
             </div>
           </div>
-        </div>
-      </div>
-      <div class="overflow-x-auto hidden lg:block">
-        <table class="w-full">
-          <thead>
-            <tr class="border-b border-border-subtle">
-              <th class="pb-2 text-left text-xs font-semibold uppercase text-text-secondary">Fecha</th>
-              <th class="pb-2 text-left text-xs font-semibold uppercase text-text-secondary">{{ terminology.employee ||
-                'Empleado' }}</th>
-              <th class="pb-2 text-left text-xs font-semibold uppercase text-text-secondary">Detalle</th>
-              <th class="pb-2 text-right text-xs font-semibold uppercase text-text-secondary">Monto</th>
-              <th class="pb-2 text-center text-xs font-semibold uppercase text-text-secondary w-10">Acciones</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border-subtle">
-            <tr v-for="ep in visiblePaymentsMade" :key="ep.id"
-              class="text-sm transition-theme hover:bg-bg-secondary/50">
-              <td class="py-2 text-text-secondary whitespace-nowrap">{{ fmtDate(ep.paymentDate) }}</td>
-              <td class="py-2 font-medium text-text">{{ ep.employeeName }}</td>
-              <td class="py-2 text-text-secondary">
-                <div class="flex items-center gap-1.5">
-                  <span v-if="(ep as any).type === 'consumption'"
-                    class="rounded px-1.5 py-0.5 text-[10px] font-semibold bg-warning/10 text-warning">Consumo</span>
-                  <span v-else class="text-xs">{{ formatMethod(ep.paymentMethod) }}</span>
-                </div>
-                <p v-if="(ep as any).concept" class="text-[10px] text-text-muted mt-0.5 max-w-[140px] truncate">{{ (ep as any).concept }}</p>
-              </td>
-              <td class="py-2 text-right">
-                <div class="font-medium text-danger">{{ ep.currency === 'VES' ? formatVESEs(ep.originalAmount) :
-                  formatUSD(ep.amount) }}</div>
-                <div class="text-xs text-text-muted">{{ ep.currency === 'VES' ? formatUSD(ep.amount) :
-                  formatEmployeeSecondary(ep.amount, ep.employeeVesRate ?? undefined) }}</div>
-              </td>
-              <td class="py-2 text-center">
-                <div class="flex items-center justify-center gap-1">
-                  <button @click="openEditPaymentModal(ep)"
-                    class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-primary/10 hover:text-primary"
-                    title="Editar pago">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button @click="handleDeletePayment(ep.id)"
-                    class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
-                    title="Eliminar pago">
-                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+          <div class="absolute right-2 top-2 flex items-center @2xl:static @2xl:justify-center">
+            <button @click="openEditPaymentModal(ep)"
+              class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-primary/10 hover:text-primary"
+              title="Editar pago" aria-label="Editar pago">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+            <button @click="handleDeletePayment(ep.id)"
+              class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+              title="Eliminar pago" aria-label="Eliminar pago">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </button>
+          </div>
+        </li>
+      </ul>
     </div>
 
-    <div v-if="employeeDebtSummary.length > 0" class="mt-4 border-t border-border-subtle px-4 sm:px-5 pt-4 shrink-0">
-      <h4 class="mb-3 text-sm font-semibold text-text">Deuda por {{ terminology.employee || 'empleado' }}</h4>
-      <div class="lg:hidden space-y-2">
-        <div v-for="row in employeeDebtSummary" :key="row.employeeId" class="rounded-lg border border-border-subtle bg-bg-secondary p-3">
-          <div class="mb-1.5 flex items-center justify-between">
-            <span class="font-medium text-text text-sm">{{ row.employeeName }}</span>
-            <span class="text-xs text-text-muted">
-              <span v-if="row.payType === 'salary'">Sueldo base</span>
-              <span v-else-if="row.payType === 'mixed'">Sueldo + {{ row.payPercentage }}%</span>
-              <span v-else-if="row.payType === 'percentage'">{{ row.payPercentage }}%</span>
-              <span v-else>—</span>
-            </span>
-          </div>
-          <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-            <span class="text-text-muted">Comisión</span><span class="text-right text-text">{{ formatUSD(row.commissionTotal) }}</span>
-            <span class="text-text-muted">Sueldo base</span><span class="text-right text-text">{{ formatUSD(row.baseSalary) }}</span>
-            <span class="text-text-muted">Total</span><span class="text-right font-semibold text-text">{{ formatUSD(row.totalEarned) }}</span>
-            <span class="text-text-muted">Pagado</span><span class="text-right text-danger">{{ formatUSD(row.totalPaid) }}</span>
-            <span class="text-text-muted">Consumo</span><span class="text-right text-warning">{{ formatUSD((row as any).totalConsumed ?? 0) }}</span>
-          </div>
-          <div class="mt-2 flex items-center justify-between border-t border-border-subtle pt-2">
-            <span class="text-xs font-medium text-text-secondary">Pendiente</span>
-            <span class="text-sm font-bold" :class="row.pendingBalance > 0 ? 'text-primary' : 'text-text-muted'">{{ formatUSD(row.pendingBalance) }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="hidden overflow-x-auto lg:block">
-        <table class="w-full">
-          <thead>
-            <tr class="border-b border-border-subtle">
-              <th class="pb-2 text-left text-xs font-semibold uppercase text-text-secondary">{{ terminology.employee ||
-                'Empleado' }}</th>
-              <th class="pb-2 text-left text-xs font-semibold uppercase text-text-secondary">Tipo</th>
-              <th class="pb-2 text-right text-xs font-semibold uppercase text-text-secondary">Comisión</th>
-              <th class="pb-2 text-right text-xs font-semibold uppercase text-text-secondary">Sueldo base</th>
-              <th class="pb-2 text-right text-xs font-semibold uppercase text-text-secondary">Total</th>
-              <th class="pb-2 text-right text-xs font-semibold uppercase text-text-secondary">Pagado</th>
-              <th class="pb-2 text-right text-xs font-semibold uppercase text-text-secondary">Consumo</th>
-              <th class="pb-2 text-right text-xs font-semibold uppercase text-text-secondary">Pendiente</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-border-subtle">
-            <tr v-for="row in employeeDebtSummary" :key="row.employeeId"
-              class="text-sm transition-theme hover:bg-bg-secondary/50">
-              <td class="py-2 font-medium text-text">{{ row.employeeName }}</td>
-              <td class="py-2 text-text-secondary text-xs">
+    <!-- Deuda por empleado -->
+    <div v-if="employeeDebtSummary.length > 0" class="mt-2 shrink-0 border-t border-border-subtle">
+      <h4 class="px-4 pb-2 pt-3 text-sm font-semibold text-text">Deuda por {{ terminology.employee || 'empleado' }}</h4>
+      <ul class="divide-y divide-border-subtle border-t border-border-subtle">
+        <li v-for="row in employeeDebtSummary" :key="row.employeeId" data-testid="debt-row" class="px-4 py-3 text-sm transition-colors hover:bg-bg-secondary/40">
+          <div class="mb-2 flex items-center justify-between gap-3">
+            <div class="min-w-0">
+              <span class="font-medium text-text">{{ row.employeeName }}</span>
+              <span class="ml-2 text-xs text-text-secondary">
                 <span v-if="row.payType === 'salary'">Sueldo base</span>
                 <span v-else-if="row.payType === 'mixed'">Sueldo + {{ row.payPercentage }}%</span>
                 <span v-else-if="row.payType === 'percentage'">{{ row.payPercentage }}%</span>
                 <span v-else>—</span>
-              </td>
-              <td class="py-2 text-right text-text">{{ formatUSD(row.commissionTotal) }}</td>
-              <td class="py-2 text-right text-text">{{ formatUSD(row.baseSalary) }}</td>
-              <td class="py-2 text-right font-semibold text-text">{{ formatUSD(row.totalEarned) }}</td>
-              <td class="py-2 text-right">
-                <div class="font-medium text-danger">{{ formatUSD(row.totalPaid) }}</div>
-                <div class="text-xs text-text-muted">{{ formatEmployeeSecondary(row.totalPaid) }}</div>
-              </td>
-              <td class="py-2 text-right">
-                <div class="font-medium text-warning">{{ formatUSD((row as any).totalConsumed ?? 0) }}</div>
-                <div class="text-xs text-text-muted">{{ formatEmployeeSecondary((row as any).totalConsumed ?? 0) }}
-                </div>
-              </td>
-              <td class="py-2 text-right">
-                <span class="font-bold" :class="row.pendingBalance > 0 ? 'text-primary' : 'text-text-muted'">
-                  {{ formatUSD(row.pendingBalance) }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+              </span>
+            </div>
+            <div class="shrink-0 text-right">
+              <span class="mr-1.5 text-[10px] uppercase tracking-wider text-text-muted">Pendiente</span>
+              <span class="font-bold tabular-nums" :class="row.pendingBalance > 0 ? 'text-primary' : 'text-text-muted'">{{ formatUSD(row.pendingBalance) }}</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-x-3 gap-y-2 text-xs @lg:grid-cols-5">
+            <div>
+              <p :class="miniLabel">Comisión</p>
+              <p class="tabular-nums text-text">{{ formatUSD(row.commissionTotal) }}</p>
+            </div>
+            <div>
+              <p :class="miniLabel">Sueldo base</p>
+              <p class="tabular-nums text-text">{{ formatUSD(row.baseSalary) }}</p>
+            </div>
+            <div>
+              <p :class="miniLabel">Total</p>
+              <p class="font-semibold tabular-nums text-text">{{ formatUSD(row.totalEarned) }}</p>
+            </div>
+            <div>
+              <p :class="miniLabel">Pagado</p>
+              <p class="font-medium tabular-nums text-danger">{{ formatUSD(row.totalPaid) }}</p>
+              <p class="tabular-nums text-text-muted">{{ formatEmployeeSecondary(row.totalPaid) }}</p>
+            </div>
+            <div>
+              <p :class="miniLabel">Consumo</p>
+              <p class="font-medium tabular-nums text-warning">{{ formatUSD((row as any).totalConsumed ?? 0) }}</p>
+              <p class="tabular-nums text-text-muted">{{ formatEmployeeSecondary((row as any).totalConsumed ?? 0) }}</p>
+            </div>
+          </div>
+        </li>
+      </ul>
     </div>
 
     <div v-if="canViewAllPayments"
-      class="mt-auto shrink-0 flex justify-center border-t border-border-subtle px-4 sm:px-5 py-3">
+      class="mt-auto flex shrink-0 justify-center border-t border-border-subtle px-4 py-3">
       <button type="button"
-        class="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-primary transition-theme hover:bg-bg-secondary"
+        class="rounded-lg px-3 py-1.5 text-xs font-semibold text-primary transition-theme hover:bg-primary/10"
         @click="emit('view-all')">
         Ver todos
       </button>
@@ -560,6 +456,12 @@ const toYmd = (d: Date) => {
 const nowDate = new Date()
 const earningsStartDate = ref(toYmd(new Date(nowDate.getFullYear(), nowDate.getMonth(), 1)))
 const earningsEndDate = ref(toYmd(nowDate))
+
+// La tarjeta ocupa media pantalla: las columnas aparecen según el ancho de la propia tarjeta (@2xl), no de la ventana.
+const headClass = 'text-[11px] font-bold uppercase tracking-wider text-text-muted'
+const miniLabel = 'text-[10px] uppercase tracking-wider text-text-muted'
+const gServices = '@2xl:grid @2xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.2fr)_6.5rem_4.5rem_7rem] @2xl:items-center @2xl:gap-3'
+const gPayroll = '@2xl:grid @2xl:grid-cols-[6rem_minmax(0,1fr)_minmax(0,1fr)_7.5rem_4.5rem] @2xl:items-center @2xl:gap-3'
 
 const visibleEmployeePayments = computed(() => props.employeePayments.slice(0, 5))
 const visiblePaymentsMade = computed(() => paymentsMade.value.slice(0, 5))

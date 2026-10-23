@@ -107,6 +107,9 @@ Un `<select>` nativo corto (3–6 opciones, ej. orden) puede quedarse nativo.
 - Truco **`lg:contents`**: en móvil un bloque de 3 datos en `grid grid-cols-3` con etiquetas pequeñas (`lg:hidden`); en escritorio el contenedor desaparece (`lg:contents`) y sus hijos pasan a ser columnas de la grid de la fila.
 - Densidad móvil objetivo: filas de ~80–165 px, no tarjetas de 140+ px.
 
+### 3.5b Tarjetas que ocupan media pantalla → container queries
+Si una tarjeta vive en una rejilla de 2 columnas (ej. Proveedores + Pagos a Empleados), los breakpoints de ventana (`md:`, `lg:`) mienten: la tarjeta es mucho más angosta que la ventana. Poner `@container` en la tarjeta y usar variantes de contenedor de Tailwind v4 (`@lg:`, `@2xl:` = 32rem / 42rem **del ancho de la tarjeta**). Debajo del umbral la fila queda apilada (etiquetas pequeñas visibles); arriba, columnas. Con `@lg:` se decide también si los botones del encabezado muestran texto o solo icono (siempre con `title` + `aria-label`).
+
 ### 3.6 Franja de cifras clicables (filtros por estado)
 Celdas `<button>` con hover `bg-bg-secondary/50`; **activa** = fondo suave del color + línea inferior: `bg-warning/5 shadow-[inset_0_-2px_0] shadow-warning`. Separar celdas con `divide-x` (y en móvil 2×2 con `[&>*:nth-child(n+3)]:border-t`). Mantener los mismos handlers (`toggle…`) y las mismas reglas (p. ej. «al elegir Pendientes se fuerza la vista Activas»).
 
@@ -167,6 +170,9 @@ Colores (de `AGENTS.md` §9): `--color-primary #869C84`, hover `#748A72`/`#95AD9
 | Tarjeta con `overflow-hidden` que contiene un popover absoluto | El popover se recorta: teleport al body (`FilterSelect`) o sacar el `overflow-hidden`. |
 | Cambiar filtros en un handler sin preservar su efecto secundario | Ej.: Pendientes/Confirmadas fuerzan `viewMode = 'active'`; el aviso «Buscando en todas las fechas»; `Limpiar filtros` vuelve a Semana. Léelo en el código viejo. |
 | Pestaña de contenido condicionada por rol/nicho/feature | Conservar las mismas condiciones (`mainTabs`, `watch` de redirección, `hideFinancialDashboard`, etc.). |
+| Scripts de ayuda que reemplazan texto con `String.replace` | En el texto de reemplazo `$$` se convierte en `$` (se perdieron los signos de dólar de 3 KPIs). Usar `split/join` o una función como reemplazo, y revisar con `git diff` que los `$` siguen. |
+| Archivos con finales de línea CRLF | Un ancla con `\n` no calza; usar anclas de una sola línea. |
+| `node -e` con rutas `/tmp/...` en Windows | Node no ve el `/tmp` de git-bash: usar la carpeta scratchpad con ruta de Windows. |
 | Montos/cifras recalculados «mejor» | Prohibido. Mismo cálculo, misma fuente, mismo redondeo. |
 
 ---
@@ -220,7 +226,9 @@ Ejemplos: `components/agenda/AgendaParts.test.ts`, `components/productos/Invento
 | Inventario (`Productos.vue`) | ✅ | `components/productos/{ProductStats,InventoryToolbar,ProductList,MovementList}.vue` | La lista NO está paginada (carga todo); movimientos limitados a 50 por el servicio. Sugerencia pendiente. |
 | Agenda (`Admin.vue` + `EmployeeAgenda.vue`) | ✅ | `components/agenda/{AgendaSummaryStrip,AgendaFilters,AgendaListView}.vue`, `common/FilterSelect.vue` | `AgendaListView` compartido: el padre da título/conteo por el slot `summary`. |
 | Calendario | ✅ (solo la barra superior) | `components/agenda/AgendaCalendar.vue` líneas del template superior | La grilla/tarjetas/arrastre/popups NO se tocaron y no deben tocarse. |
-| Finanzas | 🟡 parcial | `views/Finanzas.vue` (encabezado+tabs+período), `KpiCards`, `CurrencyBreakdown`, `RecentTransactionsCard` | **Falta**: pestañas Ingresos (`DetailMovimientos`, 937 líneas), Egresos (`ExpensesSection`, `SupplierPaymentsSection`, `EmployeePaymentsSection` 676), Créditos, Propinas, Bancos, Cuadre del Día, y `FinanzasRegistros.vue`. Es un módulo con dinero: una pestaña a la vez, misma regla de no quitar nada. |
+| Finanzas | ✅ (excepto `FinanzasRegistros.vue`) | Encabezado/tabs/período en `Finanzas.vue`; Resumen: `KpiCards`, `CurrencyBreakdown`, `RecentTransactionsCard`; Ingresos y Egresos: `DetailMovimientos` (4 sub-pestañas: cobros, ventas —tienda por factura o por producto—, gastos, catálogo de servicios); Egresos: `SupplierPaymentsSection`, `EmployeePaymentsSection`; `CreditosSection`, `PropinasSection`, `BankAccountsSection`, `CuadreDelDiaSection` | Los modales (abono, gasto, pago de nómina, `SupplierPaymentModal`, `EditCobroModal`, `CobroActionsModal`) NO se tocaron. `ExpensesSection.vue` no se usa en ningún lado (huérfano, sin tocar). `DetailMovimientos` (760 líneas) y `EmployeePaymentsSection` (578) superan las 400 líneas desde antes. Las tarjetas de media pantalla (Proveedores y Pagos a Empleados) usan **container queries** (`@container` + `@2xl:`), no breakpoints de ventana. |
+| Reportes (cuadre diario) | ✅ | `views/Reportes.vue`, `components/reportes/ReportesFinancialDashboard.vue` | Dashboard en una tarjeta (período + 4 KPIs + desglose Bs/USD + cobros por persona). Lista: grid con 8 columnas que se desplaza de lado en escritorio (Acciones fija a la derecha) y bloques apilados en móvil. `ReporteFormModal` (772 líneas) NO se tocó. `StaffingReportes.vue` solo cambió el encabezado; sus sub-reportes (`components/staffing/*Report*`) no. |
+| Gift Cards | ✅ | `views/GiftCards.vue` | Cuadrícula de celdas finas + pestañas Activas/Historial con conteo. El modal de crear/editar sigue dentro de la vista, sin cambios visuales. Sin paginación (como antes). |
 | POS | ✅ (rediseño previo) | `views/POS.vue` | Es la referencia estética original. |
 | Pendientes por revisar | ⬜ | Reportes, Proveedores, Requerimientos, Créditos/Gift cards, CRM, Configuración, Nómina, Incidentes, vistas de empleado (`views/employee/*`), módulos clínico/dental | Revisar primero si tienen la «tarjetitis» (tarjetas de KPI arriba + tabla/tarjetas duplicadas) y aplicar §2–§3. |
 
