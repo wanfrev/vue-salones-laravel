@@ -1,9 +1,9 @@
 <template>
   <FeatureGate :gate="{ capability: 'staffing.timesheets' }">
-    <header class="mb-5 lg:mb-8">
-      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
-        <WalletMoneyIcon class="h-3.5 w-3.5" />
-        <span>Nómina</span>
+    <header class="mb-4">
+      <div class="flex items-center gap-2">
+        <WalletMoneyIcon class="h-4 w-4 shrink-0 text-primary" />
+        <h1 class="text-xl font-bold tracking-tight text-text sm:text-2xl">Nómina</h1>
       </div>
       <p class="mt-1 max-w-3xl text-sm text-text-muted">
         Elige una empresa y una semana, carga las horas de cada empleado y presiona «Guardar y calcular» para ver
@@ -12,11 +12,11 @@
       </p>
     </header>
 
-    <section class="rounded-2xl border border-border bg-surface p-4 lg:p-6">
+    <section class="rounded-2xl border border-border bg-surface p-4 shadow-sm lg:p-6">
       <StaffingHoursPanel :business-id="businessId" :initial-company-id="initialCompanyId" :initial-week-start="initialWeekStart" :initial-project-id="initialProjectId" />
     </section>
 
-    <section v-if="businessStore.features.staffing_approval_stamp" class="mt-4 rounded-2xl border border-border bg-surface p-4 lg:p-6">
+    <section v-if="businessStore.features.staffing_approval_stamp" class="mt-4 rounded-2xl border border-border bg-surface p-4 shadow-sm lg:p-6">
       <div class="mb-5">
         <h2 class="text-sm font-semibold text-text">Quién aprueba las nóminas</h2>
         <p class="mt-0.5 max-w-3xl text-xs leading-relaxed text-text-muted">
@@ -30,7 +30,7 @@
       </div>
     </section>
 
-    <section class="mt-4 rounded-2xl border border-border bg-surface p-4 lg:p-6">
+    <section class="mt-4 rounded-2xl border border-border bg-surface p-4 shadow-sm lg:p-6">
       <div class="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p class="text-sm font-semibold text-text">Lista de depósitos de la semana</p>
@@ -41,24 +41,22 @@
         </div>
         <div class="flex flex-wrap items-end gap-3">
           <div>
-            <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted" for="deposit-company">
+            <span class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-text-muted">
               Empresa (opcional)
-            </label>
-            <select id="deposit-company" v-model="depositCompanyId"
-              class="w-48 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30">
-              <option value="">Todas las empresas</option>
-              <option v-for="c in companies" :key="c.id" :value="c.id">{{ c.name }}</option>
-            </select>
+            </span>
+            <div class="w-48">
+              <FilterSelect v-model="depositCompanyId" :options="depositCompanyOptions" aria-label="Empresa (opcional)" default-value="" />
+            </div>
           </div>
           <div>
-            <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted" for="deposit-week">
+            <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-text-muted" for="deposit-week">
               Semana desde
             </label>
             <input id="deposit-week" v-model="depositWeekStart" type="date"
-              class="rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
+              class="rounded-xl border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-colors focus:border-primary focus:ring-2 focus:ring-primary/15" />
           </div>
           <button type="button" :disabled="!depositWeekStart || isGeneratingDepositList" @click="handleGenerateDepositList"
-            class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-sm transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">
+            class="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">
             {{ isGeneratingDepositList ? 'Buscando...' : 'Buscar depósitos' }}
           </button>
         </div>
@@ -69,16 +67,16 @@
         <div class="mb-4 flex items-center justify-between">
           <h3 class="text-sm font-semibold text-text">Resultados ({{ depositListRows.length }})</h3>
           <button type="button" @click="handlePrintList"
-            class="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary">
+            class="flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-xs font-semibold text-text transition-theme hover:bg-bg-secondary">
             <PrinterIcon class="h-4 w-4" />
             Imprimir
           </button>
         </div>
-        <div class="overflow-hidden rounded-xl border border-border bg-surface">
-          <div class="overflow-x-auto">
+        <div class="overflow-hidden rounded-xl border border-border-subtle bg-surface">
+          <div class="scroll-thin overflow-x-auto overflow-y-hidden">
             <table class="w-full text-sm">
               <thead>
-                <tr class="border-b border-border bg-bg-secondary text-left text-[10px] uppercase tracking-wider text-text-muted">
+                <tr class="border-b border-border-subtle bg-bg-secondary/30 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">
                   <th class="px-4 py-2.5">Empleado</th>
                   <th class="px-4 py-2.5">Empresa / Turno</th>
                   <th class="px-4 py-2.5">Titular de la cuenta</th>
@@ -86,7 +84,7 @@
                   <th class="px-4 py-2.5 text-right">Monto</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-border">
+              <tbody class="divide-y divide-border-subtle">
                 <tr v-for="row in depositListRows" :key="row.employeeId + row.companyName">
                   <td class="px-4 py-2.5 font-medium text-text">{{ row.employeeName }}</td>
                   <td class="px-4 py-2.5">
@@ -114,6 +112,7 @@ import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
 import { useBusinessStore } from '../store/business'
 import { FeatureGate } from '../components/common'
+import FilterSelect from '../components/common/FilterSelect.vue'
 import StaffingHoursPanel from '../components/staffing/StaffingHoursPanel.vue'
 import ApprovalCodeVerifier from '../components/staffing/ApprovalCodeVerifier.vue'
 import ApproversPanel from '../components/staffing/ApproversPanel.vue'
@@ -144,6 +143,11 @@ const initialProjectId = computed(() => {
   if (!raw) return undefined
   return raw === 'general' ? null : raw
 })
+
+const depositCompanyOptions = computed(() => [
+  { value: '', label: 'Todas las empresas' },
+  ...(companies.value ?? []).map(c => ({ value: c.id, label: c.name })),
+])
 
 const depositWeekStart = ref('')
 const depositCompanyId = ref('')

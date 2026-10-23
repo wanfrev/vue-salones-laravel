@@ -1,0 +1,3 @@
+# Los scripts de shell que corren en el servidor Linux deben guardarse siempre con saltos de línea LF
+# (con CRLF fallan con «\r: command not found»).
+*.sh text eol=lf

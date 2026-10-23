@@ -1,19 +1,22 @@
 <template>
-  <div class="space-y-4">
-    <div v-if="isLoading" class="py-8 text-center text-sm text-text-muted">Cargando...</div>
+  <div class="space-y-4 p-3 sm:p-4">
+    <div v-if="isLoading" class="divide-y divide-border-subtle" aria-busy="true">
+      <p class="sr-only">Cargando...</p>
+      <div v-for="n in 4" :key="n" class="flex items-center gap-4 px-3 py-3"><span class="h-3 w-32 animate-pulse rounded bg-bg-secondary" /><span class="h-3 flex-1 animate-pulse rounded bg-bg-secondary" /><span class="h-3 w-20 animate-pulse rounded bg-bg-secondary" /></div>
+    </div>
     <p v-else-if="isError" class="py-8 text-center text-sm text-danger">No se pudo cargar el reporte.</p>
 
     <template v-else-if="report">
-      <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        <div v-for="b in AGING_BUCKETS" :key="b.key" class="rounded-lg border border-border bg-surface px-3 py-2.5">
-          <p class="text-[10px] uppercase tracking-wider text-text-muted">{{ b.label }}</p>
-          <p class="text-sm font-bold tabular-nums" :class="b.key === 'current' ? 'text-text' : report.totals[b.key] > 0 ? 'text-danger' : 'text-text'">
+      <div class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border-subtle bg-border-subtle sm:grid-cols-3 lg:grid-cols-6">
+        <div v-for="b in AGING_BUCKETS" :key="b.key" class="bg-surface px-3 py-2.5">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted">{{ b.label }}</p>
+          <p class="text-base font-bold tabular-nums" :class="b.key === 'current' ? 'text-text' : report.totals[b.key] > 0 ? 'text-danger' : 'text-text'">
             {{ formatUSD(report.totals[b.key]) }}
           </p>
         </div>
-        <div class="rounded-lg border border-border bg-bg-secondary px-3 py-2.5">
-          <p class="text-[10px] uppercase tracking-wider text-text-muted">Total por cobrar</p>
-          <p class="text-sm font-bold tabular-nums text-text">{{ formatUSD(report.totals.total) }}</p>
+        <div class="bg-bg-secondary px-3 py-2.5">
+          <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Total por cobrar</p>
+          <p class="text-base font-bold tabular-nums text-text">{{ formatUSD(report.totals.total) }}</p>
         </div>
       </div>
 
@@ -21,16 +24,16 @@
         No hay facturas pendientes de cobro.
       </p>
 
-      <div v-else class="overflow-x-auto rounded-xl border border-border bg-surface">
+      <div v-else class="scroll-thin overflow-x-auto overflow-y-hidden rounded-xl border border-border-subtle">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-border bg-bg-secondary text-left text-[10px] uppercase tracking-wider text-text-muted">
+            <tr class="border-b border-border-subtle bg-bg-secondary/30 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">
               <th class="px-3 py-2.5">Empresa</th>
               <th v-for="b in AGING_BUCKETS" :key="b.key" class="px-3 py-2.5 text-right">{{ b.label }}</th>
               <th class="px-3 py-2.5 text-right">Total</th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-border">
+          <tbody class="divide-y divide-border-subtle">
             <template v-for="company in report.companies" :key="company.company_id">
               <tr class="cursor-pointer hover:bg-bg-secondary/40" @click="toggle(company.company_id)">
                 <td class="px-3 py-2 font-medium text-text">

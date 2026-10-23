@@ -1,65 +1,73 @@
 <template>
   <div>
-    <header class="mb-5 lg:mb-6">
-      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
-          <ChatRoundLineIcon class="h-3.5 w-3.5" />
-          <span>CRM</span>
-        </div>
-        <button
-          class="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover"
-          @click="ctx.openNew()">
-          <AddCircleIcon class="h-4 w-4" />
-          <span>Nuevo lead</span>
-        </button>
+    <header class="mb-4 flex items-center justify-between gap-3">
+      <div class="flex min-w-0 items-center gap-2">
+        <ChatRoundLineIcon class="h-4 w-4 shrink-0 text-primary" />
+        <h1 class="truncate text-xl font-bold tracking-tight text-text sm:text-2xl">CRM</h1>
       </div>
+      <button
+        class="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
+        @click="ctx.openNew()">
+        <AddCircleIcon class="h-4 w-4" />
+        <span>Nuevo lead</span>
+      </button>
     </header>
 
     <!-- Stats strip -->
-    <div class="mb-5 grid grid-cols-2 gap-2 sm:gap-3 lg:mb-6 lg:grid-cols-4">
-      <StatCard icon="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-        icon-color="primary" :value="ownerFilteredLeads.length" label="Total leads" />
-      <StatCard icon="M13 10V3L4 14h7v7l9-11h-7z" icon-color="info" :value="inProgressCount" label="En proceso" />
-      <StatCard icon="M8 21l4-7 4 7M12 3v11m0 0l-4-4m4 4l4-4" icon-color="success" :value="wonCount" label="Ganados" />
-      <StatCard icon="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14"
-        icon-color="warning" :value="conversionRateLabel" label="Tasa de conversión" />
-    </div>
+    <dl class="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border-subtle shadow-sm lg:grid-cols-4">
+      <div class="bg-surface px-4 py-3">
+        <dt class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Total leads</dt>
+        <dd class="text-lg font-bold tabular-nums text-text">{{ ownerFilteredLeads.length }}</dd>
+      </div>
+      <div class="bg-surface px-4 py-3">
+        <dt class="text-[11px] font-bold uppercase tracking-wider text-text-muted">En proceso</dt>
+        <dd class="text-lg font-bold tabular-nums text-text">{{ inProgressCount }}</dd>
+      </div>
+      <div class="bg-surface px-4 py-3">
+        <dt class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Ganados</dt>
+        <dd class="text-lg font-bold tabular-nums text-success">{{ wonCount }}</dd>
+      </div>
+      <div class="bg-surface px-4 py-3">
+        <dt class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Tasa de conversión</dt>
+        <dd class="text-lg font-bold tabular-nums text-text">{{ conversionRateLabel }}</dd>
+      </div>
+    </dl>
 
     <!-- Toolbar -->
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
       <div class="relative min-w-0 flex-1 sm:max-w-xs">
         <MagnifierIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-        <input v-model="search" type="text" placeholder="Buscar empresa, contacto..."
-          class="w-full rounded-xl border border-border bg-surface py-2 pl-9 pr-3 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20" />
+        <input v-model="search" type="text" placeholder="Buscar empresa, contacto..." aria-label="Buscar empresa, contacto"
+          class="w-full rounded-xl border border-border bg-bg-secondary/40 py-2.5 pl-9 pr-3 text-sm text-text outline-none transition-colors placeholder:text-text-muted focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/15" />
       </div>
 
       <div class="flex items-center gap-2">
-        <div v-if="viewMode === 'table'" class="flex gap-1 overflow-x-auto pb-0.5">
+        <div v-if="viewMode === 'table'" class="scroll-thin flex gap-1 overflow-x-auto overflow-y-hidden pb-0.5">
           <button
             @click="statusFilter = 'all'"
-            class="shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-200"
-            :class="statusFilter === 'all' ? 'bg-primary text-text-inverse shadow-sm' : 'border border-border bg-surface text-text-secondary hover:text-text'"
+            class="shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors"
+            :class="statusFilter === 'all' ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-bg-secondary hover:text-text'"
           >
             Todos ({{ ownerFilteredLeads.length }})
           </button>
           <button
             v-for="opt in LEAD_STATUS_OPTIONS" :key="opt.value"
             @click="statusFilter = opt.value"
-            class="shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all duration-200"
-            :class="statusFilter === opt.value ? 'bg-primary text-text-inverse shadow-sm' : 'border border-border bg-surface text-text-secondary hover:text-text'"
+            class="shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors"
+            :class="statusFilter === opt.value ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-bg-secondary hover:text-text'"
           >
             {{ opt.label }} ({{ countByStatus(opt.value) }})
           </button>
         </div>
 
-        <div class="flex shrink-0 gap-0.5 rounded-lg border border-border bg-surface p-0.5">
-          <button type="button" title="Vista tablero" class="rounded-md p-1.5 transition-theme"
-            :class="viewMode === 'kanban' ? 'bg-primary/10 text-primary' : 'text-text-muted hover:text-text'"
+        <div class="inline-flex shrink-0 divide-x divide-border overflow-hidden rounded-xl border border-border">
+          <button type="button" title="Vista tablero" aria-label="Vista tablero" class="p-2 transition-colors"
+            :class="viewMode === 'kanban' ? 'bg-primary/10 text-primary' : 'text-text-muted hover:bg-bg-secondary hover:text-text'"
             @click="viewMode = 'kanban'">
             <Widget5Icon class="h-4 w-4" />
           </button>
-          <button type="button" title="Vista tabla" class="rounded-md p-1.5 transition-theme"
-            :class="viewMode === 'table' ? 'bg-primary/10 text-primary' : 'text-text-muted hover:text-text'"
+          <button type="button" title="Vista tabla" aria-label="Vista tabla" class="p-2 transition-colors"
+            :class="viewMode === 'table' ? 'bg-primary/10 text-primary' : 'text-text-muted hover:bg-bg-secondary hover:text-text'"
             @click="viewMode = 'table'">
             <ListIcon class="h-4 w-4" />
           </button>
@@ -67,12 +75,13 @@
       </div>
     </div>
 
-    <div v-if="ctx.isLoading.value" class="flex items-center justify-center py-16">
-      <svg class="h-7 w-7 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-        <path class="opacity-75" fill="currentColor"
-          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-      </svg>
+    <div v-if="ctx.isLoading.value" class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm" aria-busy="true">
+      <p class="sr-only">Cargando...</p>
+      <div v-for="n in 4" :key="n" class="flex items-center gap-4 border-b border-border-subtle px-4 py-3.5 last:border-b-0">
+        <span class="h-3 w-32 animate-pulse rounded bg-bg-secondary" />
+        <span class="h-3 flex-1 animate-pulse rounded bg-bg-secondary" />
+        <span class="h-3 w-20 animate-pulse rounded bg-bg-secondary" />
+      </div>
     </div>
 
     <div v-else-if="ownerFilteredLeads.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
@@ -122,11 +131,11 @@
       <p class="text-sm text-text-muted">Sin leads en este filtro.</p>
     </div>
 
-    <div v-else class="overflow-hidden rounded-xl border border-border bg-surface">
-      <div class="overflow-x-auto">
+    <div v-else class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+      <div class="scroll-thin overflow-x-auto overflow-y-hidden">
         <table class="w-full text-sm">
           <thead>
-            <tr class="border-b border-border bg-bg-secondary text-left text-[10px] uppercase tracking-wider text-text-muted">
+            <tr class="border-b border-border-subtle bg-bg-secondary/30 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">
               <th class="sticky left-0 z-10 bg-bg-secondary px-3 py-2.5">Elemento</th>
               <th class="px-3 py-2.5">Vendedor</th>
               <th class="px-3 py-2.5">Ubicación</th>
@@ -142,7 +151,7 @@
               <th class="px-3 py-2.5 w-16"></th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-border">
+          <tbody class="divide-y divide-border-subtle">
             <tr v-for="lead in filteredLeads" :key="lead.id" class="transition-theme hover:bg-bg-secondary/40">
               <td class="sticky left-0 z-10 whitespace-nowrap bg-surface px-3 py-2.5 font-medium text-text">
                 {{ lead.companyName }}
@@ -161,13 +170,14 @@
               <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ lead.companyCategory || '—' }}</td>
               <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ lead.contactCard || '—' }}</td>
               <td class="px-3 py-2.5">
-                <span v-if="lead.priority" class="rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="priorityClass(lead.priority)">
+                <span v-if="lead.priority" class="text-xs font-semibold" :class="priorityClass(lead.priority)">
                   {{ priorityLabel(lead.priority) }}
                 </span>
                 <span v-else class="text-text-secondary">—</span>
               </td>
               <td class="px-3 py-2.5">
-                <span class="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase" :class="statusClass(lead.status)">
+                <span class="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase" :class="statusClass(lead.status)">
+                  <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
                   {{ statusLabel(lead.status) }}
                 </span>
               </td>
@@ -176,11 +186,11 @@
               <td class="max-w-[220px] truncate px-3 py-2.5 text-text-secondary" :title="lead.notes">{{ lead.notes || '—' }}</td>
               <td class="px-3 py-2.5">
                 <div class="flex items-center justify-end gap-1">
-                  <button title="Editar" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
+                  <button title="Editar" aria-label="Editar" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary"
                     @click="ctx.openEdit(lead)">
                     <PenIcon class="h-4 w-4" />
                   </button>
-                  <button title="Eliminar" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+                  <button title="Eliminar" aria-label="Eliminar" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-danger/10 hover:text-danger"
                     @click="confirmDelete(lead)">
                     <TrashBin2Icon class="h-4 w-4" />
                   </button>
@@ -292,7 +302,6 @@ import { computed, ref } from 'vue'
 import { useLeads } from '../../composables/staffing/useLeads'
 import { LEAD_PRIORITY_OPTIONS, LEAD_STATUS_OPTIONS, type LeadRow } from '../../services/leadsService'
 import { getInitials, formatDateUS } from '../../lib/formatters'
-import { StatCard } from '../common'
 import LeadCard from './LeadCard.vue'
 import type { LeadPriority, LeadStatus } from '../../types/database'
 import {
@@ -381,22 +390,22 @@ const handleDrop = (status: LeadStatus) => {
 const statusLabel = (status: LeadStatus) => LEAD_STATUS_OPTIONS.find(o => o.value === status)?.label ?? status
 
 const STATUS_CLASSES: Record<LeadStatus, string> = {
-  new: 'bg-bg-secondary text-text-muted',
-  called: 'bg-primary/10 text-primary',
-  answered: 'bg-primary/10 text-primary',
-  emailed: 'bg-primary/10 text-primary',
-  meeting: 'bg-warning/10 text-warning',
-  won: 'bg-success/10 text-success',
-  lost: 'bg-danger/10 text-danger',
+  new: 'text-text-muted',
+  called: 'text-primary',
+  answered: 'text-primary',
+  emailed: 'text-primary',
+  meeting: 'text-warning',
+  won: 'text-success',
+  lost: 'text-danger',
 }
 const statusClass = (status: LeadStatus) => STATUS_CLASSES[status] ?? STATUS_CLASSES.new
 
 const priorityLabel = (priority: LeadPriority) => LEAD_PRIORITY_OPTIONS.find(o => o.value === priority)?.label ?? priority
 
 const PRIORITY_CLASSES: Record<LeadPriority, string> = {
-  low: 'bg-bg-secondary text-text-muted',
-  medium: 'bg-primary/10 text-primary',
-  high: 'bg-danger/10 text-danger',
+  low: 'text-text-muted',
+  medium: 'text-primary',
+  high: 'text-danger',
 }
 const priorityClass = (priority: LeadPriority) => PRIORITY_CLASSES[priority] ?? PRIORITY_CLASSES.low
 
