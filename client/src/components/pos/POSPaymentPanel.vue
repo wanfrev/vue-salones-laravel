@@ -361,7 +361,7 @@
               <span
                 v-if="(pm as any).currency"
                 class="shrink-0 inline-flex items-center justify-center rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold tracking-wide"
-                :class="(pm as any).currency === 'USD' ? 'bg-[#34d399]/10 text-[#4fc99a]' : 'bg-[#d9a441]/15 text-[#d9a441]'"
+                :class="(pm as any).currency === 'USD' ? 'bg-success/10 text-success' : 'bg-warning/15 text-warning'"
               >{{ (pm as any).currency === 'USD' ? '$' : 'Bs' }}</span>
             </button>
           </div>

@@ -17,11 +17,11 @@ export const VALENCE_LABELS: Record<LifeValence, string> = {
 }
 
 export const VALENCE_COLORS: Record<LifeValence, string> = {
-  2: '#10b981',
-  1: '#6ee7b7',
+  2: '#3f8a5e',
+  1: '#9fcdae',
   0: '#94a3b8',
-  [-1]: '#fca5a5',
-  [-2]: '#ef4444',
+  [-1]: '#e3a9a2',
+  [-2]: '#b8483f',
 }
 
 export const VALENCE_OPTIONS = VALENCES.map(v => ({ value: String(v), label: VALENCE_LABELS[v] }))

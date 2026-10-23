@@ -33,8 +33,8 @@ export const EDGE_STYLES: Record<GenogramEdgeKind, EdgeKindStyle> = {
   partner: { label: 'Pareja / unión libre', mark: '', stroke: BASE, width: 1.5, dash: '7 5', hint: 'Convivencia o relación sin matrimonio.' },
   separated: { label: 'Separación', mark: '/', stroke: BASE, width: 2, hint: 'Pareja separada.' },
   divorced: { label: 'Divorcio', mark: '//', stroke: BASE, width: 2, hint: 'Pareja divorciada.' },
-  close: { label: 'Vínculo cercano', mark: '', stroke: '#10b981', width: 4, hint: 'Relación muy estrecha.' },
-  conflict: { label: 'Conflicto', mark: '', stroke: '#ef4444', width: 2, dash: '3 4', hint: 'Relación conflictiva u hostil.' },
+  close: { label: 'Vínculo cercano', mark: '', stroke: '#3f8a5e', width: 4, hint: 'Relación muy estrecha.' },
+  conflict: { label: 'Conflicto', mark: '', stroke: '#b8483f', width: 2, dash: '3 4', hint: 'Relación conflictiva u hostil.' },
   distant: { label: 'Vínculo distante', mark: '', stroke: '#94a3b8', width: 1.5, dash: '1 6', hint: 'Relación fría o distante.' },
   cutoff: { label: 'Cortado', mark: '✕', stroke: '#94a3b8', width: 1.5, dash: '8 4', hint: 'Sin contacto / ruptura de la relación.' },
 }

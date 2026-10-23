@@ -85,7 +85,7 @@ describe('genograma — traducción a Vue Flow y de vuelta', () => {
     expect(e.label).toBe('//')          // divorcio
     expect(e.type).toBe('smoothstep')
     expect(e.data.kind).toBe('divorced')
-    expect(edgeStyle('conflict')).toMatchObject({ stroke: '#ef4444', strokeDasharray: '3 4' })
+    expect(edgeStyle('conflict')).toMatchObject({ stroke: '#b8483f', strokeDasharray: '3 4' })
     expect(edgeStyle('married')).not.toHaveProperty('strokeDasharray')
     expect(toFlowEdges({ nodes: [], edges: [{ id: 'x', source: 'a', target: 'b', kind: 'parent' }] })[0]).not.toHaveProperty('label')
   })

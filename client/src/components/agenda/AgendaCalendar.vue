@@ -463,8 +463,8 @@ const employeeMap = computed(() => new Map((employees.value ?? []).map((e: any) 
 // for the avatar badge on appointment cards so you can tell who's who at a glance
 // without reading the name, independent of the status color (border/dot).
 const EMPLOYEE_COLOR_PALETTE = [
-  '#6366f1', '#0ea5e9', '#f59e0b', '#ec4899', '#10b981', '#8b5cf6',
-  '#f43f5e', '#14b8a6', '#f97316', '#3b82f6', '#84cc16', '#a855f7',
+  '#6b72b5', '#5a9ac0', '#c19a4b', '#bd6288', '#5f9a76', '#8a74b0',
+  '#bd5f66', '#4f9a93', '#c2804a', '#5f86bb', '#8aa04d', '#9a70b0',
 ]
 const DEFAULT_EMPLOYEE_COLOR = '#71717a'
 const employeeColorMap = computed(() => {

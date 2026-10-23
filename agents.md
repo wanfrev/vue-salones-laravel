@@ -187,9 +187,10 @@ queryClient.invalidateQueries({ queryKey: ['employee-earnings', bizId, empId], e
 
 ### Tipografía y Estados
 - Fuente: Inter (sistema).
-- Success: `#10b981` (light) / `#34d399` (dark).
-- Danger: `#ef4444`.
-- Warning: `#f59e0b`.
+- Success: `#3a7a52` (light) / `#86bd98` (dark) — verde natural.
+- Danger: `#b8483f` (light) / `#e38f87` (dark) — ladrillo.
+- Warning: `#9c6a1c` (light) / `#dab56a` (dark) — ocre.
+- **Nada de colores neón** (decisión del usuario, 2026-10-23): usar siempre los tokens semánticos; ver `design.md` → «Colores: naturales, nunca neón».
 - Bordes: `--color-border` (#e2e8f0 light / #323232 dark).
 
 ---
