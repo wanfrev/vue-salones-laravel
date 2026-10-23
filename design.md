@@ -145,7 +145,7 @@ Una tarjeta contenedora; cada elemento es una **celda con líneas finas**, no un
 
 ## 4. Tokens y reglas de diseño
 
-Colores (de `AGENTS.md` §9): `--color-primary #869C84`, hover `#748A72`/`#95AD93`, success `#10b981`/`#34d399`, danger `#ef4444`, warning `#f59e0b`, bordes `--color-border`. Usa las **clases semánticas** de Tailwind (`text-text`, `text-text-muted`, `text-text-secondary`, `bg-surface`, `bg-bg-secondary`, `border-border`, `border-border-subtle`, `text-primary`, `bg-primary/10`, `text-success|warning|danger|info`) — nunca hex sueltos, para que el modo oscuro funcione solo.
+Colores: ver la subsección «Colores: naturales, nunca neón» más abajo (tokens de éxito/aviso/peligro actualizados el 2026-10-23; `AGENTS.md` §9 conserva los valores viejos de success/warning/danger).
 
 - Radio: tarjeta `rounded-2xl` (en el Calendario, `rounded-xl` para casar con la grilla que no se toca); controles `rounded-xl`; iconos/enlaces `rounded-lg`.
 - Números: `tabular-nums` siempre. Montos con signo/color: `+` verde, `-` rojo.
@@ -155,6 +155,21 @@ Colores (de `AGENTS.md` §9): `--color-primary #869C84`, hover `#748A72`/`#95AD9
 - Terminología por nicho: nunca hardcodear «cita/cliente/empleado/servicio»; usar `businessStore.terminology.*` con el fallback que ya tenía el código.
 
 ---
+
+### Colores: naturales, nunca neón (decisión del usuario, 2026-10-23)
+El verde de Luma (`--color-primary #869C84`, sage) es el color de marca y **no se toca**. El usuario no quiere verdes ni amarillos «neón» en ningún lado. Por eso:
+
+| Token | Claro | Oscuro | Antes (neón) |
+|---|---|---|---|
+| `--color-success` | `#3a7a52` (verde bosque) | `#86bd98` | `#10b981` / `#34d399` |
+| `--color-warning` | `#9c6a1c` (ocre) | `#dab56a` | `#f59e0b` / `#fbbf24` |
+| `--color-danger` | `#b8483f` (ladrillo) | `#e38f87` | `#ef4444` / `#f87171` |
+
+- Los tres cumplen contraste de texto ≥ 4.5:1 sobre fondo claro (los de antes tenían 2.1–2.5:1).
+- **Siempre usar los tokens** (`text-success`, `bg-warning/10`, `border-danger/30`…). Nunca hex sueltos ni `text-green-500`/`bg-yellow-400`.
+- Aun así, la paleta de Tailwind (`amber`, `yellow`, `orange`, `red`, `rose`, `pink`, `fuchsia`, `purple`, `violet`, `indigo`, `blue`, `sky`, `cyan`, `teal`, `emerald`, `green`, `lime`) está **redefinida en `@theme` de `style.css`** con tonos de tierra de baja saturación (misma tonalidad, menos saturación): si aparece una clase fija como `text-amber-500` ya sale natural.
+- Colores en código (JS/TS): paleta de avatares de empleados en `AgendaCalendar.vue`, colores de servicios en `serviciosMapper.ts`, genograma, línea de vida y odontograma. Se suavizaron **conservando el tono** (caries sigue roja, obturado azul…) para no perder su significado.
+- Si hace falta un color nuevo: elegir una tonalidad y bajarle la saturación (HSL con S ≈ 25–45 %); si al mirarlo «brilla», es neón.
 
 ## 5. Trampas conocidas (ya nos mordieron)
 
