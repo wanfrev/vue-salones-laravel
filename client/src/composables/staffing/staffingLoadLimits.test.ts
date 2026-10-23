@@ -61,6 +61,14 @@ describe('useTimesheets con semana elegida', () => {
     expect(api.timesheetsLoading.value).toBe(false)
   })
 
+  it('si la semana no se pudo cargar lo avisa, para que no se guarde encima como si estuviera vacía', async () => {
+    listStaffingTimesheets.mockRejectedValue(new Error('sin conexión'))
+    const { api } = host(() => useTimesheets(ref('b1'), ref('c1'), ref(null), ref('2026-10-11')))
+    await flushPromises()
+    expect(api.timesheetsError.value).toBe(true)
+    expect(api.findWeek('2026-10-11')).toBeNull()
+  })
+
   it('sin semana elegida carga todo, como antes', async () => {
     listStaffingTimesheets.mockResolvedValue([])
     host(() => useTimesheets(ref('b1'), ref('c1'), ref(null)))

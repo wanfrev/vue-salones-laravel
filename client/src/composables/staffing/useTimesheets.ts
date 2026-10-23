@@ -46,7 +46,7 @@ export function useTimesheets(
     return week ? { from: previousWeekStart(week), to: week } : undefined
   })
 
-  const { data: timesheets, isLoading: timesheetsLoading } = useQuery({
+  const { data: timesheets, isLoading: timesheetsLoading, isError: timesheetsError } = useQuery({
     // Starts with the same prefix as before, so every invalidation by company still reaches it.
     queryKey: computed(() => ['staffing-timesheets', businessId.value, companyId.value, projectId.value, weekWindow.value?.from ?? null, weekWindow.value?.to ?? null]),
     queryFn: () => listStaffingTimesheets(businessId.value!, companyId.value, projectId.value!, weekWindow.value),
@@ -159,6 +159,8 @@ export function useTimesheets(
     employeesLoading,
     timesheets,
     timesheetsLoading,
+    // True when the week could not be loaded: it must not be treated as an empty week to save over.
+    timesheetsError,
     findWeek,
     saveError,
     saveMutation,
