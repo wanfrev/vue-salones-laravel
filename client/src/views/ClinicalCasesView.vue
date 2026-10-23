@@ -1,71 +1,62 @@
 <template>
   <div>
-    <header class="mb-6 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">Atención psicológica</p>
-        <h1 class="mt-1 text-2xl font-bold tracking-tight text-text sm:text-3xl">Casos</h1>
-        <p class="mt-1 max-w-2xl text-sm text-text-muted">
-          Terapia de pareja, familia o grupo. En un caso el paciente es el sistema: las sesiones y el plan conjuntos pertenecen al caso y los ven todos los integrantes; lo individual de cada uno sigue siendo privado.
-        </p>
-      </div>
+    <ClinicalPageHeader
+      :icon="UsersGroupRoundedIcon"
+      title="Casos"
+      description="Terapia de pareja, familia o grupo. En un caso el paciente es el sistema: las sesiones y el plan conjuntos pertenecen al caso y los ven todos los integrantes; lo individual de cada uno sigue siendo privado."
+    >
       <button v-if="!showForm" @click="showForm = true" class="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover">
         <AddCircleIcon class="h-4 w-4" />
         Nuevo caso
       </button>
-    </header>
+    </ClinicalPageHeader>
 
-    <CaseCreateForm v-if="showForm" class="mb-6" :saving="createMutation.isPending.value" @submit="handleCreate" @cancel="showForm = false" />
+    <CaseCreateForm v-if="showForm" class="mb-4" :saving="createMutation.isPending.value" @submit="handleCreate" @cancel="showForm = false" />
 
-    <p v-if="!hasAccess" class="rounded-xl border border-border bg-surface p-8 text-center text-sm text-text-muted">
-      No tienes permiso para ver el expediente clínico.
-    </p>
+    <section class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+      <p v-if="!hasAccess" class="px-4 py-12 text-center text-sm text-text-muted">
+        No tienes permiso para ver el expediente clínico.
+      </p>
 
-    <template v-else>
-      <div class="mb-4 flex gap-2" role="tablist" aria-label="Estado de los casos">
-        <button
-          v-for="f in FILTERS"
-          :key="f.value"
-          role="tab"
-          :aria-selected="status === f.value"
-          @click="status = f.value"
-          class="rounded-full border px-3 py-1.5 text-xs font-semibold transition-theme"
-          :class="status === f.value ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-surface text-text-secondary hover:border-primary/30'"
-        >{{ f.label }}</button>
-      </div>
+      <template v-else>
+        <UnderlineTabs v-model="status" :tabs="FILTERS" aria-label="Estado de los casos" />
 
-      <div v-if="isLoading" class="flex items-center justify-center py-16">
-        <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-      </div>
+        <ClinicalListSkeleton v-if="isLoading" />
 
-      <div v-else-if="cases.length === 0" class="rounded-xl border border-border bg-surface p-8 text-center text-sm text-text-muted">
-        {{ status === 'active' ? 'No hay casos activos. Crea el primero con «Nuevo caso».' : 'No hay casos cerrados.' }}
-      </div>
+        <div v-else-if="cases.length === 0" class="px-4 py-12 text-center text-sm text-text-muted">
+          {{ status === 'active' ? 'No hay casos activos. Crea el primero con «Nuevo caso».' : 'No hay casos cerrados.' }}
+        </div>
 
-      <ul v-else class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <li v-for="c in cases" :key="c.id">
-          <router-link :to="`${basePath}/casos/${c.id}/resumen`" class="block rounded-xl border border-border bg-surface p-4 shadow-sm transition-theme hover:border-primary/40 hover:bg-primary/5">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <p class="truncate text-base font-bold text-text">{{ c.name }}</p>
-              <span class="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary">{{ CASE_TYPE_LABELS[c.type] }}</span>
-            </div>
-            <p class="mt-1 truncate text-sm text-text-secondary">{{ memberNames(c) }}</p>
-            <p class="mt-2 text-xs text-text-muted">
-              {{ activeMembers(c).length }} integrantes
-              <span v-if="c.opened_on"> · desde {{ formatDateHuman(c.opened_on) }}</span>
-              <span v-if="c.status === 'closed'" class="ml-1 rounded bg-bg-secondary px-1.5 py-0.5 font-semibold">Cerrado</span>
-            </p>
-          </router-link>
-        </li>
-      </ul>
-    </template>
+        <ul v-else class="divide-y divide-border-subtle">
+          <li v-for="c in cases" :key="c.id">
+            <router-link :to="`${basePath}/casos/${c.id}/resumen`" class="group flex items-center gap-3 px-3 py-3 transition-colors hover:bg-primary/5 sm:px-4">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-semibold text-text">{{ c.name }}</p>
+                <p class="mt-0.5 truncate text-xs text-text-secondary">{{ memberNames(c) }}</p>
+                <p class="mt-0.5 text-xs text-text-muted">
+                  {{ activeMembers(c).length }} integrantes
+                  <span v-if="c.opened_on"> · desde {{ formatDateHuman(c.opened_on) }}</span>
+                  <span v-if="c.status === 'closed'" class="font-semibold"> · Cerrado</span>
+                </p>
+              </div>
+              <span class="shrink-0 text-xs font-semibold text-primary">{{ CASE_TYPE_LABELS[c.type] }}</span>
+              <ArrowRightIcon class="hidden h-4 w-4 shrink-0 text-text-muted transition-colors group-hover:text-primary sm:block" aria-hidden="true" />
+            </router-link>
+          </li>
+        </ul>
+      </template>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { AddCircleIcon } from '@solar-icons/vue/linear'
+import { AddCircleIcon, ArrowRightIcon, UsersGroupRoundedIcon } from '@solar-icons/vue/linear'
 import CaseCreateForm from '../components/clinical/CaseCreateForm.vue'
+import ClinicalListSkeleton from '../components/clinical/ClinicalListSkeleton.vue'
+import ClinicalPageHeader from '../components/clinical/ClinicalPageHeader.vue'
+import UnderlineTabs from '../components/common/UnderlineTabs.vue'
 import { CASE_TYPE_LABELS, activeMembers, memberNames } from '../components/clinical/cases'
 import { useCases } from '../composables/clinical/useCases'
 import { formatDateHuman } from '../lib/formatters'

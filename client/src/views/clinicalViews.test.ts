@@ -420,3 +420,18 @@ describe('ReportSheet', () => {
   })
 })
 
+
+describe('ClinicalFollowUpView — riesgo con casos y pacientes a la vez', () => {
+  it('lists the at-risk cases AND the at-risk patients, and the counter matches the rows', () => {
+    s.followUp.value = {
+      weeks: 4,
+      risk_cases: [{ case_id: 'k1', case_name: 'Ana y Beto', type: 'couple', risk_level: 'high', session_date: '2026-10-01', session_number: 2, days_since: 4 }],
+      risk_unfollowed: [{ client_id: 'p1', client_name: 'LUIS GÓMEZ', phone: null, risk_level: 'moderate', session_date: '2026-09-25', session_number: 3, days_since: 10 }],
+      notes_pending: [], inactive: [],
+    }
+    const text = mount(ClinicalFollowUpView).text()
+    expect(text).toContain('Ana y Beto')
+    expect(text).toContain('Luis Gómez')
+    expect(text).toContain('Sesión 3 · hace 10 días')
+  })
+})

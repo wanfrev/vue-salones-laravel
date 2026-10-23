@@ -1,27 +1,24 @@
 <template>
   <div>
-    <header class="mb-6 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <p class="text-[11px] font-bold uppercase tracking-[0.16em] text-primary">Atención psicológica</p>
-        <h1 class="mt-1 text-2xl font-bold tracking-tight text-text sm:text-3xl">Programas</h1>
-        <p class="mt-1 max-w-2xl text-sm text-text-muted">
-          Paquetes de sesiones que se cobran juntos. Al inscribir a un paciente se crean todas sus citas en el calendario; el programa se cobra una sola vez en el punto de venta, donde también se ve cuántas sesiones lleva.
-        </p>
-      </div>
-      <div v-if="mode === 'list'" class="flex flex-wrap gap-2">
+    <ClinicalPageHeader
+      :icon="BoxIcon"
+      title="Programas"
+      description="Paquetes de sesiones que se cobran juntos. Al inscribir a un paciente se crean todas sus citas en el calendario; el programa se cobra una sola vez en el punto de venta, donde también se ve cuántas sesiones lleva."
+    >
+      <template v-if="mode === 'list'">
         <button @click="mode = 'enroll'" class="flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-text-inverse shadow-lg shadow-primary/20 transition-theme hover:bg-primary-hover">
           <AddCircleIcon class="h-4 w-4" />
           Inscribir paciente
         </button>
-        <button v-if="isAdmin" @click="openNew" class="flex items-center gap-2 rounded-xl border border-primary/30 bg-surface px-4 py-2.5 text-sm font-semibold text-primary transition-theme hover:bg-primary/5">
+        <button v-if="isAdmin" @click="openNew" class="flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-text transition-theme hover:bg-bg-secondary">
           Nuevo programa
         </button>
-      </div>
-    </header>
+      </template>
+    </ClinicalPageHeader>
 
     <EnrollmentForm
       v-if="mode === 'enroll'"
-      class="mb-6"
+      class="mb-4"
       :programs="activePrograms"
       :employees="employees"
       :branch-id="branchId"
@@ -34,7 +31,7 @@
     <ProgramForm
       v-else-if="mode === 'edit'"
       :key="editing?.id ?? 'new'"
-      class="mb-6"
+      class="mb-4"
       :initial="editing"
       :services="serviceOptions"
       :employees="employees"
@@ -43,42 +40,44 @@
       @cancel="closeForm"
     />
 
-    <div v-if="isLoading" class="flex items-center justify-center py-16">
-      <div class="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-    </div>
+    <section class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+      <ClinicalListSkeleton v-if="isLoading" />
 
-    <div v-else-if="programs.length === 0" class="rounded-xl border border-border bg-surface p-8 text-center text-sm text-text-muted">
-      Todavía no hay programas.<span v-if="isAdmin"> Crea el primero con «Nuevo programa».</span>
-    </div>
+      <div v-else-if="programs.length === 0" class="px-4 py-12 text-center text-sm text-text-muted">
+        Todavía no hay programas.<span v-if="isAdmin"> Crea el primero con «Nuevo programa».</span>
+      </div>
 
-    <ul v-else class="grid grid-cols-1 gap-3 lg:grid-cols-2">
-      <li v-for="p in programs" :key="p.id" class="rounded-xl border border-border bg-surface p-4 shadow-sm" :class="p.active ? '' : 'opacity-60'">
-        <div class="flex flex-wrap items-start justify-between gap-2">
-          <div class="min-w-0">
-            <p class="truncate text-base font-bold text-text">{{ p.name }}</p>
-            <p class="mt-0.5 text-sm text-text-secondary">${{ p.price }} · {{ p.sessions_total }} sesiones · {{ p.validity_days }} días</p>
+      <ul v-else class="divide-y divide-border-subtle">
+        <li v-for="p in programs" :key="p.id" class="flex flex-wrap items-start justify-between gap-x-3 gap-y-2 px-3 py-3 sm:px-4" :class="p.active ? '' : 'opacity-60'">
+          <div class="min-w-0 flex-1">
+            <p class="truncate text-sm font-semibold text-text">
+              {{ p.name }}
+              <span v-if="!p.active" class="ml-1 text-[10px] font-bold uppercase tracking-wider text-text-muted">· Desactivado</span>
+            </p>
+            <p class="mt-0.5 text-xs tabular-nums text-text-secondary">${{ p.price }} · {{ p.sessions_total }} sesiones · {{ p.validity_days }} días</p>
+            <ul class="mt-1.5 space-y-0.5">
+              <li v-for="(c, i) in p.components" :key="i" class="text-xs text-text-muted">
+                <strong class="text-text-secondary">{{ c.quantity }}×</strong> {{ c.services.map(s => s.name).join(' / ') }}
+                <span> — {{ c.employee_name ?? 'especialista por elegir' }}</span>
+              </li>
+            </ul>
           </div>
-          <div class="flex items-center gap-2">
-            <span v-if="!p.active" class="rounded bg-bg-secondary px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-text-muted">Desactivado</span>
-            <button v-if="isAdmin" @click="openEdit(p)" class="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:border-primary/40 hover:text-primary">Editar</button>
-            <button v-if="isAdmin" @click="handleDelete(p)" :disabled="deleteMutation.isPending.value" class="rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-danger transition-theme hover:bg-danger/5 disabled:opacity-50">Eliminar</button>
+          <div class="flex shrink-0 items-center gap-1">
+            <button v-if="isAdmin" @click="openEdit(p)" class="rounded-lg px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10">Editar</button>
+            <button v-if="isAdmin" @click="handleDelete(p)" :disabled="deleteMutation.isPending.value" class="rounded-lg px-3 py-1.5 text-xs font-semibold text-danger transition-colors hover:bg-danger/10 disabled:opacity-50">Eliminar</button>
           </div>
-        </div>
-        <ul class="mt-2 space-y-1">
-          <li v-for="(c, i) in p.components" :key="i" class="text-xs text-text-muted">
-            <strong class="text-text-secondary">{{ c.quantity }}×</strong> {{ c.services.map(s => s.name).join(' / ') }}
-            <span> — {{ c.employee_name ?? 'especialista por elegir' }}</span>
-          </li>
-        </ul>
-      </li>
-    </ul>
+        </li>
+      </ul>
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
-import { AddCircleIcon } from '@solar-icons/vue/linear'
+import { AddCircleIcon, BoxIcon } from '@solar-icons/vue/linear'
+import ClinicalListSkeleton from '../components/clinical/ClinicalListSkeleton.vue'
+import ClinicalPageHeader from '../components/clinical/ClinicalPageHeader.vue'
 import EnrollmentForm from '../components/clinical/EnrollmentForm.vue'
 import ProgramForm from '../components/clinical/ProgramForm.vue'
 import { enrollClient, type EnrollPayload, type ProgramPayload } from '../services/clinical/programService'
