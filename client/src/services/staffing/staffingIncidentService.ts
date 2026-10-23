@@ -1,8 +1,8 @@
 import { apiRequest, apiUpload, apiViewFile } from '../../lib/api'
 
 export const staffingIncidentKeys = {
-  all: (businessId?: string | null, companyId?: string | null, status?: string | null) =>
-    ['staffing-incidents', businessId, companyId, status] as const,
+  all: (businessId?: string | null, companyId?: string | null, status?: string | null, limit?: number | null) =>
+    ['staffing-incidents', businessId, companyId, status, limit ?? null] as const,
 }
 
 export type StaffingIncidentStatus = 'activo' | 'light_duty' | 'suspendido' | 'despedido'
@@ -104,10 +104,15 @@ const toPayload = (data: Partial<StaffingIncidentFormData>) => ({
   ...(data.drugTestResult !== undefined ? { drug_test_result: data.drugTestResult || null } : {}),
 })
 
-export const listStaffingIncidents = async (companyId?: string | null, status?: string | null): Promise<StaffingIncidentRow[]> => {
+/**
+ * Most recent first. With `limit` it asks for one more than that so the caller can tell whether there is
+ * a next page (see useStaffingIncidents); without it, every incident comes back as before.
+ */
+export const listStaffingIncidents = async (companyId?: string | null, status?: string | null, limit?: number | null): Promise<StaffingIncidentRow[]> => {
   const params = new URLSearchParams()
   if (companyId) params.set('company_id', companyId)
   if (status) params.set('status', status)
+  if (limit) params.set('limit', String(limit + 1))
   const qs = params.toString()
   const rows = await apiRequest<StaffingIncidentApiRow[]>('GET', `/staffing-incidents${qs ? `?${qs}` : ''}`)
   return rows.map(toIncidentRow)

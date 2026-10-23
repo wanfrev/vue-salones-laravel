@@ -27,11 +27,23 @@ class StaffingTimesheetService
         private StaffingCompanyEmployeeService $companyEmployees,
     ) {}
 
-    public function list(string $businessId, ?string $companyId = null, ?string $projectId = null): Collection
+    /**
+     * $weekFrom / $weekTo (Y-m-d, both optional, inclusive) narrow the list to a window of weeks. Without
+     * them the whole history comes back exactly as before; the Nómina screen passes them so opening a
+     * company doesn't drag every week (and every employee line) it has ever had.
+     */
+    public function list(string $businessId, ?string $companyId = null, ?string $projectId = null, ?string $weekFrom = null, ?string $weekTo = null): Collection
     {
         $query = StaffingTimesheet::with(['entries.employee', 'project', ...$this->stampRelations()])
             ->where('business_id', $businessId)
             ->orderByDesc('week_start');
+
+        if ($weekFrom) {
+            $query->whereDate('week_start', '>=', $weekFrom);
+        }
+        if ($weekTo) {
+            $query->whereDate('week_start', '<=', $weekTo);
+        }
 
         if ($companyId) {
             $query->where('company_id', $companyId);

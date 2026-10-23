@@ -112,11 +112,17 @@
             </span>
           </div>
 
-          <div class="flex min-h-[60px] flex-col gap-2">
-            <LeadCard v-for="lead in col.leads" :key="lead.id" :lead="lead" :show-owner="!ownerId"
+          <div class="scroll-thin flex max-h-[max(20rem,calc(100vh-24rem))] min-h-[60px] flex-col gap-2 overflow-y-auto overflow-x-hidden">
+            <LeadCard v-for="lead in visibleInColumn(col)" :key="lead.id" :lead="lead" :show-owner="!ownerId"
               :is-dragging="draggingId === lead.id"
               @edit="ctx.openEdit" @delete="confirmDelete"
               @dragstart="draggingId = lead.id" @dragend="draggingId = null; dragOverStatus = null" />
+
+            <button v-if="col.leads.length > visibleInColumn(col).length" type="button"
+              class="shrink-0 rounded-lg py-2 text-center text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+              @click="showMoreInColumn(col.value)">
+              Mostrar {{ Math.min(PAGE_SIZE, col.leads.length - visibleInColumn(col).length) }} más ({{ col.leads.length - visibleInColumn(col).length }} restantes)
+            </button>
 
             <p v-if="col.leads.length === 0" class="rounded-lg border border-dashed border-border py-4 text-center text-[11px] text-text-muted">
               Sin leads aquí
@@ -152,7 +158,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-border-subtle">
-            <tr v-for="lead in filteredLeads" :key="lead.id" class="transition-theme hover:bg-bg-secondary/40">
+            <tr v-for="lead in visibleTableLeads" :key="lead.id" class="transition-theme hover:bg-bg-secondary/40">
               <td class="sticky left-0 z-10 whitespace-nowrap bg-surface px-3 py-2.5 font-medium text-text">
                 {{ lead.companyName }}
               </td>
@@ -200,6 +206,11 @@
           </tbody>
         </table>
       </div>
+      <button v-if="filteredLeads.length > visibleTableLeads.length" type="button"
+        class="w-full border-t border-border-subtle py-3 text-center text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+        @click="tableShown += TABLE_PAGE_SIZE">
+        Mostrar {{ Math.min(TABLE_PAGE_SIZE, filteredLeads.length - visibleTableLeads.length) }} más ({{ filteredLeads.length - visibleTableLeads.length }} restantes)
+      </button>
     </div>
 
     <Teleport to="body">
@@ -298,7 +309,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useLeads } from '../../composables/staffing/useLeads'
 import { LEAD_PRIORITY_OPTIONS, LEAD_STATUS_OPTIONS, type LeadRow } from '../../services/leadsService'
 import { getInitials, formatDateUS } from '../../lib/formatters'
@@ -375,6 +386,23 @@ const columns = computed(() =>
     leads: ownerFilteredLeads.value.filter(l => l.status === opt.value),
   }))
 )
+
+// With thousands of leads, drawing every card at once is what made the CRM slow to open. Each
+// column starts with PAGE_SIZE cards and grows on demand; counts and drag-and-drop still use the
+// full list.
+const PAGE_SIZE = 30
+const TABLE_PAGE_SIZE = 100
+const shownByColumn = ref<Record<string, number>>({})
+const tableShown = ref(TABLE_PAGE_SIZE)
+const visibleInColumn = (col: { value: string; leads: LeadRow[] }) => col.leads.slice(0, shownByColumn.value[col.value] ?? PAGE_SIZE)
+const showMoreInColumn = (value: string) => {
+  shownByColumn.value = { ...shownByColumn.value, [value]: (shownByColumn.value[value] ?? PAGE_SIZE) + PAGE_SIZE }
+}
+const visibleTableLeads = computed(() => filteredLeads.value.slice(0, tableShown.value))
+watch([search, statusFilter, () => props.ownerId], () => {
+  shownByColumn.value = {}
+  tableShown.value = TABLE_PAGE_SIZE
+})
 
 const draggingId = ref<string | null>(null)
 const dragOverStatus = ref<LeadStatus | null>(null)

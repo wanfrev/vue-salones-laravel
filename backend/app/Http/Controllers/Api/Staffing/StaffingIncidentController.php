@@ -28,8 +28,15 @@ class StaffingIncidentController
             return response()->json([]);
         }
 
+        $limit = $request->query('limit');
+
         return response()->json(
-            $this->incidents->list($businessId, $request->query('company_id'), $request->query('status'))
+            $this->incidents->list(
+                $businessId,
+                $request->query('company_id'),
+                $request->query('status'),
+                is_string($limit) && ctype_digit($limit) ? (int) $limit : null,
+            )
         );
     }
 

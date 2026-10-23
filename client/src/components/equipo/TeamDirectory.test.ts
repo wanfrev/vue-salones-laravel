@@ -72,6 +72,17 @@ describe('TeamDirectory (solo presentación: la lógica vive en Equipo.vue)', ()
     expect(rows(w)[1].text()).toContain('Sin empresa asignada')
   })
 
+  it('con un equipo enorme ofrece «Mostrar más» y avisa al padre; sin nada oculto no aparece', async () => {
+    const sinOcultos = mountDir()
+    expect(sinOcultos.findAll('button').some(b => b.text().includes('restantes'))).toBe(false)
+
+    const w = mountDir({ hiddenCount: 70, pageSize: 50 })
+    const more = w.findAll('button').find(b => b.text().includes('restantes'))!
+    expect(more.text()).toBe('Mostrar 50 más (70 restantes)')
+    await more.trigger('click')
+    expect(w.emitted('showMore')).toHaveLength(1)
+  })
+
   it('la fila NO es clicable (como las tarjetas de antes): solo los botones actúan', async () => {
     const w = mountDir()
     await rows(w)[0].trigger('click')

@@ -18,6 +18,7 @@
     :employees="visibleTeam" :stats="{ percentage: empleadosPorcentaje, salaryBase: empleadosSueldoBase, mixed: empleadosMixto }"
     :is-staffing="isStaffing" :show-agenda="showAgenda"
     :has-more="hasMoreThanDefault" :show-all="showAll" :total-count="team.length"
+    :hidden-count="hiddenTeamCount" :page-size="TEAM_PAGE" @show-more="teamShown += TEAM_PAGE"
     @toggle-show-all="showAll = !showAll"
     @edit="handleEditEmpleado" @view-info="handleViewEmpleado" @view-agenda="handleViewAgenda" @view-recibo="handleOpenRecibo"
     @toggle-active="handleToggleActive"
@@ -87,7 +88,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useCrud } from '../composables/empleados/useCrud'
 import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/common/useAuth'
@@ -215,10 +216,17 @@ const showAll = ref(false)
 // Searching shows every match at once — hiding a result the admin just searched for behind
 // "ver todos" would defeat the point of the search bar.
 const hasMoreThanDefault = computed(() => !searchQuery.value.trim() && team.value.length > DEFAULT_VISIBLE)
+// With a big team (staffing can have hundreds) «Ver todos» and a broad search draw them TEAM_PAGE at a
+// time; the total in «Ver todos (N)» is still the real one. Under TEAM_PAGE people nothing changes.
+const TEAM_PAGE = 50
+const teamShown = ref(TEAM_PAGE)
+watch([searchQuery, employeeActiveFilter, showAll], () => { teamShown.value = TEAM_PAGE })
+const showingEveryone = computed(() => !!searchQuery.value.trim() || showAll.value)
 const visibleTeam = computed(() => {
-  if (searchQuery.value.trim() || showAll.value) return filteredTeam.value
+  if (showingEveryone.value) return filteredTeam.value.slice(0, teamShown.value)
   return filteredTeam.value.slice(0, DEFAULT_VISIBLE)
 })
+const hiddenTeamCount = computed(() => showingEveryone.value ? Math.max(0, filteredTeam.value.length - teamShown.value) : 0)
 
 const teamSchedule = computed<ScheduleRow[]>(() => team.value.filter(m => m.schedule).map(m => ({
   id: m.id, name: m.name, start: m.schedule?.start ?? '', end: m.schedule?.end ?? '',

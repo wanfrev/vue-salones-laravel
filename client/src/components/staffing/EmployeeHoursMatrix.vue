@@ -107,7 +107,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-border-subtle">
-            <tr v-for="employee in filteredEmployees" :key="employee.employeeId">
+            <tr v-for="employee in visibleEmployees" :key="employee.employeeId">
               <td class="sticky left-0 z-10 whitespace-nowrap bg-surface px-3 py-2 font-medium text-text">
                 {{ employee.name }}
               </td>
@@ -130,6 +130,11 @@
           </tbody>
         </table>
       </div>
+      <button v-if="filteredEmployees.length > visibleEmployees.length" type="button"
+        class="w-full border-t border-border-subtle py-3 text-center text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+        @click="rowsShown += ROWS_PAGE">
+        Mostrar {{ Math.min(ROWS_PAGE, filteredEmployees.length - visibleEmployees.length) }} más ({{ filteredEmployees.length - visibleEmployees.length }} restantes)
+      </button>
     </template>
 
     <template v-else>
@@ -171,7 +176,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, toRef } from 'vue'
+import { computed, ref, toRef, watch } from 'vue'
 import { ArrowLeftIcon, ArrowRightIcon, MagnifierIcon } from '@solar-icons/vue/linear'
 import { useEmployeeHoursMatrix } from '../../composables/staffing/useEmployeeHoursMatrix'
 import { useCompanyHoursSummary } from '../../composables/staffing/useCompanyHoursSummary'
@@ -217,6 +222,12 @@ const filteredEmployees = computed(() => {
   if (!term) return matrix.employees.value
   return matrix.employees.value.filter(e => e.name.toLowerCase().includes(term))
 })
+
+// One row is ~52 cells, so with hundreds of employees only the first ROWS_PAGE rows are drawn at a time.
+const ROWS_PAGE = 50
+const rowsShown = ref(ROWS_PAGE)
+const visibleEmployees = computed(() => filteredEmployees.value.slice(0, rowsShown.value))
+watch([employeeSearch, active, year], () => { rowsShown.value = ROWS_PAGE })
 
 const period = ref<StaffingHoursPeriod>('week')
 const hoursYear = ref(new Date().getFullYear())

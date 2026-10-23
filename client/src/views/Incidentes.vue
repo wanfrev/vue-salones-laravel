@@ -125,6 +125,11 @@
           </tbody>
         </table>
       </div>
+      <button v-if="hasMore" type="button"
+        class="w-full border-t border-border-subtle py-3 text-center text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+        @click="showMore">
+        Mostrar más incidentes
+      </button>
     </div>
 
     <IncidentFormModal
@@ -173,7 +178,7 @@ const companyFilterOptions = computed(() => [{ value: '', label: 'Todas las empr
 const statusFilterOptions = [{ value: '', label: 'Todos los estados' }, ...INCIDENT_STATUS_OPTIONS.map(s => ({ value: s.value as string, label: s.label }))]
 
 const {
-  incidents, isLoading, saveError,
+  incidents, hasMore, showMore, isLoading, saveError,
   createMutation, updateMutation, deleteMutation,
   uploadSingleMutation, deleteSingleFileMutation, addFileMutation, deleteFileMutation,
 } = useStaffingIncidents(

@@ -33,9 +33,18 @@ class StaffingTimesheetController
             $projectId = null;
         }
 
+        // Optional window of weeks. Anything that isn't a plain Y-m-d is ignored (full history, as before).
+        $weekFrom = $this->plainDate($request->input('week_from'));
+        $weekTo = $this->plainDate($request->input('week_to'));
+
         return response()->json(
-            $this->timesheets->list($p->business_id, $request->company_id, $projectId)
+            $this->timesheets->list($p->business_id, $request->company_id, $projectId, $weekFrom, $weekTo)
         );
+    }
+
+    private function plainDate(mixed $value): ?string
+    {
+        return is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) ? $value : null;
     }
 
     public function employeesForCompany(Request $request, string $companyId): JsonResponse
