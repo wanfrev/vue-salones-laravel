@@ -29,7 +29,8 @@ class StaffingIncidentService
         StaffingIncidentFile::TYPE_FOTO,
     ];
 
-    public function list(string $businessId, ?string $companyId = null, ?string $status = null): Collection
+    /** $limit (optional) caps how many of the most recent incidents come back; without it, all of them (as before). */
+    public function list(string $businessId, ?string $companyId = null, ?string $status = null, ?int $limit = null): Collection
     {
         $query = StaffingIncident::with(['employee:id,full_name', 'company:id,name', 'files'])
             ->where('business_id', $businessId)
@@ -40,6 +41,9 @@ class StaffingIncidentService
         }
         if ($status) {
             $query->where('status', $status);
+        }
+        if ($limit !== null && $limit > 0) {
+            $query->limit(min($limit, 1000));
         }
 
         return $query->get();

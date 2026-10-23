@@ -99,7 +99,7 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-border-subtle">
-            <tr v-for="employee in report.employees.value" :key="employee.employeeId" class="hover:bg-bg-secondary/30 transition-theme group">
+            <tr v-for="employee in visibleEmployees" :key="employee.employeeId" class="hover:bg-bg-secondary/30 transition-theme group">
               <td class="sticky left-0 z-10 whitespace-nowrap bg-surface group-hover:bg-bg-secondary/30 transition-theme px-3 py-2.5 font-medium text-text">
                 {{ employee.name }}
               </td>
@@ -152,6 +152,11 @@
           </tbody>
         </table>
       </div>
+      <button v-if="report.employees.value.length > visibleEmployees.length" type="button"
+        class="w-full border-t border-border-subtle py-3 text-center text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+        @click="rowsShown += ROWS_PAGE">
+        Mostrar {{ Math.min(ROWS_PAGE, report.employees.value.length - visibleEmployees.length) }} más ({{ report.employees.value.length - visibleEmployees.length }} restantes)
+      </button>
     </div>
 
     <!-- Edit Profile Modal -->
@@ -433,9 +438,15 @@ const { formatUSD } = useCurrency()
 const { error: showError } = useNotification()
 
 const year = ref(new Date().getFullYear())
+
+// With hundreds of employees (one column per tax entity each), only the first ROWS_PAGE rows are drawn at a time.
+const ROWS_PAGE = 50
+const rowsShown = ref(ROWS_PAGE)
+watch(year, () => { rowsShown.value = ROWS_PAGE })
 const showEntities = ref(false)
 
 const report = useAnnualTaxReport(businessId, year)
+const visibleEmployees = computed(() => report.employees.value.slice(0, rowsShown.value))
 const entitiesCtx = useStaffingTaxEntities(businessId)
 const companiesCtx = useEmpresas(businessId)
 

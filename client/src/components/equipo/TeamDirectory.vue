@@ -92,6 +92,13 @@
         </li>
       </ul>
 
+      <!-- Con equipos muy grandes se dibujan por tandas: el resto sale con «Mostrar más» -->
+      <button v-if="(hiddenCount ?? 0) > 0" type="button"
+        class="w-full border-t border-border-subtle py-3 text-center text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
+        @click="emit('showMore')">
+        Mostrar {{ Math.min(pageSize ?? 50, hiddenCount ?? 0) }} más ({{ hiddenCount }} restantes)
+      </button>
+
       <!-- «Ver todos» / «Ver menos»: por defecto se muestran los primeros, como siempre -->
       <div v-if="hasMore" class="border-t border-border-subtle p-3 text-center">
         <button
@@ -126,12 +133,16 @@ const props = defineProps<{
   hasMore: boolean
   showAll: boolean
   totalCount: number
+  /** Cuántos empleados quedan sin dibujar (solo con equipos muy grandes); 0 = no hay nada oculto. */
+  hiddenCount?: number
+  pageSize?: number
 }>()
 
 const emit = defineEmits<{
   'update:search': [value: string]
   'update:status': [value: EmployeeActiveFilter]
   toggleShowAll: []
+  showMore: []
   edit: [member: Empleado]
   viewInfo: [member: Empleado]
   viewAgenda: [member: Empleado]

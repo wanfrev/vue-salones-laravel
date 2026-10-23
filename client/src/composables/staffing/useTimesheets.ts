@@ -13,13 +13,24 @@ import {
   type ApprovalSigner,
   type TimesheetEntryInput,
 } from '../../services/staffing/staffingService'
+import { previousWeekStart } from '../../lib/staffingCopyWeek'
 
 /**
  * Hours entry for one company: who can be paid (employees pinned to this company), which weeks
  * already exist, and saving/approving a week. Mirrors the NOMINA sheet's "one company, one week,
  * a row per employee" shape.
  */
-export function useTimesheets(businessId: Ref<string | null>, companyId: Ref<string | null>, projectId: Ref<string | null>) {
+export function useTimesheets(
+  businessId: Ref<string | null>,
+  companyId: Ref<string | null>,
+  projectId: Ref<string | null>,
+  /**
+   * The week being worked on. When given, only that week and the one before it are loaded (the only two
+   * the screen reads: the sheet itself and "copiar semana anterior") instead of the company's whole history.
+   * Omit it to load everything, as before.
+   */
+  weekStart?: Ref<string>,
+) {
   const queryClient = useQueryClient()
   const { success, error: showError } = useNotification()
   const saveError = ref('')
@@ -30,9 +41,15 @@ export function useTimesheets(businessId: Ref<string | null>, companyId: Ref<str
     enabled: computed(() => !!businessId.value && !!companyId.value),
   })
 
-  const { data: timesheets, isLoading: timesheetsLoading } = useQuery({
-    queryKey: computed(() => ['staffing-timesheets', businessId.value, companyId.value, projectId.value]),
-    queryFn: () => listStaffingTimesheets(businessId.value!, companyId.value, projectId.value!),
+  const weekWindow = computed(() => {
+    const week = weekStart?.value
+    return week ? { from: previousWeekStart(week), to: week } : undefined
+  })
+
+  const { data: timesheets, isLoading: timesheetsLoading, isError: timesheetsError } = useQuery({
+    // Starts with the same prefix as before, so every invalidation by company still reaches it.
+    queryKey: computed(() => ['staffing-timesheets', businessId.value, companyId.value, projectId.value, weekWindow.value?.from ?? null, weekWindow.value?.to ?? null]),
+    queryFn: () => listStaffingTimesheets(businessId.value!, companyId.value, projectId.value!, weekWindow.value),
     enabled: computed(() => !!businessId.value && !!companyId.value),
   })
 
@@ -142,6 +159,8 @@ export function useTimesheets(businessId: Ref<string | null>, companyId: Ref<str
     employeesLoading,
     timesheets,
     timesheetsLoading,
+    // True when the week could not be loaded: it must not be treated as an empty week to save over.
+    timesheetsError,
     findWeek,
     saveError,
     saveMutation,

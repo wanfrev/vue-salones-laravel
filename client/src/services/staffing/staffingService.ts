@@ -420,14 +420,21 @@ export const listCompanyEmployees = (_businessId: string, companyId: string, pro
 export const setStaffingAssignmentActive = (assignmentId: string, active: boolean): Promise<void> =>
   apiRequest<void>('PATCH', `/staffing-company-employees/${assignmentId}/active`, { active })
 
+/**
+ * Without `weeks` this returns the company's whole history, as it always did. With it, only the weeks
+ * whose start date falls in [from, to] (both yyyy-mm-dd, inclusive) — what the Nómina screen uses so a
+ * company with years of payroll doesn't load every week and every employee line each time.
+ */
 export const listStaffingTimesheets = async (
   businessId: string,
   companyId?: string | null,
   projectId?: string | null,
+  weeks?: { from: string; to: string },
 ): Promise<StaffingTimesheet[]> => {
   let query = db.from('staffing_timesheets').select('*').eq('business_id', businessId)
   if (companyId) query = query.eq('company_id', companyId)
   if (projectId) query = query.eq('project_id', projectId)
+  if (weeks) query = query.eq('week_from', weeks.from).eq('week_to', weeks.to)
 
   const { data, error } = await query
   if (error) handleDbError(error, 'Error al cargar las semanas')

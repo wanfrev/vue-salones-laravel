@@ -268,6 +268,7 @@
       </div>
       </div>
 
+      <p v-if="timesheets.timesheetsError.value" class="text-sm text-danger">No se pudo cargar esta semana, así que no se puede guardar para no pisar horas ya registradas. Cambia de semana y vuelve, o recarga la página.</p>
       <p v-if="timesheets.saveError.value" class="text-sm text-danger">{{ timesheets.saveError.value }}</p>
 
       <div v-if="rosterEmployees.length > 0" class="flex flex-wrap items-center justify-end gap-2">
@@ -292,12 +293,12 @@
           @click="removeWeek">
           Eliminar borrador
         </button>
-        <button v-if="!isReadOnly" type="button" :disabled="timesheets.saveMutation.isPending.value"
+        <button v-if="!isReadOnly" type="button" :disabled="timesheets.saveMutation.isPending.value || timesheets.timesheetsLoading.value || timesheets.timesheetsError.value"
           class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
           @click="handleSave">
           {{ timesheets.saveMutation.isPending.value ? 'Calculando...' : 'Guardar y calcular' }}
         </button>
-        <button v-if="currentWeek?.status === 'draft'" type="button" :disabled="timesheets.approveMutation.isPending.value"
+        <button v-if="currentWeek?.status === 'draft'" type="button" :disabled="timesheets.approveMutation.isPending.value || timesheets.timesheetsLoading.value || timesheets.timesheetsError.value"
           class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
           @click="handleApprove">
           {{ timesheets.approveMutation.isPending.value ? 'Aprobando...' : 'Aprobar semana' }}
@@ -340,7 +341,7 @@
             {{ billing.deleteInvoiceMutation.isPending.value ? 'Eliminando...' : 'Eliminar factura' }}
           </button>
         </template>
-        <button v-if="currentWeek?.status === 'approved'" type="button" :disabled="timesheets.markPaidMutation.isPending.value"
+        <button v-if="currentWeek?.status === 'approved'" type="button" :disabled="timesheets.markPaidMutation.isPending.value || timesheets.timesheetsLoading.value || timesheets.timesheetsError.value"
           class="rounded-lg bg-success px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-success/90 disabled:cursor-not-allowed disabled:opacity-60"
           @click="handleMarkPaid">
           {{ timesheets.markPaidMutation.isPending.value ? 'Marcando...' : 'Marcar como pagada' }}
@@ -467,7 +468,6 @@ const { data: rates } = useQuery({
   enabled: computed(() => !!props.businessId && !!selectedCompanyId.value),
 })
 
-const timesheets = useTimesheets(businessId, selectedCompanyId, selectedProjectId)
 const billing = useBilling(businessId, selectedCompanyId)
 
 const ratesLoading = computed(() => !rates.value && !!selectedCompanyId.value)
@@ -533,6 +533,9 @@ const defaultWeekStart = (): string => {
 }
 
 const weekStartInput = ref(props.initialWeekStart || defaultWeekStart())
+
+// Loads only the chosen week and the one before it (see useTimesheets), not the company's whole history.
+const timesheets = useTimesheets(businessId, selectedCompanyId, selectedProjectId, weekStartInput)
 
 const weekEnd = computed(() => {
   if (!weekStartInput.value) return ''

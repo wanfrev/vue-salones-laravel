@@ -1,4 +1,4 @@
-import { computed, ref, type Ref } from 'vue'
+import { computed, ref, watch, type Ref } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useNotification } from '../common/useNotification'
 import { translateError } from '../../lib/errors'
@@ -9,20 +9,29 @@ import {
   type StaffingIncidentFormData, type IncidentFileType,
 } from '../../services/staffing/staffingIncidentService'
 
+export const INCIDENTS_PAGE_SIZE = 50
+
 export function useStaffingIncidents(businessId: Ref<string | null>, companyId: Ref<string | null>, status: Ref<string | null>) {
   const queryClient = useQueryClient()
   const { success, error: showError } = useNotification()
   const saveError = ref('')
 
-  const queryKey = computed(() => staffingIncidentKeys.all(businessId.value, companyId.value, status.value))
+  // The list starts at the most recent PAGE_SIZE incidents; "show more" asks for that many again on top.
+  const limit = ref(INCIDENTS_PAGE_SIZE)
+  watch([companyId, status], () => { limit.value = INCIDENTS_PAGE_SIZE })
+
+  const queryKey = computed(() => staffingIncidentKeys.all(businessId.value, companyId.value, status.value, limit.value))
 
   const { data, isLoading } = useQuery({
     queryKey,
-    queryFn: () => listStaffingIncidents(companyId.value, status.value),
+    queryFn: () => listStaffingIncidents(companyId.value, status.value, limit.value),
     enabled: computed(() => !!businessId.value),
   })
 
-  const incidents = computed(() => data.value ?? [])
+  // The request carries one extra row; that extra row only tells us there is more.
+  const incidents = computed(() => (data.value ?? []).slice(0, limit.value))
+  const hasMore = computed(() => (data.value?.length ?? 0) > limit.value)
+  const showMore = () => { limit.value += INCIDENTS_PAGE_SIZE }
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['staffing-incidents', businessId.value], exact: false })
 
@@ -73,6 +82,8 @@ export function useStaffingIncidents(businessId: Ref<string | null>, companyId: 
 
   return {
     incidents,
+    hasMore,
+    showMore,
     isLoading,
     saveError,
     createMutation,
