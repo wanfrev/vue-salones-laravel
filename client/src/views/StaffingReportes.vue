@@ -1,10 +1,8 @@
 <template>
   <FeatureGate :gate="{ capability: 'staffing.reports' }">
-    <header class="mb-5 lg:mb-8">
-      <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
-        <DocumentIcon class="h-3.5 w-3.5" />
-        <span>Reportes</span>
-      </div>
+    <header class="mb-4 flex items-center gap-2">
+      <DocumentIcon class="h-4 w-4 shrink-0 text-primary" />
+      <h1 class="text-xl font-bold tracking-tight text-text sm:text-2xl">Reportes</h1>
     </header>
 
     <div class="flex flex-wrap gap-1 border-b border-border">
