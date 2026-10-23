@@ -1,98 +1,106 @@
 <template>
-  <div class="overflow-hidden rounded-xl border border-border bg-surface">
-    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-bg-secondary px-4 py-3">
-      <div>
+  <div class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle px-4 py-3">
+      <div class="min-w-0">
         <h3 class="text-sm font-semibold text-text">Créditos</h3>
-        <p class="text-xs text-text-muted mt-0.5">Ventas a crédito pendientes de cobro</p>
+        <p class="mt-0.5 text-xs text-text-muted">Ventas a crédito pendientes de cobro</p>
       </div>
-      <div class="flex items-center gap-3">
-        <div class="text-right" v-if="pendingTotal > 0">
-          <p class="text-xs text-text-muted">Pendiente por cobrar</p>
-          <p class="text-sm font-semibold text-warning">{{ formatUSD(pendingTotal) }}</p>
-        </div>
-        <div class="flex rounded-lg border border-border bg-surface p-0.5">
-          <button
-            v-for="t in tabs" :key="t.key" @click="activeTab = t.key"
-            :class="['rounded-md px-3 py-1 text-xs font-medium transition-all', activeTab === t.key ? 'bg-primary text-text-inverse' : 'text-text-secondary hover:text-text']"
-          >{{ t.label }}</button>
-        </div>
+      <div class="text-right" v-if="pendingTotal > 0">
+        <p class="text-xs text-text-muted">Pendiente por cobrar</p>
+        <p class="text-sm font-semibold tabular-nums text-warning">{{ formatUSD(pendingTotal) }}</p>
       </div>
     </div>
 
-    <div v-if="isLoading" class="flex items-center justify-center py-10">
-      <svg class="h-5 w-5 animate-spin text-primary" fill="none" viewBox="0 0 24 24">
-        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-      </svg>
+    <div class="scroll-thin flex gap-1 overflow-x-auto overflow-y-hidden border-b border-border-subtle px-2 sm:px-3" role="tablist" aria-label="Créditos">
+      <button
+        v-for="t in tabs" :key="t.key" type="button" role="tab" :aria-selected="activeTab === t.key"
+        class="relative shrink-0 whitespace-nowrap px-3 py-2.5 text-sm font-medium transition-colors"
+        :class="activeTab === t.key ? 'text-primary' : 'text-text-secondary hover:text-text'"
+        @click="activeTab = t.key"
+      >
+        {{ t.label }}
+        <span v-if="activeTab === t.key" class="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary" />
+      </button>
     </div>
 
-    <div v-else-if="visibleCredits.length === 0" class="px-4 py-8 text-center text-sm text-text-muted">
+    <div v-if="isLoading" class="divide-y divide-border-subtle" aria-busy="true">
+      <div v-for="i in 3" :key="i" class="flex items-center gap-4 px-4 py-4">
+        <div class="h-3 w-32 animate-pulse rounded bg-bg-secondary"></div>
+        <div class="h-3 w-16 animate-pulse rounded bg-bg-secondary"></div>
+        <div class="h-3 w-20 animate-pulse rounded bg-bg-secondary"></div>
+      </div>
+    </div>
+
+    <div v-else-if="visibleCredits.length === 0" class="px-4 py-10 text-center text-sm text-text-muted">
       {{ activeTab === 'pending' ? 'No hay créditos pendientes.' : 'No hay créditos pagados aún.' }}
     </div>
 
-    <div v-else class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead>
-          <tr class="border-b border-border bg-bg-secondary">
-             <th class="px-4 py-2.5 text-left font-medium text-text-muted text-xs">{{ businessStore.terminology.client }}</th>
-            <th class="px-4 py-2.5 text-right font-medium text-text-muted text-xs">{{ activeTab === 'pending' ? 'Saldo / Total' : 'Monto' }}</th>
-            <th class="px-4 py-2.5 text-left font-medium text-text-muted text-xs hidden md:table-cell">Fecha venta</th>
-            <th class="px-4 py-2.5 text-left font-medium text-text-muted text-xs hidden md:table-cell">{{ activeTab === 'paid' ? 'Fecha pago' : '' }}</th>
-            <th class="px-4 py-2.5 text-center font-medium text-text-muted text-xs">{{ activeTab === 'pending' ? 'Acción' : 'Método' }}</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-border">
-          <tr v-for="c in visibleCredits" :key="c.id" class="transition-colors hover:bg-bg-secondary/50">
-            <td class="px-4 py-2.5">
-              <div class="font-medium text-text">{{ c.client_name }}</div>
-              <div v-if="c.client_phone" class="text-xs text-text-muted">{{ c.client_phone }}</div>
-            </td>
-            <td class="px-4 py-2.5 text-right">
-              <template v-if="activeTab === 'pending'">
-                <div class="font-medium text-text">{{ formatUSD(c.remaining) }}</div>
-                <div v-if="c.status === 'partial'" class="text-xs text-text-muted">
-                  de {{ formatUSD(c.amount) }} · abonado {{ formatUSD(c.paid_amount) }}
-                </div>
-              </template>
-              <template v-else>
-                <div class="font-medium text-text">{{ formatUSD(c.amount) }}</div>
-              </template>
-            </td>
-            <td class="px-4 py-2.5 text-text-secondary hidden md:table-cell">{{ formatDate(c.created_at) }}</td>
-            <td class="px-4 py-2.5 text-text-secondary hidden md:table-cell">{{ c.paid_at ? formatDate(c.paid_at) : '—' }}</td>
-            <td class="px-4 py-2.5 text-center">
-              <div v-if="activeTab === 'pending'" class="flex items-center justify-center gap-1.5">
-                <button
-                  @click="openPay(c)"
-                  class="inline-flex items-center gap-1 rounded-lg bg-success/10 px-3 py-1.5 text-xs font-semibold text-success transition-theme hover:bg-success/20"
-                >
-                  Registrar abono
-                </button>
-                <button
-                  v-if="Number(c.paid_amount) === 0"
-                  @click="handleDelete(c)"
-                  :disabled="deleteMutation.isPending.value"
-                  title="Eliminar crédito"
-                  class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger disabled:opacity-50"
-                >
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                </button>
+    <div v-else>
+      <div :class="[gridClass, 'hidden border-b border-border-subtle bg-bg-secondary/30 px-4 py-2 md:grid']">
+        <span :class="headClass">{{ businessStore.terminology.client }}</span>
+        <span :class="[headClass, 'text-right']">{{ activeTab === 'pending' ? 'Saldo / Total' : 'Monto' }}</span>
+        <span :class="headClass">Fecha venta</span>
+        <span :class="headClass">{{ activeTab === 'paid' ? 'Fecha pago' : '' }}</span>
+        <span :class="[headClass, 'text-center']">{{ activeTab === 'pending' ? 'Acción' : 'Método' }}</span>
+      </div>
+
+      <ul class="divide-y divide-border-subtle">
+        <li v-for="c in visibleCredits" :key="c.id" data-testid="credit-row"
+          :class="[gridClass, 'px-4 py-3 text-sm transition-colors hover:bg-bg-secondary/40']">
+          <div class="min-w-0">
+            <div class="font-medium text-text">{{ c.client_name }}</div>
+            <div v-if="c.client_phone" class="text-xs text-text-muted">{{ c.client_phone }}</div>
+          </div>
+
+          <div class="mt-1 md:mt-0 md:text-right">
+            <template v-if="activeTab === 'pending'">
+              <div class="font-medium tabular-nums text-text">{{ formatUSD(c.remaining) }}</div>
+              <div v-if="c.status === 'partial'" class="text-xs text-text-muted">
+                de {{ formatUSD(c.amount) }} · abonado {{ formatUSD(c.paid_amount) }}
               </div>
-              <div v-else class="flex items-center justify-center gap-2">
-                <span class="text-xs text-text-secondary">{{ formatMethod(c.paid_method || '') }}</span>
-                <button
-                  @click="handleDelete(c)"
-                  :disabled="deleteMutation.isPending.value"
-                  title="Eliminar crédito"
-                  class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger disabled:opacity-50"
-                >
-                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                </button>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </template>
+            <template v-else>
+              <div class="font-medium tabular-nums text-text">{{ formatUSD(c.amount) }}</div>
+            </template>
+          </div>
+
+          <div class="hidden text-text-secondary md:block">{{ formatDate(c.created_at) }}</div>
+          <div class="hidden text-text-secondary md:block">{{ c.paid_at ? formatDate(c.paid_at) : '—' }}</div>
+
+          <div class="mt-2 md:mt-0">
+            <div v-if="activeTab === 'pending'" class="flex items-center gap-1.5 md:justify-center">
+              <button
+                @click="openPay(c)"
+                class="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-success ring-1 ring-success/30 transition-theme hover:bg-success/10"
+              >
+                Registrar abono
+              </button>
+              <button
+                v-if="Number(c.paid_amount) === 0"
+                @click="handleDelete(c)"
+                :disabled="deleteMutation.isPending.value"
+                title="Eliminar crédito"
+                aria-label="Eliminar crédito"
+                class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              </button>
+            </div>
+            <div v-else class="flex items-center gap-2 md:justify-center">
+              <span class="text-xs text-text-secondary">{{ formatMethod(c.paid_method || '') }}</span>
+              <button
+                @click="handleDelete(c)"
+                :disabled="deleteMutation.isPending.value"
+                title="Eliminar crédito"
+                aria-label="Eliminar crédito"
+                class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger disabled:opacity-50"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              </button>
+            </div>
+          </div>
+        </li>
+      </ul>
     </div>
   </div>
 
@@ -225,6 +233,10 @@ const props = defineProps<{
 const { formatUSD, exchangeRate } = useCurrency()
 const businessStore = useBusinessStore()
 const { pendingCredits, paidCredits, pendingTotal, isLoading, payMutation, usePaymentsForCredit, deleteMutation } = useCredits(computed(() => props.periodDates))
+
+// Cliente · Saldo/Total · Fecha venta · Fecha pago · Acción/Método (última columna de ancho fijo).
+const gridClass = 'md:grid md:grid-cols-[minmax(0,1.4fr)_9rem_6rem_6rem_12rem] md:items-center md:gap-3'
+const headClass = 'text-[11px] font-bold uppercase tracking-wider text-text-muted'
 
 const tabs: { key: 'pending' | 'paid'; label: string }[] = [
   { key: 'pending', label: 'Pendientes' },

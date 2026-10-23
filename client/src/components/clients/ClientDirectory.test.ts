@@ -38,6 +38,19 @@ describe('ClientDirectoryList', () => {
     expect(text).toContain('$120')
   })
 
+  it('con openLabel hay un botón visible que abre al cliente, sin disparar también el clic de la fila', async () => {
+    const w = mountList({ openLabel: 'Ver historial' })
+    const buttons = w.findAll('[data-testid="client-row"] button').filter(b => b.text() === 'Ver historial')
+    expect(buttons).toHaveLength(2)
+    await buttons[0].trigger('click')
+    expect(w.emitted('open')).toHaveLength(1)
+    expect(w.emitted('open')![0]).toEqual([ana])
+  })
+
+  it('sin openLabel no hay botón de texto (solo el clic en la fila)', () => {
+    expect(mountList().text()).not.toContain('Ver historial')
+  })
+
   it('el cliente sin visitas lo dice y no inventa una fecha', () => {
     expect(rows(mountList())[1].text()).toContain('Sin citas')
   })
