@@ -395,6 +395,7 @@ class WhatsAppController extends Controller
                 ['key' => '{hora}', 'label' => 'Hora de la cita'],
                 ['key' => '{empleado}', 'label' => 'Nombre del empleado'],
                 ['key' => '{negocio}', 'label' => 'Nombre del negocio'],
+                ['key' => '{sucursal}', 'label' => 'Nombre de la sucursal'],
                 ['key' => '{precio}', 'label' => 'Precio del servicio'],
             ],
         ]);

@@ -609,6 +609,9 @@ const loadVariables = async () => {
 
 const openNewTemplate = () => {
   editingTemplateId.value = null
+  // Sin esto, tras editar una plantilla el formulario seguía llevando su id y «Nueva plantilla»
+  // terminaba sobrescribiéndola en vez de crear otra.
+  templateForm.id = undefined
   templateForm.type = 'appointment_reminder'
   templateForm.name = ''
   templateForm.body = ''

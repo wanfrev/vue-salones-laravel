@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\Appointment;
+use App\Models\Branch;
 use App\Models\Business;
 use App\Models\MessageTemplate;
 use App\Models\WhatsAppInstance;
+use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -22,34 +24,72 @@ class WhatsAppService
         '{hora}' => 'appointment_time',
         '{empleado}' => 'employee_name',
         '{negocio}' => 'business_name',
+        '{sucursal}' => 'branch_name',
         '{precio}' => 'appointment_price',
     ];
 
+    /** Segundos máximos de espera por el servidor de WhatsApp (conectar / respuesta completa). */
+    private const CONNECT_TIMEOUT_SECONDS = 5;
+    private const REQUEST_TIMEOUT_SECONDS = 10;
+
+    /**
+     * Cliente HTTP hacia Evolution API, con tiempo límite: sin él, un servidor lento dejaba
+     * colgado hasta 30 s lo que lo llamara (guardar una cita, o la corrida del cron).
+     */
+    private function evolution(?string $apiKey): PendingRequest
+    {
+        return Http::withHeaders(['apikey' => $apiKey])
+            ->connectTimeout(self::CONNECT_TIMEOUT_SECONDS)
+            ->timeout(self::REQUEST_TIMEOUT_SECONDS);
+    }
+
     /**
      * Resolve a template body with real values from an appointment.
+     *
+     * Una visita con varios servicios son varias citas (mismo group_id): pásalas todas en `$group`
+     * para que {servicio}, {empleado} y {precio} describan la visita completa — servicios y
+     * profesionales sin repetir, y el precio como suma — y {fecha}/{hora} sean los de la primera
+     * cita. Sin `$group`, la visita es solo `$appointment`.
+     *
+     * @param  iterable<Appointment>|null  $group
      */
-    public function resolveTemplate(string $body, Appointment $appointment, ?string $serviceNameOverride = null): string
+    public function resolveTemplate(string $body, Appointment $appointment, ?iterable $group = null): string
     {
-        $client = $appointment->client;
-        $service = $appointment->service;
-        $employee = $appointment->employeeProfile;
-        $business = Business::find($appointment->business_id);
-        $pet = $appointment->pet;
+        $visit = collect($group ?? [$appointment])->sortBy('start_time')->values();
+        if ($visit->isEmpty()) {
+            $visit = collect([$appointment]);
+        }
+        $first = $visit->first();
+
+        $visit->each(fn (Appointment $appt) => $appt->loadMissing(['service', 'employeeProfile']));
+
+        $client = $first->client;
+        $business = Business::find($first->business_id);
+        $pet = $first->pet;
 
         // start_time se guarda en UTC -- sin convertir a la zona horaria del negocio antes de
         // formatear, el mensaje mostraba la hora UTC cruda (p.ej. "03:05 PM" en vez de "11:05 AM"
         // para un negocio en Venezuela, UTC-4).
-        $localStartTime = $appointment->start_time->copy()->setTimezone($business?->timezone ?: 'UTC');
+        $localStartTime = $first->start_time->copy()->setTimezone($business?->timezone ?: 'UTC');
+
+        $services = $visit->map(fn (Appointment $a) => $a->service?->name)->filter()->unique()->implode(', ');
+        $employees = $visit->map(fn (Appointment $a) => $a->employeeProfile?->full_name)->filter()->unique()->implode(', ');
+        $price = $visit->sum(fn (Appointment $a) => (float) ($a->price_override ?? $a->service?->price ?? 0));
+
+        // Sucursal de la cita; un negocio sin sucursales (o una cita sin sucursal) lleva el nombre
+        // del negocio, para que «te esperamos en {sucursal}» nunca quede en blanco.
+        $branchName = $first->branch_id ? Branch::find($first->branch_id)?->name : null;
 
         $replacements = [
             '{cliente}' => $client->full_name ?? '',
             '{mascota}' => $pet->name ?? '',
-            '{servicio}' => $serviceNameOverride ?? ($service->name ?? ''),
+            '{servicio}' => $services,
             '{fecha}' => $localStartTime->format('d/m/Y'),
             '{hora}' => $localStartTime->format('h:i A'),
-            '{empleado}' => $employee->full_name ?? '',
+            '{empleado}' => $employees,
             '{negocio}' => $business->name ?? '',
-            '{precio}' => number_format($appointment->price_override ?? $service->price ?? 0, 2),
+            '{sucursal}' => $branchName ?: ($business->name ?? ''),
+            '{precio}' => number_format($price, 2),
         ];
 
         return str_replace(array_keys($replacements), array_values($replacements), $body);
@@ -107,29 +147,71 @@ class WhatsAppService
      * Send a WhatsApp text message for an appointment reminder — resolves whichever instance
      * (the appointment's own branch, or the shared default) is actually connected.
      */
-    public function sendReminder(Appointment $appointment, string $templateBody, ?string $serviceNameOverride = null): bool
+    public function sendReminder(Appointment $appointment, string $templateBody, ?iterable $group = null): bool
+    {
+        return $this->sendReminderOutcome($appointment, $templateBody, $group) === self::OUTCOME_SENT;
+    }
+
+    /** El mensaje salió. */
+    public const OUTCOME_SENT = 'sent';
+    /** No salió porque el número de WhatsApp no está conectado (o no hay uno): vale la pena reintentar. */
+    public const OUTCOME_RETRY = 'retry';
+    /** No salió por una causa que reintentar no arregla (sin teléfono, número inválido, canal apagado...). */
+    public const OUTCOME_FAILED = 'failed';
+
+    /** Segundos que se recuerda que una instancia estaba caída, para no consultarla por cada mensaje. */
+    private const DOWN_MEMO_SECONDS = 60;
+
+    /** @var array<string, int> instance_id => timestamp hasta el que se la da por desconectada */
+    private array $instanceDownUntil = [];
+
+    /**
+     * Igual que sendReminder pero distingue POR QUÉ no salió: si la instancia no estaba conectada
+     * (caída del servidor de WhatsApp, número desvinculado, sucursal sin número) devuelve
+     * OUTCOME_RETRY y el cron lo vuelve a intentar mientras la cita siga en su ventana; cualquier
+     * otro fallo es definitivo. Un fallo con la instancia conectada no se reintenta a propósito:
+     * podría haber salido igual y duplicarse.
+     *
+     * @param  iterable<Appointment>|null  $group
+     */
+    public function sendReminderOutcome(Appointment $appointment, string $templateBody, ?iterable $group = null): string
     {
         $business = Business::find($appointment->business_id);
         if (!$business || !$business->whatsapp_enabled) {
-            return false;
+            return self::OUTCOME_FAILED;
         }
 
         $client = $appointment->client;
         if (!$client || !$client->phone) {
             Log::warning("[WhatsApp] Cannot send reminder — client has no phone for appointment {$appointment->id}");
-            return false;
+            return self::OUTCOME_FAILED;
         }
 
         $instance = $this->resolveSendingInstance($business->id, $appointment->branch_id);
         if (!$instance || !$instance->instance_id) {
             Log::warning("[WhatsApp] Business {$business->id} (branch {$appointment->branch_id}) has no WhatsApp instance configured");
-            return false;
+            return self::OUTCOME_RETRY;
         }
 
-        $message = $this->resolveTemplate($templateBody, $appointment, $serviceNameOverride);
+        if (($this->instanceDownUntil[$instance->instance_id] ?? 0) > time()) {
+            return self::OUTCOME_RETRY;
+        }
+
+        $message = $this->resolveTemplate($templateBody, $appointment, $group);
         $number = $this->sanitizePhone($client->phone);
 
-        return $this->sendText($business, $instance, $number, $message);
+        if ($this->sendText($business, $instance, $number, $message)) {
+            return self::OUTCOME_SENT;
+        }
+
+        // Falló: ¿es que el número no está conectado? Solo en ese caso se reintenta.
+        if (!in_array($this->checkInstanceStatus($business, $instance), ['open', 'connected'], true)) {
+            $this->instanceDownUntil[$instance->instance_id] = time() + self::DOWN_MEMO_SECONDS;
+            Log::warning("[WhatsApp] Instance {$instance->instance_id} is not connected — reminder for appointment {$appointment->id} will be retried");
+            return self::OUTCOME_RETRY;
+        }
+
+        return self::OUTCOME_FAILED;
     }
 
     /**
@@ -140,8 +222,14 @@ class WhatsAppService
      * Configurable per business the same way as every other template: no active
      * appointment_confirmation template (or the business/feature toggle off) just means nothing
      * sends — same silent-no-op contract as sendReminder.
+     *
+     * Respeta el mismo interruptor `whatsapp_reminders_enabled` que el cron (apagarlo detiene los
+     * mensajes automáticos, confirmación incluida). Si hubiera varias plantillas de confirmación
+     * activas se usa siempre la más antigua, no una cualquiera. `$group`: las citas de la visita.
+     *
+     * @param  iterable<Appointment>|null  $group
      */
-    public function sendConfirmation(Appointment $appointment): bool
+    public function sendConfirmation(Appointment $appointment, ?iterable $group = null): bool
     {
         $business = Business::find($appointment->business_id);
         if (!$business || !$business->whatsapp_enabled) {
@@ -149,20 +237,22 @@ class WhatsAppService
         }
 
         $features = is_array($business->features) ? $business->features : json_decode($business->features ?? '[]', true);
-        if (!($features['whatsapp_available'] ?? false)) {
+        if (!($features['whatsapp_available'] ?? false) || !($features['whatsapp_reminders_enabled'] ?? true)) {
             return false;
         }
 
         $template = MessageTemplate::where('business_id', $business->id)
             ->where('type', 'appointment_confirmation')
             ->where('is_active', true)
+            ->orderBy('created_at')
+            ->orderBy('id')
             ->first();
 
         if (!$template) {
             return false;
         }
 
-        return $this->sendReminder($appointment, $template->body);
+        return $this->sendReminder($appointment, $template->body, $group);
     }
 
     /**
@@ -179,7 +269,7 @@ class WhatsAppService
         }
 
         try {
-            $response = Http::withHeaders(['apikey' => $apiKey])
+            $response = $this->evolution($apiKey)
                 ->post(rtrim($baseUrl, '/') . "/message/sendText/{$instance->instance_id}", [
                     'number' => $number,
                     'text' => $text,
@@ -212,7 +302,7 @@ class WhatsAppService
         }
 
         try {
-            $response = Http::withHeaders(['apikey' => $apiKey])
+            $response = $this->evolution($apiKey)
                 ->get(rtrim($baseUrl, '/') . "/instance/connect/{$instance->instance_id}");
 
             if ($response->successful()) {
@@ -239,7 +329,7 @@ class WhatsAppService
         }
 
         try {
-            $response = Http::withHeaders(['apikey' => $apiKey])
+            $response = $this->evolution($apiKey)
                 ->get(rtrim($baseUrl, '/') . "/instance/connectionState/{$instance->instance_id}");
 
             if ($response->successful()) {
@@ -271,7 +361,7 @@ class WhatsAppService
         }
 
         try {
-            $response = Http::withHeaders(['apikey' => $apiKey])
+            $response = $this->evolution($apiKey)
                 ->get(rtrim($baseUrl, '/') . '/instance/fetchInstances', [
                     'instanceName' => $instance->instance_id,
                 ]);
@@ -311,7 +401,7 @@ class WhatsAppService
         }
 
         try {
-            $response = Http::withHeaders(['apikey' => $apiKey])
+            $response = $this->evolution($apiKey)
                 ->post(rtrim($baseUrl, '/') . '/instance/create', [
                     'instanceName' => $instanceName,
                     'integration' => 'WHATSAPP-BAILEYS',
@@ -362,7 +452,7 @@ class WhatsAppService
         }
 
         try {
-            $response = Http::withHeaders(['apikey' => $apiKey])
+            $response = $this->evolution($apiKey)
                 ->delete(rtrim($baseUrl, '/') . "/instance/logout/{$instance->instance_id}");
 
             if ($response->successful()) {

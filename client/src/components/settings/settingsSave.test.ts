@@ -12,7 +12,7 @@ const apiRequest = vi.fn()
 
 vi.mock('../../lib/api', async (orig) => ({ ...(await orig<object>()), apiRequest: (...args: unknown[]) => apiRequest(...args) }))
 vi.mock('../../composables/common/useAuth', () => ({ useAuth: () => ({ authStore: { businessId: 'biz-1', role: 'admin' } }) }))
-vi.mock('../../services/pushService', () => ({ isPushSupported: () => false, unsubscribeFromPush: vi.fn() }))
+vi.mock('../../services/pushService', () => ({ isPushSupported: () => false, isPushDisabledByUser: () => false, unsubscribeFromPush: vi.fn() }))
 vi.mock('../../composables/common/useNotifications', () => ({ requestNotificationPermission: vi.fn() }))
 vi.mock('../../services/branchesService', async (orig) => ({ ...(await orig<object>()), listBranches: vi.fn().mockResolvedValue([]) }))
 
