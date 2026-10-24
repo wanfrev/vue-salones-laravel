@@ -55,7 +55,7 @@
             <p class="max-w-md text-xs text-text-muted">{{ pushExplanation }}</p>
           </div>
 
-          <button v-if="pushPermission === 'granted'" :disabled="pushLoading"
+          <button v-if="pushOn" :disabled="pushLoading"
             class="shrink-0 rounded-lg border border-border-strong px-2.5 py-1.5 text-[11px] font-semibold text-text-secondary transition-colors hover:border-danger/30 hover:bg-danger/10 hover:text-danger disabled:opacity-50"
             @click="disablePush">{{ pushLoading ? 'Desactivando...' : 'Desactivar' }}</button>
           <button v-else-if="pushPermission === 'denied'" disabled
@@ -75,7 +75,7 @@ import { useBusinessStore } from '../../store/business'
 import { useBusinessFeatures } from '../../composables/common/useBusinessFeatures'
 import { useNotification } from '../../composables/common/useNotification'
 import { requestNotificationPermission } from '../../composables/common/useNotifications'
-import { isPushSupported, unsubscribeFromPush } from '../../services/pushService'
+import { isPushSupported, isPushDisabledByUser, unsubscribeFromPush } from '../../services/pushService'
 import SettingsSection from './SettingsSection.vue'
 import SettingsGroup from './SettingsGroup.vue'
 import SettingToggle from './SettingToggle.vue'
@@ -135,33 +135,45 @@ function removeReminderOffset(idx: number) {
 // ── push notifications (per browser) ───────────────────────────────────────
 const pushSupported = isPushSupported()
 const pushPermission = ref<NotificationPermission>('default')
+// El permiso del navegador sigue en «granted» después de desactivar; esto recuerda que el usuario las apagó.
+const pushDisabled = ref(false)
 const pushLoading = ref(false)
 
 onMounted(() => {
-  if (pushSupported) pushPermission.value = Notification.permission
+  if (pushSupported) {
+    pushPermission.value = Notification.permission
+    pushDisabled.value = isPushDisabledByUser()
+  }
 })
 
+const pushOn = computed(() => pushPermission.value === 'granted' && !pushDisabled.value)
+
 const pushBadge = computed(() =>
-  pushPermission.value === 'granted'
+  pushOn.value
     ? { label: 'Activadas', class: 'bg-success/10 border-success/30 text-success' }
     : pushPermission.value === 'denied'
       ? { label: 'Bloqueadas', class: 'bg-danger/10 border-danger/30 text-danger' }
-      : { label: 'No configuradas', class: 'bg-bg-secondary border-border text-text-muted' },
+      : pushPermission.value === 'granted'
+        ? { label: 'Desactivadas', class: 'bg-bg-secondary border-border text-text-muted' }
+        : { label: 'No configuradas', class: 'bg-bg-secondary border-border text-text-muted' },
 )
 
 const pushExplanation = computed(() =>
-  pushPermission.value === 'granted'
+  pushOn.value
     ? `Recibirás alertas de nuevas ${terms.value.appointments} y recordatorios aunque tengas la app en segundo plano.`
     : pushPermission.value === 'denied'
       ? 'El navegador tiene bloqueadas las notificaciones de este sitio. Permítelas desde los ajustes del navegador y vuelve aquí.'
-      : 'Recibe recordatorios y alertas directamente en tu pantalla, incluso con la app cerrada.',
+      : pushPermission.value === 'granted'
+        ? 'Apagadas en este navegador: no recibirás alertas aquí. Puedes volver a activarlas cuando quieras.'
+        : 'Recibe recordatorios y alertas directamente en tu pantalla, incluso con la app cerrada.',
 )
 
 async function enablePush() {
   pushLoading.value = true
   try {
-    await requestNotificationPermission()
+    await requestNotificationPermission(true)
     pushPermission.value = Notification.permission
+    pushDisabled.value = isPushDisabledByUser()
   } finally {
     pushLoading.value = false
   }
@@ -172,6 +184,7 @@ async function disablePush() {
   try {
     await unsubscribeFromPush()
     pushPermission.value = Notification.permission
+    pushDisabled.value = isPushDisabledByUser()
   } finally {
     pushLoading.value = false
   }

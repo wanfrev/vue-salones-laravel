@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Events\EntityChanged;
+use App\Jobs\SendAppointmentConfirmationJob;
 use App\Http\Requests\StoreAppointmentRequest;
 use App\Http\Requests\UpdateAppointmentRequest;
 use App\Models\Appointment;
@@ -10,7 +11,6 @@ use App\Models\Business;
 use App\Models\Profile;
 use App\Services\AppointmentService;
 use App\Services\NotificationService;
-use App\Services\WhatsAppService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -20,13 +20,13 @@ class AppointmentController
 {
     public function __construct(
         private AppointmentService $appointmentService,
-        private WhatsAppService $whatsappService,
     ) {}
 
     /**
-     * Fire the "appointment_confirmation" WhatsApp template right after booking — never lets a
+     * Fire the "appointment_confirmation" WhatsApp template after booking — never lets a
      * WhatsApp failure (misconfigured server, Evolution API down, no template active, etc.) turn
      * appointment creation into a 500; the appointment is already committed by the time this runs.
+     * El envío en sí corre fuera de la petición (SendAppointmentConfirmationJob).
      *
      * A multi-service visit is several Appointment rows sharing one group_id, saved as separate
      * sequential POST /appointments calls (see agendaService.saveNewGroup on the frontend) — only
@@ -43,9 +43,15 @@ class AppointmentController
                 if ($hasSibling) {
                     return;
                 }
+
+                // Los demás servicios de la visita se guardan en las siguientes peticiones: se
+                // espera un poco para que el mensaje los incluya a todos.
+                SendAppointmentConfirmationJob::dispatch($appointment->id)
+                    ->delay(now()->addSeconds(SendAppointmentConfirmationJob::GROUP_DELAY_SECONDS));
+                return;
             }
 
-            $this->whatsappService->sendConfirmation($appointment);
+            SendAppointmentConfirmationJob::dispatchAfterResponse($appointment->id);
         } catch (\Throwable $e) {
             Log::error("[AppointmentController] Error sending WhatsApp confirmation for appointment {$appointment->id}: {$e->getMessage()}");
         }

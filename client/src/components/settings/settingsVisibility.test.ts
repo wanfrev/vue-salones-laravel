@@ -9,7 +9,7 @@ import SettingToggle from './SettingToggle.vue'
 import { useBusinessStore } from '../../store/business'
 import { isStaffingNiche, isTiendaNiche } from '../../config/niches'
 
-vi.mock('../../services/pushService', () => ({ isPushSupported: () => false, unsubscribeFromPush: vi.fn() }))
+vi.mock('../../services/pushService', () => ({ isPushSupported: () => false, isPushDisabledByUser: () => false, unsubscribeFromPush: vi.fn() }))
 vi.mock('../../composables/common/useNotifications', () => ({ requestNotificationPermission: vi.fn() }))
 // A multi-branch scenario makes the store ask for branches; keep the test off the network.
 vi.mock('../../services/branchesService', async (orig) => ({ ...(await orig<object>()), listBranches: vi.fn().mockResolvedValue([]) }))

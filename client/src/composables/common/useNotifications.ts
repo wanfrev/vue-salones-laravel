@@ -13,7 +13,7 @@ import {
 } from '../../services/notificationService'
 import type { NotificationRecord } from '../../services/notificationService'
 import { sanitizePhone } from '../../lib/formatters'
-import { subscribeToPush, isPushSupported } from '../../services/pushService'
+import { subscribeToPush, isPushSupported, isPushDisabledByUser, setPushDisabledByUser } from '../../services/pushService'
 import { useNotificationPrefs } from './useNotificationPrefs'
 import { playSound } from '../../lib/audioPlayer'
 
@@ -24,10 +24,13 @@ let permissionRequested = false
 const shownNotificationIds = new Set<string>()
 let shownIdsSeeded = false
 
-export async function requestNotificationPermission() {
-  if (permissionRequested) return
+/** `force`: el usuario pulsó «Activar» a propósito (también tras haberlas desactivado). */
+export async function requestNotificationPermission(force = false) {
+  if (permissionRequested && !force) return
   permissionRequested = true
   if (!('Notification' in window)) return
+  if (force) setPushDisabledByUser(false)
+  if (isPushDisabledByUser()) return
   if (Notification.permission === 'granted') {
     if (isPushSupported()) {
       subscribeToPush()
@@ -44,6 +47,7 @@ export async function requestNotificationPermission() {
 
 async function showBrowserNotification(notification: NotificationRecord) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return
+  if (isPushDisabledByUser()) return
 
   const options: NotificationOptions = {
     body: notification.message,

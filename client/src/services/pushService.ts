@@ -40,16 +40,40 @@ export async function subscribeToPush(): Promise<PushSubscription | null> {
   }
 }
 
+// El permiso del navegador no se puede revocar desde la página: tras desactivar sigue en «granted».
+// Esta marca (por navegador) es lo que recuerda que el usuario pidió apagarlas.
+const DISABLED_KEY = 'luma_push_disabled'
+
+export function isPushDisabledByUser(): boolean {
+  try {
+    return localStorage.getItem(DISABLED_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+export function setPushDisabledByUser(disabled: boolean): void {
+  try {
+    if (disabled) localStorage.setItem(DISABLED_KEY, '1')
+    else localStorage.removeItem(DISABLED_KEY)
+  } catch { /* sin almacenamiento: la desactivación vale solo en esta sesión */ }
+}
+
 export async function unsubscribeFromPush(): Promise<void> {
+  // Primero la marca: aunque falle el servidor o el navegador, deja de avisar en este dispositivo.
+  setPushDisabledByUser(true)
   try {
     const registration = await navigator.serviceWorker.ready
     const subscription = await registration.pushManager.getSubscription()
-    if (subscription) {
-      await apiRequest('DELETE', '/push-subscriptions', {
-        endpoint: subscription.endpoint,
-      })
-      await subscription.unsubscribe()
+    if (!subscription) return
+
+    // Cada paso por separado: si el servidor no responde, igual se da de baja en el navegador.
+    try {
+      await apiRequest('DELETE', '/push-subscriptions', { endpoint: subscription.endpoint })
+    } catch (err) {
+      console.error('Push unsubscription (server) failed:', err)
     }
+    await subscription.unsubscribe()
   } catch (err) {
     console.error('Push unsubscription failed:', err)
   }

@@ -17,6 +17,9 @@ class GenerateReminders extends Command
     protected $signature = 'reminders:generate {--debug : Show verbose debug output}';
     protected $description = 'Generate appointment reminders, unpaid alerts, and low stock notifications.';
 
+    /** Tope de la holgura de la ventana de un seguimiento (el resto de plantillas usa 10% del offset). */
+    private const FOLLOW_UP_MAX_TOLERANCE_MINUTES = 60;
+
     public function __construct(
         private NotificationService $notificationService,
         private WhatsAppService $whatsappService,
@@ -326,6 +329,11 @@ class GenerateReminders extends Command
             ? $now->copy()->subMinutes($offsetHours * 60)
             : $now->copy()->addMinutes($offsetHours * 60);
         $toleranceMinutes = max(10, (int) round($offsetHours * 60 * 0.1));
+        // El 10% sirve para avisos de horas, pero en un seguimiento de 18 días serían ±43 h: el
+        // mensaje saldría un día y medio antes o después de lo configurado.
+        if ($isFollowUp) {
+            $toleranceMinutes = min($toleranceMinutes, self::FOLLOW_UP_MAX_TOLERANCE_MINUTES);
+        }
         $windowStart = $anchor->copy()->subMinutes($toleranceMinutes);
         $windowEnd = $anchor->copy()->addMinutes($toleranceMinutes);
         $sentMarker = "wa:{$template->id}";
@@ -345,13 +353,29 @@ class GenerateReminders extends Command
         // con varios servicios le mandaba al cliente un WhatsApp por cada servicio en vez de uno solo.
         $groups = $appointments->groupBy(fn (Appointment $appt) => $appt->group_id ?? $appt->id);
 
-        foreach ($groups as $groupAppointments) {
+        $returnedSince = $isFollowUp ? $this->visitsAfter($business->id, $groups, $now) : [];
+
+        foreach ($groups as $groupKey => $groupAppointments) {
+            // Por hora: la fecha y hora del mensaje son las de la primera cita de la visita.
+            $groupAppointments = $groupAppointments->sortBy('start_time')->values();
             $first = $groupAppointments->first();
 
-            if ($first->client && $first->client->phone) {
-                $serviceLabel = $groupAppointments->pluck('service.name')->filter()->unique()->implode(', ');
-                $success = $this->whatsappService->sendReminder($first, $template->body, $serviceLabel);
-                if ($success) {
+            // Un seguimiento cuenta desde la ÚLTIMA visita del cliente: si ya volvió después de
+            // esta cita, el mensaje ("hace tiempo no vienes") no aplica. Se marca como enviado
+            // igual para que no se reevalúe mientras la cita siga dentro de la ventana.
+            $alreadyReturned = $isFollowUp && $this->clientReturned($groupKey, $groupAppointments, $returnedSince);
+
+            if (!$alreadyReturned && $first->client && $first->client->phone) {
+                $outcome = $this->whatsappService->sendReminderOutcome($first, $template->body, $groupAppointments);
+
+                // El número de WhatsApp no estaba conectado: no se marca como enviado, así la
+                // próxima corrida (cada 5 min) lo reintenta mientras la cita siga en su ventana.
+                // Pasada la ventana ya no se envía: un recordatorio tardío confunde más de lo que ayuda.
+                if ($outcome === WhatsAppService::OUTCOME_RETRY) {
+                    continue;
+                }
+
+                if ($outcome === WhatsAppService::OUTCOME_SENT) {
                     $whatsappSent++;
                     $whatsappBizIds[$business->id] = true;
                 }
@@ -366,6 +390,60 @@ class GenerateReminders extends Command
                 $appt->save();
             }
         }
+    }
+
+    /**
+     * Visitas ya ocurridas (no canceladas ni inasistencias) de los clientes de estos grupos de
+     * citas, desde que terminó la primera de ellas hasta ahora. Una sola consulta para todos,
+     * en vez de una por cliente.
+     *
+     * @return array<string, array<int, array{key: string, start: \Illuminate\Support\Carbon}>>  por client_id
+     */
+    private function visitsAfter(string $businessId, $groups, $now): array
+    {
+        $clientIds = $groups->map(fn ($g) => $g->first()->client_id)->filter()->unique()->values();
+        if ($clientIds->isEmpty()) {
+            return [];
+        }
+
+        $since = $groups->map(fn ($g) => $g->max('end_time'))->filter()->min();
+
+        $visits = [];
+        $rows = Appointment::where('business_id', $businessId)
+            ->whereIn('client_id', $clientIds)
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->where('start_time', '>=', $since)
+            ->where('start_time', '<=', $now)
+            ->get(['id', 'client_id', 'group_id', 'start_time']);
+
+        foreach ($rows as $row) {
+            $visits[$row->client_id][] = ['key' => (string) ($row->group_id ?? $row->id), 'start' => $row->start_time];
+        }
+
+        return $visits;
+    }
+
+    /**
+     * ¿El cliente de este grupo de citas tuvo otra visita posterior (ya realizada)?
+     *
+     * @param  \Illuminate\Support\Collection<int, Appointment>  $groupAppointments
+     * @param  array<string, array<int, array{key: string, start: \Illuminate\Support\Carbon}>>  $visits
+     */
+    private function clientReturned(string $groupKey, $groupAppointments, array $visits): bool
+    {
+        $clientId = $groupAppointments->first()->client_id;
+        $groupEnd = $groupAppointments->max('end_time');
+        if (!$clientId || !$groupEnd) {
+            return false;
+        }
+
+        foreach ($visits[$clientId] ?? [] as $visit) {
+            if ($visit['key'] !== $groupKey && $visit['start']->greaterThanOrEqualTo($groupEnd)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function getAdminsToNotify(string $businessId, ?string $branchId, ?string $excludeProfileId = null)
