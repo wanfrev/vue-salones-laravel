@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from '../../i18n'
 import { useCurrency } from '../../composables/common/useCurrency'
 
 export interface BreakdownItem {
@@ -37,6 +38,7 @@ defineEmits<{
 }>()
 
 const { formatVESEs, isSingleCurrency } = useCurrency()
+const { t } = useI18n()
 </script>
 
 <template>
@@ -49,7 +51,7 @@ const { formatVESEs, isSingleCurrency } = useCurrency()
         </svg>
         <h3 class="text-sm font-semibold text-text">{{ data.title }}</h3>
       </div>
-      <button v-if="!hideClose" @click="$emit('close')" aria-label="Cerrar"
+      <button v-if="!hideClose" @click="$emit('close')" :aria-label="t('finance.breakdown.close')"
         class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-text">
         <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -61,7 +63,7 @@ const { formatVESEs, isSingleCurrency } = useCurrency()
       <!-- USD Column -->
       <div class="px-4 py-4">
         <div class="mb-3 flex items-baseline justify-between gap-2">
-          <p class="text-xs font-semibold uppercase tracking-wider text-primary">USD <span class="font-normal normal-case tracking-normal text-text-muted">· Dólares</span></p>
+          <p class="text-xs font-semibold uppercase tracking-wider text-primary">USD <span class="font-normal normal-case tracking-normal text-text-muted">{{ t('finance.breakdown.dollars') }}</span></p>
           <span class="text-lg font-bold tabular-nums text-text">${{ data.usdTotal.toFixed(2) }}</span>
         </div>
 
@@ -83,7 +85,7 @@ const { formatVESEs, isSingleCurrency } = useCurrency()
           </ul>
         </div>
         <div v-else class="py-4 text-center text-sm text-text-muted">
-          Sin detalle
+          {{ t('finance.breakdown.noDetail') }}
         </div>
       </div>
 
@@ -91,7 +93,7 @@ const { formatVESEs, isSingleCurrency } = useCurrency()
            exchange rate to convert against and no VES-denominated records to begin with. -->
       <div v-if="!isSingleCurrency" class="px-4 py-4">
         <div class="mb-3 flex items-baseline justify-between gap-2">
-          <p class="text-xs font-semibold uppercase tracking-wider text-warning">VES <span class="font-normal normal-case tracking-normal text-text-muted">· Bolívares</span></p>
+          <p class="text-xs font-semibold uppercase tracking-wider text-warning">VES <span class="font-normal normal-case tracking-normal text-text-muted">{{ t('finance.breakdown.bolivars') }}</span></p>
           <span class="text-lg font-bold tabular-nums text-text">{{ formatVESEs(data.vesTotal) }}</span>
         </div>
 
@@ -113,14 +115,14 @@ const { formatVESEs, isSingleCurrency } = useCurrency()
           </ul>
         </div>
         <div v-else class="py-4 text-center text-sm text-text-muted">
-          Sin detalle
+          {{ t('finance.breakdown.noDetail') }}
         </div>
       </div>
     </div>
 
     <div v-if="(data.pendingCredit ?? 0) > 0"
       class="flex items-center justify-between gap-3 border-t border-border-subtle bg-warning/5 px-4 py-2.5 text-xs">
-      <span class="text-text-secondary">Pendiente por cobrar de créditos de este período (no está sumado arriba)</span>
+      <span class="text-text-secondary">{{ t('finance.breakdown.pendingCredit') }}</span>
       <span class="shrink-0 font-semibold tabular-nums text-warning">${{ (data.pendingCredit ?? 0).toFixed(2) }}</span>
     </div>
   </div>

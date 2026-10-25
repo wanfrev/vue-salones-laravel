@@ -1,17 +1,17 @@
 <template>
   <div class="p-4">
     <div class="mb-3 flex items-center justify-between">
-      <p class="text-xs text-text-muted">Trabajadores asignados a esta empresa.</p>
+      <p class="text-xs text-text-muted">{{ t('workers.intro') }}</p>
       <button type="button"
         class="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-text-inverse transition-theme hover:bg-primary-hover"
         @click="openNew">
         <AddCircleIcon class="h-3.5 w-3.5" />
-        Nuevo trabajador
+        {{ t('workers.new') }}
       </button>
     </div>
 
     <div v-if="workers.length === 0" class="py-8 text-center text-sm text-text-muted">
-      Sin trabajadores asignados todavía.
+      {{ t('workers.empty') }}
     </div>
 
     <div v-else class="divide-y divide-border-subtle rounded-xl border border-border-subtle">
@@ -20,13 +20,13 @@
         <div class="min-w-0">
           <p class="truncate text-sm font-medium text-text">{{ worker.name }}</p>
           <p class="truncate text-xs text-text-muted">
-            {{ worker.role || 'Sin rol' }}
-            <span v-if="worker.paymentMethod"> · {{ worker.paymentMethod === 'direct_deposit' ? 'Depósito directo' : 'Tarjeta' }}</span>
+            {{ worker.role || t('workers.noRole') }}
+            <span v-if="worker.paymentMethod"> · {{ worker.paymentMethod === 'direct_deposit' ? t('workers.directDeposit') : t('workers.card') }}</span>
           </p>
         </div>
         <button type="button"
           class="shrink-0 rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
-          title="Editar" @click="openEdit(worker)">
+          :title="t('common.edit')" @click="openEdit(worker)">
           <PenIcon class="h-4 w-4" />
         </button>
       </div>
@@ -45,12 +45,14 @@ import { EmpleadoFormModal } from '../modals'
 import { useModal } from '../../composables/common/useModal'
 import type { Empleado, EmpleadoFormData } from '../../types/empleado'
 import { AddCircleIcon, PenIcon } from '@solar-icons/vue/linear'
+import { useI18n } from '../../i18n'
 
 const props = defineProps<{
   businessId: string | null
   companyId: string
 }>()
 
+const { t } = useI18n()
 const businessId = computed(() => props.businessId)
 const businessStore = useBusinessStore()
 const branchId = computed(() => businessStore.currentBranchId)

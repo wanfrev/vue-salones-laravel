@@ -5,11 +5,11 @@
       :class="modelValue === null ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-bg-secondary'"
       @click="emit('update:modelValue', null)">
       <UsersGroupRoundedIcon class="h-4 w-4 shrink-0" />
-      <span class="min-w-0 flex-1 truncate">Todos los leads</span>
+      <span class="min-w-0 flex-1 truncate">{{ t('crm.sidebar.all') }}</span>
     </button>
 
     <div v-if="vendedorasCtx.isLoading.value" class="px-3 py-4 text-center text-xs text-text-muted">
-      Cargando...
+      {{ t('crm.loading') }}
     </div>
 
     <div v-for="v in vendedorasCtx.vendedoras.value" :key="v.id"
@@ -20,13 +20,13 @@
         <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold normal-case text-primary">
           {{ getInitials(v.name) }}
         </span>
-        <span class="min-w-0 flex-1 truncate">Ventas {{ v.name }}</span>
+        <span class="min-w-0 flex-1 truncate">{{ t('crm.sidebar.sales', { name: v.name }) }}</span>
         <span class="shrink-0 text-xs font-bold normal-case tabular-nums text-text-muted">
           {{ v.leadCount }}
         </span>
       </button>
       <button type="button" class="shrink-0 rounded-lg p-1.5 normal-case text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary"
-        title="Editar vendedor" aria-label="Editar vendedor" @click="editingVendedor = v">
+        :title="t('crm.sidebar.editSeller')" :aria-label="t('crm.sidebar.editSeller')" @click="editingVendedor = v">
         <PenIcon class="h-3.5 w-3.5" />
       </button>
     </div>
@@ -35,7 +35,7 @@
       class="mt-1 flex w-full items-center gap-2 rounded-xl border border-dashed border-border px-3 py-2.5 text-left text-sm font-semibold text-text-muted transition-colors hover:border-primary hover:text-primary"
       @click="showNewModal = true">
       <AddCircleIcon class="h-4 w-4 shrink-0" />
-      <span>Agregar vendedor</span>
+      <span>{{ t('crm.sidebar.addSeller') }}</span>
     </button>
 
     <NuevaVendedoraModal v-if="showNewModal" :business-id="businessId" @close="showNewModal = false"
@@ -51,6 +51,7 @@ import { ref, toRef } from 'vue'
 import { useVendedoras } from '../../composables/staffing/useVendedoras'
 import { getInitials } from '../../lib/formatters'
 import NuevaVendedoraModal from './NuevaVendedoraModal.vue'
+import { useI18n } from '../../i18n'
 import EditarVendedorModal from './EditarVendedorModal.vue'
 import { UsersGroupRoundedIcon, AddCircleIcon, PenIcon } from '@solar-icons/vue/linear'
 import type { VendedoraRow } from '../../services/leadsService'
@@ -63,6 +64,7 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:modelValue': [id: string | null] }>()
 
 const vendedorasCtx = useVendedoras(toRef(props, 'businessId'))
+const { t } = useI18n()
 const showNewModal = ref(false)
 const editingVendedor = ref<VendedoraRow | null>(null)
 

@@ -14,6 +14,7 @@ import {
   type TimesheetEntryInput,
 } from '../../services/staffing/staffingService'
 import { previousWeekStart } from '../../lib/staffingCopyWeek'
+import { useI18n } from '../../i18n'
 
 /**
  * Hours entry for one company: who can be paid (employees pinned to this company), which weeks
@@ -33,6 +34,7 @@ export function useTimesheets(
 ) {
   const queryClient = useQueryClient()
   const { success, error: showError } = useNotification()
+  const { t } = useI18n()
   const saveError = ref('')
 
   const { data: employees, isLoading: employeesLoading } = useQuery({
@@ -82,7 +84,7 @@ export function useTimesheets(
       saveTimesheetWeek(companyId.value!, input.weekStart, input.weekEnd, input.entries, projectId.value!),
     onSuccess: async () => {
       await invalidate()
-      success('Horas guardadas')
+      success(t('toast.hoursSaved'))
     },
     onError: (err) => {
       saveError.value = translateError(err)
@@ -94,7 +96,7 @@ export function useTimesheets(
     mutationFn: (input: { id: string; signer?: ApprovalSigner }) => approveTimesheet(input.id, input.signer),
     onSuccess: async () => {
       await invalidate()
-      success('Semana aprobada')
+      success(t('toast.weekApproved'))
     },
     onError: (err) => {
       saveError.value = translateError(err)
@@ -106,7 +108,7 @@ export function useTimesheets(
     mutationFn: (id: string) => markTimesheetPaid(id),
     onSuccess: async () => {
       await invalidate()
-      success('Semana marcada como pagada')
+      success(t('toast.weekPaid'))
     },
     onError: (err) => {
       saveError.value = translateError(err)
@@ -118,7 +120,7 @@ export function useTimesheets(
     mutationFn: (id: string) => deleteTimesheet(id),
     onSuccess: async () => {
       await invalidate()
-      success('Semana eliminada')
+      success(t('toast.weekDeleted'))
     },
     onError: (err) => {
       showError(translateError(err))

@@ -68,15 +68,20 @@ import SettingsSection from './SettingsSection.vue'
 import SettingsGroup from './SettingsGroup.vue'
 import SettingToggle from './SettingToggle.vue'
 import { groupCopy, sectionCopy, termsFrom, toggleCopy } from './featureCopy'
+import { groupCopyEn, sectionCopyEn, termsEn, toggleCopyEn } from './featureCopy.en'
+import { useI18n } from '../../i18n'
 
 const businessStore = useBusinessStore()
 const { updating, setFeature } = useBusinessFeatures()
 
 const features = computed(() => businessStore.features)
 const terms = computed(() => termsFrom(businessStore.terminology))
-const copy = computed(() => toggleCopy(terms.value))
-const groups = computed(() => groupCopy(terms.value))
-const section = computed(() => sectionCopy(terms.value).permisos)
+const { locale } = useI18n()
+// Spanish keeps using the business's own terminology; English uses the plain words.
+const english = computed(() => locale.value === 'en')
+const copy = computed(() => english.value ? toggleCopyEn(termsEn) : toggleCopy(terms.value))
+const groups = computed(() => english.value ? groupCopyEn(termsEn) : groupCopy(terms.value))
+const section = computed(() => (english.value ? sectionCopyEn(termsEn) : sectionCopy(terms.value)).permisos)
 
 // Each switch only means something for niches with the matching capability — a tienda or staffing
 // business has no agenda, no dual currency, etc. Hiding the whole group (not just its switches)

@@ -1,5 +1,14 @@
 import { ref, computed, type Ref } from 'vue'
 import { type ZodSchema, ZodError } from 'zod'
+import { translate } from '../../i18n/translate'
+import { validation, validationKeyFor } from '../../i18n/messages/validation'
+import { activeLocale } from '../../i18n/active'
+
+/** The schema messages are written in Spanish; people using English get the matching English text. */
+const localizeMessage = (message: string): string => {
+  const key = validationKeyFor(message)
+  return key ? translate(validation, activeLocale(), key) : message
+}
 
 export function useFormValidation<T extends Record<string, any>>(
   schema: ZodSchema<T>,
@@ -28,7 +37,7 @@ export function useFormValidation<T extends Record<string, any>>(
         return path[0] === field
       })
       if (issue) {
-        errors.value[field] = issue.message
+        errors.value[field] = localizeMessage(issue.message)
       }
     }
   }
@@ -57,7 +66,7 @@ export function useFormValidation<T extends Record<string, any>>(
         const field = path[0] as keyof T
         // Only set if not already set (first error wins)
         if (!errors.value[field]) {
-          errors.value[field] = issue.message
+          errors.value[field] = localizeMessage(issue.message)
         }
       }
     }

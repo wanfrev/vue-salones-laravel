@@ -8,7 +8,7 @@
         <div class="min-w-0">
           <p class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-success">
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-success"></span>
-            Ingresos
+            {{ t('finance.kpi.income') }}
           </p>
           <p class="mt-1.5 text-2xl font-extrabold leading-none tabular-nums text-text xl:text-3xl">{{ formatUSD(incomeTotal) }}</p>
           <div class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -19,7 +19,7 @@
           otro <button> es HTML invalido y el navegador lo saca del DOM, rompiendo el click. -->
           <span role="button" tabindex="0" class="mt-1 inline-block text-xs font-semibold text-primary underline decoration-dotted underline-offset-2 hover:text-primary-hover cursor-pointer"
             @click.stop="$emit('click-tips')" @keydown.enter.stop="$emit('click-tips')">
-            {{ tipsTotal && tipsTotal > 0 ? `+${formatUSD(tipsTotal)} propinas` : 'Ver propinas' }}
+            {{ tipsTotal && tipsTotal > 0 ? t('finance.kpi.tips', { amount: formatUSD(tipsTotal) }) : t('finance.kpi.viewTips') }}
           </span>
         </div>
         <svg :class="[chevron, 'group-hover:text-success', activeCard === 'income' && 'rotate-180 text-success']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
@@ -30,7 +30,7 @@
         <div class="min-w-0">
           <p class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-warning">
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-warning"></span>
-            Gastos
+            {{ t('finance.kpi.expenses') }}
           </p>
           <p v-if="isLoading" class="mt-1.5 h-6 w-28 rounded bg-bg-secondary animate-pulse sm:h-7" />
           <p v-else class="mt-1.5 text-2xl font-extrabold leading-none tabular-nums text-text xl:text-3xl">{{ formatUSD(expenseTotal) }}</p>
@@ -43,7 +43,7 @@
         <div class="min-w-0">
           <p class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-indigo-500">
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-indigo-500"></span>
-            Ganancia
+            {{ t('finance.kpi.profit') }}
           </p>
           <p v-if="isLoading" class="mt-1.5 h-6 w-28 rounded bg-bg-secondary animate-pulse sm:h-7" />
           <p v-else class="mt-1.5 text-2xl font-extrabold leading-none tabular-nums text-text xl:text-3xl">{{ formatUSD(profitTotal ?? 0) }}</p>
@@ -56,7 +56,7 @@
         <div class="min-w-0">
           <p class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-info">
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-info"></span>
-            Ganancia neta
+            {{ t('finance.kpi.net') }}
           </p>
           <p v-if="isLoading" class="mt-1.5 h-6 w-28 rounded bg-bg-secondary animate-pulse sm:h-7" />
           <p v-else class="mt-1.5 text-2xl font-extrabold leading-none tabular-nums text-text xl:text-3xl">{{ formatUSD(netTotal) }}</p>
@@ -69,7 +69,7 @@
         <div class="min-w-0">
           <p class="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
             <span class="h-1.5 w-1.5 shrink-0 rounded-full bg-primary"></span>
-            Margen
+            {{ t('finance.kpi.margin') }}
           </p>
           <p class="mt-1.5 text-2xl font-extrabold leading-none tabular-nums text-text xl:text-3xl">{{ formatPercentage(margin) }}</p>
         </div>
@@ -81,6 +81,7 @@
 </template>
 
 <script setup lang="ts">
+import { useI18n } from '../../i18n'
 import { useCurrency } from '../../composables/common/useCurrency'
 
 defineProps<{
@@ -106,6 +107,7 @@ defineEmits<{
 }>()
 
 const { formatUSD, formatVESEs } = useCurrency()
+const { t } = useI18n()
 
 const formatPercentage = (value: number) => `${value.toFixed(1)}%`
 

@@ -4,31 +4,31 @@
       <div class="min-w-0">
         <div class="flex items-center gap-2">
           <DocumentIcon class="h-4 w-4 shrink-0 text-primary" />
-          <h1 class="truncate text-xl font-bold tracking-tight text-text sm:text-2xl">Incidentes</h1>
+          <h1 class="truncate text-xl font-bold tracking-tight text-text sm:text-2xl">{{ t('incidents.title') }}</h1>
         </div>
-        <p class="mt-0.5 text-xs text-text-muted">Registro de incidentes de trabajo por empleado.</p>
+        <p class="mt-0.5 text-xs text-text-muted">{{ t('incidents.subtitle') }}</p>
       </div>
       <button type="button"
         class="shrink-0 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
         @click="openNew">
-        + Nuevo incidente
+        {{ t('incidents.new') }}
       </button>
     </header>
 
     <div class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
       <div class="grid grid-cols-1 gap-3 border-b border-border-subtle px-3 py-3 sm:grid-cols-[14rem_14rem] sm:px-4">
         <div>
-          <span class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-text-muted">Empresa</span>
-          <FilterSelect v-model="filterCompanyId" :options="companyFilterOptions" aria-label="Empresa" default-value="" />
+          <span class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-text-muted">{{ t('incidents.filter.company') }}</span>
+          <FilterSelect v-model="filterCompanyId" :options="companyFilterOptions" :aria-label="t('incidents.filter.company')" default-value="" />
         </div>
         <div>
-          <span class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-text-muted">Estado</span>
-          <FilterSelect v-model="filterStatus" :options="statusFilterOptions" aria-label="Estado" default-value="" />
+          <span class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-text-muted">{{ t('incidents.filter.status') }}</span>
+          <FilterSelect v-model="filterStatus" :options="statusFilterOptions" :aria-label="t('incidents.filter.status')" default-value="" />
         </div>
       </div>
 
       <div v-if="isLoading" class="divide-y divide-border-subtle" aria-busy="true">
-        <p class="sr-only">Cargando incidentes...</p>
+        <p class="sr-only">{{ t('incidents.loading') }}</p>
         <div v-for="n in 4" :key="n" class="flex items-center gap-4 px-3 py-3.5 sm:px-4">
           <span class="h-3 w-32 animate-pulse rounded bg-bg-secondary" />
           <span class="h-3 flex-1 animate-pulse rounded bg-bg-secondary" />
@@ -39,26 +39,26 @@
         <div class="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-bg-secondary">
           <DocumentIcon class="h-7 w-7 text-text-muted" />
         </div>
-        <p class="text-base font-medium text-text">No hay incidentes registrados todavía.</p>
+        <p class="text-base font-medium text-text">{{ t('incidents.empty') }}</p>
       </div>
 
       <div v-else class="scroll-thin overflow-x-auto overflow-y-hidden">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-border-subtle bg-bg-secondary/30 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">
-              <th class="px-3 py-2.5">Nombre</th>
+              <th class="px-3 py-2.5">{{ t('incidents.col.name') }}</th>
               <th class="px-3 py-2.5">Comments</th>
-              <th class="px-3 py-2.5">Fecha</th>
+              <th class="px-3 py-2.5">{{ t('incidents.col.date') }}</th>
               <th class="px-3 py-2.5">Follow up</th>
-              <th class="px-3 py-2.5 text-center">Reporte</th>
+              <th class="px-3 py-2.5 text-center">{{ t('incidents.col.report') }}</th>
               <th class="px-3 py-2.5 text-center">Urgent Care</th>
-              <th class="px-3 py-2.5">Empresa</th>
-              <th class="px-3 py-2.5">Estado</th>
+              <th class="px-3 py-2.5">{{ t('incidents.filter.company') }}</th>
+              <th class="px-3 py-2.5">{{ t('incidents.filter.status') }}</th>
               <th class="px-3 py-2.5 text-center">Relief Form</th>
-              <th class="px-3 py-2.5 text-center">Facturas</th>
+              <th class="px-3 py-2.5 text-center">{{ t('incidents.col.invoices') }}</th>
               <th class="px-3 py-2.5 text-center">Paperwork</th>
               <th class="px-3 py-2.5">Drug Test</th>
-              <th class="px-3 py-2.5 text-center">Fotos</th>
+              <th class="px-3 py-2.5 text-center">{{ t('incidents.col.photos') }}</th>
               <th class="px-3 py-2.5 w-10"></th>
             </tr>
           </thead>
@@ -73,8 +73,8 @@
                   @upload="(file) => handleUploadSingle(incident.id, 'reporte', file)" @remove="handleRemoveSingleFile(incident.id, 'reporte')" />
               </td>
               <td class="px-3 py-2.5 text-center">
-                <span v-if="incident.wantsUrgentCare === true" class="text-xs font-semibold text-success">Sí</span>
-                <span v-else-if="incident.wantsUrgentCare === false" class="text-xs font-semibold text-danger">No</span>
+                <span v-if="incident.wantsUrgentCare === true" class="text-xs font-semibold text-success">{{ t('incidents.yes') }}</span>
+                <span v-else-if="incident.wantsUrgentCare === false" class="text-xs font-semibold text-danger">{{ t('incidents.no') }}</span>
                 <span v-else class="text-text-muted">—</span>
               </td>
               <td class="px-3 py-2.5 whitespace-nowrap text-text-secondary">{{ incident.companyName || '—' }}</td>
@@ -100,8 +100,8 @@
                 <div class="flex flex-row items-center gap-2">
                   <select :value="incident.drugTestResult ?? ''" class="rounded-md border border-border bg-surface px-1.5 py-1 text-xs text-text outline-none"
                     @change="handleDrugTestChange(incident.id, ($event.target as HTMLSelectElement).value)">
-                    <option value="">Sin definir</option>
-                    <option v-for="d in DRUG_TEST_OPTIONS" :key="d.value" :value="d.value">{{ d.label }}</option>
+                    <option value="">{{ t('incidents.drug.undefined') }}</option>
+                    <option v-for="d in DRUG_TEST_OPTIONS" :key="d.value" :value="d.value">{{ t(`incidents.drug.${d.value}` as MessageKey) }}</option>
                   </select>
                   <IncidentFilesCell :files="filesByType(incident, 'drug_test')" file-type="drug_test"
                     @upload="(file) => handleAddFile(incident.id, 'drug_test', file)" @remove="handleRemoveFile" />
@@ -113,10 +113,10 @@
               </td>
               <td class="px-3 py-2.5">
                 <div class="flex items-center gap-1">
-                  <button type="button" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary" title="Editar" aria-label="Editar" @click="openEdit(incident)">
+                  <button type="button" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary" :title="t('common.edit')" :aria-label="t('common.edit')" @click="openEdit(incident)">
                     <PenIcon class="h-4 w-4" />
                   </button>
-                  <button type="button" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-danger/10 hover:text-danger" title="Eliminar" aria-label="Eliminar" @click="handleDelete(incident.id)">
+                  <button type="button" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-danger/10 hover:text-danger" :title="t('common.delete')" :aria-label="t('common.delete')" @click="handleDelete(incident.id)">
                     <TrashBin2Icon class="h-4 w-4" />
                   </button>
                 </div>
@@ -128,7 +128,7 @@
       <button v-if="hasMore" type="button"
         class="w-full border-t border-border-subtle py-3 text-center text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
         @click="showMore">
-        Mostrar más incidentes
+        {{ t('incidents.showMore') }}
       </button>
     </div>
 
@@ -150,6 +150,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { useAuth } from '../composables/common/useAuth'
 import { FeatureGate } from '../components/common'
 import FilterSelect from '../components/common/FilterSelect.vue'
+import { useI18n, type MessageKey } from '../i18n'
 import { formatDateUS } from '../lib/formatters'
 import { listStaffingCompanies, staffingCompanyKeys } from '../services/staffing/staffingService'
 import {
@@ -163,6 +164,7 @@ import IncidentFilesCell from '../components/staffing/IncidentFilesCell.vue'
 import { DocumentIcon, PenIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
 
 const { authStore } = useAuth()
+const { t } = useI18n()
 const businessId = computed(() => authStore.businessId)
 
 const filterCompanyId = ref('')
@@ -174,8 +176,8 @@ const { data: companies } = useQuery({
   enabled: computed(() => !!businessId.value),
 })
 const companyOptions = computed(() => (companies.value ?? []).map(c => ({ value: c.id, label: c.name })))
-const companyFilterOptions = computed(() => [{ value: '', label: 'Todas las empresas' }, ...companyOptions.value])
-const statusFilterOptions = [{ value: '', label: 'Todos los estados' }, ...INCIDENT_STATUS_OPTIONS.map(s => ({ value: s.value as string, label: s.label }))]
+const companyFilterOptions = computed(() => [{ value: '', label: t('incidents.filter.allCompanies') }, ...companyOptions.value])
+const statusFilterOptions = computed(() => [{ value: '', label: t('incidents.filter.allStatuses') }, ...INCIDENT_STATUS_OPTIONS.map(s => ({ value: s.value as string, label: t(`incidents.status.${s.value}` as MessageKey) }))])
 
 const {
   incidents, hasMore, showMore, isLoading, saveError,
@@ -190,16 +192,13 @@ const {
 const filesByType = (incident: StaffingIncidentRow, type: IncidentFileType) =>
   incident.files.filter(f => f.fileType === type)
 
-const STATUS_LABELS: Record<StaffingIncidentStatus, string> = {
-  activo: 'Activo', light_duty: 'Light Duty', suspendido: 'Suspendido', despedido: 'Despedido',
-}
 const STATUS_CLASSES: Record<StaffingIncidentStatus, string> = {
   activo: 'text-success',
   light_duty: 'text-warning',
   suspendido: 'text-danger',
   despedido: 'text-text-muted',
 }
-const statusLabel = (status: StaffingIncidentStatus) => STATUS_LABELS[status] ?? status
+const statusLabel = (status: StaffingIncidentStatus) => t(`incidents.status.${status}` as MessageKey)
 const statusClass = (status: StaffingIncidentStatus) => STATUS_CLASSES[status] ?? 'text-text-muted'
 
 const showModal = ref(false)
@@ -220,7 +219,7 @@ const handleSave = async (data: StaffingIncidentFormData) => {
 }
 
 const handleDelete = (id: string) => {
-  if (window.confirm('¿Eliminar este incidente? Esta acción no se puede deshacer.')) {
+  if (window.confirm(t('incidents.confirmDelete'))) {
     deleteMutation.mutate(id)
   }
 }

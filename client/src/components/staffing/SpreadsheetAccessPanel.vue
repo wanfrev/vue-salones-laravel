@@ -1,14 +1,14 @@
 <template>
   <div class="space-y-3 rounded-2xl border border-border bg-surface p-4 shadow-sm">
     <div>
-      <p class="text-sm font-semibold text-text">Acceso al módulo</p>
-      <p class="text-xs text-text-muted">Marca qué vendedores pueden entrar a Spreadsheet, además de ti.</p>
+      <p class="text-sm font-semibold text-text">{{ t('spreadsheet.access.title') }}</p>
+      <p class="text-xs text-text-muted">{{ t('spreadsheet.access.intro') }}</p>
     </div>
 
-    <div v-if="isLoading" class="py-6 text-center text-sm text-text-muted">Cargando...</div>
+    <div v-if="isLoading" class="py-6 text-center text-sm text-text-muted">{{ t('common.loading') }}</div>
 
     <p v-else-if="vendedoras.length === 0" class="py-6 text-center text-sm text-text-muted">
-      No hay vendedores registrados todavía. Créalos desde CRM.
+      {{ t('spreadsheet.access.empty') }}
     </p>
 
     <div v-else class="divide-y divide-border-subtle">
@@ -44,6 +44,7 @@ import { computed, ref } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useNotification } from '../../composables/common/useNotification'
 import { translateError } from '../../lib/errors'
+import { useI18n } from '../../i18n'
 import { adminUpdateEmployee } from '../../services/adminService'
 import {
   listSpreadsheetVendedoras, staffingSpreadsheetKeys, type SpreadsheetVendedoraRow,
@@ -51,6 +52,7 @@ import {
 
 const props = defineProps<{ businessId: string | null }>()
 
+const { t } = useI18n()
 const queryClient = useQueryClient()
 const { success, error: showError } = useNotification()
 const pendingId = ref<string | null>(null)
@@ -70,7 +72,7 @@ const toggleAccess = async (vendedora: SpreadsheetVendedoraRow, checked: boolean
   try {
     await adminUpdateEmployee(vendedora.id, { can_access_spreadsheet: checked })
     await queryClient.invalidateQueries({ queryKey: queryKey.value, exact: false })
-    success(checked ? `${vendedora.name} ahora tiene acceso` : `Acceso quitado a ${vendedora.name}`)
+    success(t(checked ? 'spreadsheet.access.granted' : 'spreadsheet.access.revoked', { name: vendedora.name }))
   } catch (err) {
     showError(translateError(err))
   } finally {

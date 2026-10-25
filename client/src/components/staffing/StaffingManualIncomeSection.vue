@@ -1,36 +1,36 @@
 <template>
   <div class="rounded-xl border border-border bg-surface p-3">
     <div class="mb-3 flex items-center justify-between gap-3">
-      <p class="text-sm font-semibold text-text">Ingresos manuales del período</p>
+      <p class="text-sm font-semibold text-text">{{ t('finance.manual.title') }}</p>
       <button type="button"
         class="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
         @click="showForm = !showForm">
-        {{ showForm ? 'Cancelar' : '+ Ingreso' }}
+        {{ showForm ? t('common.cancel') : t('finance.manual.add') }}
       </button>
     </div>
 
     <form v-if="showForm" class="mb-3 flex flex-wrap items-end gap-2" @submit.prevent="submit">
       <div>
-        <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" for="mi-date">Fecha</label>
+        <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" for="mi-date">{{ t('finance.manual.date') }}</label>
         <input id="mi-date" v-model="form.incomeDate" type="date" required :class="inputClass" />
       </div>
       <div class="w-28">
-        <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" for="mi-amount">Monto ($)</label>
+        <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" for="mi-amount">{{ t('finance.manual.amount') }}</label>
         <input id="mi-amount" v-model.number="form.amount" type="number" min="0.01" step="0.01" required :class="inputClass" />
       </div>
       <div class="min-w-[160px] flex-1">
-        <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" for="mi-notes">Notas</label>
-        <input id="mi-notes" v-model="form.notes" type="text" placeholder="Opcional" :class="inputClass" />
+        <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" for="mi-notes">{{ t('finance.manual.notes') }}</label>
+        <input id="mi-notes" v-model="form.notes" type="text" :placeholder="t('finance.manual.optional')" :class="inputClass" />
       </div>
       <button type="submit" :disabled="ctx.createMutation.isPending.value"
         class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">
-        {{ ctx.createMutation.isPending.value ? 'Guardando...' : 'Guardar' }}
+        {{ ctx.createMutation.isPending.value ? t('common.saving') : t('common.save') }}
       </button>
     </form>
     <p v-if="ctx.saveError.value" class="mb-2 text-xs text-danger">{{ ctx.saveError.value }}</p>
 
     <p v-if="!ctx.isLoading.value && ctx.manualIncomes.value.length === 0" class="py-4 text-center text-xs text-text-muted">
-      Sin ingresos manuales en este período.
+      {{ t('finance.manual.empty') }}
     </p>
 
     <div v-else-if="ctx.manualIncomes.value.length > 0" class="divide-y divide-border">
@@ -41,7 +41,7 @@
         </div>
         <div class="flex items-center gap-2">
           <span class="font-semibold tabular-nums text-success">{{ formatUSD(row.amount) }}</span>
-          <button type="button" title="Eliminar" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+          <button type="button" :title="t('common.delete')" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
             @click="ctx.removeManualIncome(row.id)">
             <TrashBin2Icon class="h-4 w-4" />
           </button>
@@ -56,11 +56,13 @@ import { reactive, ref } from 'vue'
 import { TrashBin2Icon } from '@solar-icons/vue/linear'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { formatDateUS } from '../../lib/formatters'
+import { useI18n } from '../../i18n'
 import type { useStaffingFinance } from '../../composables/staffing/useStaffingFinance'
 
 const props = defineProps<{ ctx: ReturnType<typeof useStaffingFinance> }>()
 
 const { formatUSD } = useCurrency()
+const { t } = useI18n()
 
 const inputClass =
   'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30'

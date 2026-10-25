@@ -19,7 +19,7 @@
       </div>
 
       <div class="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-        <button type="button" title="Eliminar" class="rounded-lg p-1 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+        <button type="button" :title="t('common.delete')" class="rounded-lg p-1 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
           @click.stop="emit('delete', lead)">
           <TrashBin2Icon class="h-3.5 w-3.5" />
         </button>
@@ -40,7 +40,7 @@
     </div>
 
     <div v-if="showOwner || lead.phone" class="mt-2.5 flex items-center justify-between gap-2 border-t border-border-subtle pt-2 pl-1.5">
-      <span v-if="showOwner" class="flex min-w-0 items-center gap-1.5" title="Vendedor">
+      <span v-if="showOwner" class="flex min-w-0 items-center gap-1.5" :title="t('crm.seller')">
         <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary">
           {{ getInitials(lead.ownerName) }}
         </span>
@@ -57,9 +57,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { getInitials, formatDateUS } from '../../lib/formatters'
-import { LEAD_PRIORITY_OPTIONS, type LeadRow } from '../../services/leadsService'
+import type { LeadRow } from '../../services/leadsService'
+import { useI18n, type MessageKey } from '../../i18n'
 import { MapPointIcon, CalendarIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
 
+const { t } = useI18n()
 const props = defineProps<{
   lead: LeadRow
   showOwner?: boolean
@@ -73,7 +75,7 @@ const emit = defineEmits<{
   dragend: []
 }>()
 
-const priorityLabel = computed(() => LEAD_PRIORITY_OPTIONS.find(o => o.value === props.lead.priority)?.label ?? '')
+const priorityLabel = computed(() => props.lead.priority ? t(`crm.priority.${props.lead.priority}` as MessageKey) : '')
 
 const PRIORITY_BAR: Record<string, string> = {
   low: 'bg-text-muted/40',

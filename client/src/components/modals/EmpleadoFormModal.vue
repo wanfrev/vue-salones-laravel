@@ -1,15 +1,15 @@
 <template>
   <ModalBase
     :is-open="isOpen"
-    :title="readOnly ? `Información del ${t.employee.toLowerCase()}` : (isEditing ? `Editar ${t.employee}` : `Nuevo ${t.employee}`)"
-    :subtitle="readOnly ? `Viendo a ${formData.name}` : (isEditing ? `Editando a ${formData.name}` : `Agrega un nuevo ${t.employee.toLowerCase()} al equipo`)"
+    :title="readOnly ? tr('workerModal.titleView', { noun: empNoun.toLowerCase() }) : (isEditing ? tr('workerModal.titleEdit', { noun: empNoun }) : tr('workerModal.titleNew', { noun: empNoun }))"
+    :subtitle="readOnly ? tr('workerModal.subtitleView', { name: formData.name }) : (isEditing ? tr('workerModal.subtitleEdit', { name: formData.name }) : tr('workerModal.subtitleNew', { noun: empNoun.toLowerCase() }))"
     :icon="isEditing ? 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z' : 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z'"
     :size="isStaffing ? 'xl' : 'full'"
     :is-loading="isLoading"
     :is-confirm-disabled="!isFormValid"
     :show-confirm-button="!readOnly"
-    :cancel-text="readOnly ? 'Cerrar' : 'Cancelar'"
-    :confirm-text="`Guardar ${t.employee}`"
+    :cancel-text="readOnly ? tr('workerModal.close') : tr('common.cancel')"
+    :confirm-text="tr('workerModal.save', { noun: empNoun })"
     @close="close"
     @confirm="handleSubmit"
   >
@@ -383,6 +383,7 @@ import { FormInput, FormDropdown } from '../forms'
 import SalaryConfig from '../equipo/SalaryConfig.vue'
 import ScheduleEditor from '../equipo/ScheduleEditor.vue'
 import StaffingEmployeeFields from '../equipo/StaffingEmployeeFields.vue'
+import { useI18n } from '../../i18n'
 import EmployeeDocumentsSection from '../equipo/EmployeeDocumentsSection.vue'
 
 const MODAL_ID = 'empleado-form-modal'
@@ -402,6 +403,10 @@ const authStore = useAuthStore()
 const businessStore = useBusinessStore()
 
 const t = computed(() => businessStore.terminology)
+// `t` above is this business's terminology, so the translator is called `tr` in this file.
+const { t: tr, locale } = useI18n()
+// English uses the plain word; the name a business customised stays as it is in Spanish.
+const empNoun = computed(() => locale.value === 'en' ? tr('equipo.employee') : t.value.employee)
 
 const isPetNicheBusiness = computed(() => isPetNiche(businessStore.nicheType))
 const isDentalNicheBusiness = computed(() => isDentalNiche(businessStore.nicheType))
@@ -597,7 +602,7 @@ watch(
               payrollCardNumber: fresh.payrollCardNumber ?? '',
             }
           })
-          .catch((err) => showError(translateError(err, 'No se pudo cargar la información completa del empleado.')))
+          .catch((err) => showError(translateError(err, tr('workerModal.loadFailed'))))
       }
     } else {
       const presetCompanyId = modalData.value?.presetCompanyId
@@ -719,7 +724,7 @@ const handleSubmit = async () => {
 
     emit('save', empleadoData)
   } catch (err) {
-    showError(`Error al guardar el ${t.value.employee.toLowerCase()}`)
+    showError(tr('workerModal.saveFailed', { noun: empNoun.value.toLowerCase() }))
     console.error(err)
   } finally {
     isSubmitting.value = false

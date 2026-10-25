@@ -1,12 +1,12 @@
 <template>
   <div class="flex items-center justify-center gap-1">
-    <button v-if="fileName" type="button" class="rounded p-1 text-primary transition-theme hover:bg-primary/10" :title="`Ver ${fileName}`" @click="handleView">
+    <button v-if="fileName" type="button" class="rounded p-1 text-primary transition-theme hover:bg-primary/10" :title="t('incidents.file.view', { name: fileName })" @click="handleView">
       <FileTextIcon class="h-4 w-4" />
     </button>
-    <button v-if="fileName" type="button" class="rounded p-1 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger" title="Eliminar archivo" @click="handleDelete">
+    <button v-if="fileName" type="button" class="rounded p-1 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger" :title="t('incidents.file.delete')" @click="handleDelete">
       <CloseCircleIcon class="h-4 w-4" />
     </button>
-    <label class="cursor-pointer rounded p-1 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary" title="Subir archivo">
+    <label class="cursor-pointer rounded p-1 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary" :title="t('incidents.file.upload')">
       <input type="file" class="hidden" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp" @change="handleUpload" />
       <UploadIcon class="h-4 w-4" />
     </label>
@@ -16,7 +16,9 @@
 <script setup lang="ts">
 import { FileTextIcon, UploadIcon, CloseCircleIcon } from '@solar-icons/vue/linear'
 import { viewIncidentSingleFile } from '../../services/staffing/staffingIncidentService'
+import { useI18n } from '../../i18n'
 
+const { t } = useI18n()
 const props = defineProps<{
   incidentId: string
   field: 'reporte' | 'relief_form'
@@ -30,7 +32,7 @@ const handleView = () => {
 }
 
 const handleDelete = () => {
-  if (window.confirm('¿Eliminar este archivo?')) emit('remove')
+  if (window.confirm(t('incidents.file.confirmDelete'))) emit('remove')
 }
 
 const handleUpload = (e: Event) => {

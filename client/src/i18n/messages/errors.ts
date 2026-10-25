@@ -1,0 +1,41 @@
+import { defineMessages } from '../translate'
+
+/** Generic error messages produced by the client itself (timeouts, database codes, file-upload validation). Messages that come from the server in Spanish are not translated here. */
+export const errorMessages = defineMessages(
+  {
+    'error.db.23P01.message': 'El empleado ya tiene una cita en ese horario.',
+    'error.db.23P01.hint': 'Selecciona otro horario o empleado.',
+    'error.db.23505.message': 'Este registro ya existe.',
+    'error.db.23505.hint': 'Verifica que los datos no estén duplicados.',
+    'error.db.23503.message': 'No se puede eliminar porque tiene registros asociados.',
+    'error.db.23503.hint': 'Elimina primero las referencias.',
+    'error.db.23502.message': 'Faltan campos obligatorios.',
+    'error.db.23502.hint': 'Completa todos los campos requeridos.',
+    'error.db.22P02.message': 'Formato de datos inválido.',
+    'error.db.22P02.hint': 'Verifica que los valores tengan el formato correcto.',
+    'error.file.type': 'Formato de archivo no soportado. Usa PDF, JPG, PNG, HEIC o WEBP.',
+    'error.file.size': 'El archivo es demasiado grande. El máximo permitido es 10 MB.',
+    'error.file.required': 'Debes seleccionar un archivo.',
+    'error.file.invalid': 'El archivo seleccionado no es válido.',
+    'error.timeout': 'La operación tardó demasiado. Verifica tu conexión a internet e intenta de nuevo.',
+    'error.unexpected': 'Error inesperado al procesar la solicitud.',
+  },
+  {
+    'error.db.23P01.message': 'The employee already has an appointment at that time.',
+    'error.db.23P01.hint': 'Choose another time or employee.',
+    'error.db.23505.message': 'This record already exists.',
+    'error.db.23505.hint': 'Check that the data is not duplicated.',
+    'error.db.23503.message': 'It cannot be deleted because it has associated records.',
+    'error.db.23503.hint': 'Delete the references first.',
+    'error.db.23502.message': 'Required fields are missing.',
+    'error.db.23502.hint': 'Fill in all the required fields.',
+    'error.db.22P02.message': 'Invalid data format.',
+    'error.db.22P02.hint': 'Check that the values have the correct format.',
+    'error.file.type': 'Unsupported file format. Use PDF, JPG, PNG, HEIC or WEBP.',
+    'error.file.size': 'The file is too large. The maximum allowed is 10 MB.',
+    'error.file.required': 'You must select a file.',
+    'error.file.invalid': 'The selected file is not valid.',
+    'error.timeout': 'The operation took too long. Check your internet connection and try again.',
+    'error.unexpected': 'Unexpected error while processing the request.',
+  },
+)

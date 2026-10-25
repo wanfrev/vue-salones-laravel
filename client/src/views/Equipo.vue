@@ -3,13 +3,13 @@
     <button v-if="canEditEmployeeRate && !businessStore.isSingleCurrency" @click="showEmployeeRateModal = true"
       class="flex items-center gap-2 rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm font-semibold text-text shadow-sm transition-theme hover:bg-bg-secondary">
       <DollarIcon class="h-4 w-4" />
-      <span class="hidden sm:inline">Tasa empleados</span>
+      <span class="hidden sm:inline">{{ t('equipo.rateButton') }}</span>
       <span v-if="businessStore.employeeExchangeRate" class="ml-1 rounded-md bg-warning/10 px-1.5 py-0.5 text-[10px] font-bold text-warning tabular-nums">{{ businessStore.employeeExchangeRate }}</span>
     </button>
     <button @click="handleNewEmpleado"
       class="flex items-center gap-2 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover">
       <AddCircleIcon class="h-4 w-4" />
-      <span>Nuevo<span class="hidden sm:inline"> {{ businessStore.terminology.employee || 'Empleado' }}</span></span>
+      <span>{{ t('equipo.new') }}<span class="hidden sm:inline"> {{ employeeWord }}</span></span>
     </button>
   </DirectoryHeader>
 
@@ -32,12 +32,12 @@
   -->
   <section v-if="isStaffing" class="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-4 shadow-sm lg:p-5">
     <div>
-      <p class="text-sm font-semibold text-text">Horas y pago de la semana</p>
-      <p class="text-xs text-text-muted">Carga y calcula las horas trabajadas desde el módulo de Nómina.</p>
+      <p class="text-sm font-semibold text-text">{{ t('equipo.hoursTitle') }}</p>
+      <p class="text-xs text-text-muted">{{ t('equipo.hoursIntro') }}</p>
     </div>
     <router-link to="/admin/nomina"
       class="shrink-0 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover">
-      Ir a Nómina
+      {{ t('equipo.goToPayroll') }}
     </router-link>
   </section>
 
@@ -104,6 +104,7 @@ import { useEmployeePayments } from '../composables/empleados/useEmployeePayment
 import { useQueryClient } from '@tanstack/vue-query'
 import { employeePaymentKeys } from '../services/employeePaymentsService'
 import DirectoryHeader from '../components/common/DirectoryHeader.vue'
+import { useI18n } from '../i18n'
 import TeamDirectory from '../components/equipo/TeamDirectory.vue'
 import EmployeePaymentModal from '../components/equipo/EmployeePaymentModal.vue'
 import EmployeeConsumptionModal from '../components/equipo/EmployeeConsumptionModal.vue'
@@ -125,9 +126,12 @@ const branchId = computed(() => businessStore.currentBranchId)
 const isStaffing = computed(() => businessStore.hasCapability('staffing.timesheets'))
 const showAgenda = computed(() => businessStore.hasFeature('agenda'))
 
-const plural = computed(() => businessStore.terminology.employeePlural || 'Empleados')
+const { t, locale } = useI18n()
+// In English the plain words are used; the names a business customised stay as they are in Spanish.
+const plural = computed(() => locale.value === 'en' ? t('equipo.employees') : (businessStore.terminology.employeePlural || 'Empleados'))
 const pluralLower = computed(() => plural.value.toLowerCase())
-const singular = computed(() => (businessStore.terminology.employee || 'empleado').toLowerCase())
+const singular = computed(() => locale.value === 'en' ? t('equipo.employeeLower') : (businessStore.terminology.employee || 'empleado').toLowerCase())
+const employeeWord = computed(() => locale.value === 'en' ? t('equipo.employee') : (businessStore.terminology.employee || 'Empleado'))
 
 // Negocios de personal: activos / inactivos lo decide el servidor.
 const employeeActiveFilter = ref<EmployeeActiveFilter>('active')
@@ -232,7 +236,7 @@ const teamSchedule = computed<ScheduleRow[]>(() => team.value.filter(m => m.sche
   id: m.id, name: m.name, start: m.schedule?.start ?? '', end: m.schedule?.end ?? '',
   break: (m.schedule?.breakStart && m.schedule?.breakEnd)
     ? `${m.schedule.breakStart} - ${m.schedule.breakEnd}`
-    : 'Sin descanso registrado',
+    : t('equipo.noBreak'),
   appointments: 0, available: true,
 })))
 
@@ -251,9 +255,9 @@ const handleToggleActive = async (e: Empleado) => {
   try {
     await adminUpdateEmployee(e.id, { active: nextActive })
     await queryClient.invalidateQueries({ queryKey: equipoKeys.all(businessId.value, branchId.value, isStaffing.value ? employeeActiveFilter.value : undefined), exact: false })
-    notifySuccess(nextActive ? 'Empleado activado' : 'Empleado desactivado')
+    notifySuccess(nextActive ? t('equipo.activated') : t('equipo.deactivated'))
   } catch {
-    notifyError('No se pudo actualizar el estado del empleado')
+    notifyError(t('equipo.statusFailed'))
   }
 }
 

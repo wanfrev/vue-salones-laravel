@@ -11,11 +11,13 @@ import {
   type StaffingProject,
 } from '../../services/staffing/staffingService'
 import { useNotification } from '../../composables/common/useNotification'
+import { useI18n } from '../../i18n'
 
 const props = defineProps<{
   companyId: string
 }>()
 
+const { t } = useI18n()
 const queryClient = useQueryClient()
 const { success, error: showError } = useNotification()
 
@@ -54,11 +56,11 @@ const saveMutation = useMutation({
   },
   onSuccess: () => {
     invalidate()
-    success('Proyecto guardado')
+    success(t('projects.saved'))
     showModal.value = false
   },
   onError: (err: any) => {
-    showError(err.message || 'Error al guardar')
+    showError(err.message || t('projects.saveFailed'))
   },
 })
 
@@ -66,15 +68,15 @@ const deleteMutation = useMutation({
   mutationFn: (id: string) => deleteStaffingProject(props.companyId, id),
   onSuccess: () => {
     invalidate()
-    success('Proyecto eliminado')
+    success(t('projects.deleted'))
   },
   onError: (err: any) => {
-    showError(err.message || 'Error al eliminar')
+    showError(err.message || t('projects.deleteFailed'))
   },
 })
 
 const confirmDelete = (p: StaffingProject) => {
-  if (confirm(`¿Eliminar proyecto ${p.name}?`)) {
+  if (confirm(t('projects.confirmDelete', { name: p.name }))) {
     deleteMutation.mutate(p.id)
   }
 }
@@ -83,34 +85,34 @@ const confirmDelete = (p: StaffingProject) => {
 <template>
   <div class="p-4">
     <div class="mb-4 flex items-center justify-between">
-      <h3 class="text-sm font-semibold text-text">Proyectos de la Empresa</h3>
+      <h3 class="text-sm font-semibold text-text">{{ t('projects.title') }}</h3>
       <button
         type="button"
         class="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-theme hover:bg-primary/20"
         @click="openNew"
       >
         <AddCircleIcon class="h-4 w-4" />
-        <span>Nuevo Proyecto</span>
+        <span>{{ t('projects.new') }}</span>
       </button>
     </div>
 
     <div v-if="isLoading" class="py-4 text-center text-sm text-text-muted">
-      Cargando proyectos...
+      {{ t('projects.loading') }}
     </div>
     <div v-else-if="!projects?.length" class="py-4 text-center text-sm text-text-muted">
-      No hay proyectos registrados.
+      {{ t('projects.empty') }}
     </div>
     <div v-else class="space-y-2">
       <div v-for="p in projects" :key="p.id" class="flex items-center justify-between rounded-lg border border-border bg-surface p-3">
         <div>
           <span class="block text-sm font-medium text-text">{{ p.name }}</span>
-          <span class="text-xs text-text-muted">{{ p.active ? 'Activo' : 'Inactivo' }}</span>
+          <span class="text-xs text-text-muted">{{ p.active ? t('projects.active') : t('projects.inactive') }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <button title="Editar" class="rounded p-1 text-text-muted hover:bg-bg-secondary hover:text-primary" @click="openEdit(p)">
+          <button :title="t('common.edit')" class="rounded p-1 text-text-muted hover:bg-bg-secondary hover:text-primary" @click="openEdit(p)">
             <PenIcon class="h-4 w-4" />
           </button>
-          <button title="Eliminar" class="rounded p-1 text-text-muted hover:bg-danger/10 hover:text-danger" @click="confirmDelete(p)">
+          <button :title="t('common.delete')" class="rounded p-1 text-text-muted hover:bg-danger/10 hover:text-danger" @click="confirmDelete(p)">
             <TrashBin2Icon class="h-4 w-4" />
           </button>
         </div>
@@ -120,10 +122,10 @@ const confirmDelete = (p: StaffingProject) => {
     <Teleport to="body">
       <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" @click.self="showModal = false">
         <div class="w-full max-w-sm rounded-xl border border-border bg-surface p-5 shadow-xl">
-          <h2 class="mb-4 text-lg font-semibold text-text">{{ form.id ? 'Editar Proyecto' : 'Nuevo Proyecto' }}</h2>
+          <h2 class="mb-4 text-lg font-semibold text-text">{{ form.id ? t('projects.edit') : t('projects.new') }}</h2>
           <form @submit.prevent="saveMutation.mutate()" class="space-y-4">
             <div>
-              <label class="mb-1 block text-sm font-medium text-text">Nombre</label>
+              <label class="mb-1 block text-sm font-medium text-text">{{ t('projects.name') }}</label>
               <input v-model="form.name" type="text" required class="w-full rounded-lg border border-border bg-bg-secondary px-3 py-2 text-sm text-text outline-none focus:border-primary focus:ring-1 focus:ring-primary" />
             </div>
             <div class="flex items-center gap-3">
@@ -144,12 +146,12 @@ const confirmDelete = (p: StaffingProject) => {
                   ]"
                 />
               </button>
-              <span class="text-sm font-medium text-text">Proyecto Activo</span>
+              <span class="text-sm font-medium text-text">{{ t('projects.isActive') }}</span>
             </div>
             <div class="mt-6 flex justify-end gap-2">
-              <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold text-text-muted hover:bg-bg-secondary" @click="showModal = false">Cancelar</button>
+              <button type="button" class="rounded-lg px-4 py-2 text-sm font-semibold text-text-muted hover:bg-bg-secondary" @click="showModal = false">{{ t('common.cancel') }}</button>
               <button type="submit" class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover" :disabled="saveMutation.isPending.value">
-                {{ saveMutation.isPending.value ? 'Guardando...' : 'Guardar' }}
+                {{ saveMutation.isPending.value ? t('common.saving') : t('common.save') }}
               </button>
             </div>
           </form>

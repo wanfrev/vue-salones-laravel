@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
+import { createPinia } from 'pinia'
+import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import LeadBoard from './LeadBoard.vue'
 import type { LeadRow } from '../../services/leadsService'
 
@@ -21,7 +23,7 @@ vi.mock('../../composables/staffing/useLeads', () => ({
 const LeadCardStub = { props: ['lead'], template: '<div data-testid="lead-card">{{ lead.companyName }}</div>' }
 const mountBoard = () => mount(LeadBoard, {
   props: { businessId: 'b1' },
-  global: { stubs: { LeadCard: LeadCardStub, Teleport: true } },
+  global: { plugins: [createPinia(), [VueQueryPlugin, { queryClient: new QueryClient() }]], stubs: { LeadCard: LeadCardStub, Teleport: true } },
 })
 
 describe('LeadBoard con muchos leads', () => {
