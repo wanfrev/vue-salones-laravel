@@ -3,39 +3,39 @@
     <div class="flex flex-wrap items-end gap-3">
       <div class="min-w-[220px] flex-1">
         <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted" for="hours-company">
-          Empresa
+          {{ t('hours.company') }}
         </label>
         <FormSearchSelect
           id="hours-company"
           v-model="selectedCompanyId"
           :options="companyOptions"
-          placeholder="Selecciona una empresa"
-          search-placeholder="Buscar empresa..."
+          :placeholder="t('hours.selectCompany')"
+          :search-placeholder="t('hours.searchCompany')"
         />
       </div>
 
       <div class="min-w-[180px]" v-if="projectOptions.length > 0">
         <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted" for="hours-project">
-          Proyecto
+          {{ t('hours.project') }}
         </label>
         <FormSearchSelect
           id="hours-project"
           v-model="selectedProjectId"
           :options="projectOptions"
-          placeholder="General (Sin proyecto)"
-          search-placeholder="Buscar proyecto..."
+          :placeholder="t('hours.generalNoProject')"
+          :search-placeholder="t('hours.searchProject')"
         />
       </div>
 
       <div>
         <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted" for="hours-week-start">
-          Semana desde
+          {{ t('hours.weekFrom') }}
         </label>
         <input id="hours-week-start" v-model="weekStartInput" type="date" :class="inputClass" />
       </div>
 
       <div class="rounded-lg border border-border bg-bg-secondary/60 px-3 py-2 text-xs text-text-muted">
-        Semana:
+        {{ t('hours.week') }}
         <span class="font-semibold text-text">{{ weekStartInput ? formatDateUS(weekStartInput) : '—' }}</span>
         –
         <span class="font-semibold text-text">{{ weekEnd ? formatDateUS(weekEnd) : '—' }}</span>
@@ -43,43 +43,42 @@
 
       <span v-if="currentWeek" class="rounded-full px-2.5 py-1 text-xs font-semibold"
         :class="currentWeek.status === 'draft' ? 'bg-warning/10 text-warning' : currentWeek.status === 'approved' ? 'bg-info/10 text-info' : 'bg-success/10 text-success'">
-        {{ currentWeek.status === 'draft' ? 'Borrador' : currentWeek.status === 'approved' ? 'Aprobada' : 'Pagada' }}
+        {{ t(`common.status.${currentWeek.status}` as MessageKey) }}
       </span>
-      <span v-if="approvalStampText" class="text-xs text-text-muted" title="Sello de aprobación — se puede verificar en 'Verificar código de aprobación'">
+      <span v-if="approvalStampText" class="text-xs text-text-muted" :title="t('hours.stampTitle')">
         {{ approvalStampText }}
       </span>
     </div>
 
     <p v-if="!selectedCompanyId" class="py-10 text-center text-sm text-text-muted">
-      Selecciona una empresa para cargar sus horas.
+      {{ t('hours.pickCompany') }}
     </p>
 
     <template v-else>
       <label class="flex w-fit items-center gap-2 text-xs text-text-secondary">
         <input v-model="showAllAssigned" type="checkbox" class="h-3.5 w-3.5 rounded border-border" />
-        Mostrar todos los empleados asignados, aunque sea antes de su fecha de ingreso
-        <span class="text-text-muted">(útil para cargar nómina retroactiva)</span>
+        {{ t('hours.showAllAssigned') }}
+        <span class="text-text-muted">{{ t('hours.showAllAssignedHint') }}</span>
       </label>
 
       <div v-if="timesheets.employeesLoading.value" class="py-10 text-center text-sm text-text-muted">
-        Cargando empleados...
+        {{ t('hours.loadingEmployees') }}
       </div>
 
       <p v-else-if="rosterEmployees.length === 0" class="py-10 text-center text-sm text-text-muted">
-        Esta empresa no tiene empleados asignados todavía. Asígnalos desde su ficha en Equipo, o
-        activa "Mostrar todos" arriba si ya están asignados pero es una semana anterior a su ingreso.
+        {{ t('hours.noEmployees') }}
       </p>
 
       <div v-else class="space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-3 bg-bg-secondary/40 p-3 rounded-xl border border-border">
           <div class="flex items-center gap-2">
-            <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">Empleados ({{ rosterEmployees.length }})</span>
+            <span class="text-xs font-semibold text-text-secondary uppercase tracking-wider">{{ t('hours.employeesCount', { n: rosterEmployees.length }) }}</span>
             <span v-if="(employeeSearch.trim() || statusFilter !== 'all') && filteredEmployees.length !== rosterEmployees.length" class="text-xs text-text-muted">
-              — {{ filteredEmployees.length }} coincidentes
+              {{ t('hours.matching', { n: filteredEmployees.length }) }}
             </span>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <div class="flex gap-1" role="group" aria-label="Filtrar por estado">
+            <div class="flex gap-1" role="group" :aria-label="t('hours.filterByStatus')">
               <button v-for="f in STATUS_FILTERS" :key="f.value" type="button"
                 class="relative px-2.5 py-1.5 text-xs font-semibold transition-theme"
                 :class="statusFilter === f.value ? 'text-primary' : 'text-text-muted hover:text-text'"
@@ -90,16 +89,16 @@
             </div>
             <button v-if="!isReadOnly" type="button"
               class="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
-              title="Copia horas, deducciones y fees de la semana anterior (no guarda hasta que presiones Guardar y calcular)"
+              :title="t('hours.copyPreviousHint')"
               @click="copyPreviousWeek">
-              Copiar semana anterior
+              {{ t('hours.copyPrevious') }}
             </button>
             <div class="relative">
               <MagnifierIcon class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-text-muted" />
               <input
                 v-model="employeeSearch"
                 type="text"
-                placeholder="Buscar empleado..."
+                :placeholder="t('hours.searchEmployee')"
                 class="w-40 rounded-lg border border-border bg-surface py-1.5 pl-8 pr-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-48"
               />
             </div>
@@ -111,47 +110,47 @@
             <table class="w-full text-sm">
               <thead>
                 <tr class="border-b border-border bg-bg-secondary text-left text-[10px] uppercase tracking-wider text-text-muted">
-                  <th class="px-3 py-2.5">Empleado</th>
-                  <th class="px-3 py-2.5 text-center" title="Escribir horas regulares/OT directamente en vez de calcularlas del total">Manual</th>
-                  <th class="px-3 py-2.5 text-right">Horas totales</th>
-                  <th class="px-3 py-2.5 text-right">Horas regulares</th>
+                  <th class="px-3 py-2.5">{{ t('hours.colEmployee') }}</th>
+                  <th class="px-3 py-2.5 text-center" :title="t('hours.colManualHint')">{{ t('hours.colManual') }}</th>
+                  <th class="px-3 py-2.5 text-right">{{ t('hours.colTotalHours') }}</th>
+                  <th class="px-3 py-2.5 text-right">{{ t('hours.colRegularHours') }}</th>
                   <th class="px-3 py-2.5 text-right">Pay rate</th>
                   <th class="px-3 py-2.5 text-right">Bill rate</th>
-                  <th class="px-3 py-2.5 text-right">Total regular</th>
-                  <th class="px-3 py-2.5 text-right">Horas OT</th>
+                  <th class="px-3 py-2.5 text-right">{{ t('hours.colRegularTotal') }}</th>
+                  <th class="px-3 py-2.5 text-right">{{ t('hours.colOtHours') }}</th>
                   <th class="px-3 py-2.5 text-right">OT rate</th>
                   <th class="px-3 py-2.5 text-right">Bill rate OT</th>
                   <th class="px-3 py-2.5 text-right">Total OT</th>
-                  <th class="px-3 py-2.5 text-right">Deducción</th>
-                  <th class="px-3 py-2.5 text-right">Fee fijo</th>
-                  <th class="px-3 py-2.5 text-right">Ajuste</th>
+                  <th class="px-3 py-2.5 text-right">{{ t('hours.colDeduction') }}</th>
+                  <th class="px-3 py-2.5 text-right">{{ t('hours.colFixedFee') }}</th>
+                  <th class="px-3 py-2.5 text-right">{{ t('hours.colAdjustment') }}</th>
                   <th class="px-3 py-2.5 text-right">Total Perdiem</th>
-                  <th class="px-3 py-2.5 text-right">Total viaje</th>
-                  <th class="px-3 py-2.5 text-right">Total semanal</th>
-                  <th class="px-3 py-2.5 text-right">% retención</th>
-                  <th class="px-3 py-2.5 text-right">Total</th>
-                  <th class="px-3 py-2.5 text-right">Redondeo</th>
-                  <th class="px-3 py-2.5 text-right">Factura</th>
-                  <th class="px-3 py-2.5 text-right">Margen</th>
+                  <th class="px-3 py-2.5 text-right">{{ t('hours.colTravelTotal') }}</th>
+                  <th class="px-3 py-2.5 text-right">{{ t('hours.colWeeklyTotal') }}</th>
+                  <th class="px-3 py-2.5 text-right">{{ t('hours.colWithholding') }}</th>
+                  <th class="px-3 py-2.5 text-right">{{ t('hours.colTotal') }}</th>
+                  <th class="px-3 py-2.5 text-right">{{ t('hours.colRounding') }}</th>
+                  <th class="px-3 py-2.5 text-right">{{ t('hours.colInvoice') }}</th>
+                  <th class="px-3 py-2.5 text-right">{{ t('hours.colMargin') }}</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-border">
                 <tr v-if="filteredEmployees.length === 0">
                   <td colspan="22" class="py-10 text-center text-sm text-text-muted bg-surface">
-                    No se encontraron empleados que coincidan con la búsqueda.
+                    {{ t('hours.noMatch') }}
                   </td>
                 </tr>
                 <template v-else v-for="employee in filteredEmployees" :key="rowKey(employee)">
                   <tr>
                     <td class="px-3 py-2.5">
                       <div class="flex items-start gap-2">
-                        <label class="mt-0.5 flex shrink-0 cursor-pointer items-center gap-1" title="Activar o pausar empleado en esta empresa">
+                        <label class="mt-0.5 flex shrink-0 cursor-pointer items-center gap-1" :title="t('hours.toggleActiveHint')">
                           <input type="checkbox" :checked="employee.active !== false"
                             :disabled="!employee.staffing_assignment_id"
                             class="h-3.5 w-3.5 rounded border-border disabled:cursor-not-allowed disabled:opacity-50"
                             @change="toggleEmployeeActive(employee, ($event.target as HTMLInputElement).checked)" />
                           <span :class="['text-[10px] font-semibold uppercase tracking-wide', employee.active === false ? 'text-danger' : 'text-success']">
-                            {{ employee.active === false ? 'Inactivo' : 'Activo' }}
+                            {{ employee.active === false ? t('hours.inactive') : t('hours.active') }}
                           </span>
                         </label>
                         <div>
@@ -159,12 +158,12 @@
                         {{ employee.full_name }}
                       </p>
                       <p class="text-xs text-text-muted">
-                        {{ employee.staffing_role || 'Sin rol' }}<template v-if="employee.staffing_shift"> · {{ shiftLabel(employee.staffing_shift) }}</template>
+                        {{ employee.staffing_role || t('hours.noRole') }}<template v-if="employee.staffing_shift"> · {{ shiftText(employee.staffing_shift) }}</template>
                       </p>
                       <button v-if="payStubsEnabled && canPrintStub(employee)" type="button"
                         class="mt-0.5 text-[10px] font-semibold text-primary hover:underline"
                         @click="handlePrintPayStubs([employee])">
-                        Talón de pago
+                        {{ t('hours.payStub') }}
                       </button>
                         </div>
                       </div>
@@ -179,7 +178,7 @@
                     <td class="px-3 py-2">
                       <input v-if="!grid[rowKey(employee)]?.hoursManualOverride"
                         v-model.number="grid[rowKey(employee)].totalHours" type="number" min="0" max="168" step="0.01"
-                        :disabled="isReadOnly || isInactive(employee)" :title="isInactive(employee) ? 'Empleado inactivo — actívalo para poder cargarle horas' : undefined"
+                        :disabled="isReadOnly || isInactive(employee)" :title="isInactive(employee) ? t('hours.inactiveInputHint') : undefined"
                         :class="cellInputClass" />
                       <span v-else class="block w-24 text-right text-sm tabular-nums text-text-muted">
                         {{ ((grid[rowKey(employee)]?.manualRegularHours || 0) + (grid[rowKey(employee)]?.manualOvertimeHours || 0)).toFixed(2) }}
@@ -232,24 +231,24 @@
                 </tr>
                 <tr v-if="isInactive(employee)">
                   <td colspan="22" class="px-3 pb-2.5 text-xs text-danger">
-                    Empleado inactivo{{ employee.staffing_assignment_id ? ' en esta empresa' : '' }} — actívalo para poder cargarle horas nuevas.
+                    {{ t('hours.inactiveRow', { where: employee.staffing_assignment_id ? t('hours.inactiveRowWhere') : '' }) }}
                   </td>
                 </tr>
                 <tr v-else-if="!rateFor(employee)">
                   <td colspan="22" class="px-3 pb-2.5 text-xs text-warning">
-                    Sin tarifa configurada para "{{ employee.staffing_role || 'sin rol' }}" en esta empresa — agrégala en Empresas antes de cargar horas.
+                    {{ t('hours.noRate', { role: employee.staffing_role || t('hours.noRateRole') }) }}
                   </td>
                 </tr>
                 <tr v-else-if="rowFor(employee)?.isEstimate">
                   <td colspan="22" class="px-3 pb-2.5 text-[10px] text-text-muted">
-                    Estimado — guarda para confirmar.
+                    {{ t('hours.estimate') }}
                   </td>
                 </tr>
               </template>
             </tbody>
             <tfoot v-if="rosterEmployees.length > 0">
               <tr class="border-t border-border bg-bg-secondary/60 text-xs font-semibold">
-                <td class="px-3 py-2.5 text-text">Total</td>
+                <td class="px-3 py-2.5 text-text">{{ t('hours.colTotal') }}</td>
                 <td></td>
                 <td class="px-3 py-2.5 text-right tabular-nums">{{ totals.hours.toFixed(2) }}</td>
                 <td colspan="11"></td>
@@ -268,83 +267,83 @@
       </div>
       </div>
 
-      <p v-if="timesheets.timesheetsError.value" class="text-sm text-danger">No se pudo cargar esta semana, así que no se puede guardar para no pisar horas ya registradas. Cambia de semana y vuelve, o recarga la página.</p>
+      <p v-if="timesheets.timesheetsError.value" class="text-sm text-danger">{{ t('hours.loadError') }}</p>
       <p v-if="timesheets.saveError.value" class="text-sm text-danger">{{ timesheets.saveError.value }}</p>
 
       <div v-if="rosterEmployees.length > 0" class="flex flex-wrap items-center justify-end gap-2">
         <button type="button"
           class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
           @click="handlePrintPayroll">
-          Imprimir nómina
+          {{ t('hours.printPayroll') }}
         </button>
         <button v-if="payStubsEnabled && currentWeek" type="button"
           class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
-          title="Un talón por empleado con las horas ya guardadas"
+          :title="t('hours.printStubsHint')"
           @click="handlePrintPayStubs(filteredEmployees)">
-          Imprimir talones
+          {{ t('hours.printStubs') }}
         </button>
         <button v-if="currentWeek" type="button" :disabled="isDownloadingPayroll"
           class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
           @click="handleDownloadPayrollXlsx">
-          {{ isDownloadingPayroll ? 'Descargando...' : 'Descargar XLSX' }}
+          {{ isDownloadingPayroll ? t('hours.downloading') : t('hours.downloadXlsx') }}
         </button>
         <button v-if="currentWeek?.status === 'draft'" type="button"
           class="rounded-lg border border-danger/30 px-4 py-2 text-sm font-semibold text-danger transition-theme hover:bg-danger/10"
           @click="removeWeek">
-          Eliminar borrador
+          {{ t('hours.deleteDraft') }}
         </button>
         <button v-if="!isReadOnly" type="button" :disabled="timesheets.saveMutation.isPending.value || timesheets.timesheetsLoading.value || timesheets.timesheetsError.value"
           class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
           @click="handleSave">
-          {{ timesheets.saveMutation.isPending.value ? 'Calculando...' : 'Guardar y calcular' }}
+          {{ timesheets.saveMutation.isPending.value ? t('hours.calculating') : t('hours.saveAndCalculate') }}
         </button>
         <button v-if="currentWeek?.status === 'draft'" type="button" :disabled="timesheets.approveMutation.isPending.value || timesheets.timesheetsLoading.value || timesheets.timesheetsError.value"
           class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
           @click="handleApprove">
-          {{ timesheets.approveMutation.isPending.value ? 'Aprobando...' : 'Aprobar semana' }}
+          {{ timesheets.approveMutation.isPending.value ? t('hours.approving') : t('hours.approveWeek') }}
         </button>
         <div v-else-if="currentWeek && !existingInvoice" class="flex flex-wrap items-center gap-1.5">
           <input
             v-model="invoiceNumberInput"
             type="text"
-            placeholder="# Factura (ej: 1001)"
+            :placeholder="t('hours.invoiceNumberPlaceholder')"
             class="w-36 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20"
             @keyup.enter="handleGenerateInvoiceDirect"
           />
           <button type="button" :disabled="billing.generateMutation.isPending.value"
             class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60"
             @click="handleGenerateInvoiceDirect">
-            {{ billing.generateMutation.isPending.value ? 'Generando...' : 'Generar factura' }}
+            {{ billing.generateMutation.isPending.value ? t('hours.generating') : t('hours.generateInvoice') }}
           </button>
         </div>
         <template v-else-if="existingInvoice">
           <button type="button"
             class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
             @click="handlePrintInvoice">
-            Ver factura #{{ existingInvoice.invoice_number }}
+            {{ t('hours.viewInvoice', { number: existingInvoice.invoice_number }) }}
           </button>
           <button type="button"
             class="rounded-lg border border-border px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary flex items-center gap-1.5"
-            title="Editar número de factura"
+            :title="t('hours.editInvoiceNumber')"
             @click="openEditInvoiceModal(existingInvoice)">
             <PenIcon class="h-3.5 w-3.5" />
-            <span>Editar #</span>
+            <span>{{ t('hours.editNumberShort') }}</span>
           </button>
           <button type="button" :disabled="isDownloadingInvoice"
             class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
             @click="handleDownloadInvoiceXlsx">
-            {{ isDownloadingInvoice ? 'Descargando...' : 'Descargar XLSX' }}
+            {{ isDownloadingInvoice ? t('hours.downloading') : t('hours.downloadXlsx') }}
           </button>
           <button type="button" :disabled="billing.deleteInvoiceMutation.isPending.value"
             class="rounded-lg border border-danger/30 px-4 py-2 text-sm font-semibold text-danger transition-theme hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-60"
             @click="handleDeleteInvoice">
-            {{ billing.deleteInvoiceMutation.isPending.value ? 'Eliminando...' : 'Eliminar factura' }}
+            {{ billing.deleteInvoiceMutation.isPending.value ? t('hours.deleting') : t('hours.deleteInvoice') }}
           </button>
         </template>
         <button v-if="currentWeek?.status === 'approved'" type="button" :disabled="timesheets.markPaidMutation.isPending.value || timesheets.timesheetsLoading.value || timesheets.timesheetsError.value"
           class="rounded-lg bg-success px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-success/90 disabled:cursor-not-allowed disabled:opacity-60"
           @click="handleMarkPaid">
-          {{ timesheets.markPaidMutation.isPending.value ? 'Marcando...' : 'Marcar como pagada' }}
+          {{ timesheets.markPaidMutation.isPending.value ? t('hours.marking') : t('hours.markPaid') }}
         </button>
       </div>
     </template>
@@ -402,6 +401,7 @@ import { formatApprovalStamp } from '../../lib/staffingApprovalStamp'
 import type { StaffingTimesheetEntry, Profile } from '../../types/database'
 import { MagnifierIcon, PenIcon } from '@solar-icons/vue/linear'
 import GenerateInvoiceModal from './GenerateInvoiceModal.vue'
+import { useI18n, type MessageKey } from '../../i18n'
 import ApproveWithSignerModal from './ApproveWithSignerModal.vue'
 import { approverKeys, listApprovers } from '../../services/staffing/approverService'
 import EditInvoiceNumberModal from './EditInvoiceNumberModal.vue'
@@ -425,6 +425,7 @@ const { formatUSD } = useCurrency()
 const businessStore = useBusinessStore()
 const queryClient = useQueryClient()
 const { success, error: showError } = useNotification()
+const { t } = useI18n()
 
 const businessId = computed(() => props.businessId)
 
@@ -451,7 +452,7 @@ const projectOptions = computed(() => {
   const opts = (projects.value ?? [])
     .filter(p => p.active)
     .map(p => ({ value: p.id, label: p.name }))
-  return [{ value: '', label: 'General (Sin proyecto)' }, ...opts]
+  return [{ value: '', label: t('hours.generalNoProject') }, ...opts]
 })
 
 watch(selectedCompanyId, () => {
@@ -493,11 +494,11 @@ watch(selectedCompanyId, () => {
 })
 
 type StatusFilter = 'all' | 'active' | 'inactive'
-const STATUS_FILTERS: { value: StatusFilter; label: string }[] = [
-  { value: 'all', label: 'Todos' },
-  { value: 'active', label: 'Activos' },
-  { value: 'inactive', label: 'Inactivos' },
-]
+const STATUS_FILTERS = computed<{ value: StatusFilter; label: string }[]>(() => [
+  { value: 'all', label: t('hours.filterAll') },
+  { value: 'active', label: t('hours.filterActive') },
+  { value: 'inactive', label: t('hours.filterInactive') },
+])
 // Display-only: narrows what's shown and printed. Saving always sends the whole roster, so
 // filtering never drops anyone's hours from the week. Defaults to "Todos" = unchanged behaviour.
 const statusFilter = ref<StatusFilter>('all')
@@ -516,7 +517,7 @@ const filteredEmployees = computed(() => {
 })
 
 const filterLabel = computed(() =>
-  statusFilter.value === 'all' ? '' : STATUS_FILTERS.find(f => f.value === statusFilter.value)!.label.toLowerCase(),
+  statusFilter.value === 'all' ? '' : (statusFilter.value === 'active' ? 'activos' : 'inactivos'),
 )
 
 /**
@@ -572,6 +573,7 @@ type RosterEmployee = Profile
 const rowKey = (employee: { id: string; staffing_role?: string | null; staffing_shift?: string | null }): string =>
   `${employee.id}::${employee.staffing_role ?? ''}::${employee.staffing_shift ?? ''}`
 
+const shiftText = (shift: string): string => t(`common.shift.${shift}` as MessageKey)
 const shiftLabel = (shift: string | null | undefined): string =>
   shift ? (SHIFT_OPTIONS.find(o => o.value === shift)?.label ?? shift) : ''
 
@@ -855,16 +857,17 @@ const rowFor = (employee: RosterEmployee): DisplayRow | null => {
   }
 }
 
-const ROUNDING_LABELS: Record<string, string> = {
-  exact: 'Exacto (se respetan los decimales)',
-  cent: 'Exacto (se respetan los decimales)', // support legacy
-  round: 'Redondeo entero',
-  floor: 'Sin decimales',
+// 'cent' is the legacy name of 'exact'.
+const ROUNDING_LABEL_KEYS: Record<string, MessageKey> = {
+  exact: 'hours.rounding.exact',
+  cent: 'hours.rounding.exact',
+  round: 'hours.rounding.round',
+  floor: 'hours.rounding.floor',
 }
 
 const roundingLabel = computed(() => {
   const company = (companies.value ?? []).find(c => c.id === selectedCompanyId.value)
-  return company ? (ROUNDING_LABELS[company.payoutRounding] ?? 'Exacto (se respetan los decimales)') : '—'
+  return company ? t(ROUNDING_LABEL_KEYS[company.payoutRounding] ?? 'hours.rounding.exact') : '—'
 })
 
 const totals = computed(() => {
@@ -924,10 +927,10 @@ const hasTypedValues = computed(() =>
 const copyPreviousWeek = () => {
   const prev = timesheets.findWeek(previousWeekStart(weekStartInput.value))
   if (!prev || prev.entries.length === 0) {
-    showError('No hay horas guardadas en la semana anterior para copiar.')
+    showError(t('hours.noPreviousWeek'))
     return
   }
-  if (hasTypedValues.value && !window.confirm('Esto reemplazará las horas, deducciones y fees que ya escribiste en esta semana. ¿Continuar?')) return
+  if (hasTypedValues.value && !window.confirm(t('hours.confirmReplace'))) return
 
   const byKey = new Map(prev.entries.map(e => [`${e.employee_id}::${e.role ?? ''}::${e.shift ?? ''}`, e]))
   const next = { ...grid.value }
@@ -943,10 +946,20 @@ const copyPreviousWeek = () => {
   grid.value = next
 
   if (copied === 0) {
-    showError('Ningún empleado de la semana anterior coincide con esta lista.')
+    showError(t('hours.noneMatchPrevious'))
     return
   }
-  success(`Se copiaron ${copied} fila${copied === 1 ? '' : 's'} de la semana anterior${skippedInactive ? ` (${skippedInactive} inactivo${skippedInactive === 1 ? '' : 's'} omitido${skippedInactive === 1 ? '' : 's'})` : ''}. Revisa y guarda.`)
+  success(t('hours.copied', {
+    n: copied,
+    rows: t(copied === 1 ? 'hours.copiedRow' : 'hours.copiedRows'),
+    skipped: skippedInactive
+      ? t('hours.copiedSkipped', {
+        n: skippedInactive,
+        inactive: t(skippedInactive === 1 ? 'hours.copiedInactiveOne' : 'hours.copiedInactiveMany'),
+        omitted: t(skippedInactive === 1 ? 'hours.copiedOmittedOne' : 'hours.copiedOmittedMany'),
+      })
+      : '',
+  }))
 }
 
 // Opt-in approvers (`staffing_approval_stamp`): several bosses share this login, so when the business
@@ -995,9 +1008,9 @@ const toggleEmployeeActive = async (employee: RosterEmployee, checked: boolean) 
   try {
     await setStaffingAssignmentActive(employee.staffing_assignment_id, checked)
     await queryClient.invalidateQueries({ queryKey: ['staffing-company-employees', businessId.value, selectedCompanyId.value], exact: false })
-    success(checked ? 'Empleado activado en esta empresa' : 'Empleado pausado en esta empresa')
+    success(checked ? t('hours.employeeActivated') : t('hours.employeePaused'))
   } catch {
-    showError('No se pudo actualizar el estado del empleado')
+    showError(t('hours.employeeStatusFailed'))
   }
 }
 
@@ -1115,7 +1128,7 @@ const handlePrintPayStubs = (employees: RosterEmployee[]) => {
 
   const printable = employees.filter(canPrintStub)
   if (printable.length === 0) {
-    showError('Guarda la semana primero: los talones se imprimen solo con horas ya guardadas.')
+    showError(t('hours.saveFirst'))
     return
   }
 
@@ -1149,7 +1162,7 @@ const handlePrintPayStubs = (employees: RosterEmployee[]) => {
     approvalStamp: approvalStampText.value,
   })
   if (printable.length < employees.length) {
-    showError(`${employees.length - printable.length} empleado(s) sin guardar se omitieron del talón.`)
+    showError(t('hours.stubsSkipped', { n: employees.length - printable.length }))
   }
 }
 
@@ -1166,7 +1179,7 @@ const handleDownloadPayrollXlsx = async () => {
   try {
     await downloadStaffingPayrollXlsx(currentWeek.value.id)
   } catch (err) {
-    showError(translateError(err, 'No se pudo descargar la nómina.'))
+    showError(translateError(err, t('hours.payrollDownloadFailed')))
   } finally {
     isDownloadingPayroll.value = false
   }
@@ -1179,7 +1192,7 @@ const handleDownloadInvoiceXlsx = async () => {
   try {
     await downloadStaffingInvoiceXlsx(existingInvoice.value.id)
   } catch (err) {
-    showError(translateError(err, 'No se pudo descargar la factura.'))
+    showError(translateError(err, t('hours.invoiceDownloadFailed')))
   } finally {
     isDownloadingInvoice.value = false
   }
@@ -1187,14 +1200,14 @@ const handleDownloadInvoiceXlsx = async () => {
 
 const handleDeleteInvoice = async () => {
   if (!existingInvoice.value) return
-  if (window.confirm(`¿Eliminar la factura #${existingInvoice.value.invoice_number}? La nómina volverá a borrador para poder editarse y requerirá ser aprobada otra vez.`)) {
+  if (window.confirm(t('hours.confirmDeleteInvoice', { number: existingInvoice.value.invoice_number }))) {
     await billing.deleteInvoiceMutation.mutateAsync(existingInvoice.value.id)
   }
 }
 
 const removeWeek = () => {
   if (!currentWeek.value) return
-  if (window.confirm('¿Eliminar el borrador de esta semana? Las horas cargadas se perderán.')) {
+  if (window.confirm(t('hours.confirmDeleteDraft'))) {
     timesheets.remove(currentWeek.value.id)
   }
 }

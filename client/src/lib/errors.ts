@@ -1,3 +1,10 @@
+import { translate } from '../i18n/translate'
+import { errorMessages } from '../i18n/messages/errors'
+import { activeLocale } from '../i18n/active'
+
+type ErrorKey = keyof typeof errorMessages.es
+const tr = (key: ErrorKey): string => translate(errorMessages, activeLocale(), key)
+
 export class AppError extends Error {
   code: string
   hint?: string
@@ -10,34 +17,16 @@ export class AppError extends Error {
   }
 }
 
-const DB_ERROR_MAP: Record<string, { message: string; hint?: string }> = {
-  '23P01': {
-    message: 'El empleado ya tiene una cita en ese horario.',
-    hint: 'Selecciona otro horario o empleado.',
-  },
-  '23505': {
-    message: 'Este registro ya existe.',
-    hint: 'Verifica que los datos no estén duplicados.',
-  },
-  '23503': {
-    message: 'No se puede eliminar porque tiene registros asociados.',
-    hint: 'Elimina primero las referencias.',
-  },
-  '23502': {
-    message: 'Faltan campos obligatorios.',
-    hint: 'Completa todos los campos requeridos.',
-  },
-  '22P02': {
-    message: 'Formato de datos inválido.',
-    hint: 'Verifica que los valores tengan el formato correcto.',
-  },
-}
+// Database error codes we explain in plain words (message + hint live in i18n/messages/errors.ts).
+const DB_ERROR_CODES = ['23P01', '23505', '23503', '23502', '22P02'] as const
 
 function extractDbError(error: unknown): { code: string; message: string; hint?: string } | null {
   if (!error || typeof error !== 'object') return null
   const err = error as Record<string, unknown>
   const code = String(err.code ?? '')
-  if (code && DB_ERROR_MAP[code]) return { code, ...DB_ERROR_MAP[code] }
+  if (code && (DB_ERROR_CODES as readonly string[]).includes(code)) {
+    return { code, message: tr(`error.db.${code}.message` as ErrorKey), hint: tr(`error.db.${code}.hint` as ErrorKey) }
+  }
   return null
 }
 
@@ -120,37 +109,37 @@ export function handleDbError(error: unknown, fallback: string): never {
  * EmployeeDocumentController, StaffingIncidentController, StaffingTaxEntryController,
  * StaffingAnnualTaxController), so pattern-matching them here covers every upload form at once.
  */
-const FILE_VALIDATION_PATTERNS: [RegExp, string][] = [
-  [/file field must be a file of type/i, 'Formato de archivo no soportado. Usa PDF, JPG, PNG, HEIC o WEBP.'],
-  [/file field must not be greater than/i, 'El archivo es demasiado grande. El máximo permitido es 10 MB.'],
-  [/file field is required/i, 'Debes seleccionar un archivo.'],
-  [/file field must be a file/i, 'El archivo seleccionado no es válido.'],
+const FILE_VALIDATION_PATTERNS: [RegExp, ErrorKey][] = [
+  [/file field must be a file of type/i, 'error.file.type'],
+  [/file field must not be greater than/i, 'error.file.size'],
+  [/file field is required/i, 'error.file.required'],
+  [/file field must be a file/i, 'error.file.invalid'],
 ]
 
 function translateFileValidationMessage(msg: string): string | null {
-  for (const [pattern, translated] of FILE_VALIDATION_PATTERNS) {
-    if (pattern.test(msg)) return translated
+  for (const [pattern, key] of FILE_VALIDATION_PATTERNS) {
+    if (pattern.test(msg)) return tr(key)
   }
   return null
 }
 
 export function translateError(err: unknown, fallback?: string): string {
   if (err instanceof DOMException && err.name === 'AbortError') {
-    return 'La operación tardó demasiado. Verifica tu conexión a internet e intenta de nuevo.'
+    return tr('error.timeout')
   }
   if (err instanceof AppError) return translateFileValidationMessage(err.message) ?? err.message
   if (err instanceof Error) {
     const msg = err.message || ''
     if (/timeout|timed out|aborted/i.test(msg)) {
-      return 'La operación tardó demasiado. Verifica tu conexión a internet e intenta de nuevo.'
+      return tr('error.timeout')
     }
     const translated = translateFileValidationMessage(msg)
     if (translated) return translated
-    return msg || fallback || 'Error inesperado al procesar la solicitud.'
+    return msg || fallback || tr('error.unexpected')
   }
   if (err && typeof err === 'object' && 'message' in err) {
     const msg = (err as Record<string, unknown>).message
     if (typeof msg === 'string' && msg.trim()) return translateFileValidationMessage(msg) ?? msg.trim()
   }
-  return fallback || 'Error inesperado al procesar la solicitud.'
+  return fallback || tr('error.unexpected')
 }

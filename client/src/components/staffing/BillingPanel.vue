@@ -2,15 +2,15 @@
   <div class="space-y-5 border-t border-border bg-bg-secondary/40 px-4 py-4">
     <div class="grid grid-cols-3 gap-2">
       <div class="rounded-lg border border-border bg-surface px-3 py-2.5">
-        <p class="text-[10px] uppercase tracking-wider text-text-muted">Facturado</p>
+        <p class="text-[10px] uppercase tracking-wider text-text-muted">{{ t('billing.invoiced') }}</p>
         <p class="text-sm font-bold tabular-nums text-text">{{ formatUSD(billing.balance.value?.invoiced ?? 0) }}</p>
       </div>
       <div class="rounded-lg border border-border bg-surface px-3 py-2.5">
-        <p class="text-[10px] uppercase tracking-wider text-text-muted">Pagado</p>
+        <p class="text-[10px] uppercase tracking-wider text-text-muted">{{ t('billing.paid') }}</p>
         <p class="text-sm font-bold tabular-nums text-success">{{ formatUSD(billing.balance.value?.paid ?? 0) }}</p>
       </div>
       <div class="rounded-lg border border-border bg-surface px-3 py-2.5">
-        <p class="text-[10px] uppercase tracking-wider text-text-muted">Pendiente</p>
+        <p class="text-[10px] uppercase tracking-wider text-text-muted">{{ t('billing.pending') }}</p>
         <p class="text-sm font-bold tabular-nums" :class="(billing.balance.value?.pending ?? 0) > 0 ? 'text-danger' : 'text-text'">
           {{ formatUSD(billing.balance.value?.pending ?? 0) }}
         </p>
@@ -19,30 +19,30 @@
 
     <div>
       <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <p class="text-sm font-semibold text-text">Facturas</p>
+        <p class="text-sm font-semibold text-text">{{ t('billing.invoices') }}</p>
         <select v-if="projectOptions.length" v-model="projectFilter"
           class="rounded-md border border-border-strong bg-surface px-2 py-1 text-xs font-medium text-text outline-none focus:border-primary">
-          <option value="">Todos los proyectos</option>
-          <option value="__general__">General (sin proyecto)</option>
+          <option value="">{{ t('billing.allProjects') }}</option>
+          <option value="__general__">{{ t('billing.generalNoProject') }}</option>
           <option v-for="p in projectOptions" :key="p.id" :value="p.id">{{ p.name }}</option>
         </select>
       </div>
       <div v-if="(billing.invoices.value ?? []).length === 0" class="rounded-lg bg-surface px-3 py-3 text-center text-xs text-text-muted">
-        Sin facturas todavía. Se generan desde una semana aprobada en "Horas trabajadas".
+        {{ t('billing.noInvoices') }}
       </div>
       <div v-else-if="filteredInvoices.length === 0" class="rounded-lg bg-surface px-3 py-3 text-center text-xs text-text-muted">
-        Sin facturas para este proyecto.
+        {{ t('billing.noInvoicesForProject') }}
       </div>
       <div v-else class="overflow-x-auto rounded-lg border border-border bg-surface">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-border text-left text-[10px] uppercase tracking-wider text-text-muted">
               <th class="px-3 py-2">#</th>
-              <th class="px-3 py-2">Proyecto</th>
-              <th class="px-3 py-2">Emitida</th>
-              <th class="px-3 py-2">Vence</th>
-              <th class="px-3 py-2 text-right">Total</th>
-              <th class="px-3 py-2">Estado</th>
+              <th class="px-3 py-2">{{ t('billing.colProject') }}</th>
+              <th class="px-3 py-2">{{ t('billing.colIssued') }}</th>
+              <th class="px-3 py-2">{{ t('billing.colDue') }}</th>
+              <th class="px-3 py-2 text-right">{{ t('billing.colTotal') }}</th>
+              <th class="px-3 py-2">{{ t('billing.colStatus') }}</th>
               <th class="px-3 py-2 w-10"></th>
             </tr>
           </thead>
@@ -51,31 +51,31 @@
               <td class="px-3 py-2 font-medium text-text">{{ invoice.invoice_number }}</td>
               <td class="px-3 py-2 text-text-secondary">
                 <span v-if="invoice.project_id" class="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                  {{ projectNameById[invoice.project_id] ?? 'Proyecto' }}
+                  {{ projectNameById[invoice.project_id] ?? t('billing.projectFallback') }}
                 </span>
-                <span v-else class="text-text-muted">General</span>
+                <span v-else class="text-text-muted">{{ t('billing.general') }}</span>
               </td>
               <td class="px-3 py-2 text-text-secondary">{{ formatDateUS(invoice.issue_date.slice(0, 10)) }}</td>
               <td class="px-3 py-2 text-text-secondary">
                 {{ formatDateUS(invoice.due_date.slice(0, 10)) }}
-                <span v-if="isOverdue(invoice)" class="ml-1 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger">Vencida</span>
+                <span v-if="isOverdue(invoice)" class="ml-1 rounded-full bg-danger/10 px-1.5 py-0.5 text-[10px] font-semibold text-danger">{{ t('billing.overdue') }}</span>
               </td>
               <td class="px-3 py-2 text-right tabular-nums text-text">{{ formatUSD(invoice.total) }}</td>
               <td class="px-3 py-2">
                 <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold" :class="statusClass(invoice.status)">
-                  {{ STATUS_LABELS[invoice.status] }}
+                  {{ t(`billing.status.${invoice.status}` as MessageKey) }}
                 </span>
               </td>
               <td class="px-3 py-2 text-right whitespace-nowrap">
-                <button type="button" title="Editar número de factura" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
+                <button type="button" :title="t('billing.editNumber')" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
                   @click="openEditInvoiceModal(invoice)">
                   <PenIcon class="h-4 w-4" />
                 </button>
-                <button type="button" title="Imprimir" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
+                <button type="button" :title="t('billing.print')" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary"
                   @click="handlePrint(invoice.id)">
                   <PrinterIcon class="h-4 w-4" />
                 </button>
-                <button type="button" title="Eliminar factura" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+                <button type="button" :title="t('billing.deleteInvoice')" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
                   @click="handleDeleteInvoice(invoice)">
                   <TrashBin2Icon class="h-4 w-4" />
                 </button>
@@ -87,15 +87,15 @@
     </div>
 
     <div>
-      <p class="mb-2 text-sm font-semibold text-text">Abonos</p>
+      <p class="mb-2 text-sm font-semibold text-text">{{ t('billing.payments') }}</p>
       <div v-if="(billing.payments.value ?? []).length" class="mb-3 overflow-x-auto rounded-lg border border-border bg-surface">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-border text-left text-[10px] uppercase tracking-wider text-text-muted">
-              <th class="px-3 py-2">Fecha</th>
-              <th class="px-3 py-2 text-right">Monto</th>
-              <th class="px-3 py-2">Método</th>
-              <th class="px-3 py-2">Referencia</th>
+              <th class="px-3 py-2">{{ t('billing.colDate') }}</th>
+              <th class="px-3 py-2 text-right">{{ t('billing.colAmount') }}</th>
+              <th class="px-3 py-2">{{ t('billing.colMethod') }}</th>
+              <th class="px-3 py-2">{{ t('billing.colReference') }}</th>
               <th class="px-3 py-2 w-10"></th>
             </tr>
           </thead>
@@ -106,7 +106,7 @@
               <td class="px-3 py-2 text-text-secondary">{{ payment.payment_method || '—' }}</td>
               <td class="px-3 py-2 text-text-secondary">{{ payment.reference || '—' }}</td>
               <td class="px-3 py-2 text-right">
-                <button type="button" title="Eliminar" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
+                <button type="button" :title="t('common.delete')" class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
                   @click="billing.removePayment(payment.id)">
                   <TrashBin2Icon class="h-4 w-4" />
                 </button>
@@ -118,31 +118,31 @@
 
       <form class="flex flex-wrap items-end gap-2" @submit.prevent="submitPayment">
         <div class="w-28">
-          <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" :for="`amt-${companyId}`">Monto</label>
+          <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" :for="`amt-${companyId}`">{{ t('billing.colAmount') }}</label>
           <input :id="`amt-${companyId}`" v-model.number="form.amount" type="number" min="0.01" step="0.01" required :class="inputClass" />
         </div>
         <div class="w-40">
-          <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" :for="`inv-${companyId}`">Factura (opcional)</label>
+          <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" :for="`inv-${companyId}`">{{ t('billing.invoiceOptional') }}</label>
           <select :id="`inv-${companyId}`" v-model="form.invoiceId" :class="inputClass">
-            <option value="">A cuenta</option>
+            <option value="">{{ t('billing.onAccount') }}</option>
             <option v-for="i in billing.invoices.value" :key="i.id" :value="i.id">#{{ i.invoice_number }} — {{ formatUSD(i.total) }}</option>
           </select>
         </div>
         <div class="w-36">
-          <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" :for="`method-${companyId}`">Método</label>
-          <input :id="`method-${companyId}`" v-model="form.paymentMethod" type="text" placeholder="Transferencia" :class="inputClass" />
+          <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" :for="`method-${companyId}`">{{ t('billing.colMethod') }}</label>
+          <input :id="`method-${companyId}`" v-model="form.paymentMethod" type="text" :placeholder="t('billing.methodPlaceholder')" :class="inputClass" />
         </div>
         <div class="w-36">
-          <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" :for="`date-${companyId}`">Fecha</label>
+          <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" :for="`date-${companyId}`">{{ t('billing.colDate') }}</label>
           <input :id="`date-${companyId}`" v-model="form.paymentDate" type="date" required :class="inputClass" />
         </div>
         <div class="w-32">
-          <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" :for="`ref-${companyId}`">Referencia</label>
+          <label class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" :for="`ref-${companyId}`">{{ t('billing.colReference') }}</label>
           <input :id="`ref-${companyId}`" v-model="form.reference" type="text" :class="inputClass" />
         </div>
         <button type="submit" :disabled="billing.paymentMutation.isPending.value"
           class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">
-          {{ billing.paymentMutation.isPending.value ? 'Guardando...' : 'Registrar abono' }}
+          {{ billing.paymentMutation.isPending.value ? t('common.saving') : t('billing.addPayment') }}
         </button>
       </form>
       <p v-if="billing.saveError.value" class="mt-2 text-xs text-danger">{{ billing.saveError.value }}</p>
@@ -169,11 +169,11 @@ import { getStaffingInvoice } from '../../services/staffing/staffingService'
 import { printStaffingInvoice } from '../../lib/staffingInvoicePrint'
 import { formatDateUS, toISODate } from '../../lib/formatters'
 import type { StaffingCompanyPaymentFormData } from '../../services/staffing/staffingService'
+import { useI18n, type MessageKey } from '../../i18n'
 
 const inputClass =
   'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30'
 
-const STATUS_LABELS: Record<string, string> = { sent: 'Enviada', partial: 'Abonada', paid: 'Pagada' }
 
 const props = defineProps<{
   businessId: string | null
@@ -181,6 +181,7 @@ const props = defineProps<{
 }>()
 
 const { formatUSD } = useCurrency()
+const { t } = useI18n()
 const businessStore = useBusinessStore()
 
 const billing = useBilling(toRef(props, 'businessId'), toRef(props, 'companyId'))
@@ -234,7 +235,7 @@ const handlePrint = async (invoiceId: string) => {
 }
 
 const handleDeleteInvoice = (invoice: { id: string; invoice_number: string }) => {
-  if (window.confirm(`¿Eliminar la factura #${invoice.invoice_number}? La semana volverá a borrador para poder editar la nómina. Los abonos ya registrados no se eliminan, quedan como pago a cuenta.`)) {
+  if (window.confirm(t('billing.confirmDeleteInvoice', { number: invoice.invoice_number }))) {
     billing.removeInvoice(invoice.id)
   }
 }

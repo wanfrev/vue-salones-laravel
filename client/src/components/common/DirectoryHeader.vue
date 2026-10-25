@@ -18,6 +18,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useBusinessStore } from '../../store/business'
+import { useI18n } from '../../i18n'
 
 const props = defineProps<{
   title: string
@@ -29,20 +30,21 @@ const props = defineProps<{
 }>()
 
 const businessStore = useBusinessStore()
+const { t } = useI18n()
 
 /**
  * Con varias sucursales la lista es la de la sucursal activa (más lo que no tiene sucursal asignada);
  * con una sola, es la del negocio. Mientras la sucursal no ha cargado no se afirma ninguna.
  */
 const scope = computed(() => {
-  if (!businessStore.isMultiBranch) return 'en el negocio'
+  if (!businessStore.isMultiBranch) return t('directory.inBusiness')
   const name = businessStore.currentBranch?.name
-  return name ? `en la sucursal ${name}` : ''
+  return name ? t('directory.inBranch', { name }) : ''
 })
 
 const summary = computed(() => {
   const noun = props.total === 1 ? props.singular : props.plural
-  const registered = props.total === 1 ? 'registrado' : 'registrados'
+  const registered = t(props.total === 1 ? 'directory.registeredOne' : 'directory.registeredMany')
   return [`${props.total} ${noun} ${registered}`, scope.value].filter(Boolean).join(' ')
 })
 </script>

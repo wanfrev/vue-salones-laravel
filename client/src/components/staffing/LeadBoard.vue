@@ -3,32 +3,32 @@
     <header class="mb-4 flex items-center justify-between gap-3">
       <div class="flex min-w-0 items-center gap-2">
         <ChatRoundLineIcon class="h-4 w-4 shrink-0 text-primary" />
-        <h1 class="truncate text-xl font-bold tracking-tight text-text sm:text-2xl">CRM</h1>
+        <h1 class="truncate text-xl font-bold tracking-tight text-text sm:text-2xl">{{ t('crm.title') }}</h1>
       </div>
       <button
         class="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-3.5 py-2.5 text-sm font-semibold text-text-inverse shadow-sm shadow-primary/20 transition-theme hover:bg-primary-hover"
         @click="ctx.openNew()">
         <AddCircleIcon class="h-4 w-4" />
-        <span>Nuevo lead</span>
+        <span>{{ t('crm.newLead') }}</span>
       </button>
     </header>
 
     <!-- Stats strip -->
     <dl class="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border-subtle shadow-sm lg:grid-cols-4">
       <div class="bg-surface px-4 py-3">
-        <dt class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Total leads</dt>
+        <dt class="text-[11px] font-bold uppercase tracking-wider text-text-muted">{{ t('crm.stat.total') }}</dt>
         <dd class="text-lg font-bold tabular-nums text-text">{{ ownerFilteredLeads.length }}</dd>
       </div>
       <div class="bg-surface px-4 py-3">
-        <dt class="text-[11px] font-bold uppercase tracking-wider text-text-muted">En proceso</dt>
+        <dt class="text-[11px] font-bold uppercase tracking-wider text-text-muted">{{ t('crm.stat.inProgress') }}</dt>
         <dd class="text-lg font-bold tabular-nums text-text">{{ inProgressCount }}</dd>
       </div>
       <div class="bg-surface px-4 py-3">
-        <dt class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Ganados</dt>
+        <dt class="text-[11px] font-bold uppercase tracking-wider text-text-muted">{{ t('crm.stat.won') }}</dt>
         <dd class="text-lg font-bold tabular-nums text-success">{{ wonCount }}</dd>
       </div>
       <div class="bg-surface px-4 py-3">
-        <dt class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Tasa de conversión</dt>
+        <dt class="text-[11px] font-bold uppercase tracking-wider text-text-muted">{{ t('crm.stat.conversion') }}</dt>
         <dd class="text-lg font-bold tabular-nums text-text">{{ conversionRateLabel }}</dd>
       </div>
     </dl>
@@ -37,7 +37,7 @@
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
       <div class="relative min-w-0 flex-1 sm:max-w-xs">
         <MagnifierIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-        <input v-model="search" type="text" placeholder="Buscar empresa, contacto..." aria-label="Buscar empresa, contacto"
+        <input v-model="search" type="text" :placeholder="t('crm.search')" :aria-label="t('crm.searchAria')"
           class="w-full rounded-xl border border-border bg-bg-secondary/40 py-2.5 pl-9 pr-3 text-sm text-text outline-none transition-colors placeholder:text-text-muted focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/15" />
       </div>
 
@@ -48,7 +48,7 @@
             class="shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors"
             :class="statusFilter === 'all' ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-bg-secondary hover:text-text'"
           >
-            Todos ({{ ownerFilteredLeads.length }})
+            {{ t('crm.filterAll', { n: ownerFilteredLeads.length }) }}
           </button>
           <button
             v-for="opt in LEAD_STATUS_OPTIONS" :key="opt.value"
@@ -56,17 +56,17 @@
             class="shrink-0 rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors"
             :class="statusFilter === opt.value ? 'bg-primary/10 text-primary' : 'text-text-secondary hover:bg-bg-secondary hover:text-text'"
           >
-            {{ opt.label }} ({{ countByStatus(opt.value) }})
+            {{ t('crm.filterStatus', { label: statusLabel(opt.value), n: countByStatus(opt.value) }) }}
           </button>
         </div>
 
         <div class="inline-flex shrink-0 divide-x divide-border overflow-hidden rounded-xl border border-border">
-          <button type="button" title="Vista tablero" aria-label="Vista tablero" class="p-2 transition-colors"
+          <button type="button" :title="t('crm.boardView')" :aria-label="t('crm.boardView')" class="p-2 transition-colors"
             :class="viewMode === 'kanban' ? 'bg-primary/10 text-primary' : 'text-text-muted hover:bg-bg-secondary hover:text-text'"
             @click="viewMode = 'kanban'">
             <Widget5Icon class="h-4 w-4" />
           </button>
-          <button type="button" title="Vista tabla" aria-label="Vista tabla" class="p-2 transition-colors"
+          <button type="button" :title="t('crm.tableView')" :aria-label="t('crm.tableView')" class="p-2 transition-colors"
             :class="viewMode === 'table' ? 'bg-primary/10 text-primary' : 'text-text-muted hover:bg-bg-secondary hover:text-text'"
             @click="viewMode = 'table'">
             <ListIcon class="h-4 w-4" />
@@ -76,7 +76,7 @@
     </div>
 
     <div v-if="ctx.isLoading.value" class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm" aria-busy="true">
-      <p class="sr-only">Cargando...</p>
+      <p class="sr-only">{{ t('crm.loading') }}</p>
       <div v-for="n in 4" :key="n" class="flex items-center gap-4 border-b border-border-subtle px-4 py-3.5 last:border-b-0">
         <span class="h-3 w-32 animate-pulse rounded bg-bg-secondary" />
         <span class="h-3 flex-1 animate-pulse rounded bg-bg-secondary" />
@@ -88,8 +88,8 @@
       <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-bg-secondary">
         <ChatRoundLineIcon class="h-7 w-7 text-text-muted" />
       </div>
-      <p class="text-lg font-semibold text-text">Sin leads</p>
-      <p class="mt-1 text-sm text-text-muted">Registra la primera empresa contactada.</p>
+      <p class="text-lg font-semibold text-text">{{ t('crm.empty') }}</p>
+      <p class="mt-1 text-sm text-text-muted">{{ t('crm.emptyHint') }}</p>
     </div>
 
     <!-- Kanban board -->
@@ -121,11 +121,11 @@
             <button v-if="col.leads.length > visibleInColumn(col).length" type="button"
               class="shrink-0 rounded-lg py-2 text-center text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
               @click="showMoreInColumn(col.value)">
-              Mostrar {{ Math.min(PAGE_SIZE, col.leads.length - visibleInColumn(col).length) }} más ({{ col.leads.length - visibleInColumn(col).length }} restantes)
+              {{ t('crm.more', { n: Math.min(PAGE_SIZE, col.leads.length - visibleInColumn(col).length), rest: col.leads.length - visibleInColumn(col).length }) }}
             </button>
 
             <p v-if="col.leads.length === 0" class="rounded-lg border border-dashed border-border py-4 text-center text-[11px] text-text-muted">
-              Sin leads aquí
+              {{ t('crm.emptyColumn') }}
             </p>
           </div>
         </div>
@@ -134,7 +134,7 @@
 
     <!-- Table view -->
     <div v-else-if="filteredLeads.length === 0" class="flex flex-col items-center justify-center py-16 text-center">
-      <p class="text-sm text-text-muted">Sin leads en este filtro.</p>
+      <p class="text-sm text-text-muted">{{ t('crm.emptyFilter') }}</p>
     </div>
 
     <div v-else class="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
@@ -142,18 +142,18 @@
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-border-subtle bg-bg-secondary/30 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">
-              <th class="sticky left-0 z-10 bg-bg-secondary px-3 py-2.5">Elemento</th>
-              <th class="px-3 py-2.5">Vendedor</th>
-              <th class="px-3 py-2.5">Ubicación</th>
-              <th class="px-3 py-2.5">Correo</th>
-              <th class="px-3 py-2.5">Teléfono</th>
-              <th class="px-3 py-2.5">Categoría de Compañía</th>
-              <th class="px-3 py-2.5">Tarjeta de Contacto</th>
-              <th class="px-3 py-2.5">Prioridad</th>
-              <th class="px-3 py-2.5">Estado del Seguimiento</th>
-              <th class="px-3 py-2.5">Estado</th>
-              <th class="px-3 py-2.5">Fecha de Visita</th>
-              <th class="px-3 py-2.5">Comentarios</th>
+              <th class="sticky left-0 z-10 bg-bg-secondary px-3 py-2.5">{{ t('crm.col.item') }}</th>
+              <th class="px-3 py-2.5">{{ t('crm.col.seller') }}</th>
+              <th class="px-3 py-2.5">{{ t('crm.col.location') }}</th>
+              <th class="px-3 py-2.5">{{ t('crm.col.email') }}</th>
+              <th class="px-3 py-2.5">{{ t('crm.col.phone') }}</th>
+              <th class="px-3 py-2.5">{{ t('crm.col.category') }}</th>
+              <th class="px-3 py-2.5">{{ t('crm.col.contactCard') }}</th>
+              <th class="px-3 py-2.5">{{ t('crm.col.priority') }}</th>
+              <th class="px-3 py-2.5">{{ t('crm.col.followUp') }}</th>
+              <th class="px-3 py-2.5">{{ t('crm.col.state') }}</th>
+              <th class="px-3 py-2.5">{{ t('crm.col.visitDate') }}</th>
+              <th class="px-3 py-2.5">{{ t('crm.col.comments') }}</th>
               <th class="px-3 py-2.5 w-16"></th>
             </tr>
           </thead>
@@ -192,11 +192,11 @@
               <td class="max-w-[220px] truncate px-3 py-2.5 text-text-secondary" :title="lead.notes">{{ lead.notes || '—' }}</td>
               <td class="px-3 py-2.5">
                 <div class="flex items-center justify-end gap-1">
-                  <button title="Editar" aria-label="Editar" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary"
+                  <button :title="t('common.edit')" :aria-label="t('common.edit')" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary"
                     @click="ctx.openEdit(lead)">
                     <PenIcon class="h-4 w-4" />
                   </button>
-                  <button title="Eliminar" aria-label="Eliminar" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-danger/10 hover:text-danger"
+                  <button :title="t('common.delete')" :aria-label="t('common.delete')" class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-danger/10 hover:text-danger"
                     @click="confirmDelete(lead)">
                     <TrashBin2Icon class="h-4 w-4" />
                   </button>
@@ -209,7 +209,7 @@
       <button v-if="filteredLeads.length > visibleTableLeads.length" type="button"
         class="w-full border-t border-border-subtle py-3 text-center text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
         @click="tableShown += TABLE_PAGE_SIZE">
-        Mostrar {{ Math.min(TABLE_PAGE_SIZE, filteredLeads.length - visibleTableLeads.length) }} más ({{ filteredLeads.length - visibleTableLeads.length }} restantes)
+        {{ t('crm.more', { n: Math.min(TABLE_PAGE_SIZE, filteredLeads.length - visibleTableLeads.length), rest: filteredLeads.length - visibleTableLeads.length }) }}
       </button>
     </div>
 
@@ -219,72 +219,72 @@
         <div class="max-h-full w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-xl">
           <div class="mb-5">
             <h2 class="text-lg font-semibold text-text">
-              {{ ctx.editingId.value ? 'Editar lead' : 'Nuevo lead' }}
+              {{ ctx.editingId.value ? t('crm.form.titleEdit') : t('crm.form.titleNew') }}
             </h2>
           </div>
 
           <form class="space-y-3" @submit.prevent="ctx.handleSave">
             <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="lead-company">Empresa</label>
+              <label class="mb-1 block text-sm font-medium text-text" for="lead-company">{{ t('crm.form.company') }}</label>
               <input id="lead-company" v-model="ctx.form.value.companyName" type="text" required :class="inputClass"
-                placeholder="Ej: DYKE INDUSTRIES" />
+                :placeholder="t('crm.form.companyPlaceholder')" />
             </div>
             <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="lead-area">Área de trabajo</label>
+              <label class="mb-1 block text-sm font-medium text-text" for="lead-area">{{ t('crm.form.workArea') }}</label>
               <input id="lead-area" v-model="ctx.form.value.workArea" type="text" :class="inputClass"
-                placeholder="Ej: Almacén, construcción..." />
+                :placeholder="t('crm.form.workAreaPlaceholder')" />
             </div>
             <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="lead-address">Ubicación</label>
+              <label class="mb-1 block text-sm font-medium text-text" for="lead-address">{{ t('crm.col.location') }}</label>
               <input id="lead-address" v-model="ctx.form.value.address" type="text" :class="inputClass" />
             </div>
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label class="mb-1 block text-sm font-medium text-text" for="lead-phone">Teléfono</label>
+                <label class="mb-1 block text-sm font-medium text-text" for="lead-phone">{{ t('crm.col.phone') }}</label>
                 <input id="lead-phone" v-model="ctx.form.value.phone" type="text" :class="inputClass" />
               </div>
               <div>
-                <label class="mb-1 block text-sm font-medium text-text" for="lead-email">Correo electrónico</label>
+                <label class="mb-1 block text-sm font-medium text-text" for="lead-email">{{ t('crm.form.email') }}</label>
                 <input id="lead-email" v-model="ctx.form.value.email" type="email" :class="inputClass" />
               </div>
             </div>
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label class="mb-1 block text-sm font-medium text-text" for="lead-category">Categoría de compañía</label>
+                <label class="mb-1 block text-sm font-medium text-text" for="lead-category">{{ t('crm.form.category') }}</label>
                 <input id="lead-category" v-model="ctx.form.value.companyCategory" type="text" :class="inputClass"
-                  placeholder="Ej: Manufactura" />
+                  :placeholder="t('crm.form.categoryPlaceholder')" />
               </div>
               <div>
-                <label class="mb-1 block text-sm font-medium text-text" for="lead-state">Estado</label>
+                <label class="mb-1 block text-sm font-medium text-text" for="lead-state">{{ t('crm.col.state') }}</label>
                 <input id="lead-state" v-model="ctx.form.value.state" type="text" :class="inputClass"
-                  placeholder="Ej: Georgia" />
+                  :placeholder="t('crm.form.statePlaceholder')" />
               </div>
             </div>
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label class="mb-1 block text-sm font-medium text-text" for="lead-priority">Prioridad</label>
+                <label class="mb-1 block text-sm font-medium text-text" for="lead-priority">{{ t('crm.col.priority') }}</label>
                 <select id="lead-priority" v-model="ctx.form.value.priority" :class="inputClass">
-                  <option value="">Sin definir</option>
-                  <option v-for="opt in LEAD_PRIORITY_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                  <option value="">{{ t('crm.form.undefined') }}</option>
+                  <option v-for="opt in LEAD_PRIORITY_OPTIONS" :key="opt.value" :value="opt.value">{{ priorityLabel(opt.value) }}</option>
                 </select>
               </div>
               <div>
-                <label class="mb-1 block text-sm font-medium text-text" for="lead-visit-date">Fecha de visita</label>
+                <label class="mb-1 block text-sm font-medium text-text" for="lead-visit-date">{{ t('crm.form.visitDate') }}</label>
                 <input id="lead-visit-date" v-model="ctx.form.value.visitDate" type="date" :class="inputClass" />
               </div>
             </div>
             <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="lead-contact-card">Tarjeta de contacto</label>
+              <label class="mb-1 block text-sm font-medium text-text" for="lead-contact-card">{{ t('crm.form.contactCard') }}</label>
               <input id="lead-contact-card" v-model="ctx.form.value.contactCard" type="text" :class="inputClass" />
             </div>
             <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="lead-status">Estado del seguimiento</label>
+              <label class="mb-1 block text-sm font-medium text-text" for="lead-status">{{ t('crm.form.followUp') }}</label>
               <select id="lead-status" v-model="ctx.form.value.status" :class="inputClass">
-                <option v-for="opt in LEAD_STATUS_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                <option v-for="opt in LEAD_STATUS_OPTIONS" :key="opt.value" :value="opt.value">{{ statusLabel(opt.value) }}</option>
               </select>
             </div>
             <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="lead-notes">Comentarios</label>
+              <label class="mb-1 block text-sm font-medium text-text" for="lead-notes">{{ t('crm.col.comments') }}</label>
               <textarea id="lead-notes" v-model="ctx.form.value.notes" rows="3" :class="inputClass" />
             </div>
 
@@ -294,11 +294,11 @@
               <button type="button"
                 class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
                 @click="ctx.closeModal">
-                Cancelar
+                {{ t('common.cancel') }}
               </button>
               <button type="submit" :disabled="ctx.isSaving.value"
                 class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-sm transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">
-                {{ ctx.isSaving.value ? 'Guardando...' : 'Guardar' }}
+                {{ ctx.isSaving.value ? t('common.saving') : t('common.save') }}
               </button>
             </div>
           </form>
@@ -314,6 +314,7 @@ import { useLeads } from '../../composables/staffing/useLeads'
 import { LEAD_PRIORITY_OPTIONS, LEAD_STATUS_OPTIONS, type LeadRow } from '../../services/leadsService'
 import { getInitials, formatDateUS } from '../../lib/formatters'
 import LeadCard from './LeadCard.vue'
+import { useI18n, type MessageKey } from '../../i18n'
 import type { LeadPriority, LeadStatus } from '../../types/database'
 import {
   ChatRoundLineIcon, AddCircleIcon, PenIcon, TrashBin2Icon, MagnifierIcon, ListIcon, Widget5Icon,
@@ -324,6 +325,8 @@ const props = defineProps<{
   /** When set (admin viewing one vendedora from the sidebar), shows only her leads. */
   ownerId?: string | null
 }>()
+
+const { t } = useI18n()
 
 const inputClass =
   'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20'
@@ -381,7 +384,7 @@ const COLUMN_DOTS: Record<LeadStatus, string> = {
 const columns = computed(() =>
   LEAD_STATUS_OPTIONS.map(opt => ({
     value: opt.value,
-    label: opt.label,
+    label: t(`crm.status.${opt.value}` as MessageKey),
     dot: COLUMN_DOTS[opt.value],
     leads: ownerFilteredLeads.value.filter(l => l.status === opt.value),
   }))
@@ -415,7 +418,7 @@ const handleDrop = (status: LeadStatus) => {
   ctx.updateStatus(lead, status)
 }
 
-const statusLabel = (status: LeadStatus) => LEAD_STATUS_OPTIONS.find(o => o.value === status)?.label ?? status
+const statusLabel = (status: LeadStatus) => t(`crm.status.${status}` as MessageKey)
 
 const STATUS_CLASSES: Record<LeadStatus, string> = {
   new: 'text-text-muted',
@@ -428,7 +431,7 @@ const STATUS_CLASSES: Record<LeadStatus, string> = {
 }
 const statusClass = (status: LeadStatus) => STATUS_CLASSES[status] ?? STATUS_CLASSES.new
 
-const priorityLabel = (priority: LeadPriority) => LEAD_PRIORITY_OPTIONS.find(o => o.value === priority)?.label ?? priority
+const priorityLabel = (priority: LeadPriority) => t(`crm.priority.${priority}` as MessageKey)
 
 const PRIORITY_CLASSES: Record<LeadPriority, string> = {
   low: 'text-text-muted',
@@ -438,7 +441,7 @@ const PRIORITY_CLASSES: Record<LeadPriority, string> = {
 const priorityClass = (priority: LeadPriority) => PRIORITY_CLASSES[priority] ?? PRIORITY_CLASSES.low
 
 const confirmDelete = (lead: LeadRow) => {
-  if (window.confirm(`¿Eliminar el lead de ${lead.companyName}?`)) {
+  if (window.confirm(t('crm.confirmDeleteLead', { name: lead.companyName }))) {
     ctx.handleDelete(lead.id)
   }
 }

@@ -2,7 +2,7 @@
   <header class="mb-6 lg:mb-8">
     <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-primary">
       <SettingsIcon class="h-3.5 w-3.5" />
-      <span>Configuración</span>
+      <span>{{ t('nav.Configuración') }}</span>
     </div>
   </header>
 
@@ -21,6 +21,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { SettingsIcon } from '@solar-icons/vue/linear'
 import { useAuth } from '../composables/common/useAuth'
 import { useBusinessStore } from '../store/business'
+import { useI18n } from '../i18n'
 import GeneralSettings from '../components/settings/GeneralSettings.vue'
 import PermissionsSettings from '../components/settings/PermissionsSettings.vue'
 import NotificationsSettings from '../components/settings/NotificationsSettings.vue'
@@ -34,6 +35,7 @@ import WhatsAppSection from '../components/settings/WhatsAppSection.vue'
  */
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 

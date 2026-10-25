@@ -2,7 +2,7 @@
   <header class="mb-4 flex flex-wrap items-center justify-between gap-3">
     <div class="flex items-center gap-2">
       <DollarIcon class="h-4 w-4 shrink-0 text-primary" />
-      <h1 class="text-xl font-bold tracking-tight text-text sm:text-2xl">Finanzas</h1>
+      <h1 class="text-xl font-bold tracking-tight text-text sm:text-2xl">{{ t('finance.title') }}</h1>
     </div>
     <ExchangeRateCard
       v-if="!businessStore.isSingleCurrency"
@@ -17,7 +17,7 @@
 
   <!-- Pestañas principales y período, en una sola tarjeta -->
   <section class="mb-4 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-    <div class="scroll-thin flex gap-1 overflow-x-auto overflow-y-hidden border-b border-border-subtle px-2 sm:px-3" role="tablist" aria-label="Secciones de finanzas">
+    <div class="scroll-thin flex gap-1 overflow-x-auto overflow-y-hidden border-b border-border-subtle px-2 sm:px-3" role="tablist" :aria-label="t('finance.tabsAria')">
       <button
         v-for="tab in mainTabs"
         :key="tab.key"
@@ -35,11 +35,11 @@
 
     <div class="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 sm:px-4">
       <div class="inline-flex w-full divide-x divide-border overflow-hidden rounded-xl border border-border text-xs font-medium sm:w-auto">
-        <button v-for="period in periods" :key="period.value" @click="selectedPeriod = period.value" :class="['flex-1 px-3 py-2 text-center transition-colors sm:flex-none', selectedPeriod === period.value ? 'bg-primary/10 font-semibold text-primary' : 'text-text-secondary hover:bg-bg-secondary hover:text-text']">{{ period.label }}</button>
+        <button v-for="period in periods" :key="period.value" @click="selectedPeriod = period.value" :class="['flex-1 px-3 py-2 text-center transition-colors sm:flex-none', selectedPeriod === period.value ? 'bg-primary/10 font-semibold text-primary' : 'text-text-secondary hover:bg-bg-secondary hover:text-text']">{{ t(`finance.period.${period.value}` as MessageKey) }}</button>
       </div>
 
       <div class="flex w-full items-center justify-center gap-1 sm:w-auto sm:justify-start">
-        <button v-if="selectedPeriod !== 'custom'" @click="goPrev" class="rounded-lg p-2 text-text-muted transition-colors hover:bg-bg-secondary hover:text-text" title="Anterior" aria-label="Anterior">
+        <button v-if="selectedPeriod !== 'custom'" @click="goPrev" class="rounded-lg p-2 text-text-muted transition-colors hover:bg-bg-secondary hover:text-text" :title="t('finance.previous')" :aria-label="t('finance.previous')">
           <ArrowLeftIcon class="h-4 w-4" />
         </button>
         <input
@@ -70,11 +70,11 @@
             class="w-[130px] rounded-xl border border-border bg-surface px-2 py-2 text-center text-xs text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/15"
           />
         </template>
-        <span v-else class="min-w-[130px] px-2 text-center text-xs font-medium text-text">{{ displayLabel }}</span>
-        <button v-if="selectedPeriod !== 'custom'" @click="goNext" class="rounded-lg p-2 text-text-muted transition-colors hover:bg-bg-secondary hover:text-text" title="Siguiente" aria-label="Siguiente">
+        <span v-else class="min-w-[130px] px-2 text-center text-xs font-medium text-text">{{ localizeDateText(displayLabel, locale) }}</span>
+        <button v-if="selectedPeriod !== 'custom'" @click="goNext" class="rounded-lg p-2 text-text-muted transition-colors hover:bg-bg-secondary hover:text-text" :title="t('finance.next')" :aria-label="t('finance.next')">
           <ArrowRightIcon class="h-4 w-4" />
         </button>
-        <button type="button" class="ml-1 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/10" @click="resetToCurrent">{{ selectedPeriod === 'custom' ? 'Hoy' : 'Ahora' }}</button>
+        <button type="button" class="ml-1 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold text-primary transition-theme hover:bg-primary/10" @click="resetToCurrent">{{ selectedPeriod === 'custom' ? t('finance.today') : t('finance.now') }}</button>
       </div>
     </div>
   </section>
@@ -159,6 +159,8 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '../composables/common/useAuth'
 import { useCurrency } from '../composables/common/useCurrency'
 import { usePeriodSelection } from '../composables/finanzas/usePeriodSelection'
+import { useI18n, type MessageKey } from '../i18n'
+import { localizeDateText } from '../i18n/dateWords'
 import { resolvePeriodDates } from '../lib/periodUtils'
 import { useFinancialSummary } from '../composables/finanzas/useFinancialSummary'
 import { useExpenses } from '../composables/finanzas/useExpenses'
@@ -198,6 +200,7 @@ import { DollarIcon, ArrowLeftIcon, ArrowRightIcon } from '@solar-icons/vue/line
 const { authStore } = useAuth()
 const { formatUSD, formatVESInline } = useCurrency()
 const router = useRouter()
+const { t, locale } = useI18n()
 const rateCtx = useExchangeRate()
 const businessStore = useBusinessStore()
 // Por defecto los encargados no ven los montos totales (KPIs de Resumen) aunque sí puedan
@@ -244,22 +247,22 @@ type FinanzasTab = 'resumen' | 'ingresos' | 'egresos' | 'creditos' | 'propinas' 
 const activeTab = ref<FinanzasTab>('resumen')
 const mainTabs = computed<{ key: FinanzasTab; label: string }[]>(() => {
   const tabs: { key: FinanzasTab; label: string }[] = [
-    { key: 'resumen', label: 'Resumen' },
-    { key: 'ingresos', label: 'Ingresos' },
+    { key: 'resumen', label: t('finance.tab.resumen') },
+    { key: 'ingresos', label: t('finance.tab.ingresos') },
   ]
   if (!isTiendaEmployee.value) {
-    tabs.push({ key: 'egresos', label: 'Egresos' })
-    tabs.push({ key: 'creditos', label: 'Créditos' })
-    tabs.push({ key: 'propinas', label: 'Propinas' })
+    tabs.push({ key: 'egresos', label: t('finance.tab.egresos') })
+    tabs.push({ key: 'creditos', label: t('finance.tab.creditos') })
+    tabs.push({ key: 'propinas', label: t('finance.tab.propinas') })
   }
   if (isStrictAdmin.value && !isStaffing.value) {
-    tabs.push({ key: 'bancos', label: 'Bancos' })
+    tabs.push({ key: 'bancos', label: t('finance.tab.bancos') })
   }
   // Cuadre de caja no aplica a staffing (no tiene punto de venta ni métodos de pago) -- mismo
   // criterio que Bancos, pero visible para encargado también (cuadrar caja es su trabajo del
   // día a día; solo la sección "Por Persona" adentro queda oculta para ese rol).
   if (!isTiendaEmployee.value && !isStaffing.value) {
-    tabs.push({ key: 'cuadre', label: 'Cuadre del Día' })
+    tabs.push({ key: 'cuadre', label: t('finance.tab.cuadre') })
   }
   return tabs
 })
@@ -330,37 +333,37 @@ const activeCard = ref<'income' | 'expense' | 'net' | 'profit' | null>(null)
 const toggleCard = (card: 'income' | 'expense' | 'net' | 'profit') => { activeCard.value = activeCard.value === card ? null : card }
 
 const staffingIncomeBreakdown = computed(() => ({
-  title: 'Desglose de Ingresos', usdTotal: incomeTotal.value, vesTotal: 0,
+  title: t('finance.breakdown.income'), usdTotal: incomeTotal.value, vesTotal: 0,
   usdItems: [
-    { label: 'Facturas pagadas', amount: staffingFinance.invoiceTotal.value },
-    { label: 'Ingresos manuales', amount: staffingFinance.manualIncomeTotal.value },
+    { label: t('finance.breakdown.paidInvoices'), amount: staffingFinance.invoiceTotal.value },
+    { label: t('finance.breakdown.manualIncome'), amount: staffingFinance.manualIncomeTotal.value },
   ].filter(i => i.amount > 0),
   vesItems: [],
-  usdLabel: 'Concepto', vesLabel: 'Concepto',
+  usdLabel: t('finance.breakdown.concept'), vesLabel: t('finance.breakdown.concept'),
 }))
 
 const staffingExpenseBreakdown = computed(() => ({
-  title: 'Desglose de Gastos', usdTotal: expenseTotal.value, vesTotal: 0,
+  title: t('finance.breakdown.expenses'), usdTotal: expenseTotal.value, vesTotal: 0,
   usdItems: [
-    { label: 'Costo de nómina (pagos, taxes, fees)', amount: staffingFinance.employerCost.value },
-    { label: 'Otros gastos (semanal por empresa)', amount: staffingFinance.otherExpenses.value },
-    { label: 'Gastos operativos', amount: expensesCtx.expenseTotal.value },
+    { label: t('finance.breakdown.payrollCost'), amount: staffingFinance.employerCost.value },
+    { label: t('finance.breakdown.otherWeekly'), amount: staffingFinance.otherExpenses.value },
+    { label: t('finance.breakdown.operating'), amount: expensesCtx.expenseTotal.value },
   ].filter(i => i.amount > 0),
   vesItems: [],
-  usdLabel: 'Concepto', vesLabel: 'Concepto',
+  usdLabel: t('finance.breakdown.concept'), vesLabel: t('finance.breakdown.concept'),
 }))
 
 const staffingProfitBreakdown = computed(() => ({
-  title: 'Desglose de Ganancia', usdTotal: profitTotal.value, vesTotal: 0,
+  title: t('finance.breakdown.profit'), usdTotal: profitTotal.value, vesTotal: 0,
   usdItems: [
-    { label: 'Facturas pagadas (+)', amount: staffingFinance.invoiceTotal.value },
-    { label: 'Ingresos manuales (+)', amount: staffingFinance.manualIncomeTotal.value },
-    { label: 'Costo de nómina (-)', amount: -staffingFinance.employerCost.value },
-    { label: 'Otros gastos (-)', amount: -staffingFinance.otherExpenses.value },
-    { label: 'Gastos operativos (-)', amount: -expensesCtx.expenseTotal.value },
+    { label: t('finance.breakdown.paidInvoicesPlus'), amount: staffingFinance.invoiceTotal.value },
+    { label: t('finance.breakdown.manualIncomePlus'), amount: staffingFinance.manualIncomeTotal.value },
+    { label: t('finance.breakdown.payrollCostMinus'), amount: -staffingFinance.employerCost.value },
+    { label: t('finance.breakdown.otherMinus'), amount: -staffingFinance.otherExpenses.value },
+    { label: t('finance.breakdown.operatingMinus'), amount: -expensesCtx.expenseTotal.value },
   ].filter(i => i.amount !== 0),
   vesItems: [],
-  usdLabel: 'Concepto', vesLabel: 'Concepto',
+  usdLabel: t('finance.breakdown.concept'), vesLabel: t('finance.breakdown.concept'),
 }))
 
 const incomeBreakdown = computed(() => {

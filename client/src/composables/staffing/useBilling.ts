@@ -2,6 +2,7 @@ import { computed, ref, type Ref } from 'vue'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useNotification } from '../common/useNotification'
 import { translateError } from '../../lib/errors'
+import { useI18n } from '../../i18n'
 import {
   createCompanyPayment,
   deleteCompanyPayment,
@@ -23,6 +24,7 @@ import {
 export function useBilling(businessId: Ref<string | null>, companyId: Ref<string | null>) {
   const queryClient = useQueryClient()
   const { success, error: showError } = useNotification()
+  const { t } = useI18n()
   const saveError = ref('')
 
   const enabled = computed(() => !!businessId.value && !!companyId.value)
@@ -67,7 +69,7 @@ export function useBilling(businessId: Ref<string | null>, companyId: Ref<string
       generateStaffingInvoice(timesheetId, invoiceNumber),
     onSuccess: async (invoice) => {
       await invalidateAll()
-      success(`Factura #${invoice.invoice_number} generada`)
+      success(t('toast.invoiceGenerated', { number: invoice.invoice_number }))
     },
     onError: (err) => {
       saveError.value = translateError(err)
@@ -79,7 +81,7 @@ export function useBilling(businessId: Ref<string | null>, companyId: Ref<string
     mutationFn: (data: StaffingCompanyPaymentFormData) => createCompanyPayment(data),
     onSuccess: async () => {
       await invalidateAll()
-      success('Abono registrado')
+      success(t('toast.paymentRecorded'))
     },
     onError: (err) => {
       saveError.value = translateError(err)
@@ -91,7 +93,7 @@ export function useBilling(businessId: Ref<string | null>, companyId: Ref<string
     mutationFn: (id: string) => deleteCompanyPayment(id),
     onSuccess: async () => {
       await invalidateAll()
-      success('Abono eliminado')
+      success(t('toast.paymentDeleted'))
     },
     onError: (err) => showError(translateError(err)),
   })
@@ -100,7 +102,7 @@ export function useBilling(businessId: Ref<string | null>, companyId: Ref<string
     mutationFn: (id: string) => deleteStaffingInvoice(id),
     onSuccess: async () => {
       await invalidateAll()
-      success('Factura eliminada — la semana volvió a borrador y ya puede editarse')
+      success(t('toast.invoiceDeleted'))
     },
     onError: (err) => showError(translateError(err)),
   })
@@ -110,7 +112,7 @@ export function useBilling(businessId: Ref<string | null>, companyId: Ref<string
       updateStaffingInvoiceNumber(id, invoiceNumber),
     onSuccess: async (invoice) => {
       await invalidateAll()
-      success(`Número de factura actualizado a #${invoice.invoice_number}`)
+      success(t('toast.invoiceNumberUpdated', { number: invoice.invoice_number }))
     },
     onError: (err) => {
       saveError.value = translateError(err)

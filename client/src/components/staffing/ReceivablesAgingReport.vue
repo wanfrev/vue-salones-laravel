@@ -1,36 +1,36 @@
 <template>
   <div class="space-y-4 p-3 sm:p-4">
     <div v-if="isLoading" class="divide-y divide-border-subtle" aria-busy="true">
-      <p class="sr-only">Cargando...</p>
+      <p class="sr-only">{{ t('reports.loading') }}</p>
       <div v-for="n in 4" :key="n" class="flex items-center gap-4 px-3 py-3"><span class="h-3 w-32 animate-pulse rounded bg-bg-secondary" /><span class="h-3 flex-1 animate-pulse rounded bg-bg-secondary" /><span class="h-3 w-20 animate-pulse rounded bg-bg-secondary" /></div>
     </div>
-    <p v-else-if="isError" class="py-8 text-center text-sm text-danger">No se pudo cargar el reporte.</p>
+    <p v-else-if="isError" class="py-8 text-center text-sm text-danger">{{ t('reports.receivables.error') }}</p>
 
     <template v-else-if="report">
       <div class="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-border-subtle bg-border-subtle sm:grid-cols-3 lg:grid-cols-6">
         <div v-for="b in AGING_BUCKETS" :key="b.key" class="bg-surface px-3 py-2.5">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted">{{ b.label }}</p>
+          <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted">{{ bucketLabel(b.key) }}</p>
           <p class="text-base font-bold tabular-nums" :class="b.key === 'current' ? 'text-text' : report.totals[b.key] > 0 ? 'text-danger' : 'text-text'">
             {{ formatUSD(report.totals[b.key]) }}
           </p>
         </div>
         <div class="bg-bg-secondary px-3 py-2.5">
-          <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted">Total por cobrar</p>
+          <p class="text-[11px] font-bold uppercase tracking-wider text-text-muted">{{ t('reports.receivables.totalDue') }}</p>
           <p class="text-base font-bold tabular-nums text-text">{{ formatUSD(report.totals.total) }}</p>
         </div>
       </div>
 
       <p v-if="report.companies.length === 0" class="py-8 text-center text-sm text-text-muted">
-        No hay facturas pendientes de cobro.
+        {{ t('reports.receivables.none') }}
       </p>
 
       <div v-else class="scroll-thin overflow-x-auto overflow-y-hidden rounded-xl border border-border-subtle">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-border-subtle bg-bg-secondary/30 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">
-              <th class="px-3 py-2.5">Empresa</th>
-              <th v-for="b in AGING_BUCKETS" :key="b.key" class="px-3 py-2.5 text-right">{{ b.label }}</th>
-              <th class="px-3 py-2.5 text-right">Total</th>
+              <th class="px-3 py-2.5">{{ t('reports.company') }}</th>
+              <th v-for="b in AGING_BUCKETS" :key="b.key" class="px-3 py-2.5 text-right">{{ bucketLabel(b.key) }}</th>
+              <th class="px-3 py-2.5 text-right">{{ t('reports.total') }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border-subtle">
@@ -50,8 +50,8 @@
                   <table class="w-full text-xs">
                     <thead>
                       <tr class="text-left text-[10px] uppercase tracking-wider text-text-muted">
-                        <th class="py-1">Factura</th><th class="py-1">Emitida</th><th class="py-1">Vence</th>
-                        <th class="py-1 text-right">Días vencida</th><th class="py-1 text-right">Total</th><th class="py-1 text-right">Pendiente</th>
+                        <th class="py-1">{{ t('reports.receivables.colInvoice') }}</th><th class="py-1">{{ t('reports.receivables.colIssued') }}</th><th class="py-1">{{ t('reports.receivables.colDue') }}</th>
+                        <th class="py-1 text-right">{{ t('reports.receivables.colDaysOverdue') }}</th><th class="py-1 text-right">{{ t('reports.total') }}</th><th class="py-1 text-right">{{ t('reports.receivables.colPending') }}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -75,8 +75,7 @@
       </div>
 
       <p class="text-[11px] text-text-muted">
-        Al {{ formatDateUS(report.as_of) }}. Los abonos "a cuenta" se aplican primero a la factura más antigua de cada empresa.
-        El plazo de pago se configura por empresa en Empresas.
+        {{ t('reports.receivables.footnote', { date: formatDateUS(report.as_of) }) }}
       </p>
     </template>
   </div>
@@ -88,10 +87,13 @@ import { useCurrency } from '../../composables/common/useCurrency'
 import { useReceivablesAging } from '../../composables/staffing/useReceivablesAging'
 import { AGING_BUCKETS } from '../../services/staffing/receivablesService'
 import { formatDateUS } from '../../lib/formatters'
+import { useI18n, type MessageKey } from '../../i18n'
 
 const props = defineProps<{ businessId: string | null }>()
 
 const { formatUSD } = useCurrency()
+const { t } = useI18n()
+const bucketLabel = (key: string) => t(`reports.bucket.${key}` as MessageKey)
 const { report, isLoading, isError } = useReceivablesAging(toRef(props, 'businessId'), ref(true))
 
 const expanded = ref(new Set<string>())

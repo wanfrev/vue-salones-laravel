@@ -95,7 +95,7 @@
               v-if="link.badge && !isActive(link.to)"
               class="rounded-full bg-primary-light px-2 py-0.5 text-[10px] font-bold text-primary"
             >
-              {{ link.badge }}
+              {{ badgeLabel(link.badge) }}
             </span>
           </router-link>
         </template>
@@ -114,6 +114,7 @@ import { evaluateGate } from '../../router/gate'
 import { sidebarSections } from './sidebarLinks'
 import { matchNavPath } from './sidebarActive'
 import type { SidebarLink } from './sidebarLinks'
+import { useI18n, messageCatalog, type MessageKey } from '../../i18n'
 
 interface Props {
   isOpen: boolean
@@ -309,13 +310,30 @@ onMounted(() => {
 })
 onBeforeUnmount(() => navResizeObserver?.disconnect())
 
+const { t, locale } = useI18n()
+
+// The menu's own Spanish label is the key (see i18n/messages/nav.ts). In Spanish nothing changes, so the
+// business's custom names (terminology) keep working exactly as before.
+const translated = (label: string): string | null => {
+  if (locale.value === 'es') return null
+  const key = `nav.${label}`
+  return key in messageCatalog.en ? t(key as MessageKey) : null
+}
+
 const resolveLabel = (link: SidebarLink): string => {
+  const inOtherLanguage = translated(link.label)
+  if (inOtherLanguage) return inOtherLanguage
   if (link.labelKey) {
     const term = (businessStore.terminology as Record<string, string>)[link.labelKey]
     return term || link.label
   }
   return link.label
 }
+
+const badgeLabel = (badge: string): string => translated(badge) ?? badge
+
+// Another language changes the width of every label, so the highlight pill has to be measured again.
+watch(locale, () => nextTick(() => measurePill(false)))
 
 
 </script>

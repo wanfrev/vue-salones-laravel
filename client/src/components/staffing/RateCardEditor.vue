@@ -2,32 +2,32 @@
   <div class="border-t border-border bg-bg-secondary/40 px-4 py-4">
     <div class="mb-3 flex items-center justify-between">
       <div>
-        <p class="text-sm font-semibold text-text">Tarifas por rol</p>
+        <p class="text-sm font-semibold text-text">{{ t('rates.title') }}</p>
         <p class="text-xs text-text-muted">
-          Lo que gana el empleado por hora y lo que se le cobra a la empresa por esa misma hora.
+          {{ t('rates.intro') }}
         </p>
       </div>
       <p v-if="rates.length" class="text-right">
-        <span class="block text-[10px] uppercase tracking-wider text-text-muted">Margen promedio</span>
+        <span class="block text-[10px] uppercase tracking-wider text-text-muted">{{ t('rates.avgMargin') }}</span>
         <span class="text-sm font-bold tabular-nums text-success">{{ formatUSD(averageHourlyMargin) }}/h</span>
       </p>
     </div>
 
-    <div v-if="isLoading" class="py-6 text-center text-sm text-text-muted">Cargando tarifas...</div>
+    <div v-if="isLoading" class="py-6 text-center text-sm text-text-muted">{{ t('rates.loading') }}</div>
 
     <div v-else class="overflow-x-auto">
       <table class="w-full">
         <thead>
           <tr class="border-b border-border text-left text-[10px] uppercase tracking-wider text-text-muted">
-            <th class="pb-2 pr-3">Rol</th>
-            <th class="pb-2 pr-3">Turno</th>
-            <th class="pb-2 pr-3 text-right"># Empleados</th>
-            <th class="pb-2 pr-3 text-right">Paga Reg</th>
-            <th class="pb-2 pr-3 text-right">Cobra Reg</th>
-            <th class="pb-2 pr-3 text-right">Margen</th>
-            <th class="pb-2 pr-3 text-right">Hrs Reg</th>
-            <th class="pb-2 pr-3 text-right">Paga OT</th>
-            <th class="pb-2 pr-3 text-right">Cobra OT</th>
+            <th class="pb-2 pr-3">{{ t('rates.colRole') }}</th>
+            <th class="pb-2 pr-3">{{ t('rates.colShift') }}</th>
+            <th class="pb-2 pr-3 text-right">{{ t('rates.colEmployees') }}</th>
+            <th class="pb-2 pr-3 text-right">{{ t('rates.colPayReg') }}</th>
+            <th class="pb-2 pr-3 text-right">{{ t('rates.colBillReg') }}</th>
+            <th class="pb-2 pr-3 text-right">{{ t('rates.colMargin') }}</th>
+            <th class="pb-2 pr-3 text-right">{{ t('rates.colRegHours') }}</th>
+            <th class="pb-2 pr-3 text-right">{{ t('rates.colPayOt') }}</th>
+            <th class="pb-2 pr-3 text-right">{{ t('rates.colBillOt') }}</th>
             <th class="pb-2 w-10"></th>
           </tr>
         </thead>
@@ -55,12 +55,12 @@
               {{ rate.overtimeBillRate != null ? formatUSD(rate.overtimeBillRate) : (rate.overtimeMultiplier ? `${rate.overtimeMultiplier}x` : '-') }}
             </td>
             <td class="py-2 text-right whitespace-nowrap">
-              <button type="button" title="Editar tarifa"
+              <button type="button" :title="t('rates.editRate')"
                 class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-primary/10 hover:text-primary"
                 @click="startEdit(rate)">
                 <PenIcon class="h-4 w-4" />
               </button>
-              <button type="button" title="Eliminar tarifa"
+              <button type="button" :title="t('rates.deleteRate')"
                 class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger"
                 @click="remove(rate.id)">
                 <TrashBin2Icon class="h-4 w-4" />
@@ -70,7 +70,7 @@
 
           <tr v-if="rates.length === 0">
             <td colspan="10" class="py-3 text-center text-xs text-text-muted">
-              Sin tarifas todavía. Agrega el primer rol abajo.
+              {{ t('rates.empty') }}
             </td>
           </tr>
         </tbody>
@@ -78,13 +78,13 @@
     </div>
 
     <p v-if="editingId" class="mt-3 text-xs font-semibold text-primary">
-      Editando "{{ draft.role }}"{{ draft.shift ? ` · ${shiftLabel(draft.shift)}` : '' }} — los cambios se guardan sobre esta misma tarifa.
+      {{ t('rates.editing', { role: draft.role, shift: draft.shift ? ` · ${shiftLabel(draft.shift)}` : '' }) }}
     </p>
     <form class="mt-3 flex flex-wrap items-end gap-2" @submit.prevent="submit">
       <div class="min-w-[130px] flex-1">
-        <label :for="`role-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Rol</label>
+        <label :for="`role-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">{{ t('rates.colRole') }}</label>
         <input :id="`role-${companyId}`" v-model="draft.role" type="text" list="staffing-job-titles" required
-          placeholder="Ej: Operario"
+          :placeholder="t('rates.rolePlaceholder')"
           class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
         <!-- Reuses the business's existing job_titles list so roles stay consistent with Equipo. -->
         <datalist id="staffing-job-titles">
@@ -93,19 +93,19 @@
       </div>
 
       <div class="w-28">
-        <label :for="`shift-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" title="Solo si este rol paga distinto según el turno">
-          Turno
+        <label :for="`shift-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted" :title="t('rates.shiftHint')">
+          {{ t('rates.colShift') }}
         </label>
         <select :id="`shift-${companyId}`" v-model="draft.shift"
           class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30">
-          <option :value="null">General</option>
-          <option v-for="opt in SHIFT_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+          <option :value="null">{{ t('common.general') }}</option>
+          <option v-for="opt in SHIFT_OPTIONS" :key="opt.value" :value="opt.value">{{ shiftLabel(opt.value) }}</option>
         </select>
       </div>
 
       <div class="w-20">
         <label :for="`ot-threshold-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">
-          Hrs Reg
+          {{ t('rates.colRegHours') }}
         </label>
         <input :id="`ot-threshold-${companyId}`" v-model.number="draft.overtimeThresholdHours" type="number" min="0"
           max="168" step="0.5" placeholder="40"
@@ -113,33 +113,33 @@
       </div>
 
       <div class="w-24">
-        <label :for="`pay-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Paga Reg ($)</label>
+        <label :for="`pay-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">{{ t('rates.payReg') }}</label>
         <input :id="`pay-${companyId}`" v-model.number="draft.payRate" type="number" min="0" step="0.01" required
           class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
       </div>
 
       <div class="w-24">
-        <label :for="`bill-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Cobra Reg ($)</label>
+        <label :for="`bill-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">{{ t('rates.billReg') }}</label>
         <input :id="`bill-${companyId}`" v-model.number="draft.billRate" type="number" min="0" step="0.01" required
           class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
       </div>
 
       <div class="w-24">
-        <label :for="`ot-pay-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Paga OT ($)</label>
+        <label :for="`ot-pay-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">{{ t('rates.payOt') }}</label>
         <input :id="`ot-pay-${companyId}`" v-model.number="draft.overtimePayRate" type="number" min="0" step="0.01"
           placeholder="0.00"
           class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
       </div>
 
       <div class="w-24">
-        <label :for="`ot-bill-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Cobra OT ($)</label>
+        <label :for="`ot-bill-${companyId}`" class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">{{ t('rates.billOt') }}</label>
         <input :id="`ot-bill-${companyId}`" v-model.number="draft.overtimeBillRate" type="number" min="0" step="0.01"
           placeholder="0.00"
           class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30" />
       </div>
 
       <div class="w-20">
-        <span class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">Margen</span>
+        <span class="mb-1 block text-[10px] uppercase tracking-wider text-text-muted">{{ t('rates.colMargin') }}</span>
         <p class="px-1 py-2 text-sm font-semibold tabular-nums"
           :class="draftMargin > 0 ? 'text-success' : 'text-text-muted'">
           {{ formatUSD(draftMargin) }}
@@ -148,11 +148,11 @@
 
       <button type="submit" :disabled="saveMutation.isPending.value"
         class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">
-        {{ saveMutation.isPending.value ? 'Guardando...' : (editingId ? 'Guardar cambios' : 'Agregar') }}
+        {{ saveMutation.isPending.value ? t('common.saving') : (editingId ? t('rates.saveChanges') : t('rates.add')) }}
       </button>
       <button v-if="editingId" type="button" @click="cancelEdit"
         class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary">
-        Cancelar
+        {{ t('common.cancel') }}
       </button>
     </form>
 
@@ -167,6 +167,7 @@ import { useRateCard } from '../../composables/staffing/useRateCard'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { useBusinessStore } from '../../store/business'
 import { PenIcon, TrashBin2Icon } from '@solar-icons/vue/linear'
+import { useI18n, type MessageKey } from '../../i18n'
 import { listCompanyEmployees, staffingTimesheetKeys, SHIFT_OPTIONS, type StaffingRateFormData, type StaffingRateRow } from '../../services/staffing/staffingService'
 
 const props = defineProps<{
@@ -175,6 +176,7 @@ const props = defineProps<{
 }>()
 
 const businessStore = useBusinessStore()
+const { t } = useI18n()
 const { formatUSD } = useCurrency()
 const jobTitles = computed(() => businessStore.jobTitles)
 
@@ -192,7 +194,7 @@ const { data: companyEmployees } = useQuery({
 // Keyed by role+shift, not just role — two rate rows can share a role name (día vs noche), and
 // counting employees by role alone would double-count them under both.
 const rateKey = (role: string, shift?: string | null) => `${role}|${shift ?? ''}`
-const shiftLabel = (shift: string) => SHIFT_OPTIONS.find(o => o.value === shift)?.label ?? shift
+const shiftLabel = (shift: string) => SHIFT_OPTIONS.some(o => o.value === shift) ? t(`common.shift.${shift}` as MessageKey) : shift
 
 const employeeCountByRoleShift = computed<Record<string, number>>(() => {
   const counts: Record<string, number> = {}

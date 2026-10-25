@@ -1,11 +1,11 @@
 <template>
-  <ModalBase :is-open="isOpen" :title="`Recibo de Pago — ${employeeName}`" size="xl" @close="emit('close')">
+  <ModalBase :is-open="isOpen" :title="t('recibo.title', { name: employeeName })" size="xl" @close="emit('close')">
     <div id="admin-recibo-printable" class="space-y-6">
       <!-- Header / Employee Info Card -->
       <div v-if="!isStaffingView" class="rounded-xl border border-border bg-surface p-4 sm:p-6">
         <div class="text-center border-b border-border pb-4 mb-4">
           <h2 class="text-xl font-bold text-text">{{ businessName || 'Salón' }}</h2>
-          <p class="text-xs text-text-muted mt-0.5">Recibo de Pago de Empleado</p>
+          <p class="text-xs text-text-muted mt-0.5">{{ t('recibo.subtitle') }}</p>
         </div>
 
         <div class="flex items-center gap-4 mb-4">
@@ -165,7 +165,7 @@
               <p class="text-xs text-text-muted mt-0.5">{{ totalPaidVES }}</p>
             </div>
             <div class="rounded-lg bg-bg-secondary p-3">
-              <p class="text-xs text-text-muted uppercase tracking-wider">Total a cobrar</p>
+              <p class="text-xs text-text-muted uppercase tracking-wider">{{ t('recibo.totalDue') }}</p>
               <p class="text-xl font-bold text-primary mt-0.5">${{ totalEarned }}</p>
               <p class="text-xs text-text-muted mt-0.5">{{ totalEarnedVES }}</p>
             </div>
@@ -230,7 +230,7 @@
               </div>
             </div>
             <div class="border-t border-border pt-3 flex justify-between">
-              <span class="font-semibold text-text text-base">Total a cobrar</span>
+              <span class="font-semibold text-text text-base">{{ t('recibo.totalDue') }}</span>
               <div class="text-right">
                 <span class="font-bold text-primary text-lg">${{ totalEarned }}</span>
                 <p class="text-xs text-text-muted">{{ totalEarnedVES }}</p>
@@ -243,7 +243,7 @@
             <h3 class="text-sm font-semibold text-text mb-3">Resumen de deuda</h3>
             <div class="space-y-2">
               <div class="flex justify-between text-sm">
-                <span class="text-text-muted">Total a cobrar</span>
+                <span class="text-text-muted">{{ t('recibo.totalDue') }}</span>
                 <div class="text-right">
                   <span class="font-medium text-text">${{ totalEarned }}</span>
                   <p class="text-xs text-text-muted">{{ totalEarnedVES }}</p>
@@ -337,7 +337,7 @@
       <div v-else class="rounded-xl border border-border bg-surface p-4 sm:p-6">
         <div class="text-center border-b border-border pb-4 mb-4">
           <h2 class="text-xl font-bold text-text">{{ businessName || 'Delta Work Force' }}</h2>
-          <p class="text-xs text-text-muted mt-0.5">Recibo de Pago de Empleado</p>
+          <p class="text-xs text-text-muted mt-0.5">{{ t('recibo.subtitle') }}</p>
         </div>
 
         <div class="flex items-center gap-4 mb-4">
@@ -354,11 +354,11 @@
 
         <!-- Company picker — only shown when the employee is assigned to more than one -->
         <div v-if="employeeCompanies.length > 1" class="mb-4 no-print">
-          <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted">Empresa</label>
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted">{{ t('recibo.company') }}</label>
           <select :value="activeCompanyId" @change="selectedCompanyId = ($event.target as HTMLSelectElement).value"
             class="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20">
             <option v-for="a in employeeCompanies" :key="a.companyId" :value="a.companyId">
-              {{ a.companyName || 'Empresa' }} — {{ a.role }}
+              {{ a.companyName || t('recibo.company') }} — {{ a.role }}
             </option>
           </select>
         </div>
@@ -371,7 +371,7 @@
         </div>
 
         <p v-else-if="employeeWeeks.length === 0" class="py-8 text-center text-sm text-text-muted">
-          Este empleado todavía no tiene horas cargadas en Nómina.
+          {{ t('recibo.noHours') }}
         </p>
 
         <template v-else>
@@ -379,7 +379,7 @@
           <div class="mb-5 no-print flex items-center justify-center gap-2">
             <button type="button" @click="goToOlderWeek" :disabled="isOldestWeek"
               class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Semana anterior">
+              :title="t('recibo.prevWeek')">
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
               </svg>
@@ -387,7 +387,7 @@
             <span class="text-sm font-semibold text-text min-w-[160px] text-center">{{ selectedWeekLabel }}</span>
             <button type="button" @click="goToNewerWeek" :disabled="isLatestWeek"
               class="rounded-lg p-1.5 text-text-muted hover:bg-bg-secondary hover:text-text transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-              title="Semana siguiente">
+              :title="t('recibo.nextWeek')">
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
               </svg>
@@ -395,32 +395,32 @@
           </div>
 
           <div class="hidden print:block text-center font-bold text-sm mb-4 text-text">
-            Semana: {{ selectedWeekLabel }}
+            {{ t('recibo.week', { label: selectedWeekLabel }) }}
           </div>
 
           <div class="flex justify-center mb-5">
             <span class="rounded-full px-3 py-1 text-xs font-semibold"
               :class="selectedWeekStatus === 'paid' ? 'bg-success/10 text-success' : selectedWeekStatus === 'approved' ? 'bg-info/10 text-info' : 'bg-warning/10 text-warning'">
-              {{ selectedWeekStatus === 'paid' ? 'Pagada' : selectedWeekStatus === 'approved' ? 'Aprobada — pago pendiente' : 'Borrador — sin aprobar' }}
+              {{ t(`recibo.status.${selectedWeekStatus}` as MessageKey) }}
             </span>
           </div>
 
           <!-- Summary Cards -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
             <div class="rounded-lg bg-bg-secondary p-3">
-              <p class="text-xs text-text-muted uppercase tracking-wider">Horas totales</p>
+              <p class="text-xs text-text-muted uppercase tracking-wider">{{ t('recibo.totalHours') }}</p>
               <p class="text-xl font-bold text-text mt-0.5">{{ selectedEntry?.total_hours?.toFixed(2) ?? '0.00' }}</p>
             </div>
             <div class="rounded-lg bg-bg-secondary p-3">
-              <p class="text-xs text-text-muted uppercase tracking-wider">Horas regulares</p>
+              <p class="text-xs text-text-muted uppercase tracking-wider">{{ t('recibo.regularHours') }}</p>
               <p class="text-xl font-bold text-text mt-0.5">{{ selectedEntry?.regular_hours?.toFixed(2) ?? '0.00' }}</p>
             </div>
             <div class="rounded-lg bg-bg-secondary p-3">
-              <p class="text-xs text-text-muted uppercase tracking-wider">Horas OT</p>
+              <p class="text-xs text-text-muted uppercase tracking-wider">{{ t('recibo.otHours') }}</p>
               <p class="text-xl font-bold text-text mt-0.5">{{ selectedEntry?.overtime_hours?.toFixed(2) ?? '0.00' }}</p>
             </div>
             <div class="rounded-lg bg-bg-secondary p-3">
-              <p class="text-xs text-text-muted uppercase tracking-wider">Total a cobrar</p>
+              <p class="text-xs text-text-muted uppercase tracking-wider">{{ t('recibo.totalDue') }}</p>
               <p class="text-xl font-bold text-primary mt-0.5">{{ formatUSD(selectedEntry?.payout ?? 0) }}</p>
             </div>
           </div>
@@ -428,37 +428,37 @@
           <!-- Breakdown -->
           <div class="space-y-2 mb-6">
             <div class="flex justify-between py-2 text-sm">
-              <span class="text-text-muted">Pago regular ({{ selectedEntry?.regular_hours?.toFixed(2) ?? '0.00' }}h × {{ formatUSD(selectedEntry?.pay_rate ?? 0) }}/h)</span>
+              <span class="text-text-muted">{{ t('recibo.regularPay', { hours: selectedEntry?.regular_hours?.toFixed(2) ?? '0.00', rate: formatUSD(selectedEntry?.pay_rate ?? 0) }) }}</span>
               <span class="font-medium text-text">{{ formatUSD((selectedEntry?.regular_hours ?? 0) * (selectedEntry?.pay_rate ?? 0)) }}</span>
             </div>
             <div v-if="(selectedEntry?.overtime_hours ?? 0) > 0" class="flex justify-between py-2 text-sm">
-              <span class="text-text-muted">Pago overtime ({{ selectedEntry?.overtime_hours?.toFixed(2) }}h)</span>
+              <span class="text-text-muted">{{ t('recibo.overtimePay', { hours: selectedEntry?.overtime_hours?.toFixed(2) ?? '0.00' }) }}</span>
               <span class="font-medium text-text">{{ formatUSD(overtimePay) }}</span>
             </div>
             <div class="flex justify-between py-2 text-sm">
-              <span class="text-text-muted">Bruto (gross)</span>
+              <span class="text-text-muted">{{ t('recibo.gross') }}</span>
               <span class="font-medium text-text">{{ formatUSD(selectedEntry?.gross ?? 0) }}</span>
             </div>
             <div v-if="(selectedEntry?.tax_withheld ?? 0) > 0" class="flex justify-between py-2 text-sm">
-              <span class="text-text-muted">Retención</span>
+              <span class="text-text-muted">{{ t('recibo.withholding') }}</span>
               <span class="font-medium text-danger">-{{ formatUSD(selectedEntry?.tax_withheld ?? 0) }}</span>
             </div>
             <div v-if="(selectedEntry?.pre_tax_deduction ?? 0) > 0" class="flex justify-between py-2 text-sm">
-              <span class="text-text-muted">Deducción</span>
+              <span class="text-text-muted">{{ t('recibo.deduction') }}</span>
               <span class="font-medium text-danger">-{{ formatUSD(selectedEntry?.pre_tax_deduction ?? 0) }}</span>
             </div>
             <div v-if="(selectedEntry?.fixed_fees ?? 0) > 0" class="flex justify-between py-2 text-sm">
-              <span class="text-text-muted">Fee fijo</span>
+              <span class="text-text-muted">{{ t('recibo.fixedFee') }}</span>
               <span class="font-medium text-danger">-{{ formatUSD(selectedEntry?.fixed_fees ?? 0) }}</span>
             </div>
             <div v-if="(selectedEntry?.adjustment ?? 0) !== 0" class="flex justify-between py-2 text-sm">
-              <span class="text-text-muted">Ajuste</span>
+              <span class="text-text-muted">{{ t('recibo.adjustment') }}</span>
               <span class="font-medium" :class="(selectedEntry?.adjustment ?? 0) > 0 ? 'text-success' : 'text-danger'">
                 {{ (selectedEntry?.adjustment ?? 0) > 0 ? '+' : '' }}{{ formatUSD(selectedEntry?.adjustment ?? 0) }}
               </span>
             </div>
             <div class="border-t border-border pt-3 flex justify-between">
-              <span class="font-semibold text-text text-base">Total a cobrar</span>
+              <span class="font-semibold text-text text-base">{{ t('recibo.totalDue') }}</span>
               <span class="font-bold text-primary text-lg">{{ formatUSD(selectedEntry?.payout ?? 0) }}</span>
             </div>
           </div>
@@ -466,7 +466,7 @@
           <!-- Historial de semanas -->
           <div class="border-t border-border pt-4 mb-4 no-print">
             <button type="button" @click="showHistory = !showHistory" class="flex w-full items-center justify-between text-left">
-              <span class="text-xs font-semibold uppercase tracking-wider text-text-muted">Historial de semanas</span>
+              <span class="text-xs font-semibold uppercase tracking-wider text-text-muted">{{ t('recibo.history') }}</span>
               <svg :class="['h-4 w-4 text-text-muted transition-transform', showHistory ? 'rotate-180' : '']"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
@@ -484,7 +484,7 @@
                 <div class="text-right">
                   <p class="text-sm font-bold text-text">{{ formatUSD(week.entry.payout) }}</p>
                   <p class="text-xs" :class="week.timesheet.status === 'paid' ? 'text-success' : 'text-warning'">
-                    {{ week.timesheet.status === 'paid' ? 'Pagada' : week.timesheet.status === 'approved' ? 'Pendiente' : 'Borrador' }}
+                    {{ t(`recibo.hist.${week.timesheet.status}` as MessageKey) }}
                   </p>
                 </div>
               </button>
@@ -501,7 +501,7 @@
           @click="emit('close')"
           class="rounded-xl px-4 py-2.5 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary active:scale-95"
         >
-          Cerrar
+          {{ t('recibo.close') }}
         </button>
         <button
           type="button"
@@ -511,7 +511,7 @@
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
           </svg>
-          Imprimir Recibo
+          {{ t('recibo.print') }}
         </button>
       </div>
     </template>
@@ -529,6 +529,8 @@ import { useAuthStore } from '../../store/auth'
 import { useBusinessStore } from '../../store/business'
 import { getInitials, parseLocalDate, formatDateHuman } from '../../lib/formatters'
 import { toYmd } from '../../lib/periodUtils'
+import { useI18n, type MessageKey } from '../../i18n'
+import { localizeDateText } from '../../i18n/dateWords'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { dashboardKeys, listEmployeeTransactions, listEmployeePayments } from '../../services/employeeDashboardService'
 import { listStaffingTimesheets, staffingTimesheetKeys } from '../../services/staffing/staffingService'
@@ -555,6 +557,7 @@ const branchId = computed(() => businessStore.currentBranchId)
 const businessName = computed(() => businessStore.business?.name ?? '')
 
 // ── Staffing niche: hours/company/OT recibo, one row per week ──────────────
+const { t, locale } = useI18n()
 const isStaffingView = computed(() => businessStore.hasCapability('staffing.timesheets'))
 
 /** Every company this employee is currently assigned to — the source for the company picker. */
@@ -574,7 +577,7 @@ const activeCompanyId = computed(() =>
 const selectedAssignment = computed(() =>
   employeeCompanies.value.find((a: StaffingAssignment) => a.companyId === activeCompanyId.value) ?? null
 )
-const staffingCompanyName = computed(() => selectedAssignment.value?.companyName || 'Sin empresa')
+const staffingCompanyName = computed(() => selectedAssignment.value?.companyName || t('recibo.noCompany'))
 
 const { data: staffingTimesheetsData, isLoading: loadingStaffingWeeks } = useQuery({
   queryKey: computed(() => staffingTimesheetKeys.byCompany(businessId.value, activeCompanyId.value)),
@@ -613,7 +616,8 @@ const selectedWeekStatus = computed(() => selectedWeek.value?.timesheet.status ?
 function weekLabel(start: string, end: string): string {
   const s = parseLocalDate(start.slice(0, 10))
   const e = parseLocalDate(end.slice(0, 10))
-  return `${s.getDate()} ${MONTHS_ES[s.getMonth()].slice(0, 3)} - ${e.getDate()} ${MONTHS_ES[e.getMonth()].slice(0, 3)} ${e.getFullYear()}`
+  const mon = (m: number) => localizeDateText(MONTHS_ES[m].slice(0, 3), locale.value)
+  return `${s.getDate()} ${mon(s.getMonth())} - ${e.getDate()} ${mon(e.getMonth())} ${e.getFullYear()}`
 }
 
 const selectedWeekLabel = computed(() =>

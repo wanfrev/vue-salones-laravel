@@ -3,34 +3,34 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6" @click.self="emit('close')">
       <div class="w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-xl">
         <div class="mb-5">
-          <h2 class="text-lg font-semibold text-text">{{ isEditing ? 'Editar incidente' : 'Nuevo incidente' }}</h2>
+          <h2 class="text-lg font-semibold text-text">{{ isEditing ? t('incidents.form.titleEdit') : t('incidents.form.titleNew') }}</h2>
         </div>
 
         <form class="space-y-3" @submit.prevent="submit">
           <div>
-            <label class="mb-1 block text-sm font-medium text-text">Empresa</label>
+            <label class="mb-1 block text-sm font-medium text-text">{{ t('incidents.filter.company') }}</label>
             <FormSearchSelect
               v-model="form.companyId"
               :options="companySelectOptions"
-              placeholder="Sin empresa"
-              search-placeholder="Buscar empresa..."
+              :placeholder="t('incidents.form.noCompany')"
+              :search-placeholder="t('incidents.form.searchCompany')"
               @update:model-value="form.employeeId = ''"
             />
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-text">Empleado</label>
+            <label class="mb-1 block text-sm font-medium text-text">{{ t('incidents.form.employee') }}</label>
             <FormSearchSelect
               v-model="form.employeeId"
               :options="employeeOptions"
               :disabled="!form.companyId"
-              :placeholder="form.companyId ? 'Selecciona un empleado' : 'Selecciona primero una empresa'"
-              search-placeholder="Buscar empleado..."
-              :error="attemptedSubmit && !form.employeeId ? 'Selecciona un empleado' : undefined"
+              :placeholder="form.companyId ? t('incidents.form.selectEmployee') : t('incidents.form.selectCompanyFirst')"
+              :search-placeholder="t('incidents.form.searchEmployee')"
+              :error="attemptedSubmit && !form.employeeId ? t('incidents.form.selectEmployee') : undefined"
             />
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="inc-date">Fecha</label>
+              <label class="mb-1 block text-sm font-medium text-text" for="inc-date">{{ t('incidents.col.date') }}</label>
               <input id="inc-date" v-model="form.incidentDate" type="date" required :class="inputClass" />
             </div>
             <div>
@@ -44,22 +44,22 @@
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
-              <label class="mb-1 block text-sm font-medium text-text" for="inc-status">Estado</label>
+              <label class="mb-1 block text-sm font-medium text-text" for="inc-status">{{ t('incidents.col.status') }}</label>
               <select id="inc-status" v-model="form.status" :class="inputClass">
-                <option v-for="s in INCIDENT_STATUS_OPTIONS" :key="s.value" :value="s.value">{{ s.label }}</option>
+                <option v-for="s in INCIDENT_STATUS_OPTIONS" :key="s.value" :value="s.value">{{ t(`incidents.status.${s.value}` as MessageKey) }}</option>
               </select>
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-text" for="inc-drugtest">Drug Test</label>
               <select id="inc-drugtest" v-model="form.drugTestResult" :class="inputClass">
-                <option :value="null">Sin definir</option>
-                <option v-for="d in DRUG_TEST_OPTIONS" :key="d.value" :value="d.value">{{ d.label }}</option>
+                <option :value="null">{{ t('incidents.drug.undefined') }}</option>
+                <option v-for="d in DRUG_TEST_OPTIONS" :key="d.value" :value="d.value">{{ t(`incidents.drug.${d.value}` as MessageKey) }}</option>
               </select>
             </div>
           </div>
           <label class="flex items-center gap-2 text-sm text-text">
             <input v-model="wantsUrgentCareModel" type="checkbox" class="h-3.5 w-3.5 rounded border-border" />
-            ¿Quiere ir al Urgent Care?
+            {{ t('incidents.form.urgentCare') }}
           </label>
 
           <p v-if="error" class="text-sm text-danger">{{ error }}</p>
@@ -68,11 +68,11 @@
             <button type="button"
               class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
               @click="emit('close')">
-              Cancelar
+              {{ t('common.cancel') }}
             </button>
             <button type="submit" :disabled="saving"
               class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-sm transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">
-              {{ saving ? 'Guardando...' : 'Guardar' }}
+              {{ saving ? t('common.saving') : t('common.save') }}
             </button>
           </div>
         </form>
@@ -86,6 +86,7 @@ import { computed, reactive, ref } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { translateError } from '../../lib/errors'
 import { FormSearchSelect } from '../forms'
+import { useI18n, type MessageKey } from '../../i18n'
 import { listStaffingCompanies, staffingCompanyKeys, listCompanyEmployees } from '../../services/staffing/staffingService'
 import {
   INCIDENT_STATUS_OPTIONS, DRUG_TEST_OPTIONS,
@@ -101,6 +102,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ close: []; save: [data: StaffingIncidentFormData] }>()
 
+const { t } = useI18n()
 const inputClass =
   'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30'
 
@@ -139,7 +141,7 @@ const { data: companies } = useQuery({
 const companyOptions = computed(() => (companies.value ?? []).map(c => ({ value: c.id, label: c.name })))
 // FormSearchSelect has no separate "unselected" placeholder state distinct from a real empty
 // option — "Sin empresa" has to be a genuine, searchable option carrying the empty value.
-const companySelectOptions = computed(() => [{ value: '', label: 'Sin empresa' }, ...companyOptions.value])
+const companySelectOptions = computed(() => [{ value: '', label: t('incidents.form.noCompany') }, ...companyOptions.value])
 
 const { data: employees } = useQuery({
   queryKey: computed(() => ['staffing-company-employees', props.businessId, form.companyId] as const),

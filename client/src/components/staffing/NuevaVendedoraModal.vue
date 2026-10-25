@@ -3,25 +3,25 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-6" @click.self="emit('close')">
       <div class="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-xl">
         <div class="mb-5">
-          <h2 class="text-lg font-semibold text-text">Agregar vendedor</h2>
-          <p class="text-sm text-text-muted">Queda con acceso propio al CRM — solo ve sus propios leads.</p>
+          <h2 class="text-lg font-semibold text-text">{{ t('crm.newSeller.title') }}</h2>
+          <p class="text-sm text-text-muted">{{ t('crm.newSeller.intro') }}</p>
         </div>
 
         <form class="space-y-3" @submit.prevent="submit">
           <div>
-            <label class="mb-1 block text-sm font-medium text-text" for="vend-name">Nombre</label>
+            <label class="mb-1 block text-sm font-medium text-text" for="vend-name">{{ t('crm.seller.name') }}</label>
             <input id="vend-name" v-model="form.name" type="text" required :class="inputClass" />
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-text" for="vend-phone">Teléfono</label>
+            <label class="mb-1 block text-sm font-medium text-text" for="vend-phone">{{ t('crm.seller.phone') }}</label>
             <input id="vend-phone" v-model="form.phone" type="text" required :class="inputClass" />
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-text" for="vend-email">Correo electrónico</label>
+            <label class="mb-1 block text-sm font-medium text-text" for="vend-email">{{ t('crm.seller.email') }}</label>
             <input id="vend-email" v-model="form.email" type="email" required :class="inputClass" />
           </div>
           <div>
-            <label class="mb-1 block text-sm font-medium text-text" for="vend-password">Contraseña</label>
+            <label class="mb-1 block text-sm font-medium text-text" for="vend-password">{{ t('crm.seller.password') }}</label>
             <input id="vend-password" v-model="form.password" type="password" required minlength="6" :class="inputClass" />
           </div>
 
@@ -31,11 +31,11 @@
             <button type="button"
               class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
               @click="emit('close')">
-              Cancelar
+              {{ t('common.cancel') }}
             </button>
             <button type="submit" :disabled="saving"
               class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-sm transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">
-              {{ saving ? 'Guardando...' : 'Guardar' }}
+              {{ saving ? t('common.saving') : t('common.save') }}
             </button>
           </div>
         </form>
@@ -49,6 +49,7 @@ import { reactive, ref } from 'vue'
 import { adminCreateEmployee } from '../../services/adminService'
 import { useNotification } from '../../composables/common/useNotification'
 import { translateError } from '../../lib/errors'
+import { useI18n } from '../../i18n'
 
 defineProps<{ businessId: string | null }>()
 
@@ -57,6 +58,7 @@ const emit = defineEmits<{ close: []; created: [] }>()
 const inputClass =
   'w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/30'
 
+const { t } = useI18n()
 const { success, error: showError } = useNotification()
 
 const form = reactive({ name: '', phone: '', email: '', password: '' })
@@ -85,7 +87,7 @@ const submit = async () => {
       can_access_dental_clinical: false,
       gabinete_mode: false,
     })
-    success('Vendedor creado')
+    success(t('crm.seller.created'))
     emit('created')
     emit('close')
   } catch (err) {

@@ -2,15 +2,15 @@
   <div class="flex flex-wrap items-center justify-center gap-1">
     <button v-for="f in files" :key="f.id" type="button"
       class="group relative rounded p-1 text-primary transition-theme hover:bg-primary/10"
-      :title="`Ver ${f.fileOriginalName}`"
+      :title="t('incidents.file.view', { name: f.fileOriginalName })"
       @click="handleView(f.id)">
       <FileTextIcon class="h-4 w-4" />
       <span class="absolute -right-1 -top-1 hidden rounded-full bg-danger p-0.5 text-white group-hover:block"
-        title="Eliminar archivo" @click.stop="handleDelete(f.id)">
+        :title="t('incidents.file.delete')" @click.stop="handleDelete(f.id)">
         <CloseCircleIcon class="h-2.5 w-2.5" />
       </span>
     </button>
-    <label class="cursor-pointer rounded p-1 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary" title="Agregar archivo">
+    <label class="cursor-pointer rounded p-1 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary" :title="t('incidents.file.add')">
       <input type="file" class="hidden" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif,.webp" @change="handleUpload" />
       <UploadIcon class="h-4 w-4" />
     </label>
@@ -20,7 +20,9 @@
 <script setup lang="ts">
 import { FileTextIcon, UploadIcon, CloseCircleIcon } from '@solar-icons/vue/linear'
 import { viewIncidentFile, type IncidentFileType, type StaffingIncidentFileRow } from '../../services/staffing/staffingIncidentService'
+import { useI18n } from '../../i18n'
 
+const { t } = useI18n()
 const props = defineProps<{
   files: StaffingIncidentFileRow[]
   fileType: IncidentFileType
@@ -33,7 +35,7 @@ const handleView = (id: string) => {
 }
 
 const handleDelete = (id: string) => {
-  if (window.confirm('¿Eliminar este archivo?')) emit('remove', id)
+  if (window.confirm(t('incidents.file.confirmDelete'))) emit('remove', id)
 }
 
 const handleUpload = (e: Event) => {

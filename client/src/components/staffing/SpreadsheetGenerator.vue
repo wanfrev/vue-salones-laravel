@@ -3,33 +3,33 @@
     <div class="flex flex-wrap items-end justify-between gap-3 border-b border-border-subtle px-3 py-3 sm:px-4">
       <div class="min-w-[220px] max-w-sm flex-1">
         <label class="mb-1 block text-[11px] font-bold uppercase tracking-wider text-text-muted" for="spreadsheet-company">
-          Empresa
+          {{ t('spreadsheet.company') }}
         </label>
         <FormSearchSelect
           id="spreadsheet-company"
           v-model="selectedCompanyId"
           :options="companyOptions"
-          placeholder="Selecciona una empresa"
-          search-placeholder="Buscar empresa..."
+          :placeholder="t('spreadsheet.selectCompany')"
+          :search-placeholder="t('spreadsheet.searchCompany')"
         />
       </div>
       <button v-if="isAdmin && selectedCompanyId" type="button"
         class="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-semibold text-text transition-theme hover:bg-bg-secondary"
         @click="openNewEmployee">
-        + Agregar empleado
+        {{ t('spreadsheet.addEmployee') }}
       </button>
     </div>
 
     <div v-if="!selectedCompanyId" class="py-8 text-center text-sm text-text-muted">
-      Selecciona una empresa para ver sus empleados.
+      {{ t('spreadsheet.pickCompany') }}
     </div>
 
     <div v-else-if="ratesQuery.isLoading.value" class="py-8 text-center text-sm text-text-muted">
-      Cargando empleados...
+      {{ t('spreadsheet.loadingEmployees') }}
     </div>
 
     <p v-else-if="rates.length === 0" class="py-8 text-center text-sm text-text-muted">
-      Esta empresa no tiene empleados asignados todavía.
+      {{ t('spreadsheet.noEmployees') }}
     </p>
 
     <div v-else>
@@ -39,8 +39,8 @@
             <thead>
               <tr class="border-b border-border-subtle bg-bg-secondary/30 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">
                 <th class="px-3 py-2.5 w-10"></th>
-                <th class="px-3 py-2.5">Empleado</th>
-                <th class="px-3 py-2.5">Rol / Turno</th>
+                <th class="px-3 py-2.5">{{ t('spreadsheet.colEmployee') }}</th>
+                <th class="px-3 py-2.5">{{ t('spreadsheet.colRoleShift') }}</th>
                 <th class="px-3 py-2.5 text-right">Pay rate</th>
                 <th class="px-3 py-2.5 text-right">Pay rate OT</th>
               </tr>
@@ -81,7 +81,7 @@
           :disabled="selectedEmployeeIds.length === 0"
           @click="handleGeneratePdf"
         >
-          Generar PDF ({{ selectedEmployeeIds.length }})
+          {{ t('spreadsheet.generatePdf', { n: selectedEmployeeIds.length }) }}
         </button>
       </div>
     </div>
@@ -105,6 +105,7 @@ import { printStaffingSpreadsheet } from '../../lib/staffingSpreadsheetPrint'
 import { SHIFT_OPTIONS } from '../../services/staffing/staffingService'
 import { EmpleadoFormModal } from '../modals'
 import { useModal } from '../../composables/common/useModal'
+import { useI18n, type MessageKey } from '../../i18n'
 import { useCrud } from '../../composables/empleados/useCrud'
 import { deleteEmpleado, equipoKeys, listEquipo, saveEmpleado } from '../../services/equipoService'
 import type { Empleado, EmpleadoFormData } from '../../types/empleado'
@@ -112,6 +113,7 @@ import type { Empleado, EmpleadoFormData } from '../../types/empleado'
 const props = defineProps<{ businessId: string | null }>()
 
 const businessStore = useBusinessStore()
+const { t } = useI18n()
 const { authStore } = useAuth()
 const { formatUSD } = useCurrency()
 
@@ -121,7 +123,7 @@ const selectedCompanyId = ref<string | null>(null)
 const selectedEmployeeIds = ref<string[]>([])
 
 const shiftLabel = (shift: string | null): string =>
-  shift ? (SHIFT_OPTIONS.find(o => o.value === shift)?.label ?? shift) : ''
+  shift ? (SHIFT_OPTIONS.some(o => o.value === shift) ? t(`common.shift.${shift}` as MessageKey) : shift) : ''
 
 const { data: companies } = useQuery({
   queryKey: computed(() => staffingSpreadsheetKeys.companies(props.businessId)),

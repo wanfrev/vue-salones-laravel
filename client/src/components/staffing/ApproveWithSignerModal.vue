@@ -3,9 +3,9 @@
     <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" @click.self="emit('close')">
       <div class="w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-xl">
         <div class="mb-4">
-          <h2 class="text-lg font-semibold text-text">¿Quién aprueba esta nómina?</h2>
+          <h2 class="text-lg font-semibold text-text">{{ t('approvals.modal.title') }}</h2>
           <p class="mt-0.5 text-xs text-text-muted">
-            Elige tu nombre e ingresa tu PIN. Quedará registrado en la nómina quién la aprobó.
+            {{ t('approvals.modal.intro') }}
           </p>
           <p v-if="context" class="mt-1 text-xs font-medium text-text-secondary">{{ context }}</p>
         </div>
@@ -21,7 +21,7 @@
           </div>
 
           <div v-if="selectedId">
-            <label for="approver-pin" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted">PIN</label>
+            <label for="approver-pin" class="mb-1 block text-xs font-semibold uppercase tracking-wider text-text-muted">{{ t('approvals.modal.pin') }}</label>
             <input id="approver-pin" ref="pinInput" v-model="pin" type="password" inputmode="numeric" autocomplete="off"
               maxlength="8" placeholder="••••"
               class="w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-sm font-medium tracking-widest text-text outline-none transition-theme focus:border-primary focus:ring-2 focus:ring-primary/20" />
@@ -32,10 +32,10 @@
           <div class="flex items-center justify-end gap-2 pt-1">
             <button type="button"
               class="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition-theme hover:bg-bg-secondary"
-              @click="emit('close')">Cancelar</button>
+              @click="emit('close')">{{ t('approvals.modal.cancel') }}</button>
             <button type="submit" :disabled="!canSubmit || isApproving"
               class="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-text-inverse shadow-sm transition-theme hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-60">
-              {{ isApproving ? 'Aprobando...' : 'Aprobar nómina' }}
+              {{ isApproving ? t('approvals.modal.approving') : t('approvals.modal.approve') }}
             </button>
           </div>
         </form>
@@ -47,6 +47,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 import { isValidPin } from '../../services/staffing/approverService'
+import { useI18n } from '../../i18n'
 import type { StaffingApprover } from '../../services/staffing/approverService'
 
 const props = defineProps<{
@@ -64,6 +65,7 @@ const emit = defineEmits<{
   (e: 'confirm', signer: { approverId: string; pin: string }): void
 }>()
 
+const { t } = useI18n()
 const selectedId = ref('')
 const pin = ref('')
 const pinInput = ref<HTMLInputElement | null>(null)

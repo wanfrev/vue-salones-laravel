@@ -13,7 +13,7 @@
       <div v-if="view === 'employee'" class="flex flex-wrap items-center gap-3">
         <div class="relative">
           <MagnifierIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-          <input v-model="employeeSearch" type="text" placeholder="Buscar empleado..."
+          <input v-model="employeeSearch" type="text" :placeholder="t('reports.searchEmployee')"
             class="w-40 rounded-xl border border-border bg-bg-secondary/40 py-2 pl-9 pr-3 text-sm text-text outline-none transition-colors placeholder:text-text-muted focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/15 sm:w-48" />
         </div>
         <div class="inline-flex divide-x divide-border overflow-hidden rounded-xl border border-border text-xs font-medium">
@@ -25,13 +25,13 @@
           </button>
         </div>
         <div class="flex items-center gap-1">
-          <button type="button" title="Año anterior" aria-label="Año anterior"
+          <button type="button" :title="t('common.prevYear')" :aria-label="t('common.prevYear')"
             class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary"
             @click="year -= 1">
             <ArrowLeftIcon class="h-4 w-4" />
           </button>
           <span class="min-w-[3.5rem] text-center text-sm font-semibold tabular-nums text-text">{{ year }}</span>
-          <button type="button" title="Año siguiente" aria-label="Año siguiente"
+          <button type="button" :title="t('common.nextYear')" :aria-label="t('common.nextYear')"
             class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary"
             @click="year += 1">
             <ArrowRightIcon class="h-4 w-4" />
@@ -42,7 +42,7 @@
       <div v-else class="flex flex-wrap items-center gap-2">
         <div class="relative">
           <MagnifierIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
-          <input v-model="companySearch" type="text" placeholder="Buscar empresa..."
+          <input v-model="companySearch" type="text" :placeholder="t('reports.searchCompany')"
             class="w-40 rounded-xl border border-border bg-bg-secondary/40 py-2 pl-9 pr-3 text-sm text-text outline-none transition-colors placeholder:text-text-muted focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/15 sm:w-48" />
         </div>
         <div class="inline-flex divide-x divide-border overflow-hidden rounded-xl border border-border text-xs font-medium">
@@ -64,13 +64,13 @@
         </select>
 
         <div v-if="period === 'month' || period === 'year'" class="flex items-center gap-1">
-          <button type="button" title="Año anterior" aria-label="Año anterior"
+          <button type="button" :title="t('common.prevYear')" :aria-label="t('common.prevYear')"
             class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary"
             @click="hoursYear -= 1">
             <ArrowLeftIcon class="h-4 w-4" />
           </button>
           <span class="min-w-[3.5rem] text-center text-sm font-semibold tabular-nums text-text">{{ hoursYear }}</span>
-          <button type="button" title="Año siguiente" aria-label="Año siguiente"
+          <button type="button" :title="t('common.nextYear')" :aria-label="t('common.nextYear')"
             class="rounded-lg p-1.5 text-text-muted transition-colors hover:bg-bg-secondary hover:text-primary"
             @click="hoursYear += 1">
             <ArrowRightIcon class="h-4 w-4" />
@@ -81,26 +81,26 @@
 
     <template v-if="view === 'employee'">
       <div v-if="matrix.isLoading.value" class="divide-y divide-border-subtle" aria-busy="true">
-      <p class="sr-only">Cargando...</p>
+      <p class="sr-only">{{ t('reports.loading') }}</p>
       <div v-for="n in 4" :key="n" class="flex items-center gap-4 px-3 py-3"><span class="h-3 w-32 animate-pulse rounded bg-bg-secondary" /><span class="h-3 flex-1 animate-pulse rounded bg-bg-secondary" /><span class="h-3 w-20 animate-pulse rounded bg-bg-secondary" /></div>
     </div>
 
       <p v-else-if="matrix.employees.value.length === 0" class="py-8 text-center text-sm text-text-muted">
-        Sin empleados{{ active === null ? '' : active ? ' activos' : ' inactivos' }}.
+        {{ active === null ? t('reports.hours.noEmployees') : active ? t('reports.hours.noActiveEmployees') : t('reports.hours.noInactiveEmployees') }}
       </p>
 
       <p v-else-if="filteredEmployees.length === 0" class="py-8 text-center text-sm text-text-muted">
-        Ningún empleado coincide con "{{ employeeSearch }}".
+        {{ t('reports.noEmployeeMatch', { search: employeeSearch }) }}
       </p>
 
       <div v-else class="scroll-thin overflow-x-auto overflow-y-hidden">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-border-subtle bg-bg-secondary/30 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">
-              <th class="sticky left-0 z-10 bg-surface px-3 py-2">Empleado</th>
-              <th class="px-3 py-2">Estado</th>
-              <th class="px-3 py-2">Empresa(s)</th>
-              <th class="px-3 py-2">Método de pago</th>
+              <th class="sticky left-0 z-10 bg-surface px-3 py-2">{{ t('reports.hours.colEmployee') }}</th>
+              <th class="px-3 py-2">{{ t('reports.hours.colStatus') }}</th>
+              <th class="px-3 py-2">{{ t('reports.hours.colCompanies') }}</th>
+              <th class="px-3 py-2">{{ t('reports.hours.colPayMethod') }}</th>
               <th v-for="week in matrix.weeks.value" :key="week.week_start" class="whitespace-nowrap px-3 py-2 text-right">
                 {{ week.label }}
               </th>
@@ -115,7 +115,7 @@
                 <span class="inline-flex items-center gap-1.5 text-xs font-semibold"
                   :class="employee.active ? 'text-success' : 'text-danger'">
                   <span class="h-1.5 w-1.5 rounded-full bg-current opacity-70" />
-                  {{ employee.active ? 'Activo' : 'Inactivo' }}
+                  {{ employee.active ? t('reports.hours.active1') : t('reports.hours.inactive1') }}
                 </span>
               </td>
               <td class="whitespace-nowrap px-3 py-2 text-text-secondary">
@@ -133,32 +133,32 @@
       <button v-if="filteredEmployees.length > visibleEmployees.length" type="button"
         class="w-full border-t border-border-subtle py-3 text-center text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
         @click="rowsShown += ROWS_PAGE">
-        Mostrar {{ Math.min(ROWS_PAGE, filteredEmployees.length - visibleEmployees.length) }} más ({{ filteredEmployees.length - visibleEmployees.length }} restantes)
+        {{ t('reports.hours.more', { n: Math.min(ROWS_PAGE, filteredEmployees.length - visibleEmployees.length), rest: filteredEmployees.length - visibleEmployees.length }) }}
       </button>
     </template>
 
     <template v-else>
       <div v-if="companyHours.isLoading.value" class="divide-y divide-border-subtle" aria-busy="true">
-      <p class="sr-only">Cargando...</p>
+      <p class="sr-only">{{ t('reports.loading') }}</p>
       <div v-for="n in 4" :key="n" class="flex items-center gap-4 px-3 py-3"><span class="h-3 w-32 animate-pulse rounded bg-bg-secondary" /><span class="h-3 flex-1 animate-pulse rounded bg-bg-secondary" /><span class="h-3 w-20 animate-pulse rounded bg-bg-secondary" /></div>
     </div>
 
       <p v-else-if="companyHours.rows.value.length === 0" class="py-8 text-center text-sm text-text-muted">
-        Sin empresas registradas.
+        {{ t('reports.noCompanies') }}
       </p>
 
       <p v-else-if="filteredCompanyHours.length === 0" class="py-8 text-center text-sm text-text-muted">
-        Ninguna empresa coincide con "{{ companySearch }}".
+        {{ t('reports.noCompanyMatch', { search: companySearch }) }}
       </p>
 
       <div v-else class="scroll-thin overflow-x-auto overflow-y-hidden">
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-border-subtle bg-bg-secondary/30 text-left text-[11px] font-bold uppercase tracking-wider text-text-muted">
-              <th class="px-3 py-2">Empresa</th>
-              <th class="px-3 py-2 text-right">Horas activos</th>
-              <th class="px-3 py-2 text-right">Horas inactivos</th>
-              <th class="px-3 py-2 text-right">Total</th>
+              <th class="px-3 py-2">{{ t('reports.company') }}</th>
+              <th class="px-3 py-2 text-right">{{ t('reports.hours.colActiveHours') }}</th>
+              <th class="px-3 py-2 text-right">{{ t('reports.hours.colInactiveHours') }}</th>
+              <th class="px-3 py-2 text-right">{{ t('reports.total') }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-border-subtle">
@@ -178,6 +178,7 @@
 <script setup lang="ts">
 import { computed, ref, toRef, watch } from 'vue'
 import { ArrowLeftIcon, ArrowRightIcon, MagnifierIcon } from '@solar-icons/vue/linear'
+import { useI18n, type MessageKey } from '../../i18n'
 import { useEmployeeHoursMatrix } from '../../composables/staffing/useEmployeeHoursMatrix'
 import { useCompanyHoursSummary } from '../../composables/staffing/useCompanyHoursSummary'
 import { formatDateUS, toISODate } from '../../lib/formatters'
@@ -185,30 +186,29 @@ import type { StaffingHoursPeriod } from '../../services/staffing/staffingServic
 
 const props = defineProps<{ businessId: string | null }>()
 
-const VIEW_TABS: { value: 'employee' | 'company'; label: string }[] = [
-  { value: 'employee', label: 'Por empleado' },
-  { value: 'company', label: 'Por empresa' },
-]
+const { t } = useI18n()
+
+const VIEW_TABS = computed<{ value: 'employee' | 'company'; label: string }[]>(() => [
+  { value: 'employee', label: t('reports.hours.byEmployee') },
+  { value: 'company', label: t('reports.hours.byCompany') },
+])
 
 // "Todos" first and default: a period in the past shouldn't hinge on who's still on payroll
 // today — filtering to "Activos" hid a deactivated worker's entire year the moment they left,
 // reading as if their past hours had been deleted rather than just filtered out.
-const TABS: { value: boolean | null; label: string }[] = [
-  { value: null, label: 'Todos' },
-  { value: true, label: 'Activos' },
-  { value: false, label: 'Inactivos' },
-]
+const TABS = computed<{ value: boolean | null; label: string }[]>(() => [
+  { value: null, label: t('reports.hours.all') },
+  { value: true, label: t('reports.hours.active') },
+  { value: false, label: t('reports.hours.inactive') },
+])
 
-const PERIOD_TABS: { value: StaffingHoursPeriod; label: string }[] = [
-  { value: 'week', label: 'Semana' },
-  { value: 'month', label: 'Mes' },
-  { value: 'year', label: 'Año' },
-]
+const PERIOD_TABS = computed<{ value: StaffingHoursPeriod; label: string }[]>(() => [
+  { value: 'week', label: t('reports.hours.week') },
+  { value: 'month', label: t('reports.hours.month') },
+  { value: 'year', label: t('reports.hours.year') },
+])
 
-const MONTH_LABELS = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-]
+const MONTH_LABELS = computed(() => Array.from({ length: 12 }, (_, i) => t(`reports.month.${i + 1}` as MessageKey)))
 
 const view = ref<'employee' | 'company'>('employee')
 

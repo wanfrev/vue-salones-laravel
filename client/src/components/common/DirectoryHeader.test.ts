@@ -10,6 +10,7 @@ vi.mock('../../store/business', () => ({
   useBusinessStore: () => ({
     get isMultiBranch() { return s.multi },
     get currentBranch() { return s.branch },
+    hasCapability: () => false,
   }),
 }))
 
