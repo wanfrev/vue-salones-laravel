@@ -10,6 +10,11 @@ import { isRole } from '../constants/roles'
 import type { AuthProfile } from '../types/auth'
 import type { Profile } from '../types/database'
 
+/** Empleadas y encargadas abren en SU sucursal; admin y superadmin eligen la que quieran. */
+function branchOwnerId(p: { id?: string | null; role?: string | null } | null | undefined): string | undefined {
+  return p && p.id && (p.role === 'empleado' || p.role === 'encargado') ? p.id : undefined
+}
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const session = ref<Session | null>(null)
@@ -143,10 +148,7 @@ export const useAuthStore = defineStore('auth', () => {
   const hydrateUserContext = async (userId: string, userRole?: string | null) => {
     await loadProfile(userId, userRole)
     const businessStore = useBusinessStore()
-    await businessStore.loadBusiness(
-      profile.value?.business_id ?? null,
-      profile.value?.role === 'empleado' || profile.value?.role === 'encargado' ? profile.value?.id : undefined,
-    )
+    await businessStore.loadBusiness(profile.value?.business_id ?? null, branchOwnerId(profile.value))
   }
 
   const clearAuthState = () => {
@@ -204,6 +206,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         if (embeddedBusiness) {
           const businessStore = useBusinessStore()
+          businessStore.setRestoreProfile(branchOwnerId(profile.value) ?? null)
           businessStore.business = embeddedBusiness
         }
 
@@ -220,7 +223,7 @@ export const useAuthStore = defineStore('auth', () => {
           }
         } else if (!embeddedBusiness) {
           const businessStore = useBusinessStore()
-          await businessStore.loadBusiness(embeddedProfile.business_id ?? null).catch(() => {})
+          await businessStore.loadBusiness(embeddedProfile.business_id ?? null, branchOwnerId(profile.value ?? embeddedProfile)).catch(() => {})
         }
       }
 
@@ -239,6 +242,7 @@ export const useAuthStore = defineStore('auth', () => {
           }
           if (embeddedBusiness) {
             const businessStore = useBusinessStore()
+            businessStore.setRestoreProfile(branchOwnerId(profile.value) ?? null)
             businessStore.business = embeddedBusiness
           }
 
@@ -255,7 +259,7 @@ export const useAuthStore = defineStore('auth', () => {
             }
           } else if (!embeddedBusiness) {
             const businessStore = useBusinessStore()
-            await businessStore.loadBusiness(embeddedProfile.business_id ?? null).catch(() => {})
+            await businessStore.loadBusiness(embeddedProfile.business_id ?? null, branchOwnerId(profile.value ?? embeddedProfile)).catch(() => {})
           }
         } else {
           profile.value = null
@@ -297,14 +301,16 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       if (embeddedBusiness) {
-        useBusinessStore().business = embeddedBusiness
+        const businessStore = useBusinessStore()
+        businessStore.setRestoreProfile(branchOwnerId(profile.value) ?? null)
+        businessStore.business = embeddedBusiness
       }
 
       if (!embeddedProfile) {
         await hydrateUserContext(user.value!.id, user.value?.role)
       } else if (!embeddedBusiness) {
         const businessStore = useBusinessStore()
-        await businessStore.loadBusiness(embeddedProfile.business_id ?? null)
+        await businessStore.loadBusiness(embeddedProfile.business_id ?? null, branchOwnerId(profile.value ?? embeddedProfile))
       }
     } catch (err) {
       clearAuthState()
