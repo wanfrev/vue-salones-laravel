@@ -6,6 +6,7 @@ use App\Events\EntityChanged;
 use App\Services\EmployeeScheduleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class EmployeeScheduleController
 {
@@ -31,8 +32,18 @@ class EmployeeScheduleController
         $businessId = $this->resolveBusinessId($request);
         if (!$businessId) return response()->json([]);
 
+        // `employee_id` (con o sin el prefijo `eq.` del cliente) acota a los horarios de esa persona.
+        // Antes se ignoraba y se devolvían los de TODO el negocio: la app, al preguntar por los
+        // horarios de una empleada, recibía los de otra y la ubicaba en la sucursal equivocada.
+        $employeeId = $request->query('employee_id');
+        if ($employeeId !== null) {
+            $employeeId = is_string($employeeId) ? preg_replace('/^(eq)\./i', '', $employeeId) : null;
+            // Un filtro inválido nunca debe convertirse en "todos".
+            if (!$employeeId || !Str::isUuid($employeeId)) return response()->json([]);
+        }
+
         return response()->json(
-            $this->scheduleService->list($businessId)
+            $this->scheduleService->list($businessId, $employeeId)
         );
     }
 

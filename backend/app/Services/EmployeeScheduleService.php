@@ -9,10 +9,11 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 class EmployeeScheduleService
 {
-    public function list(string $businessId): Collection
+    public function list(string $businessId, ?string $employeeId = null): Collection
     {
         return EmployeeSchedule::with('employee')
             ->whereHas('employee', fn($q) => $q->where('business_id', $businessId))
+            ->when($employeeId, fn($q) => $q->where('employee_id', $employeeId))
             ->orderBy('employee_id')
             ->orderBy('weekday')
             ->get();

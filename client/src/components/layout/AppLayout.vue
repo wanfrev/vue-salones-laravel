@@ -76,6 +76,7 @@ import { useThemeStore } from '../../store/theme'
 import { useBusinessStore } from '../../store/business'
 import { HamburgerMenuIcon, RefreshIcon, LogoutIcon, SettingsIcon } from '@solar-icons/vue/linear'
 import { db } from '../../lib/api'
+import { pickEmployeeBranch } from '../../lib/employeeBranch'
 import { useRealtime } from '../../composables/realtime/useRealtime'
 import lumaLogoLight from '../../assets/Luma.svg'
 import lumaLogoDark from '../../assets/Luma blanco.svg'
@@ -136,14 +137,18 @@ onMounted(async () => {
     businessStore.setBranch(authStore.profile.branch_id)
     return
   }
+  // Sin sucursal en el perfil: se decide por SUS horarios, y solo si están en una única sucursal.
+  // (Antes se tomaba el primer horario de la respuesta, que podía ser el de otra persona.)
+  const myId = authStore.profile.id
   const { data } = await db
     .from('employee_schedules')
-    .select('branch_id')
-    .eq('employee_id', authStore.profile.id)
-    .limit(1)
-    .maybeSingle()
-  if (data?.branch_id) {
-    businessStore.setBranch(data.branch_id)
+    .select('employee_id, branch_id')
+    .eq('employee_id', myId)
+  const mine = (Array.isArray(data) ? data : []).filter((s: { employee_id?: string }) => s.employee_id === myId)
+  const known = businessStore.branches.map(b => b.id)
+  const branchId = pickEmployeeBranch(null, mine.map((s: { branch_id: string | null }) => s.branch_id), known.length ? known : mine.map((s: { branch_id: string | null }) => s.branch_id ?? ''))
+  if (branchId) {
+    businessStore.setBranch(branchId)
   }
 })
 </script>
