@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { db } from '../lib/api'
 import { listBranches, branchesKeys } from '../services/branchesService'
+import { pickEmployeeBranch } from '../lib/employeeBranch'
 import type { Business, Branch } from '../types/database'
 import type { FeatureKey } from '../config/features'
 import { resolveFeatures, resolveTerminology, getNiche, type Capability } from '../config/niches'
@@ -122,16 +123,20 @@ export const useBusinessStore = defineStore('business', () => {
         return
       }
 
-      const { data: schedule } = await db
+      // Todos sus horarios (no uno cualquiera): solo se decide por horarios si están en una única sucursal.
+      const { data: schedules } = await db
         .from('employee_schedules')
         .select('branch_id')
         .eq('employee_id', employeeId)
-        .limit(1)
-        .maybeSingle()
 
-      if (schedule?.branch_id && branches.value.some(b => b.id === schedule.branch_id)) {
-        selectedBranchId.value = schedule.branch_id
-        localStorage.setItem(branchStorageKey(bizId), schedule.branch_id)
+      const scheduleBranch = pickEmployeeBranch(
+        null,
+        Array.isArray(schedules) ? schedules.map((s: { branch_id: string | null }) => s.branch_id) : [],
+        branches.value.map(b => b.id),
+      )
+      if (scheduleBranch) {
+        selectedBranchId.value = scheduleBranch
+        localStorage.setItem(branchStorageKey(bizId), scheduleBranch)
         return
       }
     }
@@ -143,6 +148,15 @@ export const useBusinessStore = defineStore('business', () => {
       const def = branches.value.find(b => b.is_default) ?? branches.value[0] ?? null
       selectedBranchId.value = def?.id ?? null
     }
+  }
+
+  /**
+   * Perfil (empleada/encargada) cuya sucursal debe elegirse cuando cargan las sucursales. Se fija
+   * también cuando la sesión trae el negocio ya incrustado y `loadBusiness` no corre: sin esto la
+   * app abría en la sucursal predeterminada en vez de la suya.
+   */
+  const setRestoreProfile = (profileId: string | null) => {
+    _restoreProfileId.value = profileId
   }
 
   const setBranch = (branchId: string | null) => {
@@ -203,6 +217,7 @@ export const useBusinessStore = defineStore('business', () => {
     hasCapability,
     loadBusiness,
     loadBranches,
+    setRestoreProfile,
     setBranch,
     clearBusiness,
     updateBusiness,
