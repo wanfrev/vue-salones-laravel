@@ -29,6 +29,13 @@ describe('casheaProblem', () => {
     expect(casheaProblem(124, 120, -1, 40)).toContain('comisión')
     expect(casheaProblem(124, 120, 10, 120)).toContain('inicial')
   })
+
+  it('asks for the down payment method when there is a down payment, and only when the caller passes it', () => {
+    expect(casheaProblem(124, 120, 10, 40, '')).toContain('método')
+    expect(casheaProblem(124, 120, 10, 40, 'zelle')).toBeNull()
+    expect(casheaProblem(124, 120, 10, 0, '')).toBeNull()   // sin inicial no hay con qué método pagarla
+    expect(casheaProblem(124, 120, 10, 40)).toBeNull()      // llamadas sin el dato siguen como antes
+  })
 })
 
 describe('spreadOver', () => {
@@ -64,6 +71,27 @@ describe('CasheaFields (panel de pago)', () => {
     expect(w.text()).toContain('$147.60')  // neto
     expect(w.text()).toContain('especialista se calcula sobre $147.60')
     expect(useCasheaDraft().draft.total).toBe(164)
+  })
+
+  it('lets the cashier pick how the down payment was paid, stores it in the draft and sends it with the sale', async () => {
+    const w = mount(CasheaFields, { props: { base: 120 } })
+    const select = w.find('select[aria-label="Método con el que se pagó la inicial de Cashea"]')
+    expect(select.exists()).toBe(true)
+    expect(w.text()).toContain('Elige con qué método se pagó la inicial')
+    expect(useCasheaDraft().payload()).toEqual({ fee_percentage: 10, down_payment_percentage: 40 })
+
+    await select.setValue('zelle')
+    expect(w.text()).not.toContain('Elige con qué método')
+    expect(useCasheaDraft().payload()).toEqual({ fee_percentage: 10, down_payment_percentage: 40, down_payment_method: 'zelle' })
+
+    useCasheaDraft().reset() // siguiente venta: hay que elegirlo de nuevo
+    expect(useCasheaDraft().draft.downPaymentMethod).toBe('')
+  })
+
+  it('does not ask for a method when there is no down payment', async () => {
+    const w = mount(CasheaFields, { props: { base: 120 } })
+    await input(w, 'Inicial de Cashea').setValue('0')
+    expect(w.find('select').exists()).toBe(false)
   })
 
   it('warns when the Cashea amount is below the price', async () => {

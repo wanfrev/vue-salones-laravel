@@ -235,6 +235,29 @@ class CasheaSaleTest extends TestCase
         $this->assertSame('paid', DB::table('appointments')->where('id', $appt)->value('payment_status'));
     }
 
+    public function test_the_method_used_to_pay_the_down_payment_is_kept_in_the_breakdown_and_the_note(): void
+    {
+        $tx = $this->sell($this->appt(120), 164, $this->cashea() + ['down_payment_method' => 'zelle']);
+
+        $this->assertSame('zelle', $tx->payments_breakdown[0]['cashea']['down_payment_method']);
+        $this->assertSame('Cashea: $164.00 − 10% ($16.40) = $147.60 · inicial 40% ($65.60) pagada con Zelle', $tx->notes);
+        // Solo se anota: lo que entra a Finanzas y el método de la venta no cambian.
+        $this->assertSame('cashea', $tx->method);
+        $this->assertEquals(147.6, $tx->total_amount);
+    }
+
+    public function test_the_down_payment_method_must_be_one_of_the_known_methods(): void
+    {
+        $ok = fn (string $m) => !Validator::make(['cashea' => $this->cashea() + ['down_payment_method' => $m]], CasheaService::rules())->fails();
+
+        foreach (array_keys(CasheaService::DOWN_PAYMENT_METHODS) as $method) {
+            $this->assertTrue($ok($method), $method);
+        }
+        $this->assertFalse($ok('cashea'));      // la inicial no se paga "con Cashea"
+        $this->assertFalse($ok('credito'));
+        $this->assertFalse($ok('inventado'));
+    }
+
     public function test_nothing_is_left_pending_with_cashea(): void
     {
         $this->sell($this->appt(120), 164, $this->cashea());

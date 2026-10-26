@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Validation\Rule;
+
 /**
  * Cobros con Cashea (todos los nichos). Así lo explicó el negocio:
  *  - el monto de la venta por Cashea depende de la tasa del día (ej. $164), y la cajera lo escribe;
@@ -21,6 +23,19 @@ class CasheaService
     public const DEFAULT_FEE_PERCENTAGE = 10;
     public const DEFAULT_DOWN_PAYMENT_PERCENTAGE = 40;
 
+    /** Con qué método pagó el cliente la inicial. Solo se anota: no cambia lo que entra a Finanzas. */
+    public const DOWN_PAYMENT_METHODS = [
+        'cash' => 'Efectivo ($)',
+        'cash_ves' => 'Efectivo (Bs)',
+        'card' => 'Tarjeta',
+        'transfer' => 'Transferencia',
+        'zelle' => 'Zelle',
+        'binance' => 'Binance',
+        'pago_movil' => 'Pago Móvil',
+        'punto_venta' => 'Punto de Vta (Bs)',
+        'other' => 'Otro',
+    ];
+
     /** Reglas para el bloque `cashea` de las peticiones del POS. */
     public static function rules(): array
     {
@@ -28,6 +43,7 @@ class CasheaService
             'cashea' => 'nullable|array',
             'cashea.fee_percentage' => 'required_with:cashea|numeric|min:0|max:50',
             'cashea.down_payment_percentage' => 'required_with:cashea|numeric|min:0|max:100',
+            'cashea.down_payment_method' => ['nullable', 'string', Rule::in(array_keys(self::DOWN_PAYMENT_METHODS))],
         ];
     }
 
@@ -69,6 +85,7 @@ class CasheaService
         $fee = (float) $cashea['fee_percentage'];
         $down = (float) $cashea['down_payment_percentage'];
         $t = self::totals($gross, $fee, $down);
+        $downMethod = $cashea['down_payment_method'] ?? null;
 
         return [[
             'method' => 'cashea',
@@ -81,6 +98,7 @@ class CasheaService
                 'fee_amount' => $t['fee'],
                 'down_payment_percentage' => $down,
                 'down_payment_amount' => $t['down_payment'],
+                ...($downMethod ? ['down_payment_method' => $downMethod] : []),
             ],
         ]];
     }
@@ -94,7 +112,10 @@ class CasheaService
         $fmt = fn (float $n) => '$' . number_format($n, 2, '.', '');
         $pct = fn (float $n) => rtrim(rtrim(number_format($n, 2, '.', ''), '0'), '.') . '%';
 
-        $text = "Cashea: {$fmt($gross)} − {$pct($fee)} ({$fmt($t['fee'])}) = {$fmt($t['net'])} · inicial {$pct($down)} ({$fmt($t['down_payment'])})";
+        $downMethod = self::DOWN_PAYMENT_METHODS[$cashea['down_payment_method'] ?? ''] ?? null;
+        $paidWith = $downMethod ? " pagada con {$downMethod}" : '';
+
+        $text = "Cashea: {$fmt($gross)} − {$pct($fee)} ({$fmt($t['fee'])}) = {$fmt($t['net'])} · inicial {$pct($down)} ({$fmt($t['down_payment'])}){$paidWith}";
 
         return trim($notes ?? '') !== '' ? "{$text}. " . trim($notes) : $text;
     }

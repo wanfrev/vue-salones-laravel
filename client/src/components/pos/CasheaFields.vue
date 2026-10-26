@@ -36,6 +36,18 @@
       </label>
     </div>
 
+    <label v-if="draft.downPaymentPercentage > 0" class="flex flex-col gap-1 text-xs font-semibold text-text-secondary">
+      Inicial pagada con
+      <select
+        v-model="draft.downPaymentMethod"
+        aria-label="Método con el que se pagó la inicial de Cashea"
+        class="w-full rounded-lg border border-border bg-surface px-2.5 py-2 text-sm font-normal text-text outline-none focus:border-primary"
+      >
+        <option value="" disabled>Elige el método…</option>
+        <option v-for="m in CASHEA_DOWN_PAYMENT_METHODS" :key="m.value" :value="m.value">{{ m.label }}</option>
+      </select>
+    </label>
+
     <dl v-if="total > 0" class="space-y-1 text-xs">
       <div class="flex justify-between text-text-secondary"><dt>Inicial que pagó el cliente ({{ draft.downPaymentPercentage }}%)</dt><dd class="tabular-nums">{{ usd(totals.downPayment) }}</dd></div>
       <div class="flex justify-between text-text-secondary"><dt>Comisión de Cashea ({{ draft.feePercentage }}%)</dt><dd class="tabular-nums text-danger">− {{ usd(totals.fee) }}</dd></div>
@@ -50,7 +62,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import { MAX_CASHEA_FEE, casheaProblem, casheaTotals } from './cashea'
+import { CASHEA_DOWN_PAYMENT_METHODS, MAX_CASHEA_FEE, casheaProblem, casheaTotals } from './cashea'
 import { useCasheaDraft } from '../../composables/pos/useCasheaDraft'
 
 /** Lo que cuesta la venta (servicio + productos, sin propina): el mínimo del monto de Cashea. */
@@ -63,5 +75,5 @@ const usd = (n: number) => `$${n.toFixed(2)}`
 
 const total = computed(() => draft.total ?? props.base)
 const totals = computed(() => casheaTotals(total.value, draft.feePercentage, draft.downPaymentPercentage))
-const problem = computed(() => casheaProblem(total.value, props.base, draft.feePercentage, draft.downPaymentPercentage))
+const problem = computed(() => casheaProblem(total.value, props.base, draft.feePercentage, draft.downPaymentPercentage, draft.downPaymentMethod))
 </script>

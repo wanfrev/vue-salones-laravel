@@ -980,7 +980,7 @@ const tipInTotal = computed(() => (!businessStore.features.agenda && activeSaleT
 const { draft: casheaDraft } = useCasheaDraft()
 const isCasheaSale = computed(() => paymentMethod.value === 'cashea' && activeSaleType.value !== 'tip')
 const casheaIssue = computed(() => (isCasheaSale.value
-  ? casheaProblem(casheaDraft.total ?? saleBase.value, saleBase.value, casheaDraft.feePercentage, casheaDraft.downPaymentPercentage)
+  ? casheaProblem(casheaDraft.total ?? saleBase.value, saleBase.value, casheaDraft.feePercentage, casheaDraft.downPaymentPercentage, casheaDraft.downPaymentMethod)
   : null))
 
 const grandTotal = computed(() => {

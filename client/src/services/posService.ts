@@ -156,6 +156,8 @@ export const getFrequentlyBoughtTogether = async (businessId: string, productId:
 export interface CasheaPayload {
   fee_percentage: number
   down_payment_percentage: number
+  /** Con qué método se pagó la inicial (solo se anota). */
+  down_payment_method?: string
 }
 
 export const recordSale = async (params: {

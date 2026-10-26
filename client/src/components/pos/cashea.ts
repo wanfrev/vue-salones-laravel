@@ -9,6 +9,19 @@ export const DEFAULT_CASHEA_FEE = 10
 export const DEFAULT_CASHEA_DOWN_PAYMENT = 40
 export const MAX_CASHEA_FEE = 50
 
+/** Con qué método pagó el cliente la inicial (mismos valores que acepta el servidor; solo se anota). */
+export const CASHEA_DOWN_PAYMENT_METHODS = [
+  { value: 'cash', label: 'Efectivo ($)' },
+  { value: 'cash_ves', label: 'Efectivo (Bs)' },
+  { value: 'card', label: 'Tarjeta' },
+  { value: 'transfer', label: 'Transferencia' },
+  { value: 'zelle', label: 'Zelle' },
+  { value: 'binance', label: 'Binance' },
+  { value: 'pago_movil', label: 'Pago Móvil' },
+  { value: 'punto_venta', label: 'Punto de Vta (Bs)' },
+  { value: 'other', label: 'Otro' },
+] as const
+
 const money = (n: number) => Math.round(n * 100) / 100
 
 export interface CasheaTotals {
@@ -35,11 +48,19 @@ export function casheaTotals(total: number, feePercentage: number, downPaymentPe
  * Primer problema que impide cobrar con Cashea, o null. `base` es lo que cuesta la venta (servicio +
  * productos): el monto de Cashea suele ser mayor (122, 124, 164...) y nunca menor.
  */
-export function casheaProblem(total: number | null, base: number, feePercentage: number, downPaymentPercentage: number): string | null {
+export function casheaProblem(
+  total: number | null,
+  base: number,
+  feePercentage: number,
+  downPaymentPercentage: number,
+  /** Método de la inicial: si se pasa (el POS siempre lo pasa), hay que elegirlo cuando hay inicial. */
+  downPaymentMethod?: string,
+): string | null {
   if (total == null || !Number.isFinite(total) || total <= 0) return 'Escribe el monto que se cobró por Cashea.'
   if (money(total) < money(base)) return `El monto de Cashea no puede ser menor que el precio ($${money(base).toFixed(2)}).`
   if (!Number.isFinite(feePercentage) || feePercentage < 0 || feePercentage > MAX_CASHEA_FEE) return `La comisión debe estar entre 0% y ${MAX_CASHEA_FEE}%.`
   if (!Number.isFinite(downPaymentPercentage) || downPaymentPercentage < 0 || downPaymentPercentage > 100) return 'La inicial debe estar entre 0% y 100%.'
+  if (downPaymentMethod !== undefined && downPaymentPercentage > 0 && !downPaymentMethod) return 'Elige con qué método se pagó la inicial de Cashea.'
   return null
 }
 
