@@ -45,6 +45,17 @@ export function casheaTotals(total: number, feePercentage: number, downPaymentPe
 }
 
 /**
+ * Cómo se registra el neto cuando se eligió el método de la inicial: la inicial entra por ese método y el
+ * resto por Cashea (el servidor hace lo mismo al armar el desglose). Null si no hay método elegido.
+ */
+export function casheaSplit(totals: CasheaTotals, downPaymentMethod: string): { down: number; downLabel: string; rest: number } | null {
+  const method = CASHEA_DOWN_PAYMENT_METHODS.find(m => m.value === downPaymentMethod)
+  const down = money(Math.min(totals.downPayment, totals.net))
+  if (!method || down <= 0) return null
+  return { down, downLabel: method.label, rest: money(totals.net - down) }
+}
+
+/**
  * Primer problema que impide cobrar con Cashea, o null. `base` es lo que cuesta la venta (servicio +
  * productos): el monto de Cashea suele ser mayor (122, 124, 164...) y nunca menor.
  */

@@ -76,31 +76,54 @@ class CasheaService
         return round($amount * (1 - (float) $cashea['fee_percentage'] / 100), 2);
     }
 
+    /** Métodos de la inicial que se cobran en bolívares (se anotan en Bs con la tasa del día). */
+    private const VES_METHODS = ['cash_ves', 'transfer', 'pago_movil', 'punto_venta'];
+
     /**
-     * Desglose del pago: una sola línea `cashea` por el neto, con el bruto, el % y la inicial como datos
-     * (Cashea paga todo de una vez: no hay pago mixto).
+     * Desglose del pago, que es de donde el cierre de caja y Finanzas reparten el dinero por método.
+     *
+     * Sin método de la inicial: una sola línea `cashea` por el neto (como siempre).
+     * Con método: la inicial entra por el método con que se pagó y el resto por `cashea`; las dos líneas
+     * suman el neto, así que el total de la venta no cambia. Los datos de la venta (bruto, %, inicial)
+     * quedan anotados en la línea `cashea` (o en la única línea si Cashea ya no pone nada).
      */
-    public static function breakdown(float $gross, array $cashea): array
+    public static function breakdown(float $gross, array $cashea, float $rate = 1.0): array
     {
         $fee = (float) $cashea['fee_percentage'];
         $down = (float) $cashea['down_payment_percentage'];
         $t = self::totals($gross, $fee, $down);
         $downMethod = $cashea['down_payment_method'] ?? null;
 
-        return [[
-            'method' => 'cashea',
-            'currency' => 'USD',
-            'inputAmount' => $t['net'],
-            'amount' => $t['net'],
-            'cashea' => [
-                'gross' => round($gross, 2),
-                'fee_percentage' => $fee,
-                'fee_amount' => $t['fee'],
-                'down_payment_percentage' => $down,
-                'down_payment_amount' => $t['down_payment'],
-                ...($downMethod ? ['down_payment_method' => $downMethod] : []),
-            ],
-        ]];
+        $info = [
+            'gross' => round($gross, 2),
+            'fee_percentage' => $fee,
+            'fee_amount' => $t['fee'],
+            'down_payment_percentage' => $down,
+            'down_payment_amount' => $t['down_payment'],
+            ...($downMethod ? ['down_payment_method' => $downMethod] : []),
+        ];
+
+        $line = fn (string $method, float $usd, string $currency = 'USD', ?float $input = null) => [
+            'method' => $method,
+            'currency' => $currency,
+            'inputAmount' => $input ?? $usd,
+            'amount' => $usd,
+        ];
+
+        $downIn = $downMethod ? min($t['down_payment'], $t['net']) : 0.0;
+        if ($downIn <= 0) {
+            return [$line('cashea', $t['net']) + ['cashea' => $info]];
+        }
+
+        $ves = in_array($downMethod, self::VES_METHODS, true);
+        $downLine = $ves
+            ? $line($downMethod, $downIn, 'VES', round($downIn * ($rate > 0 ? $rate : 1), 2))
+            : $line($downMethod, $downIn);
+        $rest = round($t['net'] - $downIn, 2);
+
+        return $rest > 0
+            ? [$downLine, $line('cashea', $rest) + ['cashea' => $info]]
+            : [$downLine + ['cashea' => $info]];
     }
 
     /** Nota de la venta: «Cashea: $164.00 − 10% ($16.40) = $147.60 · inicial 40% ($65.60)». */

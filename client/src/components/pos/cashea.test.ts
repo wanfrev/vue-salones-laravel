@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { casheaProblem, casheaTotals, spreadOver } from './cashea'
+import { casheaProblem, casheaSplit, casheaTotals, spreadOver } from './cashea'
 import CasheaFields from './CasheaFields.vue'
 import { useCasheaDraft } from '../../composables/pos/useCasheaDraft'
 
@@ -35,6 +35,18 @@ describe('casheaProblem', () => {
     expect(casheaProblem(124, 120, 10, 40, 'zelle')).toBeNull()
     expect(casheaProblem(124, 120, 10, 0, '')).toBeNull()   // sin inicial no hay con qué método pagarla
     expect(casheaProblem(124, 120, 10, 40)).toBeNull()      // llamadas sin el dato siguen como antes
+  })
+})
+
+describe('casheaSplit — cómo se registra la venta', () => {
+  it('the down payment goes through its method and Cashea keeps the rest (they add up to the net)', () => {
+    expect(casheaSplit(casheaTotals(164, 10, 40), 'zelle')).toEqual({ down: 65.6, downLabel: 'Zelle', rest: 82 })
+  })
+
+  it('the down payment never exceeds the net, and nothing is shown without a method', () => {
+    expect(casheaSplit(casheaTotals(164, 10, 100), 'cash')).toEqual({ down: 147.6, downLabel: 'Efectivo ($)', rest: 0 })
+    expect(casheaSplit(casheaTotals(164, 10, 40), '')).toBeNull()
+    expect(casheaSplit(casheaTotals(164, 10, 0), 'zelle')).toBeNull()
   })
 })
 
@@ -82,6 +94,8 @@ describe('CasheaFields (panel de pago)', () => {
 
     await select.setValue('zelle')
     expect(w.text()).not.toContain('Elige con qué método')
+    await input(w, 'Monto cobrado por Cashea').setValue('164')
+    expect(w.find('[data-testid="cashea-split"]').text()).toBe('Se registra: $65.60 por Zelle + $82.00 por Cashea.')
     expect(useCasheaDraft().payload()).toEqual({ fee_percentage: 10, down_payment_percentage: 40, down_payment_method: 'zelle' })
 
     useCasheaDraft().reset() // siguiente venta: hay que elegirlo de nuevo
