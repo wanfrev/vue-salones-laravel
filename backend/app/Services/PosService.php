@@ -165,7 +165,7 @@ class PosService
         $isCashea = CasheaService::applies($method, $cashea);
         if ($isCashea) {
             $gross = $serviceAmount + $productsAmount;
-            $paymentsBreakdown = CasheaService::breakdown($gross, $cashea);
+            $paymentsBreakdown = CasheaService::breakdown($gross, $cashea, (float) ($exchangeRate ?: 1));
             $notes = CasheaService::note($gross, $cashea, $notes);
             $productsAmount = CasheaService::net($productsAmount, $cashea);
             $serviceAmount = round(CasheaService::net($gross, $cashea) - $productsAmount, 2);
@@ -503,7 +503,7 @@ class PosService
 
         // Venta con Cashea: entra por el neto (monto − % de Cashea). Ver CasheaService.
         if (CasheaService::applies($method, $cashea)) {
-            $paymentsBreakdown = CasheaService::breakdown($totalAmount, $cashea);
+            $paymentsBreakdown = CasheaService::breakdown($totalAmount, $cashea, (float) ($exchangeRate ?: 1));
             $notes = CasheaService::note($totalAmount, $cashea, $notes);
             $totalAmount = CasheaService::net($totalAmount, $cashea);
         }

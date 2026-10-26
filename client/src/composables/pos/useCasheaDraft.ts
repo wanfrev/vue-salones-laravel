@@ -26,6 +26,8 @@ const draft = reactive({
   total: null as number | null,
   feePercentage: todaysFee(),
   downPaymentPercentage: DEFAULT_CASHEA_DOWN_PAYMENT,
+  /** Método con el que el cliente pagó la inicial; '' = aún no se eligió. */
+  downPaymentMethod: '',
 })
 
 export function useCasheaDraft() {
@@ -34,6 +36,7 @@ export function useCasheaDraft() {
     draft.total = null
     draft.feePercentage = todaysFee()
     draft.downPaymentPercentage = DEFAULT_CASHEA_DOWN_PAYMENT
+    draft.downPaymentMethod = ''
   }
 
   function rememberFee(fee: number) {
@@ -41,9 +44,13 @@ export function useCasheaDraft() {
     try { localStorage.setItem(FEE_KEY, JSON.stringify({ date: today(), fee })) } catch { /* sin almacenamiento */ }
   }
 
-  /** Bloque `cashea` del cobro: el % de Cashea de hoy y la inicial. */
+  /** Bloque `cashea` del cobro: el % de Cashea de hoy, la inicial y con qué se pagó (si se eligió). */
   function payload() {
-    return { fee_percentage: draft.feePercentage, down_payment_percentage: draft.downPaymentPercentage }
+    return {
+      fee_percentage: draft.feePercentage,
+      down_payment_percentage: draft.downPaymentPercentage,
+      ...(draft.downPaymentMethod ? { down_payment_method: draft.downPaymentMethod } : {}),
+    }
   }
 
   return { draft, reset, rememberFee, payload }
