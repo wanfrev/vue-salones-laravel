@@ -126,12 +126,14 @@ export const useBusinessStore = defineStore('business', () => {
       // Todos sus horarios (no uno cualquiera): solo se decide por horarios si están en una única sucursal.
       const { data: schedules } = await db
         .from('employee_schedules')
-        .select('branch_id')
+        .select('employee_id, branch_id')
         .eq('employee_id', employeeId)
 
+      // Se descartan filas de otras personas por si el servidor no aplicara el filtro.
+      const mine = (Array.isArray(schedules) ? schedules : []).filter((s: { employee_id?: string }) => s.employee_id === employeeId)
       const scheduleBranch = pickEmployeeBranch(
         null,
-        Array.isArray(schedules) ? schedules.map((s: { branch_id: string | null }) => s.branch_id) : [],
+        mine.map((s: { branch_id: string | null }) => s.branch_id),
         branches.value.map(b => b.id),
       )
       if (scheduleBranch) {
