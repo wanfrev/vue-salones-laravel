@@ -86,7 +86,7 @@ class FollowUpWhatsAppTest extends TestCase
     /** Resultado que devuelve el envío simulado (OUTCOME_SENT / OUTCOME_RETRY / OUTCOME_FAILED). */
     private string $outcome = WhatsAppService::OUTCOME_SENT;
 
-    private function run432(float $offsetHours = 432): void
+    private function run432(float $offsetHours = 432, string $type = 'follow_up'): void
     {
         $whatsapp = Mockery::mock(WhatsAppService::class);
         $whatsapp->shouldReceive('sendReminderOutcome')->andReturnUsing(function (Appointment $appt) {
@@ -96,7 +96,7 @@ class FollowUpWhatsAppTest extends TestCase
         });
 
         $command = new GenerateReminders(Mockery::mock(NotificationService::class), $whatsapp);
-        $template = new MessageTemplate(['type' => 'follow_up', 'offset_hours' => $offsetHours, 'body' => 'Hola']);
+        $template = new MessageTemplate(['type' => $type, 'offset_hours' => $offsetHours, 'body' => 'Hola']);
         $template->id = 'tpl-1';
 
         $method = new ReflectionMethod($command, 'sendWhatsAppForTemplate');
@@ -129,14 +129,76 @@ class FollowUpWhatsAppTest extends TestCase
         $this->assertSame(['viejo'], $this->sentTo);
     }
 
-    public function test_follow_up_is_not_blocked_by_a_future_booking(): void
+    public function test_follow_up_is_not_sent_to_a_client_who_already_has_a_future_booking(): void
     {
+        // «Ya tengo cita programada para el sábado»: preguntarle si quiere agendar es un error.
         $this->appt('viejo', 'c-vino-ayer', '2026-10-06 13:00:00', '2026-10-06 15:00:00');
         $this->appt('futura', 'c-vino-ayer', '2026-10-30 13:00:00', '2026-10-30 14:00:00', 'confirmed');
+        $this->appt('viejo-otra', 'c-no-volvio', '2026-10-06 13:00:00', '2026-10-06 15:00:00');
+        $this->appt('futura-cancelada', 'c-no-volvio', '2026-10-30 13:00:00', '2026-10-30 14:00:00', 'cancelled');
 
         $this->run432();
 
-        $this->assertSame(['viejo'], $this->sentTo);
+        $this->assertSame(['viejo-otra'], $this->sentTo, 'una cita futura cancelada no cuenta como agendada');
+    }
+
+    public function test_a_visit_with_services_ending_far_apart_gets_exactly_one_follow_up(): void
+    {
+        // Mismo grupo; el primer servicio termina dentro de la ventana de ±60 min y el último
+        // 2 h y media más tarde. Antes: un mensaje cuando entraba cada servicio (el reportado).
+        $this->appt('a', 'c-no-volvio', '2026-10-06 13:30:00', '2026-10-06 14:30:00', 'completed', 'visita');
+        $this->appt('b', 'c-no-volvio', '2026-10-06 15:45:00', '2026-10-06 16:45:00', 'completed', 'visita');
+
+        $this->run432();
+        $this->assertSame([], $this->sentTo, 'la visita termina a las 16:45: todavía no le toca');
+
+        Carbon::setTestNow('2026-10-24 15:50:00');
+        $this->run432();
+        $this->assertSame(['a'], $this->sentTo, 'ya le toca: un solo mensaje por la visita completa');
+
+        foreach (['2026-10-24 16:00:00', '2026-10-24 16:30:00', '2026-10-24 16:55:00'] as $moment) {
+            Carbon::setTestNow($moment);
+            $this->run432();
+        }
+        $this->assertSame(['a'], $this->sentTo, 'ninguna otra cita de la visita vuelve a disparar el mensaje');
+    }
+
+    public function test_services_booked_separately_the_same_day_are_one_visit(): void
+    {
+        $this->appt('a', 'c-no-volvio', '2026-10-06 13:30:00', '2026-10-06 14:30:00');
+        $this->appt('b', 'c-no-volvio', '2026-10-06 14:30:00', '2026-10-06 15:15:00');
+        $this->appt('c', 'c-no-volvio', '2026-10-06 15:15:00', '2026-10-06 15:30:00');
+
+        $this->run432();
+        Carbon::setTestNow('2026-10-24 15:20:00');
+        $this->run432();
+
+        $this->assertCount(1, $this->sentTo, 'sin group_id, las citas de la misma clienta del mismo día son una visita');
+    }
+
+    public function test_a_reminder_two_hours_before_is_one_message_per_visit(): void
+    {
+        // Servicios consecutivos de la misma visita: 17:00 y 17:45. La ventana de «2 h antes» es de
+        // ±12 min, así que el segundo entraba solo 45 min después y recibía su propio mensaje.
+        $this->appt('a', 'c-no-volvio', '2026-10-24 17:00:00', '2026-10-24 17:45:00', 'confirmed', 'visita');
+        $this->appt('b', 'c-no-volvio', '2026-10-24 17:45:00', '2026-10-24 18:15:00', 'confirmed', 'visita');
+
+        $this->run432(2, 'appointment_reminder');
+        $this->assertSame(['a'], $this->sentTo);
+
+        Carbon::setTestNow('2026-10-24 15:45:00');
+        $this->run432(2, 'appointment_reminder');
+        $this->assertSame(['a'], $this->sentTo, 'el segundo servicio no recibe otro recordatorio');
+    }
+
+    public function test_a_second_run_at_the_same_time_cannot_send_again(): void
+    {
+        $this->appt('viejo', 'c-no-volvio', '2026-10-06 13:00:00', '2026-10-06 15:00:00');
+
+        \Illuminate\Support\Facades\Cache::lock('reminders:generate', 60)->get();
+        $this->artisan('reminders:generate')->expectsOutputToContain('Ya hay una corrida en curso')->assertSuccessful();
+
+        $this->assertSame([], $this->sentTo);
     }
 
     public function test_other_services_of_the_same_visit_do_not_count_as_a_return(): void

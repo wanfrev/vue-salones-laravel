@@ -26,6 +26,12 @@ class SendAppointmentConfirmationJob implements ShouldQueue
     /** Holgura para que el frontend termine de guardar los demás servicios de la visita. */
     public const GROUP_DELAY_SECONDS = 30;
 
+    /** Marca en `reminders_sent` de cada cita de la visita ya confirmada. */
+    public const SENT_MARKER = 'wa:confirmation';
+
+    /** Citas de la misma clienta creadas con menos de esto de diferencia son la misma sesión de agendado. */
+    private const SESSION_MINUTES = 10;
+
     public int $tries = 1;
 
     public function __construct(public string $appointmentId) {}
@@ -45,9 +51,33 @@ class SendAppointmentConfirmationJob implements ShouldQueue
                     ->where('group_id', $appointment->group_id)
                     ->whereNotIn('status', ['cancelled', 'no_show'])
                     ->get();
+            } elseif ($appointment->client_id && $appointment->created_at) {
+                // Servicios agendados por separado en la misma sesión (sin group_id) son una sola
+                // visita: sin esto cada uno mandaba su propia confirmación.
+                $visit = $visit->concat(
+                    Appointment::with(['service', 'employeeProfile'])
+                        ->where('business_id', $appointment->business_id)
+                        ->where('client_id', $appointment->client_id)
+                        ->where('id', '!=', $appointment->id)
+                        ->whereBetween('created_at', [$appointment->created_at->copy()->subMinutes(self::SESSION_MINUTES), $appointment->created_at->copy()->addMinutes(self::SESSION_MINUTES)])
+                        ->whereNotIn('status', ['cancelled', 'no_show'])
+                        ->get()
+                );
+            }
+
+            // Ya se confirmó esta visita (por otra de sus citas): no se repite.
+            if ($visit->contains(fn (Appointment $a) => in_array(self::SENT_MARKER, $a->reminders_sent ?? [], true))) {
+                return;
             }
 
             $whatsapp->sendConfirmation($appointment, $visit);
+
+            // Se marca la visita completa siempre (haya salido o no: este job no reintenta), para que
+            // el job de otra de sus citas no vuelva a escribirle.
+            foreach ($visit as $appt) {
+                $appt->reminders_sent = array_merge($appt->reminders_sent ?? [], [self::SENT_MARKER]);
+                $appt->save();
+            }
         } catch (\Throwable $e) {
             Log::error("[SendAppointmentConfirmationJob] Error sending WhatsApp confirmation for appointment {$this->appointmentId}: {$e->getMessage()}");
         }

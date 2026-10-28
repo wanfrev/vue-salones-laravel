@@ -11,6 +11,7 @@ use App\Models\Profile;
 use App\Services\NotificationService;
 use App\Services\WhatsAppService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 
 class GenerateReminders extends Command
 {
@@ -28,6 +29,24 @@ class GenerateReminders extends Command
     }
 
     public function handle(): int
+    {
+        // Una sola corrida a la vez: el cron programado y el disparo manual (POST /reminders/trigger)
+        // leen las mismas citas sin marcar y, si coinciden, le escriben dos veces a la misma clienta.
+        $lock = Cache::lock('reminders:generate', 900);
+        if (!$lock->get()) {
+            $this->warn('[reminders:generate] Ya hay una corrida en curso; se omite esta.');
+
+            return self::SUCCESS;
+        }
+
+        try {
+            return $this->generate();
+        } finally {
+            $lock->release();
+        }
+    }
+
+    private function generate(): int
     {
         $now = now();
         $totalGenerated = 0;
@@ -338,38 +357,51 @@ class GenerateReminders extends Command
         $windowEnd = $anchor->copy()->addMinutes($toleranceMinutes);
         $sentMarker = "wa:{$template->id}";
 
-        $appointments = Appointment::with(['client', 'service'])
+        // La ventana solo sirve para DESCUBRIR visitas. Qué visita es, si ya se le escribió y si le
+        // toca ahora se decide con la visita COMPLETA (abajo), no con las citas sueltas que caen en
+        // la ventana: antes, cada servicio de una visita entraba a la ventana por su cuenta (sus
+        // horas de fin/inicio difieren) y la clienta recibía un mensaje por cada uno, uno tras otro.
+        $candidates = Appointment::with(['client', 'service'])
             ->where('business_id', $business->id)
             ->whereNotIn('status', ['cancelled', 'no_show'])
             ->whereBetween($dateColumn, [$windowStart, $windowEnd])
-            ->get()
-            ->filter(fn (Appointment $appt) => !in_array($sentMarker, $appt->reminders_sent ?? [], true));
+            ->get();
 
-        if ($appointments->isEmpty()) {
+        if ($candidates->isEmpty()) {
             return;
         }
 
-        // Mismo agrupamiento por group_id que las notificaciones internas — sin esto, una visita
-        // con varios servicios le mandaba al cliente un WhatsApp por cada servicio en vez de uno solo.
-        $groups = $appointments->groupBy(fn (Appointment $appt) => $appt->group_id ?? $appt->id);
+        $visits = $this->visitsOf($business->id, $candidates, $business->timezone ?: 'America/Caracas');
+        $laterByClient = $isFollowUp ? $this->laterAppointments($business->id, $visits) : [];
 
-        $returnedSince = $isFollowUp ? $this->visitsAfter($business->id, $groups, $now) : [];
-
-        foreach ($groups as $groupKey => $groupAppointments) {
+        foreach ($visits as $visit) {
             // Por hora: la fecha y hora del mensaje son las de la primera cita de la visita.
-            $groupAppointments = $groupAppointments->sortBy('start_time')->values();
-            $first = $groupAppointments->first();
+            $visit = $visit->sortBy('start_time')->values();
+            $first = $visit->first();
 
-            // Un seguimiento cuenta desde la ÚLTIMA visita del cliente: si ya volvió después de
-            // esta cita, el mensaje ("hace tiempo no vienes") no aplica. Se marca como enviado
-            // igual para que no se reevalúe mientras la cita siga dentro de la ventana.
-            $alreadyReturned = $isFollowUp && $this->clientReturned($groupKey, $groupAppointments, $returnedSince);
+            // Ya se le mandó a esta visita (a cualquiera de sus citas, estén o no en la ventana).
+            if ($visit->contains(fn (Appointment $a) => in_array($sentMarker, $a->reminders_sent ?? [], true))) {
+                $this->markVisit($visit, $sentMarker);
+                continue;
+            }
 
-            if (!$alreadyReturned && $first->client && $first->client->phone) {
-                $outcome = $this->whatsappService->sendReminderOutcome($first, $template->body, $groupAppointments);
+            // Hora de referencia de la VISITA: el recordatorio cuenta desde que EMPIEZA su primera
+            // cita; el seguimiento, desde que TERMINA la última. Mientras esa hora no caiga en la
+            // ventana no se manda ni se marca nada.
+            $anchorAt = $isFollowUp ? $visit->max('end_time') : $visit->min('start_time');
+            if ($anchorAt->lt($windowStart) || $anchorAt->gt($windowEnd)) {
+                continue;
+            }
+
+            // Seguimiento («¿te gustaría agendar tu próxima cita?»): no aplica si la clienta ya
+            // volvió después de esta visita O ya tiene otra cita agendada (pasada o futura).
+            $alreadyBooked = $isFollowUp && $this->hasLaterAppointment($visit, $laterByClient);
+
+            if (!$alreadyBooked && $first->client && $first->client->phone) {
+                $outcome = $this->whatsappService->sendReminderOutcome($first, $template->body, $visit);
 
                 // El número de WhatsApp no estaba conectado: no se marca como enviado, así la
-                // próxima corrida (cada 5 min) lo reintenta mientras la cita siga en su ventana.
+                // próxima corrida (cada 5 min) lo reintenta mientras la visita siga en su ventana.
                 // Pasada la ventana ya no se envía: un recordatorio tardío confunde más de lo que ayuda.
                 if ($outcome === WhatsAppService::OUTCOME_RETRY) {
                     continue;
@@ -385,60 +417,132 @@ class GenerateReminders extends Command
                 usleep(random_int(1_000_000, 3_000_000));
             }
 
-            foreach ($groupAppointments as $appt) {
-                $appt->reminders_sent = array_merge($appt->reminders_sent ?? [], [$sentMarker]);
+            // Se marca TODA la visita (también sus citas fuera de la ventana), para que ninguna de
+            // ellas vuelva a disparar el mensaje más tarde.
+            $this->markVisit($visit, $sentMarker);
+        }
+    }
+
+    /** @param  \Illuminate\Support\Collection<int, Appointment>  $visit */
+    private function markVisit($visit, string $marker): void
+    {
+        foreach ($visit as $appt) {
+            $sent = $appt->reminders_sent ?? [];
+            if (!in_array($marker, $sent, true)) {
+                $appt->reminders_sent = array_merge($sent, [$marker]);
                 $appt->save();
             }
         }
     }
 
     /**
-     * Visitas ya ocurridas (no canceladas ni inasistencias) de los clientes de estos grupos de
-     * citas, desde que terminó la primera de ellas hasta ahora. Una sola consulta para todos,
-     * en vez de una por cliente.
+     * Agrupa las citas encontradas en VISITAS COMPLETAS, con todas sus citas aunque estén fuera de
+     * la ventana: las que comparten `group_id` y las de la misma clienta el mismo día (hora del
+     * negocio) — un servicio agendado por separado ese día es parte de la misma visita.
      *
-     * @return array<string, array<int, array{key: string, start: \Illuminate\Support\Carbon}>>  por client_id
+     * @param  \Illuminate\Support\Collection<int, Appointment>  $candidates
+     * @return \Illuminate\Support\Collection<int, \Illuminate\Support\Collection<int, Appointment>>
      */
-    private function visitsAfter(string $businessId, $groups, $now): array
+    private function visitsOf(string $businessId, $candidates, string $timezone)
     {
-        $clientIds = $groups->map(fn ($g) => $g->first()->client_id)->filter()->unique()->values();
+        $clientIds = $candidates->pluck('client_id')->filter()->unique()->values();
+        $groupIds = $candidates->pluck('group_id')->filter()->unique()->values();
+        $dayStart = $candidates->min('start_time')->copy()->setTimezone($timezone)->startOfDay()->utc();
+        $dayEnd = $candidates->max('start_time')->copy()->setTimezone($timezone)->endOfDay()->utc();
+
+        $related = Appointment::with(['client', 'service'])
+            ->where('business_id', $businessId)
+            ->whereNotIn('status', ['cancelled', 'no_show'])
+            ->where(function ($q) use ($clientIds, $groupIds, $dayStart, $dayEnd) {
+                $q->whereIn('group_id', $groupIds)
+                    ->orWhere(fn ($s) => $s->whereIn('client_id', $clientIds)->whereBetween('start_time', [$dayStart, $dayEnd]));
+            })
+            ->get();
+
+        $pool = $candidates->keyBy('id')->union($related->keyBy('id'));
+
+        // Unión de citas que pertenecen a la misma visita (por grupo o por clienta + día).
+        $parent = [];
+        $find = function (string $x) use (&$parent, &$find): string {
+            $parent[$x] ??= $x;
+
+            return $parent[$x] === $x ? $x : ($parent[$x] = $find($parent[$x]));
+        };
+        $firstOfKey = [];
+        foreach ($pool as $id => $appt) {
+            $find((string) $id);
+            $keys = [];
+            if ($appt->group_id) {
+                $keys[] = 'g:' . $appt->group_id;
+            }
+            if ($appt->client_id) {
+                $keys[] = 'c:' . $appt->client_id . ':' . $appt->start_time->copy()->setTimezone($timezone)->toDateString();
+            }
+            foreach ($keys as $key) {
+                if (isset($firstOfKey[$key])) {
+                    $parent[$find((string) $id)] = $find($firstOfKey[$key]);
+                } else {
+                    $firstOfKey[$key] = (string) $id;
+                }
+            }
+        }
+
+        $candidateIds = $candidates->pluck('id')->all();
+
+        return $pool->groupBy(fn (Appointment $a) => $find((string) $a->id))
+            ->filter(fn ($members) => $members->contains(fn (Appointment $a) => in_array($a->id, $candidateIds, true)))
+            ->values();
+    }
+
+    /**
+     * Citas posteriores (pasadas o FUTURAS, no canceladas ni inasistencias) de los clientes de
+     * estas visitas. Una sola consulta para todos, en vez de una por cliente.
+     *
+     * @param  \Illuminate\Support\Collection<int, \Illuminate\Support\Collection<int, Appointment>>  $visits
+     * @return array<string, array<int, array{id: string, start: \Illuminate\Support\Carbon}>>  por client_id
+     */
+    private function laterAppointments(string $businessId, $visits): array
+    {
+        $clientIds = $visits->map(fn ($v) => $v->first()->client_id)->filter()->unique()->values();
         if ($clientIds->isEmpty()) {
             return [];
         }
 
-        $since = $groups->map(fn ($g) => $g->max('end_time'))->filter()->min();
+        $since = $visits->map(fn ($v) => $v->max('end_time'))->filter()->min();
 
-        $visits = [];
+        $later = [];
         $rows = Appointment::where('business_id', $businessId)
             ->whereIn('client_id', $clientIds)
             ->whereNotIn('status', ['cancelled', 'no_show'])
             ->where('start_time', '>=', $since)
-            ->where('start_time', '<=', $now)
-            ->get(['id', 'client_id', 'group_id', 'start_time']);
+            ->get(['id', 'client_id', 'start_time']);
 
         foreach ($rows as $row) {
-            $visits[$row->client_id][] = ['key' => (string) ($row->group_id ?? $row->id), 'start' => $row->start_time];
+            $later[$row->client_id][] = ['id' => (string) $row->id, 'start' => $row->start_time];
         }
 
-        return $visits;
+        return $later;
     }
 
     /**
-     * ¿El cliente de este grupo de citas tuvo otra visita posterior (ya realizada)?
+     * ¿La clienta de esta visita tiene OTRA cita después de que terminó? (ya volvió, o ya agendó).
+     * Las citas de la propia visita no cuentan.
      *
-     * @param  \Illuminate\Support\Collection<int, Appointment>  $groupAppointments
-     * @param  array<string, array<int, array{key: string, start: \Illuminate\Support\Carbon}>>  $visits
+     * @param  \Illuminate\Support\Collection<int, Appointment>  $visit
+     * @param  array<string, array<int, array{id: string, start: \Illuminate\Support\Carbon}>>  $laterByClient
      */
-    private function clientReturned(string $groupKey, $groupAppointments, array $visits): bool
+    private function hasLaterAppointment($visit, array $laterByClient): bool
     {
-        $clientId = $groupAppointments->first()->client_id;
-        $groupEnd = $groupAppointments->max('end_time');
-        if (!$clientId || !$groupEnd) {
+        $clientId = $visit->first()->client_id;
+        $visitEnd = $visit->max('end_time');
+        if (!$clientId || !$visitEnd) {
             return false;
         }
 
-        foreach ($visits[$clientId] ?? [] as $visit) {
-            if ($visit['key'] !== $groupKey && $visit['start']->greaterThanOrEqualTo($groupEnd)) {
+        $ownIds = $visit->pluck('id')->map(fn ($id) => (string) $id)->all();
+
+        foreach ($laterByClient[$clientId] ?? [] as $row) {
+            if (!in_array($row['id'], $ownIds, true) && $row['start']->greaterThanOrEqualTo($visitEnd)) {
                 return true;
             }
         }
