@@ -471,6 +471,7 @@ class PosService
                 $businessId, $appointment->branch_id, $method, $totalAmount,
                 $appointment->client_id, $clientName, $appointment->client?->phone,
                 $tx->id, $createdBy, $paidAt,
+                paymentsBreakdown: $paymentsBreakdown,
             );
 
             return $tx->id;
@@ -661,6 +662,7 @@ class PosService
                 $businessId, $branchId, $method, $totalAmount,
                 $clientId, $resolvedClientName, null,
                 $tx->id, $createdBy, $paidAt,
+                paymentsBreakdown: $paymentsBreakdown,
             );
 
             return $tx->id;
@@ -1006,10 +1008,36 @@ class PosService
     }
 
     /**
-     * Create a trackable Credit record for a full-credito sale so it shows up
-     * in the "Créditos" section and can later be marked as paid.
-     * Mixed-method sales that include a credito split are not tracked here —
-     * only pure `credito` transactions are.
+     * Cuánto de la venta quedó a crédito: todo si el método es `credito`, y en un pago mixto solo
+     * lo que el desglose marca como `credito` (p. ej. $14 con gift card + $100,99 a crédito).
+     *
+     * @param  array<int, array<string, mixed>>  $paymentsBreakdown
+     */
+    public static function creditPortion(string $method, float $totalAmount, array $paymentsBreakdown): float
+    {
+        if ($method === 'credito') {
+            return $totalAmount;
+        }
+        if ($method !== 'mixed') {
+            return 0.0;
+        }
+
+        $portion = 0.0;
+        foreach ($paymentsBreakdown as $split) {
+            if (is_array($split) && ($split['method'] ?? '') === 'credito') {
+                $portion += (float) ($split['amount'] ?? $split['inputAmount'] ?? $split['input_amount'] ?? 0);
+            }
+        }
+
+        return round($portion, 2);
+    }
+
+    /**
+     * Create a trackable Credit record for the credito part of a sale so it shows up in the
+     * "Créditos" section and can later be paid (abonos). Cubre la venta 100% a crédito y también
+     * el pago mixto que incluye una parte a crédito; antes esta última no aparecía en Créditos.
+     *
+     * @param  array<int, array<string, mixed>>  $paymentsBreakdown
      */
     private function createCreditRecord(
         string $businessId,
@@ -1022,8 +1050,10 @@ class PosService
         string $transactionId,
         string $createdBy,
         ?Carbon $createdAt = null,
+        array $paymentsBreakdown = [],
     ): void {
-        if ($method !== 'credito' || $totalAmount <= 0) {
+        $totalAmount = self::creditPortion($method, $totalAmount, $paymentsBreakdown);
+        if ($totalAmount <= 0) {
             return;
         }
 
