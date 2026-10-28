@@ -252,6 +252,52 @@ class WhatsAppTemplateVisitTest extends TestCase
         $this->assertSame(['a', 'b', 'c'], $captured, 'las tres citas vigentes; la cancelada no cuenta');
     }
 
+    private function runConfirmationJobs(array $ids): int
+    {
+        $sent = 0;
+        $whatsapp = Mockery::mock(WhatsAppService::class);
+        $whatsapp->shouldReceive('sendConfirmation')->andReturnUsing(function () use (&$sent) {
+            $sent++;
+
+            return true;
+        });
+
+        foreach ($ids as $id) {
+            (new SendAppointmentConfirmationJob($id))->handle($whatsapp);
+        }
+
+        return $sent;
+    }
+
+    public function test_a_visit_is_confirmed_once_even_if_every_service_dispatches_its_own_job(): void
+    {
+        $this->visit();
+
+        $this->assertSame(1, $this->runConfirmationJobs(['a', 'b', 'c']));
+    }
+
+    public function test_services_saved_separately_in_one_booking_session_are_confirmed_once(): void
+    {
+        $this->appt('x', 's-manicure', 'p-ana', '2026-10-25 14:00:00', null);
+        $this->appt('y', 's-pedicure', 'p-ana', '2026-10-25 15:00:00', null);
+        $this->appt('z', 's-cejas', 'p-ana', '2026-10-25 16:00:00', null);
+        DB::table('appointments')->whereIn('id', ['x', 'y', 'z'])->update(['created_at' => '2026-10-24 14:00:00']);
+        DB::table('appointments')->where('id', 'y')->update(['created_at' => '2026-10-24 14:00:30']);
+        DB::table('appointments')->where('id', 'z')->update(['created_at' => '2026-10-24 14:01:00']);
+
+        $this->assertSame(1, $this->runConfirmationJobs(['x', 'y', 'z']));
+    }
+
+    public function test_two_separate_bookings_hours_apart_are_confirmed_separately(): void
+    {
+        $this->appt('m', 's-manicure', 'p-ana', '2026-10-25 14:00:00', null);
+        $this->appt('n', 's-pedicure', 'p-ana', '2026-10-26 14:00:00', null);
+        DB::table('appointments')->where('id', 'm')->update(['created_at' => '2026-10-24 09:00:00']);
+        DB::table('appointments')->where('id', 'n')->update(['created_at' => '2026-10-24 15:00:00']);
+
+        $this->assertSame(2, $this->runConfirmationJobs(['m', 'n']));
+    }
+
     public function test_confirmation_job_skips_a_cancelled_appointment(): void
     {
         $this->appt('x', 's-cejas', 'p-ana', '2026-10-25 17:00:00', null, null, 'cancelled');
