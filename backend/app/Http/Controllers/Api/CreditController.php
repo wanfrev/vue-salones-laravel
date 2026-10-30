@@ -36,8 +36,9 @@ class CreditController
             return response()->json([]);
         }
 
+        // La transacción de la venta permite mostrar el total real y lo pagado en el momento (ver Credit::getSaleTotalAttribute).
         $query = Credit::where('business_id', $businessId)
-            ->with('client:id,full_name,phone');
+            ->with(['client:id,full_name,phone', 'transaction:id,total_amount']);
 
         if ($request->filled('status')) {
             $query->where('status', $request->query('status'));
@@ -206,7 +207,7 @@ class CreditController
         EntityChanged::safe($businessId, 'credit', 'updated', $id);
 
         return response()->json([
-            'credit' => $credit->fresh()->load('client:id,full_name,phone'),
+            'credit' => $credit->fresh()->load(['client:id,full_name,phone', 'transaction:id,total_amount']),
             'payment' => $payment,
         ]);
     }
