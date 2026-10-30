@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed } from 'vue'
-import { useNotification } from '../common/useNotification'
+import { UNDO_WINDOW_MS, useNotification } from '../common/useNotification'
+import { busySlotsFrom, describeConflict, findConflicts } from '../../components/agenda/conflicts'
+import { snapshotAppointment } from './undoSnapshot'
 import { saveCita, updateCitaStatus, updateAppointmentTime, deleteCita, setAppointmentCheckedIn } from '../../services/agendaService'
 import { listConsents } from '../../services/dental/consentService'
 import { posKeys, updateTransaction } from '../../services/posService'
@@ -20,7 +22,7 @@ export function useAppointmentMutations(options: {
   invalidateKeys?: ((businessId: string) => readonly any[])
 }) {
   const queryClient = useQueryClient()
-  const { success, error: showError, warning } = useNotification()
+  const { success, error: showError, warning, withUndo } = useNotification()
   const businessStore = useBusinessStore()
   const authStore = useAuthStore()
 
@@ -258,11 +260,33 @@ export function useAppointmentMutations(options: {
     },
   })
 
-  const handleDeleteCita = (id: string) => {
-    const msg = '¿Eliminar esta cita?\n\nEsta acción no se puede deshacer.'
-    if (window.confirm(msg)) {
-      deleteCitaMutation.mutate(id)
+  const hideAppointment = (id: string) => {
+    const previous = queryClient.getQueriesData({ queryKey: ['appointments'], exact: false })
+    for (const [key, old] of previous) {
+      if (Array.isArray(old)) queryClient.setQueryData(key, old.filter((c: any) => c.id !== id))
     }
+    return previous
+  }
+
+  /**
+   * Borrar una cita da un plazo para arrepentirse: se oculta al instante y el borrado real (que no se puede revertir)
+   * se hace al vencer el aviso «Deshacer». Si se cierra la pestaña dentro del plazo no se borra nada.
+   */
+  const handleDeleteCita = (id: string) => {
+    const msg = '¿Eliminar esta cita?\n\nPodrás deshacerlo durante unos segundos.'
+    if (!window.confirm(msg)) return
+
+    const previous = hideAppointment(id)
+    options.modalRef?.value?.close()
+    options.modalRef?.value?.onSaveComplete?.()
+
+    const timer = setTimeout(() => { deleteCitaMutation.mutate(id) }, UNDO_WINDOW_MS)
+    withUndo('Cita eliminada', () => {
+      clearTimeout(timer)
+      for (const [key, data] of previous) queryClient.setQueryData(key, data)
+      void invalidate()
+      success('Cita restaurada')
+    })
   }
 
   const handleSaveCita = async (data: CitaFormData & { id?: string; clientPhone?: string; paymentData?: PaymentEditContext }) => {
@@ -281,14 +305,34 @@ export function useAppointmentMutations(options: {
     }
   }
 
+  const STATUS_LABELS = { pending: 'Pendiente', confirmed: 'Confirmada', paid: 'Pagada' } as const
+
   const handleStatusChange = async ({ id, status }: { id: string; status: 'pending' | 'confirmed' | 'paid' }) => {
     if (updateStatusMutation.isPending.value) return
+    const cached = queryClient.getQueriesData<any[]>({ queryKey: ['appointments'], exact: false })
+      .flatMap(([, data]) => (Array.isArray(data) ? data : []))
+    const before = snapshotAppointment(cached, id)
+
     try {
       await updateStatusMutation.mutateAsync({ id, status })
     } catch {
       return
     }
-    success(`Estado actualizado a ${status}`)
+
+    const label = `Estado actualizado a ${STATUS_LABELS[status]}`
+    const previous = before?.status
+    if (!previous || previous === status) {
+      success(label)
+      return
+    }
+    withUndo(label, async () => {
+      try {
+        await updateStatusMutation.mutateAsync({ id, status: previous })
+        success(`Estado devuelto a ${STATUS_LABELS[previous]}`)
+      } catch {
+        // el error ya se muestra desde la mutación
+      }
+    })
   }
 
   const handleCheckInToggle = async ({ id, clientId, checkedIn }: { id: string; clientId: string; checkedIn: boolean }) => {
@@ -321,24 +365,16 @@ export function useAppointmentMutations(options: {
     const cachedAppts = allQueries.flatMap(([, data]) => (Array.isArray(data) ? data : []))
 
     const appt = cachedAppts.find((a: any) => a.id === id)
+    const before = snapshotAppointment(cachedAppts, id)
     const empId = employeeId ?? appt?.employeeId ?? appt?.employee_id
     if (empId) {
-      const conflict = cachedAppts.some((a: any) => {
-        if (a.id === id) return false
-        const aStatus = a.status ?? (a as any).paymentStatus
-        if (aStatus === 'cancelled') return false
-        const aEmpId = a.employeeId ?? a.employee_id
-        const aAsstId = a.assistantId ?? a.assistant_employee_id
-        if (aEmpId !== empId && aAsstId !== empId) return false
-        const aStart = a.start_time
-          ? new Date(a.start_time)
-          : new Date(`${a.date}T${a.time}:00`)
-        const aDuration = (a.duration ?? 30) * 60 * 1000
-        const aEnd = new Date(aStart.getTime() + aDuration)
-        return aStart < newEnd && aEnd > newStart
+      // Cada cita ocupa su propio inicio y fin (antes, sin `duration` se asumían 30 min).
+      const conflicts = findConflicts(empId, newStart.getTime(), newEnd.getTime(), busySlotsFrom(cachedAppts), {
+        id,
+        groupId: appt?.groupId ?? appt?.group_id,
       })
-      if (conflict) {
-        showError('El empleado ya tiene una cita en ese horario')
+      if (conflicts.length > 0) {
+        showError(describeConflict(conflicts))
         await invalidate()
         await queryClient.refetchQueries({ exact: false, queryKey: ['appointments'], type: 'all' })
         return
@@ -346,7 +382,18 @@ export function useAppointmentMutations(options: {
     }
 
     await updateTimeMutation.mutateAsync({ id, start, end, employeeId })
-    success('Cita reagendada correctamente')
+    if (!before) {
+      success('Cita reagendada correctamente')
+      return
+    }
+    withUndo('Cita reagendada correctamente', async () => {
+      try {
+        await updateTimeMutation.mutateAsync({ id, start: before.start, end: before.end, employeeId: before.employeeId ?? undefined })
+        success('Cambio deshecho: la cita volvió a su horario')
+      } catch {
+        // el error ya se muestra desde la mutación (p. ej. si otra persona tomó ese horario mientras tanto)
+      }
+    })
   }
 
   return {

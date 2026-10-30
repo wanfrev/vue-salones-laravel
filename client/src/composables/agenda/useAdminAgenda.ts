@@ -93,6 +93,9 @@ export function useAdminAgenda(businessId: () => string | null) {
     // barra de carga arriba) en vez de parpadear a vacío/skeleton en cada paso.
     placeholderData: keepPreviousData,
     staleTime: 15000,
+    // Listas grandes de citas: sin `shallow` Vue envuelve cada cita y cada campo anidado en proxies y leerlas cuesta
+    // ~25 veces más (medido con 3.000 citas). Las citas no se modifican en el sitio: se reemplazan al actualizar la caché.
+    shallow: true,
   })
 
   // ── Global search (client/servicio/empleado, cualquier fecha) ──

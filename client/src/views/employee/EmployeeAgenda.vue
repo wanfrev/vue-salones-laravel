@@ -137,6 +137,8 @@ const { data: citasData, isLoading, error: citasError } = useQuery({
   enabled: computed(() => !!businessId.value && !!authStore.profile?.id),
   placeholderData: keepPreviousData,
   staleTime: 15000,
+  // Lista de citas sin proxies profundos (ver useAgenda.ts): las citas no se modifican en el sitio.
+  shallow: true,
 })
 
 const citas = computed<Cita[]>(() => {

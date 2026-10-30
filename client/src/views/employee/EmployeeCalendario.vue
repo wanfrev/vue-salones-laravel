@@ -82,11 +82,12 @@ const empleadosList = computed(() => (empleadosData.value ?? []).map(e => ({
   id: e.id, name: e.name, payType: e.payType, payPercentage: e.payPercentage, disableAgenda: e.disableAgenda,
 })))
 
-const handleSlotSelect = ({ start, employeeId }: { start: Date; employeeId?: string }) => {
+const handleSlotSelect = ({ start, end, employeeId }: { start: Date; end?: Date; employeeId?: string }) => {
+  const slotMinutes = end ? Math.round((end.getTime() - start.getTime()) / 60000) : 0
   const date = toISODate(start)
   const time = dateToHHmm(start)
   const empName = employeeId ? empleadosData.value?.find(e => e.id === employeeId)?.name ?? '' : ''
-  citaModalRef.value?.open({ id: '', clientName: '', service: '', employee: empName, employeeId: employeeId || '', date, time, duration: 30, price: 0, status: 'pending' })
+  citaModalRef.value?.open({ id: '', clientName: '', service: '', employee: empName, employeeId: employeeId || '', date, time, duration: slotMinutes > 0 ? slotMinutes : 30, price: 0, status: 'pending' })
 }
 
 const handleEventClick = (event: { id: string; title: string; start: Date; end: Date; citaData?: Cita }) => {
