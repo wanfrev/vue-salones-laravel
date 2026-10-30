@@ -9,9 +9,14 @@ export interface Notification {
   message: string
   duration?: number
   progress: number
+  /** Botón opcional del aviso (p. ej. «Deshacer»). Al pulsarlo se ejecuta y el aviso se cierra. */
+  action?: { label: string; onClick: () => void | Promise<void> }
 }
 
 const notifications = ref<Notification[]>([])
+
+/** Cuánto tiempo queda el botón «Deshacer» (y, en un borrado, cuánto se espera antes de borrar de verdad). */
+export const UNDO_WINDOW_MS = 8000
 let idCounter = 0
 
 const TOAST_SOUNDS: Partial<Record<NotificationType, string>> = {
@@ -20,9 +25,9 @@ const TOAST_SOUNDS: Partial<Record<NotificationType, string>> = {
 }
 
 export function useNotification() {
-  const show = (message: string, type: NotificationType = 'info', duration: number = 4000) => {
+  const show = (message: string, type: NotificationType = 'info', duration: number = 4000, action?: Notification['action']) => {
     const id = `notification-${++idCounter}`
-    const notification: Notification = { id, type, message, duration, progress: 100 }
+    const notification: Notification = { id, type, message, duration, progress: 100, action }
     notifications.value.push(notification)
 
     const soundPath = TOAST_SOUNDS[type]
@@ -54,6 +59,16 @@ export function useNotification() {
   const warning = (message: string, duration?: number) => show(message, 'warning', duration)
   const info = (message: string, duration?: number) => show(message, 'info', duration)
 
+  /** Aviso con botón «Deshacer»: el plazo para arrepentirse es lo que dura el aviso (8 s por defecto). */
+  const withUndo = (message: string, onUndo: () => void | Promise<void>, duration: number = UNDO_WINDOW_MS) =>
+    show(message, 'success', duration, { label: 'Deshacer', onClick: onUndo })
+
+  const runAction = async (id: string) => {
+    const n = notifications.value.find(x => x.id === id)
+    remove(id)
+    await n?.action?.onClick()
+  }
+
   return {
     notifications,
     show,
@@ -62,5 +77,7 @@ export function useNotification() {
     error,
     warning,
     info,
+    withUndo,
+    runAction,
   }
 }

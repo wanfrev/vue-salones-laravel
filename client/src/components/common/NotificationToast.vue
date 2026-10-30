@@ -39,6 +39,12 @@
           </div>
 
           <button
+            v-if="n.action"
+            @click="runAction(n.id)"
+            class="shrink-0 rounded-lg border border-[var(--color-primary)]/40 bg-[var(--color-primary)]/10 px-2.5 py-1 text-xs font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/20"
+          >{{ n.action.label }}</button>
+
+          <button
             @click="remove(n.id)"
             class="h-6 w-6 rounded-md flex items-center justify-center text-zinc-500 hover:text-white hover:bg-white/5 transition-all duration-200"
           >
@@ -61,7 +67,7 @@
 <script setup lang="ts">
 import { useNotification } from '../../composables/common/useNotification'
 
-const { notifications, remove } = useNotification()
+const { notifications, remove, runAction } = useNotification()
 </script>
 
 <style scoped>

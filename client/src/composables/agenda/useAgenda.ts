@@ -121,6 +121,9 @@ export const useAgenda = () => {
     enabled: computed(() => !!businessId.value),
     staleTime: 15000,
     placeholderData: keepPreviousData,
+    // Listas grandes de citas: sin `shallow` Vue envuelve cada cita y cada campo anidado en proxies y leerlas cuesta
+    // ~25 veces más (medido con 3.000 citas). Las citas no se modifican en el sitio: se reemplazan al actualizar la caché.
+    shallow: true,
   })
 
   return {

@@ -252,6 +252,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch, nextTick } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
+import { busySlotsFrom, describeConflict, findConflicts } from '../agenda/conflicts'
 import { useModal } from '../../composables/common/useModal'
 import { useNotification } from '../../composables/common/useNotification'
 import { useAuthStore } from '../../store/auth'
@@ -534,7 +535,47 @@ const updateServiceRow = (index: number, field: keyof CitaFormServiceItem, value
 
 const setRowPrice = (index: number, val: string) => updateServiceRow(index, 'price', String(val === '' ? 0 : Number(val)))
 const setRowDuration = (index: number, val: string) => { if (val !== '' && !isNaN(Number(val))) updateServiceRow(index, 'duration', String(Number(val))); else if (val === '') updateServiceRow(index, 'duration', '0') }
-const getRowError = (index: number, field: string): string | undefined => (errors.value as any)?.rowErrors?.[index]?.[field]
+type RowConflict = { employee?: string; assistant?: string }
+
+/** Choques de cada fila con las citas ya agendadas (caché de TanStack Query), por la duración de cada servicio. */
+const computeRowConflicts = (): Record<number, RowConflict> => {
+  const fd = formData.value
+  if (!fd.date || !fd.time) return {}
+  const start = new Date(`${fd.date}T${fd.time}:00`).getTime()
+  if (!Number.isFinite(start)) return {}
+
+  const cached = queryClient.getQueriesData<any[]>({ queryKey: ['appointments'], exact: false })
+    .flatMap(([, data]) => (Array.isArray(data) ? data : []))
+  const busy = busySlotsFrom(cached)
+  const ignore = { id: modalData.value?.cita?.id, groupId: modalData.value?.cita?.groupId }
+
+  const result: Record<number, RowConflict> = {}
+  serviceRows.value.forEach((row, index) => {
+    const end = start + Math.max(1, Number(row.duration) || 30) * 60_000
+    const employee = row.employeeId ? findConflicts(row.employeeId, start, end, busy, ignore) : []
+    const assistant = row.assistantEmployeeId ? findConflicts(row.assistantEmployeeId, start, end, busy, ignore) : []
+    if (employee.length || assistant.length) {
+      result[index] = {
+        employee: employee.length ? describeConflict(employee) : undefined,
+        assistant: assistant.length ? describeConflict(assistant, 'asistente') : undefined,
+      }
+    }
+  })
+
+  return result
+}
+
+// Aviso en vivo, antes de guardar. La caché no es reactiva, pero esto se recalcula al cambiar fecha, hora,
+// profesional, asistente o minutos de cualquier fila.
+const liveConflicts = computed(() => computeRowConflicts())
+
+const getRowError = (index: number, field: string): string | undefined => {
+  const submitted = (errors.value as any)?.rowErrors?.[index]?.[field]
+  if (submitted) return submitted
+  if (field === 'employeeId') return liveConflicts.value[index]?.employee
+  if (field === 'assistantEmployeeId') return liveConflicts.value[index]?.assistant
+  return undefined
+}
 
 const rowFor = (index: number) => index === 0 ? formData.value : formData.value.extraServices[index - 1]
 
@@ -863,42 +904,17 @@ const validateForm = (): boolean => {
     if (e.assistantEmployeeId && e.assistantEmployeeId === e.employeeId) rowErrors[idx] = { ...rowErrors[idx], assistantEmployeeId: 'El asistente no puede ser el mismo empleado' }
   }
 
-  // Overlap check
-  if (formData.value.date && formData.value.time && formData.value.employee && !(errors as any).value?.time) {
-    const durationMin = formData.value.duration || 30
-    const startTime = new Date(`${formData.value.date}T${formData.value.time}:00`)
-    const endTime = new Date(startTime.getTime() + durationMin * 60 * 1000)
-    const editingId = modalData.value?.cita?.id
-    const editingGroupId = modalData.value?.cita?.groupId
-    const allQueries = queryClient.getQueriesData<any[]>({ queryKey: ['appointments'], exact: false })
-    const cachedAppts = allQueries.flatMap(([, data]) => (Array.isArray(data) ? data : []))
-    const isConflictFor = (empId: string) => cachedAppts.some((a: any) => {
-      if (a.id === editingId) return false
-      const aGroupId = a.groupId ?? a.group_id
-      if (editingGroupId && aGroupId && aGroupId === editingGroupId) return false
-      const aStatus = a.status ?? a.paymentStatus
-      if (aStatus === 'cancelled') return false
-      const aEmpId = a.employeeId ?? a.employee_id
-      const aAsstId = a.assistantId ?? a.assistant_employee_id
-      if (aEmpId !== empId && aAsstId !== empId) return false
-      const aStart = a.start_time
-        ? new Date(a.start_time)
-        : new Date(`${a.date}T${a.time}:00`)
-      const aDuration = (a.duration ?? 30) * 60 * 1000
-      const aEnd = new Date(aStart.getTime() + aDuration)
-      return aStart < endTime && aEnd > startTime
-    })
-    if (isConflictFor(formData.value.employee)) {
-      (errors as any).value.time = 'El empleado ya tiene una cita en ese horario'
-    } else if (formData.value.assistantEmployee && isConflictFor(formData.value.assistantEmployee)) {
-      rowErrors[0] = { ...rowErrors[0], assistantEmployeeId: 'El asistente ya tiene una cita en ese horario' }
+  // Overlap check: cada servicio ocupa SU propia duración (antes todos usaban la del primero, y un servicio
+  // de 120 min en otra profesional se medía como de 60).
+  const rowConflicts = computeRowConflicts()
+  Object.entries(rowConflicts).forEach(([key, c]) => {
+    const idx = Number(key)
+    if (c.employee) {
+      rowErrors[idx] = { ...rowErrors[idx], employeeId: c.employee }
+      if (idx === 0) (errors as any).value.time = c.employee
     }
-    for (let i = 0; i < formData.value.extraServices.length; i++) {
-      const e = formData.value.extraServices[i]; const idx = i + 1
-      if (e.employeeId && isConflictFor(e.employeeId)) { rowErrors[idx] = { ...rowErrors[idx], employeeId: 'El empleado ya tiene una cita en ese horario' } }
-      if (e.assistantEmployeeId && isConflictFor(e.assistantEmployeeId)) { rowErrors[idx] = { ...rowErrors[idx], assistantEmployeeId: 'El asistente ya tiene una cita en ese horario' } }
-    }
-  }
+    if (c.assistant) rowErrors[idx] = { ...rowErrors[idx], assistantEmployeeId: c.assistant }
+  })
 
   if (Object.keys(rowErrors).length > 0) (errors as any).value.rowErrors = rowErrors
   return baseValid && isPhoneValid && Object.keys(rowErrors).length === 0
