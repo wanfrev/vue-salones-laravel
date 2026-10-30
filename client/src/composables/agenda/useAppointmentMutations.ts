@@ -241,9 +241,9 @@ export function useAppointmentMutations(options: {
       }
       return { previousQueries }
     },
+    // El modal ya se cerró al pedir el borrado (handleDeleteCita): aquí pasaron unos segundos y la persona puede estar
+    // usando otro, que no hay que cerrarle.
     onSuccess: () => {
-      options.modalRef?.value?.close()
-      options.modalRef?.value?.onSaveComplete?.()
       success('Cita eliminada correctamente')
     },
     onError: (err, _id, context) => {

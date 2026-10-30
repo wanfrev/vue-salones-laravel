@@ -34,10 +34,10 @@ const raw = (over: Record<string, unknown> = {}) => ({
 let api: ReturnType<typeof useAppointmentMutations>
 let queryClient: QueryClient
 
-const setup = (appointments: any[]) => {
+const setup = (appointments: any[], modalRef?: any) => {
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   queryClient.setQueryData(['appointments', 'b1', 'k'], appointments)
-  mount(defineComponent({ setup() { api = useAppointmentMutations({ businessId: ref('b1') }); return () => null } }), {
+  mount(defineComponent({ setup() { api = useAppointmentMutations({ businessId: ref('b1'), modalRef }); return () => null } }), {
     global: { plugins: [[VueQueryPlugin, { queryClient }]] },
   })
 }
@@ -113,6 +113,20 @@ describe('«Deshacer» en la agenda', () => {
     expect(cached().map(a => a.id)).toEqual(['a1', 'a2'])
     await vi.advanceTimersByTimeAsync(UNDO_WINDOW_MS * 2)
     expect(svc.deleteCita).not.toHaveBeenCalled()
+  })
+
+  it('el modal se cierra al pedir el borrado y NO se vuelve a cerrar cuando el borrado real ocurre después', async () => {
+    vi.stubGlobal('confirm', () => true)
+    const modal = { close: vi.fn(), onSaveComplete: vi.fn() }
+    setup([raw()], ref(modal))
+
+    api.handleDeleteCita('a1')
+    expect(modal.close).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(UNDO_WINDOW_MS + 50)
+    expect(svc.deleteCita).toHaveBeenCalledWith('a1')
+    // Pasados los segundos del plazo, la persona puede estar en otro modal: no hay que cerrárselo.
+    expect(modal.close).toHaveBeenCalledTimes(1)
   })
 
   it('si la persona cancela la confirmación no se oculta ni se borra nada', async () => {
