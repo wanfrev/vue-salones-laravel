@@ -409,6 +409,7 @@ import { normalizeAppointmentStatus, getStatusLabel, dateToHHmm, dateToHHmm12, t
 import { mapAppointmentToCita } from '../../mappers/agendaMapper'
 import { searchAppointmentsGlobal } from '../../services/agendaService'
 import ShareLinkButton from './ShareLinkButton.vue'
+import { groupBlockEndMs } from './groupBlock'
 import AgendaMonthView from './AgendaMonthView.vue'
 import AgendaYearView from './AgendaYearView.vue'
 import type { Cita } from '../../types/cita'
@@ -778,10 +779,12 @@ function buildGroupMemberMap(appts: any[]): Map<string, any[]> {
 }
 
 function mapAppt(a: any, svcMap: Map<string, any>, empName: string, groupMemberMap: Map<string, any[]>, colorMap: Map<string, string>): DisplayAppointment {
-  const start = new Date(a.start_time); const end = new Date(a.end_time)
+  const start = new Date(a.start_time)
   const svc = svcMap.get(a.service_id)
   const topMin = (start.getHours() * 60 + start.getMinutes()) - (START_HOUR.value * 60)
   const groupAllMembers = a.group_id ? (groupMemberMap.get(a.group_id) ?? []) : []
+  // El bloque llega hasta el servicio más largo de la visita (no solo el de la primera cita de la lista).
+  const endMs = groupBlockEndMs(a, groupAllMembers)
   const isGroup = groupAllMembers.length > 1
   const groupServices = isGroup
      ? groupAllMembers.map((m: any) => svcMap.get(m.service_id)?.name || businessStore.terminology.service)
@@ -792,9 +795,9 @@ function mapAppt(a: any, svcMap: Map<string, any>, empName: string, groupMemberM
      service: svc?.name || businessStore.terminology.service,
     time: dateToHHmm12(start),
     top: Math.max(0, (topMin / 60) * HOUR_HEIGHT + 1),
-    height: ((end.getTime() - start.getTime()) / 60000 / 60) * HOUR_HEIGHT,
+    height: ((endMs - start.getTime()) / 60000 / 60) * HOUR_HEIGHT,
     startMs: start.getTime(),
-    endMs: end.getTime(),
+    endMs,
     left: 0,
     width: 100,
     status: normalizeAppointmentStatus(a),
