@@ -2,7 +2,7 @@
   <Teleport to="body">
     <div v-if="state" ref="el" role="tooltip" data-testid="hover-card"
       class="pointer-events-none fixed z-[95] w-64 rounded-lg border border-border bg-surface p-3 text-xs shadow-lg"
-      :style="{ left: `${pos.x}px`, top: `${pos.y}px`, visibility: measured ? 'visible' : 'hidden' }">
+      :style="{ left: `${pos.x}px`, ...(pos.fromBottom ? { bottom: '8px' } : { top: `${pos.y}px` }), maxHeight: 'calc(100vh - 16px)', visibility: measured ? 'visible' : 'hidden' }">
       <div class="flex items-center justify-between gap-2 text-text-secondary">
         <span class="tabular-nums">{{ state.summary.timeRange }}</span>
         <span class="inline-flex items-center gap-1.5 font-medium" :class="textClass(state.summary.status)">
@@ -37,7 +37,7 @@ import type { HoverState } from './useHoverCard'
 const props = defineProps<{ state: HoverState | null }>()
 
 const el = ref<HTMLElement | null>(null)
-const pos = ref({ x: 0, y: 0 })
+const pos = ref({ x: 0, y: 0, fromBottom: false })
 const measured = ref(false)
 
 // Se mide ya dibujada (la altura depende de cuántos servicios traiga) y se oculta hasta colocarla para que no salte.

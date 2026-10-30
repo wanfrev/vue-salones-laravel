@@ -66,16 +66,21 @@ describe('placeCard', () => {
   const size = { width: 280, height: 200 }
 
   it('va a la derecha de la cita cuando cabe', () => {
-    expect(placeCard({ left: 100, right: 200, top: 300, bottom: 330 }, size, viewport)).toEqual({ x: 208, y: 294 })
+    expect(placeCard({ left: 100, right: 200, top: 300, bottom: 330 }, size, viewport)).toEqual({ x: 208, y: 294, fromBottom: false })
   })
 
   it('se pasa a la izquierda cuando a la derecha no cabe', () => {
-    expect(placeCard({ left: 800, right: 900, top: 300, bottom: 330 }, size, viewport)).toEqual({ x: 800 - 8 - 280, y: 294 })
+    expect(placeCard({ left: 800, right: 900, top: 300, bottom: 330 }, size, viewport)).toEqual({ x: 800 - 8 - 280, y: 294, fromBottom: false })
   })
 
   it('no se sale por abajo ni por arriba', () => {
     expect(placeCard({ left: 100, right: 200, top: 650, bottom: 680 }, size, viewport).y).toBe(700 - 200 - 8)
     expect(placeCard({ left: 100, right: 200, top: 0, bottom: 20 }, size, viewport).y).toBe(8)
+  })
+
+  it('si no cabe hacia abajo se ancla al borde inferior de la pantalla', () => {
+    expect(placeCard({ left: 100, right: 200, top: 650, bottom: 680 }, size, viewport).fromBottom).toBe(true)
+    expect(placeCard({ left: 100, right: 200, top: 400, bottom: 430 }, size, viewport).fromBottom).toBe(false)
   })
 
   it('si no cabe a ningún lado (pantalla muy angosta) se queda dentro del margen', () => {

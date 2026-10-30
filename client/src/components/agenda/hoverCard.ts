@@ -76,10 +76,13 @@ interface Box { left: number; right: number; top: number; bottom: number }
  * Dónde poner la tarjeta flotante respecto a la cita sobre la que está el cursor: a la derecha si cabe, si no a la
  * izquierda, alineada con el borde superior y siempre dentro de la pantalla.
  */
-export function placeCard(anchor: Box, size: { width: number; height: number }, viewport: { width: number; height: number }, gap = 8, margin = 8): { x: number; y: number } {
+export function placeCard(anchor: Box, size: { width: number; height: number }, viewport: { width: number; height: number }, gap = 8, margin = 8): { x: number; y: number; fromBottom: boolean } {
   let x = anchor.right + gap
   if (x + size.width > viewport.width - margin) x = anchor.left - gap - size.width
   x = Math.max(margin, Math.min(x, viewport.width - size.width - margin))
   const y = Math.max(margin, Math.min(anchor.top - 6, viewport.height - size.height - margin))
-  return { x, y }
+  // Si no cabe hacia abajo se ancla al borde inferior de la pantalla (CSS `bottom`): así no depende de que la altura
+  // medida sea exacta y la tarjeta nunca queda recortada.
+  const fromBottom = anchor.top - 6 + size.height > viewport.height - margin
+  return { x, y, fromBottom }
 }

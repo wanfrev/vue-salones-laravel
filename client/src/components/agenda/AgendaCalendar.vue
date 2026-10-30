@@ -301,6 +301,18 @@
                       class="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white ring-1 ring-black/5"
                       :style="{ background: appt.employeeColor }">{{ appt.employeeInitials }}</span>
                   </div>
+                  <div v-else-if="appt.height < CARD_FULL_MIN_HEIGHT" class="flex h-full flex-col justify-center gap-0.5 px-2 text-xs leading-tight">
+                    <div class="flex min-w-0 items-center gap-1.5">
+                      <span class="text-[11px] font-semibold tabular-nums whitespace-nowrap text-text-muted sm:text-xs">{{
+                        dragState?.apptId === appt.id && dragState.moved ? dragPreviewLabel() : appt.time }}</span>
+                      <span class="h-2 w-2 flex-shrink-0 rounded-full" :class="statusDotClass(appt.status)" />
+                      <span v-if="appt.employeeInitials"
+                        class="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white ring-1 ring-black/5"
+                        :style="{ background: appt.employeeColor }">{{ appt.employeeInitials }}</span>
+                    </div>
+                    <div class="truncate text-[12px] font-bold text-text sm:text-[13px]">{{ appt.clientName }}</div>
+                    <div class="truncate text-[10px] text-text-secondary sm:text-xs">{{ appt.groupServices?.length ? appt.groupServices.join(' + ') : appt.service }}</div>
+                  </div>
                   <div v-else class="flex flex-col h-full px-2 py-1.5 sm:px-2.5 sm:py-2 text-xs leading-tight">
                     <div class="flex items-center justify-between gap-1 min-w-0">
                       <div class="flex items-center gap-1.5 min-w-0">
@@ -580,6 +592,8 @@ const globalSearchRows = computed(() => {
 const DEFAULT_START_HOUR = 7
 const DEFAULT_END_HOUR = 21
 const HOUR_HEIGHT = 96
+// Por debajo de esta altura (px) la tarjeta no cabe completa (hora, nombre, servicio y profesional): se resume en tres renglones.
+const CARD_FULL_MIN_HEIGHT = 100
 const TIME_COL_WIDTH = 40
 
 // La grilla arrancaba fija a las 7am: cualquier cita antes de esa hora quedaba con
