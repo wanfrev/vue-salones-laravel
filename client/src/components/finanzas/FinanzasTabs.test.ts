@@ -217,6 +217,45 @@ describe('Créditos', () => {
   })
 })
 
+describe('Créditos de un pago mixto', () => {
+  // Paula Gallegos: venta de $115,00 = $14,01 con gift card en el momento + $100,99 a crédito.
+  const paula = { id: 'cr9', client_name: 'PAULA GALLEGOS', client_phone: '', amount: 100.99, paid_amount: 0, remaining: 100.99, status: 'pending', sale_total: 115, paid_at_sale: 14.01, created_at: '2026-10-23T10:00:00Z', paid_at: null }
+  const sinMixto = { id: 'cr10', client_name: 'Luis', client_phone: '', amount: 45, paid_amount: 0, remaining: 45, status: 'pending', sale_total: 45, paid_at_sale: 0, created_at: '2026-10-15T10:00:00Z', paid_at: null }
+  const seedMixed = (qc: QueryClient) => qc.setQueryData(['credits', 'b1'], [paula, sinMixto])
+
+  it('la fila muestra el total de la venta y lo pagado al vender, sin tocar el saldo', async () => {
+    const { wrapper } = setup(CreditosSection, { periodDates: period }, seedMixed)
+    await flushPromises()
+    const rows = wrapper.findAll('[data-testid="credit-row"]')
+
+    expect(rows[0].text()).toContain('$100.99')
+    expect(rows[0].get('[data-testid="credit-sale-note"]').text()).toContain('Venta $115.00 · pagó $14.01 al vender')
+    // Una venta 100 % a crédito no tiene nada que aclarar.
+    expect(rows[1].find('[data-testid="credit-sale-note"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('$145.99')
+  })
+
+  it('al registrar un abono, el diálogo desglosa venta, pagado al vender y saldo', async () => {
+    const { wrapper } = setup(CreditosSection, { periodDates: period }, seedMixed)
+    await flushPromises()
+    await wrapper.findAll('[data-testid="credit-row"]')[0].findAll('button').find(b => b.text().includes('Registrar abono'))!.trigger('click')
+    await flushPromises()
+
+    const dialog = document.body.textContent!.replace(/\s+/g, ' ')
+    expect(dialog).toContain('Total de la venta$115.00')
+    expect(dialog).toContain('Pagado al vender$14.01')
+    expect(dialog).toContain('Saldo pendiente$100.99')
+  })
+
+  it('si el servidor no manda esos datos (crédito viejo en caché) se ve como antes', async () => {
+    const { wrapper } = setup(CreditosSection, { periodDates: period }, (qc) => qc.setQueryData(['credits', 'b1'], [{ ...paula, sale_total: null, paid_at_sale: null }]))
+    await flushPromises()
+
+    expect(wrapper.find('[data-testid="credit-sale-note"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('$100.99')
+  })
+})
+
 describe('Bancos', () => {
   it('lista los bancos y el mensaje vacío', async () => {
     const { wrapper } = setup(BankAccountsSection, {}, (qc) => qc.setQueryData(banksKeys.all('b1'), [{ id: 'b1', name: 'Banesco' }, { id: 'b2', name: 'Mercantil' }]))

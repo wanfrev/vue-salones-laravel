@@ -62,6 +62,10 @@
             <template v-else>
               <div class="font-medium tabular-nums text-text">{{ formatUSD(c.amount) }}</div>
             </template>
+            <!-- Pago mixto: lo que se pagó en el momento de la venta (no es un abono de este crédito) -->
+            <div v-if="paidAtSale(c) > 0" data-testid="credit-sale-note" class="text-xs text-text-muted">
+              Venta {{ formatUSD(c.sale_total ?? c.amount) }} · pagó {{ formatUSD(paidAtSale(c)) }} al vender
+            </div>
           </div>
 
           <div class="hidden text-text-secondary md:block">{{ formatDate(c.created_at) }}</div>
@@ -115,10 +119,14 @@
         <div v-if="selectedCredit" class="mb-4 rounded-lg bg-bg-secondary/60 px-3 py-2.5 text-xs">
           <div class="flex justify-between text-text-secondary">
             <span>Total de la venta</span>
-            <span class="font-medium text-text">{{ formatUSD(selectedCredit.amount) }}</span>
+            <span class="font-medium text-text">{{ formatUSD(selectedCredit.sale_total ?? selectedCredit.amount) }}</span>
+          </div>
+          <div v-if="paidAtSale(selectedCredit) > 0" class="flex justify-between text-text-secondary mt-1" data-testid="credit-paid-at-sale">
+            <span>Pagado al vender</span>
+            <span class="font-medium text-success">{{ formatUSD(paidAtSale(selectedCredit)) }}</span>
           </div>
           <div v-if="selectedCredit.paid_amount > 0" class="flex justify-between text-text-secondary mt-1">
-            <span>Ya abonado</span>
+            <span>{{ paidAtSale(selectedCredit) > 0 ? 'Abonado después' : 'Ya abonado' }}</span>
             <span class="font-medium text-success">{{ formatUSD(selectedCredit.paid_amount) }}</span>
           </div>
           <div class="flex justify-between text-text-secondary mt-1 pt-1 border-t border-border/60">
@@ -244,6 +252,9 @@ const tabs: { key: 'pending' | 'paid'; label: string }[] = [
 ]
 const activeTab = ref<'pending' | 'paid'>('pending')
 const visibleCredits = computed(() => activeTab.value === 'pending' ? pendingCredits.value : paidCredits.value)
+
+// Lo pagado en el momento de la venta (parte no crédito de un pago mixto); el servidor lo manda ya calculado.
+const paidAtSale = (c: Credit) => Number(c.paid_at_sale ?? 0)
 
 const showModal = ref(false)
 const selectedCredit = ref<Credit | null>(null)

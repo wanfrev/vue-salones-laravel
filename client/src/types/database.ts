@@ -666,6 +666,10 @@ export interface Credit {
   amount: number
   paid_amount: number
   remaining: number
+  /** Total de la venta que originó el crédito (en un pago mixto, mayor que `amount`); null si el servidor no lo calculó. */
+  sale_total?: number | null
+  /** Lo pagado en el momento de la venta, ya incluido en el ingreso de la venta; no es un abono de este crédito. */
+  paid_at_sale?: number | null
   currency: string
   status: 'pending' | 'partial' | 'paid'
   paid_at: string | null
