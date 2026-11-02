@@ -167,6 +167,7 @@
                 <option value="card">Tarjeta</option>
                 <option value="transfer">Transferencia</option>
                 <option value="zelle">Zelle</option>
+                <option value="cashea">Cashea</option>
                 <option value="pago_movil">Pago Móvil</option>
                 <option value="punto_venta">Punto de Venta (Bs)</option>
                 <option value="other">Otro</option>
