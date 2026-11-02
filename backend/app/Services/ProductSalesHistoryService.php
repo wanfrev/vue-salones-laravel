@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use Illuminate\Database\Query\Builder;
+use App\Support\HistoryRange;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -20,43 +22,20 @@ use Illuminate\Support\Facades\DB;
 class ProductSalesHistoryService
 {
     public const PAGE_SIZE = 25;
-    public const DEFAULT_DAYS = 90;
-    public const MAX_DAYS = 366;
     private const MAX_PRODUCTS_LISTED = 30;
 
     /** Valor de `client_id` en el detalle para pedir las ventas sin clienta. */
     public const NO_CLIENT = 'none';
 
     /**
-     * Resuelve el rango pedido (fechas locales del negocio). Devuelve [inicio, fin] en UTC más las fechas locales.
+     * Resuelve el rango pedido (fechas locales del negocio) a UTC. Ver HistoryRange.
      *
      * @throws \InvalidArgumentException si el rango es inválido o pasa de 12 meses
      * @return array{from: string, to: string, start: string, end: string}
      */
     public function resolveRange(string $businessId, ?string $start, ?string $end): array
     {
-        $tz = DB::table('businesses')->where('id', $businessId)->value('timezone') ?: 'UTC';
-
-        $endDay = $end
-            ? Carbon::createFromFormat('Y-m-d', $end, $tz)->startOfDay()
-            : Carbon::now($tz)->startOfDay();
-        $startDay = $start
-            ? Carbon::createFromFormat('Y-m-d', $start, $tz)->startOfDay()
-            : $endDay->copy()->subDays(self::DEFAULT_DAYS - 1);
-
-        if ($endDay->lt($startDay)) {
-            throw new \InvalidArgumentException('La fecha final no puede ser anterior a la inicial.');
-        }
-        if ($startDay->diffInDays($endDay) > self::MAX_DAYS) {
-            throw new \InvalidArgumentException('El rango máximo es de 12 meses.');
-        }
-
-        return [
-            'from' => $startDay->copy()->utc()->format('Y-m-d H:i:s'),
-            'to' => $endDay->copy()->endOfDay()->utc()->format('Y-m-d H:i:s'),
-            'start' => $startDay->format('Y-m-d'),
-            'end' => $endDay->format('Y-m-d'),
-        ];
+        return HistoryRange::resolve($businessId, $start, $end);
     }
 
     /**
@@ -94,7 +73,9 @@ class ProductSalesHistoryService
 
         return [
             'summary' => $this->summary($businessId, $filters, $range),
-            'products' => $this->products($businessId, $filters, $range),
+            // Las opciones de producto salen de la búsqueda SIN acotar a un producto: si no, al elegir uno quedaría solo ese
+            // y no habría cómo volver a «Todos» ni pasar a otro.
+            'products' => $this->products($businessId, Arr::except($filters, ['product_id']), $range),
             'clients' => $rows->take(self::PAGE_SIZE)->map(fn ($r) => [
                 'client_id' => $r->client_id,
                 'client_name' => $r->client_name,

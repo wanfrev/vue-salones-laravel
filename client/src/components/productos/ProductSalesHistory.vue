@@ -15,7 +15,7 @@
       <span v-if="isFetching && !isLoading" class="text-xs text-text-muted" role="status">Actualizando…</span>
     </div>
 
-    <div v-if="products.length > 1" class="scroll-thin flex gap-1.5 overflow-x-auto border-b border-border-subtle px-3 py-2 sm:px-4" data-testid="product-chips">
+    <div v-if="products.length > 1 || productId" class="scroll-thin flex gap-1.5 overflow-x-auto border-b border-border-subtle px-3 py-2 sm:px-4" data-testid="product-chips">
       <button type="button" class="shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors"
         :class="!productId ? 'border-primary bg-primary/10 text-primary' : 'border-border text-text-secondary hover:bg-bg-secondary'"
         @click="productId = null">Todos</button>

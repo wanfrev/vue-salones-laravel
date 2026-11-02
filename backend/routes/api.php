@@ -57,6 +57,7 @@ use App\Http\Controllers\Api\PurchaseInvoiceController;
 use App\Http\Controllers\Api\QzController;
 use App\Http\Controllers\Api\RequirementController;
 use App\Http\Controllers\Api\ServiceController;
+use App\Http\Controllers\Api\ServiceHistoryController;
 use App\Http\Controllers\Api\WhatsAppController;
 use App\Http\Controllers\Api\ReminderController;
 use App\Http\Controllers\Api\Staffing\StaffingCompanyController;
@@ -190,6 +191,12 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     Route::middleware('feature:servicios')->group(function () {
         Route::get('/services', [ServiceController::class, 'index']);
         Route::post('/services', [ServiceController::class, 'store']);
+        // Historial de servicios por servicio: lista clientas con teléfono, así que solo administración y encargadas.
+        // Va ANTES de /services/{id}, que si no tomaría «history» por un id.
+        Route::middleware('admin-panel')->group(function () {
+            Route::get('/services/history', [ServiceHistoryController::class, 'index']);
+            Route::get('/services/history/client/{clientId}', [ServiceHistoryController::class, 'clientServices']);
+        });
         Route::get('/services/{id}', [ServiceController::class, 'show']);
         Route::post('/services/categories/rename', [ServiceController::class, 'renameCategory']);
         Route::delete('/services/categories', [ServiceController::class, 'deleteCategory']);

@@ -260,6 +260,20 @@ class ProductSalesHistoryTest extends TestCase
         $this->assertEquals(1.0, $result['summary']['units']);
     }
 
+    public function test_narrowing_to_one_product_keeps_the_other_options_so_you_can_go_back(): void
+    {
+        $this->seedScenario();
+
+        $all = $this->byClient(['q' => 'tinte']);
+        $narrowed = $this->byClient(['q' => 'tinte', 'product_id' => 'p-tinte2']);
+
+        // Los compradores y el resumen se acotan al producto elegido...
+        $this->assertSame(['c-ana'], array_column($narrowed['clients'], 'client_id'));
+        // ...pero la lista de productos de la búsqueda NO: si no, desaparecerían las opciones y no habría cómo volver a «Todos».
+        $this->assertSame(array_column($all['products'], 'product_id'), array_column($narrowed['products'], 'product_id'));
+        $this->assertEquals(array_column($all['products'], 'units'), array_column($narrowed['products'], 'units'));
+    }
+
     public function test_it_lists_the_products_that_match_the_search_most_sold_first(): void
     {
         $this->seedScenario();

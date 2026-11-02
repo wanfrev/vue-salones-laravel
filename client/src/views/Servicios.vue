@@ -39,14 +39,30 @@
       <div class="relative">
         <MagnifierIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
         <input
-          v-model="searchQuery"
+          :value="viewTab === 'historial' ? historySearch : searchQuery"
           type="text"
-          placeholder="Buscar por nombre o categoría..."
+          :placeholder="viewTab === 'historial' ? 'Buscar servicio realizado (ej. keratina, balayage)...' : 'Buscar por nombre o categoría...'"
+          @input="onSearchInput(($event.target as HTMLInputElement).value)"
           class="w-full rounded-xl border border-border bg-bg-secondary/40 py-2.5 pl-9 pr-3 text-sm text-text outline-none transition-theme placeholder:text-text-muted focus:border-primary focus:bg-surface focus:ring-2 focus:ring-primary/15"
         />
       </div>
     </div>
 
+    <div class="scroll-thin flex gap-1 overflow-x-auto overflow-y-hidden border-b border-border-subtle px-2 sm:px-3" role="tablist" aria-label="Vista de servicios">
+      <button
+        v-for="t in viewTabs" :key="t.value" type="button" role="tab" :aria-selected="viewTab === t.value"
+        class="relative shrink-0 whitespace-nowrap px-3 py-2.5 text-sm font-medium transition-colors"
+        :class="viewTab === t.value ? 'text-primary' : 'text-text-secondary hover:text-text'"
+        @click="viewTab = t.value"
+      >
+        {{ t.label }}
+        <span v-if="viewTab === t.value" class="absolute inset-x-2 bottom-0 h-0.5 rounded-full bg-primary" />
+      </button>
+    </div>
+
+    <ServiceHistory v-if="viewTab === 'historial'" :search="historySearch" />
+
+    <template v-else>
     <ServiceCategoryTabs v-model="activeCategory" :categories="categories" />
 
     <!-- Cuadrícula: celdas separadas por líneas finas, sin una tarjeta por servicio -->
@@ -83,6 +99,7 @@
       @next="nextPage"
       @previous="previousPage"
     />
+    </template>
   </section>
 
   <!-- Modals -->
@@ -188,6 +205,7 @@ import ServiceCard from '../components/servicios/ServiceCard.vue'
 import ServiceCategoryMenu from '../components/servicios/ServiceCategoryMenu.vue'
 import ServiceCategoryTabs from '../components/servicios/ServiceCategoryTabs.vue'
 import ServiceSummary from '../components/servicios/ServiceSummary.vue'
+import ServiceHistory from '../components/servicios/ServiceHistory.vue'
 import { deleteServicio, listServicios, saveServicio, serviciosKeys } from '../services/serviciosService'
 import { addBusinessCategory } from '../services/equipoService'
 import { addBranchCategory } from '../services/equipoService'
@@ -206,6 +224,18 @@ const servicioToDelete = ref<Servicio | null>(null)
 const addingCategory = ref(false)
 const newCatName = ref('')
 const searchQuery = ref('')
+
+// «Catálogo» (lo de siempre) o «Historial» (a quién se le hizo cada servicio y desde cuándo).
+const viewTab = ref<'catalogo' | 'historial'>('catalogo')
+const viewTabs = [
+  { label: 'Catálogo', value: 'catalogo' as const },
+  { label: 'Historial', value: 'historial' as const },
+]
+const historySearch = ref('')
+const onSearchInput = (value: string) => {
+  if (viewTab.value === 'historial') historySearch.value = value
+  else searchQuery.value = value
+}
 const businessId = computed(() => authStore.businessId)
 const branchId = computed(() => businessStore.currentBranchId)
 
