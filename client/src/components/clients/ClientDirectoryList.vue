@@ -15,7 +15,7 @@
       <li
         v-for="client in clients"
         :key="client.id"
-        v-memo="[client.id, client.name, client.phone, client.email, client.lastVisit, client.totalAppointments, client.totalSpent, canEdit, hidePhone, clinicalActions, hasAttachments, openLabel]"
+        v-memo="[client.id, client.name, client.phone, client.email, client.lastVisit, client.totalAppointments, client.totalSpent, itemInfo?.get(client.id), canEdit, hidePhone, clinicalActions, hasAttachments, openLabel]"
         data-testid="client-row"
         tabindex="0"
         :class="[gridClass, 'group relative cursor-pointer px-4 py-3 outline-none transition-colors hover:bg-primary/5 focus-visible:bg-primary/5']"
@@ -32,6 +32,9 @@
             <p class="text-xs leading-snug text-text-muted lg:truncate">
               <span class="hidden lg:inline">Desde {{ client.joinDate ? formatDateHuman(client.joinDate) : '—' }}</span>
               <span class="lg:hidden">{{ metaLine(client) }}</span>
+            </p>
+            <p v-if="itemInfo?.get(client.id)" class="text-xs font-medium leading-snug text-primary" data-testid="client-item-info">
+              {{ itemInfoLine(itemInfo.get(client.id)!) }}
             </p>
           </div>
         </div>
@@ -126,7 +129,7 @@ import { ChatRoundLineIcon, PenIcon, ArrowRightIcon } from '@solar-icons/vue/lin
 import { formatDateHuman, getInitials } from '../../lib/formatters'
 import { useBusinessStore } from '../../store/business'
 import type { Cliente } from '../../types/cliente'
-import { relativeVisit, visitDay } from './clientFilters'
+import { itemInfoLine, relativeVisit, visitDay, type ClientItemMatch } from './clientFilters'
 
 const props = withDefaults(defineProps<{
   clients: Cliente[]
@@ -139,8 +142,10 @@ const props = withDefaults(defineProps<{
   hasAttachments?: boolean
   /** Botón de texto que abre al cliente («Ver historial» / «Abrir expediente»); sin él solo abre el clic en la fila. */
   openLabel?: string
+  /** Con el filtro por producto o servicio activo: qué fue lo último que hizo o compró cada cliente. */
+  itemInfo?: ReadonlyMap<string, ClientItemMatch> | null
   emptyText: string
-}>(), { thirdColumn: 'spend', canEdit: false, hidePhone: false, clinicalActions: false, hasAttachments: false, openLabel: '' })
+}>(), { thirdColumn: 'spend', canEdit: false, hidePhone: false, clinicalActions: false, hasAttachments: false, openLabel: '', itemInfo: null })
 
 const emit = defineEmits<{
   open: [client: Cliente]
