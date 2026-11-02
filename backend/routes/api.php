@@ -50,6 +50,7 @@ use App\Http\Controllers\Api\PushSubscriptionController;
 
 use App\Http\Controllers\Api\ProductCategoryController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\ProductSalesHistoryController;
 use App\Http\Controllers\Api\ProductVariantController;
 use App\Http\Controllers\Api\ProfileController;
 use App\Http\Controllers\Api\PurchaseInvoiceController;
@@ -414,6 +415,9 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     Route::middleware('feature:productos')->group(function () {
         Route::middleware('perm:inventory')->group(function () {
             Route::get('/products', [ProductController::class, 'index']);
+            // Historial de compras por producto (antes de cualquier /products/{id}).
+            Route::get('/products/sales-history', [ProductSalesHistoryController::class, 'index']);
+            Route::get('/products/sales-history/client/{clientId}', [ProductSalesHistoryController::class, 'clientSales']);
             Route::get('/products/categories', [ProductCategoryController::class, 'index']);
             Route::get('/product-categories', [ProductCategoryController::class, 'index']);
         });

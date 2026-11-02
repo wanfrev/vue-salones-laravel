@@ -54,13 +54,14 @@
     <InventoryToolbar
       v-model:active-tab="activeTab"
       :tabs="tabs"
-      :search="activeTab !== 'movimientos' ? searchQuery : movementSearch"
-      :placeholder="activeTab !== 'movimientos' ? 'Buscar producto por nombre o SKU...' : 'Buscar en movimientos...'"
+      :search="searchValue"
+      :placeholder="searchPlaceholder"
       @update:search="onSearch"
     />
 
+    <ProductSalesHistory v-if="activeTab === 'ventas'" :search="salesSearch" />
     <ProductList
-      v-if="activeTab !== 'movimientos'"
+      v-else-if="activeTab !== 'movimientos'"
       :products="filteredProductos"
       :readonly="disableInventoryEdit"
       :show-transfer="canTransferStock"
@@ -169,6 +170,7 @@ import ProductoFormModal from '../components/modals/ProductoFormModal.vue'
 import ProductStockAdjustModal from '../components/productos/ProductStockAdjustModal.vue'
 import ProductList from '../components/productos/ProductList.vue'
 import MovementList from '../components/productos/MovementList.vue'
+import ProductSalesHistory from '../components/productos/ProductSalesHistory.vue'
 import InventoryToolbar from '../components/productos/InventoryToolbar.vue'
 import InventorySettingsModal from '../components/productos/InventorySettingsModal.vue'
 import PurchaseInvoiceModal from '../components/productos/PurchaseInvoiceModal.vue'
@@ -282,7 +284,8 @@ const movementSearch = ref('')
 
 // Cada vista conserva su propia búsqueda (productos / movimientos), como siempre.
 const onSearch = (value: string) => {
-  if (activeTab.value !== 'movimientos') searchQuery.value = value
+  if (activeTab.value === 'ventas') salesSearch.value = value
+  else if (activeTab.value !== 'movimientos') searchQuery.value = value
   else movementSearch.value = value
 }
 
@@ -302,10 +305,21 @@ const filteredMovements = computed(() => {
   )
 })
 
+// Historial de compras por producto: su buscador (producto, variante o SKU) es aparte del de la lista.
+const salesSearch = ref('')
+
+const searchValue = computed(() =>
+  activeTab.value === 'ventas' ? salesSearch.value : activeTab.value === 'movimientos' ? movementSearch.value : searchQuery.value)
+const searchPlaceholder = computed(() =>
+  activeTab.value === 'ventas' ? 'Buscar producto vendido (ej. tinte, shampoo)...'
+    : activeTab.value === 'movimientos' ? 'Buscar en movimientos...'
+      : 'Buscar producto por nombre o SKU...')
+
 const tabs = [
   { label: 'Todos', value: 'todos' },
   { label: 'Activos', value: 'activos' },
   { label: 'Inactivos', value: 'inactivos' },
   { label: 'Movimientos', value: 'movimientos' },
+  { label: 'Ventas', value: 'ventas' },
 ]
 </script>
