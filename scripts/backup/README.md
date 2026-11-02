@@ -10,6 +10,37 @@ Tres copias en lugares distintos, para sobrevivir a la pérdida del servidor.
 
 Una cuarta copia en la nube es recomendable (ver el final).
 
+---
+
+## Método simple: tu PC descarga todo sola cada día (sin cifrado)
+
+Es lo mínimo para no depender solo del servidor. **No instala nada en el servidor** (solo agrega una
+llave SSH limitada) y no usa `age`. El archivo NO va cifrado y trae el `.env` (claves y contraseñas) y
+datos clínicos: guárdalo fuera de OneDrive y con BitLocker activado.
+
+Se hace una sola vez, desde PowerShell, en esta carpeta (`scripts\backup\windows`):
+
+```powershell
+# 1. Crea una llave y la autoriza en el servidor (pide la contraseña del servidor UNA vez).
+#    La llave solo puede hacer una cosa allá: armar y entregar el respaldo. No abre terminal.
+powershell -ExecutionPolicy Bypass -File .\Autorizar-LlaveRespaldo.ps1
+
+# 2. Programa la tarea: todos los días a las 09:00 y al iniciar sesión (corre aunque la PC
+#    estuviera apagada a esa hora). -RunNow la ejecuta de una vez.
+powershell -ExecutionPolicy Bypass -File .\Programar-RespaldoDiario.ps1 -RunNow
+```
+
+- Los respaldos quedan en `C:\Respaldos-Luma` (los últimos 14) y cada corrida se anota en
+  `C:\Respaldos-Luma\respaldo.log`. Si falla, sale un aviso en pantalla.
+- Cada archivo `luma-AAAAMMDD-HHMM.tar.gz` trae la base de producción y la de WhatsApp (el volcado de
+  las 03:00 del servidor), el `.env` y `storage/app`.
+- No repite la descarga si ya hay un respaldo de hace menos de 12 horas.
+- Para correrlo a mano con contraseña: `.\Respaldo-Rapido.ps1`.
+- Revisa de vez en cuando que el `respaldo.log` diga `OK` con la fecha de hoy.
+
+Lo que sigue abajo (paquete cifrado con `age`, usuario de solo lectura) es la versión más estricta;
+no hace falta para empezar.
+
 ## Qué contiene el paquete `luma-AAAAMMDD_HHMMSS.tar.age`
 
 - `db/salones.dump` y `db/evolution_db.dump`: producción y WhatsApp (staging no entra).

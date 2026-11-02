@@ -16,7 +16,12 @@
   OJO: el archivo NO va cifrado y contiene datos clínicos, financieros y claves. Guárdalo solo
   en una carpeta fuera de OneDrive y con BitLocker activado en el disco.
 
-  Uso:  powershell -ExecutionPolicy Bypass -File .\Respaldo-Rapido.ps1
+  Uso manual (pide la contraseña del servidor):
+        powershell -ExecutionPolicy Bypass -File .\Respaldo-Rapido.ps1
+  Uso automático (tarea programada, sin contraseña: entra con una llave SSH):
+        ... -Unattended -KeyFile C:\Users\TU_USUARIO\.ssh\luma_backup -MinHours 12
+      En ese modo no se detiene a esperar Enter, anota cada corrida en respaldo.log (dentro de la
+      carpeta de destino) y, si falla, muestra un aviso en pantalla.
 #>
 [CmdletBinding()]
 param(
@@ -25,10 +30,28 @@ param(
   [string]$Destination = 'C:\Respaldos-Luma',
   [int]$Keep = 10,
   [string]$SshExe = 'ssh.exe',
+  [string]$KeyFile = '',
+  [int]$MinHours = 0,
+  [switch]$Unattended,
+  [switch]$NoAlert,
   [switch]$NoPause
 )
 
 $ErrorActionPreference = 'Stop'
+
+$LogFile = Join-Path $Destination 'respaldo.log'
+function Write-Log([string]$Text) {
+  try {
+    New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+    Add-Content -Path $LogFile -Value ('{0}  {1}' -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss'), $Text)
+  } catch { }
+}
+# Aviso visible en pantalla; si msg.exe no existe (Windows Home), queda el log.
+function Send-Alert([string]$Message) {
+  Write-Log "ALERTA: $Message"
+  if ($NoAlert) { return }
+  try { & msg.exe $env:USERNAME /TIME:0 "Respaldo de Luma: $Message" 2>$null } catch { }
+}
 
 # Todo se arma en el servidor y viaja por la misma conexión como un .tar.gz (-h sigue enlaces).
 $remoteCmd = 'cd /var/www/vue-salones-laravel/backend && tar -czhf - .env storage/app ' +
@@ -57,11 +80,22 @@ function Stop-WithError([string]$Message, [string]$PartFile) {
 $exitCode = 0
 try {
   New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+  if ($MinHours -gt 0) {
+    $latest = Get-ChildItem -Path $Destination -Filter 'luma-*.tar.gz' -ErrorAction SilentlyContinue | Sort-Object Name -Descending | Select-Object -First 1
+    if ($latest -and ((Get-Date) - $latest.LastWriteTime).TotalHours -lt $MinHours) {
+      Write-Log ('Omitido: ya hay un respaldo de hace menos de {0} h ({1}).' -f $MinHours, $latest.Name)
+      Write-Host "Ya hay un respaldo reciente ($($latest.Name)); no se descarga otro."
+      exit 0
+    }
+  }
   $final = Join-Path $Destination ('luma-{0}.tar.gz' -f (Get-Date -Format 'yyyyMMdd-HHmm'))
   $part = "$final.part"
 
   Write-Host "Descargando desde $User@$Server ... (si pide contraseña, escríbela)"
-  $sshArgs = '-o ConnectTimeout=20 {0}@{1} "{2}"' -f $User, $Server, $remoteCmd
+  # Con llave: nunca pide contraseña (BatchMode) y solo usa esa llave. Sin llave: pide la contraseña.
+  $authOpts = ''
+  if ($KeyFile) { $authOpts = '-i "{0}" -o BatchMode=yes -o IdentitiesOnly=yes ' -f $KeyFile }
+  $sshArgs = '{0}-o ConnectTimeout=20 -o ServerAliveInterval=30 -o ServerAliveCountMax=6 {1}@{2} "{3}"' -f $authOpts, $User, $Server, $remoteCmd
   $code = Save-RemoteStream $sshArgs $part
   if ($code -ne 0) { Stop-WithError "La conexión con el servidor falló (código $code)." $part }
 
@@ -80,7 +114,8 @@ try {
   if ($env.Count -eq 0) { $missing += 'el .env' }
   if ($missing.Count -gt 0) { Stop-WithError ('El archivo descargado no trae: ' + ($missing -join ', ') + '.') $part }
 
-  Move-Item -Path $part -Destination $final
+  # -Force: dos corridas dentro del mismo minuto dan el mismo nombre; la más nueva reemplaza a la anterior.
+  Move-Item -Path $part -Destination $final -Force
 
   Get-ChildItem -Path $Destination -Filter 'luma-*.tar.gz' | Sort-Object Name -Descending |
     Select-Object -Skip $Keep | ForEach-Object {
@@ -89,6 +124,7 @@ try {
     }
 
   $m = [regex]::Match($dump[0], 'salones_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})')
+  Write-Log ('OK {0} ({1:N1} MB; base de {2}-{3}-{4} {5}:{6})' -f $final, ($size / 1MB), $m.Groups[1].Value, $m.Groups[2].Value, $m.Groups[3].Value, $m.Groups[4].Value, $m.Groups[5].Value)
   Write-Host ''
   Write-Host 'LISTO' -ForegroundColor Green
   Write-Host ('  Archivo : {0}  ({1:N1} MB)' -f $final, ($size / 1MB))
@@ -99,8 +135,10 @@ try {
 catch {
   Write-Host ''
   Write-Host "ERROR: $($_.Exception.Message)" -ForegroundColor Red
+  Write-Log "ERROR: $($_.Exception.Message)"
+  if ($Unattended) { Send-Alert $_.Exception.Message }
   $exitCode = 1
 }
 
-if (-not $NoPause -and $Host.Name -eq 'ConsoleHost') { Read-Host 'Pulsa Enter para cerrar' | Out-Null }
+if (-not $NoPause -and -not $Unattended -and $Host.Name -eq 'ConsoleHost') { Read-Host 'Pulsa Enter para cerrar' | Out-Null }
 exit $exitCode
