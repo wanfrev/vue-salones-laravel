@@ -16,10 +16,11 @@ class HistoryRange
     public const MAX_DAYS = 366;
 
     /**
+     * @param  int  $defaultDays  cuántos días mira hacia atrás si no se pide un inicio (por defecto 90)
      * @throws \InvalidArgumentException si el rango es inválido o pasa de 12 meses
      * @return array{from: string, to: string, start: string, end: string}
      */
-    public static function resolve(string $businessId, ?string $start, ?string $end): array
+    public static function resolve(string $businessId, ?string $start, ?string $end, int $defaultDays = self::DEFAULT_DAYS): array
     {
         $tz = DB::table('businesses')->where('id', $businessId)->value('timezone') ?: 'UTC';
 
@@ -28,7 +29,7 @@ class HistoryRange
             : Carbon::now($tz)->startOfDay();
         $startDay = $start
             ? Carbon::createFromFormat('Y-m-d', $start, $tz)->startOfDay()
-            : $endDay->copy()->subDays(self::DEFAULT_DAYS - 1);
+            : $endDay->copy()->subDays($defaultDays - 1);
 
         if ($endDay->lt($startDay)) {
             throw new \InvalidArgumentException('La fecha final no puede ser anterior a la inicial.');

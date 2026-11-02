@@ -16,6 +16,13 @@
       v-model:segment="segment"
       v-model:window-days="windowDays"
       v-model:sort="sort"
+      v-model:item="item"
+      v-model:item-mode="itemMode"
+      v-model:item-days="itemDays"
+      :item-filter="canFilterByItem"
+      :item-searching="itemSearching"
+      :item-truncated="itemTruncated"
+      :item-error="!!itemError"
       :counts="counts"
       :result-count="filteredClients.length"
       :total-count="totalClientes"
@@ -28,6 +35,7 @@
       :third-column="isPatientNiche ? 'identity' : 'spend'"
       :can-edit="canEditClients"
       :open-label="isPatientNiche ? 'Abrir expediente' : 'Ver historial'"
+      :item-info="itemMatches"
       :empty-text="emptyText"
       @open="openClient"
       @edit="clienteModalRef?.open($event)"
@@ -67,6 +75,7 @@ import { useBusinessStore } from '../store/business'
 import { isPatientNiche as checkPatientNiche } from '../config/niches'
 import { clientesKeys, deleteCliente, listClientes, saveCliente } from '../services/clientesService'
 import { sanitizePhone } from '../lib/formatters'
+import { isAdminPanelRole } from '../constants/roles'
 import DirectoryHeader from '../components/common/DirectoryHeader.vue'
 import ClientDirectoryToolbar from '../components/clients/ClientDirectoryToolbar.vue'
 import ClientDirectoryList from '../components/clients/ClientDirectoryList.vue'
@@ -104,11 +113,21 @@ const {
   ],
 })
 
+// Quién compró o se hizo qué lista teléfonos de clientes: solo administración (la caja también entra a Clientes).
+const canFilterByItem = computed(() => isAdminPanelRole(authStore.role ?? undefined))
+
 const {
   search,
   segment,
   windowDays,
   sort,
+  item,
+  itemMode,
+  itemDays,
+  itemMatches,
+  itemSearching,
+  itemTruncated,
+  itemError,
   filtered,
   filteredClients,
   counts,
@@ -125,7 +144,7 @@ const {
   paginationStart,
   paginationEnd,
   totalPages,
-} = useClientFilters(clients)
+} = useClientFilters(clients, { itemFilter: canFilterByItem })
 
 const singular = computed(() => (businessStore.terminology.client || 'cliente').toLowerCase())
 const plural = computed(() => (businessStore.terminology.clientPlural || 'clientes').toLowerCase())
@@ -134,7 +153,9 @@ const canEditClients = computed(() =>
   authStore.role !== 'encargado' || businessStore.hasFeature('encargados_edit_clients')
 )
 const emptyText = computed(() =>
-  filtered.value
+  itemSearching.value
+    ? 'Buscando…'
+    : filtered.value
     ? `No hay ${plural.value} que coincidan con la búsqueda o el filtro.`
     : `Todavía no hay ${plural.value} registrados.`
 )

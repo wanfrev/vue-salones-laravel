@@ -69,6 +69,19 @@
         </select>
       </label>
 
+      <ClientItemFilter
+        v-if="itemFilter"
+        :item="item ?? ''"
+        :mode="itemMode ?? 'did'"
+        :days="itemDays ?? 60"
+        :searching="itemSearching"
+        :truncated="itemTruncated"
+        :error="itemError"
+        @update:item="emit('update:item', $event)"
+        @update:mode="emit('update:itemMode', $event)"
+        @update:days="emit('update:itemDays', $event)"
+      />
+
       <div class="ml-auto flex items-center gap-3 text-xs text-text-muted" aria-live="polite">
         <span>
           <span class="font-semibold text-text">{{ resultCount }}</span><template v-if="filtered"> de {{ totalCount }}</template>
@@ -91,7 +104,8 @@
 import { computed } from 'vue'
 import { MagnifierIcon, CloseCircleIcon } from '@solar-icons/vue/linear'
 import { useBusinessStore } from '../../store/business'
-import { NEW_CLIENT_DAYS, SORT_OPTIONS, WINDOW_OPTIONS, type ClientSegment, type ClientSort } from './clientFilters'
+import { NEW_CLIENT_DAYS, SORT_OPTIONS, WINDOW_OPTIONS, type ClientSegment, type ClientSort, type ItemMode } from './clientFilters'
+import ClientItemFilter from './ClientItemFilter.vue'
 
 const props = defineProps<{
   search: string
@@ -103,6 +117,14 @@ const props = defineProps<{
   totalCount: number
   filtered: boolean
   placeholder: string
+  /** Filtro por producto o servicio (solo administración); sin esto no se muestra. */
+  itemFilter?: boolean
+  item?: string
+  itemMode?: ItemMode
+  itemDays?: number
+  itemSearching?: boolean
+  itemTruncated?: boolean
+  itemError?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -110,6 +132,9 @@ const emit = defineEmits<{
   'update:segment': [value: ClientSegment]
   'update:windowDays': [value: number]
   'update:sort': [value: ClientSort]
+  'update:item': [value: string]
+  'update:itemMode': [value: ItemMode]
+  'update:itemDays': [value: number]
   clear: []
 }>()
 

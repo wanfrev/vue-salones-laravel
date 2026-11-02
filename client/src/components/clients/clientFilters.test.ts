@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  DEFAULT_FILTERS, daysSince, filterAndSortClients, isFiltered, matchesSearch, matchesSegment, relativeVisit,
-  segmentCounts, sortClients, visitDay, type ClientFilterState,
+  DEFAULT_FILTERS, daysSince, daysSinceItem, filterAndSortClients, isFiltered, itemInfoLine, matchesItem, matchesSearch,
+  matchesSegment, relativeVisit, segmentCounts, sortClients, visitDay, type ClientFilterState, type ClientItemMatch,
 } from './clientFilters'
 import type { Cliente } from '../../types/cliente'
 
@@ -145,5 +145,76 @@ describe('relativeVisit', () => {
 
   it('una fecha futura no genera texto', () => {
     expect(relativeVisit('2026-11-01', TODAY)).toBe('')
+  })
+})
+
+describe('filtro por producto o servicio', () => {
+  // Mediodía local: el día calendario no cambia aunque el huso horario mueva unas horas.
+  const at = (y: number, m: number, d: number) => new Date(y, m - 1, d, 12).toISOString()
+  function match(id: string, last: string, over: Partial<ClientItemMatch> = {}): ClientItemMatch {
+    return { client_id: id, last_at: last, first_at: last, times: 1, last_item: 'Tinte', ...over }
+  }
+
+  // Ana: hace 6 días · Beto: hace 81 días · Carla y Dora no lo han hecho.
+  const matches = new Map([
+    [ana.id, match(ana.id, at(2026, 10, 15), { times: 3 })],
+    [beto.id, match(beto.id, at(2026, 8, 1))],
+  ])
+  const names = (r: Cliente[]) => r.map(x => x.name).sort()
+
+  it('«lo compraron o se lo hicieron»: solo quienes están en las coincidencias del servidor', () => {
+    const r = filterAndSortClients(all, state({ item: 'tinte' }), TODAY, matches)
+    expect(names(r)).toEqual(['Ana Pérez', 'Beto Ruiz'])
+  })
+
+  it('«no han vuelto desde hace N días»: lo hicieron, pero la última vez fue hace más de N', () => {
+    expect(names(filterAndSortClients(all, state({ item: 'tinte', itemMode: 'lapsed', itemDays: 60 }), TODAY, matches))).toEqual(['Beto Ruiz'])
+    expect(names(filterAndSortClients(all, state({ item: 'tinte', itemMode: 'lapsed', itemDays: 90 }), TODAY, matches))).toEqual([])
+    expect(names(filterAndSortClients(all, state({ item: 'tinte', itemMode: 'lapsed', itemDays: 30 }), TODAY, matches))).toEqual(['Beto Ruiz'])
+  })
+
+  it('quien nunca lo hizo no aparece en «no han vuelto» (no puede «volver» a algo que no hizo)', () => {
+    const r = filterAndSortClients(all, state({ item: 'tinte', itemMode: 'lapsed', itemDays: 30 }), TODAY, matches)
+    expect(r.map(x => x.name)).not.toContain('Carla Díaz')
+    expect(r.map(x => x.name)).not.toContain('Dora Gil')
+  })
+
+  it('el límite es estricto: hace exactamente N días todavía no cuenta como «sin volver»', () => {
+    const exactly = new Map([[ana.id, match(ana.id, at(2026, 8, 22))]]) // 60 días antes del 21/10
+    expect(daysSinceItem(exactly.get(ana.id)!, TODAY)).toBe(60)
+    expect(filterAndSortClients(all, state({ item: 'tinte', itemMode: 'lapsed', itemDays: 60 }), TODAY, exactly)).toEqual([])
+    expect(filterAndSortClients(all, state({ item: 'tinte', itemMode: 'lapsed', itemDays: 59 }), TODAY, exactly)).toEqual([ana])
+  })
+
+  it('con el filtro activo y sin respuesta todavía no muestra a nadie (no la lista completa)', () => {
+    expect(filterAndSortClients(all, state({ item: 'tinte' }), TODAY, null)).toEqual([])
+  })
+
+  it('con menos de 2 letras el filtro no se activa y se ignoran las coincidencias', () => {
+    expect(filterAndSortClients(all, state({ item: 't' }), TODAY, matches)).toHaveLength(4)
+    expect(filterAndSortClients(all, state({ item: '  ' }), TODAY, null)).toHaveLength(4)
+    expect(isFiltered(state({ item: 't' }))).toBe(false)
+    expect(isFiltered(state({ item: 'ti' }))).toBe(true)
+  })
+
+  it('se combina con búsqueda, segmento y orden', () => {
+    expect(names(filterAndSortClients(all, state({ item: 'tinte', search: 'ana' }), TODAY, matches))).toEqual(['Ana Pérez'])
+    expect(names(filterAndSortClients(all, state({ item: 'tinte', segment: 'inactive' }), TODAY, matches))).toEqual(['Beto Ruiz'])
+    expect(filterAndSortClients(all, state({ item: 'tinte', sort: 'name' }), TODAY, matches).map(x => x.name)).toEqual(['Ana Pérez', 'Beto Ruiz'])
+  })
+
+  it('los conteos de los segmentos no dependen del filtro por producto', () => {
+    expect(segmentCounts(all, 30, TODAY)).toEqual({ all: 4, active: 2, inactive: 1, never: 1, new: 1 })
+  })
+
+  it('una coincidencia sin fecha válida no se considera «sin volver»', () => {
+    expect(matchesItem({ client_id: 'x', last_at: null, first_at: null, times: 1, last_item: null }, { itemMode: 'lapsed', itemDays: 30 }, TODAY)).toBe(false)
+    expect(matchesItem(undefined, { itemMode: 'did', itemDays: 30 }, TODAY)).toBe(false)
+  })
+
+  it('itemInfoLine dice qué fue, cuándo y cuántas veces', () => {
+    expect(itemInfoLine(matches.get(ana.id)!, TODAY)).toBe('Tinte · hace 6 días · 3 veces')
+    expect(itemInfoLine(matches.get(beto.id)!, TODAY)).toBe('Tinte · hace 2 meses · 1 vez')
+    expect(itemInfoLine(match('z', at(2026, 10, 21), { last_item: null }), TODAY)).toBe('hoy · 1 vez')
   })
 })

@@ -14,18 +14,41 @@ import type { Cliente } from '../../types/cliente'
 export type ClientSegment = 'all' | 'active' | 'inactive' | 'never' | 'new'
 export type ClientSort = 'recent' | 'oldest' | 'name' | 'lastVisit' | 'visits'
 
+/**
+ * Filtro por producto o servicio (solo administración): «did» = lo compraron o se lo hicieron en el último año;
+ * «lapsed» = lo hicieron alguna vez en el último año, pero la última vez fue hace más de N días (ya les toca).
+ */
+export type ItemMode = 'did' | 'lapsed'
+
+/** Lo que el servidor sabe de una cliente respecto a lo buscado (producto o servicio). */
+export interface ClientItemMatch {
+  client_id: string
+  last_at: string | null
+  first_at: string | null
+  times: number
+  last_item: string | null
+}
+
+/** Con menos letras casi todo coincidiría: el filtro no se activa hasta tener estas. */
+export const ITEM_MIN_CHARS = 2
+
 export interface ClientFilterState {
   search: string
   segment: ClientSegment
   /** Ventana en días para «activos» e «inactivos». */
   windowDays: number
   sort: ClientSort
+  /** Producto o servicio buscado (ya sin esperas de escritura). */
+  item: string
+  itemMode: ItemMode
+  /** Días sin volver a lo buscado, para el modo «lapsed». */
+  itemDays: number
 }
 
 export const WINDOW_OPTIONS = [30, 60, 90, 180] as const
 export const NEW_CLIENT_DAYS = 30
 
-export const DEFAULT_FILTERS: ClientFilterState = { search: '', segment: 'all', windowDays: 30, sort: 'recent' }
+export const DEFAULT_FILTERS: ClientFilterState = { search: '', segment: 'all', windowDays: 30, sort: 'recent', item: '', itemMode: 'did', itemDays: 60 }
 
 export const SORT_OPTIONS: { value: ClientSort; label: string }[] = [
   // Etiquetas cortas: el selector mide ~140 px en móvil. «Más nuevos» = fecha de registro.
@@ -91,6 +114,43 @@ export function matchesSearch(client: Cliente, query: string): boolean {
   return qDigits.length >= 3 && digitsOf(client.phone ?? '').includes(qDigits)
 }
 
+export function isItemActive(state: Pick<ClientFilterState, 'item'>): boolean {
+  return state.item.trim().length >= ITEM_MIN_CHARS
+}
+
+/** Día local (YYYY-MM-DD) de un instante ISO del servidor (las fechas llegan en UTC). */
+function localDay(iso: string | null): string | null {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return null
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
+/** Cuántos días hace que la cliente hizo o compró lo buscado por última vez (null si no se sabe). */
+export function daysSinceItem(match: Pick<ClientItemMatch, 'last_at'>, today: Date): number | null {
+  const day = localDay(match.last_at)
+  return day ? daysSince(day, today) : null
+}
+
+/** ¿La cliente cumple el filtro de producto o servicio? Sin coincidencia en el servidor, no. */
+export function matchesItem(match: ClientItemMatch | undefined, state: Pick<ClientFilterState, 'itemMode' | 'itemDays'>, today: Date): boolean {
+  if (!match) return false
+  if (state.itemMode === 'did') return true
+  const ago = daysSinceItem(match, today)
+  return ago !== null && ago > state.itemDays
+}
+
+/** «Tinte · hace 12 días · 3 veces»: qué fue lo último que hizo o compró, cuándo y cuántas veces. */
+export function itemInfoLine(match: ClientItemMatch, today: Date = new Date()): string {
+  const parts: string[] = []
+  if (match.last_item) parts.push(match.last_item)
+  const when = relativeVisit(localDay(match.last_at), today)
+  if (when) parts.push(when)
+  parts.push(`${match.times} ${match.times === 1 ? 'vez' : 'veces'}`)
+  return parts.join(' · ')
+}
+
 const byName = (a: Cliente, b: Cliente) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' })
 
 export function sortClients(clients: Cliente[], sort: ClientSort): Cliente[] {
@@ -119,9 +179,22 @@ export function sortClients(clients: Cliente[], sort: ClientSort): Cliente[] {
   }
 }
 
-export function filterAndSortClients(clients: Cliente[], state: ClientFilterState, today: Date = new Date()): Cliente[] {
+/**
+ * Filtra y ordena el directorio. `itemMatches` son las coincidencias que devolvió el servidor para el producto o
+ * servicio buscado; mientras el filtro está activo y todavía no llegan (`null`), no se muestra nadie en vez de
+ * mostrar la lista completa como si el filtro no existiera.
+ */
+export function filterAndSortClients(
+  clients: Cliente[],
+  state: ClientFilterState,
+  today: Date = new Date(),
+  itemMatches: ReadonlyMap<string, ClientItemMatch> | null = null,
+): Cliente[] {
+  const byItem = isItemActive(state)
   const filtered = clients.filter(c =>
-    matchesSearch(c, state.search) && matchesSegment(c, state.segment, state.windowDays, today))
+    matchesSearch(c, state.search)
+    && matchesSegment(c, state.segment, state.windowDays, today)
+    && (!byItem || matchesItem(itemMatches?.get(c.id), state, today)))
   return sortClients(filtered, state.sort)
 }
 
@@ -139,7 +212,7 @@ export function segmentCounts(clients: Cliente[], windowDays: number, today: Dat
 
 /** ¿Hay algo distinto de los valores por defecto? (el orden solo no cuenta como filtro) */
 export function isFiltered(state: ClientFilterState): boolean {
-  return state.search.trim() !== '' || state.segment !== 'all'
+  return state.search.trim() !== '' || state.segment !== 'all' || isItemActive(state)
 }
 
 /** "hoy", "ayer", "hace 5 días", "hace 3 meses", "hace 1 año". Vacío si no hay visita. */
