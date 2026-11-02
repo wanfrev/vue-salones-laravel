@@ -123,6 +123,27 @@ describe('Historial de compras por producto', () => {
     expect(lastList().has('product_id')).toBe(false)
   })
 
+  it('al elegir un producto las fichas siguen ahí y «Todos» permite volver, aunque el servidor devuelva solo ese producto', async () => {
+    // Reproduce el error original: el servidor respondía con una sola ficha al acotar.
+    api.mockImplementation((async (_m: string, path: string) => {
+      if (path.includes('/client/')) return { sales: [], page: 1, has_more: false }
+      return path.includes('product_id=p-kol')
+        ? listResponse({ products: [{ product_id: 'p-kol', name: 'Tinte Koleston', units: 1, buyers: 1 }] })
+        : list
+    }) as any)
+    const w = mountIt({ search: 'tinte' })
+    await flushPromises()
+
+    await w.findAll('[data-testid="product-chip"]')[1].trigger('click')
+    await flushPromises()
+
+    expect(w.find('[data-testid="product-chips"]').exists()).toBe(true)
+    await w.findAll('[data-testid="product-chips"] button')[0].trigger('click')   // «Todos»
+    await flushPromises()
+    expect(lastList().has('product_id')).toBe(false)
+    expect(w.findAll('[data-testid="product-chip"]')).toHaveLength(2)
+  })
+
   it('con un solo producto coincidente no muestra las fichas', async () => {
     list = listResponse({ products: [{ product_id: 'p-igora', name: 'Tinte Igora', units: 5, buyers: 2 }] })
     const w = mountIt({ search: 'igora' })
