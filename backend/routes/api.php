@@ -682,6 +682,8 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
     Route::get('/credits', [CreditController::class, 'index']);
     Route::get('/credits/{id}/payments', [CreditController::class, 'payments']);
     Route::post('/credits/{id}/pay', [CreditController::class, 'pay']);
+    Route::put('/credits/{id}', [CreditController::class, 'update']);
+    Route::post('/credits/{id}/close', [CreditController::class, 'close']);
     Route::delete('/credits/{id}', [CreditController::class, 'destroy']);
 
     // Expenses

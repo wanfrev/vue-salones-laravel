@@ -79,16 +79,12 @@
               >
                 Registrar abono
               </button>
-              <button
-                v-if="Number(c.paid_amount) === 0"
-                @click="handleDelete(c)"
-                :disabled="deleteMutation.isPending.value"
-                title="Eliminar crédito"
-                aria-label="Eliminar crédito"
-                class="rounded-lg p-1.5 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger disabled:opacity-50"
-              >
-                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-              </button>
+              <CreditRowMenu
+                :has-payments="Number(c.paid_amount) > 0"
+                @edit="amountCredit = c"
+                @close="handleClose(c)"
+                @delete="handleDelete(c)"
+              />
             </div>
             <div v-else class="flex items-center gap-2 md:justify-center">
               <span class="text-xs text-text-secondary">{{ formatMethod(c.paid_method || '') }}</span>
@@ -107,6 +103,14 @@
       </ul>
     </div>
   </div>
+
+  <CreditAmountModal
+    v-if="amountCredit"
+    :credit="amountCredit"
+    :saving="updateAmountMutation.isPending.value"
+    @save="handleSaveAmount"
+    @cancel="amountCredit = null"
+  />
 
   <Teleport to="body">
     <div v-if="showModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4" @click.self="closeModal">
@@ -234,6 +238,8 @@ import { useBanks } from '../../composables/finanzas/useBanks'
 import { useBusinessStore } from '../../store/business'
 import { useAuthStore } from '../../store/auth'
 import type { Credit } from '../../types/database'
+import CreditRowMenu from './CreditRowMenu.vue'
+import CreditAmountModal from './CreditAmountModal.vue'
 
 const props = defineProps<{
   periodDates?: { start: string; end: string }
@@ -241,7 +247,7 @@ const props = defineProps<{
 
 const { formatUSD, exchangeRate } = useCurrency()
 const businessStore = useBusinessStore()
-const { pendingCredits, paidCredits, pendingTotal, isLoading, payMutation, usePaymentsForCredit, deleteMutation } = useCredits(computed(() => props.periodDates))
+const { pendingCredits, paidCredits, pendingTotal, isLoading, payMutation, updateAmountMutation, closeMutation, usePaymentsForCredit, deleteMutation } = useCredits(computed(() => props.periodDates))
 
 // Cliente · Saldo/Total · Fecha venta · Fecha pago · Acción/Método (última columna de ancho fijo).
 const gridClass = 'md:grid md:grid-cols-[minmax(0,1.4fr)_9rem_6rem_6rem_12rem] md:items-center md:gap-3'
@@ -299,10 +305,32 @@ const closeModal = () => {
   selectedCreditId.value = null
 }
 
+const amountCredit = ref<Credit | null>(null)
+
+const handleSaveAmount = async (amount: number) => {
+  const credit = amountCredit.value
+  if (!credit) return
+  try {
+    await updateAmountMutation.mutateAsync({ id: credit.id, amount })
+    amountCredit.value = null
+  } catch { /* handled by composable */ }
+}
+
+const handleClose = async (credit: Credit) => {
+  const message = `¿Cerrar el crédito de ${credit.client_name}? Se da por pagado con lo abonado (${formatUSD(credit.paid_amount)}) y los ${formatUSD(credit.remaining)} pendientes dejan de contarse como por cobrar. No se registra ningún ingreso nuevo.`
+  if (!window.confirm(message)) return
+  try {
+    await closeMutation.mutateAsync(credit.id)
+  } catch { /* handled by composable */ }
+}
+
 const handleDelete = async (credit: Credit) => {
-  const message = Number(credit.paid_amount) > 0
-    ? `¿Eliminar el crédito de ${credit.client_name}? El ingreso ya cobrado (${formatUSD(credit.paid_amount)}) se queda en Finanzas — solo se borra el registro del crédito.`
-    : `¿Eliminar el crédito de ${credit.client_name} por ${formatUSD(credit.amount)}? Esta acción no se puede deshacer.`
+  const paid = Number(credit.paid_amount) > 0
+  const message = paid && credit.status !== 'paid'
+    ? `¿Eliminar el crédito de ${credit.client_name}? Lo ya cobrado (${formatUSD(credit.paid_amount)}) se queda en Finanzas, pero los ${formatUSD(credit.remaining)} pendientes dejan de registrarse. Esta acción no se puede deshacer.`
+    : paid
+      ? `¿Eliminar el crédito de ${credit.client_name}? El ingreso ya cobrado (${formatUSD(credit.paid_amount)}) se queda en Finanzas — solo se borra el registro del crédito.`
+      : `¿Eliminar el crédito de ${credit.client_name} por ${formatUSD(credit.amount)}? Esta acción no se puede deshacer.`
   if (!window.confirm(message)) return
   try {
     await deleteMutation.mutateAsync(credit.id)

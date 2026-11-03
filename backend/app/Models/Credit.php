@@ -18,7 +18,7 @@ class Credit extends Model
 
     protected $fillable = [
         'id', 'business_id', 'branch_id', 'client_id', 'client_name', 'client_phone',
-        'transaction_id', 'amount', 'paid_amount', 'currency', 'status', 'paid_at', 'paid_method',
+        'transaction_id', 'amount', 'original_amount', 'paid_amount', 'currency', 'status', 'paid_at', 'paid_method',
         'created_by',
     ];
 
@@ -28,6 +28,7 @@ class Credit extends Model
     {
         return [
             'amount' => 'float',
+            'original_amount' => 'float',
             'paid_amount' => 'float',
             'paid_at' => 'datetime',
         ];
@@ -50,7 +51,7 @@ class Credit extends Model
         }
 
         // Nunca por debajo de lo que quedó a crédito, aunque la transacción se haya editado después.
-        return round(max((float) $this->transaction->total_amount, (float) $this->amount), 2);
+        return round(max((float) $this->transaction->total_amount, $this->amountAtSale()), 2);
     }
 
     /**
@@ -61,7 +62,16 @@ class Credit extends Model
     {
         $sale = $this->sale_total;
 
-        return $sale === null ? null : round($sale - (float) $this->amount, 2);
+        return $sale === null ? null : round($sale - $this->amountAtSale(), 2);
+    }
+
+    /**
+     * Lo que quedó a crédito al vender. Si después se corrigió el monto o se cerró el saldo (`original_amount`), se usa
+     * el original: bajar `amount` no debe hacer parecer que la diferencia se pagó en el momento de la venta.
+     */
+    private function amountAtSale(): float
+    {
+        return (float) ($this->original_amount ?? $this->amount);
     }
 
     public function client(): BelongsTo
