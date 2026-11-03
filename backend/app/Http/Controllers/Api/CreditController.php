@@ -213,22 +213,115 @@ class CreditController
     }
 
     /**
+     * Corrige el monto de un crédito que todavía no está pagado (p. ej. se cargó mal al empezar a usar el sistema).
+     * No crea ningún ingreso ni toca ninguna Transaction: solo cambia lo que se espera cobrar. No puede quedar por
+     * debajo de lo ya abonado; si queda justo en lo abonado, el crédito pasa a pagado.
+     */
+    public function update(Request $request, string $id): JsonResponse
+    {
+        $credit = $this->openCredit($request, $id, $error);
+        if (!$credit) {
+            return $error;
+        }
+
+        $data = $request->validate(['amount' => ['required', 'numeric', 'min:0.01', 'max:99999999']]);
+        $amount = round((float) $data['amount'], 2);
+
+        if ($amount < round((float) $credit->paid_amount, 2) - 0.005) {
+            return response()->json([
+                'message' => 'El monto no puede ser menor a lo ya abonado ($' . number_format((float) $credit->paid_amount, 2) . ').',
+            ], 422);
+        }
+
+        $credit = $this->adjustAmount($credit, $amount, 'adjusted');
+
+        return response()->json($credit->load(['client:id,full_name,phone', 'transaction:id,total_amount']));
+    }
+
+    /**
+     * Cierra un crédito con abonos dando por cobrado lo que falta: el monto pasa a ser lo abonado y el crédito a
+     * pagado. No crea ingreso (el saldo que se perdona nunca entró) y el ingreso de los abonos se queda igual. Sin
+     * abonos no aplica: un crédito que no se va a cobrar y no tiene nada abonado se elimina.
+     */
+    public function close(Request $request, string $id): JsonResponse
+    {
+        $credit = $this->openCredit($request, $id, $error);
+        if (!$credit) {
+            return $error;
+        }
+
+        if ((float) $credit->paid_amount <= 0) {
+            return response()->json(['message' => 'Este crédito no tiene abonos: si no se va a cobrar, elimínalo.'], 422);
+        }
+
+        $credit = $this->adjustAmount($credit, round((float) $credit->paid_amount, 2), 'closed');
+
+        return response()->json($credit->load(['client:id,full_name,phone', 'transaction:id,total_amount']));
+    }
+
+    /** El crédito del negocio si existe y todavía no está pagado; si no, deja la respuesta de error en `$error`. */
+    private function openCredit(Request $request, string $id, ?JsonResponse &$error): ?Credit
+    {
+        $businessId = $this->resolveBusinessId($request);
+        if (!$businessId) {
+            $error = response()->json(['message' => 'No autorizado.'], 403);
+            return null;
+        }
+
+        $credit = Credit::where('business_id', $businessId)->find($id);
+        if (!$credit) {
+            $error = response()->json(['message' => 'Crédito no encontrado.'], 404);
+            return null;
+        }
+        if ($credit->status === 'paid') {
+            $error = response()->json(['message' => 'Este crédito ya está pagado y no se puede modificar.'], 422);
+            return null;
+        }
+
+        return $credit;
+    }
+
+    private function adjustAmount(Credit $credit, float $amount, string $settledMethod): Credit
+    {
+        if (abs($amount - (float) $credit->amount) < 0.005) {
+            return $credit;
+        }
+
+        $paid = round((float) $credit->paid_amount, 2);
+        $settled = $amount <= $paid + 0.005;
+
+        DB::transaction(function () use ($credit, $amount, $paid, $settled, $settledMethod) {
+            $credit->update([
+                // Se guarda el monto de la venta una sola vez: la primera corrección.
+                'original_amount' => $credit->original_amount ?? $credit->amount,
+                'amount' => $amount,
+                'status' => $settled ? 'paid' : ($paid > 0 ? 'partial' : 'pending'),
+                'paid_at' => $settled ? now() : null,
+                'paid_method' => $settled ? $settledMethod : null,
+            ]);
+        });
+
+        EntityChanged::safe($credit->business_id, 'credit', 'updated', $credit->id);
+
+        return $credit->fresh();
+    }
+
+    /**
      * Delete a credit. Two very different cases, by design:
      *
      * - No payments at all (paid_amount == 0): nothing real was ever collected, so this reverts
      *   the original sale (appointment back to 'unpaid', or restocks a direct product sale) and
      *   deletes that 'credito' transaction along with the credit — as if the sale never happened.
      *
-     * - Fully paid (status == 'paid'): every dollar was already collected via one or more real
+     * - With payments (fully paid, or partial with a balance left): every dollar collected so far went in via real
      *   abonos, each its own income Transaction (method != 'credito', showing in Finanzas as
      *   "Cobro cita" / "Venta de productos" — see pay()). That income is real and stays exactly
      *   as it is; only the credit's own tracking row goes away. credit_payments cascades on
      *   credit_id (see the 2026_09_02_000001 migration) so its rows disappear too, but its
      *   transaction_id has no reverse cascade — the income Transactions are untouched.
      *
-     * - Partial (some paid, balance still outstanding): blocked. Deleting it would either erase
-     *   evidence of an uncollected debt (if we left the balance uncollected) or require guessing
-     *   how to split "keep the collected part, revert the rest" — neither is safe to automate.
+     *   For a partial credit the outstanding balance simply stops being tracked (the screen asks for
+     *   confirmation spelling that out): the money collected stays, the sale is not reverted.
      */
     public function destroy(Request $request, string $id): JsonResponse
     {
@@ -240,12 +333,6 @@ class CreditController
         $credit = Credit::where('business_id', $businessId)->find($id);
         if (!$credit) {
             return response()->json(['message' => 'Crédito no encontrado.'], 404);
-        }
-
-        if ($credit->status === 'partial') {
-            return response()->json([
-                'message' => 'No se puede eliminar un crédito con abonos parciales — cóbralo por completo o elimina primero sus abonos.',
-            ], 422);
         }
 
         DB::transaction(function () use ($credit, $businessId) {

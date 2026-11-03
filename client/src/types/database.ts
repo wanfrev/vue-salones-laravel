@@ -664,6 +664,8 @@ export interface Credit {
   client_phone: string | null
   transaction_id: string
   amount: number
+  /** Monto con el que nació el crédito si después se corrigió o se cerró el saldo; null si nunca se tocó. */
+  original_amount?: number | null
   paid_amount: number
   remaining: number
   /** Total de la venta que originó el crédito (en un pago mixto, mayor que `amount`); null si el servidor no lo calculó. */

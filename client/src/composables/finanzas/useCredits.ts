@@ -78,6 +78,40 @@ export function useCredits(periodDates?: import('vue').Ref<{ start: string; end:
     },
   })
 
+  // Corregir el monto o cerrar el saldo no crean ingresos: solo cambian lo que se espera cobrar (Créditos y su total).
+  const refreshCredits = () => Promise.allSettled([
+    queryClient.invalidateQueries({ queryKey: ['credits'], exact: false }),
+    queryClient.invalidateQueries({ queryKey: ['credit-payments'], exact: false }),
+  ])
+
+  const updateAmountMutation = useMutation({
+    mutationFn: async (payload: { id: string; amount: number }) => {
+      getBusinessId()
+      return await apiRequest<Credit>('PUT', `/credits/${payload.id}`, { amount: payload.amount })
+    },
+    onSuccess: (credit) => {
+      refreshCredits()
+      success(credit.status === 'paid' ? 'Monto corregido: el crédito quedó pagado' : 'Monto corregido')
+    },
+    onError: (err) => {
+      showError(translateError(err, 'Error al corregir el monto'))
+    },
+  })
+
+  const closeMutation = useMutation({
+    mutationFn: async (id: string) => {
+      getBusinessId()
+      return await apiRequest<Credit>('POST', `/credits/${id}/close`)
+    },
+    onSuccess: () => {
+      refreshCredits()
+      success('Crédito cerrado')
+    },
+    onError: (err) => {
+      showError(translateError(err, 'Error al cerrar el crédito'))
+    },
+  })
+
   const usePaymentsForCredit = (creditId: () => string | null) => useQuery({
     queryKey: computed(() => ['credit-payments', creditId()]),
     queryFn: async () => {
@@ -114,6 +148,8 @@ export function useCredits(periodDates?: import('vue').Ref<{ start: string; end:
     pendingTotal,
     isLoading: creditsQuery.isLoading,
     payMutation,
+    updateAmountMutation,
+    closeMutation,
     usePaymentsForCredit,
     deleteMutation,
   }

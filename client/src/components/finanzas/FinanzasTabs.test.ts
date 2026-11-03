@@ -190,15 +190,15 @@ describe('Créditos', () => {
   ]
   const seed = (qc: QueryClient) => qc.setQueryData(['credits', 'b1'], credits)
 
-  it('Pendientes: saldo, abonado, total pendiente, y eliminar solo si no hay abonos', async () => {
+  it('Pendientes: saldo, abonado, total pendiente y un menú de acciones en cada crédito', async () => {
     const { wrapper } = setup(CreditosSection, { periodDates: period }, seed)
     await flushPromises()
     const rows = wrapper.findAll('[data-testid="credit-row"]')
     expect(rows).toHaveLength(2)
     expect(rows[0].text()).toContain('$50.00')
     expect(rows[0].text()).toContain('de $80.00 · abonado $30.00')
-    expect(rows[0].find('[title="Eliminar crédito"]').exists()).toBe(false)
-    expect(rows[1].find('[title="Eliminar crédito"]').exists()).toBe(true)
+    expect(rows[0].find('[aria-label="Más acciones"]').exists()).toBe(true)
+    expect(rows[1].find('[aria-label="Más acciones"]').exists()).toBe(true)
     expect(rows[0].text()).toContain('Registrar abono')
     expect(wrapper.text()).toContain('$95.00')
   })

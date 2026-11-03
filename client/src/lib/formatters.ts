@@ -35,6 +35,9 @@ const PAYMENT_METHOD_LABELS: Record<string, string> = {
   day_average_rate: 'Tasa promedio del día',
   credito: 'Crédito',
   cortesia: 'Cortesía',
+  // Cómo se dio por pagado un crédito sin cobrar el saldo (corregir el monto o cerrarlo).
+  adjusted: 'Monto corregido',
+  closed: 'Saldo cerrado',
 }
 
 export function formatMethod(method: string): string {
