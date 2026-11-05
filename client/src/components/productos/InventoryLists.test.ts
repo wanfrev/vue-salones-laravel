@@ -3,7 +3,6 @@ import { mount } from '@vue/test-utils'
 import { createPinia } from 'pinia'
 import { VueQueryPlugin } from '@tanstack/vue-query'
 import ProductList from './ProductList.vue'
-import MovementList from './MovementList.vue'
 
 const plugins = [createPinia(), VueQueryPlugin]
 
@@ -59,23 +58,3 @@ describe('ProductList', () => {
   })
 })
 
-describe('MovementList', () => {
-  const mov = (over: Record<string, unknown> = {}) => ({
-    id: 'm1', productName: 'Shampoo', variantName: 'M', movementType: 'purchase', quantity: 4, unitCost: 3.5, notes: '', createdAt: '2026-10-20T14:30:00Z', ...over,
-  })
-
-  it('muestra variante, signo de la cantidad, costo y guion si no hay notas', () => {
-    const wrapper = mount(MovementList, { props: { movements: [mov(), mov({ id: 'm2', quantity: -2, notes: 'Merma' })] }, global: { plugins } })
-    const rows = wrapper.findAll('[data-testid="movement-row"]')
-    expect(rows[0].text()).toContain('(M)')
-    expect(rows[0].text()).toContain('+4')
-    expect(rows[0].text()).toContain('$3.50')
-    expect(rows[0].text()).toContain('—')
-    expect(rows[1].text()).toContain('-2')
-    expect(rows[1].text()).toContain('Merma')
-  })
-
-  it('sin movimientos muestra el mensaje vacío', () => {
-    expect(mount(MovementList, { props: { movements: [] }, global: { plugins } }).text()).toContain('Sin movimientos')
-  })
-})

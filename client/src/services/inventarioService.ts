@@ -1,7 +1,7 @@
 import { db, apiRequest } from '../lib/api'
 import { validateSaleQuantity, movementTypeForAdjust } from '../business/stockRules'
 import type { InventoryStock, InventoryMovement } from '../types/database'
-import type { InventarioItem, InventarioMovimiento } from '../types/inventario'
+import type { InventarioItem } from '../types/inventario'
 
 export async function getDefaultLocation(businessId: string, branchId?: string | null): Promise<string> {
   let query = db
@@ -262,47 +262,6 @@ export const listInventario = async (businessId: string, branchId?: string | nul
     unitCost: g.unitCost,
     unitPrice: g.unitPrice,
     unitPrice2: g.unitPrice2,
-  }))
-}
-
-export const listInventoryMovements = async (
-  businessId: string,
-  branchId?: string | null,
-  productId?: string
-): Promise<InventarioMovimiento[]> => {
-  let query = db
-    .from('inventory_movements')
-    .select('*, products!inner(name), product_variants(name)')
-    .eq('business_id', businessId)
-    .order('created_at', { ascending: false })
-    .limit(50)
-
-  if (branchId) {
-    query = query.eq('branch_id', branchId)
-  }
-
-  if (productId) {
-    query = query.eq('product_id', productId)
-  }
-
-  const { data, error } = await query
-
-  if (error) throw error
-
-  return (data ?? []).map((row: any) => ({
-    id: row.id,
-    productId: row.product_id,
-    productName: row.products?.name ?? '',
-    variantId: row.variant_id,
-    variantName: row.product_variants?.name ?? null,
-    movementType: row.movement_type,
-    quantity: Number(row.quantity),
-    unitCost: Number(row.unit_cost),
-    referenceType: row.reference_type,
-    referenceId: row.reference_id,
-    notes: row.notes,
-    createdBy: row.created_by,
-    createdAt: row.created_at,
   }))
 }
 
