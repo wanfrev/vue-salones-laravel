@@ -14,18 +14,3 @@ export interface InventarioItem {
   unitPrice2: number | null
 }
 
-export interface InventarioMovimiento {
-  id: string
-  productId: string
-  productName: string
-  variantId: string | null
-  variantName: string | null
-  movementType: string
-  quantity: number
-  unitCost: number
-  referenceType: string | null
-  referenceId: string | null
-  notes: string | null
-  createdBy: string | null
-  createdAt: string
-}

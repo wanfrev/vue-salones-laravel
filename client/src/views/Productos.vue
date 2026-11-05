@@ -60,8 +60,9 @@
     />
 
     <ProductSalesHistory v-if="activeTab === 'ventas'" :search="salesSearch" />
+    <InventoryMovements v-else-if="activeTab === 'movimientos'" :search="movementSearch" />
     <ProductList
-      v-else-if="activeTab !== 'movimientos'"
+      v-else
       :products="filteredProductos"
       :readonly="disableInventoryEdit"
       :show-transfer="canTransferStock"
@@ -72,7 +73,6 @@
       @variants="safeOpenVariantsModal"
       @transfer="safeOpenTransferModal"
     />
-    <MovementList v-else :movements="filteredMovements" />
   </section>
 
   <ProductoFormModal
@@ -158,18 +158,17 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useQueryClient } from '@tanstack/vue-query'
 import { useAuth } from '../composables/common/useAuth'
 import { useBusinessStore } from '../store/business'
 import { useProductCRUD } from '../composables/inventory/useProductCRUD'
 import { useProductStockAdjust } from '../composables/inventory/useProductStockAdjust'
 import { useInventoryTransfer } from '../composables/inventory/useInventoryTransfer'
-import { inventarioKeys, listInventoryMovements } from '../services/inventarioService'
 import ProductStats from '../components/productos/ProductStats.vue'
 import ProductoFormModal from '../components/modals/ProductoFormModal.vue'
 import ProductStockAdjustModal from '../components/productos/ProductStockAdjustModal.vue'
 import ProductList from '../components/productos/ProductList.vue'
-import MovementList from '../components/productos/MovementList.vue'
+import InventoryMovements from '../components/productos/InventoryMovements.vue'
 import ProductSalesHistory from '../components/productos/ProductSalesHistory.vue'
 import InventoryToolbar from '../components/productos/InventoryToolbar.vue'
 import InventorySettingsModal from '../components/productos/InventorySettingsModal.vue'
@@ -183,8 +182,6 @@ import { hasRetailModule } from '../config/niches'
 
 const { authStore } = useAuth()
 const businessStore = useBusinessStore()
-const branchId = computed(() => businessStore.currentBranchId)
-const businessId = computed(() => authStore.businessId)
 const disableInventoryEdit = computed(() => authStore.disableInventoryEdit)
 const canAddPurchaseInvoice = computed(() => authStore.canAddPurchaseInvoice)
 const isTienda = computed(() => hasRetailModule(businessStore.business?.niche_type || '', businessStore.features))
@@ -289,22 +286,6 @@ const onSearch = (value: string) => {
   else movementSearch.value = value
 }
 
-const { data: movementsData } = useQuery({
-  queryKey: computed(() => inventarioKeys.movements(businessId.value, branchId.value)),
-  queryFn: () => listInventoryMovements(businessId.value!, branchId.value),
-  enabled: computed(() => !!businessId.value),
-})
-
-const movements = computed(() => movementsData.value ?? [])
-
-const filteredMovements = computed(() => {
-  if (!movementSearch.value) return movements.value
-  const q = movementSearch.value.toLowerCase()
-  return movements.value.filter((m: any) =>
-    m.productName.toLowerCase().includes(q) || m.notes?.toLowerCase().includes(q),
-  )
-})
-
 // Historial de compras por producto: su buscador (producto, variante o SKU) es aparte del de la lista.
 const salesSearch = ref('')
 
@@ -312,7 +293,7 @@ const searchValue = computed(() =>
   activeTab.value === 'ventas' ? salesSearch.value : activeTab.value === 'movimientos' ? movementSearch.value : searchQuery.value)
 const searchPlaceholder = computed(() =>
   activeTab.value === 'ventas' ? 'Buscar producto vendido (ej. tinte, shampoo)...'
-    : activeTab.value === 'movimientos' ? 'Buscar en movimientos...'
+    : activeTab.value === 'movimientos' ? 'Buscar producto, nota, persona o quien lo registró...'
       : 'Buscar producto por nombre o SKU...')
 
 const tabs = [

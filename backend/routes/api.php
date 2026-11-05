@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientItemHistoryController;
 use App\Http\Controllers\Api\ClientVisitController;
 use App\Http\Controllers\Api\CreditController;
+use App\Http\Controllers\Api\InventoryMovementHistoryController;
 use App\Http\Controllers\Api\Dental\ClinicalHistoryController;
 use App\Http\Controllers\Api\Dental\DentalChartController;
 use App\Http\Controllers\Api\Dental\ConsentController;
@@ -465,6 +466,8 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
             Route::get('/inventory-stock', [InventoryController::class, 'index']);
             Route::get('/inventory/movements', [InventoryController::class, 'movements']);
             Route::get('/inventory-movements', [InventoryController::class, 'movements']);
+            Route::get('/inventory/movement-history', [InventoryMovementHistoryController::class, 'index']);
+            Route::get('/inventory/movement-history/{id}', [InventoryMovementHistoryController::class, 'show']);
             Route::get('/inventory-locations', [InventoryController::class, 'locations']);
             Route::get('/product-variants', [ProductVariantController::class, 'index']);
         });
