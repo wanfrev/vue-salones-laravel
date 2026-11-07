@@ -12,6 +12,7 @@ class GiftCardService
     public function list(string $businessId, ?string $branchId = null): Collection
     {
         $query = GiftCard::query()
+            ->with('payment')
             ->where('business_id', $businessId)
             ->orderByDesc('created_at');
 

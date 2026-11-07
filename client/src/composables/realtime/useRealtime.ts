@@ -52,7 +52,8 @@ export function useRealtime() {
       inventory_stock: ['inventario', 'productos', 'products', 'pos-products', 'inventario-movements'],
       inventory_movement: ['inventario', 'finanzas-product-sales', 'productos', 'products', 'pos-products', 'client-visits', 'product-sales-history', 'client-item-matches', 'inventario-movements'],
       notification: ['notifications'],
-      gift_card: ['gift-cards'],
+      // Cobrar o quitar el pago de una gift card mueve el Cuadre del Día (resumen y desglose por banco / cajera).
+      gift_card: ['gift-cards', 'daily-reports', 'daily-reports-dashboard'],
       employee_schedule: ['equipo', 'schedules'],
       employee_balance: ['employee-balance', 'employee-earnings'],
       daily_report: ['daily-reports'],

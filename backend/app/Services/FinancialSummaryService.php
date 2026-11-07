@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Transaction;
 use App\Models\Expense;
+use App\Support\UncollectedAmount;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -47,8 +48,10 @@ class FinancialSummaryService
             ->select(
                 DB::raw("to_char(COALESCE(transactions.paid_at, transactions.created_at), 'YYYY-MM-DD') as bucket"),
                 DB::raw('count(distinct transactions.id) as transaction_count'),
-                DB::raw('coalesce(sum(transactions.total_amount), 0) as total_amount'),
-                DB::raw('coalesce(sum(transactions.local_amount), 0) as local_amount'),
+                // Ingreso = lo cobrado: de un pago mixto se descuenta lo que quedó a crédito o fue cortesía. La comisión
+                // (employee_amount) no se toca: se sigue calculando sobre el valor completo de la venta.
+                DB::raw('coalesce(sum(transactions.total_amount - '.UncollectedAmount::sql('transactions').'), 0) as total_amount'),
+                DB::raw('coalesce(sum(transactions.local_amount - '.UncollectedAmount::sql('transactions').'), 0) as local_amount'),
                 DB::raw('coalesce(sum(transactions.employee_amount), 0) as employee_amount'),
                 DB::raw('coalesce(sum(transactions.tip_amount), 0) as tip_amount'),
             )
@@ -95,8 +98,8 @@ class FinancialSummaryService
         }
 
         $txTotals = $txQuery->select(
-            DB::raw('coalesce(sum(total_amount), 0) as total_income'),
-            DB::raw('coalesce(sum(local_amount), 0) as local_income'),
+            DB::raw('coalesce(sum(total_amount - '.UncollectedAmount::sql('transactions').'), 0) as total_income'),
+            DB::raw('coalesce(sum(local_amount - '.UncollectedAmount::sql('transactions').'), 0) as local_income'),
             DB::raw('coalesce(sum(employee_amount), 0) as employee_income'),
             DB::raw('coalesce(sum(tip_amount), 0) as tips'),
             DB::raw('count(distinct id) as total_transactions'),
@@ -287,6 +290,8 @@ class FinancialSummaryService
                 'group_id' => $appt?->group_id,
                 'paid_at' => is_string($tx->paid_at) ? $tx->paid_at : $tx->paid_at?->toISOString(),
                 'total_amount' => $tx->total_amount,
+                // Lo que de este cobro NO entró como dinero (crédito y cortesía de un pago mixto): el ingreso es total_amount menos esto.
+                'uncollected_amount' => UncollectedAmount::of($tx->method, $tx->payments_breakdown),
                 'local_amount' => $tx->local_amount,
                 'employee_amount' => $tx->employee_amount,
                 'assistant_amount' => $tx->assistant_amount,

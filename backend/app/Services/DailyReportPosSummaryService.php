@@ -115,6 +115,34 @@ class DailyReportPosSummaryService
             }
         }
 
+        // Gift cards vendidas ese día: dinero recibido en caja (no son una transacción ni ingreso de Finanzas, que se
+        // reconoce al usarlas), pero el cuadre del día tiene que contarlo en el método con que se pagó.
+        $giftCardSales = 0.0;
+        foreach (app(GiftCardPaymentService::class)->receipts($businessId, $startOfDay, $endOfDay, $branchId) as $receipt) {
+            $rate = (float) ($receipt->exchange_rate ?: 0);
+            if ($rate > 0) {
+                $rates[] = $rate;
+            }
+
+            foreach ((array) $receipt->payments_breakdown as $split) {
+                $method = (string) ($split['method'] ?? 'other');
+                $currency = strtoupper((string) ($split['currency'] ?? '')) === 'VES' ? 'VES' : 'USD';
+                $amount = $currency === 'VES' ? (float) ($split['inputAmount'] ?? 0) : (float) ($split['amount'] ?? 0);
+                if ($amount <= 0) {
+                    continue;
+                }
+
+                $field = self::METHOD_MAP[$method][$currency] ?? null;
+                if ($field === null) {
+                    $unmapped[$method] = true;
+                    $field = $currency === 'VES' ? 'other_bs' : 'other_usd';
+                }
+
+                $fields[$field] += $amount;
+                $giftCardSales += (float) ($split['amount'] ?? 0);
+            }
+        }
+
         foreach ($fields as $key => $value) {
             $fields[$key] = round($value, 2);
         }
@@ -135,6 +163,8 @@ class DailyReportPosSummaryService
                 'exchange_rate' => $finalRate ? round((float) $finalRate, 2) : null,
                 'unmapped_methods' => array_keys($unmapped),
                 'credits_issued' => $creditsIssued,
+                // Cuánto de lo cobrado ese día (ya sumado a `fields`) viene de gift cards vendidas, en dólares.
+                'gift_card_sales' => round($giftCardSales, 2),
             ],
         ];
     }

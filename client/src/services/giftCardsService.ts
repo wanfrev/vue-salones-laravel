@@ -1,6 +1,10 @@
-import { db } from '../lib/api'
+import { db, apiRequest } from '../lib/api'
 import { handleDbError } from '../lib/errors'
 import type { GiftCard, GiftCardFormData } from '../types/giftCard'
+import type { toPayload } from '../lib/giftCardPayment'
+
+/** Cuerpo del cobro que entiende el servidor (ver lib/giftCardPayment.toPayload). */
+export type GiftCardPaymentPayload = ReturnType<typeof toPayload>
 
 export const giftCardsKeys = {
   all: (businessId?: string | null, branchId?: string | null) => ['gift-cards', businessId, branchId] as const,
@@ -20,7 +24,7 @@ export const listGiftCards = async (businessId: string, branchId?: string | null
   return (data ?? []).map(mapRowToGiftCard)
 }
 
-export const saveGiftCard = async (businessId: string, form: GiftCardFormData, branchId?: string | null): Promise<GiftCard> => {
+export const saveGiftCard = async (businessId: string, form: GiftCardFormData, branchId?: string | null, payment?: GiftCardPaymentPayload | null): Promise<GiftCard> => {
   const buyerTag = form.buyerName?.trim()
     ? `[Comprador: ${form.buyerName.trim()}${form.buyerPhone?.trim() ? ' | ' + form.buyerPhone.trim() : ''}]`
     : ''
@@ -56,6 +60,13 @@ export const saveGiftCard = async (businessId: string, form: GiftCardFormData, b
   }
 
   payload.business_id = businessId
+
+  // Con el cobro, la gift card y su pago se crean juntos en el servidor (o no se crea ninguno).
+  if (payment) {
+    const row = await apiRequest<any>('POST', '/gift-cards', { ...payload, payment })
+    return mapRowToGiftCard(row)
+  }
+
   const { data, error } = await db
     .from('gift_cards')
     .insert(payload)
@@ -63,6 +74,15 @@ export const saveGiftCard = async (businessId: string, form: GiftCardFormData, b
     .single()
   if (error) handleDbError(error, 'Error al crear gift card')
   return mapRowToGiftCard(data)
+}
+
+/** Registra (o cambia) cómo se pagó una gift card ya creada. */
+export const saveGiftCardPayment = async (id: string, payment: GiftCardPaymentPayload): Promise<GiftCard> =>
+  mapRowToGiftCard(await apiRequest<any>('PUT', `/gift-cards/${id}/payment`, payment))
+
+/** Quita el cobro registrado; la gift card se queda. */
+export const deleteGiftCardPayment = async (id: string): Promise<void> => {
+  await apiRequest('DELETE', `/gift-cards/${id}/payment`)
 }
 
 export const deleteGiftCard = async (id: string): Promise<void> => {
@@ -109,5 +129,23 @@ function mapRowToGiftCard(row: any): GiftCard {
     createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    payment: mapPayment(row.payment),
+  }
+}
+
+function mapPayment(p: any): GiftCard['payment'] {
+  if (!p) return null
+  return {
+    amount: Number(p.amount),
+    paidAt: p.paid_at,
+    exchangeRate: p.exchange_rate != null ? Number(p.exchange_rate) : null,
+    splits: (Array.isArray(p.payments_breakdown) ? p.payments_breakdown : []).map((s: any) => ({
+      method: s.method,
+      currency: s.currency === 'VES' ? 'VES' : 'USD',
+      inputAmount: Number(s.inputAmount ?? 0),
+      amount: Number(s.amount ?? 0),
+      bankId: s.bank_id ?? null,
+      bankName: s.bank_name ?? null,
+    })),
   }
 }

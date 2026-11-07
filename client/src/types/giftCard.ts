@@ -1,3 +1,11 @@
+/** Cómo se pagó la gift card al venderla (dinero recibido, no ingreso: entra al Cuadre del Día). */
+export interface GiftCardPaymentInfo {
+  amount: number
+  paidAt: string
+  exchangeRate: number | null
+  splits: { method: string; currency: 'USD' | 'VES'; inputAmount: number; amount: number; bankId: string | null; bankName: string | null }[]
+}
+
 export interface GiftCard {
   id: string
   businessId: string
@@ -14,6 +22,8 @@ export interface GiftCard {
   createdBy: string
   createdAt: string
   updatedAt: string
+  /** null = todavía no se registró cómo se pagó. */
+  payment: GiftCardPaymentInfo | null
 }
 
 export interface GiftCardFormData {

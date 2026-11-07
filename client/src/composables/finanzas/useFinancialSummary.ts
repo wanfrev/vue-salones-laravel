@@ -7,6 +7,7 @@ import { hasRetailModule } from '../../config/niches'
 import { translateError } from '../../lib/errors'
 import { toYmd, resolvePeriod } from '../../lib/periodUtils'
 import { formatMethod, formatDate } from '../../lib/formatters'
+import { collectedAmount, isUncollectedSplit } from '../../lib/uncollected'
 import { useBanks } from './useBanks'
 import type { PaymentBreakdownItem } from '../../types/pos'
 import type { PaymentMethod } from '../../types/database'
@@ -202,9 +203,10 @@ function useFinancialSummary(
       if (tx.method === 'credito' || tx.method === 'cortesia') continue
       const breakdown = tx.payments_breakdown as PaymentBreakdownItem[] | null
       const exchangeRateUsed = Number(tx.exchange_rate_used ?? 1)
-      const amount = Number(tx.total_amount ?? 0)
+      const amount = collectedAmount(tx)
       if (breakdown && breakdown.length > 0) {
         for (const item of breakdown) {
+          if (isUncollectedSplit(item)) continue
           if (item.currency === 'VES') {
             total += item.inputAmount
           } else {
@@ -250,8 +252,8 @@ function useFinancialSummary(
       const breakdownLabel = formatBreakdownLabel(breakdown)
       const sumVES = sumVESBreakdown(breakdown)
       const tip = Number(tx.tip_amount ?? 0)
-      const breakdownUSD = breakdown ? breakdown.reduce((s, b) => s + Number(b.amount ?? 0), 0) : 0
-      const serviceAmt = Number(tx.total_amount) || breakdownUSD
+      const breakdownUSD = breakdown ? breakdown.reduce((s, b) => s + (isUncollectedSplit(b) ? 0 : Number(b.amount ?? 0)), 0) : 0
+      const serviceAmt = collectedAmount(tx) || breakdownUSD
 
       const clientFromNotes = extractClientFromNotes(tx.notes)
       const client = tx.client_name ?? clientFromNotes ?? 'Venta directa'
@@ -516,7 +518,8 @@ function useFinancialSummary(
       if (isDirectSale && directSaleTxIds.has(tx.id)) continue
 
       const tip = Number(tx.tip_amount ?? 0)
-      const amt = Number(tx.total_amount ?? 0)
+      // Lo cobrado: de un pago mixto no cuenta lo que quedó a crédito ni la cortesía (la comisión sí sale sobre el total).
+      const amt = collectedAmount(tx)
       const exchangeRateUsed = Number(tx.exchange_rate_used ?? 1)
       const breakdown = tx.payments_breakdown as PaymentBreakdownItem[] | null
       const isStandaloneTip = !!tx.is_standalone_tip
@@ -529,7 +532,7 @@ function useFinancialSummary(
         ? breakdown[0].currency === 'VES'
         : false
       const originalAmount = isVES
-        ? (breakdown ? breakdown.filter(b => b.currency === 'VES').reduce((s, b) => s + Number(b.inputAmount ?? 0), 0) : amt * exchangeRateUsed)
+        ? (breakdown ? breakdown.filter(b => b.currency === 'VES' && !isUncollectedSplit(b)).reduce((s, b) => s + Number(b.inputAmount ?? 0), 0) : amt * exchangeRateUsed)
         : amt * exchangeRateUsed
       const singleBankName = breakdown && breakdown.length === 1 ? breakdown[0].bank_name : null
 
@@ -812,7 +815,7 @@ function useFinancialSummary(
     const totals = new Map<string, number>()
     for (const tx of (transactionsData.value ?? [])) {
       const name = tx.service_name ?? 'Sin servicio'
-      totals.set(name, (totals.get(name) ?? 0) + Number(tx.total_amount ?? 0))
+      totals.set(name, (totals.get(name) ?? 0) + collectedAmount(tx))
     }
     const total = incomeTotal.value
     return [...totals.entries()]

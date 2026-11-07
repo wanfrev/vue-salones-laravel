@@ -99,11 +99,12 @@ export function usePOSPayment() {
     return [...methods].sort((a, b) => (groupRank[a.currency ?? ''] ?? 2) - (groupRank[b.currency ?? ''] ?? 2))
   })
 
-  // Cortesía es "todo o nada" para un cobro -- no tiene sentido como una de varias líneas de un
-  // pago mixto (regalar solo una parte del servicio ya es simplemente un descuento manual).
-  // Cashea tampoco: una venta con Cashea queda completa por cobrar a Cashea (no entra dinero hoy), así que
+  // Cortesía SÍ puede ser una línea del pago mixto (p. ej. la clienta paga $17 de $53 y el resto es crédito y cortesía):
+  // el valor de la venta sigue siendo el total, así la comisión de quien atendió sale sobre el total, y a Finanzas solo
+  // entra lo cobrado (ver App\Support\UncollectedAmount). Un descuento manual, en cambio, bajaría también la comisión.
+  // Cashea no: una venta con Cashea queda completa por cobrar a Cashea (no entra dinero hoy), así que
   // no puede ser solo una parte de un pago mixto.
-  const mixedMethods = computed(() => paymentMethods.value.filter(m => m.value !== 'mixed' && m.value !== 'cortesia' && m.value !== 'cashea'))
+  const mixedMethods = computed(() => paymentMethods.value.filter(m => m.value !== 'mixed' && m.value !== 'cashea'))
 
   const methodCurrency = (method: PaymentMethod): 'USD' | 'VES' | null => {
     return paymentMethods.value.find(m => m.value === method)?.currency ?? null
