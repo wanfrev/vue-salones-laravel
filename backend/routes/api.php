@@ -730,6 +730,8 @@ Route::middleware(['auth:sanctum', 'business-context'])->group(function () {
         Route::get('/gift-cards', [GiftCardController::class, 'index']);
         Route::post('/gift-cards', [GiftCardController::class, 'store']);
         Route::put('/gift-cards/{id}', [GiftCardController::class, 'update']);
+        Route::put('/gift-cards/{id}/payment', [GiftCardController::class, 'savePayment']);
+        Route::delete('/gift-cards/{id}/payment', [GiftCardController::class, 'removePayment']);
         Route::delete('/gift-cards/{id}', [GiftCardController::class, 'destroy']);
     });
 

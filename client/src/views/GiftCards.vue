@@ -82,6 +82,8 @@
 
           <p v-if="gc.notes" class="line-clamp-2 text-xs italic text-text-muted">"{{ gc.notes }}"</p>
 
+          <GiftCardPaymentBadge :gift-card="gc" @register="ctx.paymentTarget.value = $event" @remove="ctx.handleRemovePayment" />
+
           <div class="mt-auto flex items-center justify-between gap-2 border-t border-border-subtle pt-3">
             <div>
               <p class="text-[11px] font-medium uppercase text-text-muted">Saldo Restante</p>
@@ -93,7 +95,7 @@
               <button @click="ctx.openEdit(gc)" class="rounded-lg p-2 text-text-muted transition-theme hover:bg-bg-secondary hover:text-primary" title="Editar" aria-label="Editar">
                 <PenIcon class="h-4 w-4" />
               </button>
-              <button @click="ctx.handleDelete(gc.id)" class="rounded-lg p-2 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger" title="Eliminar" aria-label="Eliminar">
+              <button @click="ctx.handleDelete(gc)" class="rounded-lg p-2 text-text-muted transition-theme hover:bg-danger/10 hover:text-danger" title="Eliminar" aria-label="Eliminar">
                 <TrashBin2Icon class="h-4 w-4" />
               </button>
             </div>
@@ -242,6 +244,25 @@
               placeholder="0.00" required />
           </div>
 
+          <!-- Cómo se pagó: dinero recibido que entra al Cuadre del Día (no es ingreso hasta que se use la gift card) -->
+          <div v-if="!ctx.editingId.value" class="space-y-2.5 rounded-xl border border-border bg-bg-secondary/30 p-3.5" data-testid="gc-create-payment">
+            <div class="flex items-center justify-between gap-3">
+              <span class="text-xs font-bold uppercase tracking-wider text-text-muted">3. Cómo se pagó</span>
+              <label class="flex cursor-pointer items-center gap-1.5 text-xs text-text-muted">
+                <input type="checkbox" v-model="ctx.skipPayment.value" class="rounded border-border text-primary focus:ring-primary" data-testid="gc-skip-payment" />
+                Registrar el cobro después
+              </label>
+            </div>
+            <GiftCardPaymentFields
+              v-if="!ctx.skipPayment.value"
+              v-model:lines="ctx.paymentLines.value"
+              v-model:rate="ctx.paymentRate.value"
+              :banks="ctx.banks.value"
+              :target="ctx.form.value.amount > 0 ? ctx.form.value.amount : null"
+            />
+            <p v-else class="text-xs text-warning">Mientras no registres el cobro, este dinero no aparece en el Cuadre del Día.</p>
+          </div>
+
           <div v-if="ctx.editingId.value">
             <label class="mb-1 block text-sm font-medium text-text" for="gc-status">Estado</label>
             <select id="gc-status" v-model="ctx.form.value.status"
@@ -276,6 +297,17 @@
       </div>
     </div>
   </Teleport>
+
+  <GiftCardPaymentModal
+    v-if="ctx.paymentTarget.value"
+    :gift-card="ctx.paymentTarget.value"
+    :banks="ctx.banks.value"
+    :exchange-rate="ctx.exchangeRate.value || 0"
+    :can-backdate="ctx.canBackdate.value"
+    :saving="ctx.savePaymentMutation.isPending.value"
+    @save="ctx.savePaymentMutation.mutate({ id: ctx.paymentTarget.value!.id, payment: $event })"
+    @cancel="ctx.paymentTarget.value = null"
+  />
   </FeatureGate>
 </template>
 
@@ -285,6 +317,9 @@ import { useAuth } from '../composables/common/useAuth'
 import { useGiftCards, generateGiftCardCode } from '../composables/giftCards/useGiftCards'
 import { useCurrency } from '../composables/common/useCurrency'
 import { FeatureGate } from '../components/common'
+import GiftCardPaymentFields from '../components/giftCards/GiftCardPaymentFields.vue'
+import GiftCardPaymentModal from '../components/giftCards/GiftCardPaymentModal.vue'
+import GiftCardPaymentBadge from '../components/giftCards/GiftCardPaymentBadge.vue'
 import { searchClients } from '../services/clientesService'
 import { TicketIcon, AddCircleIcon, PenIcon, TrashBin2Icon, CloseCircleIcon } from '@solar-icons/vue/linear'
 

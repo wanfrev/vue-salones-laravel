@@ -157,6 +157,16 @@ class DailyReportSummaryService
             }
         }
 
+        // Gift cards vendidas en el período y pagadas con banco: ese dinero también entró a esa cuenta.
+        foreach (app(GiftCardPaymentService::class)->receipts($businessId, $start . ' 00:00:00', $end . ' 23:59:59', $branchId) as $receipt) {
+            foreach ((array) $receipt->payments_breakdown as $split) {
+                $bankName = $split['bank_name'] ?? null;
+                $field = self::BANK_METHOD_TO_FIELD[$split['method'] ?? ''] ?? null;
+                if (!$bankName || !$field) continue;
+                $totals[$field][$bankName] = ($totals[$field][$bankName] ?? 0) + (float) ($split['inputAmount'] ?? 0);
+            }
+        }
+
         $result = [];
         foreach ($totals as $field => $banks) {
             $rows = [];
@@ -239,6 +249,26 @@ class DailyReportSummaryService
                     $amount = (float) ($split['amount'] ?? 0);
                     $input = (float) ($split['inputAmount'] ?? 0);
                     $usd[$userKey][$method] = ($usd[$userKey][$method] ?? 0) + ($amount > 0 ? $amount : $input);
+                }
+            }
+        }
+
+        // Gift cards vendidas: el dinero lo recibió quien las registró, así que entra a SU caja. No son una transacción
+        // (el ingreso se reconoce cuando la gift card se usa), por eso se leen aparte.
+        $giftReceipts = app(GiftCardPaymentService::class)->receipts($businessId, $start . ' 00:00:00', $end . ' 23:59:59', $branchId);
+        if ($giftReceipts->isNotEmpty()) {
+            $profileNames = DB::table('profiles')->whereIn('id', $giftReceipts->pluck('created_by')->filter()->unique())->pluck('full_name', 'id');
+            foreach ($giftReceipts as $receipt) {
+                $userKey = $receipt->created_by ?: '__sin_registrar__';
+                $names[$userKey] = $profileNames[$receipt->created_by] ?? $names[$userKey] ?? 'Sin registrar';
+
+                foreach ((array) $receipt->payments_breakdown as $split) {
+                    $method = $split['method'] ?? 'other';
+                    if (strtoupper((string) ($split['currency'] ?? '')) === 'VES') {
+                        $ves[$userKey][$method] = ($ves[$userKey][$method] ?? 0) + (float) ($split['inputAmount'] ?? 0);
+                    } else {
+                        $usd[$userKey][$method] = ($usd[$userKey][$method] ?? 0) + (float) ($split['amount'] ?? 0);
+                    }
                 }
             }
         }

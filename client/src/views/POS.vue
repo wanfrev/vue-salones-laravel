@@ -526,6 +526,7 @@ import AddProductModal from '../components/pos/AddProductModal.vue'
 import ExchangeRateCard from '../components/finanzas/ExchangeRateCard.vue'
 import { useExchangeRate } from '../composables/finanzas/useExchangeRate'
 import { toISODate, minutesToHHmm, formatDate as fDate } from '../lib/formatters'
+import { hasCreditPortion } from '../lib/uncollected'
 import { mapAppointmentToCita } from '../mappers/agendaMapper'
 import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
 import { printReceipt, type ReceiptData } from '../lib/receiptPrinter'
@@ -1041,7 +1042,8 @@ const canPay = computed(() => {
     if (!tipEmployeeId.value) return false
   }
   if (activeSaleType.value !== 'retail_only' && tipAmount.value > 0 && tipParticipants.value.length > 0 && Math.abs(tipRemaining.value) >= 0.01) return false
-  if (paymentMethod.value === 'credito') {
+  // Un crédito (entero o una línea del pago mixto) necesita saber a quién se le fía.
+  if (hasCreditPortion(paymentMethod.value, paymentsBreakdown.value)) {
     if (activeSaleType.value === 'retail_only') {
       if (!retailClientId.value && (!retailClientSearch.value || !retailClientPhone.value)) return false
     } else if (activeSaleType.value === 'direct_service') {

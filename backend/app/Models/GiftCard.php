@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use App\Models\Concerns\BelongsToBranch;
 use App\Models\Concerns\BelongsToBusiness;
 
@@ -30,5 +31,11 @@ class GiftCard extends Model
             'amount' => 'float',
             'redeemed_at' => 'datetime',
         ];
+    }
+
+    /** Cómo se pagó al venderla (null si todavía no se registró). */
+    public function payment(): HasOne
+    {
+        return $this->hasOne(GiftCardPayment::class);
     }
 }
