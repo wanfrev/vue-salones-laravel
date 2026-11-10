@@ -17,6 +17,8 @@ export interface ReceiptData {
   services?: ReceiptItem[]
   products?: ReceiptItem[]
   subtotal: number
+  /** Descuento por % aplicado al servicio (el total ya lo trae descontado). */
+  discount?: number
   tip?: number
   total: number
   method: string
@@ -185,11 +187,19 @@ export function printThermalReceiptTXT(data: ReceiptData, _filename?: string): v
 
     <!-- Totals -->
     <table class="totals-table">
-      ${(data.tip ?? 0) > 0 ? `
+      ${(data.tip ?? 0) > 0 || (data.discount ?? 0) > 0 ? `
         <tr class="avoid-break">
           <td>SUBTOTAL:</td>
           <td class="text-right">${formatMoney(data.subtotal)}</td>
         </tr>
+      ` : ''}
+      ${(data.discount ?? 0) > 0 ? `
+        <tr class="avoid-break">
+          <td>DESCUENTO:</td>
+          <td class="text-right">-${formatMoney(data.discount!)}</td>
+        </tr>
+      ` : ''}
+      ${(data.tip ?? 0) > 0 ? `
         <tr class="avoid-break">
           <td>PROPINA:</td>
           <td class="text-right">${formatMoney(data.tip!)}</td>

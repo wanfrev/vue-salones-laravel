@@ -337,7 +337,14 @@
               />
             </div>
           </div>
-          <div v-else-if="!isTipMode" class="flex items-center justify-between border-t border-border pt-2 mt-1">
+          <POSDiscountField
+            v-if="discountAllowed && !isRetailOnly && !isTipMode"
+            :percent="discountPercent ?? 0"
+            :amount="discountAmount ?? 0"
+            :base="servicePrice"
+            @update:percent="$emit('update:discount-percent', $event)"
+          />
+          <div v-if="!isRetailOnly && !isTipMode" class="flex items-center justify-between border-t border-border pt-2 mt-1">
             <span class="text-base font-bold text-text">Total</span>
             <DualAmount :amount="grandTotal" orientation="stack" size="lg" primary-class="text-xl font-bold text-primary" />
           </div>
@@ -483,7 +490,7 @@
             </button>
           </div>
           <select
-            v-if="isBankMethod?.(split.method) && banks && banks.length > 0"
+            v-if="isBankMethod?.(split.method as PaymentMethod) && banks && banks.length > 0"
             :value="split.bank_id ?? ''"
             @change="onSplitBankChange(idx, ($event.target as HTMLSelectElement).value)"
             class="w-full rounded-lg border border-border bg-surface px-2 py-2 text-xs text-text outline-none focus:border-primary"
@@ -565,6 +572,7 @@
 </template>
 
 <script setup lang="ts">
+import POSDiscountField from './POSDiscountField.vue'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useCurrency } from '../../composables/common/useCurrency'
 import { DualAmount } from '../common'
@@ -617,6 +625,10 @@ const props = defineProps<{
   paidDate?: string
   customTotalAmount?: number | null
   customTotalCurrency?: 'USD' | 'VES'
+  /** Descuento por %: el campo solo se ofrece si el negocio lo activó y el método de pago lo admite. */
+  discountAllowed?: boolean
+  discountPercent?: number
+  discountAmount?: number
   /** Lo que cuesta la venta antes de Cashea (servicio + productos, sin propina). */
   casheaBase?: number
   isDirectService?: boolean
@@ -635,6 +647,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
+  'update:discount-percent': [percent: number]
   'select-method': [method: PaymentMethod]
   'update:otherCurrency': [currency: 'USD' | 'VES']
   'add-split': []

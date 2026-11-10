@@ -160,6 +160,12 @@ class PosService
     ): string {
         $paidAt = $this->resolvePaidAt($businessId, $paidDate);
 
+        // Descuento por %: baja lo que se cobra, no la comisión (que sale sobre el precio inicial, `$serviceAmount`). Se
+        // valida ANTES de lo de Cashea, que reemplaza el desglose y haría desaparecer la línea de descuento.
+        \App\Support\SaleDiscount::assertAllowed(
+            \App\Support\SaleDiscount::fromBreakdown($paymentsBreakdown), $serviceAmount, $businessId, CasheaService::applies($method, $cashea),
+        );
+
         // Venta con Cashea: se registra por el NETO (monto − % de Cashea), que es lo que le queda al
         // negocio; la comisión del especialista sale sobre él sin cálculo aparte (ver CasheaService).
         $isCashea = CasheaService::applies($method, $cashea);
@@ -500,6 +506,11 @@ class PosService
     ): string {
         if (empty($products)) {
             throw new RuntimeException('La venta directa requiere al menos un producto.');
+        }
+
+        // El descuento por % es de los servicios (baja lo cobrado, no la comisión): una venta de productos no lo lleva.
+        if (\App\Support\SaleDiscount::fromBreakdown($paymentsBreakdown) !== null) {
+            throw new RuntimeException('Los descuentos solo aplican a servicios.');
         }
 
         // Venta con Cashea: entra por el neto (monto − % de Cashea). Ver CasheaService.
@@ -954,7 +965,8 @@ class PosService
         $creditCurrency = 'USD';
 
         if ($method === 'credito') {
-            $creditAmount = $totalAmount;
+            // Con descuento se debe lo cobrable, no el precio inicial.
+            $creditAmount = round($totalAmount - \App\Support\SaleDiscount::portion($paymentsBreakdown), 2);
         } elseif ($method === 'mixed' && !empty($paymentsBreakdown)) {
             foreach ($paymentsBreakdown as $split) {
                 if (($split['method'] ?? '') === 'credito') {
@@ -1016,7 +1028,8 @@ class PosService
     public static function creditPortion(string $method, float $totalAmount, array $paymentsBreakdown): float
     {
         if ($method === 'credito') {
-            return $totalAmount;
+            // Con descuento se debe lo cobrable, no el precio inicial.
+            return round($totalAmount - \App\Support\SaleDiscount::portion($paymentsBreakdown), 2);
         }
         if ($method !== 'mixed') {
             return 0.0;

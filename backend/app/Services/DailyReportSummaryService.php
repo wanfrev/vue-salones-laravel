@@ -238,7 +238,7 @@ class DailyReportSummaryService
 
             foreach ($breakdown as $split) {
                 $method = $split['method'] ?? $tx->method;
-                if ($method === 'credito' || $method === 'cortesia') continue;
+                if ($method === 'credito' || $method === 'cortesia' || $method === 'descuento') continue;
                 $isVesSplit = strtoupper((string) ($split['currency'] ?? '')) === 'VES';
                 if ($isVesSplit) {
                     $ves[$userKey][$method] = ($ves[$userKey][$method] ?? 0) + (float) ($split['inputAmount'] ?? 0);

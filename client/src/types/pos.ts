@@ -24,7 +24,10 @@ export interface POSTransaction {
 }
 
 export interface PaymentBreakdownItem {
-  method: PaymentMethod
+  /** `descuento` no es un método de pago: es la línea del descuento por % (ver composables/pos/usePOSPayment). */
+  method: PaymentMethod | 'descuento'
+  /** Solo en la línea `descuento`: el porcentaje aplicado. */
+  percentage?: number
   inputAmount: number
   currency: 'USD' | 'VES'
   amount: number

@@ -352,6 +352,8 @@
         :is-tip-mode="activeSaleType === 'tip'"
         :tip-employee-name="tipEmployeeName"
         :are-products-included="areProductsIncluded"
+        :discount-allowed="discountAllowed" :discount-percent="discountPercent" :discount-amount="discountAmount"
+        @update:discount-percent="discountPercent = $event"
         @update:custom-total-amount="customTotalAmount = $event"
         @update:custom-total-currency="customTotalCurrency = $event"
         @update:selected-gift-card-id="selectedGiftCardId = $event"
@@ -430,6 +432,8 @@
             :is-tip-mode="activeSaleType === 'tip'"
             :tip-employee-name="tipEmployeeName"
             :are-products-included="areProductsIncluded"
+        :discount-allowed="discountAllowed" :discount-percent="discountPercent" :discount-amount="discountAmount"
+        @update:discount-percent="discountPercent = $event"
             @update:custom-total-amount="customTotalAmount = $event"
             @update:custom-total-currency="customTotalCurrency = $event"
             @update:selected-gift-card-id="selectedGiftCardId = $event"
@@ -579,6 +583,9 @@ const {
   banks,
   paidDate,
   canBackdate,
+  discountPercent,
+  discountAllowed,
+  discountFor,
   isProcessing: posIsProcessing,
   paymentMethods,
   mixedMethods,
@@ -984,9 +991,13 @@ const casheaIssue = computed(() => (isCasheaSale.value
   ? casheaProblem(casheaDraft.total ?? saleBase.value, saleBase.value, casheaDraft.feePercentage, casheaDraft.downPaymentPercentage, casheaDraft.downPaymentMethod)
   : null))
 
+// Descuento por % sobre el PRECIO del servicio: baja lo que se cobra, no la comisión (ver usePOSPayment / SaleDiscount).
+const discountAmount = computed(() =>
+  activeSaleType.value === 'retail_only' || activeSaleType.value === 'tip' ? 0 : discountFor(servicePrice.value))
+
 const grandTotal = computed(() => {
   const base = isCasheaSale.value ? (casheaDraft.total ?? saleBase.value) : saleBase.value
-  return base + tipInTotal.value
+  return base - discountAmount.value + tipInTotal.value
 })
 
 const tipParticipants = computed<TipParticipant[]>(() => {
@@ -1345,7 +1356,8 @@ const performPrintReceipt = async (transactions?: Array<{ id: string, receipt_co
     employeeName: confirmEmployeeName.value || undefined,
     services: servicesList,
     products: receiptProductLines(),
-    subtotal: grandTotal.value - tipAmount.value,
+    subtotal: grandTotal.value - tipAmount.value + discountAmount.value,
+    discount: discountAmount.value > 0 ? discountAmount.value : undefined,
     tip: tipAmount.value > 0 ? tipAmount.value : undefined,
     total: grandTotal.value,
     method: paymentMethod.value,

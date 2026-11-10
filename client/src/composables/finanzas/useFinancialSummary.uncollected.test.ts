@@ -79,6 +79,24 @@ describe('Finanzas con un pago mixto que incluye crédito y cortesía', () => {
     expect(ctx.allTransactions.value.filter((r: any) => r.type === 'ingreso').map((r: any) => r.amount).sort()).toEqual([40, 53])
   })
 
+  it('un cobro normal con descuento cuenta lo cobrado; la comisión sigue sobre el precio inicial', async () => {
+    // Servicio de $53 con 5 %: la clienta paga $50,35 en efectivo; el servidor manda lo descontado como no cobrado.
+    const discounted = mixedTx({
+      id: 'tx6', method: 'cash', uncollected_amount: 2.65, exchange_rate_used: 100,
+      payments_breakdown: [
+        { method: 'cash', currency: 'USD', inputAmount: 50.35, amount: 50.35 },
+        { method: 'descuento', currency: 'USD', percentage: 5, inputAmount: 2.65, amount: 2.65 },
+      ],
+    })
+    const ctx = setup([discounted])
+    await flushPromises()
+
+    expect(ctx.appointmentIncomeDetails.value[0].amount).toBe(50.35)
+    expect(ctx.servicesRevenue.value.find(s => s.name === 'Pedicure semipermanente')?.amount).toBe(50.35)
+    expect(ctx.vesIncomeTotal.value).toBe(5035) // sin los $2,65 del descuento
+    expect(ctx.employeeEarningsByEmployee.value.find(e => e.employeeName === 'Manicurista')?.commissionTotal).toBe(21.2)
+  })
+
   it('un crédito o cortesía de venta completa sigue sin ser ingreso', async () => {
     const ctx = setup([mixedTx({ id: 'tx4', method: 'cortesia', uncollected_amount: 0 }), mixedTx({ id: 'tx5', method: 'credito', uncollected_amount: 0 })])
     await flushPromises()

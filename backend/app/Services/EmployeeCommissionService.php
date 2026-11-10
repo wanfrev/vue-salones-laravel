@@ -187,6 +187,10 @@ class EmployeeCommissionService
             $usdPortion = 0.0;
             $vesPortion = 0.0;
             foreach ($breakdown as $split) {
+                // El descuento no es dinero cobrado: no puede inclinar la moneda en que se paga la comisión.
+                if (($split['method'] ?? null) === 'descuento') {
+                    continue;
+                }
                 $currency = $split['currency'] ?? null;
                 $inputAmount = (float) ($split['inputAmount'] ?? $split['amount'] ?? 0);
                 if ($currency === 'USD') {

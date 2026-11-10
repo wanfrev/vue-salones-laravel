@@ -37,19 +37,36 @@ class UncollectedAmountTest extends TestCase
         $this->assertSame(0.0, UncollectedAmount::of('mixed', $breakdown));
     }
 
-    public function test_only_a_mixed_payment_has_a_portion(): void
+    public function test_a_whole_sale_on_credit_or_courtesy_is_not_discounted_twice(): void
     {
-        // La venta 100 % a crédito o 100 % cortesía ya se excluye entera de los ingresos: no se descuenta dos veces.
+        // La venta 100 % a crédito o 100 % cortesía ya se excluye entera de los ingresos.
         $this->assertSame(0.0, UncollectedAmount::of('credito', [$this->split('credito', 50)]));
         $this->assertSame(0.0, UncollectedAmount::of('cortesia', [$this->split('cortesia', 50)]));
-        $this->assertSame(0.0, UncollectedAmount::of('cash', [$this->split('credito', 50)]));
+    }
+
+    public function test_a_discount_line_is_uncollected_on_any_payment_method(): void
+    {
+        // Servicio de $53 con 5 % de descuento pagado en efectivo: entran $50,35 y $2,65 no se cobran.
+        $cash = [$this->split('cash', 50.35), $this->split('descuento', 2.65, ['percentage' => 5])];
+        $this->assertSame(2.65, UncollectedAmount::of('cash', $cash));
+        $this->assertSame(2.65, UncollectedAmount::of('mixed', $cash));
+        $this->assertSame(2.65, UncollectedAmount::of('zelle', [$this->split('zelle', 50.35), $this->split('descuento', 2.65)]));
+    }
+
+    public function test_the_discount_adds_up_with_credit_and_courtesy_in_a_mixed_payment(): void
+    {
+        // $53 con 5 %: $2,65 de descuento; del resto ($50,35) paga $10 en efectivo, $20,35 a crédito y $20 cortesía.
+        $breakdown = [$this->split('cash', 10), $this->split('credito', 20.35), $this->split('cortesia', 20), $this->split('descuento', 2.65)];
+
+        $this->assertSame(43.0, UncollectedAmount::of('mixed', $breakdown));
     }
 
     public function test_it_tolerates_missing_or_odd_breakdowns(): void
     {
         $this->assertSame(0.0, UncollectedAmount::of('mixed', null));
         $this->assertSame(0.0, UncollectedAmount::of('mixed', []));
-        $this->assertSame(0.0, UncollectedAmount::of(null, [$this->split('credito', 5)]));
+        // Un cobro sin método (dato viejo) se lee por su desglose, como cualquier otro que no sea venta entera a crédito o cortesía.
+        $this->assertSame(5.0, UncollectedAmount::of(null, [$this->split('credito', 5)]));
         $this->assertSame(0.0, UncollectedAmount::of('mixed', ['basura', 5, null]));
     }
 
@@ -69,9 +86,9 @@ class UncollectedAmountTest extends TestCase
     {
         $sql = UncollectedAmount::sql('t');
 
-        $this->assertStringContainsString("t.method = 'mixed'", $sql);
+        $this->assertStringContainsString("t.method NOT IN ('credito','cortesia')", $sql);
         $this->assertStringContainsString("jsonb_typeof(t.payments_breakdown) = 'array'", $sql);
-        $this->assertStringContainsString("IN ('credito','cortesia')", $sql);
+        $this->assertStringContainsString("IN ('credito','cortesia','descuento')", $sql);
         $this->assertStringContainsString('jsonb_array_elements(t.payments_breakdown)', $sql);
         $this->assertStringContainsString('transactions.method', UncollectedAmount::sql());
     }

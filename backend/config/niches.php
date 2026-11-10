@@ -38,6 +38,7 @@ return [
         'encargados_edit_clients' => true,
         'encargados_view_financial_summary' => false,
         'courtesy_charge_enabled' => false,
+        'discount_enabled' => false,
         'pos_backdate_enabled' => false,
         'manual_reports' => false,
         'daily_report_autofill_from_pos' => false,
