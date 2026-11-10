@@ -104,6 +104,11 @@ class DailyReportPosSummaryService
                     continue;
                 }
 
+                // Un descuento tampoco es dinero cobrado: baja lo que se cobra y por eso no entra a ninguna columna.
+                if ($split['method'] === 'descuento') {
+                    continue;
+                }
+
                 $field = self::METHOD_MAP[$split['method']][$split['currency']] ?? null;
 
                 if ($field === null) {

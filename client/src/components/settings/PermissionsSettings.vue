@@ -32,6 +32,7 @@
         <SettingToggle v-if="features.manual_reports && features.pos" setting-key="daily_report_autofill_from_pos" :copy="copy.daily_report_autofill_from_pos" />
         <SettingToggle v-if="features.pos" setting-key="pos_backdate_enabled" :copy="copy.pos_backdate_enabled" />
         <SettingToggle v-if="features.pos" setting-key="courtesy_charge_enabled" :copy="copy.courtesy_charge_enabled" />
+        <SettingToggle v-if="features.pos" setting-key="discount_enabled" :copy="copy.discount_enabled" />
       </SettingsGroup>
     </div>
   </SettingsSection>

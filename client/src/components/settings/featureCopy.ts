@@ -66,6 +66,7 @@ export type SettingKey =
   | 'daily_report_autofill_from_pos'
   | 'pos_backdate_enabled'
   | 'courtesy_charge_enabled'
+  | 'discount_enabled'
   | 'reminder_24h_enabled'
   | 'whatsapp_reminders_enabled'
   | 'enable_public_booking'
@@ -179,6 +180,12 @@ export const toggleCopy = (t: Terms): Record<SettingKey, ToggleCopy> => ({
     hint: `Agrega «Cortesía» como método de pago en el POS: el ${t.employee} gana su comisión normal, pero el monto no cuenta como ingreso del negocio.`,
     on: 'La cortesía ya está disponible como método de pago',
     off: 'La cortesía dejó de estar disponible como método de pago',
+  },
+  discount_enabled: {
+    label: 'Permitir descuentos por porcentaje',
+    hint: `Agrega un campo de descuento (%) al cobrar un servicio en el POS: baja lo que paga el cliente, pero la comisión del ${t.employee} se sigue calculando sobre el precio inicial. El descuento lo absorbe el negocio.`,
+    on: 'Los descuentos por porcentaje ya están disponibles en el POS',
+    off: 'Los descuentos por porcentaje dejaron de estar disponibles en el POS',
   },
 
   // ── Notificaciones ─────────────────────────────────────────────────────

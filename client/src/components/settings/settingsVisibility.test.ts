@@ -42,7 +42,7 @@ function originalPermissionKeys(s: ReturnType<typeof useBusinessStore>): string[
   if (f.agenda || (f.manual_reports && f.pos)) {
     if (f.agenda) keys.push('pos_direct_service_sale')
     if (f.manual_reports && f.pos) keys.push('daily_report_autofill_from_pos')
-    if (f.pos) keys.push('pos_backdate_enabled', 'courtesy_charge_enabled')
+    if (f.pos) keys.push('pos_backdate_enabled', 'courtesy_charge_enabled', 'discount_enabled')
   }
 
   return keys

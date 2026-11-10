@@ -33,6 +33,8 @@ class ProcessSaleRequest extends FormRequest
             'payments_breakdown.*.bankId' => 'nullable|uuid',
             'payments_breakdown.*.bank_name' => 'nullable|string|max:100',
             'payments_breakdown.*.bankName' => 'nullable|string|max:100',
+            // Línea de descuento (método `descuento`): su porcentaje; ver App\Support\SaleDiscount.
+            'payments_breakdown.*.percentage' => 'nullable|numeric|min:0|max:100',
             'tip_amount' => 'nullable|numeric|min:0',
             'tip_currency' => 'nullable|in:USD,VES',
             'products_amount' => 'nullable|numeric|min:0',

@@ -5,6 +5,7 @@ describe('uncollected', () => {
   it('crédito y cortesía no son dinero cobrado; el resto sí', () => {
     expect(isUncollectedSplit({ method: 'credito' })).toBe(true)
     expect(isUncollectedSplit({ method: 'cortesia' })).toBe(true)
+    expect(isUncollectedSplit({ method: 'descuento' })).toBe(true) // lo descontado tampoco es dinero cobrado
     for (const m of ['cash', 'cash_ves', 'zelle', 'pago_movil', 'gift_card', 'card']) expect(isUncollectedSplit({ method: m })).toBe(false)
     expect(isUncollectedSplit(null)).toBe(false)
     expect(isUncollectedSplit(undefined)).toBe(false)

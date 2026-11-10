@@ -106,6 +106,20 @@ export function usePOSPayment() {
   // no puede ser solo una parte de un pago mixto.
   const mixedMethods = computed(() => paymentMethods.value.filter(m => m.value !== 'mixed' && m.value !== 'cashea'))
 
+  // ── Descuento por % ──
+  // Baja lo que se cobra, NO la comisión: el servidor calcula la comisión sobre el precio inicial (`serviceAmount`, que
+  // aquí nunca se rebaja). El descuento viaja como una línea más del desglose con método `descuento`, y por eso el
+  // reparto del desglose entre las citas de un grupo o de varios servicios lo reparte también. Es del servicio, no de
+  // los productos; no aplica con Cashea (ya cobra un neto) ni con cortesía (no se cobra nada).
+  const cents = (n: number) => Math.round(n * 100) / 100
+  const discountPercent = ref(0)
+  const discountAllowed = computed(() =>
+    !!businessStore.features.discount_enabled && paymentMethod.value !== 'cashea' && paymentMethod.value !== 'cortesia')
+  const discountFor = (serviceAmount: number): number =>
+    discountAllowed.value && discountPercent.value > 0 ? cents(serviceAmount * Math.min(discountPercent.value, 100) / 100) : 0
+  const discountLine = (amount: number): PaymentBreakdownItem[] =>
+    amount > 0 ? [{ method: 'descuento', percentage: discountPercent.value, inputAmount: amount, currency: 'USD', amount }] : []
+
   const methodCurrency = (method: PaymentMethod): 'USD' | 'VES' | null => {
     return paymentMethods.value.find(m => m.value === method)?.currency ?? null
   }
@@ -140,6 +154,7 @@ export function usePOSPayment() {
     selectedGiftCardId.value = null
     selectedBankId.value = null
     paidDate.value = ''
+    discountPercent.value = 0
     cashea.reset()
   }
 
@@ -450,6 +465,9 @@ export function usePOSPayment() {
         if (!isLast) remainingService -= serviceShare
 
         const memberAmount = i === 0 ? serviceShare + productsTotal : serviceShare
+        // El descuento de este integrante sale de SU parte del servicio; lo que paga es lo demás.
+        const memberDiscount = discountFor(serviceShare)
+        const memberPayable = cents(memberAmount - memberDiscount)
         const productsForThis = i === 0 ? productsTotal : 0
         const employeeId = members[i]?.employeeId
         const fullTip = employeeId ? (tipAllocations?.[employeeId] ?? 0) : 0
@@ -460,24 +478,27 @@ export function usePOSPayment() {
         if (method !== 'mixed') {
           memberBreakdown = [{
             method,
-            inputAmount: paymentCurrency === 'VES' ? memberAmount * exchangeRt : memberAmount,
+            inputAmount: paymentCurrency === 'VES' ? memberPayable * exchangeRt : memberPayable,
             currency: paymentCurrency as 'USD' | 'VES',
-            amount: memberAmount,
+            amount: memberPayable,
             gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined,
             giftCardId: method === 'gift_card' ? selectedGiftCardId.value : undefined,
             bank_id: isBankMethod(method) ? selectedBankId.value : undefined,
             bank_name: isBankMethod(method) ? bankName(selectedBankId.value) : undefined,
           }]
         } else {
-          const grand = params.serviceAmount + productsTotal + tipAmount.value || 1
+          // Lo escrito en el pago mixto suma lo cobrable (valor − descuento + propina): se reparte según lo que paga cada uno.
+          const grand = params.serviceAmount + productsTotal + tipAmount.value - discountFor(params.serviceAmount) || 1
           memberBreakdown = breakdownSource.map((item) => ({
             ...item,
-            inputAmount: Number(((memberAmount / grand) * item.inputAmount).toFixed(2)),
-            amount: Number(((memberAmount / grand) * item.amount).toFixed(2)),
+            inputAmount: Number(((memberPayable / grand) * item.inputAmount).toFixed(2)),
+            amount: Number(((memberPayable / grand) * item.amount).toFixed(2)),
             gift_card_id: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
             giftCardId: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
           }))
         }
+
+        memberBreakdown = [...memberBreakdown, ...discountLine(memberDiscount)]
 
         payloads.push({
           appointmentId: groupIds[i],
@@ -494,14 +515,16 @@ export function usePOSPayment() {
       }
     } else {
       const totalAmount = params.serviceAmount + params.productsAmount
+      const discount = discountFor(params.serviceAmount)
+      const payable = cents(totalAmount - discount)
       let breakdown: PaymentBreakdownItem[]
 
       if (method !== 'mixed') {
         breakdown = [{
           method,
-          inputAmount: paymentCurrency === 'VES' ? totalAmount * exchangeRt : totalAmount,
+          inputAmount: paymentCurrency === 'VES' ? payable * exchangeRt : payable,
           currency: paymentCurrency as 'USD' | 'VES',
-          amount: totalAmount,
+          amount: payable,
           gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined,
           giftCardId: method === 'gift_card' ? selectedGiftCardId.value : undefined,
           bank_id: isBankMethod(method) ? selectedBankId.value : undefined,
@@ -514,6 +537,8 @@ export function usePOSPayment() {
           giftCardId: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
         }))
       }
+
+      breakdown = [...breakdown, ...discountLine(discount)]
 
       payloads.push({
         appointmentId: params.appointmentId,
@@ -626,14 +651,16 @@ export function usePOSPayment() {
       params = { ...params, serviceAmount, services: params.services?.map((s, i) => ({ ...s, price: prices[i] })) }
     }
     const totalAmount = params.serviceAmount + (params.productsAmount ?? 0)
+    const discount = discountFor(params.serviceAmount)
+    const payable = cents(totalAmount - discount)
 
     let breakdown: PaymentBreakdownItem[]
     if (method !== 'mixed') {
       breakdown = [{
         method,
-        inputAmount: paymentCurrency === 'VES' ? totalAmount * params.exchangeRate : totalAmount,
+        inputAmount: paymentCurrency === 'VES' ? payable * params.exchangeRate : payable,
         currency: paymentCurrency as 'USD' | 'VES',
-        amount: totalAmount,
+        amount: payable,
         gift_card_id: method === 'gift_card' ? selectedGiftCardId.value : undefined,
         giftCardId: method === 'gift_card' ? selectedGiftCardId.value : undefined,
         bank_id: isBankMethod(method) ? selectedBankId.value : undefined,
@@ -646,6 +673,8 @@ export function usePOSPayment() {
         giftCardId: item.method === 'gift_card' ? (item.gift_card_id || selectedGiftCardId.value) : undefined,
       }))
     }
+
+    breakdown = [...breakdown, ...discountLine(discount)]
 
     try {
       const result = await directServiceSaleMutation.mutateAsync({
@@ -697,5 +726,8 @@ export function usePOSPayment() {
     banks,
     paidDate,
     canBackdate,
+    discountPercent,
+    discountAllowed,
+    discountFor,
   }
 }

@@ -126,6 +126,12 @@ export const toggleCopyEn = (t: Terms = termsEn): Record<SettingKey, ToggleCopy>
     on: 'Complimentary is now available as a payment method',
     off: 'Complimentary is no longer available as a payment method',
   },
+  discount_enabled: {
+    label: 'Allow percentage discounts',
+    hint: `Adds a discount (%) field when charging a service in the POS: it lowers what the client pays, but the ${t.employee}'s commission is still calculated on the initial price. The business absorbs the discount.`,
+    on: 'Percentage discounts are now available in the POS',
+    off: 'Percentage discounts are no longer available in the POS',
+  },
 
   // ── Notifications ──────────────────────────────────────────────────────
   reminder_24h_enabled: {

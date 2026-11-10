@@ -1,12 +1,12 @@
 /**
- * En un pago MIXTO una parte puede no ser dinero cobrado: lo que se dejó a crédito y lo que se regaló (cortesía).
- * `total_amount` es el valor de la venta (sobre él sale la comisión de quien atendió) pero el ingreso del negocio es
+ * En un cobro una parte puede no ser dinero cobrado: lo que se dejó a crédito, lo que se regaló (cortesía) y lo que se
+ * descontó (descuento por %). `total_amount` es el valor de la venta (sobre él sale la comisión de quien atendió) pero el ingreso del negocio es
  * solo lo cobrado. El servidor manda `uncollected_amount` por cobro (ver App\Support\UncollectedAmount); estas
  * funciones solo lo restan, no recalculan dinero.
  */
-const UNCOLLECTED_METHODS = ['credito', 'cortesia']
+const UNCOLLECTED_METHODS = ['credito', 'cortesia', 'descuento']
 
-/** ¿Esta línea de un pago mixto es crédito o cortesía (no entró dinero)? */
+/** ¿Esta línea del desglose es crédito, cortesía o descuento (no entró dinero)? */
 export const isUncollectedSplit = (split: { method?: string } | null | undefined): boolean =>
   !!split && UNCOLLECTED_METHODS.includes(String(split.method))
 
