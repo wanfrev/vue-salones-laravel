@@ -59,6 +59,11 @@ class LeadService
      * `empleado`/`encargado` with no client-company assignments) and how many leads she owns, in
      * one aggregated query rather than N+1 counts.
      *
+     * Anyone who already owns leads is listed too, even when she is also assigned to a company for
+     * payroll: otherwise a person who works leads AND is on the payroll vanishes from the sidebar
+     * while her leads still show up under "Todos" (and someone ends up creating a second profile
+     * for her, which then shows 0).
+     *
      * @return list<array{id: string, name: string, phone: ?string, email: ?string, leadCount: int}>
      */
     public function vendedoraRoster(string $businessId): array
@@ -66,7 +71,10 @@ class LeadService
         $vendedoras = Profile::query()
             ->where('business_id', $businessId)
             ->whereIn('role', ['empleado', 'encargado'])
-            ->whereDoesntHave('staffingCompanyEmployees')
+            ->where(function ($q) use ($businessId) {
+                $q->whereDoesntHave('staffingCompanyEmployees')
+                    ->orWhereIn('id', Lead::where('business_id', $businessId)->select('owner_id'));
+            })
             ->orderBy('full_name')
             ->get(['id', 'full_name', 'phone', 'email']);
 
