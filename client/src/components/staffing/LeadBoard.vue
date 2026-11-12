@@ -153,6 +153,7 @@
               <th class="px-3 py-2.5">{{ t('crm.col.followUp') }}</th>
               <th class="px-3 py-2.5">{{ t('crm.col.state') }}</th>
               <th class="px-3 py-2.5">{{ t('crm.col.visitDate') }}</th>
+              <th class="px-3 py-2.5">{{ t('crm.col.added') }}</th>
               <th class="px-3 py-2.5">{{ t('crm.col.comments') }}</th>
               <th class="px-3 py-2.5 w-16"></th>
             </tr>
@@ -189,6 +190,7 @@
               </td>
               <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ lead.state || '—' }}</td>
               <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary">{{ lead.visitDate ? formatDateUS(lead.visitDate) : '—' }}</td>
+              <td class="whitespace-nowrap px-3 py-2.5 text-text-secondary" :title="addedAt(lead.createdAt)">{{ lead.createdAt ? formatDateUS(new Date(lead.createdAt)) : '—' }}</td>
               <td class="max-w-[220px] truncate px-3 py-2.5 text-text-secondary" :title="lead.notes">{{ lead.notes || '—' }}</td>
               <td class="px-3 py-2.5">
                 <div class="flex items-center justify-end gap-1">
@@ -221,6 +223,9 @@
             <h2 class="text-lg font-semibold text-text">
               {{ ctx.editingId.value ? t('crm.form.titleEdit') : t('crm.form.titleNew') }}
             </h2>
+            <p v-if="editingLead" class="mt-1 text-xs text-text-muted" data-testid="lead-added-on">
+              {{ t('crm.addedOn', { date: addedAt(editingLead.createdAt), name: editingLead.ownerName || '—' }) }}
+            </p>
           </div>
 
           <form class="space-y-3" @submit.prevent="ctx.handleSave">
@@ -335,6 +340,15 @@ const businessId = computed(() => props.businessId)
 const ctx = useLeads(businessId)
 
 const viewMode = ref<'kanban' | 'table'>('kanban')
+
+// The lead open in the edit dialog (null when creating a new one) — used to show when and by whom it was added.
+const editingLead = computed(() => ctx.editingId.value ? ctx.leads.value.find(l => l.id === ctx.editingId.value) ?? null : null)
+const addedAt = (createdAt: string): string => {
+  if (!createdAt) return '—'
+  const d = new Date(createdAt)
+  if (Number.isNaN(d.getTime())) return '—'
+  return `${formatDateUS(d)} ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+}
 const statusFilter = ref<LeadStatus | 'all'>('all')
 const search = ref('')
 

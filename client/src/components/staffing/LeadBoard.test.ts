@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { ref } from 'vue'
 import { createPinia } from 'pinia'
@@ -8,14 +8,16 @@ import type { LeadRow } from '../../services/leadsService'
 
 const lead = (i: number, status: LeadRow['status'] = 'new'): LeadRow => ({
   id: `l${i}`, ownerId: 'o1', ownerName: 'Ana', companyName: `Empresa ${i}`, workArea: '', address: '', phone: '', email: '',
-  status, visitDate: '', companyCategory: '', priority: '', contactCard: '', state: '', notes: '', updatedAt: '2026-10-01',
+  status, visitDate: '', companyCategory: '', priority: '', contactCard: '', state: '', notes: '', updatedAt: '2026-10-01', createdAt: '2026-09-15T14:30:00.000000Z',
 })
 
+const showModal = ref(false)
+const editingId = ref<string | null>(null)
 const leads = ref<LeadRow[]>([...Array.from({ length: 100 }, (_, i) => lead(i)), lead(1000, 'called')])
 
 vi.mock('../../composables/staffing/useLeads', () => ({
   useLeads: () => ({
-    leads, isLoading: ref(false), showModal: ref(false), editingId: ref(null), form: ref({}), saveError: ref(''),
+    leads, isLoading: ref(false), showModal, editingId, form: ref({}), saveError: ref(''), isSaving: ref(false),
     openNew: vi.fn(), openEdit: vi.fn(), closeModal: vi.fn(), handleSave: vi.fn(), handleDelete: vi.fn(), updateStatus: vi.fn(),
   }),
 }))
@@ -27,6 +29,8 @@ const mountBoard = () => mount(LeadBoard, {
 })
 
 describe('LeadBoard con muchos leads', () => {
+  beforeEach(() => { showModal.value = false; editingId.value = null })
+
   it('dibuja solo las primeras tarjetas de cada columna, pero los contadores siguen mostrando el total', () => {
     const w = mountBoard()
     // 30 de "No Iniciado" + 1 de "Llamado"
@@ -50,5 +54,26 @@ describe('LeadBoard con muchos leads', () => {
     await w.find('input[type="text"]').setValue('Empresa 5')
     // Empresa 5, 50..59 -> 11 leads, todos caben en la primera tanda
     expect(w.findAll('[data-testid="lead-card"]')).toHaveLength(11)
+  })
+})
+
+describe('LeadBoard: cuándo se agregó cada empresa', () => {
+  beforeEach(() => { showModal.value = false; editingId.value = null })
+
+  it('al abrir una empresa ya registrada dice la fecha en que se agregó y quién la agregó', async () => {
+    const w = mountBoard()
+    showModal.value = true
+    editingId.value = 'l5'
+    await w.vm.$nextTick()
+    const text = w.get('[data-testid="lead-added-on"]').text()
+    expect(text).toContain('Agregado el 09/15/2026')
+    expect(text).toContain('por Ana')
+  })
+
+  it('al crear un lead nuevo no muestra esa línea', async () => {
+    const w = mountBoard()
+    showModal.value = true
+    await w.vm.$nextTick()
+    expect(w.find('[data-testid="lead-added-on"]').exists()).toBe(false)
   })
 })

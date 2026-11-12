@@ -44,6 +44,8 @@ export const crm = defineMessages(
     'crm.col.state': 'Estado',
     'crm.col.visitDate': 'Fecha de Visita',
     'crm.col.comments': 'Comentarios',
+    'crm.col.added': 'Agregado',
+    'crm.addedOn': 'Agregado el {date} por {name}',
     'crm.confirmDeleteLead': '¿Eliminar el lead de {name}?',
 
     'crm.form.titleEdit': 'Editar lead',
@@ -144,6 +146,8 @@ export const crm = defineMessages(
     'crm.col.state': 'State',
     'crm.col.visitDate': 'Visit Date',
     'crm.col.comments': 'Comments',
+    'crm.col.added': 'Added',
+    'crm.addedOn': 'Added on {date} by {name}',
     'crm.confirmDeleteLead': 'Delete the lead for {name}?',
 
     'crm.form.titleEdit': 'Edit lead',

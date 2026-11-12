@@ -45,6 +45,8 @@ export interface LeadRow {
   state: string
   notes: string
   updatedAt: string
+  /** When the lead was added (ISO timestamp from the server) — never edited, unlike updatedAt. */
+  createdAt: string
 }
 
 export interface LeadFormData {
@@ -90,6 +92,7 @@ const toLeadRow = (row: Lead): LeadRow => ({
   state: row.state ?? '',
   notes: row.notes ?? '',
   updatedAt: row.updated_at,
+  createdAt: row.created_at,
 })
 
 /** The admin CRM sidebar roster — every vendedora and her lead count. Empty for a non-admin. */
