@@ -18,6 +18,9 @@ use Illuminate\Support\Facades\DB;
 
 class PosService
 {
+    /** Mensaje cuando se intenta cobrar una cita que ya está cobrada (el POS lo reconoce por este texto). */
+    public const ALREADY_CHARGED = 'Esta cita ya está cobrada por completo. Actualiza la pantalla y revisa Finanzas antes de volver a cobrar.';
+
     public function __construct(
         private InventoryService $inventoryService,
     ) {}
@@ -211,6 +214,15 @@ class PosService
             $employeePct, $localPct, $assistantPct, $effectivePrice, $productsAmount, $service,
             $tipCurrency, $paidAt, $paidDate, $isCashea
         ) {
+            // Una cita ya cobrada por completo no se vuelve a cobrar: dos toques seguidos, dos pantallas o una lista
+            // vieja duplicaban el cobro (y con él la comisión y el ingreso). Se bloquea la cita para que dos cobros
+            // simultáneos se atiendan uno tras otro y el segundo ya vea el primero.
+            Appointment::where('id', $appointmentId)->lockForUpdate()->first(['id']);
+            $alreadyCharged = (float) Transaction::where('appointment_id', $appointmentId)->sum('total_amount');
+            if ($serviceAmount > 0 && $alreadyCharged > 0 && $alreadyCharged >= (float) $effectivePrice - 0.005) {
+                throw new RuntimeException(self::ALREADY_CHARGED);
+            }
+
             $totalAmount = $serviceAmount + $productsAmount;
 
             $totalAmount = $serviceAmount + $productsAmount;

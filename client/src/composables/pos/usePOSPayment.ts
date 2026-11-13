@@ -4,6 +4,7 @@ import { useAuth } from '../common/useAuth'
 import { useNotification } from '../common/useNotification'
 import { useBusinessStore } from '../../store/business'
 import { useBanks } from '../finanzas/useBanks'
+import { ALREADY_CHARGED_HINT, ALREADY_CHARGED_MESSAGE } from '../../lib/posErrors'
 import { recordSale, recordDirectSale, recordDirectServiceSale, recordStandaloneTip, posKeys, type CasheaPayload } from '../../services/posService'
 import { useCasheaDraft } from './useCasheaDraft'
 import { spreadOver } from '../../components/pos/cashea'
@@ -219,25 +220,35 @@ export function usePOSPayment() {
       cashea?: CasheaPayload
     }>) => {
       const results = []
+      let alreadyCharged = 0
       for (const p of payloads) {
-        const res = await recordSale({
-          appointmentId: p.appointmentId,
-          serviceAmount: p.serviceAmount,
-          productsAmount: p.productsAmount,
-          method: p.method,
-          products: p.products,
-          notes: p.notes,
-          exchangeRate: p.exchangeRate,
-          paymentsBreakdown: p.paymentsBreakdown,
-          tipAmount: p.tipAmount,
-          tipCurrency: p.tipCurrency,
-          businessId: businessId.value!,
-          branchId: branchId.value,
-          paidDate: effectivePaidDate(),
-          cashea: p.cashea,
-        })
-        results.push(res)
+        // Un grupo cobrado a medias (falló un integrante) se reintenta completo: los que el servidor ya tiene cobrados
+        // se saltan en vez de cobrarse otra vez, y se sigue con los que faltan.
+        try {
+          const res = await recordSale({
+            appointmentId: p.appointmentId,
+            serviceAmount: p.serviceAmount,
+            productsAmount: p.productsAmount,
+            method: p.method,
+            products: p.products,
+            notes: p.notes,
+            exchangeRate: p.exchangeRate,
+            paymentsBreakdown: p.paymentsBreakdown,
+            tipAmount: p.tipAmount,
+            tipCurrency: p.tipCurrency,
+            businessId: businessId.value!,
+            branchId: branchId.value,
+            paidDate: effectivePaidDate(),
+            cashea: p.cashea,
+          })
+          results.push(res)
+        } catch (err) {
+          if (!String((err as Error)?.message ?? '').includes(ALREADY_CHARGED_HINT)) throw err
+          alreadyCharged++
+        }
       }
+      // Si TODO estaba ya cobrado no hay nada nuevo: se avisa en vez de mostrar «cobro registrado».
+      if (results.length === 0 && alreadyCharged > 0) throw new Error(ALREADY_CHARGED_MESSAGE)
       return results
     },
     onMutate: async (payloads) => {
