@@ -1370,6 +1370,8 @@ const performPrintReceipt = async (transactions?: Array<{ id: string, receipt_co
 }
 
 const confirmPayment = async (shouldPrint?: boolean) => {
+  // Un cobro ya en marcha no se envía otra vez (doble toque): duplicaba el cobro y la comisión.
+  if (isProcessing.value) return
   if (shouldPrint !== undefined) shouldPrintReceipt.value = shouldPrint
   showConfirmModal.value = false
   if (activeSaleType.value === 'retail_only' || (activeSaleType.value === 'appointment' && !selectedAppointment.value && cart.value.length > 0)) { 
