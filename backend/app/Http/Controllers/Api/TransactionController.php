@@ -153,10 +153,7 @@ class TransactionController
             };
 
             if ($tx->appointment_id) {
-                $appointment = \App\Models\Appointment::find($tx->appointment_id);
-                if ($appointment) {
-                    $appointment->update(['payment_status' => 'unpaid', 'updated_at' => now()]);
-                }
+                // El estado de pago de la cita se recalcula DESPUÉS de borrar (más abajo) con los cobros que quedan.
 
                 // Productos vendidos junto con la cita (PosService::processSale) quedan con
                 // reference_type='appointment' y reference_id=appointment_id, no el id de esta
@@ -197,11 +194,35 @@ class TransactionController
             ]);
 
             $tx->delete();
+
+            if ($tx->appointment_id) {
+                $this->refreshAppointmentPaymentStatus($tx->appointment_id);
+            }
         });
 
         EntityChanged::safe($businessId, 'transaction', 'deleted', $id);
 
         return response()->json(null, 204);
+    }
+
+    /**
+     * Estado de pago de una cita según los cobros que le quedan, con la misma regla de PosService::processSale: sin
+     * cobros, «unpaid»; con cobros que cubren el precio, «paid»; si no, «partial». Antes, borrar CUALQUIER cobro la
+     * dejaba «unpaid» aunque quedaran otros válidos (p. ej. al quitar un cobro duplicado), y volvía a aparecer pendiente.
+     */
+    private function refreshAppointmentPaymentStatus(string $appointmentId): void
+    {
+        $appointment = \App\Models\Appointment::with('service')->find($appointmentId);
+        if (!$appointment) {
+            return;
+        }
+
+        $paid = (float) Transaction::where('appointment_id', $appointmentId)->sum('total_amount');
+        $price = (float) ($appointment->price_override ?? $appointment->service?->price ?? 0);
+
+        $status = $paid <= 0 ? 'unpaid' : ($paid >= $price - 0.005 ? 'paid' : 'partial');
+
+        $appointment->update(['payment_status' => $status, 'updated_at' => now()]);
     }
 
     /**

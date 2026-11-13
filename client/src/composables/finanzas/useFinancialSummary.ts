@@ -1025,10 +1025,20 @@ function useFinancialSummary(
     showEditModal.value = false
   }
 
-  const handleConfirmDelete = (txId: string) => {
-    const item = appointmentIncomeDetails.value.find(r => r.id === txId || (r.transactionIds?.includes(txId) ?? false))
+  /**
+   * `onlyThis`: eliminar SOLO ese cobro. Se usa en la lista de transacciones individuales: ahí cada fila es un cobro, y
+   * arrastrar al resto del grupo borraba también los cobros buenos (p. ej. al quitar un cobro duplicado). Sin esto, la
+   * fila de «Cobros de citas» agrupa los cobros de una cita (o de un grupo) y los elimina todos juntos.
+   */
+  const handleConfirmDelete = (txId: string, onlyThis = false) => {
+    const item = onlyThis ? undefined : appointmentIncomeDetails.value.find(r => r.id === txId || (r.transactionIds?.includes(txId) ?? false))
     const ids = item?.transactionIds && item.transactionIds.length > 1 ? item.transactionIds : [txId]
-    const label = ids.length > 1 ? `¿Eliminar los ${ids.length} cobros de esta cita?` : '¿Eliminar este cobro?'
+    const single = (transactionsData.value ?? []).find((t: any) => t.id === txId)
+    const label = ids.length > 1
+      ? `¿Eliminar los ${ids.length} cobros de esta cita?`
+      : onlyThis && single
+        ? `¿Eliminar solo este cobro (${single.client_name ?? 'Venta directa'} · ${single.service_name ?? 'Producto'} · $${Number(single.total_amount ?? 0).toFixed(2)})? Los demás cobros de la cita no se tocan.`
+        : '¿Eliminar este cobro?'
     if (window.confirm(label)) {
       // Opcional: queda guardado en el historial de correcciones aunque se deje en blanco, esto
       // solo añade el porqué para quien lo revise después.
