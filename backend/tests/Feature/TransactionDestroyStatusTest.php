@@ -298,6 +298,24 @@ class TransactionDestroyStatusTest extends TestCase
         $this->assertSame([$sale], Transaction::pluck('id')->all());
     }
 
+    public function test_removing_a_credit_sale_and_its_payment_returns_the_appointment_to_the_pos(): void
+    {
+        // «Volver a Punto de Venta» de un crédito cobrado: se borran la venta a crédito y su abono, y la cita tiene que
+        // quedar pendiente de cobro (sin cobros que la respalden), para que reaparezca en el POS.
+        $appt = $this->appt(50);
+        $sale = $this->tx($appt, 50, 'credito');
+        $abono = $this->tx($appt, 50, 'cash');
+        DB::table('appointments')->where('id', $appt)->update(['payment_status' => 'paid']);
+
+        $this->destroy($sale);
+        $this->destroy($abono);
+
+        $this->assertSame(0, Transaction::count());
+        $this->assertSame('unpaid', $this->paymentStatusOf($appt));
+        $pending =app(PosService::class)->getPendingAppointments(self::BIZ)->pluck('id')->all();
+        $this->assertContains($appt, $pending);
+    }
+
     public function test_other_appointments_are_not_touched(): void
     {
         $one = $this->appt(38);
