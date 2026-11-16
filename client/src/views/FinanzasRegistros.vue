@@ -464,9 +464,7 @@ const openCobroActions = async (tx: any) => {
 const handleRollbackCobro = async (payload: { transactionIds: string[]; appointmentId?: string; prefill: any }) => {
   cobroActionsShow.value = false
   try {
-    await Promise.all(payload.transactionIds.map(id =>
-      summaryCtx.deleteTransactionMutation.mutateAsync({ transactionId: id }),
-    ))
+    await summaryCtx.deleteTransactions(payload.transactionIds)
     await Promise.allSettled([
       queryClient.invalidateQueries({ queryKey: ['pos-pending'], exact: false }),
     ])
@@ -484,9 +482,7 @@ const handleRollbackCobro = async (payload: { transactionIds: string[]; appointm
 const handleDeleteCobroAction = async (transactionIds: string[]) => {
   cobroActionsShow.value = false
   try {
-    await Promise.all(transactionIds.map(id =>
-      summaryCtx.deleteTransactionMutation.mutateAsync({ transactionId: id }),
-    ))
+    await summaryCtx.deleteTransactions(transactionIds)
   } catch (err) {
     showError(translateError(err, 'Error al eliminar cobro'))
   }

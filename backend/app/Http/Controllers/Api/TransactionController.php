@@ -154,6 +154,10 @@ class TransactionController
 
             if ($tx->appointment_id) {
                 // El estado de pago de la cita se recalcula DESPUÉS de borrar (más abajo) con los cobros que quedan.
+                // Se bloquea la cita primero: si llegan juntos dos borrados de la misma cita (p. ej. un crédito y su
+                // abono), el segundo espera al primero y recalcula viendo que ya no existe. Sin esto, cada uno veía al
+                // otro como "todavía cobrado" y la cita quedaba pagada sin ningún cobro.
+                \App\Models\Appointment::where('id', $tx->appointment_id)->lockForUpdate()->first(['id']);
 
                 // Productos vendidos junto con la cita (PosService::processSale) quedan con
                 // reference_type='appointment' y reference_id=appointment_id, no el id de esta

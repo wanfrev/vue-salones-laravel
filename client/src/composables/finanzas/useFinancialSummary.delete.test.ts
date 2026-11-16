@@ -99,6 +99,42 @@ describe('Finanzas — eliminar cobros', () => {
     expect(promptSpy).not.toHaveBeenCalled()
   })
 
+  it('varios cobros se eliminan uno por uno: el siguiente no sale hasta que el anterior termina', async () => {
+    // Caso real: «Volver a Punto de Venta» de un crédito cobrado (la venta a crédito + su abono). Si se mandan a la vez,
+    // el servidor recalcula el estado de la cita viendo al otro cobro todavía vivo y la cita queda pagada sin cobros.
+    const releases: Array<() => void> = []
+    api.mockImplementation(((method: string) => method === 'DELETE'
+      ? new Promise<null>(resolve => { releases.push(() => resolve(null)) })
+      : Promise.resolve([])) as any)
+    const ctx = setup()
+    await flushPromises()
+
+    const done = ctx.deleteTransactions(['credito-venta', 'credito-abono'], 'Cobro mal registrado')
+    await flushPromises()
+    expect(deleted()).toEqual(['credito-venta'])          // el segundo todavía no se pidió
+
+    releases[0]()
+    await flushPromises()
+    expect(deleted()).toEqual(['credito-venta', 'credito-abono'])
+
+    releases[1]()
+    await done
+    api.mockReset().mockResolvedValue([])
+  })
+
+  it('si un borrado falla no se intenta el siguiente', async () => {
+    api.mockImplementation(((method: string, path: string) => method === 'DELETE' && String(path).endsWith('/uno')
+      ? Promise.reject(new Error('falló'))
+      : Promise.resolve([])) as any)
+    const ctx = setup()
+    await flushPromises()
+
+    await expect(ctx.deleteTransactions(['uno', 'dos'])).rejects.toThrow()
+
+    expect(deleted()).toEqual(['uno'])
+    api.mockReset().mockResolvedValue([])
+  })
+
   it('manda el motivo escrito junto con la eliminación', async () => {
     const ctx = setup()
     await flushPromises()

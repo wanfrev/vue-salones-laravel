@@ -1026,6 +1026,17 @@ function useFinancialSummary(
   }
 
   /**
+   * Elimina varios cobros UNO POR UNO, esperando a que termine cada uno. El servidor recalcula el estado de pago de la
+   * cita con los cobros que le quedan; si se mandan todos a la vez, cada borrado todavía "ve" a los demás y la cita
+   * puede quedar como pagada sin tener ningún cobro (y ya no vuelve al punto de venta, p. ej. un crédito y su abono).
+   */
+  const deleteTransactions = async (ids: string[], reason: string | null = null) => {
+    for (const id of ids) {
+      await deleteTransactionMutation.mutateAsync({ transactionId: id, reason })
+    }
+  }
+
+  /**
    * `onlyThis`: eliminar SOLO ese cobro. Se usa en la lista de transacciones individuales: ahí cada fila es un cobro, y
    * arrastrar al resto del grupo borraba también los cobros buenos (p. ej. al quitar un cobro duplicado). Sin esto, la
    * fila de «Cobros de citas» agrupa los cobros de una cita (o de un grupo) y los elimina todos juntos.
@@ -1043,7 +1054,7 @@ function useFinancialSummary(
       // Opcional: queda guardado en el historial de correcciones aunque se deje en blanco, esto
       // solo añade el porqué para quien lo revise después.
       const reason = window.prompt('Motivo (opcional) -- queda guardado en el historial de correcciones:') || null
-      Promise.all(ids.map(id => deleteTransactionMutation.mutateAsync({ transactionId: id, reason })))
+      deleteTransactions(ids, reason)
         .catch((err: unknown) => showError(translateError(err, 'Error al eliminar cobro')))
     }
   }
@@ -1084,6 +1095,7 @@ function useFinancialSummary(
     isLoading,
     editTransactionMutation,
     deleteTransactionMutation,
+    deleteTransactions,
     deleteProductSaleMutation,
     handleDeleteProductSale,
     showEditModal,
