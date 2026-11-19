@@ -40,7 +40,7 @@ class NotificationController
             $this->notificationService->list(
                 $p->business_id,
                 $p->id,
-                $request->get('unread_only'),
+                $request->boolean('unread_only'),
                 $this->getRole($p),
                 $this->getBranchId($p),
             )
