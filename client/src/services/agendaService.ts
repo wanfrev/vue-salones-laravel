@@ -131,23 +131,45 @@ interface SaveDeps {
   clientId: string
 }
 
+export type CachedServiceSummary = {
+  id: string
+  price: number
+  duration_minutes: number
+}
+
+function toServiceStub(s: CachedServiceSummary): Service {
+  return {
+    id: s.id,
+    price: s.price,
+    duration_minutes: s.duration_minutes,
+  } as Service
+}
+
 async function resolveSaveDeps(
   businessId: string,
   data: { service: string; clientId?: string; clientName: string; clientPhone?: string; clientEmail?: string; notes: string },
   branchId: string | null | undefined,
   allowCreateClient: boolean,
+  cachedServices?: Map<string, CachedServiceSummary>,
 ): Promise<SaveDeps> {
-  let svcQuery = db
-    .from('services')
-    .select('*')
-    .eq('id', data.service)
+  let service: Service | undefined = cachedServices?.get(data.service)
+    ? toServiceStub(cachedServices.get(data.service)!)
+    : undefined
 
-  if (branchId) {
-    svcQuery = svcQuery.eq('branch_id', branchId)
+  if (!service) {
+    let svcQuery = db
+      .from('services')
+      .select('*')
+      .eq('id', data.service)
+
+    if (branchId) {
+      svcQuery = svcQuery.eq('branch_id', branchId)
+    }
+
+    const { data: fetchedService, error: serviceError } = await svcQuery.single()
+    if (serviceError) throw new Error(serviceError.message || 'Servicio no encontrado')
+    service = fetchedService as Service
   }
-
-  const { data: service, error: serviceError } = await svcQuery.single()
-  if (serviceError) throw new Error(serviceError.message || 'Servicio no encontrado')
 
   let clientId: string
   if (data.clientId) {
@@ -164,7 +186,7 @@ async function resolveSaveDeps(
     clientId = client.id
   }
 
-  return { service: service as Service, clientId }
+  return { service, clientId }
 }
 
 async function deleteOrphanGroupMembers(
@@ -414,12 +436,28 @@ async function updateExistingGroup(
 async function fetchServicesMap(
   serviceIds: string[],
   branchId: string | null | undefined,
+  cachedServices?: Map<string, CachedServiceSummary>,
 ): Promise<Map<string, Service>> {
-  let query = db.from('services').select('*').in('id', serviceIds)
+  const result = new Map<string, Service>()
+  const missingIds: string[] = []
+  for (const id of serviceIds) {
+    const cached = cachedServices?.get(id)
+    if (cached) {
+      result.set(id, toServiceStub(cached))
+    } else if (!result.has(id)) {
+      missingIds.push(id)
+    }
+  }
+  if (missingIds.length === 0) return result
+
+  let query = db.from('services').select('*').in('id', missingIds)
   if (branchId) query = query.eq('branch_id', branchId)
   const { data, error } = await query
   if (error) throw error
-  return new Map((data as Service[]).map(s => [s.id, s]))
+  for (const s of data as Service[]) {
+    result.set(s.id, s)
+  }
+  return result
 }
 
 async function resolveGroupId(appointmentId?: string): Promise<string> {
@@ -442,6 +480,7 @@ export const saveCita = async (
   createdBy?: string | null,
   branchId?: string | null,
   allowCreateClient?: boolean,
+  cachedServices?: Map<string, CachedServiceSummary>,
 ): Promise<Cita> => {
   const parsed = citaFormSchema.safeParse(data)
   if (!parsed.success) {
@@ -449,7 +488,7 @@ export const saveCita = async (
   }
 
   const { service, clientId } = await resolveSaveDeps(
-    businessId, data, branchId, allowCreateClient ?? true,
+    businessId, data, branchId, allowCreateClient ?? true, cachedServices,
   )
 
   if (!data.extraServices || data.extraServices.length === 0) {
@@ -459,7 +498,7 @@ export const saveCita = async (
   // Multi-service (grouped) path
   const groupId = await resolveGroupId(data.id)
   const allServiceIds = [parsed.data.service, ...data.extraServices.map(e => e.serviceId)]
-  const servicesMap = await fetchServicesMap(allServiceIds, branchId)
+  const servicesMap = await fetchServicesMap(allServiceIds, branchId, cachedServices)
 
   const desiredPayloads = await buildServicePayloads(
     businessId, parsed.data, clientId, groupId,

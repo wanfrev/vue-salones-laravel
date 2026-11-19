@@ -8,10 +8,10 @@
     :is-loading="isLoading"
     :is-confirm-disabled="isReadOnly || !isFormValid || saveInProgress"
     :confirm-text="confirmButtonLabel"
-    @close="close"
+    @close="handleClose"
     @confirm="formRef?.requestSubmit()"
   >
-    <form ref="formRef" @submit.prevent="handleSubmit" class="space-y-5">
+    <form ref="formRef" @submit.prevent="handleSubmit" novalidate class="space-y-5">
       <p v-if="isReadOnly" class="rounded-lg bg-bg-secondary px-3 py-2 text-xs text-text-muted">
          Solo puedes ver esta {{ t.appointment.toLowerCase() }} — tu perfil no tiene permiso para agendar/editar {{ t.appointmentPlural.toLowerCase() }}.
       </p>
@@ -776,7 +776,12 @@ const confirmButtonLabel = computed(() => {
 })
 
 watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData], async ([open, cita, paymentData]) => {
-  if (!open) return; commissionDetailOpen.clear(); commissionSnapshots.clear(); activeEmployeeOverrides.clear()
+  if (!open) {
+    saveInProgress.value = false
+    return
+  }
+  saveInProgress.value = false
+  commissionDetailOpen.clear(); commissionSnapshots.clear(); activeEmployeeOverrides.clear()
   if (showAssociatedProducts.value) {
     loadAvailableProducts()
   }
@@ -922,7 +927,15 @@ const validateForm = (): boolean => {
 
 const handleSubmit = () => {
   if (saveInProgress.value) return
-  if (!validateForm()) return
+  if (!validateForm()) {
+    const errObj = (errors.value || {}) as Record<string, any>
+    const rowErrs = errObj.rowErrors as Record<number, Record<string, string>> | undefined
+    const firstRowErr = rowErrs ? Object.values(rowErrs).flatMap(r => Object.values(r)).find(Boolean) : undefined
+    const firstFieldErr = Object.entries(errObj).find(([k, v]) => k !== 'rowErrors' && typeof v === 'string' && v)?.[1] as string | undefined
+    const firstMsg = firstFieldErr || firstRowErr
+    if (firstMsg) showError(firstMsg)
+    return
+  }
   saveInProgress.value = true
 
   if (formData.value.associatedProducts && formData.value.associatedProducts.length > 0) {
@@ -958,6 +971,10 @@ const handleSubmit = () => {
 }
 
 const onSaveComplete = () => { saveInProgress.value = false }
+const handleClose = () => {
+  saveInProgress.value = false
+  close()
+}
 const confirmDelete = () => { const id = modalData.value?.cita?.id; if (id) emit('delete', id) }
 const open = (cita?: Cita, paymentData?: PaymentEditContext) => { useModal(MODAL_ID).open({ cita, paymentData }) }
 

@@ -8,10 +8,10 @@
     :is-loading="saveInProgress"
     :is-confirm-disabled="!isFormValid || saveInProgress"
     :confirm-text="confirmButtonLabel"
-    @close="close"
+    @close="handleClose"
     @confirm="formRef?.requestSubmit()"
   >
-    <form ref="formRef" @submit.prevent="handleSubmit" class="space-y-4">
+    <form ref="formRef" @submit.prevent="handleSubmit" novalidate class="space-y-4">
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <CitaClientSearch
           v-model="formData.clientName"
@@ -131,6 +131,7 @@ function defaultFormData(): CitaFormData {
 const formData = ref<CitaFormData>(defaultFormData())
 
 watch(isOpen, (open) => {
+  saveInProgress.value = false
   if (open) formData.value = defaultFormData()
 })
 
@@ -173,6 +174,10 @@ function handleSubmit() {
 }
 
 const onSaveComplete = () => { saveInProgress.value = false }
+const handleClose = () => {
+  saveInProgress.value = false
+  close()
+}
 const open = () => useModal(MODAL_ID).open()
 
 defineExpose({ open, close, isOpen, onSaveComplete })

@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { UNDO_WINDOW_MS, useNotification } from '../common/useNotification'
 import { busySlotsFrom, describeConflict, findConflicts } from '../../components/agenda/conflicts'
 import { snapshotAppointment } from './undoSnapshot'
-import { saveCita, updateCitaStatus, updateAppointmentTime, deleteCita, setAppointmentCheckedIn } from '../../services/agendaService'
+import { saveCita, updateCitaStatus, updateAppointmentTime, deleteCita, setAppointmentCheckedIn, type CachedServiceSummary } from '../../services/agendaService'
 import { listConsents } from '../../services/dental/consentService'
 import { posKeys, updateTransaction } from '../../services/posService'
 import { clientesKeys } from '../../services/clientesService'
@@ -61,10 +61,30 @@ export function useAppointmentMutations(options: {
     ))
   }
 
+  const buildCachedServicesMap = (): Map<string, CachedServiceSummary> => {
+    const map = new Map<string, CachedServiceSummary>()
+    for (const keyPrefix of [['servicios'], ['services']] as const) {
+      const queries = queryClient.getQueriesData<any[]>({ queryKey: keyPrefix, exact: false })
+      for (const [, list] of queries) {
+        if (!Array.isArray(list)) continue
+        for (const item of list) {
+          if (!item?.id) continue
+          const duration = Number(item.duration_minutes ?? item.duration ?? 0)
+          const price = Number(item.price ?? 0)
+          if (duration > 0) {
+            map.set(item.id, { id: item.id, price, duration_minutes: duration })
+          }
+        }
+      }
+    }
+    return map
+  }
+
   const saveCitaMutation = useMutation({
     mutationFn: async (input: CitaFormData & { id?: string; clientPhone?: string; _paymentData?: PaymentEditContext }) => {
       const { _paymentData: paymentData, ...data } = input
-      const savedCita = await saveCita(options.businessId.value!, data, options.createdBy?.value, businessStore.currentBranchId, allowCreateClient.value)
+      const cachedServices = buildCachedServicesMap()
+      const savedCita = await saveCita(options.businessId.value!, data, options.createdBy?.value, businessStore.currentBranchId, allowCreateClient.value, cachedServices)
 
       if (paymentData) {
         const normalizedGroupId = (savedCita as any).groupId
@@ -281,7 +301,11 @@ export function useAppointmentMutations(options: {
   }
 
   const handleSaveCita = async (data: CitaFormData & { id?: string; clientPhone?: string; paymentData?: PaymentEditContext }) => {
-    if (saveCitaMutation.isPending.value) return
+    if (saveCitaMutation.isPending.value) {
+      options.modalRef?.value?.onSaveComplete?.()
+      showError('Ya hay una cita guardándose, espera un momento...')
+      return
+    }
     if (!getAuthToken()) {
       try {
         await db.auth.getSession()
