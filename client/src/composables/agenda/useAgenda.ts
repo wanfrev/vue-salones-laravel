@@ -6,12 +6,11 @@ import { useBusinessStore } from '../../store/business'
 import { APPOINTMENT_SELECT } from '../../services/agendaService'
 import type { Profile, Service } from '../../types/database'
 
-function defaultWeekRange() {
+function defaultDayRange() {
   const today = new Date()
   const start = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const end = new Date(start)
-  end.setDate(end.getDate() + 7)
-  end.setMilliseconds(-1)
+  end.setDate(end.getDate() + 1)
   return { start, end }
 }
 
@@ -22,9 +21,15 @@ export const useAgenda = () => {
   const currentBranchId = computed(() => businessStore.currentBranchId)
 
   const selectedEmployeeId = ref<string | 'all'>('all')
-  const dateRange = ref(defaultWeekRange())
+  const dateRange = ref(defaultDayRange())
 
   const setDateRange = (start: Date, end: Date) => {
+    if (
+      dateRange.value.start.getTime() === start.getTime() &&
+      dateRange.value.end.getTime() === end.getTime()
+    ) {
+      return
+    }
     dateRange.value = { start, end }
   }
 

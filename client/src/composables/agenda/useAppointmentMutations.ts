@@ -59,15 +59,6 @@ export function useAppointmentMutations(options: {
     await Promise.allSettled(keys.map(key =>
       queryClient.invalidateQueries({ queryKey: key, exact: false })
     ))
-
-    const agendaRefreshes = bid ? [
-      queryClient.refetchQueries({ queryKey: ['appointments', bid], exact: false, type: 'all' }),
-      queryClient.refetchQueries({ queryKey: posKeys.pending(bid, brId), exact: true, type: 'all' }),
-    ] : [
-      queryClient.refetchQueries({ queryKey: ['appointments'], exact: false, type: 'all' }),
-      queryClient.refetchQueries({ queryKey: posKeys.pending(bid, brId), exact: true, type: 'all' }),
-    ]
-    await Promise.allSettled(agendaRefreshes)
   }
 
   const saveCitaMutation = useMutation({
@@ -376,7 +367,6 @@ export function useAppointmentMutations(options: {
       if (conflicts.length > 0) {
         showError(describeConflict(conflicts))
         await invalidate()
-        await queryClient.refetchQueries({ exact: false, queryKey: ['appointments'], type: 'all' })
         return
       }
     }

@@ -341,10 +341,11 @@ class AppointmentService
 
     private function getWithRelations(): array
     {
-        $relations = ['client', 'service', 'employeeProfile', 'assistantProfile'];
-        if (\Illuminate\Support\Facades\Schema::hasTable('service_products')) {
-            $relations[] = 'service.linkedProducts.product';
-        }
-        return $relations;
+        return [
+            'client:id,full_name,phone,email',
+            'service:id,name,duration_minutes,price,color,is_fixed_commission,fixed_commission_amount,fixed_commission_assistant_amount',
+            'employeeProfile:id,full_name,avatar_url',
+            'assistantProfile:id,full_name,avatar_url',
+        ];
     }
 }

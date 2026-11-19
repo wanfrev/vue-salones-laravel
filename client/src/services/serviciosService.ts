@@ -26,40 +26,13 @@ export const listServicios = async (businessId: string, branchId?: string | null
 
   const services = (data as Service[])
 
-  const now = new Date()
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999)
-
-  let apptsQuery = db
-    .from('appointments')
-    .select('service_id, transactions(total_amount)')
-    .eq('business_id', businessId)
-    .gte('start_time', monthStart.toISOString())
-    .lte('start_time', monthEnd.toISOString())
-
-  if (branchId) {
-    apptsQuery = apptsQuery.eq('branch_id', branchId)
-  }
-
-  const { data: apptsData } = await apptsQuery
-
-  const statsByService = new Map<string, { count: number; revenue: number }>()
-  for (const a of (apptsData ?? []) as any[]) {
-    const sid = a.service_id
-    const current = statsByService.get(sid) ?? { count: 0, revenue: 0 }
-    current.count++
-    if (a.transactions?.length) {
-      for (const tx of a.transactions) {
-        current.revenue += Number(tx.total_amount ?? 0)
-      }
-    }
-    statsByService.set(sid, current)
-  }
-
-  return services.map(service => {
-    const stats = statsByService.get(service.id)
-    return mapServiceToServicio(service, stats?.count ?? 0, stats?.revenue ?? 0)
-  })
+  return services.map(service =>
+    mapServiceToServicio(
+      service,
+      Number((service as any).citas_mes ?? 0),
+      Number((service as any).ingresos_mes ?? 0),
+    )
+  )
 }
 
 export const listActiveDbServices = async (businessId: string, branchId?: string | null): Promise<Service[]> => {

@@ -27,7 +27,55 @@ class ServiceService
             });
         }
 
-        return $query->get();
+        $services = $query->get();
+        if ($services->isEmpty()) {
+            return $services;
+        }
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('appointments')) {
+            $monthStart = now()->startOfMonth();
+            $monthEnd = now()->endOfMonth();
+
+            $statsQuery = \Illuminate\Support\Facades\DB::table('appointments')
+                ->where('appointments.business_id', $businessId)
+                ->whereNull('appointments.clinical_history')
+                ->whereBetween('appointments.start_time', [$monthStart, $monthEnd]);
+
+            if ($branchId) {
+                $statsQuery->where(function ($q) use ($branchId) {
+                    $q->whereNull('appointments.branch_id')->orWhere('appointments.branch_id', $branchId);
+                });
+            }
+
+            if (\Illuminate\Support\Facades\Schema::hasTable('transactions')) {
+                $txTotals = \Illuminate\Support\Facades\DB::table('transactions')
+                    ->selectRaw('appointment_id, COALESCE(SUM(total_amount), 0) as tx_total')
+                    ->where('business_id', $businessId)
+                    ->whereNotNull('appointment_id')
+                    ->groupBy('appointment_id');
+
+                $stats = $statsQuery
+                    ->leftJoinSub($txTotals, 'tx', 'tx.appointment_id', '=', 'appointments.id')
+                    ->selectRaw('appointments.service_id, COUNT(appointments.id) as citas_mes, COALESCE(SUM(tx.tx_total), 0) as ingresos_mes')
+                    ->groupBy('appointments.service_id')
+                    ->get()
+                    ->keyBy('service_id');
+            } else {
+                $stats = $statsQuery
+                    ->selectRaw('appointments.service_id, COUNT(appointments.id) as citas_mes, 0 as ingresos_mes')
+                    ->groupBy('appointments.service_id')
+                    ->get()
+                    ->keyBy('service_id');
+            }
+
+            foreach ($services as $service) {
+                $row = $stats->get($service->id);
+                $service->setAttribute('citas_mes', $row ? (int) $row->citas_mes : 0);
+                $service->setAttribute('ingresos_mes', $row ? round((float) $row->ingresos_mes, 2) : 0.0);
+            }
+        }
+
+        return $services;
     }
 
     public function listActive(string $businessId, ?string $branchId = null): Collection

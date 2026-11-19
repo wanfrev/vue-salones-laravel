@@ -63,6 +63,7 @@ class ParseApiFilters
 
         if (!empty($parsed)) {
             $request->merge($parsed);
+            $request->query->add($parsed);
         }
 
         return $next($request);

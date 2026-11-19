@@ -42,7 +42,22 @@ class TransactionController
         $query = \App\Models\Transaction::where('business_id', $businessId);
 
         if ($request->has('appointment_id')) {
-            $query->where('appointment_id', $request->get('appointment_id'));
+            $rawApptId = $request->input('appointment_id') ?? $request->get('appointment_id');
+            if (is_array($rawApptId)) {
+                $cleanIds = array_values(array_filter(array_map(
+                    fn ($v) => preg_replace('/^(eq|neq|in)\./i', '', trim((string) $v)),
+                    $rawApptId
+                )));
+                $query->whereIn('appointment_id', $cleanIds);
+            } elseif (is_string($rawApptId)) {
+                $clean = preg_replace('/^(eq|neq)\./i', '', trim($rawApptId));
+                if (preg_match('/^in\.\((.*)\)$/i', $clean, $m)) {
+                    $ids = array_values(array_filter(array_map('trim', explode(',', $m[1]))));
+                    $query->whereIn('appointment_id', $ids);
+                } else {
+                    $query->where('appointment_id', $clean);
+                }
+            }
         }
 
         return response()->json($query->orderByDesc('paid_at')->get());

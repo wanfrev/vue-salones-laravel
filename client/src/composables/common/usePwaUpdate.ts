@@ -14,7 +14,7 @@ let updateSW: ((reloadPage?: boolean) => Promise<void>) | null = null
 let registration: ServiceWorkerRegistration | null = null
 let initialized = false
 
-const UPDATE_CHECK_MS = 15_000
+const UPDATE_CHECK_MS = 60_000
 
 // Justo después de aplicar una actualización, el primer pedido de sw.js tras el
 // reload puede caer en un servidor/nodo de CDN que todavía no terminó de
