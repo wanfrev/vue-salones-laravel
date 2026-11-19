@@ -51,7 +51,7 @@ class AppointmentController
                 return;
             }
 
-            SendAppointmentConfirmationJob::dispatchAfterResponse($appointment->id);
+            SendAppointmentConfirmationJob::dispatch($appointment->id);
         } catch (\Throwable $e) {
             Log::error("[AppointmentController] Error sending WhatsApp confirmation for appointment {$appointment->id}: {$e->getMessage()}");
         }

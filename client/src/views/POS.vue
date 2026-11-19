@@ -1466,6 +1466,7 @@ const tryAutoSelect = () => {
   )
   if (found) {
     selectAppointment(found)
+    if (isMobile.value) mobilePaymentOpen.value = true
     applyPrefill()
     router.replace({ query: {} })
   }
@@ -1537,8 +1538,9 @@ watch(() => route.query.appointmentId, async (newId) => {
   }
   if (found) {
     selectAppointment(found)
+    if (isMobile.value) mobilePaymentOpen.value = true
     applyPrefill()
     router.replace({ query: {} })
   }
-})
+}, { immediate: true })
 </script>

@@ -288,6 +288,21 @@ function useFinancialSummary(
     // Agruparlas sumaria su monto contra el del abono real, duplicando el "cobro" visualmente.
     const groupKey = (row: TransactionRow) =>
       row.rawMethod === 'credito' ? row.id : ((row as any).groupId ?? row.appointmentId ?? row.id)
+    const visitKeyOf = (row: TransactionRow) =>
+      (row as any).groupId ?? row.appointmentId ?? row.id
+    const txIdsByVisit = new Map<string, string[]>()
+    for (const row of raw) {
+      const vKey = visitKeyOf(row)
+      const list = txIdsByVisit.get(vKey)
+      if (list) {
+        for (const id of row.transactionIds ?? [row.id]) {
+          if (!list.includes(id)) list.push(id)
+        }
+      } else {
+        txIdsByVisit.set(vKey, [...(row.transactionIds ?? [row.id])])
+      }
+    }
+
     const groupMap = new Map<string, TransactionRow & { employees: string[]; services: string[]; transactionIds: string[]; rawRows: TransactionRow[] }>()
 
     for (const row of raw) {
@@ -313,6 +328,7 @@ function useFinancialSummary(
     }
 
     return Array.from(groupMap.values()).map(r => {
+      const visitIds = r.rawMethod === 'credito' ? r.transactionIds : (txIdsByVisit.get(visitKeyOf(r)) ?? r.transactionIds)
       const groupedRows = r.rawRows
       const isGrouped = groupedRows.length > 1
       const isMixed = r.breakdown && r.breakdown.length > 1
@@ -355,6 +371,7 @@ function useFinancialSummary(
       const mergedBreakdown = isGrouped ? [...mergedBreakdownMap.values()] : null
       return {
         ...r,
+        transactionIds: visitIds,
         employee: r.employees.filter(e => e && e !== '—').join(', ') || '—',
         service: r.services.filter(s => s).join(' + '),
         method: isGrouped && (isMixed || methodsDifferAcrossGroup || currenciesMixed)
@@ -536,10 +553,15 @@ function useFinancialSummary(
         : amt * exchangeRateUsed
       const singleBankName = breakdown && breakdown.length === 1 ? breakdown[0].bank_name : null
 
+      const matchedVisit = tx.appointment_id
+        ? appointmentIncomeDetails.value.find(r => r.appointmentId === tx.appointment_id || (r.transactionIds?.includes(tx.id) ?? false))
+        : undefined
+
       result.push({
         id: tx.id,
         appointmentId: tx.appointment_id || undefined,
         appointment_id: tx.appointment_id || undefined,
+        transactionIds: matchedVisit?.transactionIds ?? [tx.id],
         date: formatDate(tx.paid_at),
         description: isStandaloneTip ? clientLabel : `${clientLabel} · ${serviceLabel}`,
         clientName: clientLabel,
@@ -857,8 +879,8 @@ function useFinancialSummary(
       tip_amount: params.tipAmount,
       employee_percentage: params.employeePercentage,
     }),
-    onSuccess: async () => {
-      await Promise.allSettled([
+    onSuccess: () => {
+      void Promise.allSettled([
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['appointments'] }),
@@ -871,8 +893,8 @@ function useFinancialSummary(
   const deleteTransactionMutation = useMutation({
     mutationFn: (params: { transactionId: string; reason?: string | null }) =>
       apiRequest('DELETE', `/transactions/${params.transactionId}`, params.reason ? { reason: params.reason } : undefined),
-    onSuccess: async () => {
-      await Promise.allSettled([
+    onSuccess: () => {
+      void Promise.allSettled([
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-summary'] }),
@@ -886,8 +908,8 @@ function useFinancialSummary(
   const deleteProductSaleMutation = useMutation({
     mutationFn: (movementId: string) =>
       apiRequest('DELETE', `/inventory-movements/${movementId}`),
-    onSuccess: async () => {
-      await Promise.allSettled([
+    onSuccess: () => {
+      void Promise.allSettled([
         queryClient.invalidateQueries({ exact: false, queryKey: ['inventario'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-product-sales'] }),
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),

@@ -38,10 +38,6 @@ export const listProductos = async (businessId: string, branchId?: string | null
     productsQuery = productsQuery.eq('branch_id', branchId)
   }
 
-  const { data: products, error } = await productsQuery
-
-  if (error) throw error
-
   let catQuery = db
     .from('product_categories')
     .select('id, name')
@@ -49,13 +45,6 @@ export const listProductos = async (businessId: string, branchId?: string | null
 
   if (branchId) {
     catQuery = catQuery.eq('branch_id', branchId)
-  }
-
-  const { data: categories } = await catQuery
-
-  const catMap = new Map<string, string>()
-  for (const cat of (categories ?? []) as ProductCategory[]) {
-    catMap.set(cat.id, cat.name)
   }
 
   let stockQuery = db
@@ -67,7 +56,18 @@ export const listProductos = async (businessId: string, branchId?: string | null
     stockQuery = stockQuery.eq('branch_id', branchId)
   }
 
-  const { data: stock } = await stockQuery
+  const [
+    { data: products, error },
+    { data: categories },
+    { data: stock },
+  ] = await Promise.all([productsQuery, catQuery, stockQuery])
+
+  if (error) throw error
+
+  const catMap = new Map<string, string>()
+  for (const cat of (categories ?? []) as ProductCategory[]) {
+    catMap.set(cat.id, cat.name)
+  }
 
   const stockMap = new Map<string, number>()
   for (const s of (stock ?? []) as Array<{ product_id: string; quantity: number }>) {
