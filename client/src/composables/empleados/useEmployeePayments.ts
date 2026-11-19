@@ -25,7 +25,7 @@ import {
   getEmployeeBalance,
   listSchedules,
 } from '../../services/employeePaymentsService'
-import { listEquipo } from '../../services/equipoService'
+import { equipoKeys, listEquipo } from '../../services/equipoService'
 import { listProductos, productosKeys, type ProductoRow } from '../../services/productosService'
 
 export function useEmployeePayments(
@@ -209,7 +209,7 @@ export function useEmployeePayments(
 
   // ── Employee list for dropdowns (exclude cajeros) ──
   const { data: employeeListData } = useQuery({
-    queryKey: computed(() => ['employees-for-payment', businessId.value, branchId.value]),
+    queryKey: computed(() => equipoKeys.all(businessId.value, branchId.value)),
     queryFn: () => listEquipo(businessId.value!, branchId.value),
     enabled: computed(() => !!businessId.value),
     staleTime: 5 * 60 * 1000,

@@ -1,7 +1,7 @@
 import { computed, ref, type Ref } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useNotification } from '../common/useNotification'
-import { db } from '../../lib/api'
+import { db, getAuthToken } from '../../lib/api'
 import { translateError } from '../../lib/errors'
 
 export interface UseCrudOptions<TData, TForm, TId = string> {
@@ -52,7 +52,6 @@ export function useCrud<TData, TForm, TId = string>(options: UseCrudOptions<TDat
       keys.push(queryClient.invalidateQueries({ exact: false, queryKey: extra(businessId.value, currentBranchId.value) }))
     }
     await Promise.allSettled(keys)
-    await queryClient.refetchQueries({ exact: false, queryKey: key })
   }
 
   const saveMutation = useMutation({
@@ -89,7 +88,7 @@ export function useCrud<TData, TForm, TId = string>(options: UseCrudOptions<TDat
       saveError.value = translateError(err)
       showError(saveError.value)
     },
-    onSettled: async (_data, error) => {
+    onSettled: (_data, error) => {
       // Only close the modal (and clear the inline error) on success — closing unconditionally
       // made a failed save look identical to a successful one: the error toast from onError can
       // be easy to miss, and the modal disappearing reads as "done" either way.
@@ -98,16 +97,16 @@ export function useCrud<TData, TForm, TId = string>(options: UseCrudOptions<TDat
         modalRef?.value?.close()
         success(`${entityName} guardado correctamente`)
       }
-      await invalidateAll()
+      void invalidateAll()
     },
   })
 
   const deleteMutation = deleteFn
     ? useMutation({
         mutationFn: (id: TId) => deleteFn(id),
-        onSuccess: async (result) => {
-          await invalidateAll()
+        onSuccess: (result) => {
           modalRef?.value?.close()
+          void invalidateAll()
           // A delete that couldn't actually delete (real history — appointments, staffing
           // hours, payments — protecting it) falls back to marking inactive instead. Still a
           // successful request, but "eliminado correctamente" would be a lie, so it gets its
@@ -127,10 +126,12 @@ export function useCrud<TData, TForm, TId = string>(options: UseCrudOptions<TDat
 
   const handleSave = async (formData: TForm & { id?: TId }) => {
     saveError.value = ''
-    try {
-      await db.auth.getSession()
-    } catch {
-      // Proceed anyway — the mutation will trigger its own token check
+    if (!getAuthToken()) {
+      try {
+        await db.auth.getSession()
+      } catch {
+        // Proceed anyway — the mutation will trigger its own token check
+      }
     }
     try {
       await saveMutation.mutateAsync(formData)

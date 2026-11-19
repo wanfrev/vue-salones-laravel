@@ -10,7 +10,7 @@ import { clientesKeys } from '../../services/clientesService'
 import { dashboardKeys } from '../../services/employeeDashboardService'
 import { useBusinessStore } from '../../store/business'
 import { useAuthStore } from '../../store/auth'
-import { db } from '../../lib/api'
+import { db, getAuthToken } from '../../lib/api'
 import { translateError } from '../../lib/errors'
 import { distributeGroupPayment } from '../../business/paymentDistribution'
 import type { CitaFormData, PaymentEditContext } from '../../types/cita'
@@ -154,8 +154,8 @@ export function useAppointmentMutations(options: {
       options.modalRef?.value?.onSaveComplete?.()
       showError(translateError(err))
     },
-    onSettled: async () => {
-      await invalidate()
+    onSettled: () => {
+      void invalidate()
     },
   })
 
@@ -182,8 +182,8 @@ export function useAppointmentMutations(options: {
       }
       showError(translateError(err))
     },
-    onSettled: async () => {
-      await invalidate()
+    onSettled: () => {
+      void invalidate()
     },
   })
 
@@ -194,8 +194,8 @@ export function useAppointmentMutations(options: {
     mutationFn: ({ id, checkedIn }: { id: string; clientId: string; checkedIn: boolean }) =>
       setAppointmentCheckedIn(id, checkedIn),
     onError: (err) => showError(translateError(err)),
-    onSettled: async () => {
-      await invalidate()
+    onSettled: () => {
+      void invalidate()
     },
   })
 
@@ -282,9 +282,11 @@ export function useAppointmentMutations(options: {
 
   const handleSaveCita = async (data: CitaFormData & { id?: string; clientPhone?: string; paymentData?: PaymentEditContext }) => {
     if (saveCitaMutation.isPending.value) return
-    try {
-      await db.auth.getSession()
-    } catch {
+    if (!getAuthToken()) {
+      try {
+        await db.auth.getSession()
+      } catch {
+      }
     }
     try {
       const { paymentData, ...formData } = data
