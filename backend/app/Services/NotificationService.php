@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\SendWebPushNotificationsJob;
 use App\Models\Notification;
 use App\Models\Profile;
 use App\Support\NicheRegistry;
@@ -135,9 +136,10 @@ class NotificationService
      * solo `new_appointment` duplicada) en lugar de lanzar: una colisión no
      * debe abortar el resto de un lote ni la petición que la originó.
      */
-    public function create(array $data): ?Notification
+    public function create(array $data, ?bool $receiptOnlyOverride = null): ?Notification
     {
-        if ($this->isReceiptOnlyEmployee($data['profile_id'])) {
+        $isReceiptOnly = $receiptOnlyOverride ?? $this->isReceiptOnlyEmployee($data['profile_id']);
+        if ($isReceiptOnly) {
             return null;
         }
 
@@ -185,22 +187,48 @@ class NotificationService
     }
 
     /**
-     * Crea un lote de notificaciones y manda las push correspondientes en un
-     * único envío. Es la vía por la que deben pasar todos los orígenes: así el
-     * push sale con el contenido real y solo al perfil destinatario.
+     * Crea un lote de notificaciones y despacha las push en segundo plano (cola).
      *
      * @param  array<int, array<string, mixed>>  $rows
      * @return Collection<int, Notification>
      */
     public function createMany(array $rows): Collection
     {
+        if (empty($rows)) {
+            return collect();
+        }
+
+        // Precargar perfiles + negocio en 1 sola consulta para evitar N+1 en isReceiptOnlyEmployee().
+        $profileIds = collect($rows)->pluck('profile_id')->filter()->unique()->values()->all();
+        $profilesById = empty($profileIds)
+            ? collect()
+            : Profile::with('business')->whereIn('id', $profileIds)->get()->keyBy('id');
+
+        $receiptOnlyMap = [];
+        foreach ($profilesById as $id => $profile) {
+            if ($profile->role !== 'empleado' || !$profile->business) {
+                $receiptOnlyMap[$id] = false;
+                continue;
+            }
+            $features = NicheRegistry::resolveFeatures($profile->business->niche_type, $profile->business->features);
+            $receiptOnlyMap[$id] = (bool) ($features['employees_recibo_only'] ?? false);
+        }
+
         $created = collect($rows)
-            ->map(fn (array $row) => $this->create($row))
+            ->map(function (array $row) use ($receiptOnlyMap) {
+                $pid = $row['profile_id'] ?? null;
+                $override = ($pid && array_key_exists($pid, $receiptOnlyMap)) ? $receiptOnlyMap[$pid] : null;
+                return $this->create($row, $override);
+            })
             ->filter()
             ->values();
 
         if ($created->isNotEmpty()) {
-            $this->webPush->sendForNotifications($created);
+            try {
+                SendWebPushNotificationsJob::dispatch($created->pluck('id')->all());
+            } catch (\Throwable $e) {
+                Log::warning("[NotificationService] No se pudo encolar WebPush: {$e->getMessage()}");
+            }
         }
 
         return $created;

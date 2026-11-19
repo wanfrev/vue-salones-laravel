@@ -124,6 +124,8 @@ export function setAuthToken(token: string | null) {
   }
 }
 
+const API_TIMEOUT_MS = 30_000
+
 async function apiFetch<T>(
   method: string,
   path: string,
@@ -138,11 +140,15 @@ async function apiFetch<T>(
     headers['Authorization'] = `Bearer ${authToken}`
   }
 
+  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null
+  const timer = controller ? setTimeout(() => controller.abort(), API_TIMEOUT_MS) : null
+
   try {
     const res = await fetch(url, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
+      signal: controller?.signal,
     })
 
     if (res.status === 204) {
@@ -185,6 +191,15 @@ async function apiFetch<T>(
       : data
     return { data: unwrapped, error: null }
   } catch (err) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      return {
+        data: null,
+        error: {
+          message: 'La conexión tardó demasiado. Verifica tu internet e intenta de nuevo.',
+          code: 'TIMEOUT',
+        },
+      }
+    }
     return {
       data: null,
       error: {
@@ -192,6 +207,8 @@ async function apiFetch<T>(
         code: 'NETWORK_ERROR',
       },
     }
+  } finally {
+    if (timer) clearTimeout(timer)
   }
 }
 
