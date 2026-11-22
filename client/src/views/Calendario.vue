@@ -53,6 +53,7 @@ import { db } from '../lib/api'
 import { equipoKeys, listEquipo } from '../services/equipoService'
 import { listServicios, serviciosKeys } from '../services/serviciosService'
 import { useAppointmentMutations } from '../composables/agenda/useAppointmentMutations'
+import { loadPaymentEditContext } from '../composables/agenda/loadPaymentEditContext'
 import AgendaCalendar from '../components/agenda/AgendaCalendar.vue'
 import { toISODate, dateToHHmm } from '../lib/formatters'
 import { CitaFormModal, QuickCitaModal } from '../components/modals'
@@ -145,36 +146,8 @@ const handleSlotSelect = ({ start, end, employeeId }: { start: Date; end?: Date;
 const handleEventClick = async (event: { id: string; title: string; start: Date; end: Date; citaData?: Cita }) => {
   if (event.citaData) {
     const cita = event.citaData
-    if (cita.paymentStatus === 'paid' || cita.status === 'paid') {
-      const { data: tx } = await db
-        .from('transactions')
-        .select('id, total_amount, method, exchange_rate_used, payments_breakdown, notes, tip_amount')
-        .eq('appointment_id', cita.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-
-      if (tx) {
-        const paymentData: PaymentEditContext = {
-          transactionId: tx.id,
-          method: tx.method as PaymentMethod,
-          amount: tx.total_amount,
-          currency: 'USD',
-          exchangeRate: tx.exchange_rate_used ?? 1,
-          tipAmount: Number((tx as any).tip_amount ?? 0),
-          notes: (tx as any).notes || undefined,
-          breakdown: (tx as any).payments_breakdown || undefined,
-        }
-        const firstBreakdown = (tx as any).payments_breakdown?.[0]
-        if (firstBreakdown?.currency === 'VES') {
-          paymentData.currency = 'VES'
-          paymentData.amount = (tx as any).payments_breakdown.reduce((sum: number, item: any) => sum + item.inputAmount, 0)
-        }
-        citaModalRef.value?.open(cita, paymentData)
-        return
-      }
-    }
-    citaModalRef.value?.open(cita)
+    const paymentData = await loadPaymentEditContext(cita)
+    citaModalRef.value?.open(cita, paymentData ?? undefined)
   }
 }
 

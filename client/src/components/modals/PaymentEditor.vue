@@ -132,6 +132,23 @@ const paymentTipAmount = ref(0)
 const paymentExchangeRate = ref(1)
 const paymentNotes = ref('')
 const paymentBreakdown = ref<{ method: PaymentMethod; inputAmount: number; currency: 'USD' | 'VES'; amount: number }[]>([])
+const initialSnapshot = ref<string | null>(null)
+
+function buildSnapshot(): string {
+  return JSON.stringify({
+    method: paymentMethod.value,
+    currency: paymentCurrency.value,
+    amount: Number(paymentAmount.value ?? 0),
+    tipAmount: Number(paymentTipAmount.value ?? 0),
+    notes: paymentNotes.value ?? '',
+    breakdown: paymentBreakdown.value.map(b => ({
+      method: b.method,
+      currency: b.currency,
+      inputAmount: Number(b.inputAmount ?? 0),
+      amount: Number(b.amount ?? 0),
+    })),
+  })
+}
 
 const appointmentProducts = ref<AppointmentProduct[]>([])
 const appointmentProductsTotal = computed(() =>
@@ -231,6 +248,7 @@ function setPaymentContext(data: PaymentEditContext | null) {
     paymentExchangeRate.value = data.exchangeRate
     paymentNotes.value = data.notes || ''
     paymentBreakdown.value = data.breakdown ? data.breakdown.map(b => ({ ...b })) : []
+    initialSnapshot.value = buildSnapshot()
     appointmentProducts.value = []
     if (data.appointmentId) {
       db
@@ -261,11 +279,15 @@ function setPaymentContext(data: PaymentEditContext | null) {
     paymentExchangeRate.value = 1
     paymentNotes.value = ''
     paymentBreakdown.value = []
+    initialSnapshot.value = null
   }
 }
 
 function getPaymentData(): PaymentEditContext | undefined {
   if (!paymentContext.value) return undefined
+  if (initialSnapshot.value !== null && buildSnapshot() === initialSnapshot.value) {
+    return undefined
+  }
 
   const rate = paymentExchangeRate.value || 1
   const effectiveMethod: PaymentMethod = paymentBreakdown.value.length > 1 ? 'mixed' : paymentMethod.value
