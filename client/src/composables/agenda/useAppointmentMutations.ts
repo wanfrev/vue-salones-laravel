@@ -114,14 +114,21 @@ export function useAppointmentMutations(options: {
             }>
 
             if (txRows.length > 1) {
-              const planned = distributeGroupPayment(
-                txRows.map(tx => ({
-                  id: tx.id,
-                  totalAmount: tx.total_amount,
-                  tipAmount: Number(tx.tip_amount ?? 0),
-                })),
-                Number(paymentData.amount ?? 0),
-              )
+              const currentGroupTotal = txRows.reduce((sum, tx) => sum + Number(tx.total_amount ?? 0), 0)
+              const desiredTotal = Number(paymentData.amount ?? 0)
+              const amountUnchanged = Math.abs(desiredTotal - currentGroupTotal) < 0.01
+
+              const planned = amountUnchanged
+                ? txRows.map(tx => ({ id: tx.id, newTotal: Number(tx.total_amount ?? 0) }))
+                : distributeGroupPayment(
+                    txRows.map(tx => ({
+                      id: tx.id,
+                      totalAmount: Number(tx.total_amount ?? 0),
+                      // `transactions.total_amount` no incluye `tip_amount` (la propina va aparte).
+                      tipAmount: 0,
+                    })),
+                    desiredTotal,
+                  )
 
               await Promise.all(planned.map(row =>
                 updateTransaction({

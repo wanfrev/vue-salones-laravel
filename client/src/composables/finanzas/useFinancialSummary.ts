@@ -8,6 +8,7 @@ import { translateError } from '../../lib/errors'
 import { toYmd, resolvePeriod } from '../../lib/periodUtils'
 import { formatMethod, formatDate } from '../../lib/formatters'
 import { collectedAmount, isUncollectedSplit } from '../../lib/uncollected'
+import { distributeGroupPayment } from '../../business/paymentDistribution'
 import { useBanks } from './useBanks'
 import type { PaymentBreakdownItem } from '../../types/pos'
 import type { PaymentMethod } from '../../types/database'
@@ -51,6 +52,7 @@ export type TransactionRow = {
   notes?: string | null
   tipAmount?: number
   transactionIds?: string[]
+  groupSubTransactions?: Array<{ id: string; amount: number; tipAmount: number }>
   receiptCode?: string
   employeePercentage?: number
 }
@@ -372,6 +374,9 @@ function useFinancialSummary(
       return {
         ...r,
         transactionIds: visitIds,
+        groupSubTransactions: isGrouped
+          ? groupedRows.map(x => ({ id: x.id, amount: x.amount, tipAmount: x.tipAmount ?? 0 }))
+          : undefined,
         employee: r.employees.filter(e => e && e !== '—').join(', ') || '—',
         service: r.services.filter(s => s).join(' + '),
         method: isGrouped && (isMixed || methodsDifferAcrossGroup || currenciesMixed)
@@ -860,25 +865,30 @@ function useFinancialSummary(
   // ── Mutations ──
   const { success: notify, error: showError } = useNotification()
 
+  type EditTransactionPayload = {
+    transactionId: string
+    totalAmount?: number
+    method?: PaymentMethod
+    notes?: string | null
+    exchangeRate?: number
+    paymentsBreakdown?: PaymentBreakdownItem[]
+    tipAmount?: number
+    employeePercentage?: number
+  }
+
   const editTransactionMutation = useMutation({
-    mutationFn: (params: {
-      transactionId: string
-      totalAmount?: number
-      method?: PaymentMethod
-      notes?: string
-      exchangeRate?: number
-      paymentsBreakdown?: PaymentBreakdownItem[]
-      tipAmount?: number
-      employeePercentage?: number
-    }) => apiRequest('PUT', `/transactions/${params.transactionId}`, {
-      total_amount: params.totalAmount,
-      method: params.method,
-      notes: params.notes,
-      exchange_rate_used: params.exchangeRate,
-      payments_breakdown: params.paymentsBreakdown,
-      tip_amount: params.tipAmount,
-      employee_percentage: params.employeePercentage,
-    }),
+    mutationFn: async (params: EditTransactionPayload | { batch: EditTransactionPayload[] }) => {
+      const items = 'batch' in params ? params.batch : [params]
+      await Promise.all(items.map((item) => apiRequest('PUT', `/transactions/${item.transactionId}`, {
+        total_amount: item.totalAmount,
+        method: item.method,
+        notes: item.notes,
+        exchange_rate_used: item.exchangeRate,
+        payments_breakdown: item.paymentsBreakdown,
+        tip_amount: item.tipAmount,
+        employee_percentage: item.employeePercentage,
+      })))
+    },
     onSuccess: () => {
       void Promise.allSettled([
         queryClient.invalidateQueries({ exact: false, queryKey: ['finanzas-transactions'] }),
@@ -1030,12 +1040,68 @@ function useFinancialSummary(
   const saveEdit = () => {
     const tx = editingTransaction.value
     if (!tx) return
+    const desiredTotal = isEditingStandaloneTip.value
+      ? 0
+      : (isEditingMixed.value ? editingTotalAmount.value : editingAmount.value)
+    const subTxs = Array.isArray(tx.groupSubTransactions) && tx.groupSubTransactions.length > 1
+      ? (tx.groupSubTransactions as Array<{ id: string; amount: number; tipAmount: number }>)
+      : null
+
+    if (subTxs && !isEditingStandaloneTip.value) {
+      const currentTotal = subTxs.reduce((s, r) => s + Number(r.amount ?? 0), 0)
+      const amountUnchanged = Math.abs(desiredTotal - currentTotal) < 0.01
+      const planned = amountUnchanged
+        ? subTxs.map(r => ({ id: r.id, newTotal: Number(r.amount ?? 0) }))
+        : distributeGroupPayment(
+            // `transactions.total_amount` no incluye propina (se guarda aparte en `tip_amount`).
+            subTxs.map(r => ({ id: r.id, totalAmount: Number(r.amount ?? 0), tipAmount: 0 })),
+            desiredTotal,
+          )
+
+      const rate = Number(tx.exchange_rate_used ?? tx.exchangeRateUsed ?? 1) || 1
+      const method = editingMethod.value as PaymentMethod
+      const bankId = !isEditingMixed.value && isBankMethod(method) ? editingBankId.value : null
+      const baseCurrency = editingBreakdown.value[0]?.currency ?? editingCurrency.value
+
+      const batch: EditTransactionPayload[] = planned.map((row) => {
+        let subBreakdown: PaymentBreakdownItem[] | undefined
+        if (isEditingMixed.value && desiredTotal > 0) {
+          const share = row.newTotal / desiredTotal
+          subBreakdown = editingBreakdown.value.map(item => ({
+            ...item,
+            inputAmount: Number((item.inputAmount * share).toFixed(2)),
+            amount: Number((item.amount * share).toFixed(2)),
+          }))
+        } else if (!isEditingMixed.value) {
+          subBreakdown = [{
+            method,
+            currency: baseCurrency,
+            inputAmount: baseCurrency === 'VES' ? Number((row.newTotal * rate).toFixed(2)) : row.newTotal,
+            amount: row.newTotal,
+            bank_id: bankId ?? undefined,
+            bank_name: bankId ? bankName(bankId) ?? undefined : undefined,
+          }]
+        }
+        return {
+          transactionId: row.id,
+          totalAmount: row.newTotal,
+          method,
+          notes: editingNotes.value || null,
+          paymentsBreakdown: subBreakdown,
+        }
+      })
+
+      editTransactionMutation.mutate({ batch })
+      showEditModal.value = false
+      return
+    }
+
     const breakdown = isEditingStandaloneTip.value
       ? null
       : (isEditingMixed.value ? editingBreakdown.value : [buildSingleBreakdownItem()])
     editTransactionMutation.mutate({
       transactionId: tx.id,
-      totalAmount: isEditingStandaloneTip.value ? 0 : (isEditingMixed.value ? editingTotalAmount.value : editingAmount.value),
+      totalAmount: desiredTotal,
       method: editingMethod.value as PaymentMethod,
       notes: editingNotes.value || null,
       paymentsBreakdown: breakdown ?? undefined,
