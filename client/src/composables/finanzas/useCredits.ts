@@ -2,6 +2,7 @@ import { computed } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { apiRequest } from '../../lib/api'
 import { useAuthStore } from '../../store/auth'
+import { useBusinessStore } from '../../store/business'
 import { useNotification } from '../common/useNotification'
 import { translateError } from '../../lib/errors'
 import type { Credit, CreditPayment } from '../../types/database'
@@ -9,7 +10,9 @@ import type { Credit, CreditPayment } from '../../types/database'
 export function useCredits(periodDates?: import('vue').Ref<{ start: string; end: string } | null | undefined>) {
   const queryClient = useQueryClient()
   const authStore = useAuthStore()
+  const businessStore = useBusinessStore()
   const { success, error: showError } = useNotification()
+  const branchId = computed(() => businessStore.currentBranchId ?? null)
 
   const getBusinessId = () => {
     const id = authStore.businessId
@@ -18,10 +21,11 @@ export function useCredits(periodDates?: import('vue').Ref<{ start: string; end:
   }
 
   const creditsQuery = useQuery({
-    queryKey: computed(() => ['credits', authStore.businessId]),
+    queryKey: computed(() => ['credits', authStore.businessId, branchId.value]),
     queryFn: async () => {
       getBusinessId()
-      return await apiRequest<Credit[]>('GET', '/credits')
+      const qs = branchId.value ? `?branch_id=${encodeURIComponent(branchId.value)}` : ''
+      return await apiRequest<Credit[]>('GET', `/credits${qs}`)
     },
     enabled: computed(() => !!authStore.businessId),
     staleTime: 15000,

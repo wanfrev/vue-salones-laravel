@@ -29,6 +29,31 @@ class CreditController
         return $raw ?: null;
     }
 
+    private function resolveBranchId(Request $request): ?string
+    {
+        $profile = $request->user()?->profile;
+        // Encargados y empleados asignados a una sucursal siempre quedan acotados a su sede.
+        if ($profile && in_array($profile->role, ['encargado', 'empleado'], true) && $profile->branch_id) {
+            return $profile->branch_id;
+        }
+
+        $raw = $request->get('branch_id') ?? $request->query('branch_id');
+        if (is_string($raw) && preg_match('/^eq\.(.+)/i', $raw, $m)) {
+            return $m[1];
+        }
+
+        return is_string($raw) && $raw !== '' ? $raw : null;
+    }
+
+    private function canAccessCreditBranch(Request $request, Credit $credit): bool
+    {
+        $profile = $request->user()?->profile;
+        if ($profile && in_array($profile->role, ['encargado', 'empleado'], true) && $profile->branch_id) {
+            return $credit->branch_id === null || $credit->branch_id === $profile->branch_id;
+        }
+        return true;
+    }
+
     public function index(Request $request): JsonResponse
     {
         $businessId = $this->resolveBusinessId($request);
@@ -44,8 +69,8 @@ class CreditController
             $query->where('status', $request->query('status'));
         }
 
-        if ($request->filled('branch_id')) {
-            $branchId = $request->query('branch_id');
+        $branchId = $this->resolveBranchId($request);
+        if ($branchId) {
             $query->where(function ($q) use ($branchId) {
                 $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
             });
@@ -66,7 +91,7 @@ class CreditController
         }
 
         $credit = Credit::where('business_id', $businessId)->find($id);
-        if (!$credit) {
+        if (!$credit || !$this->canAccessCreditBranch($request, $credit)) {
             return response()->json(['message' => 'Crédito no encontrado.'], 404);
         }
 
@@ -91,7 +116,7 @@ class CreditController
         }
 
         $credit = Credit::where('business_id', $businessId)->find($id);
-        if (!$credit) {
+        if (!$credit || !$this->canAccessCreditBranch($request, $credit)) {
             return response()->json(['message' => 'Crédito no encontrado.'], 404);
         }
         if ($credit->status === 'paid') {
@@ -269,7 +294,7 @@ class CreditController
         }
 
         $credit = Credit::where('business_id', $businessId)->find($id);
-        if (!$credit) {
+        if (!$credit || !$this->canAccessCreditBranch($request, $credit)) {
             $error = response()->json(['message' => 'Crédito no encontrado.'], 404);
             return null;
         }
@@ -331,7 +356,7 @@ class CreditController
         }
 
         $credit = Credit::where('business_id', $businessId)->find($id);
-        if (!$credit) {
+        if (!$credit || !$this->canAccessCreditBranch($request, $credit)) {
             return response()->json(['message' => 'Crédito no encontrado.'], 404);
         }
 
