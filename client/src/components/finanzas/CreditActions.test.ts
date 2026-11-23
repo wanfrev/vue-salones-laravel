@@ -131,7 +131,7 @@ describe('Créditos: corregir, cerrar y eliminar desde la fila', () => {
   function mountSection(list: any[]) {
     const qc = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } })
     const pinia = createPinia()
-    qc.setQueryData(['credits', 'b1'], list)
+    qc.setQueryData(['credits', 'b1', null], list)
     const wrapper = mount(CreditosSection, { props: { periodDates: period }, attachTo: document.body, global: { plugins: [pinia, [VueQueryPlugin, { queryClient: qc }]] } })
     useAuthStore(pinia).$patch({ profile: { business_id: 'b1', role: 'admin' } as any })
     ;(useBusinessStore(pinia) as any).business = { id: 'b1', niche_type: 'salon', features: {} }
@@ -222,6 +222,23 @@ describe('Créditos: corregir, cerrar y eliminar desde la fila', () => {
     await flushPromises()
     expect(String(confirmSpy.mock.calls[0][0])).toContain('Esta acción no se puede deshacer')
     expect(calls()).toEqual(['DELETE /credits/cr2'])
+    w.unmount()
+  })
+
+  it('envía branch_id en GET /credits y recarga al cambiar de sucursal', async () => {
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const pinia = createPinia()
+    const w = mount(CreditosSection, { props: { periodDates: period }, attachTo: document.body, global: { plugins: [pinia, [VueQueryPlugin, { queryClient: qc }]] } })
+    useAuthStore(pinia).$patch({ profile: { business_id: 'b1', role: 'admin' } as any })
+    const bizStore = useBusinessStore(pinia) as any
+    bizStore.business = { id: 'b1', niche_type: 'salon', features: { multi_branch: true } }
+    bizStore.selectedBranchId = 'branch-premier'
+    await flushPromises()
+    expect(api).toHaveBeenCalledWith('GET', '/credits?branch_id=branch-premier')
+
+    bizStore.selectedBranchId = 'branch-terraza'
+    await flushPromises()
+    expect(api).toHaveBeenCalledWith('GET', '/credits?branch_id=branch-terraza')
     w.unmount()
   })
 })
