@@ -147,7 +147,7 @@ function toServiceStub(s: CachedServiceSummary): Service {
 
 async function resolveSaveDeps(
   businessId: string,
-  data: { service: string; clientId?: string; clientName: string; clientPhone?: string; clientEmail?: string; notes: string },
+  data: { service: string; clientId?: string; clientName: string; clientPhone?: string; clientPhoneChanged?: boolean; clientEmail?: string; notes: string },
   branchId: string | null | undefined,
   allowCreateClient: boolean,
   cachedServices?: Map<string, CachedServiceSummary>,
@@ -174,6 +174,19 @@ async function resolveSaveDeps(
   let clientId: string
   if (data.clientId) {
     clientId = data.clientId
+    const nextPhone = (data.clientPhone ?? '').trim()
+    if (nextPhone && nextPhone !== '0000000000' && data.clientPhoneChanged) {
+      const { error: clientUpdateError } = await db
+        .from('clients')
+        .update({ phone: nextPhone })
+        .eq('id', clientId)
+      if (clientUpdateError) {
+        if (clientUpdateError.code === '23505') {
+          throw new Error('Ya existe un cliente registrado con este teléfono')
+        }
+        throw new Error(clientUpdateError.message || 'No se pudo actualizar el teléfono del cliente')
+      }
+    }
   } else if (!allowCreateClient) {
     throw new Error('No tienes permiso para crear clientes. Selecciona un cliente existente.')
   } else {
@@ -476,7 +489,7 @@ async function resolveGroupId(appointmentId?: string): Promise<string> {
 
 export const saveCita = async (
   businessId: string,
-  data: CitaFormData & { id?: string; clientPhone?: string },
+  data: CitaFormData & { id?: string; clientPhone?: string; clientPhoneChanged?: boolean },
   createdBy?: string | null,
   branchId?: string | null,
   allowCreateClient?: boolean,

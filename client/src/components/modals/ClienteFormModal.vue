@@ -11,7 +11,7 @@
     @close="close"
     @confirm="handleSubmit"
   >
-    <form @submit.prevent>
+    <form @submit.prevent="handleSubmit" novalidate>
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 min-w-0 overflow-hidden">
         <!-- COLUMNA IZQUIERDA: Contacto / Información básica -->
         <div class="space-y-4 min-w-0">
@@ -57,6 +57,7 @@
               placeholder="Ej: MG-482"
                :hint="`Te ayuda a buscar o reconocer al ${terminology.client.toLowerCase()} rápido. No es obligatorio ni sigue un formato fijo.`"
               prefix-icon="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-5 5a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 9V4a1 1 0 011-1z"
+              :error="errors.code"
               class="flex-1"
             />
             <button
@@ -97,7 +98,7 @@
           </div>
 
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <FormInput v-model="formData.documentId" label="Cédula / documento de identidad" placeholder="Ej: V-12345678" />
+            <FormInput v-model="formData.documentId" label="Cédula / documento de identidad" placeholder="Ej: V-12345678" :error="errors.documentId" />
             <FormInput v-model="formData.emergencyPhone" label="Teléfono de emergencia" type="tel" placeholder="+58 412 1234567" />
           </div>
 
@@ -280,11 +281,14 @@ watch(
     if (!open) return
     if (cliente) {
       const meta = cliente.metadata ?? {} as Record<string, string>
+      for (const key of Object.keys(nicheValues)) {
+        delete nicheValues[key]
+      }
       formData.value = {
         name: cliente.name || '',
         phone: cliente.phone || '',
-        email: cliente.email || '',
-        code: cliente.code || '',
+        email: (cliente.email || '').trim(),
+        code: (cliente.code || '').trim(),
         notes: cliente.notes || '',
         birthday: cliente.birthday || '',
         preferredServices: cliente.preferredServices || [],
@@ -292,7 +296,7 @@ watch(
         middleName: cliente.middleName || '',
         lastName: cliente.lastName || '',
         secondLastName: cliente.secondLastName || '',
-        documentId: cliente.documentId || '',
+        documentId: (cliente.documentId || '').trim(),
         medicalInsurance: cliente.medicalInsurance || '',
         emergencyPhone: cliente.emergencyPhone || '',
       }
@@ -348,7 +352,12 @@ const confirmDelete = () => {
 }
 
 const handleSubmit = () => {
-  if (!validate()) return
+  if (!isFormValid.value) return
+  if (!validate()) {
+    const firstError = Object.values(errors.value || {}).find((v): v is string => typeof v === 'string' && v.length > 0)
+    if (firstError) showError(firstError)
+    return
+  }
   if (!handlePetValidation()) return
 
   const nicheMeta: Record<string, unknown> = { ...nicheValues }

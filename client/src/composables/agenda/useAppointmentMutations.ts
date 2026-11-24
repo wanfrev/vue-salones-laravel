@@ -81,7 +81,7 @@ export function useAppointmentMutations(options: {
   }
 
   const saveCitaMutation = useMutation({
-    mutationFn: async (input: CitaFormData & { id?: string; clientPhone?: string; _paymentData?: PaymentEditContext }) => {
+    mutationFn: async (input: CitaFormData & { id?: string; clientPhone?: string; clientPhoneChanged?: boolean; _paymentData?: PaymentEditContext }) => {
       const { _paymentData: paymentData, ...data } = input
       const cachedServices = buildCachedServicesMap()
       const savedCita = await saveCita(options.businessId.value!, data, options.createdBy?.value, businessStore.currentBranchId, allowCreateClient.value, cachedServices)
@@ -307,7 +307,7 @@ export function useAppointmentMutations(options: {
     })
   }
 
-  const handleSaveCita = async (data: CitaFormData & { id?: string; clientPhone?: string; paymentData?: PaymentEditContext }) => {
+  const handleSaveCita = async (data: CitaFormData & { id?: string; clientPhone?: string; clientPhoneChanged?: boolean; paymentData?: PaymentEditContext }) => {
     if (saveCitaMutation.isPending.value) {
       options.modalRef?.value?.onSaveComplete?.()
       showError('Ya hay una cita guardándose, espera un momento...')

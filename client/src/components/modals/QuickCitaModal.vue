@@ -82,7 +82,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  save: [cita: CitaFormData & { clientPhone?: string; clientEmail?: string }]
+  save: [cita: CitaFormData & { clientPhone?: string; clientPhoneChanged?: boolean; clientEmail?: string }]
 }>()
 
 const saveInProgress = ref(false)
@@ -129,14 +129,19 @@ function defaultFormData(): CitaFormData {
 }
 
 const formData = ref<CitaFormData>(defaultFormData())
+const loadedClientPhone = ref('')
 
 watch(isOpen, (open) => {
   saveInProgress.value = false
-  if (open) formData.value = defaultFormData()
+  if (open) {
+    loadedClientPhone.value = ''
+    formData.value = defaultFormData()
+  }
 })
 
-function onClientSelected(client: { id: string }) {
+function onClientSelected(client: { id: string; phone?: string }) {
   formData.value.clientId = client.id
+  loadedClientPhone.value = (client.phone ?? formData.value.clientPhone ?? '').trim()
 }
 
 function onServiceSelected(id: string) {
@@ -167,9 +172,18 @@ const confirmButtonLabel = computed(() => {
 function handleSubmit() {
   if (saveInProgress.value || !isFormValid.value) return
   saveInProgress.value = true
+  const trimmedPhone = formData.value.clientPhone.trim()
+  const clientPhoneChanged = Boolean(
+    formData.value.clientId &&
+    !hidePhoneFromEmployee.value &&
+    trimmedPhone.length >= 7 &&
+    trimmedPhone !== '0000000000' &&
+    trimmedPhone !== loadedClientPhone.value
+  )
   emit('save', {
     ...formData.value,
     clientPhone: formData.value.clientPhone || (hidePhoneFromEmployee.value ? '0000000000' : ''),
+    clientPhoneChanged,
   })
 }
 
