@@ -88,10 +88,10 @@ export const expenseFormSchema = z.object({
 })
 
 export const clienteFormSchema = z.object({
-  name: z.string().min(1, 'El nombre del cliente es requerido'),
-  phone: z.string().min(1, 'El teléfono del cliente es requerido'),
-  email: z.string().email('Email inválido').or(z.literal('')).default(''),
-  code: z.string().max(20, 'Máximo 20 caracteres').default(''),
+  name: z.string().trim().min(1, 'El nombre del cliente es requerido'),
+  phone: z.string().trim().min(1, 'El teléfono del cliente es requerido'),
+  email: z.string().trim().email('Email inválido').or(z.literal('')).default(''),
+  code: z.string().trim().max(20, 'Máximo 20 caracteres').default(''),
   notes: z.string().default(''),
   birthday: z.string().default(''),
   preferredServices: z.array(z.string()).default([]),
@@ -99,7 +99,7 @@ export const clienteFormSchema = z.object({
   middleName: z.string().default(''),
   lastName: z.string().default(''),
   secondLastName: z.string().default(''),
-  documentId: z.string().max(50, 'Máximo 50 caracteres').default(''),
+  documentId: z.string().trim().max(50, 'Máximo 50 caracteres').default(''),
   medicalInsurance: z.string().default(''),
   emergencyPhone: z.string().default(''),
   pets: z.array(z.object({

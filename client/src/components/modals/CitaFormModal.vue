@@ -355,8 +355,9 @@ const petOptions = computed(() => {
   return [...opts, ...clientPets.value.map(p => ({ value: p.id, label: p.name }))]
 })
 
-const onClientSelected = (client: { id: string, email?: string }) => {
+const onClientSelected = (client: { id: string, phone?: string, email?: string }) => {
   formData.value.clientId = client.id
+  loadedClientPhone.value = (client.phone ?? formData.value.clientPhone ?? '').trim()
   if (client.email) {
     formData.value.clientEmail = client.email
   }
@@ -443,6 +444,7 @@ const updateAssociatedProductRow = (index: number, field: string, value: any) =>
 }
 
 const formData = ref<CitaFormData & { extraServices: CitaFormServiceItem[] }>(defaultFormData())
+const loadedClientPhone = ref('')
 const activeEmployeeOverrides = reactive(new Set<number>())
 
 const paymentEditorRef = ref<InstanceType<typeof PaymentEditor> | null>(null)
@@ -804,14 +806,19 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
 
     const incomingPetId: string | undefined = (cita as any).petId || (cita as any).pet_id || undefined
     const incomingClinicalHistory = (cita as any).clinicalHistory || (cita as any).clinical_history || {}
+    loadedClientPhone.value = (cita.clientPhone || '').trim()
     formData.value = { clientId: cita.clientId || undefined, clientName: cita.clientName || '', clientPhone: cita.clientPhone || '', clientEmail: (cita as any).clientEmail || '', petId: incomingPetId, service: cita.serviceId || cita.service || '', employee: cita.employeeId || cita.employee || (isEmployee.value ? (authStore.profile?.id ?? '') : ''), assistantEmployee: cita.assistantId || '', assistantPercentage: Number(cita.assistantPercentage ?? 0), isFixedCommissionOverride: cita.isFixedCommissionOverride ?? false, employeePercentageOverride: cita.employeePercentageOverride != null ? Number(cita.employeePercentageOverride) : undefined, employeeAmountOverride: cita.employeeAmountOverride != null ? Number(cita.employeeAmountOverride) : undefined, assistantAmountOverride: cita.assistantAmountOverride != null ? Number(cita.assistantAmountOverride) : undefined, duration: primaryDuration, price: primaryPrice, extraServices: groupMembers, date: cita.date || toISODate(new Date()), time: cita.time || '09:00', status: cita.status || 'pending', notes: cita.notes || '', diagnosis: (cita as any).diagnosis || '', treatment: (cita as any).treatment || '', associatedProducts: initialAssociated, clinicalHistory: JSON.parse(JSON.stringify(incomingClinicalHistory)) }
 
-    const clientTask = (cita.clientId && businessId.value) ? (async () => {
+    const clientTask = (cita.clientId && !cita.clientPhone && businessId.value) ? (async () => {
       try {
         const { searchClients } = await import('../../services/clientesService')
         const r = await searchClients(businessId.value!, cita.clientName, branchId.value)
         const m = r.find(c => c.id === cita.clientId)
-        if (m) { formData.value.clientPhone = m.phone; formData.value.clientEmail = (m as any).email || '' }
+        if (m) {
+          formData.value.clientPhone = m.phone
+          loadedClientPhone.value = (m.phone || '').trim()
+          formData.value.clientEmail = (m as any).email || ''
+        }
       } catch {}
     })() : Promise.resolve()
 
@@ -869,6 +876,7 @@ watch([isOpen, () => modalData.value?.cita, () => modalData.value?.paymentData],
     await Promise.allSettled([clientTask, groupTask, petsTask])
   } else {
     isInitialSetup.value = true
+    loadedClientPhone.value = ''
     formData.value = defaultFormData()
   }
   await nextTick()
@@ -953,9 +961,19 @@ const handleSubmit = () => {
       })
   }
 
-  const citaData: CitaFormData & { id?: string; clientPhone?: string; paymentData?: PaymentEditContext } = {
+  const trimmedPhone = formData.value.clientPhone.trim()
+  const clientPhoneChanged = Boolean(
+    formData.value.clientId &&
+    !hidePhoneFromEmployee.value &&
+    trimmedPhone.length >= 7 &&
+    trimmedPhone !== '0000000000' &&
+    trimmedPhone !== loadedClientPhone.value
+  )
+
+  const citaData: CitaFormData & { id?: string; clientPhone?: string; clientPhoneChanged?: boolean; paymentData?: PaymentEditContext } = {
     ...formData.value,
     clientPhone: formData.value.clientPhone || (hidePhoneFromEmployee.value ? '0000000000' : ''),
+    clientPhoneChanged,
   }
 
   if (modalData.value?.cita?.id) {

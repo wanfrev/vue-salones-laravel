@@ -59,7 +59,7 @@ class ClientService
                 return $client;
             });
         } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-            throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, $this->duplicateMessage($e));
+            throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, $this->duplicateMessage($e, $businessId, $data['phone'] ?? null));
         }
     }
 
@@ -83,7 +83,7 @@ class ClientService
                 }
             });
         } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-            throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, $this->duplicateMessage($e));
+            throw new \Symfony\Component\HttpKernel\Exception\HttpException(422, $this->duplicateMessage($e, $businessId, $data['phone'] ?? null, $id));
         }
 
         return $client->fresh();
@@ -95,10 +95,23 @@ class ClientService
         return $trimmed === '' ? null : $trimmed;
     }
 
-    private function duplicateMessage(\Illuminate\Database\UniqueConstraintViolationException $e): string
-    {
+    private function duplicateMessage(
+        \Illuminate\Database\UniqueConstraintViolationException $e,
+        ?string $businessId = null,
+        ?string $phone = null,
+        ?string $ignoreId = null
+    ): string {
         if (str_contains($e->getMessage(), 'clients_unique_code_idx')) {
             return 'Ya existe un cliente con ese código de identificación. Prueba con otro.';
+        }
+        if ($businessId && $phone) {
+            $existing = Client::where('business_id', $businessId)
+                ->where('phone', trim($phone))
+                ->when($ignoreId, fn($q) => $q->where('id', '!=', $ignoreId))
+                ->first();
+            if ($existing && $existing->full_name) {
+                return "Ya existe un cliente registrado con este teléfono ({$existing->full_name})";
+            }
         }
         return 'Ya existe un cliente registrado con este teléfono';
     }

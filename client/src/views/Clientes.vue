@@ -110,6 +110,7 @@ const {
   modalRef: clienteModalRef,
   extraInvalidations: [
     () => ['appointments'],
+    () => ['cliente'],
   ],
 })
 

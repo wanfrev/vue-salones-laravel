@@ -63,7 +63,10 @@ export const saveCliente = async (
     throw new Error(parsed.error.issues.map(e => e.message).join('. '))
   }
 
-  const payload = { ...mapClienteFormToClientInsert(businessId, parsed.data), branch_id: branchId ?? null }
+  const basePayload = mapClienteFormToClientInsert(businessId, parsed.data)
+  const payload = data.id
+    ? basePayload
+    : { ...basePayload, branch_id: branchId ?? null }
 
   const query = data.id
     ? db.from('clients').update(payload).eq('id', data.id).select('*').single()

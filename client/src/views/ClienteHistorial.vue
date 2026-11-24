@@ -9,6 +9,10 @@
         <PrinterIcon class="h-4 w-4" />
         Estado de cuenta
       </button>
+      <button v-if="canEditClients && cliente" @click="clienteModalRef?.open(cliente)" class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:border-primary/40 hover:bg-primary/5 hover:text-primary" :title="`Editar ${(businessStore.terminology.client || 'cliente').toLowerCase()}`">
+        <PenIcon class="h-4 w-4" />
+        Editar
+      </button>
       <button v-if="cliente?.phone" @click="handleWhatsApp" class="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-3 py-2 text-sm font-semibold text-text-secondary transition-theme hover:border-success/40 hover:bg-success/5 hover:text-success" title="Contactar por WhatsApp">
         <ChatRoundLineIcon class="h-4 w-4" />
         Contactar
@@ -98,15 +102,25 @@
     />
     <ClientVisitSummary :summary="summary" :loading="isLoading" :is-patient-niche="isPatientNiche" />
   </section>
+
+  <ClienteFormModal
+    ref="clienteModalRef"
+    :is-saving="isSaving"
+    @save="handleSaveCliente"
+    @delete="handleDeleteCliente"
+  />
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { sanitizePhone, getInitials, formatDate } from '../lib/formatters'
+import { translateError } from '../lib/errors'
+import { useAuthStore } from '../store/auth'
 import { useBusinessStore } from '../store/business'
-import { getClienteById } from '../services/clientesService'
+import { useNotification } from '../composables/common/useNotification'
+import { clientesKeys, deleteCliente, getClienteById, saveCliente } from '../services/clientesService'
 import { isPetNiche as checkPetNiche } from '../config/nicheFields'
 import { isDentalNiche as checkDentalNiche, isClinicalNiche as checkClinicalNiche, isPatientNiche as checkPatientNiche } from '../config/niches'
 import { useDentalToolsNavTabs } from '../composables/dental/useDentalToolsNavTabs'
@@ -115,12 +129,21 @@ import ClientVisitList from '../components/clients/ClientVisitList.vue'
 import ClientVisitSummary from '../components/clients/ClientVisitSummary.vue'
 import DentalToolsNav from '../components/dental/DentalToolsNav.vue'
 import ClinicalToolsSection from '../components/clinical/ClinicalToolsSection.vue'
-import { ArrowLeftIcon, ChatRoundLineIcon, PrinterIcon } from '@solar-icons/vue/linear'
-import type { Cliente } from '../types/cliente'
+import { ClienteFormModal } from '../components/modals'
+import { ArrowLeftIcon, ChatRoundLineIcon, PenIcon, PrinterIcon } from '@solar-icons/vue/linear'
+import type { Cliente, ClienteFormData } from '../types/cliente'
 
+const authStore = useAuthStore()
 const businessStore = useBusinessStore()
+const queryClient = useQueryClient()
+const { success, error: showError } = useNotification()
 const route = useRoute()
 const router = useRouter()
+
+const clienteModalRef = ref<InstanceType<typeof ClienteFormModal> | null>(null)
+const canEditClients = computed(() =>
+  authStore.role !== 'encargado' || businessStore.hasFeature('encargados_edit_clients')
+)
 
 const clienteId = computed(() => route.params.id as string)
 const isPetNiche = computed(() => checkPetNiche(businessStore.nicheType))
@@ -164,6 +187,46 @@ const handleWhatsApp = () => {
   const phone = sanitizePhone(cliente.value?.phone ?? '')
   if (!phone) return
   window.open(`https://wa.me/${phone}`, '_blank')
+}
+
+const saveClientMutation = useMutation({
+  mutationFn: async (formData: ClienteFormData & { id?: string }) => {
+    if (!authStore.businessId) throw new Error('No hay negocio activo')
+    return saveCliente(authStore.businessId, formData, businessStore.currentBranchId)
+  },
+  onSuccess: async () => {
+    clienteModalRef.value?.close()
+    success(`${businessStore.terminology.client || 'Cliente'} guardado correctamente`)
+    await Promise.allSettled([
+      queryClient.invalidateQueries({ queryKey: ['cliente', clienteId.value], exact: false }),
+      queryClient.invalidateQueries({ queryKey: clientesKeys.all(authStore.businessId, businessStore.currentBranchId), exact: false }),
+      queryClient.invalidateQueries({ queryKey: ['appointments'], exact: false }),
+    ])
+  },
+  onError: (err) => {
+    showError(translateError(err))
+  },
+})
+
+const deleteClientMutation = useMutation({
+  mutationFn: (id: string) => deleteCliente(id),
+  onSuccess: async () => {
+    clienteModalRef.value?.close()
+    success(`${businessStore.terminology.client || 'Cliente'} eliminado correctamente`)
+    await queryClient.invalidateQueries({ queryKey: clientesKeys.all(authStore.businessId, businessStore.currentBranchId), exact: false })
+    router.push('/admin/clientes')
+  },
+  onError: (err) => {
+    showError(translateError(err))
+  },
+})
+
+const isSaving = computed(() => saveClientMutation.isPending.value)
+const handleSaveCliente = (data: ClienteFormData & { id?: string }) => {
+  saveClientMutation.mutate(data)
+}
+const handleDeleteCliente = (id: string) => {
+  deleteClientMutation.mutate(id)
 }
 </script>
 
