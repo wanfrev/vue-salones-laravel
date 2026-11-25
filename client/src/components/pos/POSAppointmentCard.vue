@@ -42,12 +42,19 @@ const displayProductsList = computed(() => {
   const rawList: any[] = []
   if (props.appt.isGroup && Array.isArray(props.appt.members)) {
     for (const m of props.appt.members) {
-      if (m.associated_products && Array.isArray(m.associated_products)) rawList.push(...m.associated_products)
-      else if (m.associatedProducts && Array.isArray(m.associatedProducts)) rawList.push(...m.associatedProducts)
+      const memberProds = Array.isArray(m.associated_products)
+        ? m.associated_products
+        : (Array.isArray(m.associatedProducts) ? m.associatedProducts : [])
+      if (memberProds.length > 0) {
+        rawList.push(...memberProds)
+        break
+      }
     }
+  } else if (props.appt.associated_products && Array.isArray(props.appt.associated_products)) {
+    rawList.push(...props.appt.associated_products)
+  } else if (props.appt.associatedProducts && Array.isArray(props.appt.associatedProducts)) {
+    rawList.push(...props.appt.associatedProducts)
   }
-  if (props.appt.associated_products && Array.isArray(props.appt.associated_products)) rawList.push(...props.appt.associated_products)
-  else if (props.appt.associatedProducts && Array.isArray(props.appt.associatedProducts)) rawList.push(...props.appt.associatedProducts)
 
   for (const item of rawList) {
     if (!item.productId && !item.product_id) continue
