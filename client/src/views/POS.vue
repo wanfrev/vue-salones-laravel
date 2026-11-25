@@ -1080,12 +1080,19 @@ const selectAppointment = (appt: any) => {
   const rawProducts: any[] = []
   if (appt.isGroup && Array.isArray(appt.members)) {
     for (const m of appt.members) {
-      if (m.associated_products && Array.isArray(m.associated_products)) rawProducts.push(...m.associated_products)
-      else if (m.associatedProducts && Array.isArray(m.associatedProducts)) rawProducts.push(...m.associatedProducts)
+      const memberProds = Array.isArray(m.associated_products)
+        ? m.associated_products
+        : (Array.isArray(m.associatedProducts) ? m.associatedProducts : [])
+      if (memberProds.length > 0) {
+        rawProducts.push(...memberProds)
+        break
+      }
     }
+  } else if (appt.associated_products && Array.isArray(appt.associated_products)) {
+    rawProducts.push(...appt.associated_products)
+  } else if (appt.associatedProducts && Array.isArray(appt.associatedProducts)) {
+    rawProducts.push(...appt.associatedProducts)
   }
-  if (appt.associated_products && Array.isArray(appt.associated_products)) rawProducts.push(...appt.associated_products)
-  else if (appt.associatedProducts && Array.isArray(appt.associatedProducts)) rawProducts.push(...appt.associatedProducts)
 
   for (const item of rawProducts) {
     const pid = item.productId || item.product_id

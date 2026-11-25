@@ -393,14 +393,19 @@ class PosService
                 );
 
                 foreach ($linkedProducts as $lp) {
-                    $prod = \App\Models\Product::find($lp->product_id);
+                    [$targetProductId, $targetVariantId, $prod] = $this->resolveBranchProduct(
+                        $businessId,
+                        $lp->product_id,
+                        $lp->variant_id,
+                        $appointment->branch_id,
+                    );
                     $prodName = $prod ? $prod->name : 'Producto Insumo';
                     $qty = max(0.01, (float) $lp->quantity);
 
                     $this->validateAndDeductStock(
                         $businessId,
-                        $lp->product_id,
-                        $lp->variant_id,
+                        $targetProductId,
+                        $targetVariantId,
                         $qty,
                         $prodName,
                         $appointment->branch_id,
@@ -410,8 +415,8 @@ class PosService
                     $this->inventoryService->recordMovement(
                         businessId: $businessId,
                         locationId: $defaultLocation,
-                        productId: $lp->product_id,
-                        variantId: $lp->variant_id,
+                        productId: $targetProductId,
+                        variantId: $targetVariantId,
                         movementType: 'consumption',
                         quantity: -$qty,
                         unitCost: $prod ? (float) $prod->unit_cost : 0,
@@ -431,13 +436,18 @@ class PosService
                     $appointment->branch_id,
                 );
 
-                $linkedProduct = \App\Models\Product::find($service->linked_product_id);
+                [$targetProductId, $targetVariantId, $linkedProduct] = $this->resolveBranchProduct(
+                    $businessId,
+                    $service->linked_product_id,
+                    $service->linked_variant_id,
+                    $appointment->branch_id,
+                );
                 $linkedProductName = $linkedProduct ? $linkedProduct->name : 'Producto Insumo';
 
                 $this->validateAndDeductStock(
                     $businessId,
-                    $service->linked_product_id,
-                    $service->linked_variant_id,
+                    $targetProductId,
+                    $targetVariantId,
                     1,
                     $linkedProductName,
                     $appointment->branch_id,
@@ -447,8 +457,8 @@ class PosService
                 $this->inventoryService->recordMovement(
                     businessId: $businessId,
                     locationId: $defaultLocation,
-                    productId: $service->linked_product_id,
-                    variantId: $service->linked_variant_id,
+                    productId: $targetProductId,
+                    variantId: $targetVariantId,
                     movementType: 'consumption',
                     quantity: -1,
                     unitCost: $linkedProduct ? (float) $linkedProduct->unit_cost : 0,
@@ -927,6 +937,42 @@ class PosService
         });
     }
 
+    /**
+     * When a shared service links to a product ID created under Branch A, but the appointment is
+     * being charged in Branch B (where an equivalent product row with the same name exists for
+     * Branch B), resolve to Branch B's product so stock is checked and deducted from the branch
+     * actually performing the service.
+     *
+     * @return array{0: string, 1: ?string, 2: ?Product}
+     */
+    private function resolveBranchProduct(
+        string $businessId,
+        string $productId,
+        ?string $variantId,
+        ?string $branchId,
+    ): array {
+        $prod = Product::find($productId);
+        if (!$prod || !$branchId || !$prod->branch_id || $prod->branch_id === $branchId) {
+            return [$productId, $variantId, $prod];
+        }
+
+        $normalizedName = mb_strtolower(trim($prod->name));
+        $sibling = Product::where('business_id', $businessId)
+            ->where(function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId)->orWhereNull('branch_id');
+            })
+            ->whereRaw('LOWER(TRIM(name)) = ?', [$normalizedName])
+            ->orderByDesc('active')
+            ->orderByRaw('CASE WHEN branch_id = ? THEN 0 ELSE 1 END', [$branchId])
+            ->first();
+
+        if ($sibling) {
+            return [$sibling->id, null, $sibling];
+        }
+
+        return [$productId, $variantId, $prod];
+    }
+
     private function validateAndDeductStock(
         string $businessId,
         string $productId,
@@ -944,18 +990,35 @@ class PosService
             $stockQuery->where(function ($q) use ($branchId) {
                 $q->whereNull('branch_id')->orWhere('branch_id', $branchId);
             });
+            $stockQuery->orderByRaw('CASE WHEN branch_id = ? THEN 0 ELSE 1 END', [$branchId]);
         }
 
-        $stock = (clone $stockQuery)->where('location_id', $defaultLocation)->lockForUpdate()->first()
-            ?? $stockQuery->lockForUpdate()->first();
+        $stocks = $stockQuery
+            ->orderByRaw('CASE WHEN location_id = ? THEN 0 ELSE 1 END', [$defaultLocation])
+            ->orderByDesc('quantity')
+            ->lockForUpdate()
+            ->get();
 
-        if (!$stock || $stock->quantity < $quantity) {
-            $avail = $stock ? $stock->quantity : 0;
-            throw new RuntimeException("Stock insuficiente para {$productName}. Disponible: {$avail}");
+        $totalAvailable = (float) $stocks->sum('quantity');
+
+        if ($stocks->isEmpty() || $totalAvailable < $quantity) {
+            throw new RuntimeException("Stock insuficiente para {$productName}. Disponible: {$totalAvailable}");
         }
 
-        $stock->quantity -= $quantity;
-        $stock->save();
+        $remaining = (float) $quantity;
+        foreach ($stocks as $stock) {
+            if ($remaining <= 0) {
+                break;
+            }
+            $rowQty = (float) $stock->quantity;
+            if ($rowQty <= 0) {
+                continue;
+            }
+            $deduct = min($rowQty, $remaining);
+            $stock->quantity = $rowQty - $deduct;
+            $stock->save();
+            $remaining = round($remaining - $deduct, 4);
+        }
     }
 
     /**

@@ -311,7 +311,7 @@ async function buildServicePayloads(
       data.petId,
       data.diagnosis,
       data.treatment,
-      data.associatedProducts,
+      undefined,
       data.clinicalHistory,
     ))
   }
